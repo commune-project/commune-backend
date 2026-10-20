@@ -3,9 +3,9 @@ package storage
 import testing "go:testing"
 import context "go:context"
 import time "go:time"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestPostgresAuthenticationAndSessions(t: Ref[testing.T]) -> ()
   let pool = postgresFixture(t)

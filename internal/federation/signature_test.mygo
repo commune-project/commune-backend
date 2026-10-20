@@ -4,7 +4,7 @@ import testing "go:testing"
 import time "go:time"
 import http "go:net/http"
 import strings "go:strings"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 
 func TestSigningAndVerification(t: Ref[testing.T]) -> ()
   let privateKey = storage.GeneratePrivatePEM().Unwrap()

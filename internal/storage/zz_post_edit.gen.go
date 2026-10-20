@@ -2,13 +2,17 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "database/sql"
-import "strings"
-import "time"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"database/sql"
+	"strings"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string) Result[PostRecord, string] {
 	trimmed := strings.TrimSpace(body)

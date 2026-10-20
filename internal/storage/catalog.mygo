@@ -1,6 +1,6 @@
 package storage
 
-import files "go:github.com/commune-project/commune-mygo/internal/migrationfiles"
+import files "go:github.com/commune-project/commune-backend/internal/migrationfiles"
 import sha256 "go:crypto/sha256"
 import hex "go:encoding/hex"
 import hash "go:hash"

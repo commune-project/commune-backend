@@ -9,7 +9,7 @@ import json "go:encoding/json"
 import bytes "go:bytes"
 import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
 import driver "go:database/sql/driver"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestHTTPCallback(t: Ref[testing.T]) -> ()
   let mux = http.NewServeMux()

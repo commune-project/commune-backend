@@ -2,15 +2,19 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "crypto/rand"
-import "database/sql"
-import "regexp"
-import "strings"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"crypto/rand"
+	"database/sql"
+	"regexp"
+	"strings"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func MygoIN19CommunityRepositoryM6Create(self CommunityRepository, ctx context.Context, site config.Site, identity auth.Identity, name string, title string, mode string, read string, post string) Result[CommunityRecord, string] {
 	policy := auth.CommunityPolicy{HostSiteID: self.SiteID, FederationMode: mode, ReadPolicy: read, PostPolicy: post}

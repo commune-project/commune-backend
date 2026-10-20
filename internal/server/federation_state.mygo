@@ -3,7 +3,7 @@ package server
 import context "go:context"
 import json "go:encoding/json"
 import gorm "go:gorm.io/gorm"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 
 struct CommunityStatePolicy
   Read: String `json:"read"`

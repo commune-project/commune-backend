@@ -4,7 +4,7 @@ import testing "go:testing"
 import context "go:context"
 import sql "go:database/sql"
 
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 
 func postgresFixture(t: Ref[testing.T]) -> Ref[sql.DB]
   testsupport.Postgres(t)

@@ -4,7 +4,7 @@ import context "go:context"
 import gorm "go:gorm.io/gorm"
 import url "go:net/url"
 import strings "go:strings"
-import config "github.com/commune-project/commune-mygo/internal/config"
+import config "github.com/commune-project/commune-backend/internal/config"
 
 func ActorDomain(actorURI: String) -> Result[String, String]
   let parsed = url.Parse(actorURI)

@@ -2,10 +2,13 @@
 
 package federation
 
-import "time"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/content"
+import (
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/content"
+	"github.com/commune-project/commune-backend/internal/storage"
+)
 
 var activityStreamsContext string
 

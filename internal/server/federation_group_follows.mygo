@@ -3,10 +3,10 @@ package server
 import context "go:context"
 import http "go:net/http"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 # Follow dispatch: a Person follow is a user subscription, a Group follow is a
 # policy-aware community subscription.

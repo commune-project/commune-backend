@@ -2,10 +2,10 @@ package main
 
 import fmt "go:fmt"
 import os "go:os"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 import context "go:context"
-import server "github.com/commune-project/commune-mygo/internal/server"
+import server "github.com/commune-project/commune-backend/internal/server"
 import signal "go:os/signal"
 import syscall "go:syscall"
 import slog "go:log/slog"

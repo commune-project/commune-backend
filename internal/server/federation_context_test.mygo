@@ -5,11 +5,11 @@ import context "go:context"
 import http "go:net/http"
 import strings "go:strings"
 import time "go:time"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()

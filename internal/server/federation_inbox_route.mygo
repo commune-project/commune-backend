@@ -3,9 +3,9 @@ package server
 import http "go:net/http"
 import strings "go:strings"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 func InboxRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
   if request.URL.Path == "/inbox" then

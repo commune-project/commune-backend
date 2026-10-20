@@ -5,10 +5,10 @@ import context "go:context"
 import http "go:net/http"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestPostgresScopedPeerRemoval(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()

@@ -2,7 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct FeedRepository
   DB: Ref[gorm.DB]

@@ -7,8 +7,8 @@ import strings "go:strings"
 import regexp "go:regexp"
 import mail "go:net/mail"
 import time "go:time"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct AccountRepository
   DB: Ref[gorm.DB]

@@ -8,9 +8,9 @@ import strings "go:strings"
 import time "go:time"
 import slog "go:log/slog"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 struct ActivityEnvelope
   ID: String `json:"id"`

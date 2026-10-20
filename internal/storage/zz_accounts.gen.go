@@ -2,16 +2,20 @@
 
 package storage
 
-import "gorm.io/gorm"
-import "database/sql"
-import "context"
-import "strings"
-import "regexp"
-import "net/mail"
-import "time"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"database/sql"
+	"net/mail"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type AccountRepository struct {
 	DB *gorm.DB

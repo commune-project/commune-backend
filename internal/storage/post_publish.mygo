@@ -6,8 +6,8 @@ import sql "go:database/sql"
 import rand "go:crypto/rand"
 import strings "go:strings"
 import time "go:time"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct PublishInput
   Title: String

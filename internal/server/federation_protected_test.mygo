@@ -7,11 +7,11 @@ import httptest "go:net/http/httptest"
 import strings "go:strings"
 import io "go:io"
 import time "go:time"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func signedGet(handler: http.HandlerFunc, origin: String, path: String, actorURI: String, privateKey: String, date: String) -> Ref[httptest.ResponseRecorder]
   let host = strings.TrimPrefix(origin, "https://")

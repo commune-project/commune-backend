@@ -2,17 +2,21 @@
 
 package server
 
-import "context"
-import "encoding/json"
-import "database/sql"
-import "time"
-import "net/http"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 var maxBackfillPages int
 

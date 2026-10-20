@@ -2,10 +2,14 @@
 
 package storage
 
-import files "github.com/commune-project/commune-mygo/internal/migrationfiles"
-import "crypto/sha256"
-import "encoding/hex"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+
+	files "github.com/commune-project/commune-backend/internal/migrationfiles"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type Migration struct {
 	Version  int

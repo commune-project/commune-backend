@@ -2,12 +2,16 @@
 
 package federation
 
-import "testing"
-import "time"
-import "net/http"
-import "strings"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/storage"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func TestSigningAndVerification(t *testing.T) {
 	privateKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())

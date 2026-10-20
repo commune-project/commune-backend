@@ -2,12 +2,16 @@
 
 package server
 
-import "net/http"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"net/http"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func PersonFollowersHandler(settings config.Config, db *gorm.DB, w http.ResponseWriter, request *http.Request, actorURI string) {
 	totalItems := storage.CountPersonFollowers(request.Context(), db, actorURI)

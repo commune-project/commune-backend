@@ -3,9 +3,9 @@ package server
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import rand "go:crypto/rand"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 let activityContext = "https://www.w3.org/ns/activitystreams"
 

@@ -2,12 +2,16 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "gorm.io/gorm/clause"
-import "database/sql"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"database/sql"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type CommunityRecord struct {
 	ID              string         "gorm:\"column:id\""

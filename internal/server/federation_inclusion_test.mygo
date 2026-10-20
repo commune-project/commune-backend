@@ -6,10 +6,10 @@ import http "go:net/http"
 import httptest "go:net/http/httptest"
 import strings "go:strings"
 import time "go:time"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestPostgresGroupAnnounceInclusion(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()

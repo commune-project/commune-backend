@@ -2,12 +2,16 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "database/sql"
-import "time"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"database/sql"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type ReactionRepository struct {
 	DB     *gorm.DB

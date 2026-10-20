@@ -2,14 +2,18 @@
 
 package server
 
-import "net/http"
-import "encoding/json"
-import "strings"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func WriteActivity[T any](w http.ResponseWriter, status int, value T) {
 	var __mygo_expr_1 Result[[]byte, error]

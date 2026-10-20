@@ -2,18 +2,23 @@
 
 package server
 
-import "testing"
-import "context"
-import "net/http"
-import "net/http/httptest"
-import "time"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "github.com/commune-project/commune-mygo/internal/testtransport"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"github.com/commune-project/commune-backend/internal/testsupport"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	transport "github.com/commune-project/commune-backend/internal/testtransport"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func TestPostgresGroupAnnounceInclusion(t *testing.T) {
 	var __mygo_expr_1 Result[*gorm.DB, error]

@@ -3,7 +3,7 @@ package storage
 import gorm "go:gorm.io/gorm"
 import context "go:context"
 import time "go:time"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct SessionRecord
   TokenHash: Slice[Byte] `gorm:"column:token_hash;primaryKey"`

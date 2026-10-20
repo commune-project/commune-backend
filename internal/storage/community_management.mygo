@@ -2,7 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 impl CommunityRepository
   func Manage(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, action: String, target: String, work: func(Ref[gorm.DB], CommunityRecord) -> Result[(), String]) -> Result[(), String]

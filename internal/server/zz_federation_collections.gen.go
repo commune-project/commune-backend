@@ -2,13 +2,17 @@
 
 package server
 
-import "net/http"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import "context"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"net/http"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func CollectionPageSize(settings config.Config) int {
 	return settings.Runtime.MaxPageSize

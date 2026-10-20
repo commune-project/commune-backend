@@ -2,10 +2,13 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	. "github.com/mygo-lang/mygo/prelude"
+	"gorm.io/gorm"
+)
 
 func restrictedBoundary(community CommunityRecord) bool {
 	return community.FederationMode == "local_only" || community.ReadPolicy == "members"

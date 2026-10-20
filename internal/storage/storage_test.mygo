@@ -10,7 +10,7 @@ import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
 import driver "go:database/sql/driver"
 import regexp "go:regexp"
 import gorm "go:gorm.io/gorm"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func catalog(t: Ref[testing.T]) -> Slice[Migration]
   t.Helper()

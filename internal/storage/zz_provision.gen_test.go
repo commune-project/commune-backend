@@ -2,13 +2,18 @@
 
 package storage
 
-import "testing"
-import "context"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import transport "github.com/commune-project/commune-mygo/internal/testtransport"
-import "gorm.io/gorm"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"testing"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+
+	transport "github.com/commune-project/commune-backend/internal/testtransport"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func TestPostgresProvisioning(t *testing.T) {
 	pool := postgresFixture(t)

@@ -5,7 +5,7 @@ import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
 import strings "go:strings"
 import time "go:time"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 impl PostRepository
   func Edit(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, title: String, body: String) -> Result[PostRecord, String]

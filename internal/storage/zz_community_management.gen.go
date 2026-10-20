@@ -2,10 +2,13 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	. "github.com/mygo-lang/mygo/prelude"
+	"gorm.io/gorm"
+)
 
 func MygoIN19CommunityRepositoryM6Manage(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, action string, target string, work func(*gorm.DB, CommunityRecord) Result[struct{}, string]) Result[struct{}, string] {
 	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {

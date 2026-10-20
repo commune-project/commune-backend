@@ -7,9 +7,9 @@ import errors "go:errors"
 import strings "go:strings"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct LoginInput
   Login: String `json:"login"`

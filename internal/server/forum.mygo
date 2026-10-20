@@ -8,9 +8,9 @@ import strings "go:strings"
 import strconv "go:strconv"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import content "github.com/commune-project/commune-mygo/internal/content"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 struct ErrorOutput
   Error: String `json:"error"`

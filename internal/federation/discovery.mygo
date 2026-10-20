@@ -3,8 +3,8 @@ package federation
 import context "go:context"
 import strings "go:strings"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 
 let activityJSON: String = "application/activity+json"
 let ldJSONProfile: String = "application/ld+json"

@@ -7,7 +7,7 @@ import gorm "go:gorm.io/gorm"
 import logger "go:gorm.io/gorm/logger"
 import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
 import driver "go:database/sql/driver"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func requireGORM(t: Ref[testing.T], result: Ref[gorm.DB]) -> ()
   let failed = QueryFailed(result)

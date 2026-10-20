@@ -4,10 +4,10 @@ import testing "go:testing"
 import context "go:context"
 import sql "go:database/sql"
 import time "go:time"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestPostgresFeedAccessEnforcement(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()

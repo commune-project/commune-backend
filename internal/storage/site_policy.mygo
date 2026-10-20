@@ -4,8 +4,8 @@ import context "go:context"
 import gorm "go:gorm.io/gorm"
 import url "go:net/url"
 import strings "go:strings"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct SiteRepository
   DB: Ref[gorm.DB]

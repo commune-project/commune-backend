@@ -2,16 +2,24 @@
 
 package storage
 
-import "testing"
-import "context"
-import "github.com/glebarez/sqlite"
-import "gorm.io/gorm"
-import "gorm.io/gorm/logger"
-import sqlmock "github.com/DATA-DOG/go-sqlmock"
-import "database/sql/driver"
-import transport "github.com/commune-project/commune-mygo/internal/testtransport"
-import "database/sql"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"testing"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
+	"database/sql/driver"
+
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
+
+	"database/sql"
+
+	transport "github.com/commune-project/commune-backend/internal/testtransport"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func requireGORM(t *testing.T, result *gorm.DB) {
 	failed := QueryFailed(result)

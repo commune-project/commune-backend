@@ -2,11 +2,15 @@
 
 package server
 
-import "context"
-import "encoding/json"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type CommunityStatePolicy struct {
 	Read string "json:\"read\""

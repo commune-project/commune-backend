@@ -2,17 +2,21 @@
 
 package server
 
-import "net/http"
-import "encoding/json"
-import "io"
-import "errors"
-import "strings"
-import "time"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type LoginInput struct {
 	Login    string "json:\"login\""

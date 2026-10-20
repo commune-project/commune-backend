@@ -2,9 +2,9 @@ package server
 
 import http "go:net/http"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 func PersonFollowersHandler(settings: config.Config, db: Ref[gorm.DB], w: http.ResponseWriter, request: Ref[http.Request], actorURI: String) -> ()
   let totalItems = storage.CountPersonFollowers(request.Context(), db, actorURI)

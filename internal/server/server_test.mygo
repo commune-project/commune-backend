@@ -9,9 +9,9 @@ import io "go:io"
 import strings "go:strings"
 import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
 import driver "go:database/sql/driver"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestHealthRoutingAndReadiness(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()

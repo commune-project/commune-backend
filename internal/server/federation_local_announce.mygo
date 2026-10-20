@@ -5,9 +5,9 @@ import json "go:encoding/json"
 import rand "go:crypto/rand"
 import strings "go:strings"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
 
 # A locally published post in a federated community is announced by the Group.
 # Joined remote contexts contribute their authority as an extra, deduplicated

@@ -2,12 +2,16 @@
 
 package federation
 
-import "context"
-import "strings"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"strings"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 var activityJSON string
 

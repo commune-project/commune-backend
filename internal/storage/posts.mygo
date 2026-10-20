@@ -6,7 +6,7 @@ import sql "go:database/sql"
 import time "go:time"
 import rand "go:crypto/rand"
 import url "go:net/url"
-import config "github.com/commune-project/commune-mygo/internal/config"
+import config "github.com/commune-project/commune-backend/internal/config"
 
 struct PostRecord
   ID: String `gorm:"column:id"`

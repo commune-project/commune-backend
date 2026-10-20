@@ -2,17 +2,23 @@
 
 package storage
 
-import "testing"
-import "context"
-import "strings"
-import "crypto/sha256"
-import "encoding/hex"
-import sqlmock "github.com/DATA-DOG/go-sqlmock"
-import "database/sql/driver"
-import "regexp"
-import "gorm.io/gorm"
-import transport "github.com/commune-project/commune-mygo/internal/testtransport"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
+	"testing"
+
+	"database/sql/driver"
+	"regexp"
+
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"gorm.io/gorm"
+
+	transport "github.com/commune-project/commune-backend/internal/testtransport"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func catalog(t *testing.T) []Migration {
 	t.Helper()

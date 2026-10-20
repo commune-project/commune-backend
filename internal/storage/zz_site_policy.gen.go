@@ -2,13 +2,17 @@
 
 package storage
 
-import "context"
-import "gorm.io/gorm"
-import "net/url"
-import "strings"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"net/url"
+	"strings"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	"github.com/commune-project/commune-backend/internal/config"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type SiteRepository struct {
 	DB     *gorm.DB

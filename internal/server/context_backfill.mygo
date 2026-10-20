@@ -6,10 +6,10 @@ import sql "go:database/sql"
 import time "go:time"
 import http "go:net/http"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 let maxBackfillPages: Int = 10
 let maxBackfillItems: Int = 1000

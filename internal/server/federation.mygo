@@ -4,9 +4,9 @@ import http "go:net/http"
 import json "go:encoding/json"
 import strings "go:strings"
 import gorm "go:gorm.io/gorm"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import federation "github.com/commune-project/commune-mygo/internal/federation"
-import storage "github.com/commune-project/commune-mygo/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 
 func WriteActivity[T](w: http.ResponseWriter, status: Int, value: T) -> ()
   let encoded = json.Marshal(value)

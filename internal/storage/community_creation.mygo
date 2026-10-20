@@ -6,8 +6,8 @@ import rand "go:crypto/rand"
 import sql "go:database/sql"
 import regexp "go:regexp"
 import strings "go:strings"
-import config "github.com/commune-project/commune-mygo/internal/config"
-import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 impl CommunityRepository
   func Create(self: CommunityRepository, ctx: context.Context, site: config.Site, identity: auth.Identity, name: String, title: String, mode: String, read: String, post: String) -> Result[CommunityRecord, String]

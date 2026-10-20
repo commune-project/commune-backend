@@ -2,17 +2,21 @@
 
 package server
 
-import "net/http"
-import "io"
-import "context"
-import "encoding/json"
-import "time"
-import "log/slog"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 type ActivityEnvelope struct {
 	ID    string   "json:\"id\""

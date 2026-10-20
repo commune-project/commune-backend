@@ -2,21 +2,26 @@
 
 package server
 
-import "testing"
-import "context"
-import "net/http"
-import "net/http/httptest"
-import "strings"
-import "io"
-import "time"
-import "github.com/commune-project/commune-mygo/internal/config"
-import "github.com/commune-project/commune-mygo/internal/storage"
-import "github.com/commune-project/commune-mygo/internal/federation"
-import "github.com/commune-project/commune-mygo/internal/testsupport"
-import transport "github.com/commune-project/commune-mygo/internal/testtransport"
-import "gorm.io/gorm"
-import "github.com/commune-project/commune-mygo/internal/auth"
-import . "github.com/mygo-lang/mygo/prelude"
+import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/commune-project/commune-backend/internal/config"
+	"github.com/commune-project/commune-backend/internal/federation"
+	"github.com/commune-project/commune-backend/internal/storage"
+	"github.com/commune-project/commune-backend/internal/testsupport"
+
+	"github.com/commune-project/commune-backend/internal/auth"
+	transport "github.com/commune-project/commune-backend/internal/testtransport"
+	"gorm.io/gorm"
+
+	. "github.com/mygo-lang/mygo/prelude"
+)
 
 func signedPost(handler http.HandlerFunc, origin string, path string, body string, peerURI string, privateKey string, date string) *httptest.ResponseRecorder {
 	digest := federation.BodyDigest([]byte(body))
