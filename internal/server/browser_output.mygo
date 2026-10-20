@@ -1,0 +1,176 @@
+package server
+
+import context "go:context"
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct CommunityViewerOutput
+  IsMember: Bool `json:"is_member"`
+  IsCreator: Bool `json:"is_creator"`
+  IsManager: Bool `json:"is_manager"`
+  ManagementScope: String `json:"management_scope"`
+end
+
+struct CommunityPermissions
+  CanPost: Bool `json:"can_post"`
+  CanManage: Bool `json:"can_manage"`
+  CanManageMembers: Bool `json:"can_manage_members"`
+  CanManageManagers: Bool `json:"can_manage_managers"`
+end
+
+struct PostPermissions
+  CanEdit: Bool `json:"can_edit"`
+  CanDelete: Bool `json:"can_delete"`
+  CanLike: Bool `json:"can_like"`
+  CanReply: Bool `json:"can_reply"`
+  CanHide: Bool `json:"can_hide"`
+  CanModerate: Bool `json:"can_moderate"`
+end
+
+struct CommunityPage
+  Items: Slice[CommunityOutput] `json:"items"`
+  Limit: Int `json:"limit"`
+  Offset: Int `json:"offset"`
+end
+
+struct RosterPage
+  Items: Slice[storage.RosterEntry] `json:"items"`
+  Limit: Int `json:"limit"`
+  Offset: Int `json:"offset"`
+end
+
+func BrowserCommunityDTO(
+  repository: storage.BrowserRepository,
+  view: storage.CommunityView,
+  viewer: storage.BrowserViewer
+) -> CommunityOutput
+  var output = CommunityDTO(view.Record)
+  let access = repository.Access(view, viewer)
+  let managed = access.Authority.Allows("manage-community")
+  output.Viewer = CommunityViewerOutput {
+    IsMember: viewer.Verified && view.Member,
+    IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI,
+    IsManager: viewer.Verified && view.Manager,
+    ManagementScope: access.Authority.Scope,
+  }
+  output.Permissions = CommunityPermissions {
+    CanPost: view.Record.HostSiteID == repository.SiteID &&
+      viewer.Identity.BelongsTo(repository.SiteID) &&
+      access.CanPost(),
+    CanManage: managed,
+    CanManageMembers: managed,
+    CanManageManagers: managed,
+  }
+  output
+end
+
+func BrowserPosts(
+  ctx: context.Context,
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  records: Slice[storage.PostRecord]
+) -> Result[Slice[PostOutput], String]
+  var outputs: Slice[PostOutput] = []
+  let ids = records.Map(func(post: storage.PostRecord) -> String
+    post.ID
+  end)
+  let communityIDs = records.Map(func(post: storage.PostRecord) -> String
+    post.CommunityID
+  end)
+  let views = repository.Views(ctx, viewer, communityIDs)
+  let stats = repository.Stats(ctx, viewer, ids)
+  if views.IsErr() || stats.IsErr() then
+    return Err("feed unavailable")
+  end
+  var index: Int = 0
+  while index < records.Len()
+    let record = records.Get(index).Unwrap()
+    index = index + 1
+    let found = views.Unwrap().Filter(func(view: storage.CommunityView) -> Bool view.Record.ID == record.CommunityID end)
+    let counts = stats.Unwrap().Filter(func(stat: storage.PostStats) -> Bool stat.ID == record.ID end)
+    if found.Len() != 1 || counts.Len() != 1 then
+      return Err("feed unavailable")
+    end
+    let access = repository.Access(found.Get(0).Unwrap(), viewer)
+    if !access.CanRead() then
+      return Err("not found")
+    end
+    let hosted = access.Community.HostSiteID == repository.SiteID
+    let active = !record.DeletedAt.Valid
+    let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
+    var output = PostDTO(record)
+    let stat = counts.Get(0).Unwrap()
+    output.LikeCount = stat.LikeCount
+    output.LikedByMe = viewer.Verified && stat.LikedByMe
+    output.ReplyCount = stat.ReplyCount
+    output.Permissions = PostPermissions {
+      CanEdit: edit,
+      CanDelete: edit,
+      CanLike: hosted && active && access.Subject.Verified && access.CanRead(),
+      CanReply: hosted && active && viewer.Identity.BelongsTo(repository.SiteID) && access.CanPost(),
+      CanHide: viewer.Roles.SiteAdministrator || viewer.Roles.DeploymentSuperadministrator,
+      CanModerate: hosted && access.Authority.Allows("manage-community"),
+    }
+    outputs = outputs.Append(output)
+  end
+  let audit = repository.AuditViews(ctx, viewer, views.Unwrap())
+  if audit.IsErr() then
+    return Err(audit.UnwrapErr())
+  end
+  Ok(outputs)
+end
+
+func WriteBrowserPost(
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  status: Int,
+  identity: auth.Identity,
+  record: storage.PostRecord
+) -> ()
+  let repository = storage.BrowserRepository { DB: db, SiteID: site.ID }
+  let viewer = repository.Viewer(request.Context(), identity)
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return
+  end
+  let records: Slice[storage.PostRecord] = [record]
+  let outputs = BrowserPosts(request.Context(), repository, viewer.Unwrap(), records)
+  if outputs.IsErr() then
+    Fail(w, outputs.UnwrapErr())
+  else
+    WriteJSON(w, status, outputs.Unwrap().Get(0).Unwrap())
+  end
+end
+
+func WriteBrowserCommunity(
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  status: Int,
+  identity: auth.Identity,
+  record: storage.CommunityRecord
+) -> ()
+  let repository = storage.BrowserRepository { DB: db, SiteID: site.ID }
+  let viewer = repository.Viewer(request.Context(), identity)
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return
+  end
+  let ids: Slice[String] = [record.ID]
+  let views = repository.Views(request.Context(), viewer.Unwrap(), ids)
+  if views.IsErr() || views.Unwrap().Len() != 1 then
+    Fail(w, "community unavailable")
+  else
+    WriteJSON(
+      w,
+      status,
+      BrowserCommunityDTO(repository, views.Unwrap().Get(0).Unwrap(), viewer.Unwrap())
+    )
+  end
+end

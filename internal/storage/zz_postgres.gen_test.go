@@ -2,14 +2,11 @@
 
 package storage
 
-import (
-	"context"
-	"database/sql"
-	"testing"
-
-	"github.com/commune-project/commune-backend/internal/testsupport"
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "database/sql"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func postgresFixture(t *testing.T) *sql.DB {
 	return testsupport.Postgres(t)

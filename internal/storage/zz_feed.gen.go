@@ -2,13 +2,10 @@
 
 package storage
 
-import (
-	"context"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	. "github.com/mygo-lang/mygo/prelude"
-	"gorm.io/gorm"
-)
+import "context"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type FeedRepository struct {
 	DB     *gorm.DB
@@ -75,7 +72,7 @@ func MygoIN14FeedRepositoryM5Count(self FeedRepository, ctx context.Context, com
 func MygoIN14FeedRepositoryM10ReadObject(self FeedRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[PostRecord, string] {
 	loaded := loadPostForUpdate(self.DB, id)
 	if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
-		return Err[PostRecord, string]("not found")
+		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[PostRecord, string](loaded))
 	} else {
 	}
 	post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
@@ -99,12 +96,12 @@ func MygoIN14FeedRepositoryM9AllowRead(self FeedRepository, ctx context.Context,
 	community := CommunityRepository{DB: self.DB, SiteID: self.SiteID}
 	loaded := MygoIN19CommunityRepositoryM4Open(community, ctx, communityID, false)
 	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
-		return Err[struct{}, string]("not found")
+		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
 	} else {
 	}
 	access := MygoIN19CommunityRepositoryM6Access(community, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
 	if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
-		return Err[struct{}, string]("not found")
+		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
 	} else {
 	}
 	if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {

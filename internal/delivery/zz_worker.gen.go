@@ -2,22 +2,18 @@
 
 package delivery
 
-import (
-	"context"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "net/http"
+import "io"
+import "strings"
+import "time"
+import "net/url"
+import "log/slog"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type Limits struct {
 	BatchSize      int

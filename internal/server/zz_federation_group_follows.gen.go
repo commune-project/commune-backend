@@ -2,18 +2,14 @@
 
 package server
 
-import (
-	"context"
-	"net/http"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "net/http"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func ApplyFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
 }, string] {

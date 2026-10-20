@@ -26,6 +26,8 @@ struct CommunityOutput
   PostPolicy: String `json:"post_policy"`
   ActorURI: String `json:"actor_uri,omitempty"`
   HostSiteID: String `json:"host_site_id"`
+  Viewer: CommunityViewerOutput `json:"viewer"`
+  Permissions: CommunityPermissions `json:"permissions"`
 end
 
 struct PostOutput
@@ -39,6 +41,10 @@ struct PostOutput
   AuthoredAt: time.Time `json:"authored_at"`
   UpdatedAt: time.Time `json:"updated_at"`
   Deleted: Bool `json:"deleted"`
+  LikeCount: Int64 `json:"like_count"`
+  LikedByMe: Bool `json:"liked_by_me"`
+  ReplyCount: Int64 `json:"reply_count"`
+  Permissions: PostPermissions `json:"permissions"`
 end
 
 struct PostPage
@@ -48,11 +54,32 @@ struct PostPage
 end
 
 func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
-  CommunityOutput{ID: record.ID, Name: record.Name, Title: record.Title, Description: record.Description, FederationMode: record.FederationMode, ReadPolicy: record.ReadPolicy, PostPolicy: record.PostPolicy, ActorURI: record.ActorURI.String, HostSiteID: record.HostSiteID}
+  CommunityOutput{
+    ID: record.ID,
+    Name: record.Name,
+    Title: record.Title,
+    Description: record.Description,
+    FederationMode: record.FederationMode,
+    ReadPolicy: record.ReadPolicy,
+    PostPolicy: record.PostPolicy,
+    ActorURI: record.ActorURI.String,
+    HostSiteID: record.HostSiteID,
+  }
 end
 
 func PostDTO(record: storage.PostRecord) -> PostOutput
-  PostOutput{ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
+  PostOutput{
+    ID: record.ID,
+    CommunityID: record.CommunityID,
+    ObjectType: record.ObjectType,
+    Title: content.RenderText(record.Title.String),
+    Body: content.RenderText(record.Body),
+    AuthorActorURI: record.AuthorActorURI,
+    ParentID: record.ParentID.String,
+    AuthoredAt: record.AuthoredAt,
+    UpdatedAt: record.UpdatedAt,
+    Deleted: record.DeletedAt.Valid,
+  }
 end
 
 func WriteJSON[T](w: http.ResponseWriter, status: Int, value: T) -> ()
@@ -81,7 +108,13 @@ func FailStatus(reason: String) -> Int
   if reason == "unauthenticated" then
     return 401
   end
-  if reason == "invalid page" || reason == "invalid post input" || reason == "invalid community input" || reason == "invalid access policy" || reason == "invalid state" || reason == "invalid member" || reason == "invalid manager" then
+  if reason == "invalid page" ||
+    reason == "invalid post input" ||
+    reason == "invalid community input" ||
+    reason == "invalid access policy" ||
+    reason == "invalid state" ||
+    reason == "invalid member" ||
+    reason == "invalid manager" then
     return 400
   end
   if reason == "object version conflict" || reason == "object identity conflict" then
@@ -98,8 +131,14 @@ func Segments(path: String) -> Slice[String]
   strings.Split(strings.Trim(path, "/"), "/")
 end
 
-func DecodeJSON[T](w: http.ResponseWriter, request: Ref[http.Request], maxBytes: Int, target: Ref[T]) -> Result[(), String]
-  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") != "application/json" then
+func DecodeJSON[T](
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  maxBytes: Int,
+  target: Ref[T]
+) -> Result[(), String]
+  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") !=
+    "application/json" then
     return Err("expected application/json")
   end
   let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
@@ -122,7 +161,10 @@ func DecodeJSONBody[T](reader: io.ReadCloser, target: Ref[T]) -> Result[(), Stri
   Ok(())
 end
 
-func PageFromQuery(settings: config.Config, request: Ref[http.Request]) -> Result[storage.Page, String]
+func PageFromQuery(
+  settings: config.Config,
+  request: Ref[http.Request]
+) -> Result[storage.Page, String]
   let query = request.URL.Query()
   var limit = 20
   var offset = 0
@@ -147,7 +189,11 @@ func PageFromQuery(settings: config.Config, request: Ref[http.Request]) -> Resul
   Ok(page)
 end
 
-func Authenticated(db: Ref[gorm.DB], site: config.Site, request: Ref[http.Request]) -> Result[storage.AuthenticatedSession, String]
+func Authenticated(
+  db: Ref[gorm.DB],
+  site: config.Site,
+  request: Ref[http.Request]
+) -> Result[storage.AuthenticatedSession, String]
   let token = ReadSession(request)
   if token.IsErr() then
     return Err("unauthenticated")
@@ -156,19 +202,34 @@ func Authenticated(db: Ref[gorm.DB], site: config.Site, request: Ref[http.Reques
   sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
 end
 
-func AuthorizeMutation(settings: config.Config, session: storage.AuthenticatedSession, request: Ref[http.Request]) -> Bool
+func AuthorizeMutation(
+  settings: config.Config,
+  session: storage.AuthenticatedSession,
+  request: Ref[http.Request]
+) -> Bool
   SameOrigin(settings, request) && session.AuthorizesMutation(request.Header.Get("X-CSRF-Token"))
 end
 
-func ForumRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+func ForumRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request]
+) -> ()
   let parts = Segments(request.URL.Path)
-  if parts.Len() >= 3 && parts.Get(2).Unwrap() == "communities" then
+  if BrowserReadRoute(settings, db, site, w, request, parts) then
+    return
+  end
+  if parts.Len() >= 3 && parts.Len() <= 5 && parts.Get(2).Unwrap() == "communities" then
     CommunityRoute(settings, db, site, w, request, parts)
   else
-    if parts.Len() >= 3 && parts.Get(2).Unwrap() == "posts" then
+    if parts.Len() >= 4 && parts.Len() <= 5 && parts.Get(2).Unwrap() == "posts" then
       PostRoute(settings, db, site, w, request, parts)
     else
-      if parts.Len() == 5 && parts.Get(2).Unwrap() == "contexts" && parts.Get(4).Unwrap() == "backfill" then
+      if parts.Len() == 5 &&
+        parts.Get(2).Unwrap() == "contexts" &&
+        parts.Get(4).Unwrap() == "backfill" then
         ContextBackfillRoute(settings, db, site, w, request, parts.Get(3).Unwrap())
       else
         WriteErrorJSON(w, 404, "not found")

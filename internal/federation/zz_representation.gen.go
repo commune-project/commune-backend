@@ -2,13 +2,10 @@
 
 package federation
 
-import (
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/content"
-	"github.com/commune-project/commune-backend/internal/storage"
-)
+import "time"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/content"
 
 var activityStreamsContext string
 

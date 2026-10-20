@@ -2,16 +2,12 @@
 
 package storage
 
-import (
-	"context"
-	"net/url"
-	"strings"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "gorm.io/gorm"
+import "net/url"
+import "strings"
+import "github.com/commune-project/commune-backend/internal/config"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func ActorDomain(actorURI string) Result[string, string] {
 	var __mygo_expr_1 Result[*url.URL, error]

@@ -1,0 +1,308 @@
+package server
+
+import http "go:net/http"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct PostSource
+  ID: String `json:"id"`
+  Title: String `json:"title"`
+  Body: String `json:"body"`
+  UpdatedAt: time.Time `json:"updated_at"`
+end
+
+func BrowserIdentity(
+  db: Ref[gorm.DB],
+  site: config.Site,
+  request: Ref[http.Request],
+  required: Bool
+) -> Result[auth.Identity, String]
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    if !required && session.UnwrapErr() == "unauthenticated" then
+      return Ok(auth.Identity{})
+    end
+    return Err(session.UnwrapErr())
+  end
+  Ok(session.Unwrap().Identity)
+end
+
+# Handles browser reads before mutation dispatch. Existing POST/PATCH/DELETE
+# routes remain responsible for their own authentication and CSRF checks.
+func BrowserReadRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  let resource = parts.Get(2).UnwrapOr("")
+  let section = parts.Get(4).UnwrapOr("")
+  let community = resource == "communities" &&
+    (parts.Len() == 3 ||
+      parts.Len() == 4 ||
+      (parts.Len() == 5 && (section == "topics" || section == "members" || section == "managers")))
+  let topic = resource == "topics" && parts.Len() == 3
+  let post = resource == "posts" &&
+    (parts.Len() == 4 || (parts.Len() == 5 && (section == "replies" || section == "source")))
+  if !community && !topic && !post then
+    return false
+  end
+  let roster = community && (section == "members" || section == "managers")
+  if request.Method != "GET" then
+    if topic || section == "source" then
+      MethodNotAllowed(w, "GET")
+      return true
+    end
+    if roster && request.Method != "POST" && request.Method != "DELETE" then
+      MethodNotAllowed(w, "GET, POST, DELETE")
+      return true
+    end
+    return false
+  end
+  let identity = BrowserIdentity(db, site, request, roster || section == "source")
+  if identity.IsErr() then
+    Fail(w, identity.UnwrapErr())
+    return true
+  end
+  let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = repository.Viewer(request.Context(), identity.Unwrap())
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return true
+  end
+  if community && parts.Len() == 4 then
+    BrowserCommunityRead(repository, viewer.Unwrap(), w, request, parts.Get(3).Unwrap())
+    return true
+  end
+  if post && (parts.Len() == 4 || section == "source") then
+    BrowserPostRead(repository, viewer.Unwrap(), w, request, parts.Get(3).Unwrap(), section == "source")
+    return true
+  end
+  let page = PageFromQuery(settings, request)
+  if page.IsErr() then
+    Fail(w, page.UnwrapErr())
+    return true
+  end
+  if community && parts.Len() == 3 then
+    let views = repository.ListCommunities(
+      request.Context(),
+      viewer.Unwrap(),
+      page.Unwrap(),
+      settings.Runtime.MaxPageSize
+    )
+    if views.IsErr() then
+      Fail(w, views.UnwrapErr())
+    else
+      let outputs = views.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
+        BrowserCommunityDTO(repository, view, viewer.Unwrap())
+      end)
+      WriteJSON(
+        w,
+        200,
+        CommunityPage{
+          Items: outputs,
+          Limit: page.Unwrap().Limit,
+          Offset: page.Unwrap().Offset,
+        }
+      )
+    end
+    return true
+  end
+  if roster then
+    let rows = repository.Roster(
+      request.Context(),
+      parts.Get(3).Unwrap(),
+      viewer.Unwrap(),
+      section == "managers",
+      page.Unwrap(),
+      settings.Runtime.MaxPageSize
+    )
+    if rows.IsErr() then
+      Fail(w, rows.UnwrapErr())
+    else
+      WriteJSON(
+        w,
+        200,
+        RosterPage{
+          Items: rows.Unwrap(),
+          Limit: page.Unwrap().Limit,
+          Offset: page.Unwrap().Offset,
+        }
+      )
+    end
+    return true
+  end
+  BrowserTopicRead(
+    repository,
+    viewer.Unwrap(),
+    w,
+    request,
+    parts,
+    page.Unwrap(),
+    settings.Runtime.MaxPageSize
+  )
+  true
+end
+
+func BrowserCommunityRead(
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  id: String
+) -> ()
+  let ids: Slice[String] = [id]
+  let views = repository.Views(request.Context(), viewer, ids)
+  if views.IsErr() then
+    Fail(w, views.UnwrapErr())
+    return
+  end
+  if views.Unwrap().Len() != 1 then
+    Fail(w, "not found")
+    return
+  end
+  let view = views.Unwrap().Get(0).Unwrap()
+  # Hosted communities are addressable directly; replicas need this site's
+  # reception, just as they do in discovery.
+  if view.Record.HostSiteID != repository.SiteID then
+    let received = storage.QueryExists(repository.DB.WithContext(request.Context()).Table("posts AS p").Joins(
+      "JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?",
+      repository.SiteID
+    ).Where(
+      "p.community_id=?",
+      id
+    ))
+    if received.IsErr() then
+      Fail(w, received.UnwrapErr())
+      return
+    end
+    if view.Record.HostSiteID != "" || !received.Unwrap() then
+      Fail(w, "not found")
+      return
+    end
+  end
+  if !repository.Access(view, viewer).CanRead() then
+    Fail(w, "not found")
+    return
+  end
+  let audit = repository.AuditViews(request.Context(), viewer, views.Unwrap())
+  if audit.IsErr() then
+    Fail(w, audit.UnwrapErr())
+  else
+    WriteJSON(w, 200, BrowserCommunityDTO(repository, view, viewer))
+  end
+end
+
+func BrowserPostRead(
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  id: String,
+  source: Bool
+) -> ()
+  let feed = storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
+  let read = feed.ReadObject(request.Context(), id, viewer.Identity, false)
+  if read.IsErr() then
+    Fail(w, read.UnwrapErr())
+    return
+  end
+  let record = read.Unwrap()
+  let records: Slice[storage.PostRecord] = [record]
+  let outputs = BrowserPosts(request.Context(), repository, viewer, records)
+  if outputs.IsErr() then
+    Fail(w, outputs.UnwrapErr())
+    return
+  end
+  let output = outputs.Unwrap().Get(0).Unwrap()
+  if source then
+    if record.DeletedAt.Valid then
+      Fail(w, "not found")
+    else
+      if !output.Permissions.CanEdit then
+        Fail(w, "forbidden")
+      else
+        WriteJSON(
+          w,
+          200,
+          PostSource{
+            ID: record.ID,
+            Title: record.Title.String,
+            Body: record.Body,
+            UpdatedAt: record.UpdatedAt,
+          }
+        )
+      end
+    end
+  else
+    WriteJSON(w, 200, output)
+  end
+end
+
+func BrowserTopicRead(
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String],
+  page: storage.Page,
+  max: Int
+) -> ()
+  let feed = storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
+  var records: Result[Slice[storage.PostRecord], String] = Err("not found")
+  var readCommunityID: String = ""
+  if parts.Get(2).Unwrap() == "topics" then
+    records = repository.Latest(request.Context(), viewer, page, max)
+  else
+    let id = parts.Get(3).Unwrap()
+    if parts.Get(2).Unwrap() == "communities" then
+      readCommunityID = id
+      records = feed.ListTopics(request.Context(), id, viewer.Identity, false, page, max)
+    else
+      let parent = feed.ReadObject(request.Context(), id, viewer.Identity, false)
+      if parent.IsErr() then
+        Fail(w, parent.UnwrapErr())
+        return
+      end
+      readCommunityID = parent.Unwrap().CommunityID
+      records = feed.ListReplies(
+        request.Context(),
+        parent.Unwrap().CommunityID,
+        id,
+        viewer.Identity,
+        false,
+        page,
+        max
+      )
+    end
+  end
+  if records.IsErr() then
+    Fail(w, records.UnwrapErr())
+    return
+  end
+  # An empty page still reveals that the addressed protected collection exists.
+  if records.Unwrap().Len() == 0 && readCommunityID != "" then
+    let ids: Slice[String] = [readCommunityID]
+    let views = repository.Views(request.Context(), viewer, ids)
+    if views.IsErr() then
+      Fail(w, views.UnwrapErr())
+      return
+    end
+    let audit = repository.AuditViews(request.Context(), viewer, views.Unwrap())
+    if audit.IsErr() then
+      Fail(w, audit.UnwrapErr())
+      return
+    end
+  end
+  let outputs = BrowserPosts(request.Context(), repository, viewer, records.Unwrap())
+  if outputs.IsErr() then
+    Fail(w, outputs.UnwrapErr())
+  else
+    WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset})
+  end
+end

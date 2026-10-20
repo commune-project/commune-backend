@@ -8,57 +8,119 @@ import time "go:time"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 
 impl PostRepository
-  func Edit(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, title: String, body: String) -> Result[PostRecord, String]
+  func Edit(
+    self: PostRepository,
+    ctx: context.Context,
+    id: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    title: String,
+    body: String
+  ) -> Result[PostRecord, String]
     let trimmed = strings.TrimSpace(body)
     let cleanTitle = strings.TrimSpace(title)
-    if trimmed == "" || (trimmed as Slice[Byte]).Len() > 65536 || (cleanTitle as Slice[Byte]).Len() > 200 then
+    if trimmed == "" ||
+      (trimmed as Slice[Byte]).Len() > 65536 ||
+      (cleanTitle as Slice[Byte]).Len() > 200 then
       return Err("invalid post input")
     end
-    self.MutateAuthor(ctx, id, identity, remoteVerified, func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
-      if post.DeletedAt.Valid then
-        return Err("not found")
+    self.MutateAuthor(
+      ctx,
+      id,
+      identity,
+      remoteVerified,
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+        if post.DeletedAt.Valid then
+          return Err("not found")
+        end
+        if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" then
+          return Err("invalid post input")
+        end
+        MutationResult(tx.Exec(
+          "UPDATE posts SET title=?,body=?,updated_at=? WHERE id=? AND deleted_at IS NULL",
+          sql.NullString {
+            String: cleanTitle,
+            Valid: cleanTitle != "",
+          },
+          trimmed,
+          time.Now().UTC().Truncate(time.Microsecond),
+          id
+        ))
       end
-      if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" then
-        return Err("invalid post input")
-      end
-      MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,updated_at=? WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, time.Now().UTC().Truncate(time.Microsecond), id))
-    end)
+    )
   end
-
-  func Delete(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[(), String]
-    self.MutateAuthor(ctx, id, identity, remoteVerified, func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
-      if post.DeletedAt.Valid then
-        return Ok(())
+  func Delete(
+    self: PostRepository,
+    ctx: context.Context,
+    id: String,
+    identity: auth.Identity,
+    remoteVerified: Bool
+  ) -> Result[(), String]
+    self.MutateAuthor(
+      ctx,
+      id,
+      identity,
+      remoteVerified,
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+        if post.DeletedAt.Valid then
+          return Ok(())
+        end
+        MutationResult(tx.Exec(
+          "UPDATE posts SET body='',deleted_at=?,updated_at=? WHERE id=?",
+          time.Now().UTC().Truncate(time.Microsecond),
+          time.Now().UTC().Truncate(time.Microsecond),
+          id
+        ))
       end
-      MutationResult(tx.Exec("UPDATE posts SET body='',deleted_at=?,updated_at=? WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
-    end)
+    )
   end
-
-  func MutateAuthor(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]) -> Result[PostRecord, String]
+  func MutateAuthor(
+    self: PostRepository,
+    ctx: context.Context,
+    id: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]
+  ) -> Result[PostRecord, String]
     var stored = PostRecord{}
-    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let loaded = loadPostForUpdate(tx, id)
-      if loaded.IsErr() then
-        return Err(loaded.UnwrapErr())
+    let result = RunTransaction(
+      ctx,
+      self.DB,
+      func(tx: Ref[gorm.DB]) -> Result[(), String]
+        let loaded = loadPostForUpdate(tx, id)
+        if loaded.IsErr() then
+          return Err(loaded.UnwrapErr())
+        end
+        let post = loaded.Unwrap()
+        let received = QueryExists(tx.WithContext(ctx).Table("site_posts").Where(
+          "site_id=? AND post_id=? AND hidden_at IS NULL",
+          self.SiteID,
+          id
+        ))
+        if received.IsErr() then
+          return Err(received.UnwrapErr())
+        end
+        if !received.Unwrap() then
+          return Err("not found")
+        end
+        let community = CommunityRepository { DB: tx, SiteID: self.SiteID }
+        let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
+        if access.IsErr() then
+          return Err(access.UnwrapErr())
+        end
+        if !access.Unwrap().CanEditBody(post.AuthorActorURI) then
+          return Err("forbidden")
+        end
+        let changed = work(tx, post)
+        if changed.IsErr() then
+          return Err(changed.UnwrapErr())
+        end
+        if MutationResult(tx.Table("posts").Where("id=?", id).Find(Ref.new(stored))).IsErr() then
+          return Err("post update failed")
+        end
+        Ok(())
       end
-      let post = loaded.Unwrap()
-      let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
-      let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
-      if access.IsErr() then
-        return Err(access.UnwrapErr())
-      end
-      if !access.Unwrap().CanEditBody(post.AuthorActorURI) then
-        return Err("forbidden")
-      end
-      let changed = work(tx, post)
-      if changed.IsErr() then
-        return Err(changed.UnwrapErr())
-      end
-      if MutationResult(tx.Table("posts").Where("id=?", id).Find(Ref.new(stored))).IsErr() then
-        return Err("post update failed")
-      end
-      Ok(())
-    end)
+    )
     if result.IsErr() then
       return Err(result.UnwrapErr())
     end

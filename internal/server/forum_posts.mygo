@@ -17,17 +17,18 @@ struct ReplyInput
   ContextURI: String `json:"context_uri"`
 end
 
-func PostRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> ()
+func PostRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> ()
   let id = parts.Get(3).Unwrap()
-  let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
   if parts.Len() == 4 then
     if request.Method == "GET" then
-      let read = feed.ReadObject(request.Context(), id, OptionalIdentity(db, site, request), false)
-      if read.IsErr() then
-        Fail(w, read.UnwrapErr())
-      else
-        WriteJSON(w, 200, PostDTO(read.Unwrap()))
-      end
+      let _ = BrowserReadRoute(settings, db, site, w, request, parts)
     else
       let actor = RequireMutation(settings, db, site, request)
       if actor.IsErr() then
@@ -41,7 +42,15 @@ func PostRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: 
   end
 end
 
-func PostMutation(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String, identity: auth.Identity) -> ()
+func PostMutation(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  id: String,
+  identity: auth.Identity
+) -> ()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
   if request.Method == "PATCH" then
     let input = EditPostInput{}
@@ -53,7 +62,7 @@ func PostMutation(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
       if edited.IsErr() then
         Fail(w, edited.UnwrapErr())
       else
-        WriteJSON(w, 200, PostDTO(edited.Unwrap()))
+        WriteBrowserPost(db, site, w, request, 200, identity, edited.Unwrap())
       end
     end
   else
@@ -70,7 +79,15 @@ func PostMutation(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
   end
 end
 
-func PostSectionRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String], id: String) -> ()
+func PostSectionRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String],
+  id: String
+) -> ()
   let section = parts.Get(4).Unwrap()
   if section == "replies" then
     ReplyRoute(settings, db, site, w, request, id)
@@ -100,7 +117,7 @@ func PostSectionRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Si
     if imported.IsErr() then
       Fail(w, imported.UnwrapErr())
     else
-      WriteJSON(w, 201, PostDTO(imported.Unwrap()))
+      WriteBrowserPost(db, site, w, request, 201, identity, imported.Unwrap())
     end
     return
   end
@@ -113,25 +130,17 @@ func PostSectionRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Si
   WriteErrorJSON(w, 404, "not found")
 end
 
-func ReplyRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+func ReplyRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  id: String
+) -> ()
   let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
   if request.Method == "GET" then
-    let page = PageFromQuery(settings, request)
-    if page.IsErr() then
-      Fail(w, page.UnwrapErr())
-      return
-    end
-    let parent = feed.ReadObject(request.Context(), id, OptionalIdentity(db, site, request), false)
-    if parent.IsErr() then
-      Fail(w, parent.UnwrapErr())
-      return
-    end
-    let listed = feed.ListReplies(request.Context(), parent.Unwrap().CommunityID, id, OptionalIdentity(db, site, request), false, page.Unwrap(), settings.Runtime.MaxPageSize)
-    if listed.IsErr() then
-      Fail(w, listed.UnwrapErr())
-    else
-      WriteJSON(w, 200, PostPage{Items: listed.Unwrap().Map(PostDTO), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
-    end
+    let _ = BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
   else
     if request.Method == "POST" then
       let actor = RequireMutation(settings, db, site, request)
@@ -151,15 +160,36 @@ func ReplyRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w:
         return
       end
       let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-      let published = posts.Publish(request.Context(), site, parent.Unwrap().CommunityID, actor.Unwrap(), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI})
+      let published = posts.Publish(
+        request.Context(),
+        site,
+        parent.Unwrap().CommunityID,
+        actor.Unwrap(),
+        false,
+        storage.PublishInput{
+          Title: "",
+          Body: input.Body,
+          ParentID: id,
+          ContextURI: input.ContextURI,
+        }
+      )
       if published.IsErr() then
         Fail(w, published.UnwrapErr())
       else
         let loaded = storage.LoadCommunityByID(request.Context(), db, parent.Unwrap().CommunityID)
-        if loaded.IsOk() && loaded.Unwrap().IsSome() && federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
-          let _ = AnnounceLocalPost(request.Context(), settings, db, site, loaded.Unwrap().Unwrap(), published.Unwrap())
+        if loaded.IsOk() &&
+          loaded.Unwrap().IsSome() &&
+          federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
+          let _ = AnnounceLocalPost(
+            request.Context(),
+            settings,
+            db,
+            site,
+            loaded.Unwrap().Unwrap(),
+            published.Unwrap()
+          )
         end
-        WriteJSON(w, 201, PostDTO(published.Unwrap()))
+        WriteBrowserPost(db, site, w, request, 201, actor.Unwrap(), published.Unwrap())
       end
     else
       MethodNotAllowed(w, "GET, POST")

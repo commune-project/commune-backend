@@ -2,17 +2,13 @@
 
 package server
 
-import (
-	"net/http"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "net/http"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type CreateCommunityInput struct {
 	Name       string "json:\"name\""
@@ -40,14 +36,6 @@ type SubmissionInput struct {
 	State  string "json:\"state\""
 }
 
-func OptionalIdentity(db *gorm.DB, site config.Site, request *http.Request) auth.Identity {
-	session := Authenticated(db, site, request)
-	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
-		return auth.Identity{}
-	} else {
-	}
-	return MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity
-}
 func RequireMutation(settings config.Config, db *gorm.DB, site config.Site, request *http.Request) Result[auth.Identity, string] {
 	session := Authenticated(db, site, request)
 	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
@@ -69,7 +57,7 @@ func CommunityRoute(settings config.Config, db *gorm.DB, site config.Site, w htt
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
 		if request.Method != "POST" {
-			MethodNotAllowed(w, "POST")
+			MethodNotAllowed(w, "GET, POST")
 			return
 		} else {
 			actor := RequireMutation(settings, db, site, request)
@@ -88,7 +76,7 @@ func CommunityRoute(settings config.Config, db *gorm.DB, site config.Site, w htt
 						Fail(w, MygoIN6ResultM9UnwrapErr[storage.CommunityRecord, string](created))
 						return
 					} else {
-						WriteJSON(w, 201, CommunityDTO(MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](created)))
+						WriteBrowserCommunity(db, site, w, request, 201, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](created))
 						return
 					}
 				}
@@ -100,14 +88,8 @@ func CommunityRoute(settings config.Config, db *gorm.DB, site config.Site, w htt
 				MethodNotAllowed(w, "GET")
 				return
 			} else {
-				read := storage.MygoIN19CommunityRepositoryM4Read(communities, request.Context(), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), OptionalIdentity(db, site, request), false)
-				if MygoIN6ResultM5IsErr[storage.CommunityRecord, string](read) {
-					Fail(w, MygoIN6ResultM9UnwrapErr[storage.CommunityRecord, string](read))
-					return
-				} else {
-					WriteJSON(w, 200, CommunityDTO(MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](read)))
-					return
-				}
+				BrowserReadRoute(settings, db, site, w, request, parts)
+				return
 			}
 		} else {
 			CommunityMemberRoute(settings, db, site, w, request, parts)
@@ -195,23 +177,9 @@ func CommunityMemberRoute(settings config.Config, db *gorm.DB, site config.Site,
 	return
 }
 func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
-	feed := storage.FeedRepository{DB: db, SiteID: site.ID}
 	if request.Method == "GET" {
-		identity := OptionalIdentity(db, site, request)
-		page := PageFromQuery(settings, request)
-		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
-			Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
-			return
-		} else {
-			listed := storage.MygoIN14FeedRepositoryM10ListTopics(feed, request.Context(), id, identity, false, MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
-			if MygoIN6ResultM5IsErr[[]storage.PostRecord, string](listed) {
-				Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, string](listed))
-				return
-			} else {
-				WriteJSON(w, 200, PostPage{Items: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](listed), PostDTO), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
-				return
-			}
-		}
+		BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
+		return
 	} else {
 		if request.Method == "POST" {
 			actor := RequireMutation(settings, db, site, request)
@@ -220,7 +188,7 @@ func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, 
 				return
 			} else {
 			}
-			identity_1 := MygoIN6ResultM6Unwrap[auth.Identity, string](actor)
+			identity := MygoIN6ResultM6Unwrap[auth.Identity, string](actor)
 			input := CreateTopicInput{}
 			decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
 			if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
@@ -228,7 +196,7 @@ func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, 
 				return
 			} else {
 				posts := storage.PostRepository{DB: db, SiteID: site.ID}
-				published := storage.MygoIN14PostRepositoryM7Publish(posts, request.Context(), site, id, identity_1, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: ""})
+				published := storage.MygoIN14PostRepositoryM7Publish(posts, request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: ""})
 				if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
 					Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
 					return
@@ -238,7 +206,7 @@ func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, 
 						AnnounceLocalPost(request.Context(), settings, db, site, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)), MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
 					} else {
 					}
-					WriteJSON(w, 201, PostDTO(MygoIN6ResultM6Unwrap[storage.PostRecord, string](published)))
+					WriteBrowserPost(db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
 					return
 				}
 			}

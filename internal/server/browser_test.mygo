@@ -1,0 +1,643 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import json "go:encoding/json"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func browserGet(
+  t: Ref[testing.T],
+  handler: http.HandlerFunc,
+  origin: String,
+  path: String,
+  cookies: Slice[Ref[http.Cookie]],
+  status: Int
+) -> Ref[httptest.ResponseRecorder]
+  let result = doForum(
+    handler,
+    forumCall {
+      Method: "GET",
+      Origin: origin,
+      Path: path,
+      Cookies: cookies,
+    }
+  )
+  if result.Code != status || result.Header().Get("Cache-Control") != "no-store" then
+    t.Fatalf("GET %s: expected %d, got %d %s", path, status, result.Code, result.Body.String())
+  end
+  result
+end
+
+func TestBrowserUnavailableAuthentication(t: Ref[testing.T]) -> ()
+  let fixture = transport.New().Unwrap()
+  let db = transport.ORM(fixture.DB).Unwrap()
+  let _ = fixture.Mock.ExpectClose()
+  let _ = fixture.DB.Close()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let handler = Handler(settings, db)
+  let tokens = auth.NewSessionTokens()
+  let cookies = tokens.Cookies(time.Now().Add(time.Hour))
+  let cookieRefs = cookies.Map(func(cookie: http.Cookie) -> Ref[http.Cookie]
+    Ref.new(cookie)
+  end)
+  let paths: Slice[String] = [
+    "/api/v1/communities",
+    "/api/v1/topics",
+    "/api/v1/posts/missing",
+    "/api/v1/posts/missing/source",
+    "/api/v1/communities/missing/members",
+  ]
+  paths.Each(func(path: String) -> ()
+    browserGet(t, handler, site.Origin, path, cookieRefs, 503)
+    ()
+  end)
+  fixture.Mock.ExpectationsWereMet().Unwrap()
+  ()
+end
+
+func browserPost(t: Ref[testing.T], response: Ref[httptest.ResponseRecorder]) -> PostOutput
+  let output = PostOutput{}
+  if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
+    t.Fatalf("invalid post: %s", response.Body.String())
+  end
+  output
+end
+
+func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository { DB: db }
+  let alice = accounts.Create(ctx, a, "alice", "alice@example.org", "alice-account-password").Unwrap()
+  let _ = accounts.Create(ctx, a, "bob", "", "bob-account-password").Unwrap()
+  let carol = accounts.Create(ctx, b, "carol", "", "carol-account-password").Unwrap()
+  let communities = storage.CommunityRepository { DB: db, SiteID: a.ID }
+  let other = storage.CommunityRepository { DB: db, SiteID: b.ID }
+  let open = communities.Create(
+    ctx,
+    a,
+    alice,
+    "zpublic",
+    "Public",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let private = communities.Create(
+    ctx,
+    a,
+    alice,
+    "aprivate",
+    "Private",
+    "federated",
+    "members",
+    "members"
+  ).Unwrap()
+  let local = communities.Create(
+    ctx,
+    a,
+    alice,
+    "blocal",
+    "Local",
+    "local_only",
+    "eligible_users",
+    "members"
+  ).Unwrap()
+  let foreign = other.Create(
+    ctx,
+    b,
+    carol,
+    "foreign",
+    "Foreign",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let posts = storage.PostRepository { DB: db, SiteID: a.ID }
+  let foreignPosts = storage.PostRepository { DB: db, SiteID: b.ID }
+  let raw = "<p>hello &amp; world</p>"
+  let title = "<b>Title &amp;</b>"
+  let post = posts.Publish(
+    ctx,
+    a,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Title: title,
+      Body: raw,
+    }
+  ).Unwrap()
+  let _ = posts.Publish(
+    ctx,
+    a,
+    private.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Title: "Secret",
+      Body: "secret",
+    }
+  ).Unwrap()
+  let _ = foreignPosts.Publish(
+    ctx,
+    b,
+    foreign.ID,
+    carol,
+    false,
+    storage.PublishInput {
+      Title: "Foreign",
+      Body: "foreign",
+    }
+  ).Unwrap()
+  let handler = Handler(settings, db)
+  let aliceCookies = login(handler, a.Origin, "alice", "alice-account-password")
+  let bobCookies = login(handler, a.Origin, "bob", "bob-account-password")
+  let carolCookies = login(handler, b.Origin, "carol", "carol-account-password")
+  let anonymous: Slice[Ref[http.Cookie]] = []
+  let listed = browserGet(t, handler, a.Origin, "/api/v1/communities?limit=1", anonymous, 200)
+  let page = CommunityPage {}
+  let _ = json.Unmarshal(listed.Body.Bytes(), Ref.new(page)).Unwrap()
+  if page.Items.Len() != 1 ||
+    page.Items.Get(0).Unwrap().ID != open.ID ||
+    page.Items.Get(0).Unwrap().Permissions.CanPost then
+    t.Fatal("discovery did not filter before pagination")
+  end
+  let localRead = browserGet(
+    t,
+    handler,
+    a.Origin,
+    "/api/v1/communities/" + local.ID,
+    bobCookies,
+    200
+  )
+  let localDTO = CommunityOutput {}
+  let _ = json.Unmarshal(localRead.Body.Bytes(), Ref.new(localDTO)).Unwrap()
+  if localDTO.Viewer.IsMember || localDTO.Permissions.CanPost || localDTO.Permissions.CanManage then
+    t.Fatal("ordinary reader received member or management permissions")
+  end
+  let _ = browserGet(t, handler, a.Origin, "/api/v1/communities/" + private.ID, bobCookies, 404)
+  let _ = browserGet(t, handler, a.Origin, "/api/v1/communities/" + local.ID, anonymous, 404)
+  let _ = browserGet(t, handler, a.Origin, "/api/v1/communities/" + foreign.ID, aliceCookies, 404)
+  let latest = browserGet(t, handler, a.Origin, "/api/v1/topics?limit=1", anonymous, 200)
+  let topics = PostPage {}
+  let _ = json.Unmarshal(latest.Body.Bytes(), Ref.new(topics)).Unwrap()
+  if topics.Items.Len() != 1 || topics.Items.Get(0).Unwrap().ID != post.ID then
+    t.Fatal("latest feed exposed restricted or foreign topics")
+  end
+  let _ = browserGet(t, handler, a.Origin, "/api/v1/topics?limit=0", anonymous, 400)
+  let _ = browserGet(t, handler, a.Origin, "/api/v1/topics?offset=-1", anonymous, 400)
+  let empty = browserGet(t, handler, a.Origin, "/api/v1/communities?offset=999", anonymous, 200)
+  if !strings.Contains(empty.Body.String(), "\"items\":[]") then
+    t.Fatal("empty page was not an array")
+  end
+  let path = "/api/v1/posts/" + post.ID
+  let display = browserPost(t, browserGet(t, handler, a.Origin, path, aliceCookies, 200))
+  if display.Body == raw || display.Title == title || !display.Permissions.CanEdit then
+    t.Fatal("display/source boundary or author permissions failed")
+  end
+  let source = PostSource {}
+  let sourceRead = browserGet(t, handler, a.Origin, path + "/source", aliceCookies, 200)
+  let _ = json.Unmarshal(sourceRead.Body.Bytes(), Ref.new(source)).Unwrap()
+  if source.Body != raw ||
+    source.Title != title ||
+    source.ID != post.ID ||
+    !source.UpdatedAt.Equal(post.UpdatedAt) then
+    t.Fatal("source did not preserve stored title/body")
+  end
+  let payload = json.Marshal(EditPostInput {
+    Title: source.Title,
+    Body: source.Body,
+  }).Unwrap()
+  let edited = doForum(
+    handler,
+    forumCall {
+      Method: "PATCH",
+      Origin: a.Origin,
+      Path: path,
+      Payload: payload as String,
+      Cookies: aliceCookies,
+      CSRF: csrfOf(aliceCookies),
+      Source: a.Origin,
+    }
+  )
+  if edited.Code != 200 || !browserPost(t, edited).Permissions.CanEdit then
+    t.Fatalf("source round trip failed: %s", edited.Body.String())
+  end
+  let again = PostSource {}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, a.Origin, path + "/source", aliceCookies, 200).Body.Bytes(),
+    Ref.new(again)
+  ).Unwrap()
+  if again.Title != title || again.Body != raw then
+    t.Fatal("unchanged edit lost source")
+  end
+  let _ = browserGet(t, handler, a.Origin, path + "/source", anonymous, 401)
+  let _ = browserGet(t, handler, a.Origin, path + "/source", bobCookies, 403)
+  let _ = browserGet(t, handler, b.Origin, path + "/source", carolCookies, 404)
+  let _ = browserGet(t, handler, b.Origin, path + "/source", aliceCookies, 401)
+  let imported = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: b.Origin,
+      Path: path + "/import",
+      Cookies: carolCookies,
+      CSRF: csrfOf(carolCookies),
+      Source: b.Origin,
+    }
+  )
+  if imported.Code != 201 || browserPost(t, imported).Permissions.CanEdit then
+    t.Fatalf("import response was incomplete: %s", imported.Body.String())
+  end
+  let topicCreated = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: a.Origin,
+      Path: "/api/v1/communities/" + open.ID + "/topics",
+      Payload: "{\"title\":\"Created\",\"body\":\"Body\"}",
+      Cookies: aliceCookies,
+      CSRF: csrfOf(aliceCookies),
+      Source: a.Origin,
+    }
+  )
+  if topicCreated.Code != 201 || !browserPost(t, topicCreated).Permissions.CanReply then
+    t.Fatalf("topic creation metadata failed: %s", topicCreated.Body.String())
+  end
+  let replyCreated = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: a.Origin,
+      Path: path + "/replies",
+      Payload: "{\"body\":\"Reply\"}",
+      Cookies: aliceCookies,
+      CSRF: csrfOf(aliceCookies),
+      Source: a.Origin,
+    }
+  )
+  if replyCreated.Code != 201 || !browserPost(t, replyCreated).Permissions.CanEdit then
+    t.Fatalf("reply creation metadata failed: %s", replyCreated.Body.String())
+  end
+  let replyPage = PostPage{}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, a.Origin, path + "/replies", aliceCookies, 200).Body.Bytes(),
+    Ref.new(replyPage)
+  ).Unwrap()
+  if replyPage.Items.Len() != 1 || !replyPage.Items.Get(0).Unwrap().Permissions.CanEdit then
+    t.Fatal("reply list metadata failed")
+  end
+  let communityCreated = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: a.Origin,
+      Path: "/api/v1/communities",
+      Payload: "{\"name\":\"created\",\"title\":\"Created\",\"mode\":\"local_only\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}",
+      Cookies: aliceCookies,
+      CSRF: csrfOf(aliceCookies),
+      Source: a.Origin,
+    }
+  )
+  let createdDTO = CommunityOutput {}
+  let _ = json.Unmarshal(communityCreated.Body.Bytes(), Ref.new(createdDTO)).Unwrap()
+  if communityCreated.Code != 201 ||
+    !createdDTO.Viewer.IsCreator ||
+    !createdDTO.Permissions.CanManage then
+    t.Fatal("community creation metadata failed")
+  end
+  let methods: Slice[String] = [
+    "/api/v1/topics",
+    path + "/source",
+    "/api/v1/communities/" + open.ID + "/members",
+  ]
+  methods.Each(func(methodPath: String) -> ()
+    let denied = doForum(
+      handler,
+      forumCall {
+        Method: "PUT",
+        Origin: a.Origin,
+        Path: methodPath,
+      }
+    )
+    if denied.Code != 405 || denied.Header().Get("Allow") == "" then
+      t.Fatal("unsupported method was not rejected")
+    end
+  end)
+end
+
+func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(
+    ctx,
+    site,
+    alice,
+    "public",
+    "Public",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let post = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Title: "Topic",
+      Body: "body",
+    }
+  ).Unwrap()
+  let reply = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    bob,
+    false,
+    storage.PublishInput {
+      Body: "reply",
+      ParentID: post.ID,
+    }
+  ).Unwrap()
+  let hidden = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    bob,
+    false,
+    storage.PublishInput {
+      Body: "hidden",
+      ParentID: post.ID,
+    }
+  ).Unwrap()
+  let _ = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    bob,
+    false,
+    storage.PublishInput {
+      Body: "nested",
+      ParentID: reply.ID,
+    }
+  ).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?",
+    site.ID,
+    hidden.ID
+  )).Unwrap()
+  let handler = Handler(settings, db)
+  let aliceCookies = login(handler, site.Origin, "alice", "alice-account-password")
+  let bobCookies = login(handler, site.Origin, "bob", "bob-account-password")
+  let adminCookies = login(handler, site.Origin, "admin", "administrator-password")
+  let path = "/api/v1/posts/" + post.ID
+  let reaction = storage.ReactionRepository { DB: db, SiteID: site.ID }
+  let _ = reaction.Like(ctx, post.ID, bob, false, "").Unwrap()
+  let _ = reaction.Like(ctx, post.ID, bob, false, "").Unwrap()
+  let output = browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
+  if output.LikeCount != 1i64 ||
+    !output.LikedByMe ||
+    output.ReplyCount != 1i64 ||
+    output.Permissions.CanEdit ||
+    !output.Permissions.CanLike then
+    t.Fatal("interaction metadata did not match current state")
+  end
+  let anon: Slice[Ref[http.Cookie]] = []
+  let anonymous = browserPost(t, browserGet(t, handler, site.Origin, path, anon, 200))
+  if anonymous.LikedByMe || anonymous.Permissions.CanLike || anonymous.Permissions.CanReply then
+    t.Fatal("anonymous viewer received authenticated state")
+  end
+  let _ = reaction.Undo(ctx, post.ID, bob, false).Unwrap()
+  let undone = browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
+  if undone.LikeCount != 0i64 || undone.LikedByMe then
+    t.Fatal("undo did not refresh state")
+  end
+  let memberPath = "/api/v1/communities/" + open.ID + "/members"
+  let managerPath = "/api/v1/communities/" + open.ID + "/managers"
+  let _ = browserGet(t, handler, site.Origin, memberPath, anon, 401)
+  let _ = browserGet(t, handler, site.Origin, memberPath, bobCookies, 403)
+  let _ = communities.SetMember(ctx, open.ID, alice, false, bob.ActorURI, true).Unwrap()
+  let members = browserGet(t, handler, site.Origin, memberPath, aliceCookies, 200)
+  if !strings.Contains(members.Body.String(), bob.ActorURI) ||
+    strings.Contains(members.Body.String(), "password") then
+    t.Fatal("member roster was missing or disclosed account fields")
+  end
+  let _ = communities.SetManager(ctx, open.ID, alice, false, bob.ActorURI, true).Unwrap()
+  let roster = RosterPage {}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, managerPath, bobCookies, 200).Body.Bytes(),
+    Ref.new(roster)
+  ).Unwrap()
+  if roster.Items.Len() != 2 then
+    t.Fatal("creator/manager roster was incomplete")
+  end
+  let creatorRows = roster.Items.Filter(func(row: storage.RosterEntry) -> Bool
+    row.ActorURI == alice.ActorURI && row.IsCreator && !row.IsManager
+  end)
+  if creatorRows.Len() != 1 then
+    t.Fatal("creator-only roster flags were incorrect")
+  end
+  let _ = communities.SetManager(ctx, open.ID, alice, false, alice.ActorURI, true).Unwrap()
+  let dedup = RosterPage {}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, managerPath, aliceCookies, 200).Body.Bytes(),
+    Ref.new(dedup)
+  ).Unwrap()
+  if dedup.Items.Len() != 2 then
+    t.Fatal("creator was duplicated")
+  end
+  if !dedup.Items.Get(0).Unwrap().IsCreator || !dedup.Items.Get(0).Unwrap().IsManager then
+    t.Fatal("creator plus manager assignment flags were lost")
+  end
+  let paged = RosterPage {}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, managerPath + "?limit=1&offset=1", aliceCookies, 200).Body.Bytes(),
+    Ref.new(paged)
+  ).Unwrap()
+  if paged.Items.Len() != 1 || paged.Items.Get(0).Unwrap().ActorURI != bob.ActorURI then
+    t.Fatal("roster pagination/order was incorrect")
+  end
+  let _ = communities.SetManager(ctx, open.ID, alice, false, bob.ActorURI, false).Unwrap()
+  let _ = browserGet(t, handler, site.Origin, managerPath, bobCookies, 403)
+  let _ = browserGet(t, handler, site.Origin, path + "/source", adminCookies, 403)
+  let csrfDenied = doForum(
+    handler,
+    forumCall {
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: memberPath,
+      Payload: `{"actor":"` + bob.ActorURI + `"}`,
+      Cookies: aliceCookies,
+      Source: site.Origin,
+    }
+  )
+  if csrfDenied.Code != 403 then
+    t.Fatal("roster GET bypassed mutation CSRF")
+  end
+  let _ = communities.SetMember(ctx, open.ID, alice, false, bob.ActorURI, false).Unwrap()
+  let revokedMembers = browserGet(t, handler, site.Origin, memberPath, aliceCookies, 200)
+  if strings.Contains(revokedMembers.Body.String(), bob.ActorURI) then
+    t.Fatal("revoked member remained in roster")
+  end
+  let replySource = PostSource{}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, "/api/v1/posts/" + reply.ID + "/source", bobCookies, 200).Body.Bytes(),
+    Ref.new(replySource)
+  ).Unwrap()
+  if replySource.Title != "" || replySource.Body != "reply" then
+    t.Fatal("reply source contract failed")
+  end
+  let _ = browserGet(
+    t,
+    handler,
+    site.Origin,
+    "/api/v1/posts/" + hidden.ID + "/source",
+    bobCookies,
+    404
+  )
+  let _ = communities.SetPolicy(ctx, open.ID, alice, false, "members", "members").Unwrap()
+  let _ = browserGet(t, handler, site.Origin, path, bobCookies, 404)
+  let _ = browserGet(
+    t,
+    handler,
+    site.Origin,
+    "/api/v1/posts/" + reply.ID + "/source",
+    bobCookies,
+    404
+  )
+  let adminCommunity = CommunityOutput {}
+  let communityPath = "/api/v1/communities/" + open.ID
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, communityPath, adminCookies, 200).Body.Bytes(),
+    Ref.new(adminCommunity)
+  ).Unwrap()
+  if adminCommunity.Viewer.IsMember ||
+    !adminCommunity.Permissions.CanManage ||
+    adminCommunity.Permissions.CanPost then
+    t.Fatal("administrative override incorrectly granted membership/posting")
+  end
+  let beforeAudit = 0i64
+  let _ = storage.MutationResult(db.Table("audit_events").Where(
+    "acting_actor_uri<>? AND action='read-community'",
+    alice.ActorURI
+  ).Count(Ref.new(beforeAudit))).Unwrap()
+  let _ = browserGet(t, handler, site.Origin, "/api/v1/topics", adminCookies, 200)
+  let _ = browserGet(t, handler, site.Origin, communityPath + "/topics?offset=999", adminCookies, 200)
+  let afterAudit = 0i64
+  let _ = storage.MutationResult(db.Table("audit_events").Where(
+    "acting_actor_uri<>? AND action='read-community'",
+    alice.ActorURI
+  ).Count(Ref.new(afterAudit))).Unwrap()
+  if afterAudit < beforeAudit + 2i64 then
+    t.Fatal("administrative aggregate read was not audited")
+  end
+  let _ = browserGet(t, handler, site.Origin, memberPath, bobCookies, 404)
+  let session = browserGet(t, handler, site.Origin, "/api/v1/auth/session", adminCookies, 200)
+  if !strings.Contains(session.Body.String(), "\"site_administrator\":true") then
+    t.Fatal("session omitted current role")
+  end
+  let _ = storage.MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id=?", site.ID)).Unwrap()
+  let revoked = browserGet(t, handler, site.Origin, "/api/v1/auth/session", adminCookies, 200)
+  if !strings.Contains(revoked.Body.String(), "\"site_administrator\":false") then
+    t.Fatal("session cached revoked role")
+  end
+  let _ = browserGet(t, handler, site.Origin, communityPath, adminCookies, 404)
+  let _ = posts.Delete(ctx, post.ID, alice, false).Unwrap()
+  let _ = browserGet(t, handler, site.Origin, path + "/source", aliceCookies, 404)
+  let tombstone = browserPost(t, browserGet(t, handler, site.Origin, path, aliceCookies, 200))
+  if tombstone.Body != "" ||
+    tombstone.Permissions.CanEdit ||
+    tombstone.Permissions.CanLike ||
+    tombstone.Permissions.CanReply then
+    t.Fatal("tombstone retained unavailable content/actions")
+  end
+end
+
+func TestPostgresBrowserBatchQueries(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site { ID: "a", Origin: "https://a.example" }
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "public",
+    "Public",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) SELECT 'batch-'||n, 'https://a.example/objects/batch-'||n, ?,'federated',?,'Page','Topic','Body',now(),now() FROM generate_series(1,1000) n",
+    community.ID,
+    alice.ActorURI
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts",
+    site.ID
+  )).Unwrap()
+  let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, alice).Unwrap()
+  let one = browser.Latest(ctx, viewer, storage.Page{Limit: 1}, 50).Unwrap()
+  let twenty = browser.Latest(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap()
+  let probeOne = transport.NewQueryProbe(db)
+  let probeTwenty = transport.NewQueryProbe(db)
+  let _ = BrowserPosts(
+    ctx,
+    storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID},
+    viewer,
+    one
+  ).Unwrap()
+  let _ = BrowserPosts(
+    ctx,
+    storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID},
+    viewer,
+    twenty
+  ).Unwrap()
+  if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > 3i64 then
+    t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+  end
+  t.Logf("post enrichment queries: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+  let _ = storage.MutationResult(db.Exec("ANALYZE posts")).Unwrap()
+  let _ = storage.MutationResult(db.Exec("ANALYZE site_posts")).Unwrap()
+  let _ = storage.MutationResult(db.Exec("ANALYZE communities")).Unwrap()
+  let plan = transport.Explain(browser.CommunitiesQuery(
+    ctx,
+    viewer,
+    "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id LIMIT 20"
+  )).Unwrap()
+  if plan.Len() == 0 then
+    t.Fatal("PostgreSQL returned no query plan")
+  end
+  t.Logf("1000-post latest plan:\n%s", strings.Join(plan, "\n"))
+end

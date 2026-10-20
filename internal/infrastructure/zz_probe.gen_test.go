@@ -2,23 +2,17 @@
 
 package infrastructure
 
-import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
-	"database/sql/driver"
-
-	sqlmock "github.com/DATA-DOG/go-sqlmock"
-
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "strings"
+import "net/http"
+import "net/http/httptest"
+import "io"
+import "encoding/json"
+import "bytes"
+import sqlmock "github.com/DATA-DOG/go-sqlmock"
+import "database/sql/driver"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestHTTPCallback(t *testing.T) {
 	mux := http.NewServeMux()

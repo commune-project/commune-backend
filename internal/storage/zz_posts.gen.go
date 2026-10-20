@@ -2,18 +2,14 @@
 
 package storage
 
-import (
-	"context"
-	"crypto/rand"
-	"database/sql"
-	"net/url"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "gorm.io/gorm"
+import "database/sql"
+import "time"
+import "crypto/rand"
+import "net/url"
+import "github.com/commune-project/commune-backend/internal/config"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type PostRecord struct {
 	ID             string         "gorm:\"column:id\""

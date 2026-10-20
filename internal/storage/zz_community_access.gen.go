@@ -2,16 +2,12 @@
 
 package storage
 
-import (
-	"context"
-	"database/sql"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "gorm.io/gorm"
+import "gorm.io/gorm/clause"
+import "database/sql"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type CommunityRecord struct {
 	ID              string         "gorm:\"column:id\""
@@ -36,6 +32,25 @@ type CommunityAccess struct {
 	Authority auth.ManagementAuthority
 }
 
+func ProjectCommunityAccess(siteID string, community CommunityRecord, subject auth.AccessSubject, moderator bool, administrator bool, deployment bool) CommunityAccess {
+	var scope string = ""
+	if community.HostSiteID == siteID && subject.Verified && !subject.Blocked {
+		if deployment {
+			scope = "deployment"
+		} else {
+			if administrator {
+				scope = "site"
+			} else {
+				if auth.MygoIN15CommunityPolicyM8Eligible(MygoIN15CommunityRecordM6Policy(community), subject) && (community.CreatorActorURI == subject.ActorURI || moderator) {
+					scope = "community"
+				} else {
+				}
+			}
+		}
+	} else {
+	}
+	return CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}}
+}
 func MygoIN15CommunityRecordM6Policy(self CommunityRecord) auth.CommunityPolicy {
 	return auth.CommunityPolicy{HostSiteID: self.HostSiteID, FederationMode: self.FederationMode, ReadPolicy: self.ReadPolicy, PostPolicy: self.PostPolicy}
 }
@@ -137,7 +152,7 @@ func MygoIN19CommunityRepositoryM6Access(self CommunityRepository, ctx context.C
 	} else {
 	}
 	if MygoIN6ResultM6Unwrap[bool, string](deployment) {
-		return Ok[CommunityAccess, string](CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "deployment"}})
+		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, false, true))
 	} else {
 	}
 	administrator := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
@@ -146,7 +161,7 @@ func MygoIN19CommunityRepositoryM6Access(self CommunityRepository, ctx context.C
 	} else {
 	}
 	if MygoIN6ResultM6Unwrap[bool, string](administrator) {
-		return Ok[CommunityAccess, string](CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "site"}})
+		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, true, false))
 	} else {
 	}
 	moderator := QueryExists(self.DB.WithContext(ctx).Table("moderators").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
@@ -154,15 +169,7 @@ func MygoIN19CommunityRepositoryM6Access(self CommunityRepository, ctx context.C
 		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](moderator))
 	} else {
 	}
-	eligibleManager := auth.MygoIN15CommunityPolicyM8Eligible(MygoIN15CommunityRecordM6Policy(community), subject) && (community.CreatorActorURI == identity.ActorURI || MygoIN6ResultM6Unwrap[bool, string](moderator))
-	var __mygo_expr_6 string
-	if eligibleManager {
-		__mygo_expr_6 = "community"
-	} else {
-		__mygo_expr_6 = ""
-	}
-	scope := __mygo_expr_6
-	return Ok[CommunityAccess, string](CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}})
+	return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, MygoIN6ResultM6Unwrap[bool, string](moderator), false, false))
 }
 func MygoIN19CommunityRepositoryM5Check(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
 	loaded := MygoIN19CommunityRepositoryM4Load(self, ctx, id, false)

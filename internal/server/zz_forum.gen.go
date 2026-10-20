@@ -2,48 +2,50 @@
 
 package server
 
-import (
-	"encoding/json"
-	"errors"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/content"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "net/http"
+import "encoding/json"
+import "io"
+import "errors"
+import "strings"
+import "strconv"
+import "time"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/content"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type ErrorOutput struct {
 	Error string "json:\"error\""
 }
 type CommunityOutput struct {
-	ID             string "json:\"id\""
-	Name           string "json:\"name\""
-	Title          string "json:\"title\""
-	Description    string "json:\"description\""
-	FederationMode string "json:\"federation_mode\""
-	ReadPolicy     string "json:\"read_policy\""
-	PostPolicy     string "json:\"post_policy\""
-	ActorURI       string "json:\"actor_uri,omitempty\""
-	HostSiteID     string "json:\"host_site_id\""
+	ID             string                "json:\"id\""
+	Name           string                "json:\"name\""
+	Title          string                "json:\"title\""
+	Description    string                "json:\"description\""
+	FederationMode string                "json:\"federation_mode\""
+	ReadPolicy     string                "json:\"read_policy\""
+	PostPolicy     string                "json:\"post_policy\""
+	ActorURI       string                "json:\"actor_uri,omitempty\""
+	HostSiteID     string                "json:\"host_site_id\""
+	Viewer         CommunityViewerOutput "json:\"viewer\""
+	Permissions    CommunityPermissions  "json:\"permissions\""
 }
 type PostOutput struct {
-	ID             string    "json:\"id\""
-	CommunityID    string    "json:\"community_id\""
-	ObjectType     string    "json:\"object_type\""
-	Title          string    "json:\"title,omitempty\""
-	Body           string    "json:\"body\""
-	AuthorActorURI string    "json:\"author_actor_uri\""
-	ParentID       string    "json:\"parent_id,omitempty\""
-	AuthoredAt     time.Time "json:\"authored_at\""
-	UpdatedAt      time.Time "json:\"updated_at\""
-	Deleted        bool      "json:\"deleted\""
+	ID             string          "json:\"id\""
+	CommunityID    string          "json:\"community_id\""
+	ObjectType     string          "json:\"object_type\""
+	Title          string          "json:\"title,omitempty\""
+	Body           string          "json:\"body\""
+	AuthorActorURI string          "json:\"author_actor_uri\""
+	ParentID       string          "json:\"parent_id,omitempty\""
+	AuthoredAt     time.Time       "json:\"authored_at\""
+	UpdatedAt      time.Time       "json:\"updated_at\""
+	Deleted        bool            "json:\"deleted\""
+	LikeCount      int64           "json:\"like_count\""
+	LikedByMe      bool            "json:\"liked_by_me\""
+	ReplyCount     int64           "json:\"reply_count\""
+	Permissions    PostPermissions "json:\"permissions\""
 }
 type PostPage struct {
 	Items  []PostOutput "json:\"items\""
@@ -213,11 +215,15 @@ func AuthorizeMutation(settings config.Config, session storage.AuthenticatedSess
 }
 func ForumRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	parts := Segments(request.URL.Path)
-	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 3 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "communities" {
+	if BrowserReadRoute(settings, db, site, w, request, parts) {
+		return
+	} else {
+	}
+	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 3 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) <= 5 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "communities" {
 		CommunityRoute(settings, db, site, w, request, parts)
 		return
 	} else {
-		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 3 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "posts" {
+		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 4 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) <= 5 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "posts" {
 			PostRoute(settings, db, site, w, request, parts)
 			return
 		} else {

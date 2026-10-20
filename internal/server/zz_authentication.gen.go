@@ -2,35 +2,39 @@
 
 package server
 
-import (
-	"encoding/json"
-	"errors"
-	"io"
-	"net/http"
-	"strings"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "net/http"
+import "encoding/json"
+import "io"
+import "errors"
+import "strings"
+import "time"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type LoginInput struct {
 	Login    string "json:\"login\""
 	Password string "json:\"password\""
 }
 type IdentityOutput struct {
-	SiteID    string "json:\"site_id\""
-	AccountID int64  "json:\"account_id\""
-	ActorURI  string "json:\"actor_uri\""
-	Username  string "json:\"username\""
+	SiteID    string              "json:\"site_id\""
+	AccountID int64               "json:\"account_id\""
+	ActorURI  string              "json:\"actor_uri\""
+	Username  string              "json:\"username\""
+	Roles     storage.ViewerRoles "json:\"roles\""
 }
 
-func WriteIdentity(w http.ResponseWriter, identity auth.Identity) {
-	dto := IdentityOutput{SiteID: identity.SiteID, AccountID: identity.AccountID, ActorURI: identity.ActorURI, Username: identity.Username}
+func WriteIdentity(w http.ResponseWriter, identity auth.Identity, db *gorm.DB, site config.Site, request *http.Request) {
+	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
+	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(browser, request.Context(), identity)
+	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
+		return
+	} else {
+	}
+	dto := IdentityOutput{SiteID: identity.SiteID, AccountID: identity.AccountID, ActorURI: identity.ActorURI, Username: identity.Username, Roles: MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer).Roles}
 	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := json.Marshal(dto)
 	if __mygo_expr_0 != nil {
@@ -159,7 +163,7 @@ func AuthenticationRoute(settings config.Config, db *gorm.DB, site config.Site, 
 								http.SetCookie(w, &cookie)
 								return
 							})
-							WriteIdentity(w, MygoIN6ResultM6Unwrap[auth.Identity, string](identity))
+							WriteIdentity(w, MygoIN6ResultM6Unwrap[auth.Identity, string](identity), db, site, request)
 							return
 						}
 					}
@@ -197,7 +201,7 @@ func AuthenticationRoute(settings config.Config, db *gorm.DB, site config.Site, 
 					return
 				} else {
 					if method == "GET" {
-						WriteIdentity(w, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity)
+						WriteIdentity(w, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, db, site, request)
 						return
 					} else {
 						if !SameOrigin(settings, request) || !storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request.Header.Get("X-CSRF-Token")) {

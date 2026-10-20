@@ -21,15 +21,34 @@ struct IdentityOutput
   AccountID: Int64 `json:"account_id"`
   ActorURI: String `json:"actor_uri"`
   Username: String `json:"username"`
+  Roles: storage.ViewerRoles `json:"roles"`
 end
 
-func WriteIdentity(w: http.ResponseWriter, identity: auth.Identity) -> ()
-  let dto = IdentityOutput{SiteID: identity.SiteID, AccountID: identity.AccountID, ActorURI: identity.ActorURI, Username: identity.Username}
+func WriteIdentity(
+  w: http.ResponseWriter,
+  identity: auth.Identity,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  request: Ref[http.Request]
+) -> ()
+  let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(request.Context(), identity)
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return
+  end
+  let dto = IdentityOutput{
+    SiteID: identity.SiteID,
+    AccountID: identity.AccountID,
+    ActorURI: identity.ActorURI,
+    Username: identity.Username,
+    Roles: viewer.Unwrap().Roles,
+  }
   switch json.Marshal(dto)
-  case Err(_) => http.Error(w, "response unavailable", 500)
-  case Ok(body) =>
-    w.Header().Set("Content-Type", "application/json")
-    let _ = w.Write(body)
+    case Err(_) => http.Error(w, "response unavailable", 500)
+    case Ok(body) =>
+      w.Header().Set("Content-Type", "application/json")
+      let _ = w.Write(body)
   end
 end
 
@@ -39,7 +58,11 @@ func SameOrigin(settings: config.Config, request: Ref[http.Request]) -> Bool
     return false
   end
   let forwarded = request.Header.Get("X-Forwarded-Host")
-  let host = if forwarded != "" && config.TrustedProxy(settings, request.RemoteAddr) then forwarded else request.Host end
+  let host = if forwarded != "" && config.TrustedProxy(settings, request.RemoteAddr) then
+    forwarded
+  else
+    request.Host
+  end
   let authority = config.NormalizeAuthority(host)
   authority.IsOk() && origin.Unwrap() == "https://" + authority.Unwrap()
 end
@@ -54,8 +77,13 @@ func ReadSession(request: Ref[http.Request]) -> Result[String, String]
   Ok(cookies.Get(0).Unwrap().Value)
 end
 
-func ReadLogin(w: http.ResponseWriter, request: Ref[http.Request], maxBytes: Int) -> Result[LoginInput, String]
-  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") != "application/json" then
+func ReadLogin(
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  maxBytes: Int
+) -> Result[LoginInput, String]
+  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") !=
+    "application/json" then
     return Err("expected application/json")
   end
   let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
@@ -67,7 +95,7 @@ end
 func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, String]
   let decoder = json.NewDecoder(reader as io.Reader)
   decoder.DisallowUnknownFields()
-  let input = LoginInput{}
+  let input = LoginInput {}
   if decoder.Decode(Ref.new(input)).IsErr() then
     return Err("invalid login request")
   end
@@ -79,9 +107,15 @@ func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, String]
   Ok(input)
 end
 
-func AuthenticationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
-  let accounts = storage.AccountRepository{DB: db}
-  let sessions = storage.SessionRepository{DB: db}
+func AuthenticationRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request]
+) -> ()
+  let accounts = storage.AccountRepository { DB: db }
+  let sessions = storage.SessionRepository { DB: db }
   if request.URL.Path == "/api/v1/auth/login" then
     if request.Method != "POST" then
       w.Header().Set("Allow", "POST")
@@ -96,7 +130,11 @@ func AuthenticationRoute(settings: config.Config, db: Ref[gorm.DB], site: config
         else
           let identity = accounts.Authenticate(request.Context(), site.ID, input.Unwrap().Login, input.Unwrap().Password)
           if identity.IsErr() then
-            let status = if identity.UnwrapErr() == "invalid credentials" then 401 else 503 end
+            let status = if identity.UnwrapErr() == "invalid credentials" then
+              401
+            else
+              503
+            end
             http.Error(w, "authentication failed", status)
           else
             let now = time.Now()
@@ -107,14 +145,18 @@ func AuthenticationRoute(settings: config.Config, db: Ref[gorm.DB], site: config
               issued.Unwrap().Cookies(now.Add(24 as time.Duration * time.Hour)).Each(func(cookie: http.Cookie) -> ()
                 http.SetCookie(w, Ref.new(cookie))
               end)
-              WriteIdentity(w, identity.Unwrap())
+              WriteIdentity(w, identity.Unwrap(), db, site, request)
             end
           end
         end
       end
     end
   else
-    let method = if request.URL.Path == "/api/v1/auth/logout" then "POST" else "GET" end
+    let method = if request.URL.Path == "/api/v1/auth/logout" then
+      "POST"
+    else
+      "GET"
+    end
     if request.Method != method then
       w.Header().Set("Allow", method)
       http.Error(w, "method not allowed", 405)
@@ -125,13 +167,18 @@ func AuthenticationRoute(settings: config.Config, db: Ref[gorm.DB], site: config
       else
         let session = sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
         if session.IsErr() then
-          let status = if session.UnwrapErr() == "unauthenticated" then 401 else 503 end
+          let status = if session.UnwrapErr() == "unauthenticated" then
+            401
+          else
+            503
+          end
           http.Error(w, "authentication failed", status)
         else
           if method == "GET" then
-            WriteIdentity(w, session.Unwrap().Identity)
+            WriteIdentity(w, session.Unwrap().Identity, db, site, request)
           else
-            if !SameOrigin(settings, request) || !session.Unwrap().AuthorizesMutation(request.Header.Get("X-CSRF-Token")) then
+            if !SameOrigin(settings, request) ||
+              !session.Unwrap().AuthorizesMutation(request.Header.Get("X-CSRF-Token")) then
               http.Error(w, "CSRF denied", 403)
             else
               if sessions.Revoke(request.Context(), site.ID, token.Unwrap(), time.Now()).IsErr() then

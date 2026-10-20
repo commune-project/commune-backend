@@ -2,24 +2,20 @@
 
 package main
 
-import (
-	"context"
-	"database/sql"
-	"fmt"
-	"io"
-	"log/slog"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/server"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "fmt"
+import "os"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "context"
+import "github.com/commune-project/commune-backend/internal/server"
+import "os/signal"
+import "syscall"
+import "log/slog"
+import "io"
+import "gorm.io/gorm"
+import "database/sql"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func RunCommand(args []string) Result[struct {
 }, string] {

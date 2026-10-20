@@ -2,23 +2,18 @@
 
 package server
 
-import (
-	"context"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "net/http"
+import "net/http/httptest"
+import "strings"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func privateFetchConfig(settings config.Config) config.Config {
 	return config.Config{Sites: settings.Sites, DatabaseURL: settings.DatabaseURL, TrustedProxies: settings.TrustedProxies, Runtime: settings.Runtime, Federation: config.Federation{AllowPrivateNetwork: true, FetchTimeoutSeconds: settings.Federation.FetchTimeoutSeconds, MaxFetchBytes: settings.Federation.MaxFetchBytes, MaxRedirects: settings.Federation.MaxRedirects, ClockSkewSeconds: settings.Federation.ClockSkewSeconds}}

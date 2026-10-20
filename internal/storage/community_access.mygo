@@ -31,6 +31,25 @@ struct CommunityAccess
   Authority: auth.ManagementAuthority
 end
 
+# Shared by single-object authorization and batched browser projections.
+func ProjectCommunityAccess(siteID: String, community: CommunityRecord, subject: auth.AccessSubject, moderator: Bool, administrator: Bool, deployment: Bool) -> CommunityAccess
+  var scope: String = ""
+  if community.HostSiteID == siteID && subject.Verified && !subject.Blocked then
+    if deployment then
+      scope = "deployment"
+    else
+      if administrator then
+        scope = "site"
+      else
+        if community.Policy().Eligible(subject) && (community.CreatorActorURI == subject.ActorURI || moderator) then
+          scope = "community"
+        end
+      end
+    end
+  end
+  CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}}
+end
+
 impl CommunityRecord
   func Policy(self: CommunityRecord) -> auth.CommunityPolicy
     auth.CommunityPolicy{HostSiteID: self.HostSiteID, FederationMode: self.FederationMode, ReadPolicy: self.ReadPolicy, PostPolicy: self.PostPolicy}
@@ -102,22 +121,20 @@ impl CommunityRepository
       return Err(deployment.UnwrapErr())
     end
     if deployment.Unwrap() then
-      return Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "deployment"}})
+      return Ok(ProjectCommunityAccess(self.SiteID, community, subject, false, false, true))
     end
     let administrator = site.IsAdministrator(ctx, identity)
     if administrator.IsErr() then
       return Err(administrator.UnwrapErr())
     end
     if administrator.Unwrap() then
-      return Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "site"}})
+      return Ok(ProjectCommunityAccess(self.SiteID, community, subject, false, true, false))
     end
     let moderator = QueryExists(self.DB.WithContext(ctx).Table("moderators").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
     if moderator.IsErr() then
       return Err(moderator.UnwrapErr())
     end
-    let eligibleManager = community.Policy().Eligible(subject) && (community.CreatorActorURI == identity.ActorURI || moderator.Unwrap())
-    let scope = if eligibleManager then "community" else "" end
-    Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}})
+    Ok(ProjectCommunityAccess(self.SiteID, community, subject, moderator.Unwrap(), false, false))
   end
 
   func Check(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[CommunityAccess, String]

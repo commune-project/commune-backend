@@ -1,0 +1,75 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+struct PostStats
+  ID: String `gorm:"column:id"`
+  LikeCount: Int64 `gorm:"column:like_count"`
+  LikedByMe: Bool `gorm:"column:liked_by_me"`
+  ReplyCount: Int64 `gorm:"column:reply_count"`
+end
+
+struct RosterEntry
+  ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
+  IsCreator: Bool `gorm:"column:is_creator" json:"is_creator"`
+  IsManager: Bool `gorm:"column:is_manager" json:"is_manager"`
+end
+
+impl BrowserRepository
+  func Latest(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[PostRecord], String]
+    if !page.Valid(max) then
+      return Err("invalid page")
+    end
+    var records: Slice[PostRecord] = []
+    let query = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id" + BrowserPageSQL(page)).Scan(Ref.new(records))
+    if MutationResult(query).IsErr() then
+      return Err("feed unavailable")
+    end
+    Ok(records)
+  end
+
+  func Stats(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, ids: Slice[String]) -> Result[Slice[PostStats], String]
+    var stats: Slice[PostStats] = []
+    if ids.Len() == 0 then
+      return Ok(stats)
+    end
+    let query = self.DB.WithContext(ctx).Raw("SELECT p.id, (SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL) AS like_count, EXISTS(SELECT 1 FROM reactions r WHERE r.post_id=p.id AND r.actor_uri=? AND r.undone_at IS NULL) AS liked_by_me, (SELECT count(*) FROM posts r JOIN site_posts sp ON sp.post_id=r.id AND sp.site_id=? WHERE r.parent_id=p.id AND r.community_id=p.community_id AND r.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=r.id AND cm.community_id=r.community_id AND cm.state IN ('removed','rejected'))) AS reply_count FROM posts p WHERE p.id IN ?", viewer.Identity.ActorURI, self.SiteID, ids).Scan(Ref.new(stats))
+    if MutationResult(query).IsErr() then
+      return Err("feed unavailable")
+    end
+    Ok(stats)
+  end
+
+  func Roster(self: BrowserRepository, ctx: context.Context, id: String, viewer: BrowserViewer, managers: Bool, page: Page, max: Int) -> Result[Slice[RosterEntry], String]
+    if !page.Valid(max) then
+      return Err("invalid page")
+    end
+    let repository = CommunityRepository{DB: self.DB, SiteID: self.SiteID}
+    let checked = repository.Check(ctx, id, viewer.Identity, false)
+    if checked.IsErr() then
+      return Err(checked.UnwrapErr())
+    end
+    let access = checked.Unwrap()
+    if !access.CanRead() then
+      return Err("not found")
+    end
+    if !access.Authority.Allows("manage-community") then
+      return Err("forbidden")
+    end
+    var rows: Slice[RosterEntry] = []
+    let query = if managers then
+      self.DB.WithContext(ctx).Raw("SELECT actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager FROM (SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL) roster GROUP BY actor_uri ORDER BY actor_uri" + BrowserPageSQL(page), id, id).Scan(Ref.new(rows))
+    else
+      self.DB.WithContext(ctx).Raw("SELECT actor_uri,false AS is_creator,false AS is_manager FROM community_members WHERE community_id=? AND revoked_at IS NULL ORDER BY actor_uri" + BrowserPageSQL(page), id).Scan(Ref.new(rows))
+    end
+    if MutationResult(query).IsErr() then
+      return Err("roster unavailable")
+    end
+    let audited = repository.Audit(ctx, access, "read-roster", id)
+    if audited.IsErr() then
+      return Err(audited.UnwrapErr())
+    end
+    Ok(rows)
+  end
+end

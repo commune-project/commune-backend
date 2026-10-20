@@ -2,25 +2,20 @@
 
 package server
 
-import (
-	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "net/http"
+import "net/http/httptest"
+import "strings"
+import "io"
+import "encoding/json"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type forumCall struct {
 	Method  string

@@ -2,17 +2,13 @@
 
 package storage
 
-import (
-	"context"
-	"regexp"
-	"strings"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "gorm.io/gorm"
+import "context"
+import "regexp"
+import "strings"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func MutationResult(query *gorm.DB) Result[struct {
 }, string] {

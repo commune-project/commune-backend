@@ -2,17 +2,13 @@
 
 package server
 
-import (
-	"context"
-	"crypto/rand"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "crypto/rand"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func FindHostedGroup(ctx context.Context, db *gorm.DB, site config.Site, addressed []string) Result[Option[storage.CommunityRecord], string] {
 	var found Option[storage.CommunityRecord] = None[storage.CommunityRecord]()

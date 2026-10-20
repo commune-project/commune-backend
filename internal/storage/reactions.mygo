@@ -14,37 +14,95 @@ end
 impl ReactionRepository
   # Like and Undo require current read access and act only on the issuing
   # actor's own reaction row.
-  func Like(self: ReactionRepository, ctx: context.Context, postID: String, identity: auth.Identity, remoteVerified: Bool, reactionURI: String) -> Result[(), String]
-    self.React(ctx, postID, identity, remoteVerified, func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
-      if post.FederationMode == "local_only" && reactionURI != "" then
-        return Err("invalid reaction")
+  func Like(
+    self: ReactionRepository,
+    ctx: context.Context,
+    postID: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    reactionURI: String
+  ) -> Result[(), String]
+    self.React(
+      ctx,
+      postID,
+      identity,
+      remoteVerified,
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+        if post.FederationMode == "local_only" && reactionURI != "" then
+          return Err("invalid reaction")
+        end
+        MutationResult(tx.Exec(
+          "INSERT INTO reactions(post_id,actor_uri,reaction_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri",
+          postID,
+          identity.ActorURI,
+          sql.NullString { String: reactionURI, Valid: reactionURI != "" }
+        ))
       end
-      MutationResult(tx.Exec("INSERT INTO reactions(post_id,actor_uri,reaction_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri", postID, identity.ActorURI, sql.NullString{String: reactionURI, Valid: reactionURI != ""}))
-    end)
+    )
   end
-
-  func Undo(self: ReactionRepository, ctx: context.Context, postID: String, identity: auth.Identity, remoteVerified: Bool) -> Result[(), String]
-    self.React(ctx, postID, identity, remoteVerified, func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
-      MutationResult(tx.Exec("UPDATE reactions SET undone_at=? WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", time.Now().UTC().Truncate(time.Microsecond), postID, identity.ActorURI))
-    end)
+  func Undo(
+    self: ReactionRepository,
+    ctx: context.Context,
+    postID: String,
+    identity: auth.Identity,
+    remoteVerified: Bool
+  ) -> Result[(), String]
+    self.React(
+      ctx,
+      postID,
+      identity,
+      remoteVerified,
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+        MutationResult(tx.Exec(
+          "UPDATE reactions SET undone_at=? WHERE post_id=? AND actor_uri=? AND undone_at IS NULL",
+          time.Now().UTC().Truncate(time.Microsecond),
+          postID,
+          identity.ActorURI
+        ))
+      end
+    )
   end
-
-  func React(self: ReactionRepository, ctx: context.Context, postID: String, identity: auth.Identity, remoteVerified: Bool, work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]) -> Result[(), String]
-    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let loaded = loadPostForUpdate(tx, postID)
-      if loaded.IsErr() then
-        return Err(loaded.UnwrapErr())
+  func React(
+    self: ReactionRepository,
+    ctx: context.Context,
+    postID: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]
+  ) -> Result[(), String]
+    RunTransaction(
+      ctx,
+      self.DB,
+      func(tx: Ref[gorm.DB]) -> Result[(), String]
+        let loaded = loadPostForUpdate(tx, postID)
+        if loaded.IsErr() then
+          return Err(loaded.UnwrapErr())
+        end
+        let post = loaded.Unwrap()
+        if post.DeletedAt.Valid then
+          return Err("not found")
+        end
+        let received = QueryExists(tx.WithContext(ctx).Table("site_posts").Where(
+          "site_id=? AND post_id=? AND hidden_at IS NULL",
+          self.SiteID,
+          postID
+        ))
+        if received.IsErr() then
+          return Err(received.UnwrapErr())
+        end
+        if !received.Unwrap() then
+          return Err("not found")
+        end
+        let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
+        let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
+        if access.IsErr() then
+          return Err(access.UnwrapErr())
+        end
+        if !access.Unwrap().CanRead() || !access.Unwrap().Subject.Verified then
+          return Err("forbidden")
+        end
+        work(tx, post)
       end
-      let post = loaded.Unwrap()
-      let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
-      let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
-      if access.IsErr() then
-        return Err(access.UnwrapErr())
-      end
-      if !access.Unwrap().CanRead() || !access.Unwrap().Subject.Verified then
-        return Err("forbidden")
-      end
-      work(tx, post)
-    end)
+    )
   end
 end

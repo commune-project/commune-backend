@@ -2,14 +2,11 @@
 
 package storage
 
-import (
-	"context"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	. "github.com/mygo-lang/mygo/prelude"
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
+import "context"
+import "time"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 type SessionRecord struct {
 	TokenHash []byte    "gorm:\"column:token_hash;primaryKey\""

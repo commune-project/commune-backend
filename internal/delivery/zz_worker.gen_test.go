@@ -2,28 +2,23 @@
 
 package delivery
 
-import (
-	"bytes"
-	"context"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-	"gorm.io/gorm"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "net/http"
+import "net/http/httptest"
+import "io"
+import "bytes"
+import "strings"
+import "time"
+import "log/slog"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestSignedDeliveryPost(t *testing.T) {
 	privateKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())

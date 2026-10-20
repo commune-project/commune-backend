@@ -2,24 +2,18 @@
 
 package server
 
-import (
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
-	"database/sql/driver"
-
-	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/storage"
-
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "net/http/httptest"
+import "net/http"
+import "io"
+import "strings"
+import sqlmock "github.com/DATA-DOG/go-sqlmock"
+import "database/sql/driver"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestHealthRoutingAndReadiness(t *testing.T) {
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))

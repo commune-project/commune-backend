@@ -2,20 +2,15 @@
 
 package storage
 
-import (
-	"context"
-	"testing"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/content"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestPostgresProtocolDisplaySeparation(t *testing.T) {
 	var __mygo_expr_1 Result[*gorm.DB, error]

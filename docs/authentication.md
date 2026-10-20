@@ -31,7 +31,12 @@ Login accepts a username or email. JSON example:
 {"login":"alice@example.org","password":"your-account-password"}
 ```
 
-The identity response contains `site_id`, `account_id`, `actor_uri`, and `username`.
+The identity response contains `site_id`, `account_id`, `actor_uri`, `username`,
+and `roles` with boolean `site_administrator` and `deployment_superadministrator`
+fields. Roles are read from current storage on login and session inspection;
+revocation takes effect with an existing session. They do not imply community
+membership or posting permission. Community and post action fields are described
+in [forum-browser-api.md](forum-browser-api.md).
 It excludes passwords and password hashes. Unknown fields, extra JSON values,
 malformed input and bodies exceeding the configured limit are rejected with 400.
 Invalid credentials or sessions return 401; origin/CSRF failures return 403;

@@ -2,19 +2,15 @@
 
 package server
 
-import (
-	"context"
-	"crypto/rand"
-	"encoding/json"
-	"strings"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "encoding/json"
+import "crypto/rand"
+import "strings"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func AnnounceLocalPost(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, community storage.CommunityRecord, post storage.PostRecord) Result[struct {
 }, string] {

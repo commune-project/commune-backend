@@ -2,22 +2,18 @@
 
 package server
 
-import (
-	"context"
-	"database/sql"
-	"errors"
-	"log/slog"
-	"net/http"
-	"strings"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"github.com/mygo-lang/mygo/lib/concurrency"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "net/http"
+import "context"
+import "time"
+import "errors"
+import "log/slog"
+import "strings"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/mygo-lang/mygo/lib/concurrency"
+import "database/sql"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func Handler(settings config.Config, db *gorm.DB) http.HandlerFunc {
 	callback := func(w http.ResponseWriter, request *http.Request) {

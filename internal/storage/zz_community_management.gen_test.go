@@ -2,20 +2,15 @@
 
 package storage
 
-import (
-	"context"
-	"testing"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "time"
+import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestPostgresCommunityAuthorityAndRevocation(t *testing.T) {
 	var __mygo_expr_1 Result[*gorm.DB, error]

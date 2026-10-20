@@ -2,17 +2,13 @@
 
 package storage
 
-import (
-	"context"
-	"database/sql"
-	"strings"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/auth"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "context"
+import "gorm.io/gorm"
+import "database/sql"
+import "strings"
+import "time"
+import "github.com/commune-project/commune-backend/internal/auth"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string) Result[PostRecord, string] {
 	trimmed := strings.TrimSpace(body)
@@ -52,6 +48,15 @@ func MygoIN14PostRepositoryM12MutateAuthor(self PostRepository, ctx context.Cont
 		} else {
 		}
 		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
+		received := QueryExists(tx.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, id))
+		if MygoIN6ResultM5IsErr[bool, string](received) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](received))
+		} else {
+		}
+		if !MygoIN6ResultM6Unwrap[bool, string](received) {
+			return Err[struct{}, string]("not found")
+		} else {
+		}
 		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		access := MygoIN19CommunityRepositoryM15CheckAuthorship(community, ctx, post.CommunityID, identity, remoteVerified)
 		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {

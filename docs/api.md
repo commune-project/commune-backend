@@ -11,8 +11,9 @@ Unauthorized restricted reads return `404` so metadata and counts do not leak.
 Mutating requests require the browser session cookie, an `Origin` matching the
 resolved site's HTTPS origin, and an `X-CSRF-Token` header carrying the CSRF
 cookie value. Without a session the response is `401`; with a bad origin or CSRF
-it is `403`. Reads accept an optional session; anonymous callers see only
-publicly readable content. Requests must send `Content-Type: application/json`
+it is `403`. Ordinary reads accept an optional session; anonymous callers see only
+publicly readable content. Roster and editing-source reads require a session.
+Requests with JSON bodies must send `Content-Type: application/json`
 with no trailing data, or they are rejected with `400`.
 
 The auth endpoints (login, session, logout) are described in
@@ -22,11 +23,14 @@ The auth endpoints (login, session, logout) are described in
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
+| GET | `/api/v1/communities?limit=&offset=` | | 200 community page |
 | POST | `/api/v1/communities` | `name, title, mode, read_policy, post_policy` | 201 community |
 | GET | `/api/v1/communities/{id}` | | 200 community |
 | GET | `/api/v1/communities/{id}/topics?limit=&offset=` | | 200 page |
 | POST | `/api/v1/communities/{id}/topics` | `title, body` | 201 post |
 | PUT | `/api/v1/communities/{id}/policy` | `read_policy, post_policy` | 204 |
+| GET | `/api/v1/communities/{id}/members?limit=&offset=` | | 200 member roster page |
+| GET | `/api/v1/communities/{id}/managers?limit=&offset=` | | 200 manager roster page |
 | POST/DELETE | `/api/v1/communities/{id}/members` | `actor` | 204 |
 | POST/DELETE | `/api/v1/communities/{id}/managers` | `actor` | 204 |
 | POST/DELETE | `/api/v1/communities/{id}/removals` | `post_id` | 204 |
@@ -36,13 +40,16 @@ The auth endpoints (login, session, logout) are described in
 and `post_policy` are `eligible_users` or `members`; the only valid pairs are
 all-users/all-users, members/members, and all-users-read/members-post. A
 community object carries `id, name, title, description, federation_mode,
-read_policy, post_policy, actor_uri (federated only) and host_site_id`.
+read_policy, post_policy, actor_uri (federated only) and host_site_id`, plus
+`viewer` relationship flags and current `permissions`.
 
 ## Posts
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
+| GET | `/api/v1/topics?limit=&offset=` | | 200 latest topic page |
 | GET | `/api/v1/posts/{id}` | | 200 post |
+| GET | `/api/v1/posts/{id}/source` | | 200 stored editor title/body and version |
 | PATCH | `/api/v1/posts/{id}` | `title, body` | 200 post |
 | DELETE | `/api/v1/posts/{id}` | | 204 |
 | GET | `/api/v1/posts/{id}/replies?limit=&offset=` | | 200 page |
@@ -54,7 +61,8 @@ read_policy, post_policy, actor_uri (federated only) and host_site_id`.
 
 A post carries `id, community_id, object_type, title (topics only), body,
 author_actor_uri, parent_id (replies only), authored_at, updated_at and
-deleted`. `body` and `title` are rendered for display; see
+deleted`, plus `like_count`, `liked_by_me`, site-visible direct `reply_count`,
+and current action `permissions`. `body` and `title` are rendered for display; see
 [rendering.md](rendering.md). A page is `{items, limit, offset}`. `limit`
 defaults to 20 and must be within the configured maximum; `offset` is
 non-negative. Topics require a title; replies must omit it. A reply's optional
@@ -62,6 +70,10 @@ non-negative. Topics require a title; replies must omit it. A reply's optional
 parent relationship remains the one named by the request path. `import` records
 this site's reception only when the caller may currently read the object, and
 `hide` is a site-administrator action.
+
+See [Forum browser API](forum-browser-api.md) for complete viewer/permission
+fields, discovery scope, sorting, roster privacy, source editing examples,
+count semantics, and revocation behavior.
 
 ## Example
 

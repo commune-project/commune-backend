@@ -1,0 +1,145 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresBrowserPolicyParity(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let member = accounts.Create(ctx, site, "member", "", "member-password").Unwrap()
+  let outsider = accounts.Create(ctx, other, "outsider", "", "outsider-password").Unwrap()
+  let manager = accounts.Create(ctx, site, "manager", "", "manager-password").Unwrap()
+  let ordinary = accounts.Create(ctx, site, "ordinary", "", "ordinary-password").Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, other, "super", "superadministrator-password", true).Unwrap()
+  let admin = FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
+  let super = FindAccount(ctx, db, other.ID, "super").Unwrap().Unwrap().Identity()
+  let repository = CommunityRepository{DB: db, SiteID: site.ID}
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let modes: Slice[String] = ["federated", "local_only"]
+  let reads: Slice[String] = ["eligible_users", "members"]
+  let writes: Slice[String] = ["eligible_users", "members"]
+  var serial: Int = 0
+  modes.Each(func(mode: String) -> ()
+    reads.Each(func(read: String) -> ()
+      writes.Each(func(write: String) -> ()
+        if read != "members" || write == "members" then
+          serial = serial + 1
+          # Stable valid names without depending on string formatting helpers.
+          let names: Slice[String] = ["one", "two", "three", "four", "five", "six"]
+          let community = repository.Create(ctx, site, creator, names.Get(serial - 1).Unwrap(), "Community", mode, read, write).Unwrap()
+          let _ = repository.SetMember(ctx, community.ID, creator, false, member.ActorURI, true).Unwrap()
+          let _ = repository.SetManager(ctx, community.ID, creator, false, manager.ActorURI, true).Unwrap()
+          let identities: Slice[auth.Identity] = [auth.Identity{}, creator, member, manager, ordinary, outsider, admin, super]
+          identities.Each(func(identity: auth.Identity) -> ()
+            let viewer = browser.Viewer(ctx, identity).Unwrap()
+            let ids: Slice[String] = [community.ID]
+            let view = browser.Views(ctx, viewer, ids).Unwrap().Get(0).Unwrap()
+            let projected = browser.Access(view, viewer)
+            let canonical = repository.Access(ctx, community, identity, false).Unwrap()
+            let sqlRows: Slice[CommunityView] = []
+            let result = browser.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable").Scan(Ref.new(sqlRows))
+            if QueryFailed(result) then
+              t.Fatalf("readable query failed: %v", result.Error)
+            end
+            let sqlReadable = sqlRows.Filter(func(row: CommunityView) -> Bool
+              row.Record.ID == community.ID
+            end).Len() == 1
+            if projected.CanRead() != canonical.CanRead() || projected.CanPost() != canonical.CanPost() || projected.Authority.Scope != canonical.Authority.Scope || sqlReadable != canonical.CanRead() then
+              t.Fatalf("policy parity failed for %s %s/%s actor %s", mode, read, write, identity.ActorURI)
+            end
+          end)
+          let _ = repository.SetMember(ctx, community.ID, creator, false, member.ActorURI, false).Unwrap()
+          if browser.Access(browser.Views(ctx, browser.Viewer(ctx, member).Unwrap(), [community.ID]).Unwrap().Get(0).Unwrap(), browser.Viewer(ctx, member).Unwrap()).Subject.Member then
+            t.Fatal("revoked membership remained projected")
+          end
+        end
+      end)
+    end)
+  end)
+  let _ = SiteRepository{DB: db, SiteID: site.ID}.SetActorBlocked(ctx, admin, ordinary.ActorURI, true).Unwrap()
+  let blocked = browser.Viewer(ctx, ordinary).Unwrap()
+  let blockedRows: Slice[CommunityView] = []
+  let _ = MutationResult(browser.CommunitiesQuery(ctx, blocked, "SELECT * FROM readable").Scan(Ref.new(blockedRows))).Unwrap()
+  if blockedRows.Len() != 0 then
+    t.Fatal("blocked actor retained discovery access")
+  end
+end
+
+func TestPostgresBrowserFilteredPagesAndReplica(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = config.Site{ID: "a", Origin: "https://a.example"}
+  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, a, "alice", "", "alice-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: a.ID}
+  let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: a.ID}
+  var records: Slice[PostRecord] = []
+  var i: Int = 0
+  while i < 6
+    records = records.Append(posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Title: "Topic", Body: "body"}).Unwrap())
+    i = i + 1
+  end
+  let fixed = time.Now().UTC().Truncate(time.Microsecond)
+  let _ = MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=?", fixed, fixed)).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", a.ID, records.Get(0).Unwrap().ID)).Unwrap()
+  let _ = posts.Delete(ctx, records.Get(1).Unwrap().ID, alice, false).Unwrap()
+  let _ = communities.RemovePost(ctx, open.ID, records.Get(2).Unwrap().ID, alice, false, true).Unwrap()
+  let _ = communities.SetSubmission(ctx, open.ID, records.Get(3).Unwrap().ID, alice, false, "rejected").Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: a.ID}
+  let anonymous = browser.Viewer(ctx, auth.Identity{}).Unwrap()
+  let all = browser.Latest(ctx, anonymous, Page{Limit: 20}, 50).Unwrap()
+  let first = browser.Latest(ctx, anonymous, Page{Limit: 1}, 50).Unwrap()
+  let second = browser.Latest(ctx, anonymous, Page{Limit: 1, Offset: 1}, 50).Unwrap()
+  if all.Len() != 2 || first.Get(0).Unwrap().ID != all.Get(0).Unwrap().ID || second.Get(0).Unwrap().ID != all.Get(1).Unwrap().ID then
+    t.Fatal("filtered/tied topic pagination was inconsistent")
+  end
+  let author = "https://remote.example/users/author"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/news','Group')", author)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica','https://remote.example/groups/news',?,'federated','eligible_users','eligible_users','remote','Remote')", author)).Unwrap()
+  let incoming = PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "replica", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: fixed, UpdatedAt: fixed}
+  let remote = PostRepository{DB: db, SiteID: b.ID}.Receive(ctx, incoming, author).Unwrap()
+  let before = browser.ListCommunities(ctx, anonymous, Page{Limit: 20}, 50).Unwrap()
+  if before.Len() != 1 then
+    t.Fatal("unreceived replica appeared in discovery")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", a.ID, remote.ID)).Unwrap()
+  let after = browser.ListCommunities(ctx, anonymous, Page{Limit: 20}, 50).Unwrap()
+  if after.Len() != 2 || browser.Latest(ctx, anonymous, Page{Limit: 20}, 50).Unwrap().Len() != 3 then
+    t.Fatal("received replica missing from discovery/feed")
+  end
+  let topic = records.Get(4).Unwrap()
+  let visible = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "visible", ParentID: topic.ID}).Unwrap()
+  let hidden = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "hidden", ParentID: topic.ID}).Unwrap()
+  let deleted = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "deleted", ParentID: topic.ID}).Unwrap()
+  let removed = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "removed", ParentID: topic.ID}).Unwrap()
+  let rejected = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "rejected", ParentID: topic.ID}).Unwrap()
+  let unreceived = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "unreceived", ParentID: topic.ID}).Unwrap()
+  let _ = posts.Publish(ctx, a, open.ID, alice, false, PublishInput{Body: "nested", ParentID: visible.ID}).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", hidden.ID)).Unwrap()
+  let _ = posts.Delete(ctx, deleted.ID, alice, false).Unwrap()
+  let _ = communities.RemovePost(ctx, open.ID, removed.ID, alice, false, true).Unwrap()
+  let _ = communities.SetSubmission(ctx, open.ID, rejected.ID, alice, false, "rejected").Unwrap()
+  let _ = MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", unreceived.ID)).Unwrap()
+  let stats = browser.Stats(ctx, anonymous, [topic.ID]).Unwrap().Get(0).Unwrap()
+  if stats.ReplyCount != 1i64 then
+    t.Fatalf("direct visible reply count = %d", stats.ReplyCount)
+  end
+end

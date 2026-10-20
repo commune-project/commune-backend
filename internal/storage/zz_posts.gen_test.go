@@ -2,21 +2,16 @@
 
 package storage
 
-import (
-	"context"
-	"database/sql"
-	"testing"
-	"time"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/testsupport"
-	"github.com/mygo-lang/mygo/lib/concurrency"
-
-	transport "github.com/commune-project/commune-backend/internal/testtransport"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "testing"
+import "context"
+import "database/sql"
+import "time"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/testsupport"
+import "github.com/mygo-lang/mygo/lib/concurrency"
+import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "gorm.io/gorm"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func TestPostgresSharedPostIdentity(t *testing.T) {
 	var __mygo_expr_1 Result[*gorm.DB, error]

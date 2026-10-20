@@ -71,7 +71,7 @@ impl FeedRepository
   func ReadObject(self: FeedRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[PostRecord, String]
     let loaded = loadPostForUpdate(self.DB, id)
     if loaded.IsErr() then
-      return Err("not found")
+      return Err(loaded.UnwrapErr())
     end
     var post = loaded.Unwrap()
     let hidden = QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, id))
@@ -92,11 +92,11 @@ impl FeedRepository
     let community = CommunityRepository{DB: self.DB, SiteID: self.SiteID}
     let loaded = community.Open(ctx, communityID, false)
     if loaded.IsErr() then
-      return Err("not found")
+      return Err(loaded.UnwrapErr())
     end
     let access = community.Access(ctx, loaded.Unwrap(), identity, remoteVerified)
     if access.IsErr() then
-      return Err("not found")
+      return Err(access.UnwrapErr())
     end
     if !access.Unwrap().CanRead() then
       return Err("not found")

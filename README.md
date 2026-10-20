@@ -74,6 +74,8 @@ boundaries.
 and its separation from retained protocol payloads.
 [Local HTTP API](docs/api.md) documents the versioned forum endpoints,
 authentication rules, errors and pagination.
+[Forum browser API](docs/forum-browser-api.md) specifies discovery, latest topics,
+viewer permissions, interaction counts, management rosters and editing source.
 [Federation discovery](docs/federation.md) documents WebFinger, actor and object
 representations, tombstone and activity retrieval, and content negotiation.
 [Discussion context profile](docs/protocol/context-profile.md) separates FEP-7888

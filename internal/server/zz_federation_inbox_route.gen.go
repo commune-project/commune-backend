@@ -2,17 +2,13 @@
 
 package server
 
-import (
-	"net/http"
-	"strings"
-
-	"github.com/commune-project/commune-backend/internal/config"
-	"github.com/commune-project/commune-backend/internal/federation"
-	"github.com/commune-project/commune-backend/internal/storage"
-	"gorm.io/gorm"
-
-	. "github.com/mygo-lang/mygo/prelude"
-)
+import "net/http"
+import "strings"
+import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/federation"
+import . "github.com/mygo-lang/mygo/prelude"
 
 func InboxRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	if request.URL.Path == "/inbox" {
