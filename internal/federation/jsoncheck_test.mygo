@@ -1,0 +1,27 @@
+package federation
+
+import testing "go:testing"
+
+func TestJsonDuplicateKeys(t: Ref[testing.T]) -> ()
+  let text = "{\"a\":1}"
+  let first = text.Get(0).Unwrap() as Int
+  let quote = text.Get(1).Unwrap() as Int
+  if first != 123 || quote != 34 then
+    t.Fatalf("byte indexing is wrong: %d %d", first, quote)
+  end
+  if JsonKeysDup("{\"id\":\"a\",\"actor\":\"b\"}") then
+    t.Fatal("valid payload reported duplicate keys")
+  end
+  if !JsonKeysDup("{\"id\":\"a\",\"id\":\"b\"}") then
+    t.Fatal("duplicate top-level key was not detected")
+  end
+  if JsonKeysDup("{\"a\":{\"x\":1},\"b\":{\"x\":2}}") then
+    t.Fatal("sibling objects reusing a key were wrongly rejected")
+  end
+  if !JsonKeysDup("{\"o\":{\"x\":1,\"x\":2}}") then
+    t.Fatal("duplicate nested key was not detected")
+  end
+  if JsonKeysDup("{\"note\":\"quote \\\" and brace {\"}") then
+    t.Fatal("escaped content was misparsed")
+  end
+end

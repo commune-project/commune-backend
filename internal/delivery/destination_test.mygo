@@ -1,0 +1,69 @@
+package delivery
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresDestinationPlanning(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let carol = accounts.Create(ctx, b, "carol", "", "carol-account-password").Unwrap()
+  let _ = storage.EnsureLocalKey(ctx, db, alice.ActorURI).Unwrap()
+  let peerA = "https://peer.example/users/one"
+  let peerB = "https://peer.example/users/two"
+  let otherC = "https://other.example/users/three"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://other.example/inbox')", peerA, peerB, otherC)).Unwrap()
+  let activityURI = "https://forum-a.example/activities/create-1"
+  let payload = "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,'Create')", activityURI, alice.ActorURI)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, payload as Slice[Byte], storage.PayloadChecksum(payload as Slice[Byte]))).Unwrap()
+  let recipients = [peerA, peerB, otherC, carol.ActorURI]
+  let planned = storage.PlanDelivery(ctx, db, activityURI, alice.ActorURI, recipients, "").Unwrap()
+  if planned.Receipts != 1i64 || planned.Jobs != 3i64 then
+    t.Fatalf("planning mis-split colocated and remote recipients: %d/%d", planned.Receipts, planned.Jobs)
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", carol.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a colocated recipient received an outbound job instead of a local receipt")
+  end
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", carol.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a colocated recipient did not receive a local receipt")
+  end
+  let claimed = storage.ClaimDeliveryJobs(ctx, db, 10, 60i64).Unwrap()
+  if claimed.Len() != 3 then
+    t.Fatalf("expected three remote jobs, got %d", claimed.Len())
+  end
+  if GroupJobs(claimed).Len() != 2 then
+    t.Fatal("jobs sharing a destination were not collapsed into one transmission")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")).Unwrap()
+  var calls = 0
+  let counting = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+    calls = calls + 1
+    Ok(202)
+  end
+  let outcome = RunOnce(ctx, db, settings, Limits{BatchSize: 10, LeaseSeconds: 60i64, MaxAttempts: 2i64, BackoffSeconds: 30i64}, counting).Unwrap()
+  if calls != 2 then
+    t.Fatalf("shared-inbox delivery was transmitted %d times instead of once per destination", calls)
+  end
+  if outcome.Delivered != 3 then
+    t.Fatalf("all recipients of a shared inbox were not marked delivered: %d", outcome.Delivered)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("state = 'delivered'").Count(Ref.new(count))).Unwrap()
+  if count != 3i64 then
+    t.Fatal("shared-inbox deduplication lost a recipient's delivery state")
+  end
+end

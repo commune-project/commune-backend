@@ -1,0 +1,90 @@
+package federation
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+
+func TestBlockedDestinations(t: Ref[testing.T]) -> ()
+  let blocked = [
+    "127.0.0.1",
+    "::1",
+    "10.0.0.1",
+    "172.16.0.1",
+    "192.168.1.1",
+    "169.254.169.254",
+    "fe80::1",
+    "not-an-ip",
+  ]
+  blocked.Each(func(address: String) -> ()
+    if !BlockedIP(address) then
+      t.Fatalf("address was not blocked: %s", address)
+    end
+  end)
+  ["8.8.8.8", "1.1.1.1", "2606:4700:4700::1111"].Each(func(address: String) -> ()
+    if BlockedIP(address) then
+      t.Fatalf("public address was blocked: %s", address)
+    end
+  end)
+  if ValidateDestination("http://peer.example/objects/1", false).IsOk() then
+    t.Fatal("plain http destination was accepted")
+  end
+  if ValidateDestination("https://127.0.0.1/objects/1", false).IsOk() then
+    t.Fatal("loopback destination was accepted")
+  end
+  if ValidateDestination("https://169.254.169.254/latest/meta-data", false).IsOk() then
+    t.Fatal("metadata destination was accepted")
+  end
+  if ValidateDestination("http://127.0.0.1:8080/objects/1", true).IsErr() then
+    t.Fatal("explicit test-network configuration did not permit a local destination")
+  end
+end
+
+func TestFetchLimitsAndRedirects(t: Ref[testing.T]) -> ()
+  let handler = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    if request.URL.Path == "/ok" then
+      w.Header().Set("Content-Type", activityJSON)
+      w.WriteHeader(200)
+      let _ = w.Write([] as Slice[Byte])
+      let _ = w.Write("{\"ok\":true}" as Slice[Byte])
+    else
+      if request.URL.Path == "/large" then
+        w.WriteHeader(200)
+        let _ = w.Write(strings.Repeat("a", 4096) as Slice[Byte])
+      else
+        if request.URL.Path == "/loop" then
+          w.Header().Set("Location", "/loop")
+          w.WriteHeader(302)
+        else
+          w.Header().Set("Location", "/ok")
+          w.WriteHeader(302)
+        end
+      end
+    end
+  end
+  let server = httptest.NewServer(handler as http.HandlerFunc)
+  let limits = FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 3, AllowPrivate: true}
+  let ok = Fetch(context.Background(), server.URL + "/ok", limits).Unwrap()
+  if ok.Status != 200 ||
+    !WantsActivityJSON(ok.ContentType) ||
+    ok.FinalURL != server.URL + "/ok" then
+    t.Fatal("bounded fetch did not return the expected response")
+  end
+  if Fetch(context.Background(), server.URL + "/large", limits).IsOk() then
+    t.Fatal("oversized response was accepted")
+  end
+  let followed = Fetch(context.Background(), server.URL + "/redirect", limits).Unwrap()
+  if followed.Status != 200 || followed.FinalURL != server.URL + "/ok" then
+    t.Fatal("in-range redirect was not followed")
+  end
+  let capped = Fetch(context.Background(), server.URL + "/loop", limits)
+  if capped.IsOk() || capped.UnwrapErr() != "redirect limit exceeded" then
+    t.Fatal("redirect loop was not stopped")
+  end
+  let strict = FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 3, AllowPrivate: false}
+  if Fetch(context.Background(), server.URL + "/ok", strict).IsOk() then
+    t.Fatal("fetch to a blocked destination succeeded without explicit test configuration")
+  end
+  server.Close()
+end

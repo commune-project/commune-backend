@@ -1,0 +1,73 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+struct GroupRoleExtension
+  Role: String `json:"commune:role"`
+end
+
+# Group management activities are authorized by current records, never by the
+# signature alone: the signer must hold community, hosting-site or deployment
+# authority for the target community.
+func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte]) -> Result[(), String]
+  if activity.Type != "Add" && activity.Type != "Remove" then
+    return Ok(())
+  end
+  if activity.Target == "" || activity.ObjectURI == "" then
+    return Ok(())
+  end
+  let found = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.Target)
+  if found.IsErr() || found.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let community = found.Unwrap().Unwrap()
+  # A Group may remove a post from its own community; this is a scoped moderation
+  # action, never a global author deletion.
+  if activity.Type == "Remove" then
+    let post = storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
+    if post.IsOk() && post.Unwrap().IsSome() then
+      let record = post.Unwrap().Unwrap()
+      if record.CommunityID == community.ID && activity.Actor == community.ActorURI.String then
+        let removed = storage.RecordScopedRemoval(ctx, db, record.ID, community.ID, community.ActorURI.String, activity.ID)
+        if removed.IsErr() then
+          return Err(removed.UnwrapErr())
+        end
+        return PublishGroupAnnouncement(ctx, db, site, community, payload)
+      end
+    end
+  end
+  let repository = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let identity = auth.Identity{ActorURI: activity.Actor}
+  let access = repository.Access(ctx, community, identity, true)
+  if access.IsErr() then
+    return Err(access.UnwrapErr())
+  end
+  if !access.Unwrap().Authority.Allows("manage-community") then
+    return Ok(())
+  end
+  var role = "member"
+  let extension = GroupRoleExtension{}
+  if json.Unmarshal(payload, Ref.new(extension)).IsOk() && extension.Role != "" then
+    role = extension.Role
+  end
+  if role != "member" && role != "manager" then
+    return Ok(())
+  end
+  let assigned = activity.Type == "Add"
+  var outcome: Result[(), String] = Ok(())
+  if role == "manager" then
+    outcome = repository.SetManager(ctx, community.ID, identity, true, activity.ObjectURI, assigned)
+  else
+    outcome = repository.SetMember(ctx, community.ID, identity, true, activity.ObjectURI, assigned)
+  end
+  if outcome.IsErr() then
+    return Err(outcome.UnwrapErr())
+  end
+  PublishGroupAnnouncement(ctx, db, site, community, payload)
+end

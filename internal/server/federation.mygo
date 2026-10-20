@@ -1,0 +1,139 @@
+package server
+
+import http "go:net/http"
+import json "go:encoding/json"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+
+func WriteActivity[T](w: http.ResponseWriter, status: Int, value: T) -> ()
+  let encoded = json.Marshal(value)
+  if encoded.IsErr() then
+    http.Error(w, "not found", 404)
+  else
+    w.Header().Set("Content-Type", federation.ActivityJSONType())
+    w.WriteHeader(status)
+    let _ = w.Write(encoded.Unwrap())
+  end
+end
+
+func FederationPath(path: String) -> Bool
+  path == "/.well-known/webfinger" || path == "/inbox" || strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/communities/") || strings.HasPrefix(path, "/objects/") || strings.HasPrefix(path, "/activities/") || strings.HasPrefix(path, "/contexts/")
+end
+
+func FederationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  let path = request.URL.Path
+  if request.Method == "POST" then
+    InboxRoute(settings, db, site, w, request)
+    return
+  end
+  if request.Method != "GET" then
+    MethodNotAllowed(w, "GET, POST")
+    return
+  end
+  if path == "/.well-known/webfinger" then
+    WebFingerHandler(db, site, w, request)
+    return
+  end
+  if !federation.AcceptsActivityJSON(request.Header.Get("Accept")) then
+    http.NotFound(w, request)
+    return
+  end
+  let parts = Segments(path)
+  if parts.Len() == 2 && parts.Get(0).Unwrap() == "users" then
+    let resolved = federation.ResolvePerson(request.Context(), db, site, strings.ToLower(parts.Get(1).Unwrap()))
+    if resolved.IsErr() then
+      http.NotFound(w, request)
+    else
+      WriteActivity(w, 200, resolved.Unwrap())
+    end
+    return
+  end
+  if parts.Len() == 2 && parts.Get(0).Unwrap() == "communities" then
+    let resolved = federation.ResolveGroup(request.Context(), db, site, strings.ToLower(parts.Get(1).Unwrap()))
+    if resolved.IsErr() then
+      http.NotFound(w, request)
+    else
+      WriteActivity(w, 200, resolved.Unwrap())
+    end
+    return
+  end
+  if parts.Len() == 2 && parts.Get(0).Unwrap() == "objects" then
+    ObjectHandler(settings, db, site, w, request, parts.Get(1).Unwrap())
+    return
+  end
+  if parts.Len() == 2 && parts.Get(0).Unwrap() == "activities" then
+    let resolved = federation.ResolveActivity(request.Context(), db, site, parts.Get(1).Unwrap())
+    if resolved.IsErr() then
+      http.NotFound(w, request)
+    else
+      w.Header().Set("Content-Type", federation.ActivityJSONType())
+      w.WriteHeader(200)
+      let _ = w.Write(resolved.Unwrap())
+    end
+    return
+  end
+  if parts.Len() >= 2 && parts.Get(0).Unwrap() == "contexts" then
+    ContextHandler(settings, db, site, w, request, parts.Get(1).Unwrap())
+    return
+  end
+  if parts.Len() == 3 then
+    FederationCollectionRoute(settings, db, site, w, request, parts)
+    return
+  end
+  http.NotFound(w, request)
+end
+
+func WebFingerHandler(db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  let account = federation.ParseWebFingerResource(request.URL.Query().Get("resource"))
+  if account.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let person = storage.LoadLocalPerson(request.Context(), db, site.ID, account.Unwrap().Username)
+  if person.IsErr() || person.Unwrap().IsNone() then
+    http.NotFound(w, request)
+    return
+  end
+  let document = federation.BuildWebFinger(site, account.Unwrap(), person.Unwrap().Unwrap().URI)
+  if document.IsErr() then
+    http.NotFound(w, request)
+  else
+    w.Header().Set("Content-Type", "application/jrd+json")
+    WriteJSON(w, 200, document.Unwrap())
+  end
+end
+
+func ObjectHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+  let found = storage.LoadObjectByID(request.Context(), db, id)
+  if found.IsErr() || found.Unwrap().IsNone() then
+    http.NotFound(w, request)
+    return
+  end
+  let post = found.Unwrap().Unwrap()
+  if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin + "/") then
+    http.NotFound(w, request)
+    return
+  end
+  let loaded = storage.LoadCommunityByID(request.Context(), db, post.CommunityID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() || !federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
+    http.NotFound(w, request)
+    return
+  end
+  let community = loaded.Unwrap().Unwrap()
+  if community.ReadPolicy == "members" then
+    let allowed = MemberReadAllowed(db, settings, request, site, community)
+    if allowed.IsErr() then
+      http.NotFound(w, request)
+      return
+    end
+  end
+  if post.DeletedAt.Valid then
+    WriteActivity(w, 200, federation.BuildTombstoneRepresentation(post))
+  else
+    let contextURI = storage.PrimaryPostContextURI(request.Context(), db, post.ID)
+    WriteActivity(w, 200, federation.BuildObjectRepresentationWithContext(post, community, contextURI))
+  end
+end

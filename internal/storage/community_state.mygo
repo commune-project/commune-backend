@@ -1,0 +1,59 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+struct ReplicaCommunity
+  ID: String `gorm:"column:id"`
+  ActorURI: String `gorm:"column:actor_uri"`
+  ReadPolicy: String `gorm:"column:read_policy"`
+  PostPolicy: String `gorm:"column:post_policy"`
+end
+
+# A replica is a federated community we do not host: its host is authoritative for
+# policy and membership.
+func LoadReplicaCommunity(ctx: context.Context, db: Ref[gorm.DB], actorURI: String) -> Result[Option[ReplicaCommunity], String]
+  let record = ReplicaCommunity{}
+  let query = db.WithContext(ctx).Table("communities").Where("actor_uri = ? AND host_site_id IS NULL AND federation_mode = 'federated'", actorURI).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("community unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[ReplicaCommunity], String](None)
+  end
+  Ok(Some(record))
+end
+
+func ApplyCommunityPolicy(ctx: context.Context, db: Ref[gorm.DB], communityID: String, readPolicy: String, postPolicy: String) -> Result[Int64, String]
+  let readValid = readPolicy == "eligible_users" || readPolicy == "members"
+  let postValid = postPolicy == "eligible_users" || postPolicy == "members"
+  if !readValid || !postValid || (readPolicy == "members" && postPolicy != "members") then
+    return Err("invalid access policy")
+  end
+  let updated = db.WithContext(ctx).Exec("UPDATE communities SET read_policy = ?, post_policy = ?, policy_version = policy_version + 1 WHERE id = ? AND host_site_id IS NULL", readPolicy, postPolicy, communityID)
+  if MutationResult(updated).IsErr() then
+    return Err("state update failed")
+  end
+  Ok(updated.RowsAffected)
+end
+
+# The authority's list replaces the replica's approved set: members it no longer
+# lists are revoked so their next authorization check fails.
+func ReplaceReplicaMembers(ctx: context.Context, db: Ref[gorm.DB], communityID: String, authorityActorURI: String, approved: Slice[String]) -> Result[(), String]
+  RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if MutationResult(tx.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND revoked_at IS NULL", communityID)).IsErr() then
+      return Err("membership update failed")
+    end
+    var failed = false
+    approved.Each(func(member: String) -> ()
+      let inserted = tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by, approved_at=now(), revoked_at=NULL", communityID, member, authorityActorURI)
+      if MutationResult(inserted).IsErr() then
+        failed = true
+      end
+    end)
+    if failed then
+      return Err("membership update failed")
+    end
+    Ok(())
+  end)
+end

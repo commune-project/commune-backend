@@ -1,0 +1,67 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresAuthenticationAndSessions(t: Ref[testing.T]) -> ()
+  let pool = postgresFixture(t)
+  let db = transport.ORM(pool).Unwrap()
+  let ctx = context.Background()
+  if MigrateGORM(ctx, db).IsErr() then
+    t.Fatal("migration failed")
+  end
+  let a = config.Site{ID: "a", Origin: "https://a.example", Aliases: []}
+  let b = config.Site{ID: "b", Origin: "https://b.example", Aliases: []}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "ALICE@EXAMPLE.ORG", "first-site-password").Unwrap()
+  let bob = accounts.Create(ctx, b, "alice", "alice@example.org", "other-site-password").Unwrap()
+  if alice.AccountID == bob.AccountID || !alice.BelongsTo("a") || alice.BelongsTo("b") then
+    t.Fatal("account site identity is incorrect")
+  end
+  let logins = ["alice", "ALICE@EXAMPLE.ORG"]
+  logins.Each(func(login: String) -> ()
+    if accounts.Authenticate(ctx, "a", login, "first-site-password").IsErr() || accounts.Authenticate(ctx, "b", login, "other-site-password").IsErr() then
+      t.Fatal("site-local username or email login failed")
+    end
+    if accounts.Authenticate(ctx, "b", login, "first-site-password").IsOk() then
+      t.Fatal("password authenticated at another site")
+    end
+  end)
+  if accounts.Authenticate(ctx, "a", "alice' OR 1=1 --", "first-site-password").IsOk() || accounts.Authenticate(ctx, "a", "missing", "first-site-password").UnwrapErr() != "invalid credentials" then
+    t.Fatal("login input or unknown account handling failed")
+  end
+  if accounts.Create(ctx, a, "alice", "", "changed-password").IsOk() then
+    t.Fatal("duplicate account replaced credentials")
+  end
+  let sessions = SessionRepository{DB: db}
+  let now = time.Now()
+  let tokens = sessions.Issue(ctx, alice, now).Unwrap()
+  let session = sessions.Resolve(ctx, "a", tokens.Session, now).Unwrap()
+  if session.Identity.AccountID != alice.AccountID || !session.AuthorizesMutation(tokens.CSRF) || session.AuthorizesMutation(auth.NewSessionTokens().CSRF) then
+    t.Fatal("session or CSRF identity failed")
+  end
+  if sessions.Resolve(ctx, "b", tokens.Session, now).IsOk() || sessions.Resolve(ctx, "a", tokens.Session, now.Add(25 as time.Duration * time.Hour)).IsOk() then
+    t.Fatal("cross-site or expired session accepted")
+  end
+  let _ = sessions.Revoke(ctx, "b", tokens.Session, now).Unwrap()
+  if sessions.Resolve(ctx, "a", tokens.Session, now).IsErr() then
+    t.Fatal("wrong-site logout revoked session")
+  end
+  let _ = sessions.Revoke(ctx, "a", tokens.Session, now).Unwrap()
+  if sessions.Resolve(ctx, "a", tokens.Session, now).IsOk() then
+    t.Fatal("logout session remained valid")
+  end
+  let active = sessions.Issue(ctx, alice, now).Unwrap()
+  if pool.Exec("UPDATE accounts SET disabled=true WHERE site_id='a'").IsErr() then
+    t.Fatal("cannot disable account fixture")
+  end
+  if sessions.Resolve(ctx, "a", active.Session, now).IsOk() || sessions.Issue(ctx, alice, now).IsOk() || accounts.Authenticate(ctx, "a", "alice", "first-site-password").IsOk() then
+    t.Fatal("disabled account remained authenticated")
+  end
+end

@@ -1,0 +1,87 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresPersonFollows(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let followerKey = storage.GeneratePrivatePEM().Unwrap()
+  let follower = "https://peer.example/users/fan"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,public_key_pem) VALUES (?, 'Person', 'https://peer.example/inbox', ?)", follower, storage.PublicPEMFromPrivate(followerKey).Unwrap())).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let followURI = "https://peer.example/activities/follow-1"
+  let follow = "{\"id\":\"" + followURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + alice.ActorURI + "\"}"
+  let followResult = signedPost(handler, a.Origin, "/users/alice/inbox", follow, follower, followerKey, date)
+  if followResult.Code != 202 then
+    t.Fatalf("person follow was not accepted: %d %s", followResult.Code, followResult.Body.String())
+  end
+  let following = storage.IsPersonFollower(ctx, db, alice.ActorURI, follower).Unwrap()
+  if !following then
+    t.Fatal("follow was not recorded for the local Person")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Accept'", alice.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("an Accept was not issued for the follow")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", follower).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("the Accept was not queued for delivery to the follower")
+  end
+  let followers = getAP(handler, a.Origin, "/users/alice/followers", "application/activity+json")
+  if followers.Code != 200 || !strings.Contains(followers.Body.String(), "\"totalItems\":1") then
+    t.Fatalf("followers collection did not count the follower: %d %s", followers.Code, followers.Body.String())
+  end
+  let page = getAP(handler, a.Origin, "/users/alice/followers?page=1", "application/activity+json")
+  if !strings.Contains(page.Body.String(), follower) then
+    t.Fatal("followers page did not list the follower")
+  end
+  let _ = storage.MutationResult(db.Table("community_members").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a person follow created community membership")
+  end
+  let undoURI = "https://peer.example/activities/undo-1"
+  let undo = "{\"id\":\"" + undoURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + followURI + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", undo, follower, followerKey, date).Code != 202 then
+    t.Fatal("undo of a person follow was not accepted")
+  end
+  if storage.IsPersonFollower(ctx, db, alice.ActorURI, follower).Unwrap() then
+    t.Fatal("undo did not remove the follower")
+  end
+  let after = getAP(handler, a.Origin, "/users/alice/followers", "application/activity+json")
+  if !strings.Contains(after.Body.String(), "\"totalItems\":0") then
+    t.Fatal("followers collection still counted a removed follower")
+  end
+  let announceURI = "https://peer.example/activities/announce-1"
+  let announce = "{\"id\":\"" + announceURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/objects/9\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", announce, follower, followerKey, date).Code != 202 then
+    t.Fatal("ordinary boost ingestion was not accepted")
+  end
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("activity_uri = ?", announceURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("boost ingestion did not record a receipt")
+  end
+  let _ = storage.MutationResult(db.Table("community_members").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a boost created community membership")
+  end
+  let _ = storage.MutationResult(db.Table("collection_memberships").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a boost created group inclusion")
+  end
+end

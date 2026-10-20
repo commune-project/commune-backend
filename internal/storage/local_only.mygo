@@ -1,0 +1,41 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Central local-only predicates. Every federation boundary calls these rather
+# than trusting an incoming identifier or a stale queued job.
+func IsLocalOnlyCommunity(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[Bool, String]
+  if communityID == "" then
+    return Ok(false)
+  end
+  QueryExists(db.WithContext(ctx).Table("communities").Where("id = ? AND federation_mode = 'local_only'", communityID))
+end
+
+func IsLocalOnlyObject(ctx: context.Context, db: Ref[gorm.DB], objectURI: String) -> Result[Bool, String]
+  if objectURI == "" then
+    return Ok(false)
+  end
+  QueryExists(db.WithContext(ctx).Table("posts").Where("object_uri = ? AND federation_mode = 'local_only'", objectURI))
+end
+
+func IsLocalOnlyPostID(ctx: context.Context, db: Ref[gorm.DB], postID: String) -> Result[Bool, String]
+  if postID == "" then
+    return Ok(false)
+  end
+  QueryExists(db.WithContext(ctx).Table("posts").Where("id = ? AND federation_mode = 'local_only'", postID))
+end
+
+# An activity is local-only when it is associated with a local-only community or
+# with a post that belongs to one; such records never legitimately exist.
+func IsLocalOnlyActivity(ctx: context.Context, db: Ref[gorm.DB], activityURI: String) -> Result[Bool, String]
+  if activityURI == "" then
+    return Ok(false)
+  end
+  let excluded = false
+  let query = db.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM activities a WHERE a.uri = ? AND ((a.community_id IS NOT NULL AND EXISTS (SELECT 1 FROM communities c WHERE c.id = a.community_id AND c.federation_mode = 'local_only')) OR (a.post_id IS NOT NULL AND EXISTS (SELECT 1 FROM posts p WHERE p.id = a.post_id AND p.federation_mode = 'local_only')))) AS local_only", activityURI).Scan(Ref.new(excluded))
+  if MutationResult(query).IsErr() then
+    return Err("policy unavailable")
+  end
+  Ok(excluded)
+end

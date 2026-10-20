@@ -1,0 +1,104 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresFeedAccessEnforcement(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let carol = accounts.Create(ctx, other, "carol", "", "carol-account-password").Unwrap()
+  let anonymous = auth.Identity{}
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let feed = FeedRepository{DB: db, SiteID: site.ID}
+  let otherFeed = FeedRepository{DB: db, SiteID: "b"}
+  let page = Page{Limit: 50, Offset: 0}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let memberOnly = communities.Create(ctx, site, alice, "locked", "Locked", "federated", "members", "members").Unwrap()
+  let localOnly = communities.Create(ctx, site, alice, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
+  let topic1 = post(posts, ctx, site, open.ID, alice, "T1", "B")
+  let _ = post(posts, ctx, site, open.ID, alice, "T2", "B")
+  let topic3 = post(posts, ctx, site, open.ID, alice, "T3", "B")
+  let _ = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Body: "R", ParentID: topic1.ID}).Unwrap()
+  let hidden = post(posts, ctx, site, memberOnly.ID, alice, "H", "B")
+  let localTopic = post(posts, ctx, site, localOnly.ID, alice, "L", "B")
+  let first = feed.ListTopics(ctx, open.ID, alice, false, Page{Limit: 2, Offset: 0}, 50).Unwrap()
+  let second = feed.ListTopics(ctx, open.ID, alice, false, Page{Limit: 2, Offset: 2}, 50).Unwrap()
+  let overlap = first.Get(0).Unwrap().ID == second.Get(0).Unwrap().ID
+  if first.Len() != 2 || second.Len() != 1 || overlap then
+    t.Fatal("topic pagination repeated or dropped entries")
+  end
+  let zeroPage = feed.ListTopics(ctx, open.ID, alice, false, Page{Limit: 0, Offset: 0}, 50)
+  let bigPage = feed.ListTopics(ctx, open.ID, alice, false, Page{Limit: 100, Offset: 0}, 50)
+  if zeroPage.IsOk() || bigPage.IsOk() then
+    t.Fatal("out-of-range pagination accepted")
+  end
+  let publicView = feed.ListTopics(ctx, open.ID, anonymous, false, page, 50)
+  if publicView.IsErr() || publicView.Unwrap().Len() != 3 then
+    t.Fatal("public federated topics were not readable")
+  end
+  let carolView = feed.ListTopics(ctx, open.ID, carol, false, page, 50).Unwrap()
+  if carolView.Len() != 3 then
+    t.Fatal("eligible account could not read public federated topics")
+  end
+  let deniedList = feed.ListTopics(ctx, memberOnly.ID, bob, false, page, 50)
+  let deniedObject = feed.ReadObject(ctx, hidden.ID, bob, false)
+  let deniedCount = feed.Count(ctx, memberOnly.ID, anonymous, false)
+  if deniedList.IsOk() || deniedObject.IsOk() || deniedCount.IsOk() then
+    t.Fatal("non-member read restricted membership metadata or counts")
+  end
+  let memberView = feed.ListTopics(ctx, memberOnly.ID, alice, false, page, 50).Unwrap()
+  let memberCount = feed.Count(ctx, memberOnly.ID, alice, false).Unwrap()
+  if memberView.Len() != 1 || memberCount != 1i64 then
+    t.Fatal("member could not read the members-only community")
+  end
+  if feed.ReadObject(ctx, hidden.ID, alice, false).Unwrap().ID != hidden.ID then
+    t.Fatal("member object read failed")
+  end
+  let localList = feed.ListTopics(ctx, localOnly.ID, carol, false, page, 50)
+  let localObject = feed.ReadObject(ctx, localTopic.ID, anonymous, false)
+  if localList.IsOk() || localObject.IsOk() then
+    t.Fatal("local-only content or identity escaped to another caller")
+  end
+  let unReceived = "https://remote.example/objects/unreceived"
+  let author = "https://remote.example/users/dave"
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/communities/r','Group')", author)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/communities/r',?,'federated','eligible_users','eligible_users','remote','Remote')", author)).Unwrap()
+  let uri = sql.NullString{String: unReceived, Valid: true}
+  let incoming = PostRecord{ObjectURI: uri, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "remote body", AuthoredAt: now, UpdatedAt: now}
+  let receiver = PostRepository{DB: db, SiteID: "b"}
+  let received = receiver.Receive(ctx, incoming, author).Unwrap()
+  if feed.ReadObject(ctx, received.ID, alice, false).IsOk() then
+    t.Fatal("site A exposed an object it had not received")
+  end
+  if otherFeed.ReadObject(ctx, received.ID, carol, false).IsErr() then
+    t.Fatal("receiving site could not read its own received object")
+  end
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id='a' AND post_id=?", now, topic3.ID)).Unwrap()
+  let afterHide = feed.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap()
+  if afterHide.Len() != 2 then
+    t.Fatal("site-hidden post remained in that site's listing")
+  end
+  if otherFeed.ListTopics(ctx, open.ID, carol, false, page, 50).IsErr() then
+    t.Fatal("hidden state leaked across sites")
+  end
+end
+
+func post(posts: PostRepository, ctx: context.Context, site: config.Site, communityID: String, author: auth.Identity, title: String, body: String) -> PostRecord
+  posts.Publish(ctx, site, communityID, author, false, PublishInput{Title: title, Body: body, ParentID: ""}).Unwrap()
+end

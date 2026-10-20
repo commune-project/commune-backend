@@ -1,0 +1,113 @@
+package server
+
+import context "go:context"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+func FindHostedGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, addressed: Slice[String]) -> Result[Option[storage.CommunityRecord], String]
+  var found: Option[storage.CommunityRecord] = None
+  var failed = false
+  addressed.Each(func(address: String) -> ()
+    if !failed && found.IsNone() then
+      let candidate = storage.LoadHostedCommunityByActor(ctx, db, site.ID, address)
+      if candidate.IsErr() then
+        failed = true
+      else
+        if candidate.Unwrap().IsSome() && federation.FederatedCommunity(candidate.Unwrap().Unwrap()) then
+          found = candidate.Unwrap()
+        end
+      end
+    end
+  end)
+  if failed then
+    return Err("community unavailable")
+  end
+  Ok(found)
+end
+
+# FEP-1b12 submission: an accepted Create addressed to a hosted Group is wrapped
+# in an Announce by that Group. The original Create bytes are embedded verbatim so
+# unknown properties and proofs survive forwarding. A blocked author or a
+# disallowed posting policy produces no announcement at all.
+func ApplyCreateSubmission(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[(), String]
+  let group = FindHostedGroup(ctx, db, site, addressed)
+  if group.IsErr() then
+    return Err(group.UnwrapErr())
+  end
+  if group.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let community = group.Unwrap().Unwrap()
+  # A restricted community must never accept a submission that was openly
+  # addressed: the original activity stays untouched and is simply not announced.
+  if community.ReadPolicy == "members" && addressed.Contains("https://www.w3.org/ns/activitystreams#Public") then
+    return Ok(())
+  end
+  let siteRepo = storage.SiteRepository{DB: db, SiteID: site.ID}
+  let blocked = siteRepo.IsBlocked(ctx, activity.Actor)
+  if blocked.IsErr() then
+    return Err(blocked.UnwrapErr())
+  end
+  if blocked.Unwrap() then
+    return Ok(())
+  end
+  if community.PostPolicy != "eligible_users" then
+    let member = storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
+    if member.IsErr() then
+      return Err(member.UnwrapErr())
+    end
+    if !member.Unwrap() then
+      return Ok(())
+    end
+  end
+  PublishGroupAnnouncement(ctx, db, site, community, payload)
+end
+
+# Wraps an accepted activity in an Announce by the Group and fans it out to
+# eligible followers (or protected members). The inner bytes are embedded intact.
+func PublishGroupAnnouncement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte]) -> Result[(), String]
+  PublishGroupAnnouncementTo(ctx, db, site, community, payload, [])
+end
+
+# Additional destinations (such as a joined remote context's authority) are
+# deduplicated against followers before expansion.
+func PublishGroupAnnouncementTo(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte], extra: Slice[String]) -> Result[(), String]
+  let key = storage.EnsureLocalKey(ctx, db, community.ActorURI.String)
+  if key.IsErr() then
+    return Err(key.UnwrapErr())
+  end
+  let announceURI = site.Origin + "/activities/" + rand.Text()
+  let announce = `{"@context":"https://www.w3.org/ns/activitystreams","id":"` + announceURI + `","type":"Announce","actor":"` + community.ActorURI.String + `","object":` + (payload as String) + `}`
+  let excluded = storage.IsLocalOnlyActivity(ctx, db, announceURI)
+  if excluded.IsErr() || excluded.Unwrap() then
+    return Err("announce suppressed")
+  end
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let stored = storage.InsertActivityPayload(ctx, tx, announceURI, community.ActorURI.String, "Announce", announce as Slice[Byte], community.ID)
+    if stored.IsErr() then
+      return Err(stored.UnwrapErr())
+    end
+    if community.ReadPolicy == "members" then
+      let planned = storage.PlanRestrictedDelivery(ctx, tx, announceURI, community.ActorURI.String, community.ID)
+      if planned.IsErr() then
+        return Err(planned.UnwrapErr())
+      end
+      return Ok(())
+    end
+    let followers = storage.ListAcceptedFollowers(ctx, db, community.ID, 1000, 0)
+    if followers.IsErr() then
+      return Err(followers.UnwrapErr())
+    end
+    let recipients = storage.UniqueRecipients(followers.Unwrap().Fold(extra, func(acc: Slice[String], item: String) -> Slice[String]
+      acc.Append(item)
+    end))
+    let planned = storage.PlanDelivery(ctx, tx, announceURI, community.ActorURI.String, recipients, community.ID)
+    if planned.IsErr() then
+      return Err(planned.UnwrapErr())
+    end
+    Ok(())
+  end)
+end

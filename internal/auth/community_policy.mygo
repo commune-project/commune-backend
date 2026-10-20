@@ -1,0 +1,45 @@
+package auth
+
+struct AccessSubject
+  SiteID: String
+  AccountID: Int64
+  ActorURI: String
+  Verified: Bool
+  Member: Bool
+  Blocked: Bool
+end
+
+struct CommunityPolicy
+  HostSiteID: String
+  FederationMode: String
+  ReadPolicy: String
+  PostPolicy: String
+end
+
+impl CommunityPolicy
+  func Valid(self: CommunityPolicy) -> Bool
+    (self.FederationMode == "local_only" || self.FederationMode == "federated") && (self.FederationMode != "local_only" || self.HostSiteID != "") && (self.ReadPolicy == "eligible_users" || self.ReadPolicy == "members") && (self.PostPolicy == "eligible_users" || self.PostPolicy == "members") && (self.ReadPolicy != "members" || self.PostPolicy == "members")
+  end
+
+  func AllowsFederation(self: CommunityPolicy) -> Bool
+    self.Valid() && self.FederationMode == "federated"
+  end
+
+  func Eligible(self: CommunityPolicy, subject: AccessSubject) -> Bool
+    self.Valid() && !subject.Blocked && subject.Verified && subject.ActorURI != "" && (self.FederationMode == "federated" || (subject.SiteID == self.HostSiteID && subject.AccountID > 0i64))
+  end
+
+  func CanRead(self: CommunityPolicy, subject: AccessSubject) -> Bool
+    if !self.Valid() || subject.Blocked then
+      return false
+    end
+    if self.FederationMode == "federated" && self.ReadPolicy == "eligible_users" then
+      return true
+    end
+    self.Eligible(subject) && (self.ReadPolicy == "eligible_users" || subject.Member)
+  end
+
+  func CanPost(self: CommunityPolicy, subject: AccessSubject) -> Bool
+    self.CanRead(subject) && self.Eligible(subject) && (self.PostPolicy == "eligible_users" || subject.Member)
+  end
+end

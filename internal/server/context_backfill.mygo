@@ -1,0 +1,355 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import sql "go:database/sql"
+import time "go:time"
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+let maxBackfillPages: Int = 10
+let maxBackfillItems: Int = 1000
+
+struct BackfillResult
+  Examined: Int `json:"examined"`
+  Imported: Int `json:"imported"`
+  Updated: Int `json:"updated"`
+  Pages: Int `json:"pages"`
+end
+
+struct BackfillObject
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  AttributedTo: String `json:"attributedTo"`
+  InReplyTo: String `json:"inReplyTo"`
+  Name: String `json:"name"`
+  Content: String `json:"content"`
+  Published: time.Time `json:"published"`
+  Updated: time.Time `json:"updated"`
+end
+
+func ContextBackfillRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  contextID: String
+) -> ()
+  if request.Method != "POST" then
+    MethodNotAllowed(w, "POST")
+    return
+  end
+  let actor = RequireMutation(settings, db, site, request)
+  if actor.IsErr() then
+    Fail(w, actor.UnwrapErr())
+    return
+  end
+  let result = BackfillDiscussion(
+    request.Context(),
+    settings,
+    db,
+    site,
+    contextID,
+    actor.Unwrap(),
+    false,
+    FetchBackfillPayload
+  )
+  if result.IsErr() then
+    Fail(w, result.UnwrapErr())
+  else
+    WriteJSON(w, 200, result.Unwrap())
+  end
+end
+
+func FetchBackfillPayload(
+  ctx: context.Context,
+  settings: config.Config,
+  uri: String
+) -> Result[Slice[Byte], String]
+  let fetched = federation.Fetch(ctx, uri, FetchLimitsFrom(settings))
+  if fetched.IsErr() then
+    return Err(fetched.UnwrapErr())
+  end
+  let response = fetched.Unwrap()
+  if response.Status != 200 || !federation.WantsActivityJSON(response.ContentType) then
+    return Err("resource unavailable")
+  end
+  Ok(response.Body)
+end
+
+func ResolveBackfillCommunity(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  authority: String
+) -> Result[String, String]
+  let hosted = storage.LoadHostedCommunityByActor(ctx, db, siteID, authority)
+  if hosted.IsErr() then
+    return Err(hosted.UnwrapErr())
+  end
+  if hosted.Unwrap().IsSome() then
+    return Ok(hosted.Unwrap().Unwrap().ID)
+  end
+  let replica = storage.LoadReplicaCommunity(ctx, db, authority)
+  if replica.IsErr() || replica.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  Ok(replica.Unwrap().Unwrap().ID)
+end
+
+func ImportBackfilledObject(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  communityID: String,
+  contextID: String,
+  authority: String,
+  collectionURI: String,
+  objectURI: String,
+  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], String]
+) -> Result[Int, String]
+  let existing = storage.LoadObjectByURI(ctx, db, objectURI)
+  if existing.IsErr() then
+    return Err(existing.UnwrapErr())
+  end
+  if existing.Unwrap().IsSome() && existing.Unwrap().Unwrap().DeletedAt.Valid then
+    return Ok(2)
+  end
+  let payload = fetcher(ctx, settings, objectURI)
+  if payload.IsErr() then
+    return Ok(2)
+  end
+  let object = BackfillObject{}
+  if json.Unmarshal(payload.Unwrap(), Ref.new(object)).IsErr() ||
+    object.ID != objectURI ||
+    (object.Type != "Page" && object.Type != "Note") ||
+    object.AttributedTo == "" ||
+    object.Published.IsZero() then
+    return Ok(2)
+  end
+  var parent = sql.NullString{}
+  if object.InReplyTo != "" then
+    let parentRecord = storage.LoadObjectByURI(ctx, db, object.InReplyTo)
+    if parentRecord.IsErr() then
+      return Err(parentRecord.UnwrapErr())
+    end
+    if parentRecord.Unwrap().IsNone() || parentRecord.Unwrap().Unwrap().CommunityID != communityID then
+      return Ok(2)
+    end
+    parent = sql.NullString{String: parentRecord.Unwrap().Unwrap().ID, Valid: true}
+  end
+  let updated = if object.Updated.IsZero() then
+    object.Published
+  else
+    object.Updated
+  end
+  if updated.Before(object.Published) then
+    return Ok(2)
+  end
+  let insertedActor = storage.EnsureRemoteActor(ctx, db, object.AttributedTo, "Person")
+  if insertedActor.IsErr() then
+    return Err(insertedActor.UnwrapErr())
+  end
+  let title = sql.NullString { String: object.Name, Valid: object.Name != "" }
+  let incoming = storage.PostRecord {
+    ObjectURI: sql.NullString { String: object.ID, Valid: true },
+    CommunityID: communityID,
+    FederationMode: "federated",
+    AuthorActorURI: object.AttributedTo,
+    ObjectType: object.Type,
+    Title: title,
+    Body: object.Content,
+    ParentID: parent,
+    AuthoredAt: object.Published,
+    UpdatedAt: updated,
+  }
+  let received = storage.PostRepository { DB: db, SiteID: site.ID }.Receive(
+    ctx,
+    incoming,
+    object.AttributedTo
+  )
+  if received.IsErr() then
+    return Err(received.UnwrapErr())
+  end
+  let included = storage.RecordCanonicalContextInclusion(
+    ctx,
+    db,
+    received.Unwrap().ID,
+    contextID,
+    authority,
+    collectionURI
+  )
+  if included.IsErr() then
+    return Err(included.UnwrapErr())
+  end
+  if existing.Unwrap().IsSome() then
+    return Ok(1)
+  end
+  Ok(0)
+end
+
+# Backfill follows only an authority document and its advertised collection pages.
+# It is bounded, deduplicates visited pages/items, and never overwrites a site hide
+# or an existing author tombstone.
+func BackfillDiscussion(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  contextID: String,
+  identity: auth.Identity,
+  remoteVerified: Bool,
+  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], String]
+) -> Result[BackfillResult, String]
+  let loaded = storage.LoadDiscussionContext(ctx, db, contextID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let existingContext = loaded.Unwrap().Unwrap()
+  if !existingContext.ContextURI.Valid || existingContext.ContextURI.String == "" then
+    return Err("not found")
+  end
+  if existingContext.CommunityID.Valid then
+    let existingCommunity = storage.LoadCommunityByID(ctx, db, existingContext.CommunityID.String)
+    if existingCommunity.IsErr() ||
+      existingCommunity.Unwrap().IsNone() ||
+      !federation.FederatedCommunity(existingCommunity.Unwrap().Unwrap()) then
+      return Err("not found")
+    end
+    let allowed = storage.FeedRepository{DB: db, SiteID: site.ID}.AllowRead(
+      ctx,
+      existingContext.CommunityID.String,
+      identity,
+      remoteVerified
+    )
+    if allowed.IsErr() then
+      return Err("not found")
+    end
+  end
+  let rootURI = existingContext.ContextURI.String
+  let rootPayload = fetcher(ctx, settings, rootURI)
+  if rootPayload.IsErr() then
+    return Err("context unavailable")
+  end
+  let rootBytes = rootPayload.Unwrap()
+  let authority = federation.ContextAuthorityURI(rootBytes)
+  if authority == "" then
+    return Err("context authority unavailable")
+  end
+  let communityID = ResolveBackfillCommunity(ctx, db, site.ID, authority)
+  if communityID.IsErr() then
+    return Err(communityID.UnwrapErr())
+  end
+  if existingContext.CommunityID.Valid &&
+    existingContext.CommunityID.String != communityID.Unwrap() then
+    return Err("not found")
+  end
+  let community = storage.LoadCommunityByID(ctx, db, communityID.Unwrap())
+  if community.IsErr() ||
+    community.Unwrap().IsNone() ||
+    !federation.FederatedCommunity(community.Unwrap().Unwrap()) then
+    return Err("not found")
+  end
+  let allowed = storage.FeedRepository{DB: db, SiteID: site.ID}.AllowRead(
+    ctx,
+    communityID.Unwrap(),
+    identity,
+    remoteVerified
+  )
+  if allowed.IsErr() then
+    return Err("not found")
+  end
+  let authorityActor = storage.EnsureRemoteActor(ctx, db, authority, "Group")
+  if authorityActor.IsErr() then
+    return Err(authorityActor.UnwrapErr())
+  end
+  let resolved = storage.ResolveDiscussionContext(
+    ctx,
+    db,
+    contextID,
+    communityID.Unwrap(),
+    authority,
+    rootURI
+  )
+  if resolved.IsErr() then
+    return Err(resolved.UnwrapErr())
+  end
+  var pending: Slice[String] = [rootURI]
+  var seen: Slice[String] = []
+  var cursor = 0
+  var pages = 0
+  var examined = 0
+  var imported = 0
+  var updatedCount = 0
+  var failure = ""
+  while cursor < pending.Len() && pages < maxBackfillPages && examined < maxBackfillItems
+    let pageURI = pending.Get(cursor).Unwrap()
+    cursor = cursor + 1
+    if seen.Contains(pageURI) then
+      continue
+    end
+    let pageBytes = if pageURI == rootURI then
+      Ok[Slice[Byte], String](rootBytes)
+    else
+      fetcher(ctx, settings, pageURI)
+    end
+    if pageBytes.IsErr() then
+      continue
+    end
+    let parsed = federation.ParseCollectionTraversal(pageBytes.Unwrap())
+    if parsed.IsErr() then
+      continue
+    end
+    let traversal = parsed.Unwrap()
+    if traversal.ID != "" && traversal.ID != pageURI then
+      continue
+    end
+    seen = seen.Append(pageURI)
+    pages = pages + 1
+    if traversal.Items.Len() == 0 && traversal.First != "" && !seen.Contains(traversal.First) then
+      pending = pending.Append(traversal.First)
+    end
+    traversal.Items.Each(func(itemURI: String) -> ()
+      if failure == "" && examined < maxBackfillItems && !seen.Contains(itemURI) then
+        seen = seen.Append(itemURI)
+        examined = examined + 1
+        let result = ImportBackfilledObject(
+          ctx,
+          settings,
+          db,
+          site,
+          communityID.Unwrap(),
+          contextID,
+          authority,
+          rootURI,
+          itemURI,
+          fetcher
+        )
+        if result.IsErr() then
+          failure = result.UnwrapErr()
+        else
+          if result.Unwrap() == 0 then
+            imported = imported + 1
+          else
+            if result.Unwrap() == 1 then
+              updatedCount = updatedCount + 1
+            end
+          end
+        end
+      end
+    end)
+    if failure != "" then
+      return Err(failure)
+    end
+    if traversal.Next != "" && !seen.Contains(traversal.Next) then
+      pending = pending.Append(traversal.Next)
+    end
+  end
+  Ok(BackfillResult{Examined: examined, Imported: imported, Updated: updatedCount, Pages: pages})
+end

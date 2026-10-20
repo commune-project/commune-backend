@@ -1,0 +1,37 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import url "go:net/url"
+import strings "go:strings"
+import config "github.com/commune-project/commune-mygo/internal/config"
+
+func ActorDomain(actorURI: String) -> Result[String, String]
+  let parsed = url.Parse(actorURI)
+  if parsed.IsErr() || parsed.Unwrap().Hostname() == "" then
+    return Err("invalid actor")
+  end
+  let host = strings.ToLower(strings.TrimSuffix(parsed.Unwrap().Hostname(), "."))
+  if !config.ValidDomain(host) then
+    return Err("invalid actor")
+  end
+  Ok(host)
+end
+
+func SetPeerProtectedReads(ctx: context.Context, db: Ref[gorm.DB], domain: String, supported: Bool) -> Result[(), String]
+  let normalized = strings.ToLower(strings.TrimSuffix(domain, "."))
+  if !config.ValidDomain(normalized) then
+    return Err("invalid domain")
+  end
+  MutationResult(db.WithContext(ctx).Exec("INSERT INTO peer_capabilities(domain,protected_reads) VALUES (?,?) ON CONFLICT (domain) DO UPDATE SET protected_reads=EXCLUDED.protected_reads, updated_at=now()", normalized, supported))
+end
+
+# Only an explicitly recorded capability enables restricted delivery; an unknown
+# peer fails closed.
+func PeerSupportsProtectedReads(ctx: context.Context, db: Ref[gorm.DB], actorURI: String) -> Result[Bool, String]
+  let domain = ActorDomain(actorURI)
+  if domain.IsErr() then
+    return Ok(false)
+  end
+  QueryExists(db.WithContext(ctx).Table("peer_capabilities").Where("domain = ? AND protected_reads", domain.Unwrap()))
+end

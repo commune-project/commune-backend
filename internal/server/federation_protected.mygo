@@ -1,0 +1,58 @@
+package server
+
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+# Actor-signed read identity. The presented key must belong to the actor it
+# names, so an instance key is only ever the identity of that instance actor.
+func SignedRequester(db: Ref[gorm.DB], settings: config.Config, request: Ref[http.Request]) -> Result[auth.Identity, String]
+  let header = request.Header.Get("Signature")
+  let date = request.Header.Get("Date")
+  let parsed = federation.ParseSignatureHeader(header)
+  if parsed.IsErr() then
+    return Err("unauthenticated")
+  end
+  let keyID = parsed.Unwrap().KeyID
+  let actorURI = strings.TrimSuffix(keyID, "#main-key")
+  if !federation.KeyOwnedByActor(keyID, actorURI) then
+    return Err("unauthenticated")
+  end
+  let actor = storage.LoadActor(request.Context(), db, actorURI)
+  if actor.IsErr() || actor.Unwrap().IsNone() then
+    return Err("unauthenticated")
+  end
+  let record = actor.Unwrap().Unwrap()
+  if !record.PublicKeyPEM.Valid || record.PublicKeyPEM.String == "" then
+    return Err("unauthenticated")
+  end
+  let verified = federation.VerifySignedGet(record.PublicKeyPEM.String, "GET", request.URL.RequestURI(), request.Host, date, header, time.Now(), settings.Federation.ClockSkewSeconds as Int64)
+  if verified.IsErr() then
+    return Err("unauthenticated")
+  end
+  Ok(auth.Identity{ActorURI: actorURI})
+end
+
+# Member-readable reads require a signed request whose actor currently satisfies
+# the community's read policy; a non-member or an unrelated instance key is
+# denied.
+func MemberReadAllowed(db: Ref[gorm.DB], settings: config.Config, request: Ref[http.Request], site: config.Site, community: storage.CommunityRecord) -> Result[(), String]
+  let identity = SignedRequester(db, settings, request)
+  if identity.IsErr() then
+    return Err("forbidden")
+  end
+  let repository = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let access = repository.Access(request.Context(), community, identity.Unwrap(), true)
+  if access.IsErr() then
+    return Err("forbidden")
+  end
+  if !access.Unwrap().CanRead() then
+    return Err("forbidden")
+  end
+  Ok(())
+end

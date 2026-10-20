@@ -14,7 +14,7 @@ Commune needs a working MyGO backend for federated forums, with multiple indepen
 - Implement ActivityPub discovery, actor and object retrieval, collections, authenticated inbound processing, and durable outbound delivery only where community federation and access policies permit.
 - Implement FEP-1b12 group federation and FEP-7888 context handling with authoritative membership validation and access-aware collections; never downgrade restricted content to public delivery for compatibility.
 - Deliver interoperability in order: independent Commune instances, Lemmy, Mastodon, then Misskey. Validate supported forum interactions against pinned releases rather than equating protocol support with complete application feature parity.
-- Provide explicit database migrations, site/account provisioning, safe startup, and reproducible federation tests.
+- Use GORM for MyGO persistence repositories while retaining explicit versioned SQL migrations, site/account provisioning, safe startup, and reproducible federation tests.
 
 ## Capabilities
 

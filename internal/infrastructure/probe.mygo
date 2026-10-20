@@ -1,0 +1,100 @@
+package infrastructure
+
+import http "go:net/http"
+import json "go:encoding/json"
+import sql "go:database/sql"
+import rsa "go:crypto/rsa"
+import rand "go:crypto/rand"
+import crypto "go:crypto"
+import sha256 "go:crypto/sha256"
+import hash "go:hash"
+
+struct ProbeMessage
+  Status: String `json:"status"`
+end
+
+struct ProbeEnvelope
+  Object: json.RawMessage `json:"object"`
+end
+
+struct ProbePayload
+  Original: String
+  Encoded: String
+end
+
+func ProbeRawPayload(payload: String) -> Result[ProbePayload, error]
+  let envelope = ProbeEnvelope {}
+  switch json.Unmarshal(payload as Slice[Byte], Ref.new(envelope))
+    case Err(err) => Err(err)
+    case Ok(_) then
+      switch json.Marshal(envelope)
+        case Err(err) => Err(err)
+        case Ok(encoded) => Ok(ProbePayload { Original: payload, Encoded: encoded as String })
+      end
+    end
+  end
+end
+
+func ProbeHandler(w: http.ResponseWriter, r: Ref[http.Request]) -> ()
+  w.Header().Set("Content-Type", "application/json")
+  switch json.Marshal(ProbeMessage { Status: "ok" })
+    case Err(err) => http.Error(w, err.Error(), 500)
+    case Ok(body) then
+      w.WriteHeader(200)
+      let _ = w.Write(body)
+    end
+  end
+end
+
+func ProbeHTTPHandler() -> http.HandlerFunc
+  ProbeHandler as http.HandlerFunc
+end
+
+func ProbeTransaction(db: Ref[sql.DB]) -> Result[String, error]
+  switch db.Begin()
+    case Err(err) => Err(err)
+    case Ok(tx) then
+      let initial = ""
+      switch tx.QueryRow("SELECT 'commune-probe'").Scan(Ref.new(initial))
+        case Err(err) then
+          let _ = tx.Rollback()
+          Err(err)
+        end
+        case Ok(_) then
+          switch tx.Commit()
+            case Err(err) => Err(err)
+            case Ok(_) => Ok(initial)
+          end
+        end
+      end
+    end
+  end
+end
+
+func ProbeSignature(body: String) -> Result[Bool, error]
+  switch rsa.GenerateKey(rand.Reader, 2048)
+    case Err(err) => Err(err)
+    case Ok(key) then
+      let hasher = sha256.New()
+      let _ = hasher.Write(body as Slice[Byte])
+      let bytes = hasher.Sum([] as Slice[Byte])
+      switch rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, bytes)
+        case Err(err) => Err(err)
+        case Ok(signature) then
+          switch rsa.VerifyPKCS1v15(Ref.new(key.PublicKey), crypto.SHA256, bytes, signature)
+            case Err(err) => Err(err)
+            case Ok(_) then
+              let changedHasher = sha256.New()
+              let _ = changedHasher.Write((body + "tampered") as Slice[Byte])
+              let changedBytes = changedHasher.Sum([] as Slice[Byte])
+              switch rsa.VerifyPKCS1v15(Ref.new(key.PublicKey), crypto.SHA256, changedBytes, signature)
+                case Err(_) => Ok(true)
+                case Ok(_) => Ok(false)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

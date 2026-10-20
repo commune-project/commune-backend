@@ -1,0 +1,85 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+func IsCurrentMember(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String) -> Result[Bool, String]
+  if communityID == "" || actorURI == "" then
+    return Ok(false)
+  end
+  QueryExists(db.WithContext(ctx).Table("community_members").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", communityID, actorURI))
+end
+
+func CommunityReadPolicy(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[String, String]
+  let policy = ""
+  let query = db.WithContext(ctx).Raw("SELECT read_policy FROM communities WHERE id = ?", communityID).Scan(Ref.new(policy))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("community unavailable")
+  end
+  Ok(policy)
+end
+
+func ProtectedMembers(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[Slice[String], String]
+  var members: Slice[String] = []
+  let query = db.WithContext(ctx).Table("community_members").Select("actor_uri").Where("community_id = ? AND revoked_at IS NULL", communityID).Order("actor_uri").Find(Ref.new(members))
+  if MutationResult(query).IsErr() then
+    return Err("recipient expansion failed")
+  end
+  Ok(members)
+end
+
+# Restricted expansion addresses current approved members only, never Public and
+# never followers. A remote peer without an explicit protected-read capability is
+# skipped rather than downgraded, and remote recipients are addressed on their
+# own personal inbox.
+func PlanRestrictedDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, signingActorURI: String, communityID: String) -> Result[PlanResult, String]
+  let excluded = IsLocalOnlyActivity(ctx, db, activityURI)
+  if excluded.IsErr() then
+    return Err(excluded.UnwrapErr())
+  end
+  if excluded.Unwrap() then
+    return Ok(PlanResult{Receipts: 0, Jobs: 0})
+  end
+  let members = ProtectedMembers(ctx, db, communityID)
+  if members.IsErr() then
+    return Err(members.UnwrapErr())
+  end
+  var receipts = 0i64
+  var jobs = 0i64
+  var failed = false
+  members.Unwrap().Each(func(member: String) -> ()
+    let actor = LoadActor(ctx, db, member)
+    if actor.IsErr() || actor.Unwrap().IsNone() then
+      failed = true
+      return
+    end
+    let record = actor.Unwrap().Unwrap()
+    if record.LocalSiteID.Valid then
+      let inserted = db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, record.LocalSiteID.String, member)
+      if MutationResult(inserted).IsErr() then
+        failed = true
+      else
+        receipts = receipts + inserted.RowsAffected
+      end
+      return
+    end
+    let capable = PeerSupportsProtectedReads(ctx, db, member)
+    if capable.IsErr() then
+      failed = true
+      return
+    end
+    if !capable.Unwrap() then
+      return
+    end
+    let queued = EnqueueDelivery(ctx, db, activityURI, signingActorURI, member, member + "/inbox", communityID)
+    if queued.IsErr() then
+      failed = true
+    else
+      jobs = jobs + queued.Unwrap()
+    end
+  end)
+  if failed then
+    return Err("recipient expansion failed")
+  end
+  Ok(PlanResult{Receipts: receipts, Jobs: jobs})
+end

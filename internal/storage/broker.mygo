@@ -1,0 +1,80 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import time "go:time"
+import rand "go:crypto/rand"
+
+struct DeliveryJobRecord
+  ID: Int64 `gorm:"column:id"`
+  ActivityURI: String `gorm:"column:activity_uri"`
+  SigningActorURI: String `gorm:"column:signing_actor_uri"`
+  RecipientActorURI: String `gorm:"column:recipient_actor_uri"`
+  TargetInbox: String `gorm:"column:target_inbox"`
+  CommunityID: sql.NullString `gorm:"column:community_id"`
+  State: String `gorm:"column:state"`
+  Attempts: Int64 `gorm:"column:attempts"`
+  ErrorCode: sql.NullString `gorm:"column:error_code"`
+end
+
+# Enqueue inside the caller's transaction so a rolled-back mutation schedules no
+# delivery; the activity payload must already exist.
+func EnqueueDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, signingActorURI: String, recipientActorURI: String, targetInbox: String, communityID: String) -> Result[Int64, String]
+  if activityURI == "" || signingActorURI == "" || recipientActorURI == "" || targetInbox == "" then
+    return Err("invalid delivery")
+  end
+  var community = sql.NullString{}
+  if communityID != "" then
+    community = sql.NullString{String: communityID, Valid: true}
+  end
+  let inserted = db.WithContext(ctx).Exec("INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES (?,?,?,?,?) ON CONFLICT (activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox) DO NOTHING", activityURI, signingActorURI, recipientActorURI, targetInbox, community)
+  if MutationResult(inserted).IsErr() then
+    return Err("delivery enqueue failed")
+  end
+  Ok(inserted.RowsAffected)
+end
+
+# Leased delivery: a live lease cannot be claimed twice, an expired lease can.
+func ClaimDeliveryJobs(ctx: context.Context, db: Ref[gorm.DB], limit: Int, leaseSeconds: Int64) -> Result[Slice[DeliveryJobRecord], String]
+  var claimed: Slice[DeliveryJobRecord] = []
+  let token = rand.Text()
+  let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
+  let query = db.WithContext(ctx).Raw("UPDATE delivery_jobs SET state='leased', lease_token=?, lease_until=?, attempts=attempts+1 WHERE id IN (SELECT id FROM delivery_jobs WHERE state IN ('pending','leased') AND available_at <= now() AND (lease_until IS NULL OR lease_until < now()) ORDER BY available_at, id LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING id, activity_uri, signing_actor_uri, recipient_actor_uri, target_inbox, community_id, state, attempts, error_code", token, until, limit).Scan(Ref.new(claimed))
+  if MutationResult(query).IsErr() then
+    return Err("delivery claim failed")
+  end
+  Ok(claimed)
+end
+
+func MarkDelivered(ctx: context.Context, db: Ref[gorm.DB], id: Int64) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='delivered', lease_token=NULL, lease_until=NULL, error_code=NULL WHERE id=?", id))
+end
+
+func MarkDeliveryRetry(ctx: context.Context, db: Ref[gorm.DB], id: Int64, errorCode: String, backoffSeconds: Int64) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='pending', lease_token=NULL, lease_until=NULL, error_code=?, available_at=now() + (? * interval '1 second') WHERE id=?", errorCode, backoffSeconds, id))
+end
+
+func MarkDeliveryFailed(ctx: context.Context, db: Ref[gorm.DB], id: Int64, errorCode: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='failed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", errorCode, id))
+end
+
+func SuppressDelivery(ctx: context.Context, db: Ref[gorm.DB], id: Int64, reason: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='suppressed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", reason, id))
+end
+
+func LoadLocalPrivateKey(ctx: context.Context, db: Ref[gorm.DB], actorURI: String) -> Result[String, String]
+  let record = LocalKeyRecord{}
+  let query = db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id IS NOT NULL", actorURI).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("unknown signing actor")
+  end
+  if !record.PrivateKeyPEM.Valid || record.PrivateKeyPEM.String == "" then
+    return Err("missing signing key")
+  end
+  Ok(record.PrivateKeyPEM.String)
+end
+
+struct LocalKeyRecord
+  PrivateKeyPEM: sql.NullString `gorm:"column:private_key_pem"`
+end

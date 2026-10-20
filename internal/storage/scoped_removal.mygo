@@ -1,0 +1,18 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Community moderation removes a post from that community's presentation. The
+# shared object, its author and other communities are untouched.
+func RecordScopedRemoval(ctx: context.Context, db: Ref[gorm.DB], postID: String, communityID: String, authorityActorURI: String, evidenceURI: String) -> Result[Int64, String]
+  let changed = db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'removed') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state='removed', authority_actor_uri=EXCLUDED.authority_actor_uri, updated_at=now() WHERE collection_memberships.state IS DISTINCT FROM 'removed'", postID, communityID, authorityActorURI, evidenceURI)
+  if MutationResult(changed).IsErr() then
+    return Err("removal failed")
+  end
+  Ok(changed.RowsAffected)
+end
+
+func IsCommunityRemoval(ctx: context.Context, db: Ref[gorm.DB], postID: String, communityID: String) -> Result[Bool, String]
+  QueryExists(db.WithContext(ctx).Table("collection_memberships").Where("post_id = ? AND community_id = ? AND state = 'removed'", postID, communityID))
+end

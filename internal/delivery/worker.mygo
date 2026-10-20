@@ -1,0 +1,184 @@
+package delivery
+
+import context "go:context"
+import http "go:net/http"
+import io "go:io"
+import strings "go:strings"
+import time "go:time"
+import url "go:net/url"
+import slog "go:log/slog"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+struct Limits
+  BatchSize: Int
+  LeaseSeconds: Int64
+  MaxAttempts: Int64
+  BackoffSeconds: Int64
+end
+
+struct Outcome
+  Delivered: Int
+  Retried: Int
+  Failed: Int
+  Suppressed: Int
+end
+
+# The poster is the only outbound I/O; production uses Post, tests substitute a
+# stub so the lease, retry and failure logic run without a live peer.
+func RunOnce(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, poster: func(String, String, String, Slice[Byte]) -> Result[Int, String]) -> Result[Outcome, String]
+  let claimed = storage.ClaimDeliveryJobs(ctx, db, limits.BatchSize, limits.LeaseSeconds)
+  if claimed.IsErr() then
+    slog.Warn("delivery claim failed", "reason", claimed.UnwrapErr())
+    return Err(claimed.UnwrapErr())
+  end
+  var outcome = Outcome{Delivered: 0, Retried: 0, Failed: 0}
+  var failed = false
+  GroupJobs(claimed.Unwrap()).Each(func(group: Slice[storage.DeliveryJobRecord]) -> ()
+    let settled = SendGroup(ctx, db, settings, limits, group, poster)
+    if settled.IsErr() then
+      failed = true
+    else
+      let piece = settled.Unwrap()
+      outcome = Outcome{Delivered: outcome.Delivered + piece.Delivered, Retried: outcome.Retried + piece.Retried, Failed: outcome.Failed + piece.Failed, Suppressed: outcome.Suppressed + piece.Suppressed}
+    end
+  end)
+  if failed then
+    return Err("delivery attempt failed")
+  end
+  Ok(outcome)
+end
+
+func SameDestination(first: storage.DeliveryJobRecord, second: storage.DeliveryJobRecord) -> Bool
+  first.ActivityURI == second.ActivityURI && first.SigningActorURI == second.SigningActorURI && first.TargetInbox == second.TargetInbox
+end
+
+# Jobs that name distinct recipients but the same shared inbox collapse into one
+# transmission; every job still keeps its own recipient row and terminal state.
+func GroupJobs(jobs: Slice[storage.DeliveryJobRecord]) -> Slice[Slice[storage.DeliveryJobRecord]]
+  var groups: Slice[Slice[storage.DeliveryJobRecord]] = []
+  jobs.Each(func(job: storage.DeliveryJobRecord) -> ()
+    var updated: Slice[Slice[storage.DeliveryJobRecord]] = []
+    var placed = false
+    groups.Each(func(group: Slice[storage.DeliveryJobRecord]) -> ()
+      if !placed && SameDestination(group.Get(0).Unwrap(), job) then
+        updated = updated.Append(group.Append(job))
+        placed = true
+      else
+        updated = updated.Append(group)
+      end
+    end)
+    if !placed then
+      updated = updated.Append([job])
+    end
+    groups = updated
+  end)
+  groups
+end
+
+func SendGroup(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, group: Slice[storage.DeliveryJobRecord], poster: func(String, String, String, Slice[Byte]) -> Result[Int, String]) -> Result[Outcome, String]
+  let job = group.Get(0).Unwrap()
+  if job.CommunityID.Valid then
+    let excluded = storage.IsLocalOnlyCommunity(ctx, db, job.CommunityID.String)
+    if excluded.IsErr() then
+      return Err(excluded.UnwrapErr())
+    end
+    if excluded.Unwrap() then
+      group.Each(func(stale: storage.DeliveryJobRecord) -> ()
+        let _ = storage.SuppressDelivery(ctx, db, stale.ID, "local-only")
+      end)
+      return Ok(Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: group.Len()})
+    end
+    let policy = storage.CommunityReadPolicy(ctx, db, job.CommunityID.String)
+    if policy.IsErr() then
+      return Err(policy.UnwrapErr())
+    end
+    if policy.Unwrap() == "members" then
+      let member = storage.IsCurrentMember(ctx, db, job.CommunityID.String, job.RecipientActorURI)
+      if member.IsErr() then
+        return Err(member.UnwrapErr())
+      end
+      if !member.Unwrap() then
+        group.Each(func(revoked: storage.DeliveryJobRecord) -> ()
+          let _ = storage.SuppressDelivery(ctx, db, revoked.ID, "membership-revoked")
+        end)
+        return Ok(Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: group.Len()})
+      end
+    end
+  end
+  let payload = storage.LoadActivityPayload(ctx, db, job.ActivityURI)
+  if payload.IsErr() || payload.Unwrap().IsNone() then
+    return Apply(ctx, db, limits, group, "missing-payload", 0)
+  end
+  let key = storage.LoadLocalPrivateKey(ctx, db, job.SigningActorURI)
+  if key.IsErr() then
+    return Apply(ctx, db, limits, group, "missing-signing-key", 0)
+  end
+  let status = poster(job.TargetInbox, job.SigningActorURI, key.Unwrap(), payload.Unwrap().Unwrap().Payload)
+  if status.IsErr() then
+    return Apply(ctx, db, limits, group, status.UnwrapErr(), 0)
+  end
+  if status.Unwrap() >= 200 && status.Unwrap() < 300 then
+    return Apply(ctx, db, limits, group, "", 200)
+  end
+  Apply(ctx, db, limits, group, "http-" + status.Unwrap().ToString(), 0)
+end
+
+func Apply(ctx: context.Context, db: Ref[gorm.DB], limits: Limits, group: Slice[storage.DeliveryJobRecord], reason: String, successStatus: Int) -> Result[Outcome, String]
+  var delivered = 0
+  var retried = 0
+  var failed = 0
+  group.Each(func(job: storage.DeliveryJobRecord) -> ()
+    if successStatus == 200 then
+      let _ = storage.MarkDelivered(ctx, db, job.ID)
+      delivered = delivered + 1
+    else
+      if job.Attempts >= limits.MaxAttempts then
+        let _ = storage.MarkDeliveryFailed(ctx, db, job.ID, reason)
+        slog.Warn("delivery failed", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", true)
+        failed = failed + 1
+      else
+        let backoff = limits.BackoffSeconds * job.Attempts
+        let _ = storage.MarkDeliveryRetry(ctx, db, job.ID, reason, backoff)
+        slog.Warn("delivery retry scheduled", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", false)
+        retried = retried + 1
+      end
+    end
+  end)
+  Ok(Outcome{Delivered: delivered, Retried: retried, Failed: failed, Suppressed: 0})
+end
+
+# Signed outbound POST: the site's actor signs the request target, host, date and
+# body digest.
+func Post(target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, String]
+  let parsed = url.Parse(target)
+  if parsed.IsErr() then
+    return Err("invalid-target")
+  end
+  let resource = parsed.Unwrap()
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let digest = federation.BodyDigest(payload)
+  let signingString = federation.RequestSigningString("POST", resource.RequestURI(), resource.Host, date, digest)
+  let signature = federation.SignSignature(privateKey, signingString)
+  if signature.IsErr() then
+    return Err("signing-failed")
+  end
+  let header = federation.FormatSignatureHeader(actorURI + "#main-key", signature.Unwrap())
+  let request = http.NewRequest("POST", target, strings.NewReader(payload as String) as io.Reader)
+  if request.IsErr() then
+    return Err("invalid-target")
+  end
+  request.Unwrap().Header.Set("Content-Type", federation.ActivityJSONType())
+  request.Unwrap().Header.Set("Date", date)
+  request.Unwrap().Header.Set("Digest", digest)
+  request.Unwrap().Header.Set("Signature", header)
+  let client = http.Client{Timeout: 15 as time.Duration * time.Second}
+  let response = client.Do(request.Unwrap())
+  if response.IsErr() then
+    return Err("unreachable")
+  end
+  let _ = response.Unwrap().Body.Close()
+  Ok(response.Unwrap().StatusCode)
+end

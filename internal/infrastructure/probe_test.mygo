@@ -1,0 +1,104 @@
+package infrastructure
+
+import testing "go:testing"
+import strings "go:strings"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import io "go:io"
+import json "go:encoding/json"
+import bytes "go:bytes"
+import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
+import driver "go:database/sql/driver"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestHTTPCallback(t: Ref[testing.T]) -> ()
+  let mux = http.NewServeMux()
+  mux.Handle("GET /probe", ProbeHTTPHandler() as http.Handler)
+  let recorder = httptest.NewRecorder()
+  let body = strings.NewReader("") as io.Reader
+  mux.ServeHTTP(recorder as http.ResponseWriter, httptest.NewRequest("GET", "/probe", body))
+  if recorder.Code != 200 || recorder.Header().Get("Content-Type") != "application/json" then
+    t.Fatal("incorrect HTTP response")
+  end
+  let message = ProbeMessage{}
+  if json.Unmarshal(recorder.Body.Bytes(), Ref.new(message)).IsErr() || message.Status != "ok" then
+    t.Fatal("invalid response DTO")
+  end
+end
+
+func TestRawPayload(t: Ref[testing.T]) -> ()
+  let input = """{
+  "object": {"id":"https://peer.example/o/1","extension":{"proof": [1,2]}}
+}"""
+  switch ProbeRawPayload(input)
+  case Err(message) => t.Fatal(message)
+  case Ok(payload) =>
+    if payload.Original != input then
+      t.Fatal("original payload bytes changed")
+    end
+    # Compact preserves unknown nested fields while ignoring JSON whitespace.
+    let originalBuffer = bytes.NewBuffer([])
+    let encodedBuffer = bytes.NewBuffer([])
+    if json.Compact(originalBuffer, input as Slice[Byte]).IsErr() || json.Compact(encodedBuffer, payload.Encoded as Slice[Byte]).IsErr() then
+      t.Fatal("invalid encoded JSON")
+    end
+    if originalBuffer.String() != encodedBuffer.String() then
+      t.Fatal("raw nested fields lost")
+    end
+  end
+  if ProbeRawPayload("{").IsOk() then
+    t.Fatal("invalid JSON accepted")
+  end
+end
+
+func TestCryptographicFFI(t: Ref[testing.T]) -> ()
+  switch ProbeSignature("signed request body")
+  case Err(message) => t.Fatal(message)
+  case Ok(valid) =>
+    if !valid then
+      t.Fatal("RSA signing, verification or tamper rejection failed")
+    end
+  end
+end
+
+func TestSQLScanAndTransaction(t: Ref[testing.T]) -> ()
+  let failures = ["", "begin", "scan", "commit"]
+  failures.Each(func(failure: String) -> ()
+    t.Run("failure=" + failure, func(t: Ref[testing.T]) -> ()
+      let fixture = transport.New().Unwrap()
+      t.Cleanup(func() -> ()
+        if fixture.Mock.ExpectationsWereMet().IsErr() then
+          t.Error("SQL expectations were not met")
+        end
+        let _ = fixture.DB.Close()
+      end)
+      if failure == "begin" then
+        let _ = fixture.Mock.ExpectBegin().WillReturnError(transport.Failure)
+      else
+        let _ = fixture.Mock.ExpectBegin()
+        let rows = sqlmock.NewRows(["value"]).AddRow("commune-probe" as driver.Value)
+        if failure == "scan" then
+          let _ = rows.RowError(0, transport.Failure)
+        end
+        let _ = fixture.Mock.ExpectQuery("SELECT 'commune-probe'").WillReturnRows(rows)
+        if failure == "scan" then
+          let _ = fixture.Mock.ExpectRollback()
+        else
+          if failure == "commit" then
+            let _ = fixture.Mock.ExpectCommit().WillReturnError(transport.Failure)
+          else
+            let _ = fixture.Mock.ExpectCommit()
+          end
+        end
+      end
+      let result = ProbeTransaction(fixture.DB)
+      if result.IsOk() != (failure == "") then
+        t.Fatal("SQL failure propagation failed")
+      end
+      if result.IsOk() && result.Unwrap() != "commune-probe" then
+        t.Fatal("scan value changed")
+      end
+    end)
+    ()
+  end)
+end

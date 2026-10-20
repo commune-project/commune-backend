@@ -1,0 +1,89 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import bytes "go:bytes"
+import io "go:io"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresBrowserAuthentication(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let first = accounts.Create(ctx, a, "alice", "alice@example.org", "first-site-password").Unwrap()
+  let second = accounts.Create(ctx, b, "alice", "alice@example.org", "other-site-password").Unwrap()
+  if first.SiteID == second.SiteID then
+    t.Fatal("account creation did not preserve site identity")
+  end
+  let handler = Handler(settings, db)
+  let loginBody = "{\"login\":\"alice@example.org\",\"password\":\"first-site-password\"}"
+  let request = func(method: String, origin: String, path: String, payload: String, cookies: Slice[Ref[http.Cookie]], csrf: String, source: String) -> Ref[httptest.ResponseRecorder]
+    let req = httptest.NewRequest(method, origin + path, strings.NewReader(payload) as io.Reader)
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Origin", source)
+    req.Header.Set("X-CSRF-Token", csrf)
+    cookies.Each(func(cookie: Ref[http.Cookie]) -> ()
+      req.AddCookie(cookie)
+    end)
+    let recorder = httptest.NewRecorder()
+    handler.ServeHTTP(recorder as http.ResponseWriter, req)
+    recorder
+  end
+  if request("POST", a.Origin, "/api/v1/auth/login", loginBody, [], "", b.Origin).Code != 403 then
+    t.Fatal("cross-origin login accepted")
+  end
+  let login = request("POST", a.Origin, "/api/v1/auth/login", loginBody, [], "", a.Origin)
+  if login.Code != 200 || strings.Contains(login.Body.String(), "password") || strings.Contains(login.Body.String(), "$2") then
+    t.Fatal("login response failed or exposed credentials")
+  end
+  let cookies = login.Result().Cookies()
+  let csrf = cookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+  if request("GET", a.Origin, "/api/v1/auth/session", "", cookies, "", "").Code != 200 then
+    t.Fatal("issued browser session failed")
+  end
+  if request("GET", b.Origin, "/api/v1/auth/session", "", cookies, "", "").Code != 401 then
+    t.Fatal("browser session replayed across sites")
+  end
+  if request("POST", a.Origin, "/api/v1/auth/logout", "", cookies, "", a.Origin).Code != 403 || request("POST", a.Origin, "/api/v1/auth/logout", "", cookies, csrf, b.Origin).Code != 403 then
+    t.Fatal("missing CSRF or cross-origin logout accepted")
+  end
+  if request("GET", a.Origin, "/api/v1/auth/session", "", cookies, "", "").Code != 200 then
+    t.Fatal("rejected logout mutated session")
+  end
+  let logout = request("POST", a.Origin, "/api/v1/auth/logout", "", cookies, csrf, a.Origin)
+  if logout.Code != 204 || logout.Result().Cookies().Len() != 2 then
+    t.Fatal("authorized logout failed")
+  end
+  if request("GET", a.Origin, "/api/v1/auth/session", "", cookies, "", "").Code != 401 then
+    t.Fatal("logged out cookie remained valid")
+  end
+  if request("POST", a.Origin, "/api/v1/auth/login", loginBody + " {}", [], "", a.Origin).Code != 400 then
+    t.Fatal("trailing login JSON accepted")
+  end
+  if request("POST", a.Origin, "/api/v1/auth/login", "{\"login\":\"alice\",\"unknown\":true}", [], "", a.Origin).Code != 400 then
+    t.Fatal("unknown login fields accepted")
+  end
+  if request("POST", a.Origin, "/api/v1/auth/login", strings.Repeat(" ", settings.Runtime.MaxBodyBytes + 1), [], "", a.Origin).Code != 400 then
+    t.Fatal("oversized login body accepted")
+  end
+  if request("GET", a.Origin, "/api/v1/auth/login", "", [], "", a.Origin).Code != 405 then
+    t.Fatal("login accepted an unsupported method")
+  end
+  if request("GET", a.Origin, "/api/v1/auth/session", "", cookies.Append(cookies.Get(0).Unwrap()), "", "").Code != 401 then
+    t.Fatal("ambiguous session cookies accepted")
+  end
+end

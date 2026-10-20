@@ -1,0 +1,70 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresReactions(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let carol = accounts.Create(ctx, other, "carol", "", "carol-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let reactions = ReactionRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let topic = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+  let _ = reactions.Like(ctx, topic.ID, alice, false, "https://a.example/activities/like-1").Unwrap()
+  let _ = reactions.Like(ctx, topic.ID, alice, false, "https://a.example/activities/like-1").Unwrap()
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("duplicate like created a second reaction")
+  end
+  let _ = reactions.Like(ctx, topic.ID, bob, false, "").Unwrap()
+  let _ = reactions.Undo(ctx, topic.ID, alice, false).Unwrap()
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("undo affected another actor's reaction")
+  end
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NOT NULL", topic.ID, alice.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("undo did not remove the issuing actor's reaction")
+  end
+  let _ = reactions.Like(ctx, topic.ID, alice, false, "https://a.example/activities/like-2").Unwrap()
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(Ref.new(count))).Unwrap()
+  if count != 2i64 then
+    t.Fatal("re-like after undo did not restore the reaction")
+  end
+  let _ = reactions.Like(ctx, topic.ID, carol, false, "").Unwrap()
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(Ref.new(count))).Unwrap()
+  if count != 3i64 then
+    t.Fatal("verified account of another colocated site could not react to public federated content")
+  end
+  let member = communities.Create(ctx, site, alice, "locked", "Locked", "federated", "members", "members").Unwrap()
+  let hidden = posts.Publish(ctx, site, member.ID, alice, false, PublishInput{Title: "Hidden", Body: "Body", ParentID: ""}).Unwrap()
+  if reactions.Like(ctx, hidden.ID, bob, false, "").IsOk() || reactions.Undo(ctx, hidden.ID, bob, false).IsOk() || reactions.Like(ctx, hidden.ID, carol, false, "").IsOk() then
+    t.Fatal("non-member reacted to a member-only post")
+  end
+  let _ = reactions.Like(ctx, hidden.ID, alice, false, "https://a.example/activities/like-3").Unwrap()
+  let localMember = communities.Create(ctx, site, alice, "localmember", "LocalMember", "local_only", "members", "members").Unwrap()
+  let localHidden = posts.Publish(ctx, site, localMember.ID, alice, false, PublishInput{Title: "LH", Body: "Body", ParentID: ""}).Unwrap()
+  if reactions.Like(ctx, localHidden.ID, alice, false, "https://a.example/activities/like-4").IsOk() then
+    t.Fatal("local reaction carried a federation URI")
+  end
+  let _ = reactions.Like(ctx, localHidden.ID, alice, false, "").Unwrap()
+  let openLocal = communities.Create(ctx, site, alice, "openlocal", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
+  let localPost = posts.Publish(ctx, site, openLocal.ID, alice, false, PublishInput{Title: "L", Body: "Body", ParentID: ""}).Unwrap()
+  if reactions.Like(ctx, localPost.ID, carol, false, "").IsOk() then
+    t.Fatal("cross-site account reached a local-only reaction")
+  end
+end

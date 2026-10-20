@@ -1,0 +1,77 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresSiteHidingAndCommunityRemoval(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let carol = accounts.Create(ctx, other, "carol", "", "carol-account-password").Unwrap()
+  let admin = accounts.Authenticate(ctx, "a", "admin", "administrator-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let importer = PostRepository{DB: db, SiteID: "b"}
+  let feedA = FeedRepository{DB: db, SiteID: "a"}
+  let feedB = FeedRepository{DB: db, SiteID: "b"}
+  let page = Page{Limit: 50, Offset: 0}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let topic = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "Body text", ParentID: ""}).Unwrap()
+  let _ = importer.Import(ctx, topic.ID, carol, false).Unwrap()
+  let beforeA = feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap()
+  let beforeB = feedB.ListTopics(ctx, open.ID, carol, false, page, 50).Unwrap()
+  if beforeA.Len() != 1 || beforeB.Len() != 1 then
+    t.Fatal("initial listing did not show the topic at both sites")
+  end
+  if feedA.SetHidden(ctx, topic.ID, true, carol).IsOk() then
+    t.Fatal("non-administrator hid a post")
+  end
+  let _ = feedA.SetHidden(ctx, topic.ID, true, admin).Unwrap()
+  let hiddenA = feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap()
+  let stillB = feedB.ListTopics(ctx, open.ID, carol, false, page, 50).Unwrap()
+  if hiddenA.Len() != 0 || stillB.Len() != 1 then
+    t.Fatal("site hiding leaked across sites or failed to hide locally")
+  end
+  let _ = feedA.SetHidden(ctx, topic.ID, false, admin).Unwrap()
+  if feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap().Len() != 1 then
+    t.Fatal("unhide did not restore the site listing")
+  end
+  let _ = communities.RemovePost(ctx, open.ID, topic.ID, alice, false, true).Unwrap()
+  if feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap().Len() != 0 then
+    t.Fatal("community removal did not exclude the post from the community")
+  end
+  let intact = PostRecord{}
+  let _ = MutationResult(db.Table("posts").Where("id=?", topic.ID).Find(Ref.new(intact))).Unwrap()
+  if intact.Body != "Body text" || intact.DeletedAt.Valid then
+    t.Fatal("community removal became a global deletion")
+  end
+  let communityScopeB = feedB.ListTopics(ctx, open.ID, carol, false, page, 50).Unwrap()
+  if communityScopeB.Len() != 0 then
+    t.Fatal("community removal did not apply to the shared community at site B")
+  end
+  if communities.RemovePost(ctx, open.ID, topic.ID, carol, false, true).IsOk() then
+    t.Fatal("non-manager removed a post from the community")
+  end
+  let _ = communities.RemovePost(ctx, open.ID, topic.ID, alice, false, false).Unwrap()
+  if feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap().Len() != 1 then
+    t.Fatal("restore did not re-include the post")
+  end
+  let _ = communities.SetSubmission(ctx, open.ID, topic.ID, alice, false, "rejected").Unwrap()
+  if feedA.ListTopics(ctx, open.ID, alice, false, page, 50).Unwrap().Len() != 0 then
+    t.Fatal("rejected submission was still shown as accepted content")
+  end
+  let _ = communities.SetSubmission(ctx, open.ID, topic.ID, alice, false, "pending").Unwrap()
+  if communities.SetSubmission(ctx, open.ID, topic.ID, alice, false, "bogus").IsOk() then
+    t.Fatal("invalid submission state accepted")
+  end
+end

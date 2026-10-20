@@ -1,0 +1,78 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresFederationCollections(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let posts = storage.PostRepository{DB: db, SiteID: a.ID}
+  let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let local = communities.Create(ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
+  let first = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "One", Body: "Body", ParentID: ""}).Unwrap()
+  let _ = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Two", Body: "Body", ParentID: ""}).Unwrap()
+  let _ = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Body: "Reply", ParentID: first.ID}).Unwrap()
+  let _ = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: ""}).Unwrap()
+  let handler = Handler(settings, db)
+  let accept = "application/activity+json"
+  let outbox = getAP(handler, a.Origin, "/users/alice/outbox", accept)
+  let outboxID = alice.ActorURI + "/outbox"
+  if outbox.Code != 200 || !strings.Contains(outbox.Body.String(), "\"type\":\"OrderedCollection\"") || !strings.Contains(outbox.Body.String(), "\"totalItems\":3") then
+    t.Fatalf("outbox collection was wrong: %d %s", outbox.Code, outbox.Body.String())
+  end
+  if !strings.Contains(outbox.Body.String(), outboxID + "?page=1") then
+    t.Fatal("outbox first page link was not canonical")
+  end
+  if strings.Contains(outbox.Body.String(), "Private") then
+    t.Fatal("local-only post leaked into the outbox")
+  end
+  let outboxPage = getAP(handler, a.Origin, "/users/alice/outbox?page=1", accept)
+  if outboxPage.Code != 200 || !strings.Contains(outboxPage.Body.String(), "\"type\":\"OrderedCollectionPage\"") || !strings.Contains(outboxPage.Body.String(), "\"partOf\":\"" + outboxID + "\"") then
+    t.Fatalf("outbox page was wrong: %d %s", outboxPage.Code, outboxPage.Body.String())
+  end
+  if !strings.Contains(outboxPage.Body.String(), "\"id\":\"" + outboxID + "?page=1\"") then
+    t.Fatal("outbox page id was not canonical")
+  end
+  if strings.Contains(outboxPage.Body.String(), "\"next\"") then
+    t.Fatal("single-page outbox advertised a next link")
+  end
+  let secondPage = getAP(handler, a.Origin, "/users/alice/outbox?page=2", accept)
+  if secondPage.Code != 200 || !strings.Contains(secondPage.Body.String(), "\"prev\":\"" + outboxID + "?page=1\"") || !strings.Contains(secondPage.Body.String(), "\"orderedItems\":[]") then
+    t.Fatal("out-of-range page did not expose a prev link and empty items")
+  end
+  let inbox = getAP(handler, a.Origin, "/users/alice/inbox", accept)
+  if inbox.Code != 200 || !strings.Contains(inbox.Body.String(), "\"totalItems\":0") || strings.Contains(inbox.Body.String(), "page=1") then
+    t.Fatal("inbox exposed content or a page link")
+  end
+  let replies = getAP(handler, a.Origin, "/objects/" + first.ID + "/replies", accept)
+  let repliesID = first.ObjectURI.String + "/replies"
+  if replies.Code != 200 || !strings.Contains(replies.Body.String(), "\"totalItems\":1") || !strings.Contains(replies.Body.String(), repliesID + "?page=1") then
+    t.Fatalf("replies collection was wrong: %d %s", replies.Code, replies.Body.String())
+  end
+  let repliesPage = getAP(handler, a.Origin, "/objects/" + first.ID + "/replies?page=1", accept)
+  if repliesPage.Code != 200 || !strings.Contains(repliesPage.Body.String(), "\"type\":\"Note\"") || !strings.Contains(repliesPage.Body.String(), "\"partOf\":\"" + repliesID + "\"") then
+    t.Fatal("reply page did not list the reply under its canonical collection")
+  end
+  let followers = getAP(handler, a.Origin, "/communities/open/followers", accept)
+  if followers.Code != 200 || !strings.Contains(followers.Body.String(), "\"totalItems\":0") then
+    t.Fatal("followers collection was wrong")
+  end
+  if getAP(handler, a.Origin, "/communities/local/outbox", accept).Code != 404 then
+    t.Fatal("local-only community exposed a collection")
+  end
+  if getAP(handler, a.Origin, "/users/nobody/outbox", accept).Code != 404 then
+    t.Fatal("unknown actor exposed a collection")
+  end
+end

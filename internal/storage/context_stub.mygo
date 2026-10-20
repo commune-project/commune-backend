@@ -1,0 +1,60 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import rand "go:crypto/rand"
+
+# A remote context is recorded as an unresolved stub: the declaration is kept
+# even when the authority cannot be resolved, and resolution never rejects the
+# containing post.
+func EnsureContextStub(ctx: context.Context, db: Ref[gorm.DB], contextURI: String) -> Result[String, String]
+  let existing = ""
+  let lookup = db.WithContext(ctx).Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", contextURI).Scan(Ref.new(existing))
+  if MutationResult(lookup).IsErr() then
+    return Err("context unavailable")
+  end
+  if lookup.RowsAffected == 1i64 then
+    return Ok(existing)
+  end
+  let id = rand.Text()
+  let inserted = db.WithContext(ctx).Exec("INSERT INTO discussion_contexts(id,context_uri,resolution_state) VALUES (?,?,'unresolved') ON CONFLICT (context_uri) DO NOTHING", id, sql.NullString{String: contextURI, Valid: true})
+  if MutationResult(inserted).IsErr() then
+    return Err("context creation failed")
+  end
+  let resolved = ""
+  let query = db.WithContext(ctx).Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", contextURI).Scan(Ref.new(resolved))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("context creation failed")
+  end
+  Ok(resolved)
+end
+
+# Deduplicates recipients before expansion so a context authority that is also a
+# follower does not receive the same activity twice.
+func UniqueRecipients(recipients: Slice[String]) -> Slice[String]
+  recipients.Fold([] as Slice[String], func(acc: Slice[String], item: String) -> Slice[String]
+    if item == "" || acc.Contains(item) then
+      acc
+    else
+      acc.Append(item)
+    end
+  end)
+end
+
+func PostContextURIs(ctx: context.Context, db: Ref[gorm.DB], postID: String) -> Result[Slice[String], String]
+  var uris: Slice[String] = []
+  let query = db.WithContext(ctx).Raw("SELECT coalesce(dc.context_uri,'') AS uri FROM post_contexts pc JOIN discussion_contexts dc ON dc.id = pc.context_id WHERE pc.post_id = ? AND dc.context_uri IS NOT NULL ORDER BY dc.id", postID).Scan(Ref.new(uris))
+  if MutationResult(query).IsErr() then
+    return Err("context unavailable")
+  end
+  Ok(uris)
+end
+
+func PrimaryPostContextURI(ctx: context.Context, db: Ref[gorm.DB], postID: String) -> String
+  let uris = PostContextURIs(ctx, db, postID)
+  if uris.IsErr() || uris.Unwrap().Len() == 0 then
+    return ""
+  end
+  uris.Unwrap().Get(0).Unwrap()
+end

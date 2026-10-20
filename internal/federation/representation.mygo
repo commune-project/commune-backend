@@ -1,0 +1,163 @@
+package federation
+
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import content "github.com/commune-project/commune-mygo/internal/content"
+
+let activityStreamsContext: String = "https://www.w3.org/ns/activitystreams"
+let publicAudience: String = "https://www.w3.org/ns/activitystreams#Public"
+
+struct WebFingerLink
+  Rel: String `json:"rel"`
+  Type: String `json:"type,omitempty"`
+  Href: String `json:"href,omitempty"`
+end
+
+struct WebFingerDocument
+  Subject: String `json:"subject"`
+  Links: Slice[WebFingerLink] `json:"links"`
+end
+
+struct PublicKeyRepresentation
+  ID: String `json:"id"`
+  Owner: String `json:"owner"`
+  PublicKeyPEM: String `json:"publicKeyPem"`
+end
+
+struct ActorRepresentation
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  PreferredUsername: String `json:"preferredUsername,omitempty"`
+  Name: String `json:"name,omitempty"`
+  Inbox: String `json:"inbox"`
+  Outbox: String `json:"outbox"`
+  Followers: String `json:"followers,omitempty"`
+  AttributedTo: String `json:"attributedTo,omitempty"`
+  PublicKey: PublicKeyRepresentation `json:"publicKey"`
+end
+
+struct ObjectRepresentation
+  Context: String `json:"@context"`
+  DiscussionContext: String `json:"context,omitempty"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  AttributedTo: String `json:"attributedTo,omitempty"`
+  Name: String `json:"name,omitempty"`
+  Content: String `json:"content,omitempty"`
+  InReplyTo: String `json:"inReplyTo,omitempty"`
+  Published: time.Time `json:"published,omitempty"`
+  Updated: time.Time `json:"updated,omitempty"`
+  To: Slice[String] `json:"to,omitempty"`
+  CC: Slice[String] `json:"cc,omitempty"`
+end
+
+struct TombstoneRepresentation
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  FormerType: String `json:"formerType,omitempty"`
+  Deleted: time.Time `json:"deleted,omitempty"`
+end
+
+func PersonRepresentation(
+  site: config.Site,
+  actor: storage.ActorRecord,
+  username: String,
+  publicPEM: String
+) -> ActorRepresentation
+  let uri = actor.URI
+  ActorRepresentation{
+    Context: activityStreamsContext,
+    ID: uri,
+    Type: "Person",
+    PreferredUsername: username,
+    Inbox: actor.Inbox(),
+    Outbox: uri + "/outbox",
+    Followers: uri + "/followers",
+    AttributedTo: uri + "/moderators",
+    PublicKey: PublicKeyRepresentation{
+      ID: uri + "#main-key",
+      Owner: uri,
+      PublicKeyPEM: publicPEM,
+    },
+  }
+end
+
+func GroupRepresentation(
+  community: storage.CommunityRecord,
+  actor: storage.ActorRecord,
+  publicPEM: String
+) -> ActorRepresentation
+  let uri = actor.URI
+  ActorRepresentation{
+    Context: activityStreamsContext,
+    ID: uri,
+    Type: "Group",
+    PreferredUsername: community.Name,
+    Name: community.Title,
+    Inbox: actor.Inbox(),
+    Outbox: uri + "/outbox",
+    Followers: uri + "/followers",
+    AttributedTo: uri + "/moderators",
+    PublicKey: PublicKeyRepresentation{
+      ID: uri + "#main-key",
+      Owner: uri,
+      PublicKeyPEM: publicPEM,
+    },
+  }
+end
+
+func BuildObjectRepresentation(
+  record: storage.PostRecord,
+  community: storage.CommunityRecord
+) -> ObjectRepresentation
+  BuildObjectRepresentationWithContext(record, community, "")
+end
+
+func BuildObjectRepresentationWithContext(
+  record: storage.PostRecord,
+  community: storage.CommunityRecord,
+  discussionContext: String
+) -> ObjectRepresentation
+  var to: Slice[String] = []
+  var cc: Slice[String] = []
+  let audience = community.ActorURI.String
+  if community.ReadPolicy == "eligible_users" then
+    to = [publicAudience]
+    cc = [audience]
+  else
+    to = [audience]
+  end
+  ObjectRepresentation{
+    Context: activityStreamsContext,
+    DiscussionContext: discussionContext,
+    ID: record.ObjectURI.String,
+    Type: record.ObjectType,
+    AttributedTo: record.AuthorActorURI,
+    Name: content.RenderText(record.Title.String),
+    Content: content.RenderText(record.Body),
+    InReplyTo: record.ParentID.String,
+    Published: record.AuthoredAt,
+    Updated: record.UpdatedAt,
+    To: to,
+    CC: cc,
+  }
+end
+
+func BuildTombstoneRepresentation(record: storage.PostRecord) -> TombstoneRepresentation
+  TombstoneRepresentation{
+    Context: activityStreamsContext,
+    ID: record.ObjectURI.String,
+    Type: "Tombstone",
+    FormerType: record.ObjectType,
+    Deleted: record.DeletedAt.Time,
+  }
+end
+
+# Federated actors only; local-only communities and their objects have no
+# ActivityPub representation.
+func FederatedCommunity(record: storage.CommunityRecord) -> Bool
+  record.FederationMode == "federated" && record.ActorURI.Valid && record.ActorURI.String != ""
+end

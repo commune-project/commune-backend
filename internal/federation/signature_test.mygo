@@ -1,0 +1,58 @@
+package federation
+
+import testing "go:testing"
+import time "go:time"
+import http "go:net/http"
+import strings "go:strings"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+
+func TestSigningAndVerification(t: Ref[testing.T]) -> ()
+  let privateKey = storage.GeneratePrivatePEM().Unwrap()
+  let publicKey = storage.PublicPEMFromPrivate(privateKey).Unwrap()
+  let body = "{\"type\":\"Create\"}"
+  let digest = BodyDigest(body as Slice[Byte])
+  if !strings.HasPrefix(digest, "sha-256=") then
+    t.Fatal("digest is not an sha-256 value")
+  end
+  let now = time.Now().UTC()
+  let date = now.Format(http.TimeFormat)
+  let target = "/inbox"
+  let host = "peer.example"
+  let signingString = RequestSigningString("POST", target, host, date, digest)
+  let signature = SignSignature(privateKey, signingString).Unwrap()
+  let header = FormatSignatureHeader("https://peer.example/users/alice#main-key", signature)
+  let verified = VerifyRequest(publicKey, "POST", target, host, date, digest, header, now, 3600i64)
+  if verified.IsErr() then
+    t.Fatalf("valid signed request was rejected: %s", verified.UnwrapErr())
+  end
+  if verified.Unwrap().KeyID != "https://peer.example/users/alice#main-key" then
+    t.Fatal("verified request lost the key identifier")
+  end
+  let tamperedDigest = BodyDigest((body + " ") as Slice[Byte])
+  let tampered = VerifyRequest(publicKey, "POST", target, host, date, tamperedDigest, header, now, 3600i64)
+  if tampered.IsOk() then
+    t.Fatal("tampered body digest was accepted")
+  end
+  let wrongTarget = VerifyRequest(publicKey, "POST", "/users/alice/inbox", host, date, digest, header, now, 3600i64)
+  if wrongTarget.IsOk() then
+    t.Fatal("signature verified under a different request target")
+  end
+  let stale = VerifyRequest(publicKey, "POST", target, host, date, digest, header, now.Add(2 as time.Duration * time.Hour), 3600i64)
+  if stale.IsOk() || stale.UnwrapErr() != "stale request" then
+    t.Fatal("stale request was accepted")
+  end
+  let otherKey = storage.PublicPEMFromPrivate(storage.GeneratePrivatePEM().Unwrap()).Unwrap()
+  if VerifyRequest(otherKey, "POST", target, host, date, digest, header, now, 3600i64).IsOk() then
+    t.Fatal("signature verified against an unrelated key")
+  end
+  let weakHeader = "keyId=\"k\",algorithm=\"hs2019\",headers=\"(request-target) host date digest\",signature=\"" + signature + "\""
+  if VerifyRequest(publicKey, "POST", target, host, date, digest, weakHeader, now, 3600i64).IsOk() then
+    t.Fatal("unsupported algorithm was accepted")
+  end
+  if !KeyOwnedByActor("https://peer.example/users/alice#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/actor#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/users/alice#main-key", "") then
+    t.Fatal("key ownership check did not bind a key to its own actor")
+  end
+  if ParseSignatureHeader("not a signature").IsOk() then
+    t.Fatal("malformed signature header was accepted")
+  end
+end

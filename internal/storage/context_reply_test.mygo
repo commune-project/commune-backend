@@ -1,0 +1,126 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresReplyContextIndependence(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://forum-a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(
+    ctx,
+    site,
+    alice,
+    "news",
+    "News",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let topic = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    PublishInput{
+      Title: "Topic",
+      Body: "Body",
+      ParentID: "",
+    }
+  ).Unwrap()
+  let homeContext = CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin).Unwrap()
+  let _ = AttachPostToContext(ctx, db, topic.ID, homeContext.ID).Unwrap()
+  let remoteContext = "https://peer.example/contexts/remote"
+  let published = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    PublishInput{
+      Body: "Reply",
+      ParentID: topic.ID,
+      ContextURI: remoteContext,
+    }
+  )
+  if published.IsErr() then
+    t.Fatalf("reply with a declared context failed: %s", published.UnwrapErr())
+  end
+  let reply = published.Unwrap()
+  if reply.ParentID.String != topic.ID then
+    t.Fatal("declaring a context changed the reply parent")
+  end
+  let uris = PostContextURIs(ctx, db, reply.ID).Unwrap()
+  if uris.Len() != 1 || uris.Get(0).Unwrap() != remoteContext then
+    t.Fatal("the reply's declared context was not independent of its parent")
+  end
+  let stub = ""
+  let _ = MutationResult(db.Raw(
+    "SELECT id FROM discussion_contexts WHERE context_uri = ?",
+    remoteContext
+  ).Scan(Ref.new(stub))).Unwrap()
+  let declared = QueryExists(db.Table("post_contexts").Where(
+    "post_id = ? AND context_id = ?",
+    reply.ID,
+    stub
+  )).Unwrap()
+  if !declared then
+    t.Fatal("the declared remote context was not recorded")
+  end
+  let _ = AttachDeclaredPostContext(ctx, db, reply.ID, homeContext.ID).Unwrap()
+  let pendingHome = QueryExists(db.Table("collection_memberships").Where(
+    "post_id = ? AND context_id = ? AND state = 'pending'",
+    reply.ID,
+    homeContext.ID
+  )).Unwrap()
+  if !pendingHome then
+    t.Fatal("a declared local claim was not recorded as pending")
+  end
+  if CountContextPosts(ctx, db, homeContext.ID).Unwrap() != 1i64 then
+    t.Fatal("a pending declaration entered the accepted context collection")
+  end
+  let deduped = UniqueRecipients([
+    "https://peer.example/users/a",
+    "https://peer.example/users/b",
+    "https://peer.example/users/a",
+  ])
+  if deduped.Len() != 2 then
+    t.Fatal("recipient deduplication failed")
+  end
+  let activityURI = "https://forum-a.example/activities/ctx-1"
+  let _ = EnsureLocalKey(ctx, db, alice.ActorURI).Unwrap()
+  let _ = InsertActivityPayload(
+    ctx,
+    db,
+    activityURI,
+    alice.ActorURI,
+    "Create",
+    "{}" as Slice[Byte],
+    community.ID
+  ).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/a','Person','https://peer.example/inbox')")).Unwrap()
+  let planned = PlanDelivery(
+    ctx,
+    db,
+    activityURI,
+    alice.ActorURI,
+    [
+      "https://peer.example/users/a",
+      "https://peer.example/users/a",
+    ],
+    community.ID
+  ).Unwrap()
+  if planned.Jobs != 1i64 then
+    t.Fatalf("duplicate destinations produced duplicate jobs: %d", planned.Jobs)
+  end
+end

@@ -1,0 +1,176 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+struct EditPostInput
+  Title: String `json:"title"`
+  Body: String `json:"body"`
+end
+
+struct ReplyInput
+  Body: String `json:"body"`
+  ContextURI: String `json:"context_uri"`
+end
+
+func PostRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> ()
+  let id = parts.Get(3).Unwrap()
+  let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+  if parts.Len() == 4 then
+    if request.Method == "GET" then
+      let read = feed.ReadObject(request.Context(), id, OptionalIdentity(db, site, request), false)
+      if read.IsErr() then
+        Fail(w, read.UnwrapErr())
+      else
+        WriteJSON(w, 200, PostDTO(read.Unwrap()))
+      end
+    else
+      let actor = RequireMutation(settings, db, site, request)
+      if actor.IsErr() then
+        Fail(w, actor.UnwrapErr())
+      else
+        PostMutation(settings, db, site, w, request, id, actor.Unwrap())
+      end
+    end
+  else
+    PostSectionRoute(settings, db, site, w, request, parts, id)
+  end
+end
+
+func PostMutation(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String, identity: auth.Identity) -> ()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  if request.Method == "PATCH" then
+    let input = EditPostInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+    else
+      let edited = posts.Edit(request.Context(), id, identity, false, input.Title, input.Body)
+      if edited.IsErr() then
+        Fail(w, edited.UnwrapErr())
+      else
+        WriteJSON(w, 200, PostDTO(edited.Unwrap()))
+      end
+    end
+  else
+    if request.Method == "DELETE" then
+      let deleted = posts.Delete(request.Context(), id, identity, false)
+      if deleted.IsErr() then
+        Fail(w, deleted.UnwrapErr())
+      else
+        w.WriteHeader(204)
+      end
+    else
+      MethodNotAllowed(w, "GET, PATCH, DELETE")
+    end
+  end
+end
+
+func PostSectionRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String], id: String) -> ()
+  let section = parts.Get(4).Unwrap()
+  if section == "replies" then
+    ReplyRoute(settings, db, site, w, request, id)
+    return
+  end
+  let actor = RequireMutation(settings, db, site, request)
+  if actor.IsErr() then
+    Fail(w, actor.UnwrapErr())
+    return
+  end
+  let identity = actor.Unwrap()
+  if section == "likes" then
+    let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
+    var result: Result[(), String] = Err("not found")
+    if request.Method == "POST" then
+      result = reactions.Like(request.Context(), id, identity, false, "")
+    end
+    if request.Method == "DELETE" then
+      result = reactions.Undo(request.Context(), id, identity, false)
+    end
+    Settle(w, result)
+    return
+  end
+  if section == "import" && request.Method == "POST" then
+    let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+    let imported = posts.Import(request.Context(), id, identity, false)
+    if imported.IsErr() then
+      Fail(w, imported.UnwrapErr())
+    else
+      WriteJSON(w, 201, PostDTO(imported.Unwrap()))
+    end
+    return
+  end
+  if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
+    let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+    let hidden = feed.SetHidden(request.Context(), id, request.Method == "POST", identity)
+    Settle(w, hidden)
+    return
+  end
+  WriteErrorJSON(w, 404, "not found")
+end
+
+func ReplyRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+  let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+  if request.Method == "GET" then
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      Fail(w, page.UnwrapErr())
+      return
+    end
+    let parent = feed.ReadObject(request.Context(), id, OptionalIdentity(db, site, request), false)
+    if parent.IsErr() then
+      Fail(w, parent.UnwrapErr())
+      return
+    end
+    let listed = feed.ListReplies(request.Context(), parent.Unwrap().CommunityID, id, OptionalIdentity(db, site, request), false, page.Unwrap(), settings.Runtime.MaxPageSize)
+    if listed.IsErr() then
+      Fail(w, listed.UnwrapErr())
+    else
+      WriteJSON(w, 200, PostPage{Items: listed.Unwrap().Map(PostDTO), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+    end
+  else
+    if request.Method == "POST" then
+      let actor = RequireMutation(settings, db, site, request)
+      if actor.IsErr() then
+        Fail(w, actor.UnwrapErr())
+        return
+      end
+      let parent = feed.ReadObject(request.Context(), id, actor.Unwrap(), false)
+      if parent.IsErr() then
+        Fail(w, parent.UnwrapErr())
+        return
+      end
+      let input = ReplyInput{}
+      let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+      if decoded.IsErr() then
+        WriteErrorJSON(w, 400, decoded.UnwrapErr())
+        return
+      end
+      let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+      let published = posts.Publish(request.Context(), site, parent.Unwrap().CommunityID, actor.Unwrap(), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI})
+      if published.IsErr() then
+        Fail(w, published.UnwrapErr())
+      else
+        let loaded = storage.LoadCommunityByID(request.Context(), db, parent.Unwrap().CommunityID)
+        if loaded.IsOk() && loaded.Unwrap().IsSome() && federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
+          let _ = AnnounceLocalPost(request.Context(), settings, db, site, loaded.Unwrap().Unwrap(), published.Unwrap())
+        end
+        WriteJSON(w, 201, PostDTO(published.Unwrap()))
+      end
+    else
+      MethodNotAllowed(w, "GET, POST")
+    end
+  end
+end
+
+func Settle(w: http.ResponseWriter, result: Result[(), String]) -> ()
+  if result.IsErr() then
+    Fail(w, result.UnwrapErr())
+  else
+    w.WriteHeader(204)
+  end
+end

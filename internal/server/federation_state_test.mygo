@@ -1,0 +1,67 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresHostAuthoritativeState(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let groupKey = storage.GeneratePrivatePEM().Unwrap()
+  let rivalKey = storage.GeneratePrivatePEM().Unwrap()
+  let group = "https://host.example/communities/news"
+  let creator = "https://host.example/users/owner"
+  let rival = "https://rival.example/users/attacker"
+  let kept = "https://peer.example/users/kept"
+  let dropped = "https://peer.example/users/dropped"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', ?), (?, 'Person', NULL), (?, 'Person', NULL)", group, storage.PublicPEMFromPrivate(groupKey).Unwrap(), creator, rival, storage.PublicPEMFromPrivate(rivalKey).Unwrap(), kept, dropped)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News')", group, creator)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('replica',?,?)", dropped, creator)).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let state = "{\"id\":\"https://host.example/activities/state-1\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"members\",\"post\":\"members\"},\"commune:members\":[\"" + kept + "\"]}}"
+  let applied = signedPost(handler, a.Origin, "/users/alice/inbox", state, group, groupKey, date)
+  if applied.Code != 202 || !strings.Contains(applied.Body.String(), "cannot be recalled") then
+    t.Fatalf("host state was not applied or did not disclose the recall limit: %d %s", applied.Code, applied.Body.String())
+  end
+  if storage.CommunityReadPolicy(ctx, db, "replica").Unwrap() != "members" then
+    t.Fatal("replica read policy was not updated from the host state")
+  end
+  if !storage.IsCurrentMember(ctx, db, "replica", kept).Unwrap() then
+    t.Fatal("the authority's approved member was not recorded")
+  end
+  if storage.IsCurrentMember(ctx, db, "replica", dropped).Unwrap() then
+    t.Fatal("a member the authority removed remained authorized")
+  end
+  let rivalState = "{\"id\":\"https://rival.example/activities/state-2\",\"actor\":\"" + rival + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[\"" + rival + "\"]}}"
+  let forged = signedPost(handler, a.Origin, "/users/alice/inbox", rivalState, rival, rivalKey, date)
+  if forged.Code != 403 then
+    t.Fatalf("a peer rewrote another community's authorization: %d %s", forged.Code, forged.Body.String())
+  end
+  if storage.CommunityReadPolicy(ctx, db, "replica").Unwrap() != "members" then
+    t.Fatal("a forged state change altered the replica policy")
+  end
+  if storage.IsCurrentMember(ctx, db, "replica", rival).Unwrap() then
+    t.Fatal("a forged state change added an unauthorized member")
+  end
+  let relaxed = "{\"id\":\"https://host.example/activities/state-3\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[]}}"
+  let relaxedResult = signedPost(handler, a.Origin, "/users/alice/inbox", relaxed, group, groupKey, date)
+  if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") then
+    t.Fatal("a non-tightening update wrongly disclosed a recall limitation")
+  end
+  if storage.CommunityReadPolicy(ctx, db, "replica").Unwrap() != "eligible_users" then
+    t.Fatal("a later host state was not applied")
+  end
+end

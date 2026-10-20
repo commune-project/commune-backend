@@ -1,0 +1,114 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import io "go:io"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func signedPost(handler: http.HandlerFunc, origin: String, path: String, body: String, peerURI: String, privateKey: String, date: String) -> Ref[httptest.ResponseRecorder]
+  let digest = federation.BodyDigest(body as Slice[Byte])
+  let host = strings.TrimPrefix(origin, "https://")
+  let signingString = federation.RequestSigningString("POST", path, host, date, digest)
+  let signature = federation.SignSignature(privateKey, signingString).Unwrap()
+  let header = federation.FormatSignatureHeader(peerURI + "#main-key", signature)
+  let request = httptest.NewRequest("POST", origin + path, strings.NewReader(body) as io.Reader)
+  request.Header.Set("Content-Type", "application/activity+json")
+  request.Header.Set("Date", date)
+  request.Header.Set("Digest", digest)
+  request.Header.Set("Signature", header)
+  let recorder = httptest.NewRecorder()
+  handler.ServeHTTP(recorder as http.ResponseWriter, request)
+  recorder
+end
+
+func TestPostgresInboundReceipts(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let carol = accounts.Create(ctx, b, "carol", "", "carol-account-password").Unwrap()
+  let peerKey = storage.GeneratePrivatePEM().Unwrap()
+  let peerPublic = storage.PublicPEMFromPrivate(peerKey).Unwrap()
+  let otherKey = storage.GeneratePrivatePEM().Unwrap()
+  let otherPublic = storage.PublicPEMFromPrivate(otherKey).Unwrap()
+  let peerURI = "https://peer.example/users/dave"
+  let otherURI = "https://other.example/users/eve"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", peerURI, peerPublic, otherURI, otherPublic)).Unwrap()
+  let handler = Handler(settings, db)
+  let now = time.Now().UTC()
+  let date = now.Format(http.TimeFormat)
+  let activityURI = "https://peer.example/activities/1"
+  let body = "{\"id\":\"" + activityURI + "\",\"actor\":\"" + peerURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\",\"" + carol.ActorURI + "\"]}"
+  let first = signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, date)
+  if first.Code != 202 || !strings.Contains(first.Body.String(), "\"receipts\":1") then
+    t.Fatalf("signed activity was not accepted: %d %s", first.Code, first.Body.String())
+  end
+  let replay = signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, date)
+  if replay.Code != 202 || !strings.Contains(replay.Body.String(), "\"receipts\":0") then
+    t.Fatal("duplicate activity created another receipt")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("site_id='a'").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("duplicate reception changed the receipt count")
+  end
+  let crossSite = signedPost(handler, b.Origin, "/inbox", body, peerURI, peerKey, date)
+  if crossSite.Code != 202 || !strings.Contains(crossSite.Body.String(), "\"receipts\":1") then
+    t.Fatalf("site B did not process its own eligible reception: %d %s", crossSite.Code, crossSite.Body.String())
+  end
+  let conflictingActor = "{\"id\":\"" + activityURI + "\",\"actor\":\"" + otherURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"]}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingActor, otherURI, otherKey, date).Code != 409 then
+    t.Fatal("activity URI reuse by another actor was accepted")
+  end
+  let conflictingPayload = "{\"id\":\"" + activityURI + "\",\"actor\":\"" + peerURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{}}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingPayload, peerURI, peerKey, date).Code != 409 then
+    t.Fatal("conflicting payload reuse was accepted")
+  end
+  let stale = now.Add((0 - 2) as time.Duration * time.Hour).Format(http.TimeFormat)
+  if signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, stale).Code != 401 then
+    t.Fatal("stale signed activity was accepted")
+  end
+  let wrongSigner = signedPost(handler, a.Origin, "/users/alice/inbox", body, otherURI, otherKey, date)
+  if wrongSigner.Code != 401 then
+    t.Fatal("activity signed by an unrelated key was accepted")
+  end
+  let unsigned = httptest.NewRequest("POST", a.Origin + "/users/alice/inbox", strings.NewReader(body) as io.Reader)
+  unsigned.Header.Set("Content-Type", "application/activity+json")
+  let unsignedRecorder = httptest.NewRecorder()
+  handler.ServeHTTP(unsignedRecorder as http.ResponseWriter, unsigned)
+  if unsignedRecorder.Code != 401 then
+    t.Fatal("unsigned activity was accepted")
+  end
+  let claimed = storage.ClaimPendingReceipts(ctx, db, 5, 60i64).Unwrap()
+  if claimed.Len() != 2 then
+    t.Fatalf("pending receipts were not claimed: %d", claimed.Len())
+  end
+  if storage.ClaimPendingReceipts(ctx, db, 5, 60i64).Unwrap().Len() != 0 then
+    t.Fatal("leased receipts were claimed twice")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE inbox_receipts SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")).Unwrap()
+  let resumed = storage.ClaimPendingReceipts(ctx, db, 5, 60i64).Unwrap()
+  if resumed.Len() != 2 then
+    t.Fatalf("expired leases were not reclaimed after restart: %d", resumed.Len())
+  end
+  let _ = storage.SettleReceipt(ctx, db, resumed.Get(0).Unwrap().ActivityURI, resumed.Get(0).Unwrap().SiteID, resumed.Get(0).Unwrap().RecipientActorURI, "accepted").Unwrap()
+  let settledCount: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("state='accepted'").Count(Ref.new(settledCount))).Unwrap()
+  if settledCount != 1i64 then
+    t.Fatal("settled receipt did not persist its final state")
+  end
+end

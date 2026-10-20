@@ -1,0 +1,58 @@
+package auth
+
+import rand "go:crypto/rand"
+import sha256 "go:crypto/sha256"
+import hash "go:hash"
+import subtle "go:crypto/subtle"
+import regexp "go:regexp"
+import http "go:net/http"
+import time "go:time"
+
+struct SessionTokens
+  Session: String
+  CSRF: String
+end
+
+func NewSessionTokens() -> SessionTokens
+  SessionTokens{Session: rand.Text(), CSRF: rand.Text()}
+end
+
+func TokenHash(token: String) -> Slice[Byte]
+  let hasher = sha256.New()
+  let _ = hasher.Write(token as Slice[Byte])
+  hasher.Sum([] as Slice[Byte])
+end
+
+func ValidToken(token: String) -> Bool
+  regexp.MatchString("^[A-Z2-7]{26,128}$", token).UnwrapOr(false)
+end
+
+impl SessionTokens
+  func SessionHash(self: SessionTokens) -> Slice[Byte]
+    TokenHash(self.Session)
+  end
+
+  func CSRFHash(self: SessionTokens) -> Slice[Byte]
+    TokenHash(self.CSRF)
+  end
+
+  func Cookies(self: SessionTokens, expires: time.Time) -> Slice[http.Cookie]
+    [
+      http.Cookie{Name: "__Host-commune_session", Value: self.Session, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400},
+      http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Path: "/", Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400}
+    ]
+  end
+end
+
+func VerifyCSRF(expected: Slice[Byte], supplied: String) -> Bool
+  ValidToken(supplied) && subtle.ConstantTimeCompare(expected, TokenHash(supplied)) == 1
+end
+
+func ExpiredCookies() -> Slice[http.Cookie]
+  let tokens = SessionTokens{Session: "", CSRF: ""}
+  tokens.Cookies(time.Unix(1, 0)).Map(func(cookie: http.Cookie) -> http.Cookie
+    var expired = cookie
+    expired.MaxAge = -1
+    expired
+  end)
+end

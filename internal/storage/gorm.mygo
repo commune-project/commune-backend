@@ -1,0 +1,89 @@
+package storage
+
+import gorm "go:gorm.io/gorm"
+import postgres "go:gorm.io/driver/postgres"
+import logger "go:gorm.io/gorm/logger"
+import context "go:context"
+
+# gorm.DB exposes a plain error field; MyGO has no nil literal, so this single
+# comparison stays in Go.
+func QueryFailed(query: Ref[gorm.DB]) -> Bool
+  go[Bool] { code: "{query}.Error != nil"; in query = query }
+end
+
+# Opening configures the pool only; readiness must perform a bounded PingContext.
+func OpenPostgres(dsn: String) -> Result[Ref[gorm.DB], String]
+  let settings = gorm.Config { DisableAutomaticPing: true, Logger: logger.Discard }
+  let dialector = postgres.Open(dsn)
+  let opened = gorm.Open(dialector, Ref.new(settings) as gorm.Option)
+  switch opened
+    case Err(_) => Err("cannot configure PostgreSQL connection")
+    case Ok(db) then
+      switch db.DB()
+        case Err(_) => Err("cannot access PostgreSQL connection pool")
+        case Ok(pool) then
+          pool.SetMaxOpenConns(16)
+          pool.SetMaxIdleConns(4)
+          Ok(db)
+        end
+      end
+    end
+  end
+end
+
+func MigrateGORM(ctx: context.Context, db: Ref[gorm.DB]) -> Result[(), String]
+  let pool = db.DB()
+  if pool.IsErr() then
+    return Err("cannot access migration connection pool")
+  end
+  Migrate(ctx, pool.Unwrap())
+end
+
+func CheckGORM(ctx: context.Context, db: Ref[gorm.DB]) -> Result[(), String]
+  let pool = db.DB()
+  if pool.IsErr() then
+    return Err("cannot access readiness connection pool")
+  end
+  CheckSchema(ctx, pool.Unwrap())
+end
+
+# Both values are bound parameters, never interpolated SQL.
+func AccountQuery(ctx: context.Context, db: Ref[gorm.DB], siteID: String, username: String) -> Ref[gorm.DB]
+  db.WithContext(ctx).Table("accounts").Where("site_id = ? AND username = ?", siteID, username)
+end
+
+func FindAccount(ctx: context.Context, db: Ref[gorm.DB], siteID: String, username: String) -> Result[Option[AccountRecord], String]
+  if siteID == "" || username == "" then
+    return Err("account lookup requires site and username")
+  end
+  let account = AccountRecord {}
+  let query = AccountQuery(ctx, db, siteID, username).Limit(1).Find(Ref.new(account))
+  let failed = QueryFailed(query)
+  if failed then
+    return Err("account lookup failed")
+  end
+  if query.RowsAffected == 0i64 then
+    let missing: Option[AccountRecord] = None
+    return Ok[Option[AccountRecord], String](missing)
+  end
+  Ok(Some(account))
+end
+
+func RunTransaction(ctx: context.Context, db: Ref[gorm.DB], work: func(Ref[gorm.DB]) -> Result[(), String]) -> Result[(), String]
+  let tx = db.WithContext(ctx).Begin()
+  let beginFailed = QueryFailed(tx)
+  if beginFailed then
+    return Err("cannot begin repository transaction")
+  end
+  go[()] { code: "defer {tx}.Rollback()"; in tx = tx }
+  let result = work(tx)
+  if result.IsErr() then
+    return Err(result.UnwrapErr())
+  end
+  let commit = tx.Commit()
+  let commitFailed = QueryFailed(commit)
+  if commitFailed then
+    return Err("cannot commit repository transaction")
+  end
+  Ok(())
+end

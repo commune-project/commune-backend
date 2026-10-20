@@ -1,0 +1,19 @@
+package federation
+
+import rsa "go:crypto/rsa"
+
+# x509.ParsePKIXPublicKey yields an untyped key. MyGO has no type-assertion
+# syntax, so this single conversion is the only bound Go fragment needed
+# alongside the nil check in signature.mygo.
+func AsRSAPublicKey(key: Any) -> Result[Ref[rsa.PublicKey], String]
+  go[Result[Ref[rsa.PublicKey], String]] {
+    code: """
+      typed, ok := {key}.(*rsa.PublicKey)
+      if !ok {
+        return Err[*rsa.PublicKey, string]("unsupported key type")
+      }
+      return Ok[*rsa.PublicKey, string](typed)
+    """
+    in key = key
+  }
+end

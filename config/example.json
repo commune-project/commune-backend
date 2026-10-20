@@ -1,0 +1,25 @@
+{
+  "sites": [
+    {"id": "a", "origin": "https://forum-a.example", "aliases": []},
+    {"id": "b", "origin": "https://forum-b.example", "aliases": []}
+  ],
+  "database_url": "postgres://commune@127.0.0.1:5432/commune?sslmode=require",
+  "trusted_proxies": [],
+  "runtime": {
+    "listen": "127.0.0.1:8080",
+    "read_timeout_seconds": 15,
+    "write_timeout_seconds": 30,
+    "idle_timeout_seconds": 60,
+    "shutdown_timeout_seconds": 10,
+    "max_body_bytes": 1048576,
+    "max_page_size": 100,
+    "workers": 2
+  },
+  "federation": {
+    "allow_private_network": false,
+    "fetch_timeout_seconds": 10,
+    "max_fetch_bytes": 1048576,
+    "max_redirects": 5,
+    "clock_skew_seconds": 300
+  }
+}

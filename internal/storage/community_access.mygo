@@ -1,0 +1,192 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import clause "go:gorm.io/gorm/clause"
+import sql "go:database/sql"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct CommunityRecord
+  ID: String `gorm:"column:id"`
+  HostSiteID: String `gorm:"column:host_site_id"`
+  ActorURI: sql.NullString `gorm:"column:actor_uri"`
+  CreatorActorURI: String `gorm:"column:creator_actor_uri"`
+  FederationMode: String `gorm:"column:federation_mode"`
+  ReadPolicy: String `gorm:"column:read_policy"`
+  PostPolicy: String `gorm:"column:post_policy"`
+  Name: String `gorm:"column:name"`
+  Title: String `gorm:"column:title"`
+  Description: String `gorm:"column:description"`
+  PolicyVersion: Int64 `gorm:"column:policy_version"`
+end
+
+struct CommunityRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+end
+
+struct CommunityAccess
+  Community: CommunityRecord
+  Subject: auth.AccessSubject
+  Authority: auth.ManagementAuthority
+end
+
+impl CommunityRecord
+  func Policy(self: CommunityRecord) -> auth.CommunityPolicy
+    auth.CommunityPolicy{HostSiteID: self.HostSiteID, FederationMode: self.FederationMode, ReadPolicy: self.ReadPolicy, PostPolicy: self.PostPolicy}
+  end
+end
+
+impl CommunityAccess
+  func CanRead(self: CommunityAccess) -> Bool
+    self.Authority.Allows("manage-community") || self.Community.Policy().CanRead(self.Subject)
+  end
+
+  func CanPost(self: CommunityAccess) -> Bool
+    # An administrative override is not ordinary membership or posting identity.
+    self.Community.Policy().CanPost(self.Subject)
+  end
+
+  func CanEditBody(self: CommunityAccess, authorURI: String) -> Bool
+    self.Subject.Verified && self.Subject.ActorURI == authorURI && self.Community.Policy().CanRead(self.Subject)
+  end
+end
+
+impl CommunityRepository
+  func Load(self: CommunityRepository, ctx: context.Context, id: String, lock: Bool) -> Result[CommunityRecord, String]
+    let record = CommunityRecord{}
+    let query = self.DB.WithContext(ctx).Table("communities").Where("id = ? AND host_site_id = ?", id, self.SiteID)
+    let locking = clause.Locking{Strength: "UPDATE"}
+    let expression = locking as clause.Expression
+    let scoped = if lock then query.Clauses(expression) else query end
+    let found = scoped.Limit(1).Find(Ref.new(record))
+    if MutationResult(found).IsErr() then
+      return Err("community unavailable")
+    end
+    if found.RowsAffected != 1i64 then
+      return Err("not found")
+    end
+    Ok(record)
+  end
+
+  func Access(self: CommunityRepository, ctx: context.Context, community: CommunityRecord, identity: auth.Identity, remoteVerified: Bool) -> Result[CommunityAccess, String]
+    let hosted = community.HostSiteID == self.SiteID
+    let local = identity.AccountID > 0i64
+    let verified = if local then
+      QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id = ? AND site_id = ? AND actor_uri = ? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
+    else
+      if remoteVerified && identity.ActorURI != "" then
+        QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri = ? AND kind = 'Person' AND local_site_id IS NULL", identity.ActorURI))
+      else
+        Ok(false)
+      end
+    end
+    if verified.IsErr() then
+      return Err(verified.UnwrapErr())
+    end
+    let site = SiteRepository{DB: self.DB, SiteID: self.SiteID}
+    let blocked = if verified.Unwrap() then site.IsBlocked(ctx, identity.ActorURI) else Ok(false) end
+    if blocked.IsErr() then
+      return Err(blocked.UnwrapErr())
+    end
+    let member = QueryExists(self.DB.WithContext(ctx).Table("community_members").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
+    if member.IsErr() then
+      return Err(member.UnwrapErr())
+    end
+    let subject = auth.AccessSubject{SiteID: if local then identity.SiteID else "" end, AccountID: if local then identity.AccountID else 0i64 end, ActorURI: identity.ActorURI, Verified: verified.Unwrap(), Member: member.Unwrap(), Blocked: blocked.Unwrap()}
+    if !hosted || !subject.Verified || subject.Blocked then
+      return Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{}})
+    end
+    let deployment = if local then QueryExists(self.DB.WithContext(ctx).Table("deployment_roles").Where("account_id = ? AND role = 'superadministrator'", identity.AccountID)) else Ok(false) end
+    if deployment.IsErr() then
+      return Err(deployment.UnwrapErr())
+    end
+    if deployment.Unwrap() then
+      return Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "deployment"}})
+    end
+    let administrator = site.IsAdministrator(ctx, identity)
+    if administrator.IsErr() then
+      return Err(administrator.UnwrapErr())
+    end
+    if administrator.Unwrap() then
+      return Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: "site"}})
+    end
+    let moderator = QueryExists(self.DB.WithContext(ctx).Table("moderators").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
+    if moderator.IsErr() then
+      return Err(moderator.UnwrapErr())
+    end
+    let eligibleManager = community.Policy().Eligible(subject) && (community.CreatorActorURI == identity.ActorURI || moderator.Unwrap())
+    let scope = if eligibleManager then "community" else "" end
+    Ok(CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}})
+  end
+
+  func Check(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[CommunityAccess, String]
+    let loaded = self.Load(ctx, id, false)
+    if loaded.IsErr() then
+      return Err(loaded.UnwrapErr())
+    end
+    self.Access(ctx, loaded.Unwrap(), identity, remoteVerified)
+  end
+
+  func CheckAuthorship(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[CommunityAccess, String]
+    let loaded = self.Load(ctx, id, false)
+    if loaded.IsErr() then
+      return Err(loaded.UnwrapErr())
+    end
+    self.Access(ctx, loaded.Unwrap(), identity, remoteVerified)
+  end
+
+  func Audit(self: CommunityRepository, ctx: context.Context, access: CommunityAccess, action: String, target: String) -> Result[(), String]
+    if !access.Authority.Allows("manage-community") then
+      return Err("forbidden")
+    end
+    let scopeID = if access.Authority.Scope == "deployment" then "deployment" else if access.Authority.Scope == "site" then self.SiteID else access.Community.ID end end
+    MutationResult(self.DB.WithContext(ctx).Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,?,?,?,?)", access.Subject.ActorURI, access.Authority.Scope, scopeID, action, target))
+  end
+
+  func Read(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[CommunityRecord, String]
+    var record = CommunityRecord{}
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let repository = CommunityRepository{DB: tx, SiteID: self.SiteID}
+      let loaded = repository.Load(ctx, id, true)
+      if loaded.IsErr() then
+        return Err(loaded.UnwrapErr())
+      end
+      let access = repository.Access(ctx, loaded.Unwrap(), identity, remoteVerified)
+      if access.IsErr() then
+        return Err(access.UnwrapErr())
+      end
+      if !access.Unwrap().CanRead() then
+        return Err("not found")
+      end
+      if access.Unwrap().Authority.Allows("manage-community") then
+        let audited = repository.Audit(ctx, access.Unwrap(), "read-community", id)
+        if audited.IsErr() then
+          return Err(audited.UnwrapErr())
+        end
+      end
+      record = loaded.Unwrap()
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(record)
+  end
+
+  func Open(self: CommunityRepository, ctx: context.Context, id: String, lock: Bool) -> Result[CommunityRecord, String]
+    let record = CommunityRecord{}
+    let query = self.DB.WithContext(ctx).Table("communities").Where("id = ?", id)
+    let locking = clause.Locking{Strength: "UPDATE"}
+    let expression = locking as clause.Expression
+    let scoped = if lock then query.Clauses(expression) else query end
+    let found = scoped.Limit(1).Find(Ref.new(record))
+    if MutationResult(found).IsErr() then
+      return Err("community unavailable")
+    end
+    if found.RowsAffected != 1i64 then
+      return Err("not found")
+    end
+    Ok(record)
+  end
+end

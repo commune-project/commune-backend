@@ -1,0 +1,81 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func privateFetchConfig(settings: config.Config) -> config.Config
+  config.Config{
+    Sites: settings.Sites,
+    DatabaseURL: settings.DatabaseURL,
+    TrustedProxies: settings.TrustedProxies,
+    Runtime: settings.Runtime,
+    Federation: config.Federation{
+      AllowPrivateNetwork: true,
+      FetchTimeoutSeconds: settings.Federation.FetchTimeoutSeconds,
+      MaxFetchBytes: settings.Federation.MaxFetchBytes,
+      MaxRedirects: settings.Federation.MaxRedirects,
+      ClockSkewSeconds: settings.Federation.ClockSkewSeconds,
+    },
+  }
+end
+
+func TestPostgresRemoteContextAnnouncement(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = privateFetchConfig(config.Load("../../config/example.json").Unwrap())
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let topic = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+  let home = storage.CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin).Unwrap()
+  let _ = storage.AttachPostToContext(ctx, db, topic.ID, home.ID).Unwrap()
+  let authority = "https://peer.example/groups/discussion"
+  let remoteHandler = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let uri = "http://" + request.Host + request.URL.Path
+    let body = "{\"id\":\"" + uri + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + authority + "\"}"
+    w.Header().Set("Content-Type", "application/activity+json")
+    w.WriteHeader(200)
+    let _ = w.Write(body as Slice[Byte])
+  end
+  let remote = httptest.NewServer(remoteHandler as http.HandlerFunc)
+  let remoteContext = remote.URL + "/contexts/remote"
+  let reply = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Body: "Reply", ParentID: topic.ID, ContextURI: remoteContext}).Unwrap()
+  if reply.ParentID.String != topic.ID || storage.PrimaryPostContextURI(ctx, db, reply.ID) != remoteContext then
+    t.Fatal("the reply's parent and declared context were not independent")
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox')", authority)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, authority, "https://peer.example/activities/context-follow")).Unwrap()
+  let announced = AnnounceLocalPost(ctx, settings, db, site, community, reply)
+  if announced.IsErr() then
+    t.Fatalf("announcing a reply in a remote context failed: %s", announced.UnwrapErr())
+  end
+  var count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatalf("expected one Group Announce, got %d", count)
+  end
+  let announceURI = ""
+  let _ = storage.MutationResult(db.Table("activities").Select("uri").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Limit(1).Scan(Ref.new(announceURI))).Unwrap()
+  let stored = storage.LoadActivityPayload(ctx, db, announceURI).Unwrap().Unwrap().Payload
+  let text = stored as String
+  if !strings.Contains(text, "\"context\":\"" + remoteContext + "\"") then
+    t.Fatalf("the forwarded reply did not reference its declared context: %s", text)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ? AND target_inbox = ?", authority, "https://peer.example/inbox").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatalf("the context authority received %d destinations instead of one", count)
+  end
+  remote.Close()
+end

@@ -1,0 +1,197 @@
+package delivery
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import io "go:io"
+import bytes "go:bytes"
+import strings "go:strings"
+import time "go:time"
+import slog "go:log/slog"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestSignedDeliveryPost(t: Ref[testing.T]) -> ()
+  let privateKey = storage.GeneratePrivatePEM().Unwrap()
+  let publicKey = storage.PublicPEMFromPrivate(privateKey).Unwrap()
+  let actorURI = "https://a.example/users/alice"
+  var verdict = ""
+  let peer = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let body = io.ReadAll(request.Body)
+    let verified = federation.VerifyRequest(
+      publicKey,
+      "POST",
+      request.URL.Path,
+      request.Host,
+      request.Header.Get("Date"),
+      request.Header.Get("Digest"),
+      request.Header.Get("Signature"),
+      time.Now().UTC(),
+      3600i64
+    )
+    if body.IsErr() ||
+      verified.IsErr() ||
+      request.Header.Get("Digest") != federation.BodyDigest(body.Unwrap()) then
+      verdict = "rejected"
+      w.WriteHeader(401)
+    else
+      verdict = "accepted"
+      w.WriteHeader(202)
+    end
+  end
+  let server = httptest.NewServer(peer as http.HandlerFunc)
+  let status = Post(
+    server.URL + "/inbox",
+    actorURI,
+    privateKey,
+    "{\"type\":\"Create\"}" as Slice[Byte]
+  ).Unwrap()
+  if status != 202 || verdict != "accepted" then
+    t.Fatalf("outbound delivery was not correctly signed: %d %s", status, verdict)
+  end
+  server.Close()
+end
+
+func TestPostgresDeliveryLeases(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let logs = bytes.Buffer{}
+  let previousLogger = slog.Default()
+  slog.SetDefault(slog.New(slog.NewJSONHandler(Ref.new(logs) as io.Writer, Ref.new(slog.HandlerOptions{}))))
+  t.Cleanup(func() -> ()
+    slog.SetDefault(previousLogger)
+  end)
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let _ = storage.EnsureLocalKey(ctx, db, alice.ActorURI).Unwrap()
+  let activityURI = "https://a.example/activities/create-1"
+  let payload = "{\"id\":\"" + activityURI + "\",\"type\":\"Create\",\"secret\":\"do-not-log\"}"
+  let _ = storage.MutationResult(db.Exec(
+    "INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,'Create')",
+    activityURI,
+    alice.ActorURI
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)",
+    activityURI,
+    payload as Slice[Byte],
+    storage.PayloadChecksum(payload as Slice[Byte])
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://peer.example/users/dave','Person'),('https://other.example/users/eve','Person')")).Unwrap()
+  let rolledBack = storage.RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let _ = storage.EnqueueDelivery(
+        ctx,
+        tx,
+        activityURI,
+        alice.ActorURI,
+        "https://peer.example/users/dave",
+        "https://peer.example/inbox",
+        ""
+      )
+      Err("mutation failed")
+    end
+  )
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  if rolledBack.IsOk() || count != 0i64 then
+    t.Fatal("a rolled-back mutation scheduled delivery")
+  end
+  let _ = storage.EnqueueDelivery(
+    ctx,
+    db,
+    activityURI,
+    alice.ActorURI,
+    "https://peer.example/users/dave",
+    "https://peer.example/inbox",
+    ""
+  ).Unwrap()
+  let _ = storage.EnqueueDelivery(
+    ctx,
+    db,
+    activityURI,
+    alice.ActorURI,
+    "https://other.example/users/eve",
+    "https://other.example/inbox",
+    ""
+  ).Unwrap()
+  let limits = Limits{BatchSize: 5, LeaseSeconds: 60i64, MaxAttempts: 2i64, BackoffSeconds: 30i64}
+  let deliver = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+    Ok(202)
+  end
+  let settle = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+    if target == "https://peer.example/inbox" then
+      return Err("unreachable")
+    end
+    Ok(202)
+  end
+  let down = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+    Err("unreachable")
+  end
+  let first = RunOnce(ctx, db, settings, limits, settle).Unwrap()
+  if first.Retried != 1 || first.Delivered != 1 then
+    t.Fatalf(
+      "an unavailable peer blocked or mis-reported the other: %d/%d",
+      first.Retried,
+      first.Delivered
+    )
+  end
+  let logText = logs.String()
+  if !strings.Contains(logText, "delivery retry scheduled") || !strings.Contains(logText, activityURI) || strings.Contains(logText, "do-not-log") then
+    t.Fatal("delivery retry logging was missing or disclosed the activity body")
+  end
+  let leases = storage.ClaimDeliveryJobs(ctx, db, 5, 60i64).Unwrap()
+  if leases.Len() != 0 then
+    t.Fatal("a backoff-scheduled job was claimed before it became available")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("state='pending' AND error_code='unreachable'").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("the retried delivery did not keep its failure reason")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET available_at = now() - interval '1 minute', state='leased', lease_token='lease', lease_until = now() + interval '1 minute' WHERE state='pending'")).Unwrap()
+  let live = storage.ClaimDeliveryJobs(ctx, db, 5, 60i64)
+  if live.IsErr() then
+    t.Fatalf("live-lease claim failed: %s", live.UnwrapErr())
+  end
+  if live.Unwrap().Len() != 0 then
+    t.Fatal("a live delivery lease was claimed twice")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")).Unwrap()
+  let resumed = storage.ClaimDeliveryJobs(ctx, db, 5, 60i64)
+  if resumed.IsErr() then
+    t.Fatalf("lease reclaim failed: %s", resumed.UnwrapErr())
+  end
+  if resumed.Unwrap().Len() != 1 then
+    t.Fatal("an expired delivery lease was not reclaimed after restart")
+  end
+  let _ = resumed.Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET available_at = now() - interval '1 minute', state='pending', lease_token=NULL, lease_until=NULL, attempts = 0 WHERE error_code = 'unreachable'")).Unwrap()
+  let retried = RunOnce(ctx, db, settings, limits, deliver).Unwrap()
+  if retried.Delivered != 1 then
+    t.Fatalf("the recovered delivery was not completed: %d", retried.Delivered)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("state='delivered'").Count(Ref.new(count))).Unwrap()
+  if count != 2i64 then
+    t.Fatal("successful deliveries were not recorded")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET state='pending', attempts=2, available_at = now() - interval '1 minute', lease_token=NULL, lease_until=NULL")).Unwrap()
+  let exhausted = RunOnce(ctx, db, settings, limits, down).Unwrap()
+  if exhausted.Failed != 2 || exhausted.Retried != 0 then
+    t.Fatalf("exhausted attempts were not failed: %d/%d", exhausted.Failed, exhausted.Retried)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("state='failed' AND error_code IS NOT NULL").Count(Ref.new(count))).Unwrap()
+  if count != 2i64 then
+    t.Fatal("permanent failures were not reported")
+  end
+end

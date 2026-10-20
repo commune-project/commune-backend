@@ -1,0 +1,41 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Member-authorized collections keep the same reachability rules as public ones
+# but do not apply the eligible_users read filter: the caller has already proven
+# current membership for the resolved community.
+func memberObjectQuery(ctx: context.Context, db: Ref[gorm.DB], origin: String, communityID: String) -> Ref[gorm.DB]
+  db.WithContext(ctx).Table("posts AS p").Where("p.federation_mode = 'federated' AND p.object_uri LIKE ? AND p.deleted_at IS NULL AND p.community_id = ? AND EXISTS (SELECT 1 FROM communities c WHERE c.id = p.community_id AND c.federation_mode = 'federated' AND c.read_policy = 'members')", origin+"/%", communityID)
+end
+
+func CountMemberObjects(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, origin: String, communityID: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = memberObjectQuery(ctx, db, origin, communityID).Where("p.author_actor_uri = ?", actorURI).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListMemberObjects(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, origin: String, communityID: String, limit: Int, offset: Int) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = memberObjectQuery(ctx, db, origin, communityID).Where("p.author_actor_uri = ?", actorURI).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end
+
+func LoadObjectCommunity(ctx: context.Context, db: Ref[gorm.DB], objectURI: String) -> Result[Option[CommunityRecord], String]
+  let record = CommunityRecord{}
+  let query = db.WithContext(ctx).Table("communities AS c").Select("c.*").Joins("JOIN posts AS p ON p.community_id = c.id").Where("p.object_uri = ?", objectURI).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("community unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[CommunityRecord], String](None)
+  end
+  Ok(Some(record))
+end

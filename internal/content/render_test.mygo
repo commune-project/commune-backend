@@ -1,0 +1,30 @@
+package content
+
+import testing "go:testing"
+import strings "go:strings"
+
+func TestRenderTextNeutralizesHTML(t: Ref[testing.T]) -> ()
+  let cases: Slice[Slice[String]] = [
+    ["<script>alert(1)</script>hello", "hello"],
+    ["<b>bold</b> text", "bold text"],
+    ["<img src=x onerror=alert(1)>", ""],
+    ["<a href=\"javascript:alert(1)\">click</a>", "click"],
+    ["<STYLE>body{background:url(javascript:1)}</STYLE>safe", "safe"],
+    ["<iframe src=\"https://evil.example\"></iframe>ok", "ok"],
+    ["nested <div><svg onload=alert(1)></svg></div> tail", "nested   tail"],
+    ["<!-- comment -->visible", "visible"],
+    ["a < b and c > d", "a &lt; b and c &gt; d"],
+    ["&lt;script&gt;alert(1)&lt;/script&gt;", "&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;"],
+    ["unclosed <script>alert(1)", "unclosed alert(1)"],
+    ["quote \" and apostrophe '", "quote &quot; and apostrophe &#39;"]
+  ]
+  cases.Each(func(item: Slice[String]) -> ()
+    let output = RenderText(item.Get(0).Unwrap())
+    if output != item.Get(1).Unwrap() then
+      t.Fatalf("RenderText mismatch: %s => %s", item.Get(0).Unwrap(), output)
+    end
+    if strings.Contains(output, "<") || strings.Contains(output, ">") then
+      t.Fatalf("unsafe markup survived rendering: %s", output)
+    end
+  end)
+end

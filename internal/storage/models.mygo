@@ -1,0 +1,16 @@
+package storage
+
+import sql "go:database/sql"
+import time "go:time"
+
+struct AccountRecord
+  ID: Int64 `gorm:"column:id;primaryKey;autoIncrement"`
+  SiteID: String `gorm:"column:site_id"`
+  ActorURI: String `gorm:"column:actor_uri"`
+  ActorKind: String `gorm:"column:actor_kind"`
+  Username: String `gorm:"column:username"`
+  Email: sql.NullString `gorm:"column:email"`
+  PasswordHash: String `gorm:"column:password_hash"`
+  Disabled: Bool `gorm:"column:disabled"`
+  CreatedAt: time.Time `gorm:"column:created_at;autoCreateTime:false"`
+end

@@ -1,0 +1,106 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct FeedRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+end
+
+struct Page
+  Limit: Int
+  Offset: Int
+end
+
+impl Page
+  func Valid(self: Page, max: Int) -> Bool
+    self.Limit > 0 && self.Limit <= max && self.Offset >= 0
+  end
+end
+
+impl FeedRepository
+  # Every listing, object read and count re-checks current access and reflects
+  # only objects this site has received; unauthorized callers get `not found`.
+  func ListTopics(self: FeedRepository, ctx: context.Context, communityID: String, identity: auth.Identity, remoteVerified: Bool, page: Page, maxPage: Int) -> Result[Slice[PostRecord], String]
+    if !page.Valid(maxPage) then
+      return Err("invalid page")
+    end
+    let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
+    if allowed.IsErr() then
+      return Err(allowed.UnwrapErr())
+    end
+    var records: Slice[PostRecord] = []
+    let query = self.DB.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts AS sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.community_id=? AND p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", communityID).Order("p.authored_at DESC, p.id").Limit(page.Limit).Offset(page.Offset).Find(Ref.new(records))
+    if MutationResult(query).IsErr() then
+      return Err("feed unavailable")
+    end
+    Ok(records)
+  end
+
+  func ListReplies(self: FeedRepository, ctx: context.Context, communityID: String, parentID: String, identity: auth.Identity, remoteVerified: Bool, page: Page, maxPage: Int) -> Result[Slice[PostRecord], String]
+    if !page.Valid(maxPage) then
+      return Err("invalid page")
+    end
+    let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
+    if allowed.IsErr() then
+      return Err(allowed.UnwrapErr())
+    end
+    var records: Slice[PostRecord] = []
+    let query = self.DB.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts AS sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.community_id=? AND p.parent_id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", communityID, parentID).Order("p.authored_at, p.id").Limit(page.Limit).Offset(page.Offset).Find(Ref.new(records))
+    if MutationResult(query).IsErr() then
+      return Err("feed unavailable")
+    end
+    Ok(records)
+  end
+
+  func Count(self: FeedRepository, ctx: context.Context, communityID: String, identity: auth.Identity, remoteVerified: Bool) -> Result[Int64, String]
+    let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
+    if allowed.IsErr() then
+      return Err(allowed.UnwrapErr())
+    end
+    let count: Int64 = 0i64
+    let query = self.DB.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts AS sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.community_id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", communityID).Count(Ref.new(count))
+    if MutationResult(query).IsErr() then
+      return Err("feed unavailable")
+    end
+    Ok(count)
+  end
+
+  func ReadObject(self: FeedRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[PostRecord, String]
+    let loaded = loadPostForUpdate(self.DB, id)
+    if loaded.IsErr() then
+      return Err("not found")
+    end
+    var post = loaded.Unwrap()
+    let hidden = QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, id))
+    if hidden.IsErr() then
+      return Err(hidden.UnwrapErr())
+    end
+    if !hidden.Unwrap() then
+      return Err("not found")
+    end
+    let allowed = self.AllowRead(ctx, post.CommunityID, identity, remoteVerified)
+    if allowed.IsErr() then
+      return Err(allowed.UnwrapErr())
+    end
+    Ok(post)
+  end
+
+  func AllowRead(self: FeedRepository, ctx: context.Context, communityID: String, identity: auth.Identity, remoteVerified: Bool) -> Result[(), String]
+    let community = CommunityRepository{DB: self.DB, SiteID: self.SiteID}
+    let loaded = community.Open(ctx, communityID, false)
+    if loaded.IsErr() then
+      return Err("not found")
+    end
+    let access = community.Access(ctx, loaded.Unwrap(), identity, remoteVerified)
+    if access.IsErr() then
+      return Err("not found")
+    end
+    if !access.Unwrap().CanRead() then
+      return Err("not found")
+    end
+    Ok(())
+  end
+end

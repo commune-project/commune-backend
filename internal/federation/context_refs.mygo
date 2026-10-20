@@ -1,0 +1,97 @@
+package federation
+
+import json "go:encoding/json"
+
+struct ContextReference
+  URI: String
+  Kind: String
+  Verified: Bool
+end
+
+struct ContextParseResult
+  References: Slice[ContextReference]
+  Audience: Slice[String]
+end
+
+struct ContextHolder
+  Context: json.RawMessage `json:"context"`
+  Audience: json.RawMessage `json:"audience"`
+end
+
+struct ContextDescriptor
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Href: String `json:"href"`
+end
+
+# The AS2 `context` property is parsed separately from `audience` and from the
+# JSON-LD `@context` keyword. Every reference is declared-only (`Verified`
+# false); a resolution failure never rejects the containing activity.
+func ParseContexts(payload: Slice[Byte]) -> Result[ContextParseResult, String]
+  let holder = ContextHolder{}
+  if json.Unmarshal(payload, Ref.new(holder)).IsErr() then
+    return Err("invalid activity")
+  end
+  let references = DecodeContextValue(holder.Context as Slice[Byte])
+  let audience = DecodeAudience(holder.Audience as Slice[Byte])
+  Ok(ContextParseResult{References: references, Audience: audience})
+end
+
+func DecodeContextValue(raw: Slice[Byte]) -> Slice[ContextReference]
+  var references: Slice[ContextReference] = []
+  if raw.Len() == 0 then
+    return references
+  end
+  let asString = ""
+  if json.Unmarshal(raw, Ref.new(asString)).IsOk() then
+    if asString != "" then
+      return [ContextReference{URI: asString, Kind: "uri", Verified: false}]
+    end
+    return references
+  end
+  var elements: Slice[json.RawMessage] = []
+  if json.Unmarshal(raw, Ref.new(elements)).IsOk() then
+    elements.Each(func(element: json.RawMessage) -> ()
+      let nested = DecodeContextValue(element as Slice[Byte])
+      references = nested.Fold(references, func(acc: Slice[ContextReference], item: ContextReference) -> Slice[ContextReference]
+        acc.Append(item)
+      end)
+    end)
+    return references
+  end
+  let descriptor = ContextDescriptor{}
+  if json.Unmarshal(raw, Ref.new(descriptor)).IsErr() then
+    return references
+  end
+  let uri = if descriptor.ID != "" then descriptor.ID else descriptor.Href end
+  if uri == "" then
+    return references
+  end
+  var kind = "object"
+  if descriptor.Type == "Collection" || descriptor.Type == "OrderedCollection" then
+    kind = "collection"
+  end
+  if descriptor.Href != "" && kind == "object" then
+    kind = "link"
+  end
+  [ContextReference{URI: uri, Kind: kind, Verified: false}]
+end
+
+func DecodeAudience(raw: Slice[Byte]) -> Slice[String]
+  var audience: Slice[String] = []
+  if raw.Len() == 0 then
+    return audience
+  end
+  let asString = ""
+  if json.Unmarshal(raw, Ref.new(asString)).IsOk() then
+    if asString != "" then
+      return [asString]
+    end
+    return audience
+  end
+  let asArray: Slice[String] = []
+  if json.Unmarshal(raw, Ref.new(asArray)).IsOk() then
+    return asArray
+  end
+  audience
+end

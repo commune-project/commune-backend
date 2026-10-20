@@ -1,0 +1,37 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import content "github.com/commune-project/commune-mygo/internal/content"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresProtocolDisplaySeparation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let raw = "<script>alert(1)</script><p>hello</p>"
+  let post = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "T", Body: raw, ParentID: ""}).Unwrap()
+  let stored = PostRecord{}
+  let _ = MutationResult(db.Table("posts").Where("id=?", post.ID).Find(Ref.new(stored))).Unwrap()
+  if stored.Body != raw then
+    t.Fatal("stored protocol body was rewritten by display logic")
+  end
+  let display = content.RenderText(stored.Body)
+  if display != "hello" || content.RenderText(stored.Body) != display then
+    t.Fatal("display rendering was unsafe or not deterministic")
+  end
+  let again = PostRecord{}
+  let _ = MutationResult(db.Table("posts").Where("id=?", post.ID).Find(Ref.new(again))).Unwrap()
+  if again.Body != raw then
+    t.Fatal("rendering mutated the retained inbound payload")
+  end
+end

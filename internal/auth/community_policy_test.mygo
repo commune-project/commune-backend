@@ -1,0 +1,48 @@
+package auth
+
+import testing "go:testing"
+
+func TestIndependentCommunityAccess(t: Ref[testing.T]) -> ()
+  let local = AccessSubject{SiteID: "a", AccountID: 1i64, ActorURI: "https://a.example/users/alice", Verified: true}
+  let member = AccessSubject{SiteID: "a", AccountID: 1i64, ActorURI: local.ActorURI, Verified: true, Member: true}
+  let foreign = AccessSubject{SiteID: "b", AccountID: 2i64, ActorURI: "https://b.example/users/bob", Verified: true, Member: true}
+  let remote = AccessSubject{ActorURI: "https://remote.example/users/bob", Verified: true, Member: true}
+  let anonymous = AccessSubject{}
+  let policies = [
+    CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "eligible_users", PostPolicy: "eligible_users"},
+    CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "members", PostPolicy: "members"},
+    CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "eligible_users", PostPolicy: "members"}
+  ]
+  policies.Each(func(policy: CommunityPolicy) -> ()
+    if !policy.Valid() || policy.AllowsFederation() || !policy.CanRead(member) || !policy.CanPost(member) then
+      t.Fatal("local member access or federation isolation failed")
+    end
+    if policy.CanRead(local) != (policy.ReadPolicy == "eligible_users") || policy.CanPost(local) != (policy.PostPolicy == "eligible_users") then
+      t.Fatal("local non-member access does not match independent policies")
+    end
+    [foreign, remote, anonymous].Each(func(subject: AccessSubject) -> ()
+      if policy.CanRead(subject) || policy.CanPost(subject) then
+        t.Fatal("local-only content accessible outside its site")
+      end
+    end)
+    let federated = CommunityPolicy{HostSiteID: "a", FederationMode: "federated", ReadPolicy: policy.ReadPolicy, PostPolicy: policy.PostPolicy}
+    if !federated.AllowsFederation() || !federated.CanRead(remote) || !federated.CanPost(remote) || federated.CanPost(anonymous) then
+      t.Fatal("verified remote member or anonymous posting policy failed")
+    end
+    if federated.CanRead(anonymous) != (policy.ReadPolicy == "eligible_users") then
+      t.Fatal("federated public and member-only reading were conflated")
+    end
+    let revoked = AccessSubject{ActorURI: remote.ActorURI, Verified: true}
+    if federated.CanRead(revoked) != (policy.ReadPolicy == "eligible_users") || federated.CanPost(revoked) != (policy.PostPolicy == "eligible_users") then
+      t.Fatal("former membership bypassed current policy")
+    end
+    let blocked = AccessSubject{SiteID: "a", AccountID: 1i64, ActorURI: local.ActorURI, Verified: true, Member: true, Blocked: true}
+    if policy.CanRead(blocked) || policy.CanPost(blocked) || federated.CanRead(blocked) || federated.CanPost(blocked) then
+      t.Fatal("membership bypassed a site block")
+    end
+  end)
+  let invalid = CommunityPolicy{HostSiteID: "a", FederationMode: "federated", ReadPolicy: "members", PostPolicy: "eligible_users"}
+  if invalid.Valid() || invalid.CanRead(member) || invalid.CanPost(member) || invalid.AllowsFederation() then
+    t.Fatal("invalid policy did not fail closed")
+  end
+end

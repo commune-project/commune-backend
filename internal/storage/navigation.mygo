@@ -1,0 +1,29 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Context-less peers still expose direct inReplyTo ancestry. This local
+# navigation root is derived only for reading and is never published as a
+# declared context or verified membership.
+func NavigationRoot(ctx: context.Context, db: Ref[gorm.DB], postID: String) -> Result[PostRecord, String]
+  let current = PostRecord{}
+  let loaded = db.WithContext(ctx).Table("posts").Where("id=? AND deleted_at IS NULL", postID).Limit(1).Find(Ref.new(current))
+  if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
+    return Err("not found")
+  end
+  var depth = 0
+  while current.ParentID.Valid && depth < 64
+    let parent = PostRecord{}
+    let query = db.WithContext(ctx).Table("posts").Where("id=? AND deleted_at IS NULL", current.ParentID.String).Limit(1).Find(Ref.new(parent))
+    if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+      return Err("not found")
+    end
+    current = parent
+    depth = depth + 1
+  end
+  if current.ParentID.Valid then
+    return Err("not found")
+  end
+  Ok(current)
+end

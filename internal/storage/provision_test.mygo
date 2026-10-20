@@ -1,0 +1,60 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
+  let pool = postgresFixture(t)
+  let db = transport.ORM(pool).Unwrap()
+  let ctx = context.Background()
+  if MigrateGORM(ctx, db).IsErr() then
+    t.Fatal("migration failed")
+  end
+  let a = config.Site{ID: "a", Origin: "https://a.example", Aliases: ["alias.example"]}
+  let b = config.Site{ID: "b", Origin: "https://b.example", Aliases: []}
+  if ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, b).IsErr() then
+    t.Fatal("site provisioning or repetition failed")
+  end
+  let conflict = config.Site{ID: "a", Origin: "https://changed.example", Aliases: []}
+  let alias = config.Site{ID: "c", Origin: "https://c.example", Aliases: ["alias.example"]}
+  if ProvisionSite(ctx, db, conflict).IsOk() || ProvisionSite(ctx, db, alias).IsOk() then
+    t.Fatal("site identity conflict accepted")
+  end
+  let count = 0
+  if pool.QueryRow("SELECT count(*) FROM sites WHERE id='c'").Scan(Ref.new(count)).IsErr() || count != 0 then
+    t.Fatal("conflicting site was not rolled back")
+  end
+  if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false).IsErr() || ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false).IsErr() then
+    t.Fatal("administrator provisioning failed")
+  end
+  let first = FindAccount(ctx, db, "a", "alice").Unwrap().Unwrap()
+  let second = FindAccount(ctx, db, "b", "alice").Unwrap().Unwrap()
+  if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") then
+    t.Fatal("site credentials are not independent")
+  end
+  if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false).IsErr() then
+    t.Fatal("repeat account provisioning failed")
+  end
+  if ProvisionAdministrator(ctx, db, a, "alice", "changed-password", true).IsOk() then
+    t.Fatal("repeat provisioning replaced credentials")
+  end
+  let repeated = FindAccount(ctx, db, "a", "alice").Unwrap().Unwrap()
+  if repeated.PasswordHash != first.PasswordHash then
+    t.Fatal("repeat changed stored hash")
+  end
+  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() || count != 0 then
+    t.Fatal("site provisioning escalated deployment authority")
+  end
+  if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true).IsErr() then
+    t.Fatal("explicit deployment grant failed")
+  end
+  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() || count != 1 then
+    t.Fatal("deployment grant was not scoped")
+  end
+  if pool.QueryRow("SELECT count(*) FROM audit_events").Scan(Ref.new(count)).IsErr() || count != 3 then
+    t.Fatal("role grants not audited once in their own scope")
+  end
+end

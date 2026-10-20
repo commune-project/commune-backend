@@ -1,0 +1,89 @@
+package server
+
+import context "go:context"
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+# Follow dispatch: a Person follow is a user subscription, a Group follow is a
+# policy-aware community subscription.
+func ApplyFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  if activity.ObjectURI == "" then
+    return Ok(())
+  end
+  let target = storage.LoadActor(ctx, db, activity.ObjectURI)
+  if target.IsOk() && target.Unwrap().IsSome() && target.Unwrap().Unwrap().LocalSiteID.Valid && target.Unwrap().Unwrap().LocalSiteID.String == site.ID && target.Unwrap().Unwrap().Kind == "Person" then
+    return ApplyPersonFollow(ctx, db, site, activity)
+  end
+  return ApplyGroupFollow(ctx, db, site, activity)
+end
+
+# Restricted admission: a members-only community accepts a subscription only from
+# an approved member or a manager; otherwise the follow is rejected. In every case
+# the response is recorded as a subscription, never as membership.
+func ApplyGroupFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  let found = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
+  if found.IsErr() || found.Unwrap().IsNone() || !federation.FederatedCommunity(found.Unwrap().Unwrap()) then
+    return Err("unknown follow target")
+  end
+  let community = found.Unwrap().Unwrap()
+  var state = "accepted"
+  if community.ReadPolicy != "eligible_users" then
+    let member = storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
+    if member.IsErr() then
+      return Err(member.UnwrapErr())
+    end
+    let manager = storage.IsCommunityManager(ctx, db, community.ID, activity.Actor)
+    if manager.IsErr() then
+      return Err(manager.UnwrapErr())
+    end
+    if !member.Unwrap() && !manager.Unwrap() then
+      state = "rejected"
+    end
+  end
+  let recorded = storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, state)
+  if recorded.IsErr() then
+    return Err(recorded.UnwrapErr())
+  end
+  if state == "accepted" then
+    SendFollowResponse(ctx, db, site, community.ActorURI.String, activity.Actor, activity.ID, "Accept")
+  else
+    SendFollowResponse(ctx, db, site, community.ActorURI.String, activity.Actor, activity.ID, "Reject")
+  end
+end
+
+# Unsubscribing stops new delivery without changing membership.
+func ApplyGroupUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  let found = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
+  if found.IsErr() || found.Unwrap().IsNone() then
+    return Ok(())
+  end
+  storage.SetCommunityFollow(ctx, db, found.Unwrap().Unwrap().ID, activity.Actor, activity.ID, "undone")
+end
+
+func ModeratorsHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], communityID: String) -> ()
+  let managers = storage.CommunityManagers(request.Context(), db, communityID)
+  if managers.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let loaded = storage.LoadCommunityByID(request.Context(), db, communityID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then
+    http.NotFound(w, request)
+    return
+  end
+  let actorURI = loaded.Unwrap().Unwrap().ActorURI.String
+  WriteActivity(w, 200, federation.BuildUriPage(actorURI + "/moderators", 1, settings.Runtime.MaxPageSize, managers.Unwrap().Len() as Int64, managers.Unwrap()))
+end
+
+# Reused by both Person and Group follows for the signed Accept/Reject reply.
+func SendFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), String]
+  SendFollowReply(ctx, db, site, localActorURI, follower, followURI, kind)
+end
+
+func FollowResponderIdentity() -> auth.Identity
+  auth.Identity{}
+end

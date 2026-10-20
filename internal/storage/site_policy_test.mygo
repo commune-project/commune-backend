@@ -1,0 +1,54 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresSitePolicyIsolation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = config.Site{ID: "a", Origin: "https://a.example"}
+  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let admin = accounts.Authenticate(ctx, a.ID, "admin", "administrator-password").Unwrap()
+  let user = accounts.Create(ctx, b, "user", "", "ordinary-user-password").Unwrap()
+  let first = SiteRepository{DB: db, SiteID: a.ID}
+  let second = SiteRepository{DB: db, SiteID: b.ID}
+  if !first.IsAdministrator(ctx, admin).Unwrap() || second.IsAdministrator(ctx, admin).Unwrap() || second.IsAdministrator(ctx, user).Unwrap() then
+    t.Fatal("site administrator authority crossed site boundaries")
+  end
+  if second.SetActorBlocked(ctx, admin, user.ActorURI, true).IsOk() then
+    t.Fatal("foreign administrator changed site policy")
+  end
+  let _ = first.SetActorBlocked(ctx, admin, user.ActorURI, true).Unwrap()
+  if !first.IsBlocked(ctx, user.ActorURI).Unwrap() || second.IsBlocked(ctx, user.ActorURI).Unwrap() then
+    t.Fatal("actor block was not scoped to its site")
+  end
+  let _ = first.SetActorBlocked(ctx, admin, user.ActorURI, false).Unwrap()
+  let _ = first.SetDomainBlocked(ctx, admin, "REMOTE.EXAMPLE.", true).Unwrap()
+  if !first.IsBlocked(ctx, "https://remote.example:8443/users/x").Unwrap() || first.IsBlocked(ctx, "https://other.example/users/x").Unwrap() || second.IsBlocked(ctx, "https://remote.example/users/x").Unwrap() then
+    t.Fatal("domain block normalization or site isolation failed")
+  end
+  let _ = first.SetDomainBlocked(ctx, admin, "remote.example", false).Unwrap()
+  if first.IsBlocked(ctx, "https://remote.example/users/x").Unwrap() then
+    t.Fatal("domain block revocation was not immediate")
+  end
+  if first.SetDomainBlocked(ctx, admin, "remote.example/path", true).IsOk() || first.IsBlocked(ctx, "not-an-actor").IsOk() then
+    t.Fatal("invalid block identity accepted")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("audit_events").Where("scope_kind = 'site' AND scope_id = ? AND action IN ('block-actor','unblock-actor','block-domain','unblock-domain')", a.ID).Count(Ref.new(count))).Unwrap()
+  if count != 4i64 then
+    t.Fatal("site policy mutations were not audited")
+  end
+  let _ = MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id = ? AND account_id = ?", a.ID, admin.AccountID)).Unwrap()
+  if first.IsAdministrator(ctx, admin).Unwrap() || first.SetActorBlocked(ctx, admin, user.ActorURI, true).IsOk() then
+    t.Fatal("revoked administrator retained policy authority")
+  end
+end

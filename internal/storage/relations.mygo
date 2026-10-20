@@ -1,0 +1,90 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+func restrictedBoundary(community: CommunityRecord) -> Bool
+  community.FederationMode == "local_only" || community.ReadPolicy == "members"
+end
+
+impl PostRepository
+  # Explicit import: a site records its own reception only when the viewer is
+  # currently allowed to read the object. Unreceived objects stay inaccessible.
+  func Import(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[PostRecord, String]
+    var stored = PostRecord{}
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let loaded = loadPostForUpdate(tx, id)
+      if loaded.IsErr() then
+        return Err("not found")
+      end
+      let post = loaded.Unwrap()
+      let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
+      let opened = community.Open(ctx, post.CommunityID, false)
+      if opened.IsErr() then
+        return Err("not found")
+      end
+      let access = community.Access(ctx, opened.Unwrap(), identity, remoteVerified)
+      if access.IsErr() then
+        return Err("not found")
+      end
+      if !access.Unwrap().CanRead() then
+        return Err("not found")
+      end
+      if MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, post.ID)).IsErr() then
+        return Err("import failed")
+      end
+      if MutationResult(tx.Table("posts").Where("id=?", post.ID).Find(Ref.new(stored))).IsErr() then
+        return Err("import failed")
+      end
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(stored)
+  end
+
+  # Sharing may not widen a restricted boundary; local-only and member-readable
+  # communities cannot be related to another audience. Relocation is unsupported.
+  func ShareTo(self: PostRepository, ctx: context.Context, id: String, targetCommunityID: String, identity: auth.Identity, remoteVerified: Bool) -> Result[(), String]
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let loaded = loadPostForUpdate(tx, id)
+      if loaded.IsErr() then
+        return Err("not found")
+      end
+      let post = loaded.Unwrap()
+      let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
+      let sourceResult = community.Open(ctx, post.CommunityID, false)
+      let targetResult = community.Open(ctx, targetCommunityID, false)
+      if sourceResult.IsErr() || targetResult.IsErr() then
+        return Err("not found")
+      end
+      let source = sourceResult.Unwrap()
+      let target = targetResult.Unwrap()
+      let access = community.Access(ctx, source, identity, remoteVerified)
+      if access.IsErr() then
+        return Err("not found")
+      end
+      let targetAccess = community.Access(ctx, target, identity, remoteVerified)
+      if targetAccess.IsErr() then
+        return Err("not found")
+      end
+      if !access.Unwrap().CanRead() || !targetAccess.Unwrap().CanRead() then
+        return Err("not found")
+      end
+      if restrictedBoundary(source) || restrictedBoundary(target) then
+        return Err("forbidden")
+      end
+      MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?) ON CONFLICT DO NOTHING", post.ID, target.ID))
+    end)
+  end
+
+  func MoveTo(self: PostRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool) -> Result[(), String]
+    let loaded = loadPostForUpdate(self.DB.WithContext(ctx), id)
+    if loaded.IsErr() then
+      return Err("not found")
+    end
+    Err("relocation is not supported")
+  end
+end

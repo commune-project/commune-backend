@@ -1,0 +1,71 @@
+package server
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+# A Group Announce verifies inclusion: the announcer must be the group that owns
+# the post's community, the wrapped Create must already be stored, and the result
+# is recorded idempotently. Nothing is re-fanned-out, so a replay cannot amplify.
+func ApplyAnnounce(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  if activity.Embedded.IsNone() then
+    return Ok(())
+  end
+  let innerID = activity.Embedded.Unwrap().ID
+  if innerID == "" then
+    return Ok(())
+  end
+  var groupID = ""
+  let hosted = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.Actor)
+  if hosted.IsOk() && hosted.Unwrap().IsSome() then
+    groupID = hosted.Unwrap().Unwrap().ID
+  end
+  if groupID == "" then
+    let replica = storage.LoadReplicaCommunity(ctx, db, activity.Actor)
+    if replica.IsOk() && replica.Unwrap().IsSome() then
+      groupID = replica.Unwrap().Unwrap().ID
+    end
+  end
+  if groupID == "" then
+    return Ok(())
+  end
+  let inner = storage.LoadActivityPayload(ctx, db, innerID)
+  if inner.IsErr() || inner.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let parsed = federation.ParseActivity(inner.Unwrap().Unwrap().Payload)
+  if parsed.IsErr() then
+    return Ok(())
+  end
+  let create = parsed.Unwrap()
+  if (create.Type != "Create" && create.Type != "Remove") || create.ObjectURI == "" then
+    return Ok(())
+  end
+  let post = storage.LoadObjectByURI(ctx, db, create.ObjectURI)
+  if post.IsErr() || post.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let record = post.Unwrap().Unwrap()
+  let owner = storage.PostCommunityID(ctx, db, record.ID)
+  if owner.IsErr() || owner.Unwrap() != groupID then
+    return Ok(())
+  end
+  let authority = storage.CommunityActorURI(ctx, db, groupID)
+  if authority.IsErr() then
+    return Ok(())
+  end
+  if create.Type == "Remove" then
+    let removed = storage.RecordScopedRemoval(ctx, db, record.ID, groupID, authority.Unwrap(), activity.ID)
+    if removed.IsErr() then
+      return Err(removed.UnwrapErr())
+    end
+    return Ok(())
+  end
+  let recorded = storage.RecordCommunityInclusion(ctx, db, record.ID, groupID, authority.Unwrap(), activity.ID)
+  if recorded.IsErr() then
+    return Err(recorded.UnwrapErr())
+  end
+  Ok(())
+end

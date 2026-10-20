@@ -1,0 +1,55 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import gorm "go:gorm.io/gorm"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+
+struct CommunityStatePolicy
+  Read: String `json:"read"`
+  Post: String `json:"post"`
+end
+
+struct GroupStateObject
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Policy: CommunityStatePolicy `json:"commune:policy"`
+  Members: Slice[String] `json:"commune:members"`
+end
+
+struct CommunityStateActivity
+  ID: String `json:"id"`
+  Actor: String `json:"actor"`
+  Type: String `json:"type"`
+  Object: GroupStateObject `json:"object"`
+end
+
+# The Commune protected profile: a host-authored `Update` of the Group carries the
+# authoritative read/post policy and approved member list. A replica applies it
+# only when the signer is the group itself, so a peer cannot rewrite another
+# community's authorization. The return value reports whether the change
+# tightened a previously open read policy.
+func ApplyCommunityState(ctx: context.Context, db: Ref[gorm.DB], payload: Slice[Byte]) -> Result[Bool, String]
+  let state = CommunityStateActivity{}
+  if json.Unmarshal(payload, Ref.new(state)).IsErr() || state.ID == "" || state.Actor == "" || state.Object.ID == "" then
+    return Ok(false)
+  end
+  if state.Type != "Update" || state.Actor != state.Object.ID || state.Object.Type != "Group" then
+    return Ok(false)
+  end
+  let replica = storage.LoadReplicaCommunity(ctx, db, state.Actor)
+  if replica.IsErr() || replica.Unwrap().IsNone() then
+    return Ok(false)
+  end
+  let current = replica.Unwrap().Unwrap()
+  let tightened = current.ReadPolicy == "eligible_users" && state.Object.Policy.Read == "members"
+  let applied = storage.ApplyCommunityPolicy(ctx, db, current.ID, state.Object.Policy.Read, state.Object.Policy.Post)
+  if applied.IsErr() then
+    return Err(applied.UnwrapErr())
+  end
+  let members = storage.ReplaceReplicaMembers(ctx, db, current.ID, state.Actor, state.Object.Members)
+  if members.IsErr() then
+    return Err(members.UnwrapErr())
+  end
+  Ok(tightened)
+end

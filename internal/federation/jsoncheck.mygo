@@ -1,0 +1,73 @@
+package federation
+
+import strings "go:strings"
+
+# Rejects ambiguous payloads: a repeated key inside the same JSON object is
+# invalid because two parsers may disagree which value wins. Keys are tracked per
+# object depth and discarded when the object closes, so sibling objects may reuse
+# a key name.
+func HasDuplicateKeys(payload: Slice[Byte]) -> Bool
+  JsonKeysDup(payload as String)
+end
+
+func JsonKeysDup(text: String) -> Bool
+  var keys: Slice[String] = []
+  var depth = 0
+  var index = 0
+  var inString = false
+  var escaped = false
+  var stringStart = 0
+  while index < text.Len()
+    let code = text.Get(index).Unwrap() as Int
+    if inString then
+      if escaped then
+        escaped = false
+      else
+        if code == 92 then
+          escaped = true
+        else
+          if code == 34 then
+            inString = false
+            if IsJsonKeyStart(text, index) then
+              let marker = depth.ToString() + "|" + text.Slice(stringStart + 1, index).UnwrapOr("")
+              if keys.Contains(marker) then
+                return true
+              end
+              keys = keys.Append(marker)
+            end
+          end
+        end
+      end
+    else
+      if code == 34 then
+        inString = true
+        stringStart = index
+      else
+        if code == 123 then
+          depth = depth + 1
+        else
+          if code == 125 then
+            keys = keys.Filter(func(entry: String) -> Bool
+              !strings.HasPrefix(entry, depth.ToString() + "|")
+            end)
+            depth = depth - 1
+          end
+        end
+      end
+    end
+    index = index + 1
+  end
+  false
+end
+
+func IsJsonKeyStart(text: String, stringEnd: Int) -> Bool
+  var index = stringEnd + 1
+  while index < text.Len()
+    let code = text.Get(index).Unwrap() as Int
+    if code != 32 && code != 9 && code != 10 && code != 13 then
+      return code == 58
+    end
+    index = index + 1
+  end
+  false
+end

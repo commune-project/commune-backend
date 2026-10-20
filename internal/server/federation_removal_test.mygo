@@ -1,0 +1,69 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresScopedPeerRemoval(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let posts = storage.PostRepository{DB: db, SiteID: a.ID}
+  let community = communities.Create(ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let otherCommunity = communities.Create(ctx, a, alice, "other", "Other", "federated", "eligible_users", "eligible_users").Unwrap()
+  let post = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "T", Body: "Body", ParentID: ""}).Unwrap()
+  let ignoredPost = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "Ignored", Body: "Body", ParentID: ""}).Unwrap()
+  let _ = storage.EnsureLocalKey(ctx, db, community.ActorURI.String).Unwrap()
+  let _ = storage.EnsureLocalKey(ctx, db, otherCommunity.ActorURI.String).Unwrap()
+  let groupKey = storage.LoadLocalPrivateKey(ctx, db, community.ActorURI.String).Unwrap()
+  let otherKey = storage.LoadLocalPrivateKey(ctx, db, otherCommunity.ActorURI.String).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let remove = "{\"id\":\"https://forum-a.example/activities/remove-1\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + post.ObjectURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", remove, community.ActorURI.String, groupKey, date).Code != 202 then
+    t.Fatal("a group removal was rejected")
+  end
+  if !storage.IsCommunityRemoval(ctx, db, post.ID, community.ID).Unwrap() then
+    t.Fatal("the scoped removal was not recorded")
+  end
+  let stored = PostRecordForTest(ctx, db, post.ID)
+  if stored.Body != "Body" || stored.DeletedAtValid then
+    t.Fatal("peer moderation erased or rewrote the shared object")
+  end
+  let foreign = "{\"id\":\"https://forum-a.example/activities/remove-2\",\"actor\":\"" + otherCommunity.ActorURI.String + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + otherCommunity.ActorURI.String + "\",\"object\":\"" + ignoredPost.ObjectURI.String + "\"}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", foreign, otherCommunity.ActorURI.String, otherKey, date)
+  if storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID).Unwrap() || storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, otherCommunity.ID).Unwrap() then
+    t.Fatal("an unrelated community removed another community's post")
+  end
+  let innerID = "https://peer.example/activities/remove-inner"
+  let inner = "{\"id\":\"" + innerID + "\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\",\"object\":\"" + ignoredPost.ObjectURI.String + "\"}"
+  let _ = storage.InsertActivityPayload(ctx, db, innerID, community.ActorURI.String, "Remove", inner as Slice[Byte], community.ID).Unwrap()
+  let announce = "{\"id\":\"https://forum-a.example/activities/announce-remove\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\"}}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", announce, community.ActorURI.String, groupKey, date)
+  if !storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID).Unwrap() then
+    t.Fatal("an announced removal was not consumed")
+  end
+end
+
+struct PostState
+  Body: String
+  DeletedAtValid: Bool
+end
+
+func PostRecordForTest(ctx: context.Context, db: Ref[gorm.DB], id: String) -> PostState
+  let record = storage.PostRecord{}
+  let _ = storage.MutationResult(db.WithContext(ctx).Table("posts").Where("id = ?", id).Find(Ref.new(record))).Unwrap()
+  PostState{Body: record.Body, DeletedAtValid: record.DeletedAt.Valid}
+end

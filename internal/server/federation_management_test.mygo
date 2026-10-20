@@ -1,0 +1,59 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresGroupManagementAuthority(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let community = communities.Create(ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let managerKey = storage.GeneratePrivatePEM().Unwrap()
+  let strangerKey = storage.GeneratePrivatePEM().Unwrap()
+  let manager = "https://peer.example/users/manager"
+  let stranger = "https://evil.example/users/stranger"
+  let target = "https://peer.example/users/newcomer"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?), (?, 'Person', NULL)", manager, storage.PublicPEMFromPrivate(managerKey).Unwrap(), stranger, storage.PublicPEMFromPrivate(strangerKey).Unwrap(), target)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", community.ID, manager, alice.ActorURI)).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let add = "{\"id\":\"https://peer.example/activities/add-1\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"member\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", add, manager, managerKey, date).Code != 202 then
+    t.Fatal("a community manager could not add a member")
+  end
+  if !storage.IsCurrentMember(ctx, db, community.ID, target).Unwrap() then
+    t.Fatal("the authorized membership change was not applied")
+  end
+  let forged = "{\"id\":\"https://evil.example/activities/add-1\",\"actor\":\"" + stranger + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + stranger + "\",\"commune:role\":\"member\"}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", forged, stranger, strangerKey, date)
+  if storage.IsCurrentMember(ctx, db, community.ID, stranger).Unwrap() then
+    t.Fatal("a signature alone granted membership")
+  end
+  let addManager = "{\"id\":\"https://peer.example/activities/add-2\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"manager\"}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", addManager, manager, managerKey, date)
+  if !storage.IsCommunityManager(ctx, db, community.ID, target).Unwrap() then
+    t.Fatal("an authorized administrator assignment was not applied")
+  end
+  let remove = "{\"id\":\"https://peer.example/activities/remove-1\",\"actor\":\"" + manager + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"member\"}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", remove, manager, managerKey, date)
+  if storage.IsCurrentMember(ctx, db, community.ID, target).Unwrap() then
+    t.Fatal("an authorized removal did not revoke membership")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("audit_events").Where("scope_kind='community' AND scope_id=? AND action IN ('approve-member','assign-manager','revoke-member')", community.ID).Count(Ref.new(count))).Unwrap()
+  if count != 3i64 then
+    t.Fatal("management actions were not audited")
+  end
+end

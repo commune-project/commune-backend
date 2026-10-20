@@ -1,0 +1,81 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresLocalOnlyExclusion(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let posts = storage.PostRepository{DB: db, SiteID: a.ID}
+  let local = communities.Create(ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
+  let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let hiddenPost = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "secret", ParentID: ""}).Unwrap()
+  let _ = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Public", Body: "shared", ParentID: ""}).Unwrap()
+  let handler = Handler(settings, db)
+  let accept = "application/activity+json"
+  if getAP(handler, a.Origin, "/objects/" + hiddenPost.ID, accept).Code != 404 then
+    t.Fatal("a guessed local-only object identifier resolved a resource")
+  end
+  if getAP(handler, a.Origin, "/objects/" + hiddenPost.ID + "/replies", accept).Code != 404 then
+    t.Fatal("a guessed local-only replies collection resolved a resource")
+  end
+  if getAP(handler, a.Origin, "/communities/local", accept).Code != 404 then
+    t.Fatal("a guessed local-only community resolved a resource")
+  end
+  let outbox = getAP(handler, a.Origin, "/users/alice/outbox", accept)
+  if !strings.Contains(outbox.Body.String(), "\"totalItems\":1") || strings.Contains(outbox.Body.String(), "secret") then
+    t.Fatal("the outbox did not exclude local-only content from its count and items")
+  end
+  let isLocal = storage.IsLocalOnlyCommunity(ctx, db, local.ID).Unwrap()
+  let isOpen = storage.IsLocalOnlyCommunity(ctx, db, open.ID).Unwrap()
+  let isLocalPost = storage.IsLocalOnlyPostID(ctx, db, hiddenPost.ID).Unwrap()
+  if !isLocal || isOpen || !isLocalPost then
+    t.Fatal("local-only predicates misclassified a community or post")
+  end
+  if storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES ('https://forum-a.example/activities/local-1',?, 'Create', ?)", alice.ActorURI, local.ID)).IsOk() then
+    t.Fatal("a protocol activity was accepted for a local-only community")
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES ('https://forum-a.example/activities/job-base',?,'Create')", alice.ActorURI)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES ('https://forum-a.example/activities/job-base','{}'::bytea, decode(repeat('00',32),'hex'))")).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/dave','Person','https://peer.example/inbox')")).Unwrap()
+  let fabricated = db.Exec("INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('https://forum-a.example/activities/job-base',?,'https://peer.example/users/dave','https://peer.example/inbox',?)", alice.ActorURI, local.ID)
+  if storage.MutationResult(fabricated).IsOk() then
+    t.Fatal("a fabricated delivery job for a local-only community was accepted")
+  end
+  let key = storage.GeneratePrivatePEM().Unwrap()
+  let peer = "https://peer.example/users/signer"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", peer, storage.PublicPEMFromPrivate(key).Unwrap())).Unwrap()
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let update = "{\"id\":\"https://peer.example/activities/u9\",\"actor\":\"" + peer + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + hiddenPost.ID + "\"}"
+  let updateResult = signedPost(handler, a.Origin, "/users/alice/inbox", update, peer, key, date)
+  if updateResult.Code != 403 || !strings.Contains(updateResult.Body.String(), "unknown object") then
+    t.Fatalf("a signed request naming a local-only identifier revealed or mutated state: %d %s", updateResult.Code, updateResult.Body.String())
+  end
+  let announce = "{\"id\":\"https://peer.example/activities/a9\",\"actor\":\"" + peer + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + hiddenPost.ID + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", announce, peer, key, date).Code != 202 then
+    t.Fatal("an inert announcement was rejected instead of being ignored")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("community_members").Where("community_id = ?", local.ID).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("an inbound announcement changed local-only membership")
+  end
+  let _ = storage.MutationResult(db.Table("collection_memberships").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("an inbound announcement created group inclusion for a local-only resource")
+  end
+end

@@ -1,0 +1,13 @@
+package federation
+
+# Reads cover only the request target, host and date, so their Signature header
+# advertises that shorter covered-header list.
+func FormatGetSignatureHeader(keyID: String, signature: String) -> String
+  `keyId="` +
+    keyID +
+    `",algorithm="rsa-sha256",headers="` +
+    RequiredGetHeaders() +
+    `",signature="` +
+    signature +
+    `"`
+end

@@ -1,0 +1,151 @@
+package server
+
+import http "go:net/http"
+import json "go:encoding/json"
+import io "go:io"
+import errors "go:errors"
+import strings "go:strings"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct LoginInput
+  Login: String `json:"login"`
+  Password: String `json:"password"`
+end
+
+struct IdentityOutput
+  SiteID: String `json:"site_id"`
+  AccountID: Int64 `json:"account_id"`
+  ActorURI: String `json:"actor_uri"`
+  Username: String `json:"username"`
+end
+
+func WriteIdentity(w: http.ResponseWriter, identity: auth.Identity) -> ()
+  let dto = IdentityOutput{SiteID: identity.SiteID, AccountID: identity.AccountID, ActorURI: identity.ActorURI, Username: identity.Username}
+  switch json.Marshal(dto)
+  case Err(_) => http.Error(w, "response unavailable", 500)
+  case Ok(body) =>
+    w.Header().Set("Content-Type", "application/json")
+    let _ = w.Write(body)
+  end
+end
+
+func SameOrigin(settings: config.Config, request: Ref[http.Request]) -> Bool
+  let origin = config.NormalizeOrigin(request.Header.Get("Origin"))
+  if origin.IsErr() then
+    return false
+  end
+  let forwarded = request.Header.Get("X-Forwarded-Host")
+  let host = if forwarded != "" && config.TrustedProxy(settings, request.RemoteAddr) then forwarded else request.Host end
+  let authority = config.NormalizeAuthority(host)
+  authority.IsOk() && origin.Unwrap() == "https://" + authority.Unwrap()
+end
+
+func ReadSession(request: Ref[http.Request]) -> Result[String, String]
+  let cookies = request.Cookies().Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_session"
+  end)
+  if cookies.Len() != 1 then
+    return Err("unauthenticated")
+  end
+  Ok(cookies.Get(0).Unwrap().Value)
+end
+
+func ReadLogin(w: http.ResponseWriter, request: Ref[http.Request], maxBytes: Int) -> Result[LoginInput, String]
+  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") != "application/json" then
+    return Err("expected application/json")
+  end
+  let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
+  let result = DecodeLoginBody(reader as io.ReadCloser)
+  let _ = reader.Close()
+  result
+end
+
+func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, String]
+  let decoder = json.NewDecoder(reader as io.Reader)
+  decoder.DisallowUnknownFields()
+  let input = LoginInput{}
+  if decoder.Decode(Ref.new(input)).IsErr() then
+    return Err("invalid login request")
+  end
+  let extra = [] as json.RawMessage
+  let trailing = decoder.Decode(Ref.new(extra))
+  if trailing.IsOk() || !errors.Is(trailing.UnwrapErr(), io.EOF) then
+    return Err("invalid login request")
+  end
+  Ok(input)
+end
+
+func AuthenticationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  let accounts = storage.AccountRepository{DB: db}
+  let sessions = storage.SessionRepository{DB: db}
+  if request.URL.Path == "/api/v1/auth/login" then
+    if request.Method != "POST" then
+      w.Header().Set("Allow", "POST")
+      http.Error(w, "method not allowed", 405)
+    else
+      if !SameOrigin(settings, request) then
+        http.Error(w, "origin denied", 403)
+      else
+        let input = ReadLogin(w, request, settings.Runtime.MaxBodyBytes)
+        if input.IsErr() then
+          http.Error(w, input.UnwrapErr(), 400)
+        else
+          let identity = accounts.Authenticate(request.Context(), site.ID, input.Unwrap().Login, input.Unwrap().Password)
+          if identity.IsErr() then
+            let status = if identity.UnwrapErr() == "invalid credentials" then 401 else 503 end
+            http.Error(w, "authentication failed", status)
+          else
+            let now = time.Now()
+            let issued = sessions.Issue(request.Context(), identity.Unwrap(), now)
+            if issued.IsErr() then
+              http.Error(w, "authentication unavailable", 503)
+            else
+              issued.Unwrap().Cookies(now.Add(24 as time.Duration * time.Hour)).Each(func(cookie: http.Cookie) -> ()
+                http.SetCookie(w, Ref.new(cookie))
+              end)
+              WriteIdentity(w, identity.Unwrap())
+            end
+          end
+        end
+      end
+    end
+  else
+    let method = if request.URL.Path == "/api/v1/auth/logout" then "POST" else "GET" end
+    if request.Method != method then
+      w.Header().Set("Allow", method)
+      http.Error(w, "method not allowed", 405)
+    else
+      let token = ReadSession(request)
+      if token.IsErr() then
+        http.Error(w, "unauthenticated", 401)
+      else
+        let session = sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
+        if session.IsErr() then
+          let status = if session.UnwrapErr() == "unauthenticated" then 401 else 503 end
+          http.Error(w, "authentication failed", status)
+        else
+          if method == "GET" then
+            WriteIdentity(w, session.Unwrap().Identity)
+          else
+            if !SameOrigin(settings, request) || !session.Unwrap().AuthorizesMutation(request.Header.Get("X-CSRF-Token")) then
+              http.Error(w, "CSRF denied", 403)
+            else
+              if sessions.Revoke(request.Context(), site.ID, token.Unwrap(), time.Now()).IsErr() then
+                http.Error(w, "logout unavailable", 503)
+              else
+                auth.ExpiredCookies().Each(func(cookie: http.Cookie) -> ()
+                  http.SetCookie(w, Ref.new(cookie))
+                end)
+                w.WriteHeader(204)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

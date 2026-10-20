@@ -1,0 +1,80 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import time "go:time"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+impl FeedRepository
+  # Site hiding is a per-site moderation action. It never mutates the shared
+  # object, so another site's view and the object itself are unaffected.
+  func SetHidden(self: FeedRepository, ctx: context.Context, postID: String, hidden: Bool, identity: auth.Identity) -> Result[(), String]
+    let action = if hidden then "hide-post" else "unhide-post" end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let site = SiteRepository{DB: tx, SiteID: self.SiteID}
+      let allowed = site.IsAdministrator(ctx, identity)
+      if allowed.IsErr() then
+        return Err(allowed.UnwrapErr())
+      end
+      let deployment = site.IsDeploymentAdministrator(ctx, identity)
+      if deployment.IsErr() then
+        return Err(deployment.UnwrapErr())
+      end
+      if !allowed.Unwrap() && !deployment.Unwrap() then
+        return Err("forbidden")
+      end
+      let received = QueryExists(tx.Table("site_posts").Where("site_id=? AND post_id=?", self.SiteID, postID))
+      if received.IsErr() then
+        return Err(received.UnwrapErr())
+      end
+      if !received.Unwrap() then
+        return Err("not found")
+      end
+      let stamp = if hidden then sql.NullTime{Time: time.Now().UTC().Truncate(time.Microsecond), Valid: true} else sql.NullTime{} end
+      if MutationResult(tx.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id=? AND post_id=?", stamp, self.SiteID, postID)).IsErr() then
+        return Err("moderation failed")
+      end
+      MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, postID))
+    end)
+  end
+end
+
+impl CommunityRepository
+  # Community removal excludes a post from one community's presentations without
+  # erasing the shared object or another community's copy.
+  func RemovePost(self: CommunityRepository, ctx: context.Context, communityID: String, postID: String, identity: auth.Identity, remoteVerified: Bool, remove: Bool) -> Result[(), String]
+    let action = if remove then "remove-post" else "restore-post" end
+    self.Manage(ctx, communityID, identity, remoteVerified, action, postID, func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
+      let belongs = QueryExists(tx.Table("posts").Where("id=? AND community_id=?", postID, communityID))
+      if belongs.IsErr() then
+        return Err(belongs.UnwrapErr())
+      end
+      if !belongs.Unwrap() then
+        return Err("not found")
+      end
+      let state = if remove then "removed" else "accepted" end
+      let authority = if community.ActorURI.Valid then community.ActorURI.String else community.CreatorActorURI end
+      MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, communityID, state))
+    end)
+  end
+
+  # Remote submission state distinguishes a declared association from accepted
+  # inclusion. A rejected or pending submission is not shown as accepted content.
+  func SetSubmission(self: CommunityRepository, ctx: context.Context, communityID: String, postID: String, identity: auth.Identity, remoteVerified: Bool, state: String) -> Result[(), String]
+    if state != "pending" && state != "accepted" && state != "rejected" then
+      return Err("invalid state")
+    end
+    self.Manage(ctx, communityID, identity, remoteVerified, "set-submission", postID, func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
+      let author = QueryExists(tx.Table("posts").Where("id=? AND community_id=?", postID, communityID))
+      if author.IsErr() then
+        return Err(author.UnwrapErr())
+      end
+      if !author.Unwrap() then
+        return Err("not found")
+      end
+      let authority = if community.ActorURI.Valid then community.ActorURI.String else community.CreatorActorURI end
+      MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, postID, state))
+    end)
+  end
+end

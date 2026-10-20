@@ -1,0 +1,108 @@
+package server
+
+import http "go:net/http"
+import context "go:context"
+import time "go:time"
+import errors "go:errors"
+import slog "go:log/slog"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+
+func Handler(settings: config.Config, db: Ref[gorm.DB]) -> http.HandlerFunc
+  let callback = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let site = config.ResolveRequest(settings, request)
+    if site.IsErr() then
+      http.NotFound(w, request)
+    else
+      w.Header().Set("Cache-Control", "no-store")
+      w.Header().Set("X-Content-Type-Options", "nosniff")
+      if request.URL.Path == "/api/v1/auth/login" ||
+        request.URL.Path == "/api/v1/auth/session" ||
+        request.URL.Path == "/api/v1/auth/logout" then
+        AuthenticationRoute(settings, db, site.Unwrap(), w, request)
+      else
+        if FederationPath(request.URL.Path) then
+          FederationRoute(settings, db, site.Unwrap(), w, request)
+        else
+          if strings.HasPrefix(request.URL.Path, "/api/v1/") then
+            ForumRoute(settings, db, site.Unwrap(), w, request)
+          else
+            if request.Method != "GET" then
+              w.Header().Set("Allow", "GET")
+              http.Error(w, "method not allowed", 405)
+            else
+              switch request.URL.Path
+                case "/health/live" => w.WriteHeader(204)
+                case "/health/ready" then
+                  let (ctx, cancel) = context.WithTimeout(request.Context(), 3 as time.Duration * time.Second)
+                  let pool = db.DB()
+                  let ready = !pool.IsErr() &&
+                    pool.Unwrap().PingContext(ctx).IsOk() &&
+                    storage.CheckGORM(ctx, db).IsOk()
+                  cancel()
+                  if !ready then
+                    http.Error(w, "not ready", 503)
+                  else
+                    w.WriteHeader(204)
+                  end
+                end
+                case _ => http.NotFound(w, request)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  callback as http.HandlerFunc
+end
+
+func NewHTTPServer(settings: config.Config, db: Ref[gorm.DB]) -> Ref[http.Server]
+  let runtime = settings.Runtime
+  let server = http.Server{
+    Addr: runtime.Listen,
+    Handler: Handler(settings, db) as http.Handler,
+    ReadHeaderTimeout: runtime.ReadTimeoutSeconds as time.Duration * time.Second,
+    ReadTimeout: runtime.ReadTimeoutSeconds as time.Duration * time.Second,
+    WriteTimeout: runtime.WriteTimeoutSeconds as time.Duration * time.Second,
+    IdleTimeout: runtime.IdleTimeoutSeconds as time.Duration * time.Second,
+    MaxHeaderBytes: 32768,
+  }
+  Ref.new(server)
+end
+
+func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> Result[(), String]
+  if storage.CheckGORM(ctx, db).IsErr() then
+    return Err("schema is incompatible; run explicit migration")
+  end
+  let server = NewHTTPServer(settings, db)
+  let (lifetime, cancelLifetime) = context.WithCancel(ctx)
+  let stopped = concurrency.MakeChan[()](1)
+  let shutdown = func() -> ()
+    let _ = lifetime.Done().Receive()
+    let (deadline, cancel) = context.WithTimeout(
+      context.Background(),
+      settings.Runtime.ShutdownTimeoutSeconds as time.Duration * time.Second
+    )
+    let result = server.Shutdown(deadline)
+    cancel()
+    if result.IsErr() then
+      slog.Warn("http shutdown deadline reached")
+      let _ = server.Close()
+    end
+    stopped.Send(())
+  end
+  concurrency.Spawn(shutdown)
+  slog.Info("http server starting", "sites", settings.Sites.Len())
+  let result = server.ListenAndServe()
+  if result.IsErr() && !errors.Is(result.UnwrapErr(), http.ErrServerClosed) then
+    return Err("http listener failed")
+  end
+  cancelLifetime()
+  let _ = stopped.Receive()
+  slog.Info("http server stopped")
+  Ok(())
+end

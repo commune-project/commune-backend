@@ -1,0 +1,184 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import io "go:io"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func getAP(
+  handler: http.HandlerFunc,
+  origin: String,
+  path: String,
+  accept: String
+) -> Ref[httptest.ResponseRecorder]
+  let req = httptest.NewRequest("GET", origin + path, strings.NewReader("") as io.Reader)
+  if accept != "" then
+    req.Header.Set("Accept", accept)
+  end
+  let recorder = httptest.NewRecorder()
+  handler.ServeHTTP(recorder as http.ResponseWriter, req)
+  recorder
+end
+
+func TestPostgresFederationDiscovery(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let posts = storage.PostRepository{DB: db, SiteID: a.ID}
+  let open = communities.Create(
+    ctx,
+    a,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let restricted = communities.Create(
+    ctx,
+    a,
+    alice,
+    "restricted",
+    "Restricted",
+    "federated",
+    "members",
+    "members"
+  ).Unwrap()
+  let local = communities.Create(
+    ctx,
+    a,
+    alice,
+    "local",
+    "Local",
+    "local_only",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let topic = posts.Publish(
+    ctx,
+    a,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Hello",
+      Body: "Body",
+      ParentID: "",
+    }
+  ).Unwrap()
+  let privateTopic = posts.Publish(
+    ctx,
+    a,
+    restricted.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Private",
+      Body: "Body",
+      ParentID: "",
+    }
+  ).Unwrap()
+  let localTopic = posts.Publish(
+    ctx,
+    a,
+    local.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Local",
+      Body: "Body",
+      ParentID: "",
+    }
+  ).Unwrap()
+  let handler = Handler(settings, db)
+  let accept = "application/activity+json"
+  let finger = getAP(
+    handler,
+    a.Origin,
+    "/.well-known/webfinger?resource=acct:alice@forum-a.example",
+    "application/jrd+json"
+  )
+  if finger.Code != 200 || !strings.Contains(finger.Body.String(), alice.ActorURI) then
+    t.Fatalf("webfinger did not advertise the actor: %d %s", finger.Code, finger.Body.String())
+  end
+  let wrongHost = getAP(
+    handler,
+    a.Origin,
+    "/.well-known/webfinger?resource=acct:alice@forum-b.example",
+    "application/jrd+json"
+  )
+  if wrongHost.Code != 404 then
+    t.Fatal("webfinger resolved another site's account")
+  end
+  let person = getAP(handler, a.Origin, "/users/alice", accept)
+  if person.Code != 200 ||
+    !strings.Contains(person.Body.String(), "\"type\":\"Person\"") ||
+    !strings.Contains(person.Body.String(), "publicKeyPem") then
+    t.Fatal("person representation was incomplete")
+  end
+  if !strings.Contains(person.Body.String(), alice.ActorURI + "/inbox") then
+    t.Fatal("person representation advertised the wrong inbox")
+  end
+  let noNegotiation = getAP(handler, a.Origin, "/users/alice", "text/html")
+  if noNegotiation.Code != 404 then
+    t.Fatal("content negotiation did not reject a non-ActivityPub request")
+  end
+  if getAP(handler, a.Origin, "/users/nobody", accept).Code != 404 then
+    t.Fatal("unknown actor was exposed")
+  end
+  let group = getAP(handler, a.Origin, "/communities/open", accept)
+  if group.Code != 200 ||
+    !strings.Contains(group.Body.String(), "\"type\":\"Group\"") ||
+    !strings.Contains(group.Body.String(), "publicKeyPem") then
+    t.Fatal("group representation was incomplete")
+  end
+  if getAP(handler, a.Origin, "/communities/local", accept).Code != 404 then
+    t.Fatal("local-only community was exposed through federation")
+  end
+  let object = getAP(handler, a.Origin, "/objects/" + topic.ID, accept)
+  if object.Code != 200 ||
+    !strings.Contains(object.Body.String(), "\"type\":\"Page\"") ||
+    !strings.Contains(object.Body.String(), "#Public") then
+    t.Fatal("public object representation was incomplete")
+  end
+  if getAP(handler, a.Origin, "/objects/" + privateTopic.ID, accept).Code != 404 ||
+    getAP(handler, a.Origin, "/objects/" + localTopic.ID, accept).Code != 404 then
+    t.Fatal("restricted or local-only object was exposed")
+  end
+  if getAP(handler, b.Origin, "/objects/" + topic.ID, accept).Code != 404 then
+    t.Fatal("another site served an object it does not own")
+  end
+  let activityURI = a.Origin + "/activities/create-1"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,post_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, topic.ID)).Unwrap()
+  let payload = "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,decode(repeat('00',32),'hex'))", activityURI, payload as Slice[Byte])).Unwrap()
+  let activity = getAP(handler, a.Origin, "/activities/create-1", accept)
+  if activity.Code != 200 || !strings.Contains(activity.Body.String(), "Create") then
+    t.Fatalf("activity retrieval failed: %d %s", activity.Code, activity.Body.String())
+  end
+  if getAP(handler, b.Origin, "/activities/create-1", accept).Code != 404 then
+    t.Fatal("another site served a foreign activity")
+  end
+  let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
+  let tombstone = getAP(handler, a.Origin, "/objects/" + topic.ID, accept)
+  if tombstone.Code != 200 ||
+    !strings.Contains(tombstone.Body.String(), "\"type\":\"Tombstone\"") ||
+    strings.Contains(tombstone.Body.String(), "Body") then
+    t.Fatal("deleted object was not represented as a tombstone")
+  end
+end

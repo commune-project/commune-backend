@@ -1,0 +1,23 @@
+package storage
+
+import testing "go:testing"
+
+func earlyError(fail: Bool) -> Result[(), String]
+  if fail then
+    return Err("failure")
+  end
+  Ok(())
+end
+
+func TestEarlyResultError(t: Ref[testing.T]) -> ()
+  if !earlyError(true).IsErr() || earlyError(true).IsOk() then
+    t.Fatal("early Err lost its declared Result type")
+  end
+  switch earlyError(true)
+  case Err(message) =>
+    if message != "failure" then
+      t.Fatal("error payload changed")
+    end
+  case Ok(_) => t.Fatal("early Err matched Ok")
+  end
+end

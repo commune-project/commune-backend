@@ -1,0 +1,26 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+func LoadHostedCommunityByActor(ctx: context.Context, db: Ref[gorm.DB], siteID: String, actorURI: String) -> Result[Option[CommunityRecord], String]
+  let record = CommunityRecord{}
+  let query = db.WithContext(ctx).Table("communities").Where("actor_uri = ? AND host_site_id = ?", actorURI, siteID).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("community unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[CommunityRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+# A community manager is the creator or a current moderator.
+func IsCommunityManager(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String) -> Result[Bool, String]
+  let count: Int64 = 0i64
+  let query = db.WithContext(ctx).Raw("SELECT (SELECT count(*) FROM communities WHERE id = ? AND creator_actor_uri = ?) + (SELECT count(*) FROM moderators WHERE community_id = ? AND actor_uri = ? AND revoked_at IS NULL) AS total", communityID, actorURI, communityID, actorURI).Scan(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("manager lookup failed")
+  end
+  Ok(count > 0i64)
+end

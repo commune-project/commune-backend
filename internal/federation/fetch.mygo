@@ -1,0 +1,170 @@
+package federation
+
+import net "go:net"
+import netip "go:net/netip"
+import http "go:net/http"
+import url "go:net/url"
+import io "go:io"
+import context "go:context"
+import time "go:time"
+import strings "go:strings"
+
+struct FetchLimits
+  TimeoutSeconds: Int
+  MaxBytes: Int
+  MaxRedirects: Int
+  AllowPrivate: Bool
+end
+
+struct FetchResult
+  Status: Int
+  Body: Slice[Byte]
+  ContentType: String
+  FinalURL: String
+end
+
+# Loopback, private, link-local, multicast and unspecified ranges, including the
+# cloud metadata address, are never valid federation destinations.
+func BlockedIP(text: String) -> Bool
+  let parsed = netip.ParseAddr(text)
+  if parsed.IsErr() then
+    return true
+  end
+  let address = parsed.Unwrap().Unmap()
+  address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() || address.IsLinkLocalMulticast() || address.IsMulticast() || address.IsUnspecified()
+end
+
+func CheckHost(host: String, allowPrivate: Bool) -> Result[(), String]
+  if allowPrivate then
+    return Ok(())
+  end
+  let literal = netip.ParseAddr(host)
+  if literal.IsOk() then
+    if BlockedIP(literal.Unwrap().String()) then
+      return Err("blocked destination")
+    end
+    return Ok(())
+  end
+  let resolved = net.LookupHost(host)
+  if resolved.IsErr() then
+    return Err("unresolvable destination")
+  end
+  let addresses = resolved.Unwrap()
+  if addresses.Len() == 0 then
+    return Err("unresolvable destination")
+  end
+  let blocked = addresses.Fold(false, func(found: Bool, address: String) -> Bool
+    found || BlockedIP(address)
+  end)
+  if blocked then
+    return Err("blocked destination")
+  end
+  Ok(())
+end
+
+func ValidateDestination(raw: String, allowPrivate: Bool) -> Result[(), String]
+  let parsed = url.Parse(raw)
+  if parsed.IsErr() then
+    return Err("invalid destination")
+  end
+  let target = parsed.Unwrap()
+  if target.Scheme != "https" && !(allowPrivate && target.Scheme == "http") then
+    return Err("destination must use https")
+  end
+  if target.Hostname() == "" then
+    return Err("invalid destination")
+  end
+  CheckHost(target.Hostname(), allowPrivate)
+end
+
+# Redirects are followed manually so every hop is re-validated; this disables
+# the client's own redirect handling.
+func DisableRedirects(client: Ref[http.Client]) -> ()
+  let checkRedirect = func(req: Ref[http.Request], via: Slice[Ref[http.Request]]) -> Error
+    http.ErrUseLastResponse
+  end
+  go[()] {
+    code: """{client}.CheckRedirect = {checkRedirect}"""
+    in client = client
+    in checkRedirect = checkRedirect
+  }
+end
+
+func Fetch(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+  let (bounded, cancel) = context.WithTimeout(ctx, limits.TimeoutSeconds as time.Duration * time.Second)
+  let result = FetchBounded(bounded, raw, limits)
+  cancel()
+  result
+end
+
+func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+  let client = http.Client{}
+  DisableRedirects(Ref.new(client))
+  var current = raw
+  var hops = 0
+  var settled = false
+  var status = 0
+  var payload: Slice[Byte] = []
+  var contentType = ""
+  while !settled && hops <= limits.MaxRedirects
+    let valid = ValidateDestination(current, limits.AllowPrivate)
+    if valid.IsErr() then
+      return Err(valid.UnwrapErr())
+    end
+    let request = http.NewRequestWithContext(ctx, "GET", current, strings.NewReader("") as io.Reader)
+    if request.IsErr() then
+      return Err("invalid destination")
+    end
+    request.Unwrap().Header.Set("Accept", activityJSON)
+    let response = client.Do(request.Unwrap())
+    if response.IsErr() then
+      return Err("fetch failed")
+    end
+    let res = response.Unwrap()
+    if res.StatusCode >= 300 && res.StatusCode < 400 then
+      let location = res.Header.Get("Location")
+      let _ = res.Body.Close()
+      let next = ResolveLocation(res, location)
+      if next.IsErr() then
+        return Err(next.UnwrapErr())
+      end
+      current = next.Unwrap()
+      hops = hops + 1
+    else
+      let limited = io.LimitReader(res.Body, (limits.MaxBytes + 1) as Int64)
+      let data = io.ReadAll(limited)
+      let _ = res.Body.Close()
+      if data.IsErr() then
+        return Err("fetch failed")
+      end
+      if data.Unwrap().Len() > limits.MaxBytes then
+        return Err("response too large")
+      end
+      status = res.StatusCode
+      payload = data.Unwrap()
+      contentType = res.Header.Get("Content-Type")
+      settled = true
+    end
+  end
+  if !settled then
+    return Err("redirect limit exceeded")
+  end
+  Ok(FetchResult{Status: status, Body: payload, ContentType: contentType, FinalURL: current})
+end
+
+func ResolveLocation(response: Ref[http.Response], location: String) -> Result[String, String]
+  if location == "" then
+    return Err("redirect without location")
+  end
+  let base = response.Request.URL
+  let reference = url.Parse(location)
+  if reference.IsErr() then
+    return Err("invalid redirect")
+  end
+  let resolved = base.ResolveReference(reference.Unwrap())
+  Ok(resolved.String())
+end
+
+func WantsActivityJSON(contentType: String) -> Bool
+  strings.Contains(contentType, activityJSON) || strings.Contains(contentType, ldJSONProfile)
+end

@@ -1,0 +1,104 @@
+package federation
+
+import context "go:context"
+import json "go:encoding/json"
+
+struct EmbeddedActivity
+  ID: String `json:"id"`
+  Actor: String `json:"actor"`
+  Type: String `json:"type"`
+  AttributedTo: String `json:"attributedTo"`
+end
+
+struct ActivityView
+  ID: String `json:"id"`
+  Actor: String `json:"actor"`
+  Type: String `json:"type"`
+  Target: String `json:"target"`
+  Object: json.RawMessage `json:"object"`
+end
+
+struct ParsedActivity
+  ID: String
+  Actor: String
+  Type: String
+  Target: String
+  ObjectURI: String
+  Embedded: Option[EmbeddedActivity]
+end
+
+# `object` is either an identifier string or an embedded object/activity.
+func ParseActivity(payload: Slice[Byte]) -> Result[ParsedActivity, String]
+  let view = ActivityView{}
+  if json.Unmarshal(payload, Ref.new(view)).IsErr() then
+    return Err("invalid activity")
+  end
+  if view.ID == "" || view.Actor == "" || view.Type == "" then
+    return Err("invalid activity")
+  end
+  var objectURI = ""
+  var embedded: Option[EmbeddedActivity] = None
+  let asString = ""
+  if json.Unmarshal(view.Object as Slice[Byte], Ref.new(asString)).IsOk() then
+    objectURI = asString
+  else
+    let nested = EmbeddedActivity{}
+    if json.Unmarshal(view.Object as Slice[Byte], Ref.new(nested)).IsOk() && nested.ID != "" then
+      embedded = Some(nested)
+      objectURI = nested.ID
+    end
+  end
+  Ok(ParsedActivity{ID: view.ID, Actor: view.Actor, Type: view.Type, Target: view.Target, ObjectURI: objectURI, Embedded: embedded})
+end
+
+func TrustedBySameSigner(activity: ParsedActivity) -> Bool
+  if activity.Embedded.IsNone() then
+    return true
+  end
+  activity.Embedded.Unwrap().Actor == activity.Actor
+end
+
+# A relayed activity whose claimed author differs from the forwarder must be
+# confirmed through the author's own canonical copy before it can alter state.
+func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limits: FetchLimits) -> Result[(), String]
+  if activity.Embedded.IsNone() then
+    return Ok(())
+  end
+  let inner = activity.Embedded.Unwrap()
+  if inner.Actor == "" || inner.Actor == activity.Actor then
+    return Ok(())
+  end
+  if inner.ID == "" then
+    return Err("unverifiable embedded author")
+  end
+  let canonical = Fetch(ctx, inner.ID, limits)
+  if canonical.IsErr() then
+    return Err("unverifiable embedded author")
+  end
+  let parsed = ParseActivity(canonical.Unwrap().Body)
+  if parsed.IsErr() then
+    return Err("unverifiable embedded author")
+  end
+  let copy = parsed.Unwrap()
+  if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type then
+    return Err("unverifiable embedded author")
+  end
+  Ok(())
+end
+
+# Action-specific authority against a stored object: only the stored author may
+# update or delete it, and a create cannot claim another actor's authorship.
+func AuthorObjectMutable(kind: String, actorURI: String, storedAuthorURI: String) -> Bool
+  if kind != "Update" && kind != "Delete" then
+    return true
+  end
+  storedAuthorURI != "" && storedAuthorURI == actorURI
+end
+
+func CreateAuthorMatches(activity: ParsedActivity) -> Bool
+  if activity.Embedded.IsNone() then
+    return true
+  end
+  let attributed = activity.Embedded.Unwrap().AttributedTo
+  attributed == "" || attributed == activity.Actor
+end

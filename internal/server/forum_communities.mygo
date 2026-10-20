@@ -1,0 +1,222 @@
+package server
+
+import http "go:net/http"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+struct CreateCommunityInput
+  Name: String `json:"name"`
+  Title: String `json:"title"`
+  Mode: String `json:"mode"`
+  ReadPolicy: String `json:"read_policy"`
+  PostPolicy: String `json:"post_policy"`
+end
+
+struct CreateTopicInput
+  Title: String `json:"title"`
+  Body: String `json:"body"`
+end
+
+struct ActorInput
+  Actor: String `json:"actor"`
+end
+
+struct PolicyInput
+  ReadPolicy: String `json:"read_policy"`
+  PostPolicy: String `json:"post_policy"`
+end
+
+struct PostRefInput
+  PostID: String `json:"post_id"`
+end
+
+struct SubmissionInput
+  PostID: String `json:"post_id"`
+  State: String `json:"state"`
+end
+
+func OptionalIdentity(db: Ref[gorm.DB], site: config.Site, request: Ref[http.Request]) -> auth.Identity
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    return auth.Identity{}
+  end
+  session.Unwrap().Identity
+end
+
+func RequireMutation(settings: config.Config, db: Ref[gorm.DB], site: config.Site, request: Ref[http.Request]) -> Result[auth.Identity, String]
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    return Err("unauthenticated")
+  end
+  if !AuthorizeMutation(settings, session.Unwrap(), request) then
+    return Err("forbidden")
+  end
+  Ok(session.Unwrap().Identity)
+end
+
+func MethodNotAllowed(w: http.ResponseWriter, allowed: String) -> ()
+  w.Header().Set("Allow", allowed)
+  WriteErrorJSON(w, 405, "method not allowed")
+end
+
+func CommunityRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> ()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  if parts.Len() == 3 then
+    if request.Method != "POST" then
+      MethodNotAllowed(w, "POST")
+    else
+      let actor = RequireMutation(settings, db, site, request)
+      if actor.IsErr() then
+        Fail(w, actor.UnwrapErr())
+      else
+        let input = CreateCommunityInput{}
+        let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+        if decoded.IsErr() then
+          WriteErrorJSON(w, 400, decoded.UnwrapErr())
+        else
+          let created = communities.Create(request.Context(), site, actor.Unwrap(), input.Name, input.Title, input.Mode, input.ReadPolicy, input.PostPolicy)
+          if created.IsErr() then
+            Fail(w, created.UnwrapErr())
+          else
+            WriteJSON(w, 201, CommunityDTO(created.Unwrap()))
+          end
+        end
+      end
+    end
+  else
+    if parts.Len() == 4 then
+      if request.Method != "GET" then
+        MethodNotAllowed(w, "GET")
+      else
+        let read = communities.Read(request.Context(), parts.Get(3).Unwrap(), OptionalIdentity(db, site, request), false)
+        if read.IsErr() then
+          Fail(w, read.UnwrapErr())
+        else
+          WriteJSON(w, 200, CommunityDTO(read.Unwrap()))
+        end
+      end
+    else
+      CommunityMemberRoute(settings, db, site, w, request, parts)
+    end
+  end
+end
+
+func CommunityMemberRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> ()
+  let id = parts.Get(3).Unwrap()
+  let section = parts.Get(4).Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  if section == "topics" then
+    CommunityTopicRoute(settings, db, site, w, request, id)
+    return
+  end
+  let actor = RequireMutation(settings, db, site, request)
+  if actor.IsErr() then
+    Fail(w, actor.UnwrapErr())
+    return
+  end
+  let identity = actor.Unwrap()
+  if section == "policy" then
+    let input = PolicyInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if request.Method != "PUT" then
+      MethodNotAllowed(w, "PUT")
+    else
+      if decoded.IsErr() then
+        WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      else
+        let result = communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
+        if result.IsErr() then
+          Fail(w, result.UnwrapErr())
+        else
+          w.WriteHeader(204)
+        end
+      end
+    end
+    return
+  end
+  if section == "removals" && (request.Method == "POST" || request.Method == "DELETE") then
+    let post = PostRefInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(post))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      return
+    end
+    Settle(w, communities.RemovePost(request.Context(), id, post.PostID, identity, false, request.Method == "POST"))
+    return
+  end
+  if section == "submissions" && request.Method == "POST" then
+    let submission = SubmissionInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(submission))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      return
+    end
+    Settle(w, communities.SetSubmission(request.Context(), id, submission.PostID, identity, false, submission.State))
+    return
+  end
+  if (section == "members" || section == "managers") && (request.Method == "POST" || request.Method == "DELETE") then
+    let input = ActorInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      return
+    end
+    if section == "members" then
+      Settle(w, communities.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST"))
+    else
+      Settle(w, communities.SetManager(request.Context(), id, identity, false, input.Actor, request.Method == "POST"))
+    end
+    return
+  end
+  WriteErrorJSON(w, 404, "not found")
+end
+
+func CommunityTopicRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+  let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+  if request.Method == "GET" then
+    let identity = OptionalIdentity(db, site, request)
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      Fail(w, page.UnwrapErr())
+    else
+      let listed = feed.ListTopics(request.Context(), id, identity, false, page.Unwrap(), settings.Runtime.MaxPageSize)
+      if listed.IsErr() then
+        Fail(w, listed.UnwrapErr())
+      else
+        WriteJSON(w, 200, PostPage{Items: listed.Unwrap().Map(PostDTO), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+      end
+    end
+  else
+    if request.Method == "POST" then
+      let actor = RequireMutation(settings, db, site, request)
+      if actor.IsErr() then
+        Fail(w, actor.UnwrapErr())
+        return
+      end
+      let identity = actor.Unwrap()
+      let input = CreateTopicInput{}
+      let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+      if decoded.IsErr() then
+        WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      else
+        let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+        let published = posts.Publish(request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: ""})
+        if published.IsErr() then
+          Fail(w, published.UnwrapErr())
+        else
+          let loaded = storage.LoadCommunityByID(request.Context(), db, id)
+          if loaded.IsOk() && loaded.Unwrap().IsSome() && federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
+            let _ = AnnounceLocalPost(request.Context(), settings, db, site, loaded.Unwrap().Unwrap(), published.Unwrap())
+          end
+          WriteJSON(w, 201, PostDTO(published.Unwrap()))
+        end
+      end
+    else
+      MethodNotAllowed(w, "GET, POST")
+    end
+  end
+end

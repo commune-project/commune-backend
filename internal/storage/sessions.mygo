@@ -1,0 +1,74 @@
+package storage
+
+import gorm "go:gorm.io/gorm"
+import context "go:context"
+import time "go:time"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct SessionRecord
+  TokenHash: Slice[Byte] `gorm:"column:token_hash;primaryKey"`
+  SiteID: String `gorm:"column:site_id"`
+  AccountID: Int64 `gorm:"column:account_id"`
+  CSRFHash: Slice[Byte] `gorm:"column:csrf_hash"`
+  CreatedAt: time.Time `gorm:"column:created_at;autoCreateTime:false"`
+  ExpiresAt: time.Time `gorm:"column:expires_at"`
+end
+
+struct SessionRepository
+  DB: Ref[gorm.DB]
+end
+
+struct AuthenticatedSession
+  Identity: auth.Identity
+  CSRFHash: Slice[Byte]
+  ExpiresAt: time.Time
+end
+
+impl AuthenticatedSession
+  func AuthorizesMutation(self: AuthenticatedSession, csrf: String) -> Bool
+    auth.VerifyCSRF(self.CSRFHash, csrf)
+  end
+end
+
+impl SessionRepository
+  func Issue(self: SessionRepository, ctx: context.Context, identity: auth.Identity, now: time.Time) -> Result[auth.SessionTokens, String]
+    let tokens = auth.NewSessionTokens()
+    let expires = now.Add(24 as time.Duration * time.Hour)
+    # INSERT ... SELECT checks the current account/site and disabled state.
+    let query = self.DB.WithContext(ctx).Exec("INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,created_at,expires_at) SELECT ?,site_id,id,?,?,? FROM accounts WHERE site_id=? AND id=? AND actor_uri=? AND NOT disabled", tokens.SessionHash(), tokens.CSRFHash(), now, expires, identity.SiteID, identity.AccountID, identity.ActorURI)
+    if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+      return Err("session issuance failed")
+    end
+    Ok(tokens)
+  end
+
+  func Resolve(self: SessionRepository, ctx: context.Context, siteID: String, token: String, now: time.Time) -> Result[AuthenticatedSession, String]
+    if siteID == "" || !auth.ValidToken(token) then
+      return Err("unauthenticated")
+    end
+    let session = SessionRecord{}
+    let query = self.DB.WithContext(ctx).Table("sessions").Where("site_id = ? AND token_hash = ? AND revoked_at IS NULL AND expires_at > ?", siteID, auth.TokenHash(token), now).Limit(1).Find(Ref.new(session))
+    if MutationResult(query).IsErr() then
+      return Err("authentication unavailable")
+    end
+    if query.RowsAffected != 1i64 then
+      return Err("unauthenticated")
+    end
+    let account = AccountRecord{}
+    let accountQuery = self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND id = ? AND NOT disabled", siteID, session.AccountID).Limit(1).Find(Ref.new(account))
+    if MutationResult(accountQuery).IsErr() then
+      return Err("authentication unavailable")
+    end
+    if accountQuery.RowsAffected != 1i64 then
+      return Err("unauthenticated")
+    end
+    Ok(AuthenticatedSession{Identity: account.Identity(), CSRFHash: session.CSRFHash, ExpiresAt: session.ExpiresAt})
+  end
+
+  func Revoke(self: SessionRepository, ctx: context.Context, siteID: String, token: String, now: time.Time) -> Result[(), String]
+    if !auth.ValidToken(token) then
+      return Err("unauthenticated")
+    end
+    MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND token_hash=? AND revoked_at IS NULL", now, siteID, auth.TokenHash(token)))
+  end
+end

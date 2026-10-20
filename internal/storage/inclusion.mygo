@@ -1,0 +1,32 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Verified inclusion is recorded separately from the declared audience. Only the
+# collection authority may accept a post, and a repeat acceptance is idempotent.
+func RecordCommunityInclusion(ctx: context.Context, db: Ref[gorm.DB], postID: String, communityID: String, authorityActorURI: String, evidenceURI: String) -> Result[Int64, String]
+  let inserted = db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'accepted') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO NOTHING", postID, communityID, authorityActorURI, evidenceURI)
+  if MutationResult(inserted).IsErr() then
+    return Err("inclusion failed")
+  end
+  Ok(inserted.RowsAffected)
+end
+
+func CommunityActorURI(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[String, String]
+  let uri = ""
+  let query = db.WithContext(ctx).Raw("SELECT coalesce(actor_uri,'') FROM communities WHERE id = ?", communityID).Scan(Ref.new(uri))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("community unavailable")
+  end
+  Ok(uri)
+end
+
+func PostCommunityID(ctx: context.Context, db: Ref[gorm.DB], postID: String) -> Result[String, String]
+  let community = ""
+  let query = db.WithContext(ctx).Raw("SELECT community_id FROM posts WHERE id = ?", postID).Scan(Ref.new(community))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("post unavailable")
+  end
+  Ok(community)
+end

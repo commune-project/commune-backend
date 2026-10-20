@@ -1,0 +1,95 @@
+package storage
+
+import gorm "go:gorm.io/gorm"
+import context "go:context"
+import regexp "go:regexp"
+import strings "go:strings"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+func MutationResult(query: Ref[gorm.DB]) -> Result[(), String]
+  let failed = QueryFailed(query)
+  if failed then
+    return Err("database mutation failed")
+  end
+  Ok(())
+end
+
+func ProvisionSite(ctx: context.Context, db: Ref[gorm.DB], site: config.Site) -> Result[(), String]
+  if !config.ValidDomain(site.ID) || strings.Contains(site.ID, ".") || config.NormalizeOrigin(site.Origin).IsErr() then
+    return Err("invalid site provisioning identity")
+  end
+  let origin = config.NormalizeOrigin(site.Origin).Unwrap()
+  RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let insert = tx.Exec("INSERT INTO sites(id,canonical_origin) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET canonical_origin=sites.canonical_origin WHERE sites.canonical_origin=excluded.canonical_origin", site.ID, origin)
+    if MutationResult(insert).IsErr() || insert.RowsAffected != 1i64 then
+      return Err("site identity conflicts with existing configuration")
+    end
+    let authorities = site.Aliases.Append(strings.TrimPrefix(origin, "https://"))
+    authorities.Fold(Ok[(), String](()), func(previous: Result[(), String], authority: String) -> Result[(), String]
+      if previous.IsErr() then
+        return previous
+      end
+      let normalized = config.NormalizeAuthority(authority)
+      if normalized.IsErr() then
+        return Err("invalid site authority")
+      end
+      let insert = tx.Exec("INSERT INTO site_authorities(authority,site_id) VALUES (?,?) ON CONFLICT(authority) DO UPDATE SET site_id=site_authorities.site_id WHERE site_authorities.site_id=excluded.site_id", normalized.Unwrap(), site.ID)
+      if MutationResult(insert).IsErr() || insert.RowsAffected != 1i64 then
+        return Err("site authority is already assigned")
+      end
+      Ok(())
+    end)
+  end)
+end
+
+func ProvisionAdministrator(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, username: String, password: String, deploymentRole: Bool) -> Result[(), String]
+  if !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username).UnwrapOr(false) then
+    return Err("invalid administrator username")
+  end
+  let uri = config.CanonicalURI(site, "users", username)
+  let hash = auth.HashPassword(password)
+  if uri.IsErr() || hash.IsErr() then
+    return Err("invalid administrator credentials or site identity")
+  end
+  RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", site.ID + "/" + username)).IsErr() then
+      return Err("cannot serialize account provisioning")
+    end
+    if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT(uri) DO NOTHING", uri.Unwrap(), site.ID, uri.Unwrap() + "/inbox")).IsErr() then
+      return Err("cannot provision account actor")
+    end
+    if MutationResult(tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES (?,?,?,?) ON CONFLICT(site_id,username) DO NOTHING", site.ID, uri.Unwrap(), username, hash.Unwrap())).IsErr() then
+      return Err("cannot provision administrator account")
+    end
+    let found = FindAccount(ctx, tx, site.ID, username)
+    if found.IsErr() || found.Unwrap().IsNone() then
+      return Err("cannot read provisioned administrator")
+    end
+    let account = found.Unwrap().Unwrap()
+    if account.ActorURI != uri.Unwrap() || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) then
+      return Err("existing account credentials cannot be replaced")
+    end
+    let grant = tx.Exec("INSERT INTO site_roles(site_id,account_id,role) VALUES (?,?,'administrator') ON CONFLICT DO NOTHING", site.ID, account.ID)
+    if MutationResult(grant).IsErr() then
+      return Err("cannot assign site administrator")
+    end
+    if grant.RowsAffected > 0i64 then
+      if MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'grant_site_administrator',?)", account.ActorURI, site.ID, account.ActorURI)).IsErr() then
+        return Err("cannot audit site administrator assignment")
+      end
+    end
+    if deploymentRole then
+      let grant = tx.Exec("INSERT INTO deployment_roles(account_id,role) VALUES (?,'superadministrator') ON CONFLICT DO NOTHING", account.ID)
+      if MutationResult(grant).IsErr() then
+        return Err("cannot assign deployment administrator")
+      end
+      if grant.RowsAffected > 0i64 then
+        if MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'deployment','deployment','grant_superadministrator',?)", account.ActorURI, account.ActorURI)).IsErr() then
+          return Err("cannot audit deployment administrator assignment")
+        end
+      end
+    end
+    Ok(())
+  end)
+end

@@ -1,0 +1,86 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresContextBackfillAndNavigation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let authority = "https://peer.example/communities/discussion"
+  let author = "https://writer.example/users/writer"
+  let root = "https://peer.example/contexts/discussion"
+  let page = "https://peer.example/contexts/discussion?page=1"
+  let nextPage = "https://peer.example/contexts/discussion?page=2"
+  let topicURI = "https://peer.example/objects/topic"
+  let replyURI = "https://peer.example/objects/reply"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group'), (?, 'Person')", authority, author)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','remote','Remote')", authority, author)).Unwrap()
+  let fetcher = func(fetchCtx: context.Context, fetchSettings: config.Config, uri: String) -> Result[Slice[Byte], String]
+    if uri == root then
+      return Ok(("{\"id\":\"" + root + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + authority + "\",\"first\":\"" + page + "\"}") as Slice[Byte])
+    end
+    if uri == page then
+      return Ok(("{\"id\":\"" + page + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + topicURI + "\",\"" + replyURI + "\"],\"next\":\"" + nextPage + "\"}") as Slice[Byte])
+    end
+    if uri == nextPage then
+      return Ok(("{\"id\":\"" + nextPage + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + replyURI + "\"]}") as Slice[Byte])
+    end
+    if uri == topicURI then
+      return Ok(("{\"id\":\"" + topicURI + "\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"name\":\"Topic\",\"content\":\"Body\",\"published\":\"2026-10-20T00:00:00Z\"}") as Slice[Byte])
+    end
+    if uri == replyURI then
+      return Ok(("{\"id\":\"" + replyURI + "\",\"type\":\"Note\",\"attributedTo\":\"" + author + "\",\"content\":\"Reply without context\",\"inReplyTo\":\"" + topicURI + "\",\"published\":\"2026-10-20T00:01:00Z\"}") as Slice[Byte])
+    end
+    Err("unexpected backfill URI")
+  end
+  let contextID = storage.EnsureContextStub(ctx, db, root).Unwrap()
+  let firstResult = BackfillDiscussion(ctx, settings, db, site, contextID, alice, false, fetcher)
+  if firstResult.IsErr() then
+    t.Fatalf("the first backfill failed: %s", firstResult.UnwrapErr())
+  end
+  let first = firstResult.Unwrap()
+  if first.Imported != 2 || first.Pages != 3 || first.Examined != 2 then
+    t.Fatalf("unexpected bounded backfill result: imported=%d pages=%d examined=%d", first.Imported, first.Pages, first.Examined)
+  end
+  let topic = storage.LoadObjectByURI(ctx, db, topicURI).Unwrap().Unwrap()
+  let reply = storage.LoadObjectByURI(ctx, db, replyURI).Unwrap().Unwrap()
+  if reply.ParentID.String != topic.ID then
+    t.Fatal("the context-less reply lost its inReplyTo relationship")
+  end
+  if storage.PrimaryPostContextURI(ctx, db, reply.ID) != "" then
+    t.Fatal("backfill published an inferred context as a declaration")
+  end
+  let navigationRoot = storage.NavigationRoot(ctx, db, reply.ID).Unwrap()
+  if navigationRoot.ID != topic.ID then
+    t.Fatal("inReplyTo navigation did not reach the discussion root")
+  end
+  if storage.CountContextPosts(ctx, db, contextID).Unwrap() != 2i64 then
+    t.Fatal("canonical collection membership did not include both objects")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, reply.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET body='',deleted_at=now(),updated_at=now() WHERE id=?", topic.ID)).Unwrap()
+  let secondResult = BackfillDiscussion(ctx, settings, db, site, contextID, alice, false, fetcher)
+  if secondResult.IsErr() then
+    t.Fatalf("the repeated backfill failed: %s", secondResult.UnwrapErr())
+  end
+  if secondResult.Unwrap().Imported != 0 then
+    t.Fatal("a repeated backfill imported duplicates")
+  end
+  let hiddenAfter = storage.QueryExists(db.Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NOT NULL", site.ID, reply.ID)).Unwrap()
+  if !hiddenAfter then
+    t.Fatal("backfill cleared a site hide")
+  end
+  let tombstoned = storage.LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap()
+  if !tombstoned.DeletedAt.Valid || tombstoned.Body != "" then
+    t.Fatal("backfill resurrected an author tombstone")
+  end
+end

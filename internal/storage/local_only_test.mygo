@@ -1,0 +1,90 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let reactions = ReactionRepository{DB: db, SiteID: site.ID}
+  let modes: Slice[Slice[String]] = [["eligible_users", "eligible_users"], ["members", "members"], ["eligible_users", "members"]]
+  var index = 0
+  modes.Each(func(mode: Slice[String]) -> ()
+    let read = mode.Get(0).Unwrap()
+    let post = mode.Get(1).Unwrap()
+    let community = communities.Create(ctx, site, alice, "local" + index.ToString(), "Local", "local_only", read, post).Unwrap()
+    if community.ActorURI.Valid || community.FederationMode != "local_only" then
+      t.Fatal("local-only community allocated a federated actor")
+    end
+    let topic = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+    if topic.ObjectURI.Valid then
+      t.Fatal("local-only topic produced a canonical object URI")
+    end
+    let canRead = read == "eligible_users"
+    let canWrite = post == "eligible_users"
+    if canWrite then
+      let reply = posts.Publish(ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}).Unwrap()
+      if reply.ObjectURI.Valid then
+        t.Fatal("local-only reply produced a canonical object URI")
+      end
+    else
+      if posts.Publish(ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}).IsOk() then
+        t.Fatal("non-member published to a member-writer local community")
+      end
+    end
+    if canRead then
+      let _ = reactions.Like(ctx, topic.ID, bob, false, "").Unwrap()
+      let _ = reactions.Undo(ctx, topic.ID, bob, false).Unwrap()
+    else
+      if reactions.Like(ctx, topic.ID, bob, false, "").IsOk() || reactions.Undo(ctx, topic.ID, bob, false).IsOk() then
+        t.Fatal("non-member reacted in a members-only local community")
+      end
+    end
+    let _ = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited").Unwrap()
+    let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
+    let _ = communities.SetPolicy(ctx, community.ID, alice, false, read, post).Unwrap()
+    index = index + 1
+  end)
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("posts").Where("parent_id IS NULL").Count(Ref.new(count))).Unwrap()
+  if count != 3i64 then
+    t.Fatal("local-only operation did not store exactly one topic per community")
+  end
+  let _ = MutationResult(db.Table("activities").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local-only operation produced protocol activities")
+  end
+  let _ = MutationResult(db.Table("activity_payloads").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local-only operation produced protocol payloads")
+  end
+  let _ = MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local-only operation scheduled federation delivery")
+  end
+  let _ = MutationResult(db.Table("actors").Where("kind='Group'").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local-only communities created Group actors")
+  end
+  let _ = MutationResult(db.Table("site_posts").Where("site_id='b'").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local-only content was received by another site")
+  end
+  let _ = MutationResult(db.Table("site_posts").Where("site_id='a'").Count(Ref.new(count))).Unwrap()
+  if count != 4i64 then
+    t.Fatal("owning site did not record exactly one reception per object")
+  end
+end

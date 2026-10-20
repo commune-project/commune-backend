@@ -1,0 +1,86 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+
+struct ConstraintCase
+  SQL: String
+  Reason: String
+end
+
+func TestPostgresForumSchema(t: Ref[testing.T]) -> ()
+  let db = postgresFixture(t)
+  if Migrate(context.Background(), db).IsErr() then
+    t.Fatal("forum migration failed")
+  end
+  let seeds = [
+    "INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'),('b','https://b.example')",
+    "INSERT INTO actors(uri,local_site_id,kind,private_key_pem) VALUES ('alice','a','Person','key'),('bob','b','Person','key'),('group','a','Group','key')",
+    "INSERT INTO actors(uri,kind) VALUES ('remote','Person')",
+    "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','alice','alice','hash'),('b','bob','bob','hash')",
+    "INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('private','a','alice','local_only','eligible_users','eligible_users','private','Private')",
+    "INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('public','a','group','remote','federated','eligible_users','members','public','Public')",
+    "INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('private','alice','alice'),('public','remote','alice')",
+    "INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES ('private','alice','alice'),('public','remote','alice')",
+    "INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES ('public','bob','follow1','pending')",
+    "INSERT INTO posts(id,community_id,federation_mode,author_actor_uri,object_type,body,authored_at,updated_at) VALUES ('local','private','local_only','alice','Page','one',now(),now())",
+    "INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,body,authored_at,updated_at) VALUES ('shared','https://remote.example/o/1','public','federated','remote','Page','one',now(),now()),('other','https://remote.example/o/2','public','federated','remote','Page','one',now(),now())",
+    "INSERT INTO site_posts(site_id,post_id) VALUES ('a','local'),('a','shared'),('b','shared')",
+    "INSERT INTO discussion_contexts(id,community_id,topic_id,authority_actor_uri,resolution_state) VALUES ('internal','private','local','alice','unresolved')",
+    "INSERT INTO discussion_contexts(id,context_uri,community_id,topic_id,authority_actor_uri,collection_uri,resolution_state) VALUES ('context','https://a.example/contexts/1','public','shared','group','https://a.example/contexts/1','collection')",
+    "INSERT INTO post_contexts(post_id,context_id) VALUES ('local','internal'),('shared','context')",
+    "INSERT INTO post_audiences(post_id,community_id) VALUES ('local','private'),('shared','public')",
+    "INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES ('local','private','alice','local_authority','internal','accepted'),('shared','public','group','signed_activity','activity','accepted')",
+    "INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES ('shared','context','group','canonical_collection','context','accepted')",
+    "INSERT INTO reactions(post_id,actor_uri) VALUES ('local','alice'),('shared','remote')",
+    "INSERT INTO activities(uri,actor_uri,kind,community_id,post_id) VALUES ('activity','remote','Create','public','shared')",
+    "INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES ('activity',convert_to('{}','UTF8'),decode(repeat('aa',32),'hex'))",
+    "INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES ('activity','a','alice'),('activity','b','bob')",
+    "INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('activity','group','remote','https://remote.example/inbox','public')"
+  ]
+  seeds.Each(func(query: String) -> ()
+    switch db.Exec(query)
+    case Ok(_) => ()
+    case Err(message) => t.Fatalf("valid schema fixture failed: %s", message.Error())
+    end
+  end)
+  let cases = [
+    ConstraintCase{SQL: "INSERT INTO community_members VALUES ('private','bob','alice',now(),NULL)", Reason: "local community assignment"},
+    ConstraintCase{SQL: "INSERT INTO moderators VALUES ('private','remote','alice',now(),NULL)", Reason: "local community assignment"},
+    ConstraintCase{SQL: "UPDATE communities SET creator_actor_uri='remote' WHERE id='private'", Reason: "local community creator"},
+    ConstraintCase{SQL: "UPDATE communities SET federation_mode='federated',actor_uri='group' WHERE id='private'", Reason: "immutable"},
+    ConstraintCase{SQL: "INSERT INTO site_posts(site_id,post_id) VALUES ('b','local')", Reason: "local post cannot be received"},
+    ConstraintCase{SQL: "INSERT INTO post_audiences(post_id,community_id) VALUES ('local','public')", Reason: "restricted boundary"},
+    ConstraintCase{SQL: "INSERT INTO post_contexts(post_id,context_id) VALUES ('local','context')", Reason: "restricted boundary"},
+    ConstraintCase{SQL: "UPDATE discussion_contexts SET context_uri='https://a.example/private' WHERE id='internal'", Reason: "local discussion"},
+    ConstraintCase{SQL: "INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES ('private','alice','private-follow','pending')", Reason: "local community assignment"},
+    ConstraintCase{SQL: "INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES ('leak','alice','Create','private')", Reason: "local community cannot"},
+    ConstraintCase{SQL: "INSERT INTO activities(uri,actor_uri,kind,post_id) VALUES ('leak','alice','Create','local')", Reason: "local post cannot"},
+    ConstraintCase{SQL: "INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('activity','alice','remote','https://remote.example/inbox','private')", Reason: "local community cannot"},
+    ConstraintCase{SQL: "INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES ('activity','b','alice')", Reason: "receipt recipient"},
+    ConstraintCase{SQL: "UPDATE collection_memberships SET authority_actor_uri='remote' WHERE post_id='shared' AND community_id='public'", Reason: "inclusion authority"},
+    ConstraintCase{SQL: "UPDATE activities SET actor_uri='alice' WHERE uri='activity'", Reason: "immutable"},
+    ConstraintCase{SQL: "UPDATE activity_payloads SET original_payload=convert_to('changed','UTF8') WHERE activity_uri='activity'", Reason: "immutable"},
+    ConstraintCase{SQL: "UPDATE posts SET author_actor_uri='alice' WHERE id='shared'", Reason: "immutable"}
+  ]
+  cases.Each(func(test: ConstraintCase) -> ()
+    switch db.Exec(test.SQL)
+    case Ok(_) => t.Fatalf("invalid schema mutation accepted: %s", test.Reason)
+    case Err(message) =>
+      if !strings.Contains(message.Error(), test.Reason) then
+        t.Fatalf("unexpected rejection: %s", message.Error())
+      end
+    end
+  end)
+  if db.Exec("UPDATE posts SET body='',deleted_at=now() WHERE id='shared'").IsErr() then
+    t.Fatal("author tombstone rejected")
+  end
+  if db.Exec("UPDATE posts SET body='resurrected',deleted_at=NULL WHERE id='shared'").IsOk() then
+    t.Fatal("tombstone resurrected")
+  end
+  let count = 0
+  if db.QueryRow("SELECT count(*) FROM posts WHERE body='one'").Scan(Ref.new(count)).IsErr() || count != 2 then
+    t.Fatal("content or object identity was deduplicated incorrectly")
+  end
+end

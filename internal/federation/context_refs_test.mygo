@@ -1,0 +1,37 @@
+package federation
+
+import testing "go:testing"
+
+func TestContextParsing(t: Ref[testing.T]) -> ()
+  let absent = "{\"id\":\"a\",\"@context\":\"https://www.w3.org/ns/activitystreams\",\"audience\":\"https://group.example/c\"}"
+  let absentResult = ParseContexts(absent as Slice[Byte]).Unwrap()
+  if absentResult.References.Len() != 0 then
+    t.Fatal("the JSON-LD @context keyword was treated as an AS2 context")
+  end
+  if absentResult.Audience.Len() != 1 || absentResult.Audience.Get(0).Unwrap() != "https://group.example/c" then
+    t.Fatal("audience was not parsed separately")
+  end
+  let single = ParseContexts("{\"context\":\"https://peer.example/contexts/1\"}" as Slice[Byte]).Unwrap()
+  if single.References.Len() != 1 || single.References.Get(0).Unwrap().Kind != "uri" || single.References.Get(0).Unwrap().Verified then
+    t.Fatal("a string context was not parsed as an unverified reference")
+  end
+  let collection = ParseContexts("{\"context\":{\"id\":\"https://peer.example/c\",\"type\":\"OrderedCollection\"}}" as Slice[Byte]).Unwrap()
+  if collection.References.Len() != 1 || collection.References.Get(0).Unwrap().Kind != "collection" then
+    t.Fatal("a collection context was not classified")
+  end
+  let link = ParseContexts("{\"context\":{\"href\":\"https://peer.example/l\",\"type\":\"Link\"}}" as Slice[Byte]).Unwrap()
+  if link.References.Len() != 1 || link.References.Get(0).Unwrap().Kind != "link" || link.References.Get(0).Unwrap().URI != "https://peer.example/l" then
+    t.Fatal("a context link was not parsed")
+  end
+  let object = ParseContexts("{\"context\":{\"id\":\"https://peer.example/o\",\"type\":\"CollectionPage\"}}" as Slice[Byte]).Unwrap()
+  if object.References.Len() != 1 || object.References.Get(0).Unwrap().Kind != "object" then
+    t.Fatal("an object context was not classified")
+  end
+  let multiple = ParseContexts("{\"context\":[\"https://peer.example/a\",{\"id\":\"https://peer.example/b\",\"type\":\"Collection\"}],\"audience\":[\"https://x.example/a\",\"https://x.example/b\"]}" as Slice[Byte]).Unwrap()
+  if multiple.References.Len() != 2 || multiple.Audience.Len() != 2 then
+    t.Fatal("multiple contexts or audiences were not preserved")
+  end
+  if ParseContexts("{\"context\":[\"https://peer.example/a\"],\"context\":\"https://peer.example/b\"}" as Slice[Byte]).IsErr() then
+    t.Fatal("context parsing rejected content rather than listing declared references")
+  end
+end

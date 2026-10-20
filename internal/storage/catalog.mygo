@@ -1,0 +1,58 @@
+package storage
+
+import files "go:github.com/commune-project/commune-mygo/internal/migrationfiles"
+import sha256 "go:crypto/sha256"
+import hex "go:encoding/hex"
+import hash "go:hash"
+
+struct Migration
+  Version: Int
+  Name: String
+  SQL: String
+  Checksum: String
+end
+
+struct AppliedMigration
+  Version: Int
+  Name: String
+  Checksum: String
+end
+
+func MigrationCatalog() -> Result[Slice[Migration], String]
+  let names: Slice[String] = ["001_identity.sql", "002_forum_identities.sql", "003_forum_relations.sql", "004_person_follows.sql", "005_peer_capabilities.sql"]
+  var migrations: Slice[Migration] = []
+  var i = 0
+  while i < names.Len()
+    let name = names.Get(i).Unwrap()
+    let read = files.Read(name)
+    if read.IsErr() then
+      return Err("embedded migration is missing")
+    end
+    let source = read.Unwrap()
+    let digester = sha256.New()
+    let _ = digester.Write(source as Slice[Byte])
+    let bytes = digester.Sum([] as Slice[Byte])
+    migrations = migrations.Append(Migration { Version: i + 1, Name: name, SQL: source, Checksum: hex.EncodeToString(bytes) })
+    i = i + 1
+  end
+  Ok(migrations)
+end
+
+func ValidateApplied(applied: Slice[AppliedMigration], catalog: Slice[Migration], requireCurrent: Bool) -> Result[(), String]
+  if applied.Len() > catalog.Len() then
+    return Err("database schema is newer than this binary")
+  end
+  var i = 0
+  while i < applied.Len()
+    let record = applied.Get(i).Unwrap()
+    let migration = catalog.Get(i).Unwrap()
+    if record.Version != migration.Version || record.Name != migration.Name || record.Checksum != migration.Checksum then
+      return Err("database migration history is incompatible with this binary")
+    end
+    i = i + 1
+  end
+  if requireCurrent && applied.Len() != catalog.Len() then
+    return Err("database schema is behind this binary; run explicit migration")
+  end
+  Ok(())
+end

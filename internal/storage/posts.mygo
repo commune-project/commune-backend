@@ -1,0 +1,90 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import time "go:time"
+import rand "go:crypto/rand"
+import url "go:net/url"
+import config "github.com/commune-project/commune-mygo/internal/config"
+
+struct PostRecord
+  ID: String `gorm:"column:id"`
+  ObjectURI: sql.NullString `gorm:"column:object_uri"`
+  CommunityID: String `gorm:"column:community_id"`
+  FederationMode: String `gorm:"column:federation_mode"`
+  AuthorActorURI: String `gorm:"column:author_actor_uri"`
+  ObjectType: String `gorm:"column:object_type"`
+  Title: sql.NullString `gorm:"column:title"`
+  Body: String `gorm:"column:body"`
+  ParentID: sql.NullString `gorm:"column:parent_id"`
+  AuthoredAt: time.Time `gorm:"column:authored_at"`
+  UpdatedAt: time.Time `gorm:"column:updated_at;autoUpdateTime:false"`
+  DeletedAt: sql.NullTime `gorm:"column:deleted_at"`
+end
+
+struct PostRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+end
+
+func CanonicalObjectURI(uri: String) -> Bool
+  let parsed = url.Parse(uri)
+  if parsed.IsErr() then
+    return false
+  end
+  let value = parsed.Unwrap()
+  let credentials = go[Bool] { code: "{value}.User != nil"; in value = value }
+  value.Scheme == "https" && config.NormalizeAuthority(value.Host).IsOk() && value.Fragment == "" && !credentials
+end
+
+impl PostRepository
+  # Only validated author authority reaches this persistence boundary. Receipt
+  # and storage do not establish Group/context approval or a viewer's access.
+  func Receive(self: PostRepository, ctx: context.Context, incoming: PostRecord, authenticatedAuthorURI: String) -> Result[PostRecord, String]
+    if self.SiteID == "" || incoming.FederationMode != "federated" || !incoming.ObjectURI.Valid || !CanonicalObjectURI(incoming.ObjectURI.String) || authenticatedAuthorURI == "" || incoming.AuthorActorURI != authenticatedAuthorURI then
+      return Err("invalid object authority")
+    end
+    if incoming.AuthoredAt.IsZero() || incoming.UpdatedAt.Before(incoming.AuthoredAt) || (incoming.ObjectType != "Page" && incoming.ObjectType != "Note") || (incoming.DeletedAt.Valid && incoming.Body != "") then
+      return Err("invalid object")
+    end
+    var stored = PostRecord{}
+    let authored = incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
+    let updated = incoming.UpdatedAt.UTC().Truncate(time.Microsecond)
+    let deleted = sql.NullTime{Valid: incoming.DeletedAt.Valid, Time: incoming.DeletedAt.Time.UTC().Truncate(time.Microsecond)}
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let inserted = tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, incoming.ParentID, authored, updated, deleted)
+      if MutationResult(inserted).IsErr() then
+        return Err("object storage failed")
+      end
+      let current = PostRecord{}
+      let loaded = tx.Raw("SELECT * FROM posts WHERE object_uri=? FOR UPDATE", incoming.ObjectURI.String).Scan(Ref.new(current))
+      if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
+        return Err("object storage failed")
+      end
+      if current.AuthorActorURI != authenticatedAuthorURI || current.CommunityID != incoming.CommunityID || current.ObjectType != incoming.ObjectType || current.ParentID != incoming.ParentID || !current.AuthoredAt.Equal(authored) then
+        return Err("object identity conflict")
+      end
+      if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) then
+        if MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, updated, deleted, current.ID)).IsErr() then
+          return Err("object update failed")
+        end
+      else
+        if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.DeletedAt.Valid != deleted.Valid) then
+          return Err("object version conflict")
+        end
+      end
+      if MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, current.ID)).IsErr() then
+        return Err("object reception failed")
+      end
+      if MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(Ref.new(stored))).IsErr() then
+        return Err("object storage failed")
+      end
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(stored)
+  end
+end

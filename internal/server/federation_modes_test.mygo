@@ -1,0 +1,65 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresFederatedPostingModes(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let memberPost = communities.Create(ctx, a, alice, "memberpost", "MemberPost", "federated", "eligible_users", "members").Unwrap()
+  let memberRead = communities.Create(ctx, a, alice, "memberread", "MemberRead", "federated", "members", "members").Unwrap()
+  let authorKey = storage.GeneratePrivatePEM().Unwrap()
+  let memberKey = storage.GeneratePrivatePEM().Unwrap()
+  let author = "https://peer.example/users/author"
+  let member = "https://peer.example/users/member"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", author, storage.PublicPEMFromPrivate(authorKey).Unwrap(), member, storage.PublicPEMFromPrivate(memberKey).Unwrap())).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberPost.ID, member, alice.ActorURI)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberRead.ID, member, alice.ActorURI)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", memberPost.ID, author, "https://peer.example/activities/f1")).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let create = func(id: String, actor: String, target: storage.CommunityRecord, extraTo: String) -> String
+    "{\"id\":\"https://peer.example/activities/" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"Create\",\"to\":[\"" + target.ActorURI.String + "\",\"" + alice.ActorURI + "\"" + extraTo + "],\"object\":{\"id\":\"https://peer.example/objects/" + id + "\",\"type\":\"Page\",\"attributedTo\":\"" + actor + "\"}}"
+  end
+  let announced = func(target: storage.CommunityRecord) -> Int64
+    let count: Int64 = 0i64
+    let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", target.ActorURI.String).Count(Ref.new(count))).Unwrap()
+    count
+  end
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", create("open-1", author, open, ""), author, authorKey, date)
+  if announced(open) != 1i64 then
+    t.Fatal("an eligible author could not post in an open community")
+  end
+  let subscriberPost = create("mp-1", author, memberPost, "")
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", subscriberPost, author, authorKey, date)
+  if announced(memberPost) != 0i64 then
+    t.Fatal("a non-member subscriber posted in a members-posting community")
+  end
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", create("mp-2", member, memberPost, ""), member, memberKey, date)
+  if announced(memberPost) != 1i64 then
+    t.Fatal("an approved member could not post in a members-posting community")
+  end
+  let publicRestricted = create("mr-1", member, memberRead, ",\"https://www.w3.org/ns/activitystreams#Public\"")
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", publicRestricted, member, memberKey, date)
+  if announced(memberRead) != 0i64 then
+    t.Fatal("a public-addressed submission was accepted for a member-readable community")
+  end
+  let stored = storage.LoadActivityPayload(ctx, db, "https://peer.example/activities/mr-1").Unwrap()
+  if stored.IsNone() || (stored.Unwrap().Payload as String) != publicRestricted then
+    t.Fatal("the rejected submission's original payload was rewritten or lost")
+  end
+end

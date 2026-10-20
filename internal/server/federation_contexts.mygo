@@ -1,0 +1,58 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+# A discussion context resolves to an OrderedCollection of the posts that declare
+# it. Local-only discussions have no context URI and therefore no protocol
+# representation; member-readable contexts require a signed member read.
+func ContextHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+  let found = storage.LoadDiscussionContext(request.Context(), db, id)
+  if found.IsErr() || found.Unwrap().IsNone() then
+    http.NotFound(w, request)
+    return
+  end
+  let record = found.Unwrap().Unwrap()
+  if !record.ContextURI.Valid || !record.CommunityID.Valid || record.ContextURI.String == "" then
+    http.NotFound(w, request)
+    return
+  end
+  let loaded = storage.LoadCommunityByID(request.Context(), db, record.CommunityID.String)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() || !federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
+    http.NotFound(w, request)
+    return
+  end
+  let community = loaded.Unwrap().Unwrap()
+  if community.ReadPolicy == "members" then
+    let allowed = MemberReadAllowed(db, settings, request, site, community)
+    if allowed.IsErr() then
+      http.NotFound(w, request)
+      return
+    end
+  end
+  let total = storage.CountContextPosts(request.Context(), db, id)
+  if total.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  if request.URL.Query().Get("page") == "" then
+    WriteActivity(w, 200, federation.BuildCollection(record.ContextURI.String, total.Unwrap(), true))
+    return
+  end
+  let size = CollectionPageSize(settings)
+  let page = federation.PageParam(request.URL.Query().Get("page"))
+  let listed = storage.ListContextPosts(request.Context(), db, id, size, (page - 1) * size)
+  if listed.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  if items.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  WriteActivity(w, 200, federation.BuildObjectPage(record.ContextURI.String, page, size, total.Unwrap(), items.Unwrap()))
+end

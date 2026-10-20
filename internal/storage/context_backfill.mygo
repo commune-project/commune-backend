@@ -1,0 +1,36 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+func EnsureRemoteActor(ctx: context.Context, db: Ref[gorm.DB], uri: String, kind: String) -> Result[(), String]
+  if uri == "" || (kind != "Person" && kind != "Group") then
+    return Err("invalid actor")
+  end
+  let inserted = db.WithContext(ctx).Exec("INSERT INTO actors(uri,kind) VALUES (?,?) ON CONFLICT (uri) DO NOTHING", uri, kind)
+  if MutationResult(inserted).IsErr() then
+    return Err("actor storage failed")
+  end
+  Ok(())
+end
+
+func ResolveDiscussionContext(ctx: context.Context, db: Ref[gorm.DB], contextID: String, communityID: String, authorityActorURI: String, collectionURI: String) -> Result[(), String]
+  if contextID == "" || communityID == "" || authorityActorURI == "" then
+    return Err("invalid context resolution")
+  end
+  let updated = db.WithContext(ctx).Exec("UPDATE discussion_contexts SET community_id=?, authority_actor_uri=?, collection_uri=?, resolution_state='collection' WHERE id=? AND (community_id IS NULL OR community_id=?)", communityID, authorityActorURI, collectionURI, contextID, communityID)
+  if MutationResult(updated).IsErr() || updated.RowsAffected != 1i64 then
+    return Err("context resolution failed")
+  end
+  Ok(())
+end
+
+# Canonical collection evidence can accept a pending declaration. Re-discovery
+# never revives an authoritative removal or rejection.
+func RecordCanonicalContextInclusion(ctx: context.Context, db: Ref[gorm.DB], postID: String, contextID: String, authorityActorURI: String, evidenceURI: String) -> Result[Int64, String]
+  let inserted = db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'canonical_collection',?,'accepted') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO UPDATE SET authority_actor_uri=EXCLUDED.authority_actor_uri, verification_method=EXCLUDED.verification_method, evidence_uri=EXCLUDED.evidence_uri, state='accepted', updated_at=now() WHERE collection_memberships.state='pending'", postID, contextID, authorityActorURI, evidenceURI)
+  if MutationResult(inserted).IsErr() then
+    return Err("context inclusion failed")
+  end
+  Ok(inserted.RowsAffected)
+end

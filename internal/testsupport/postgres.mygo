@@ -1,0 +1,40 @@
+package testsupport
+
+import testing "go:testing"
+import os "go:os"
+import fmt "go:fmt"
+import time "go:time"
+import sql "go:database/sql"
+import gorm "go:gorm.io/gorm"
+import postgres "go:gorm.io/driver/postgres"
+import logger "go:gorm.io/gorm/logger"
+
+func OpenTestPool(dsn: String) -> Ref[sql.DB]
+  let settings = gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard}
+  gorm.Open(postgres.Open(dsn), Ref.new(settings) as gorm.Option).Unwrap().DB().Unwrap()
+end
+
+func Postgres(t: Ref[testing.T]) -> Ref[sql.DB]
+  let dsn = os.Getenv("COMMUNE_TEST_POSTGRES_DSN")
+  if dsn == "" then
+    t.Skip("set COMMUNE_TEST_POSTGRES_DSN to run real PostgreSQL tests")
+  end
+  let admin = OpenTestPool(dsn)
+  let name = fmt.Sprintf("commune_test_%d", time.Now().UnixNano())
+  t.Cleanup(func() -> ()
+    let _ = admin.Close()
+  end)
+  if admin.Exec("CREATE DATABASE " + name).IsErr() then
+    t.Fatal("cannot create isolated PostgreSQL test database")
+  end
+  t.Cleanup(func() -> ()
+    if admin.Exec("DROP DATABASE " + name + " WITH (FORCE)").IsErr() then
+      t.Error("cannot remove PostgreSQL test database")
+    end
+  end)
+  let db = OpenTestPool(dsn + " dbname=" + name)
+  t.Cleanup(func() -> ()
+    let _ = db.Close()
+  end)
+  db
+end

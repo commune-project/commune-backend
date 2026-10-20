@@ -1,0 +1,77 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresGroupAnnounceInclusion(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.Federation.AllowPrivateNetwork = true
+  settings.Federation.FetchTimeoutSeconds = 5
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let group = "https://home.example/communities/news"
+  let otherGroup = "https://other.example/communities/other"
+  let creator = "https://home.example/users/owner"
+  let otherCreator = "https://other.example/users/owner"
+  let author = "https://author.example/users/writer"
+  let groupKey = storage.GeneratePrivatePEM().Unwrap()
+  let otherKey = storage.GeneratePrivatePEM().Unwrap()
+  let authorKey = storage.GeneratePrivatePEM().Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', NULL), (?, 'Person', ?)", group, storage.PublicPEMFromPrivate(groupKey).Unwrap(), otherGroup, storage.PublicPEMFromPrivate(otherKey).Unwrap(), creator, otherCreator, author, storage.PublicPEMFromPrivate(authorKey).Unwrap())).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News'), ('other','https://other.example/communities/other',?,'federated','eligible_users','eligible_users','other','Other')", group, creator, otherCreator)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1','https://home.example/objects/1','replica','federated',?,'Page','T','B', now(), now())", author)).Unwrap()
+  var innerDocument = ""
+  let peerHandler = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    w.Header().Set("Content-Type", "application/activity+json")
+    let _ = w.Write(innerDocument as Slice[Byte])
+  end
+  let peer = httptest.NewServer(peerHandler as http.HandlerFunc)
+  let innerID = peer.URL + "/activities/create-1"
+  innerDocument = "{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"object\":\"https://home.example/objects/1\"}"
+  let _ = storage.InsertActivityPayload(ctx, db, innerID, author, "Create", innerDocument as Slice[Byte], "").Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let announce = "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", announce, group, groupKey, date).Code != 202 then
+    t.Fatal("a verified group announce was rejected")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted' AND authority_actor_uri=?", group).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a verified inclusion was not recorded")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  let jobsAfterFirst = count
+  let replay = "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", replay, group, groupKey, date).Code != 202 then
+    t.Fatal("replaying an announce was not idempotent")
+  end
+  let _ = storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted'").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("replay duplicated the inclusion record")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  if count != jobsAfterFirst then
+    t.Fatal("replay caused duplicate fan-out")
+  end
+  let unrelated = "{\"id\":\"https://other.example/activities/announce-2\",\"actor\":\"" + otherGroup + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", unrelated, otherGroup, otherKey, date)
+  let _ = storage.MutationResult(db.Table("collection_memberships").Where("authority_actor_uri=?", otherGroup).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("an unrelated announcing actor approved another community's content")
+  end
+  peer.Close()
+end

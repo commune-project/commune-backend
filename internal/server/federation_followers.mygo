@@ -1,0 +1,27 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+func PersonFollowersHandler(settings: config.Config, db: Ref[gorm.DB], w: http.ResponseWriter, request: Ref[http.Request], actorURI: String) -> ()
+  let totalItems = storage.CountPersonFollowers(request.Context(), db, actorURI)
+  if totalItems.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  if request.URL.Query().Get("page") == "" then
+    WriteActivity(w, 200, federation.BuildFollowers(actorURI, totalItems.Unwrap()))
+    return
+  end
+  let size = CollectionPageSize(settings)
+  let page = federation.PageParam(request.URL.Query().Get("page"))
+  let listed = storage.ListPersonFollowers(request.Context(), db, actorURI, size, (page - 1) * size)
+  if listed.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  WriteActivity(w, 200, federation.BuildUriPage(actorURI + "/followers", page, size, totalItems.Unwrap(), listed.Unwrap()))
+end

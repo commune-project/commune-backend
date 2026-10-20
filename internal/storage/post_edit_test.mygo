@@ -1,0 +1,61 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let topic = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Original", ParentID: ""}).Unwrap()
+  if posts.Edit(ctx, topic.ID, bob, false, "Topic", "Hijacked").IsOk() then
+    t.Fatal("non-author edited a post")
+  end
+  if posts.Delete(ctx, topic.ID, bob, false).IsOk() then
+    t.Fatal("non-author deleted a post")
+  end
+  let stored = PostRecord{}
+  let _ = MutationResult(db.Table("posts").Where("id=?", topic.ID).Find(Ref.new(stored))).Unwrap()
+  if stored.Body != "Original" then
+    t.Fatal("unauthorized mutation changed the shared body")
+  end
+  let edited = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited").Unwrap()
+  if edited.Body != "Edited" || edited.ID != topic.ID || edited.UpdatedAt.Before(edited.AuthoredAt) then
+    t.Fatal("author edit failed or moved identity")
+  end
+  if posts.Edit(ctx, topic.ID, alice, false, "", "Edited").IsOk() || posts.Edit(ctx, topic.ID, alice, false, "Topic", "").IsOk() then
+    t.Fatal("edit accepted a shape change or empty body")
+  end
+  let reply = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Body: "Reply", ParentID: topic.ID}).Unwrap()
+  if posts.Edit(ctx, reply.ID, alice, false, "Title", "Body").IsOk() then
+    t.Fatal("reply edit added a title")
+  end
+  let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
+  let tombstone = PostRecord{}
+  let _ = MutationResult(db.Table("posts").Where("id=?", topic.ID).Find(Ref.new(tombstone))).Unwrap()
+  if !tombstone.DeletedAt.Valid || tombstone.Body != "" then
+    t.Fatal("author deletion did not tombstone the post")
+  end
+  if posts.Edit(ctx, topic.ID, alice, false, "Topic", "Resurrected").IsOk() then
+    t.Fatal("edit restored a tombstoned body")
+  end
+  if posts.Delete(ctx, topic.ID, alice, false).IsErr() then
+    t.Fatal("repeated deletion was not idempotent")
+  end
+  let member = communities.Create(ctx, site, alice, "memberonly", "Member", "local_only", "members", "members").Unwrap()
+  let hidden = posts.Publish(ctx, site, member.ID, alice, false, PublishInput{Title: "Hidden", Body: "Body", ParentID: ""}).Unwrap()
+  if posts.Edit(ctx, hidden.ID, bob, false, "Hidden", "Nope").IsOk() || posts.Delete(ctx, hidden.ID, bob, false).IsOk() then
+    t.Fatal("non-member mutated a member-only post")
+  end
+end

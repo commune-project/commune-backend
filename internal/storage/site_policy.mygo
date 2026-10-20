@@ -1,0 +1,105 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import url "go:net/url"
+import strings "go:strings"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct SiteRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+end
+
+func QueryExists(query: Ref[gorm.DB]) -> Result[Bool, String]
+  let count = 0i64
+  if MutationResult(query.Count(Ref.new(count))).IsErr() then
+    return Err("policy unavailable")
+  end
+  Ok(count > 0i64)
+end
+
+impl SiteRepository
+  func IsAdministrator(self: SiteRepository, ctx: context.Context, identity: auth.Identity) -> Result[Bool, String]
+    if !identity.BelongsTo(self.SiteID) then
+      return Ok(false)
+    end
+    QueryExists(self.DB.WithContext(ctx).Table("site_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id AND a.site_id = r.site_id").Where("r.site_id = ? AND r.account_id = ? AND r.role = 'administrator' AND a.actor_uri = ? AND NOT a.disabled", self.SiteID, identity.AccountID, identity.ActorURI))
+  end
+
+  func IsDeploymentAdministrator(self: SiteRepository, ctx: context.Context, identity: auth.Identity) -> Result[Bool, String]
+    if identity.AccountID <= 0i64 || identity.ActorURI == "" then
+      return Ok(false)
+    end
+    QueryExists(self.DB.WithContext(ctx).Table("deployment_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id").Where("r.account_id = ? AND r.role = 'superadministrator' AND a.actor_uri = ? AND NOT a.disabled", identity.AccountID, identity.ActorURI))
+  end
+
+  func IsBlocked(self: SiteRepository, ctx: context.Context, actorURI: String) -> Result[Bool, String]
+    let parsed = url.Parse(actorURI)
+    if parsed.IsErr() then
+      return Err("invalid actor identity")
+    end
+    let actor = parsed.Unwrap()
+    if actor.Scheme != "https" || config.NormalizeAuthority(actor.Host).IsErr() then
+      return Err("invalid actor identity")
+    end
+    let domain = strings.ToLower(strings.TrimSuffix(actor.Hostname(), "."))
+    let blocked = false
+    let query = self.DB.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM site_actor_blocks WHERE site_id = ? AND actor_uri = ?) OR EXISTS (SELECT 1 FROM site_domain_blocks WHERE site_id = ? AND domain = ?) AS blocked", self.SiteID, actorURI, self.SiteID, domain).Scan(Ref.new(blocked))
+    if MutationResult(query).IsErr() then
+      return Err("policy unavailable")
+    end
+    Ok(blocked)
+  end
+
+  func SetActorBlocked(self: SiteRepository, ctx: context.Context, identity: auth.Identity, actorURI: String, blocked: Bool) -> Result[(), String]
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let repository = SiteRepository{DB: tx, SiteID: self.SiteID}
+      let allowed = repository.IsAdministrator(ctx, identity)
+      if allowed.IsErr() then
+        return Err(allowed.UnwrapErr())
+      end
+      if !allowed.Unwrap() then
+        return Err("forbidden")
+      end
+      let query = if blocked then
+        tx.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, actorURI)
+      else
+        tx.Exec("DELETE FROM site_actor_blocks WHERE site_id = ? AND actor_uri = ?", self.SiteID, actorURI)
+      end
+      if MutationResult(query).IsErr() then
+        return Err("block update failed")
+      end
+      let action = if blocked then "block-actor" else "unblock-actor" end
+      MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, actorURI))
+    end)
+  end
+
+  func SetDomainBlocked(self: SiteRepository, ctx: context.Context, identity: auth.Identity, domain: String, blocked: Bool) -> Result[(), String]
+    let normalized = strings.ToLower(strings.TrimSuffix(domain, "."))
+    if !config.ValidDomain(normalized) then
+      return Err("invalid domain")
+    end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let repository = SiteRepository{DB: tx, SiteID: self.SiteID}
+      let allowed = repository.IsAdministrator(ctx, identity)
+      if allowed.IsErr() then
+        return Err(allowed.UnwrapErr())
+      end
+      if !allowed.Unwrap() then
+        return Err("forbidden")
+      end
+      let query = if blocked then
+        tx.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, normalized)
+      else
+        tx.Exec("DELETE FROM site_domain_blocks WHERE site_id = ? AND domain = ?", self.SiteID, normalized)
+      end
+      if MutationResult(query).IsErr() then
+        return Err("block update failed")
+      end
+      let action = if blocked then "block-domain" else "unblock-domain" end
+      MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, normalized))
+    end)
+  end
+end

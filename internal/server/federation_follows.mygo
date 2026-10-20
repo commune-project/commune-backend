@@ -1,0 +1,128 @@
+package server
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import rand "go:crypto/rand"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+let activityContext = "https://www.w3.org/ns/activitystreams"
+
+# Ordinary object Announcing is recorded as a receipt only: ingesting a boost must
+# never create community membership or group approval.
+func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[Bool, String]
+  let excluded = storage.IsLocalOnlyObject(ctx, db, activity.ObjectURI)
+  if excluded.IsErr() then
+    return Err(excluded.UnwrapErr())
+  end
+  if excluded.Unwrap() then
+    return Ok(false)
+  end
+  if activity.Type == "Follow" then
+    let applied = ApplyFollow(ctx, db, site, activity)
+    if applied.IsErr() then
+      return Err(applied.UnwrapErr())
+    end
+    return Ok(false)
+  end
+  if activity.Type == "Undo" then
+    let applied = ApplyUndoFollow(ctx, db, site, activity)
+    if applied.IsErr() then
+      return Err(applied.UnwrapErr())
+    end
+    return Ok(false)
+  end
+  if activity.Type == "Update" then
+    return ApplyCommunityState(ctx, db, payload)
+  end
+  if activity.Type == "Create" then
+    let applied = ApplyCreateSubmission(ctx, db, site, activity, payload, addressed)
+    if applied.IsErr() then
+      return Err(applied.UnwrapErr())
+    end
+  end
+  if activity.Type == "Announce" then
+    let applied = ApplyAnnounce(ctx, db, site, activity)
+    if applied.IsErr() then
+      return Err(applied.UnwrapErr())
+    end
+  end
+  if activity.Type == "Add" || activity.Type == "Remove" then
+    let applied = ApplyGroupManagement(ctx, db, site, activity, payload)
+    if applied.IsErr() then
+      return Err(applied.UnwrapErr())
+    end
+  end
+  Ok(false)
+end
+
+func ApplyPersonFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  if activity.ObjectURI == "" then
+    return Ok(())
+  end
+  let target = storage.LoadActor(ctx, db, activity.ObjectURI)
+  if target.IsErr() || target.Unwrap().IsNone() then
+    return Err("unknown follow target")
+  end
+  let record = target.Unwrap().Unwrap()
+  if record.Kind != "Person" || !record.LocalSiteID.Valid || record.LocalSiteID.String != site.ID then
+    return Err("unknown follow target")
+  end
+  let added = storage.AddPersonFollower(ctx, db, activity.ObjectURI, activity.Actor, activity.ID)
+  if added.IsErr() then
+    return Err(added.UnwrapErr())
+  end
+  SendFollowReply(ctx, db, site, activity.ObjectURI, activity.Actor, activity.ID, "Accept")
+end
+
+func SendFollowReply(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), String]
+  let key = storage.EnsureLocalKey(ctx, db, localActorURI)
+  if key.IsErr() then
+    return Err(key.UnwrapErr())
+  end
+  let activityURI = site.Origin + "/activities/" + rand.Text()
+  let payload = "{\"@context\":\"" + activityContext + "\",\"id\":\"" + activityURI + "\",\"type\":\"" + kind + "\",\"actor\":\"" + localActorURI + "\",\"object\":{\"id\":\"" + followURI + "\",\"type\":\"Follow\",\"actor\":\"" + follower + "\",\"object\":\"" + localActorURI + "\"}}"
+  let checksum = storage.PayloadChecksum(payload as Slice[Byte])
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if storage.MutationResult(tx.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?)", activityURI, localActorURI, kind)).IsErr() then
+      return Err("accept creation failed")
+    end
+    if storage.MutationResult(tx.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, payload as Slice[Byte], checksum)).IsErr() then
+      return Err("accept creation failed")
+    end
+    let planned = storage.PlanDelivery(ctx, tx, activityURI, localActorURI, [follower], "")
+    if planned.IsErr() then
+      return Err(planned.UnwrapErr())
+    end
+    Ok(())
+  end)
+end
+
+func ApplyUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  if activity.ObjectURI == "" then
+    return Ok(())
+  end
+  let kind = storage.LoadActivityKind(ctx, db, activity.ObjectURI)
+  if kind.IsErr() || kind.Unwrap() != "Follow" then
+    return Ok(())
+  end
+  let original = storage.LoadActivityPayload(ctx, db, activity.ObjectURI)
+  if original.IsErr() || original.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let parsed = federation.ParseActivity(original.Unwrap().Unwrap().Payload)
+  if parsed.IsErr() then
+    return Ok(())
+  end
+  let follow = parsed.Unwrap()
+  if follow.Actor != activity.Actor || follow.ObjectURI == "" then
+    return Ok(())
+  end
+  let target = storage.LoadActor(ctx, db, follow.ObjectURI)
+  if target.IsOk() && target.Unwrap().IsSome() && target.Unwrap().Unwrap().LocalSiteID.Valid && target.Unwrap().Unwrap().LocalSiteID.String == site.ID && target.Unwrap().Unwrap().Kind == "Person" then
+    storage.RemovePersonFollower(ctx, db, follow.ObjectURI, activity.Actor)
+    return Ok(())
+  end
+  ApplyGroupUndoFollow(ctx, db, site, follow)
+end

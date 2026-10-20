@@ -1,0 +1,138 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import rsa "go:crypto/rsa"
+import rand "go:crypto/rand"
+import x509 "go:crypto/x509"
+import pem "go:encoding/pem"
+
+struct ActorRecord
+  URI: String `gorm:"column:uri"`
+  LocalSiteID: sql.NullString `gorm:"column:local_site_id"`
+  Kind: String `gorm:"column:kind"`
+  InboxURI: sql.NullString `gorm:"column:inbox_uri"`
+  PublicKeyPEM: sql.NullString `gorm:"column:public_key_pem"`
+end
+
+# Key material never crosses the representation boundary; only public PEM does.
+func GeneratePrivatePEM() -> Result[String, String]
+  switch rsa.GenerateKey(rand.Reader, 2048)
+    case Err(_) => Err("key generation failed")
+    case Ok(key) then
+      let block = pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}
+      Ok(pem.EncodeToMemory(Ref.new(block)) as String)
+    end
+  end
+end
+
+func PublicPEMFromPrivate(privatePEM: String) -> Result[String, String]
+  let (block, _) = pem.Decode(privatePEM as Slice[Byte])
+  let isBlockInvalid = go[Bool] {
+    code: `{block} == nil`
+    in block = block
+  }
+  if isBlockInvalid then
+    return Err("invalid private key")
+  end
+  let parsed = x509.ParsePKCS1PrivateKey(block.Bytes)
+  if parsed.IsErr() then
+    return Err("invalid private key")
+  end
+  let derived = x509.MarshalPKIXPublicKey(Ref.new(parsed.Unwrap().PublicKey))
+  if derived.IsErr() then
+    return Err("invalid public key")
+  end
+  let publicBlock = pem.Block{Type: "PUBLIC KEY", Bytes: derived.Unwrap()}
+  Ok(pem.EncodeToMemory(Ref.new(publicBlock)) as String)
+end
+
+impl ActorRecord
+  func Inbox(self: ActorRecord) -> String
+    if self.InboxURI.Valid then
+      return self.InboxURI.String
+    end
+    self.URI + "/inbox"
+  end
+end
+
+func LoadActor(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  uri: String
+) -> Result[Option[ActorRecord], String]
+  if uri == "" then
+    return Err("invalid actor")
+  end
+  let record = ActorRecord{}
+  let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("actor unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[ActorRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+func LoadLocalPerson(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  username: String
+) -> Result[Option[ActorRecord], String]
+  let record = ActorRecord{}
+  let query = db.WithContext(ctx).Table("actors AS a").Where(
+    "a.local_site_id = ? AND a.kind = 'Person' AND a.uri IN (SELECT actor_uri FROM accounts WHERE site_id = ? AND username = ? AND NOT disabled)",
+    siteID,
+    siteID,
+    username
+  ).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("actor unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[ActorRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+func EnsureLocalKey(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  actorURI: String
+) -> Result[String, String]
+  let existing = LoadActor(ctx, db, actorURI)
+  if existing.IsErr() then
+    return Err(existing.UnwrapErr())
+  end
+  if existing.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let actor = existing.Unwrap().Unwrap()
+  if actor.PublicKeyPEM.Valid && actor.PublicKeyPEM.String != "" then
+    return Ok(actor.PublicKeyPEM.String)
+  end
+  if !actor.LocalSiteID.Valid then
+    return Err("not found")
+  end
+  let generated = GeneratePrivatePEM()
+  if generated.IsErr() then
+    return Err(generated.UnwrapErr())
+  end
+  let derived = PublicPEMFromPrivate(generated.Unwrap())
+  if derived.IsErr() then
+    return Err(derived.UnwrapErr())
+  end
+  let update = db.WithContext(ctx).Exec(
+    "UPDATE actors SET public_key_pem=?, private_key_pem=? WHERE uri=? AND local_site_id IS NOT NULL AND (public_key_pem IS NULL OR public_key_pem='')",
+    derived.Unwrap(),
+    generated.Unwrap(),
+    actorURI
+  )
+  if MutationResult(update).IsErr() then
+    return Err("key storage failed")
+  end
+  Ok(derived.Unwrap())
+end

@@ -1,0 +1,88 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let _ = ProvisionSite(ctx, db, config.Site{ID: "a", Origin: "https://a.example"}).Unwrap()
+  let _ = ProvisionSite(ctx, db, config.Site{ID: "b", Origin: "https://b.example"}).Unwrap()
+  let author = "https://remote.example/users/alice"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/communities/news','Group'),('https://remote.example/users/bob','Person')", author)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('news','https://remote.example/communities/news',?,'federated','eligible_users','eligible_users','news','News')", author)).Unwrap()
+  let first = PostRepository{DB: db, SiteID: "a"}
+  let second = PostRepository{DB: db, SiteID: "b"}
+  let authored = time.Now()
+  let makePost = func(uri: String, owner: String, body: String, updated: time.Time, deleted: Bool) -> PostRecord
+    PostRecord{ObjectURI: sql.NullString{String: uri, Valid: true}, CommunityID: "news", FederationMode: "federated", AuthorActorURI: owner, ObjectType: "Page", Title: sql.NullString{String: "Title", Valid: true}, Body: body, AuthoredAt: authored, UpdatedAt: updated, DeletedAt: sql.NullTime{Time: updated, Valid: deleted}}
+  end
+  let uri = "https://remote.example/objects/one"
+  let post = makePost(uri, author, "same text", authored, false)
+  let ready = concurrency.MakeChan[()](2)
+  let start = concurrency.MakeChan[()](2)
+  let results = concurrency.MakeChan[Result[PostRecord, String]](2)
+  [first, second].Each(func(repository: PostRepository) -> ()
+    concurrency.Spawn(func() -> ()
+      ready.Send(())
+      let _ = start.Receive()
+      results.Send(repository.Receive(ctx, post, author))
+    end)
+  end)
+  let _ = ready.Receive()
+  let _ = ready.Receive()
+  start.Send(())
+  start.Send(())
+  let a = results.Receive().Unwrap().Unwrap()
+  let b = results.Receive().Unwrap().Unwrap()
+  if a.ID != b.ID || a.Body != "same text" then
+    t.Fatal("concurrent reception did not converge on one shared body")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("posts").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("duplicate shared object rows")
+  end
+  let _ = MutationResult(db.Table("site_posts").Where("post_id=?", a.ID).Count(Ref.new(count))).Unwrap()
+  if count != 2i64 then
+    t.Fatal("site reception rows were deduplicated across sites")
+  end
+  let distinct = first.Receive(ctx, makePost("https://remote.example/objects/two", author, "same text", authored, false), author).Unwrap()
+  if distinct.ID == a.ID then
+    t.Fatal("identical text merged different canonical URIs")
+  end
+  let newer = authored.Add(time.Second)
+  if first.Receive(ctx, makePost(uri, "https://remote.example/users/bob", "forged", newer, false), "https://remote.example/users/bob").IsOk() then
+    t.Fatal("unrelated authenticated author reused another object's URI")
+  end
+  if first.Receive(ctx, makePost(uri, author, "forged", authored, false), author).IsOk() then
+    t.Fatal("conflicting body reused the same version")
+  end
+  let update = first.Receive(ctx, makePost(uri, author, "updated", newer, false), author).Unwrap()
+  if update.ID != a.ID || update.Body != "updated" then
+    t.Fatal("authoritative update replaced identity or failed to update body")
+  end
+  if second.Receive(ctx, post, author).Unwrap().Body != "updated" then
+    t.Fatal("late original version replaced a newer body")
+  end
+  let deleted = first.Receive(ctx, makePost(uri, author, "", newer.Add(time.Second), true), author).Unwrap()
+  let replay = second.Receive(ctx, makePost(uri, author, "resurrected", newer.Add(2 as time.Duration * time.Second), false), author).Unwrap()
+  if !deleted.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" then
+    t.Fatal("a newer replay resurrected a tombstone")
+  end
+  let missing = PostRepository{DB: db, SiteID: "missing"}
+  if missing.Receive(ctx, makePost("https://remote.example/objects/rollback", author, "body", authored, false), author).IsOk() then
+    t.Fatal("missing site accepted reception")
+  end
+  let _ = MutationResult(db.Table("posts").Where("object_uri=?", "https://remote.example/objects/rollback").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("reception failure left an uncommitted object")
+  end
+end

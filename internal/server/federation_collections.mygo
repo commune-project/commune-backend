@@ -1,0 +1,127 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+func CollectionPageSize(settings: config.Config) -> Int
+  settings.Runtime.MaxPageSize
+end
+
+func OutboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], actorURI: String, communityID: String, membersOnly: Bool) -> ()
+  var totalItems = storage.CountActorObjects(request.Context(), db, actorURI, site.Origin)
+  if communityID != "" then
+    totalItems = storage.CountCommunityObjects(request.Context(), db, site.Origin, communityID)
+  end
+  if membersOnly && communityID != "" then
+    totalItems = storage.CountMemberCommunityObjects(request.Context(), db, site.Origin, communityID)
+  end
+  if membersOnly && communityID == "" then
+    totalItems = storage.CountMemberObjects(request.Context(), db, actorURI, site.Origin, communityID)
+  end
+  if totalItems.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  if request.URL.Query().Get("page") == "" then
+    WriteActivity(w, 200, federation.BuildOutbox(actorURI, totalItems.Unwrap()))
+    return
+  end
+  let size = CollectionPageSize(settings)
+  let page = federation.PageParam(request.URL.Query().Get("page"))
+  var listed = storage.ListActorObjects(request.Context(), db, actorURI, site.Origin, size, (page - 1) * size)
+  if communityID != "" then
+    listed = storage.ListCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page - 1) * size)
+  end
+  if membersOnly && communityID != "" then
+    listed = storage.ListMemberCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page - 1) * size)
+  end
+  if membersOnly && communityID == "" then
+    listed = storage.ListMemberObjects(request.Context(), db, actorURI, site.Origin, communityID, size, (page - 1) * size)
+  end
+  if listed.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  if items.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  WriteActivity(w, 200, federation.BuildObjectPage(actorURI + "/outbox", page, size, totalItems.Unwrap(), items.Unwrap()))
+end
+
+func BuildObjectItems(ctx: context.Context, db: Ref[gorm.DB], records: Slice[storage.PostRecord]) -> Result[Slice[federation.ObjectRepresentation], String]
+  var items: Slice[federation.ObjectRepresentation] = []
+  var failed = false
+  records.Each(func(record: storage.PostRecord) -> ()
+    let community = storage.LoadCommunityByID(ctx, db, record.CommunityID)
+    if community.IsErr() || community.Unwrap().IsNone() then
+      failed = true
+    else
+      let contextURI = storage.PrimaryPostContextURI(ctx, db, record.ID)
+      items = items.Append(federation.BuildObjectRepresentationWithContext(record, community.Unwrap().Unwrap(), contextURI))
+    end
+  end)
+  if failed then
+    return Err("collection unavailable")
+  end
+  Ok(items)
+end
+
+func FollowersHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], actorURI: String, communityID: String) -> ()
+  if communityID == "" then
+    PersonFollowersHandler(settings, db, w, request, actorURI)
+    return
+  end
+  let totalItems = storage.CountAcceptedFollowers(request.Context(), db, communityID)
+  if totalItems.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  if request.URL.Query().Get("page") == "" then
+    WriteActivity(w, 200, federation.BuildFollowers(actorURI, totalItems.Unwrap()))
+    return
+  end
+  let size = CollectionPageSize(settings)
+  let page = federation.PageParam(request.URL.Query().Get("page"))
+  let listed = storage.ListAcceptedFollowers(request.Context(), db, communityID, size, (page - 1) * size)
+  if listed.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  WriteActivity(w, 200, federation.BuildUriPage(actorURI + "/followers", page, size, totalItems.Unwrap(), listed.Unwrap()))
+end
+
+func RepliesHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], objectID: String) -> ()
+  let object = storage.LoadObjectByID(request.Context(), db, objectID)
+  if object.IsErr() || object.Unwrap().IsNone() || !object.Unwrap().Unwrap().ObjectURI.Valid then
+    http.NotFound(w, request)
+    return
+  end
+  let actorURI = object.Unwrap().Unwrap().ObjectURI.String
+  let totalItems = storage.CountObjectReplies(request.Context(), db, objectID, site.Origin)
+  if totalItems.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  if request.URL.Query().Get("page") == "" then
+    WriteActivity(w, 200, federation.BuildReplies(actorURI, totalItems.Unwrap()))
+    return
+  end
+  let size = CollectionPageSize(settings)
+  let page = federation.PageParam(request.URL.Query().Get("page"))
+  let listed = storage.ListObjectReplies(request.Context(), db, objectID, site.Origin, size, (page - 1) * size)
+  if listed.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  if items.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  WriteActivity(w, 200, federation.BuildObjectPage(actorURI + "/replies", page, size, totalItems.Unwrap(), items.Unwrap()))
+end

@@ -1,0 +1,93 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresGroupFollowPolicy(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let restricted = communities.Create(ctx, a, alice, "restricted", "Restricted", "federated", "members", "members").Unwrap()
+  let fanKey = storage.GeneratePrivatePEM().Unwrap()
+  let fan = "https://peer.example/users/fan"
+  let member = "https://peer.example/users/member"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,public_key_pem) VALUES (?, 'Person', 'https://peer.example/inbox', ?), (?, 'Person', 'https://peer.example/inbox', NULL)", fan, storage.PublicPEMFromPrivate(fanKey).Unwrap(), member)).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let openFollow = "{\"id\":\"https://peer.example/activities/follow-open\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + open.ActorURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", openFollow, fan, fanKey, date).Code != 202 then
+    t.Fatal("an open community follow was not accepted")
+  end
+  if storage.CommunityFollowState(ctx, db, open.ID, fan).Unwrap() != "accepted" then
+    t.Fatal("an open community subscription was not recorded as accepted")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Accept'", open.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("an accepted subscription did not issue an Accept")
+  end
+  let restrictedFollow = "{\"id\":\"https://peer.example/activities/follow-restricted\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", restrictedFollow, fan, fanKey, date).Code != 202 then
+    t.Fatal("a restricted community follow was not processed")
+  end
+  if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "rejected" then
+    t.Fatal("a non-member was admitted to a members-only subscription")
+  end
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Reject'", restricted.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a rejected subscription did not issue a Reject")
+  end
+  if storage.IsCurrentMember(ctx, db, restricted.ID, fan).Unwrap() then
+    t.Fatal("a subscription granted membership")
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, fan, alice.ActorURI)).Unwrap()
+  let approvedFollow = "{\"id\":\"https://peer.example/activities/follow-approved\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", approvedFollow, fan, fanKey, date).Code != 202 then
+    t.Fatal("an approved member's follow was not processed")
+  end
+  if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "accepted" then
+    t.Fatal("an approved member was not admitted to the restricted subscription")
+  end
+  let undo = "{\"id\":\"https://peer.example/activities/undo-restricted\",\"actor\":\"" + fan + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/activities/follow-approved\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", undo, fan, fanKey, date).Code != 202 then
+    t.Fatal("unsubscribing was not accepted")
+  end
+  if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "undone" then
+    t.Fatal("unsubscribing was not recorded")
+  end
+  if !storage.IsCurrentMember(ctx, db, restricted.ID, fan).Unwrap() then
+    t.Fatal("unsubscribing implicitly removed membership")
+  end
+  let group = getAP(handler, a.Origin, "/communities/open", "application/activity+json")
+  if group.Code != 200 || !strings.Contains(group.Body.String(), "/moderators") || !strings.Contains(group.Body.String(), "/followers") then
+    t.Fatalf("the Group did not advertise its management and follower collections: %d %s", group.Code, group.Body.String())
+  end
+  if getAP(handler, a.Origin, "/communities/restricted/moderators", "application/activity+json").Code != 404 then
+    t.Fatal("an unsigned read reached a protected management collection")
+  end
+  let membersKey = storage.GeneratePrivatePEM().Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE actors SET public_key_pem = ? WHERE uri = ?", storage.PublicPEMFromPrivate(membersKey).Unwrap(), member)).Unwrap()
+  let managerRead = signedGet(handler, a.Origin, "/communities/restricted/moderators", member, membersKey, date)
+  if managerRead.Code != 404 then
+    t.Fatal("a non-manager member read the management collection")
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, member, alice.ActorURI)).Unwrap()
+  let publicMods = getAP(handler, a.Origin, "/communities/open/moderators", "application/activity+json")
+  if publicMods.Code != 200 || !strings.Contains(publicMods.Body.String(), alice.ActorURI) then
+    t.Fatalf("the open management collection did not list the creator: %d %s", publicMods.Code, publicMods.Body.String())
+  end
+end

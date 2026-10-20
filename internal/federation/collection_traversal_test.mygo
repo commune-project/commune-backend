@@ -1,0 +1,21 @@
+package federation
+
+import testing "go:testing"
+
+func TestCollectionTraversal(t: Ref[testing.T]) -> ()
+  let payload = "{\"id\":\"https://peer.example/contexts/1\",\"type\":\"OrderedCollectionPage\",\"first\":\"https://peer.example/contexts/1?page=1\",\"next\":{\"id\":\"https://peer.example/contexts/1?page=3\"},\"orderedItems\":[\"https://peer.example/objects/1\",{\"id\":\"https://peer.example/objects/2\"},{\"href\":\"https://peer.example/objects/3\"},\"https://peer.example/objects/1\"]}"
+  let parsed = ParseCollectionTraversal(payload as Slice[Byte])
+  if parsed.IsErr() then
+    t.Fatalf("a valid collection page was rejected: %s", parsed.UnwrapErr())
+  end
+  let page = parsed.Unwrap()
+  if page.ID != "https://peer.example/contexts/1" || page.First != "https://peer.example/contexts/1?page=1" || page.Next != "https://peer.example/contexts/1?page=3" then
+    t.Fatal("collection navigation links were not retained")
+  end
+  if page.Items.Len() != 3 || page.Items.Get(2).Unwrap() != "https://peer.example/objects/3" then
+    t.Fatal("mixed collection items were not decoded and deduplicated")
+  end
+  if ParseCollectionTraversal("{\"type\":\"Note\",\"items\":[]}" as Slice[Byte]).IsOk() then
+    t.Fatal("a non-collection document was accepted for traversal")
+  end
+end

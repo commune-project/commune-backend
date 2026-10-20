@@ -1,0 +1,79 @@
+package server
+
+import http "go:net/http"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+func IsActorSection(section: String) -> Bool
+  section == "outbox" || section == "inbox" || section == "followers"
+end
+
+func FederationCollectionRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> ()
+  let kind = parts.Get(0).Unwrap()
+  let name = strings.ToLower(parts.Get(1).Unwrap())
+  let section = parts.Get(2).Unwrap()
+  if kind == "users" && IsActorSection(section) then
+    let person = storage.LoadLocalPerson(request.Context(), db, site.ID, name)
+    if person.IsErr() || person.Unwrap().IsNone() then
+      http.NotFound(w, request)
+      return
+    end
+    ActorSection(settings, db, site, w, request, section, person.Unwrap().Unwrap().URI, "", false)
+    return
+  end
+  if kind == "communities" && IsActorSection(section) then
+    let found = storage.LoadCommunityByName(request.Context(), db, site.ID, name)
+    if found.IsErr() || found.Unwrap().IsNone() || !federation.FederatedCommunity(found.Unwrap().Unwrap()) then
+      http.NotFound(w, request)
+      return
+    end
+    let community = found.Unwrap().Unwrap()
+    let membersOnly = community.ReadPolicy == "members"
+    if membersOnly && section != "inbox" then
+      let allowed = MemberReadAllowed(db, settings, request, site, community)
+      if allowed.IsErr() then
+        http.NotFound(w, request)
+        return
+      end
+    end
+    ActorSection(settings, db, site, w, request, section, community.ActorURI.String, community.ID, membersOnly)
+    return
+  end
+  if kind == "objects" && section == "replies" then
+    RepliesHandler(settings, db, site, w, request, parts.Get(1).Unwrap())
+    return
+  end
+  if kind == "communities" && section == "moderators" then
+    let found = storage.LoadCommunityByName(request.Context(), db, site.ID, name)
+    if found.IsErr() || found.Unwrap().IsNone() || !federation.FederatedCommunity(found.Unwrap().Unwrap()) then
+      http.NotFound(w, request)
+      return
+    end
+    let community = found.Unwrap().Unwrap()
+    if community.ReadPolicy == "members" then
+      let allowed = MemberReadAllowed(db, settings, request, site, community)
+      if allowed.IsErr() then
+        http.NotFound(w, request)
+        return
+      end
+    end
+    ModeratorsHandler(settings, db, site, w, request, community.ID)
+    return
+  end
+  http.NotFound(w, request)
+end
+
+func ActorSection(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], section: String, actorURI: String, communityID: String, membersOnly: Bool) -> ()
+  if section == "inbox" then
+    WriteActivity(w, 200, federation.BuildInbox(actorURI))
+    return
+  end
+  if section == "outbox" then
+    OutboxHandler(settings, db, site, w, request, actorURI, communityID, membersOnly)
+    return
+  end
+  FollowersHandler(settings, db, site, w, request, actorURI, communityID)
+end

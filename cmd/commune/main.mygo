@@ -1,0 +1,95 @@
+package main
+
+import fmt "go:fmt"
+import os "go:os"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import context "go:context"
+import server "github.com/commune-project/commune-mygo/internal/server"
+import signal "go:os/signal"
+import syscall "go:syscall"
+import slog "go:log/slog"
+import io "go:io"
+
+func RunCommand(args: Slice[String]) -> Result[(), String]
+  if args.Len() < 3 then
+    return Err("usage: commune <check-config|migrate|provision-sites|provision-admin|provision-account|serve> <config.json> [site-id username [option]]")
+  end
+  let command = args.Get(1).Unwrap()
+  let loaded = config.Load(args.Get(2).Unwrap())
+  if loaded.IsErr() then
+    return Err(loaded.UnwrapErr())
+  end
+  let settings = loaded.Unwrap()
+  if command == "check-config" && args.Len() == 3 then
+    let _ = fmt.Println("configuration valid; sites:", settings.Sites.Len())
+    return Ok(())
+  end
+  if command != "migrate" && command != "provision-sites" && command != "provision-admin" && command != "provision-account" && command != "serve" then
+    return Err("unknown command or invalid arguments")
+  end
+  let provisioning = command == "provision-admin" || command == "provision-account"
+  if (!provisioning && args.Len() != 3) || (provisioning && args.Len() != 5 && args.Len() != 6) then
+    return Err("invalid command arguments")
+  end
+  if command == "provision-admin" && args.Len() == 6 && args.Get(5).Unwrap() != "--deployment-superadministrator" then
+    return Err("unknown provisioning option")
+  end
+  let opened = storage.OpenPostgres(settings.DatabaseURL)
+  if opened.IsErr() then
+    return Err(opened.UnwrapErr())
+  end
+  let db = opened.Unwrap()
+  let pool = db.DB().Unwrap()
+  go[()] { code: "defer {pool}.Close()"; in pool = pool }
+  let ctx = context.Background()
+  if command == "serve" then
+    let options = slog.HandlerOptions{}
+    slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout as io.Writer, Ref.new(options))))
+    let (lifetime, stop) = signal.NotifyContext(ctx, syscall.SIGINT as os.Signal, syscall.SIGTERM as os.Signal)
+    go[()] { code: "defer {stop}()"; in stop = stop }
+    return server.Serve(lifetime, settings, db)
+  end
+  if command == "migrate" then
+    return storage.MigrateGORM(ctx, db)
+  end
+  if storage.CheckGORM(ctx, db).IsErr() then
+    return Err("schema is incompatible; run explicit migration")
+  end
+  if command == "provision-sites" then
+    return settings.Sites.Fold(Ok[(), String](()), func(previous: Result[(), String], site: config.Site) -> Result[(), String]
+      if previous.IsErr() then
+        return previous
+      end
+      storage.ProvisionSite(ctx, db, site)
+    end)
+  end
+  let sites = settings.Sites.Filter(func(site: config.Site) -> Bool
+    site.ID == args.Get(3).Unwrap()
+  end)
+  if sites.Len() != 1 then
+    return Err("provisioning site is not configured")
+  end
+  if command == "provision-account" then
+    let email = if args.Len() == 6 then args.Get(5).Unwrap() else "" end
+    let repository = storage.AccountRepository{DB: db}
+    let created = repository.Create(ctx, sites.Get(0).Unwrap(), args.Get(4).Unwrap(), email, os.Getenv("COMMUNE_ACCOUNT_PASSWORD"))
+    switch created
+      case Err(reason) => Err(reason)
+      case Ok(_) => Ok(())
+    end
+  else
+  let password = os.Getenv("COMMUNE_ADMIN_PASSWORD")
+  storage.ProvisionAdministrator(ctx, db, sites.Get(0).Unwrap(), args.Get(4).Unwrap(), password, args.Len() == 6)
+  end
+end
+
+func main() -> ()
+  switch RunCommand(os.Args)
+    case Err(reason) then
+      let _ = os.Stderr.WriteString(reason + "\n")
+      os.Exit(1)
+    end
+    case Ok(_) => ()
+  end
+end

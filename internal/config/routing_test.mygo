@@ -1,0 +1,66 @@
+package config
+
+import testing "go:testing"
+import strings "go:strings"
+import httptest "go:net/http/httptest"
+import io "go:io"
+
+struct RoutingCase
+  Host: String
+  Remote: String
+  Forwarded: String
+  Want: String
+end
+
+func TestSiteRouting(t: Ref[testing.T]) -> ()
+  let config = validated(t)
+  let body = strings.NewReader("") as io.Reader
+  let request = httptest.NewRequest("GET", "https://a.example/", body)
+  request.RemoteAddr = "198.51.100.1:1000"
+  request.Header.Set("X-Forwarded-Host", "b.example")
+  request.Header.Set("Forwarded", "host=b.example")
+  switch ResolveRequest(config, request)
+  case Ok(site) =>
+    if site.ID != "a" then
+      t.Fatal("HTTP request accepted spoofed forwarded host")
+    end
+  case Err(message) => t.Fatal(message)
+  end
+  let cases = [
+    RoutingCase{Host: "A.EXAMPLE.:443", Remote: "198.51.100.1:1000", Forwarded: "b.example", Want: "a"},
+    RoutingCase{Host: "alias.example", Remote: "198.51.100.1:1000", Forwarded: "", Want: "a"},
+    RoutingCase{Host: "internal.example", Remote: "192.0.2.1:1000", Forwarded: "b.example", Want: "b"},
+    RoutingCase{Host: "internal.example", Remote: "[2001:db8::1]:1000", Forwarded: "a.example", Want: "a"},
+    RoutingCase{Host: "internal.example", Remote: "[::ffff:192.0.2.1]:1000", Forwarded: "a.example", Want: "a"},
+    RoutingCase{Host: "unknown.example", Remote: "198.51.100.1:1000", Forwarded: "a.example", Want: ""},
+    RoutingCase{Host: "a.example", Remote: "192.0.2.1:1000", Forwarded: "a.example,b.example", Want: ""},
+    RoutingCase{Host: "a.example", Remote: "192.0.2.1:1000", Forwarded: "unknown.example", Want: ""},
+    RoutingCase{Host: "a.example", Remote: "invalid", Forwarded: "b.example", Want: "a"}
+  ]
+  cases.Each(func(test: RoutingCase) -> ()
+    switch ResolveSite(config, test.Host, test.Remote, test.Forwarded)
+    case Ok(site) =>
+      if test.Want == "" || site.ID != test.Want then
+        t.Errorf("incorrect site selected for %s", test.Host)
+      end
+    case Err(message) =>
+      if test.Want != "" then
+        t.Errorf("routing %s: %s", test.Host, message)
+      end
+    end
+  end)
+  let site = config.Sites.Get(0).Unwrap()
+  switch CanonicalURI(site, "users", "alice")
+  case Ok(uri) =>
+    if uri != "https://a.example/users/alice" then
+      t.Fatal("alias changed canonical identity")
+    end
+  case Err(message) => t.Fatal(message)
+  end
+  let invalid = ["", "..", "//evil.example", "alice/bob"]
+  invalid.Each(func(id: String) -> ()
+    if CanonicalURI(site, "users", id).IsOk() then
+      t.Errorf("bad id accepted: %s", id)
+    end
+  end)
+end

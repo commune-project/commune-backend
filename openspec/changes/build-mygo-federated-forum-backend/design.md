@@ -39,13 +39,15 @@ Generate through the documented default bootstrap pipeline and check in generate
 
 Alternative: reuse old Go handlers and replace selected logic incrementally. Rejected because it retains implicit global state and incomplete contracts, while the user requests a fresh MyGO backend.
 
-### 2. PostgreSQL with explicit SQL and versioned migrations
+### 2. PostgreSQL with GORM repositories and explicit versioned SQL migrations
 
-Use PostgreSQL through `database/sql` and a pinned compatible driver. Keep repository queries explicit and parameterized, with transactions carrying the resolved site where needed. Use SQL migrations rather than ORM inference. PostgreSQL also stores sessions, inbound work, and delivery jobs, avoiding an initial Redis requirement.
+Use PostgreSQL through pinned GORM and PostgreSQL driver releases. Implement repository orchestration and models in MyGO, using generated Go structs with explicit GORM column tags and table selection. Require explicit site predicates and parameterized query values; GORM does not provide tenant authorization automatically. Use flat persistence records with Go-compatible nullable fields rather than persisting MyGO Option/Result variants through reflection.
+
+Retain explicit versioned SQL migrations and their checksummed ledger. Never call AutoMigrate during normal serving or provisioning. database/sql may remain at the migration boundary via GORM's underlying connection pool. A publication's object mutation, immutable activity record, and outbound jobs must share the same explicit GORM transaction handle. Probe model mapping, query construction, transaction errors and MyGO FFI before accepting the persistence integration. PostgreSQL also stores sessions, inbound work, and delivery jobs, avoiding an initial Redis requirement.
 
 Each server process can host multiple sites. Operators configure domain routing and canonical origins and explicitly provision site records and initial administrators. Normal serving requires a compatible migration version and never seeds or deletes data.
 
-Alternative: reuse GORM and Redis from the old backend. Rejected initially because reflection-dependent persistence adds MyGO mapping uncertainty and Redis is unnecessary for the required session and queue behavior.
+Alternative: use database/sql for every repository operation. Superseded by the user's decision to use GORM while retaining explicit SQL migrations. Redis remains unnecessary for the initial session and queue behavior. No legacy model or schema compatibility is implied by choosing GORM.
 
 ### 3. Site-scoped accounts and credentials
 

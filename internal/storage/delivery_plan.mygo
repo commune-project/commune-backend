@@ -1,0 +1,84 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+
+struct DeliveryTarget
+  ActorURI: String
+  InboxURI: String
+  LocalSiteID: String
+end
+
+struct DeliveryTargetRecord
+  URI: String `gorm:"column:uri"`
+  InboxURI: sql.NullString `gorm:"column:inbox_uri"`
+  LocalSiteID: sql.NullString `gorm:"column:local_site_id"`
+end
+
+struct PlanResult
+  Receipts: Int64
+  Jobs: Int64
+end
+
+func LoadDeliveryTargets(ctx: context.Context, db: Ref[gorm.DB], actorURIs: Slice[String]) -> Result[Slice[DeliveryTarget], String]
+  var targets: Slice[DeliveryTarget] = []
+  var failed = false
+  actorURIs.Each(func(uri: String) -> ()
+    let record = DeliveryTargetRecord{}
+    let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
+    if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+      failed = true
+    else
+      let site = if record.LocalSiteID.Valid then record.LocalSiteID.String else "" end
+      let inbox = if record.InboxURI.Valid && record.InboxURI.String != "" then record.InboxURI.String else uri + "/inbox" end
+      targets = targets.Append(DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
+    end
+  end)
+  if failed then
+    return Err("delivery plan failed")
+  end
+  Ok(targets)
+end
+
+# Colocated recipients receive a local inbox receipt rather than an outbound POST,
+# so they still pass through the receiving site's own inbox validation and policy
+# instead of bypassing it. Remote recipients share one job per (activity, signer,
+# inbox); the worker collapses those into a single transmission.
+func PlanDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, signingActorURI: String, actorURIs: Slice[String], communityID: String) -> Result[PlanResult, String]
+  let excluded = IsLocalOnlyActivity(ctx, db, activityURI)
+  if excluded.IsErr() then
+    return Err(excluded.UnwrapErr())
+  end
+  if excluded.Unwrap() then
+    return Ok(PlanResult{Receipts: 0, Jobs: 0})
+  end
+  let targets = LoadDeliveryTargets(ctx, db, actorURIs)
+  if targets.IsErr() then
+    return Err(targets.UnwrapErr())
+  end
+  var receipts = 0i64
+  var jobs = 0i64
+  var failed = false
+  targets.Unwrap().Each(func(target: DeliveryTarget) -> ()
+    if target.LocalSiteID != "" then
+      let inserted = db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
+      if MutationResult(inserted).IsErr() then
+        failed = true
+      else
+        receipts = receipts + inserted.RowsAffected
+      end
+    else
+      let queued = EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
+      if queued.IsErr() then
+        failed = true
+      else
+        jobs = jobs + queued.Unwrap()
+      end
+    end
+  end)
+  if failed then
+    return Err("delivery plan failed")
+  end
+  Ok(PlanResult{Receipts: receipts, Jobs: jobs})
+end

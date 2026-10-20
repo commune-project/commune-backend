@@ -1,0 +1,80 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresTopicAndReplyPublication(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-account-password").Unwrap()
+  let carol = accounts.Create(ctx, other, "carol", "", "carol-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let locked = communities.Create(ctx, site, alice, "locked", "Locked", "local_only", "eligible_users", "members").Unwrap()
+  let topic = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+  if topic.ObjectType != "Page" || topic.ParentID.Valid || !topic.ObjectURI.Valid || topic.FederationMode != "federated" then
+    t.Fatal("federated topic identity or parent handling failed")
+  end
+  let reply = posts.Publish(ctx, site, open.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}).Unwrap()
+  let nested = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Body: "Nested", ParentID: reply.ID}).Unwrap()
+  if reply.ObjectType != "Note" || reply.ParentID.String != topic.ID || nested.ParentID.String != reply.ID || nested.ID == reply.ID then
+    t.Fatal("nested reply parent relationships were not retained")
+  end
+  if posts.Publish(ctx, site, open.ID, bob, false, PublishInput{Title: "T", Body: "B", ParentID: "missing"}).IsOk() then
+    t.Fatal("reply with unknown parent published")
+  end
+  let foreignReply = PublishInput{Body: "B", ParentID: topic.ID}
+  if posts.Publish(ctx, site, locked.ID, alice, false, foreignReply).IsOk() then
+    t.Fatal("reply crossed community boundary")
+  end
+  if posts.Publish(ctx, site, open.ID, carol, false, PublishInput{Title: "T", Body: "B", ParentID: ""}).IsOk() then
+    t.Fatal("account of another site published")
+  end
+  if posts.Publish(ctx, site, open.ID, alice, true, PublishInput{Title: "T", Body: "B", ParentID: ""}).IsOk() then
+    t.Fatal("remote flag published without verification")
+  end
+  if posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "", ParentID: ""}).IsOk() || posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "", Body: "B", ParentID: ""}).IsOk() then
+    t.Fatal("empty body topic published")
+  end
+  let local = posts.Publish(ctx, site, locked.ID, alice, false, PublishInput{Title: "Local", Body: "Body", ParentID: ""}).Unwrap()
+  if local.ObjectURI.Valid || local.FederationMode != "local_only" then
+    t.Fatal("local-only publication produced a canonical object URI")
+  end
+  let memberReply = PublishInput{Body: "Member reply", ParentID: local.ID}
+  if posts.Publish(ctx, site, locked.ID, bob, false, memberReply).IsOk() then
+    t.Fatal("non-member posted to a member-only community")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", locked.ID, bob.ActorURI, alice.ActorURI)).Unwrap()
+  let memberNested = posts.Publish(ctx, site, locked.ID, bob, false, memberReply).Unwrap()
+  if memberNested.ObjectURI.Valid || memberNested.ParentID.String != local.ID then
+    t.Fatal("member reply in a local community federated or lost its parent")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("activities").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local publication emitted protocol activities")
+  end
+  let _ = MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local publication scheduled federation delivery")
+  end
+  let _ = MutationResult(db.Table("site_posts").Where("post_id=?", local.ID).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("local post was received by another site")
+  end
+  let _ = MutationResult(db.Table("post_audiences").Where("post_id=? AND community_id=?", topic.ID, open.ID).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("topic community association was not recorded once")
+  end
+end

@@ -1,0 +1,14 @@
+package auth
+
+struct Identity
+  SiteID: String
+  AccountID: Int64
+  ActorURI: String
+  Username: String
+end
+
+impl Identity
+  func BelongsTo(self: Identity, siteID: String) -> Bool
+    self.SiteID == siteID && self.AccountID > 0i64 && self.ActorURI != ""
+  end
+end

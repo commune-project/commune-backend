@@ -1,0 +1,200 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import rand "go:crypto/rand"
+
+struct DiscussionContextRecord
+  ID: String `gorm:"column:id"`
+  ContextURI: sql.NullString `gorm:"column:context_uri"`
+  CommunityID: sql.NullString `gorm:"column:community_id"`
+  TopicID: sql.NullString `gorm:"column:topic_id"`
+  AuthorityActorURI: sql.NullString `gorm:"column:authority_actor_uri"`
+  CollectionURI: sql.NullString `gorm:"column:collection_uri"`
+  ResolutionState: String `gorm:"column:resolution_state"`
+end
+
+func LoadDiscussionContext(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  id: String
+) -> Result[Option[DiscussionContextRecord], String]
+  let record = DiscussionContextRecord{}
+  let query = db.WithContext(ctx).Table("discussion_contexts").Where("id = ?", id).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("context unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[DiscussionContextRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+# Federated discussions receive a canonical context URI; local-only discussions
+# keep an internal identity with no protocol representation.
+func CreateDiscussionContext(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  community: CommunityRecord,
+  topicID: String,
+  origin: String
+) -> Result[DiscussionContextRecord, String]
+  let id = rand.Text()
+  var contextURI = sql.NullString {}
+  var collectionURI = sql.NullString {}
+  var authority = sql.NullString {}
+  if community.FederationMode == "federated" && community.ActorURI.Valid then
+    contextURI = sql.NullString { String: origin + "/contexts/" + id, Valid: true }
+    collectionURI = sql.NullString {
+      String: origin + "/contexts/" + id + "/collection",
+      Valid: true,
+    }
+    authority = sql.NullString { String: community.ActorURI.String, Valid: true }
+  end
+  let record = DiscussionContextRecord {
+    ID: id,
+    ContextURI: contextURI,
+    CommunityID: sql.NullString {
+      String: community.ID,
+      Valid: true,
+    },
+    TopicID: sql.NullString {
+      String: topicID,
+      Valid: true,
+    },
+    AuthorityActorURI: authority,
+    CollectionURI: collectionURI,
+    ResolutionState: "unresolved",
+  }
+  if MutationResult(db.WithContext(ctx).Table("discussion_contexts").Create(Ref.new(record))).IsErr() then
+    return Err("context creation failed")
+  end
+  Ok(record)
+end
+
+func AttachPostToContext(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  postID: String,
+  contextID: String
+) -> Result[(), String]
+  RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      if MutationResult(tx.Exec(
+        "INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING",
+        postID,
+        contextID
+      )).IsErr() then
+        return Err("context attachment failed")
+      end
+      let authority = ContextAuthority(ctx, tx, contextID)
+      if authority.IsErr() || authority.Unwrap() == "" then
+        return Ok(())
+      end
+      MutationResult(tx.Exec(
+        "INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,'accepted') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO UPDATE SET state='accepted', authority_actor_uri=EXCLUDED.authority_actor_uri, updated_at=now()",
+        postID,
+        contextID,
+        authority.Unwrap(),
+        contextID
+      ))
+    end
+  )
+end
+
+# Declared association from inbound content: recorded, but not accepted until the
+# context authority verifies it.
+func AttachDeclaredPostContext(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  postID: String,
+  contextID: String
+) -> Result[(), String]
+  RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      AttachDeclaredPostContextTx(ctx, tx, postID, contextID)
+    end
+  )
+end
+
+# Caller-owned transaction variant for use inside an existing unit of work.
+func AttachDeclaredPostContextTx(
+  ctx: context.Context,
+  tx: Ref[gorm.DB],
+  postID: String,
+  contextID: String
+) -> Result[(), String]
+  if MutationResult(tx.Exec(
+    "INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING",
+    postID,
+    contextID
+  )).IsErr() then
+    return Err("context attachment failed")
+  end
+  let authority = ContextAuthority(ctx, tx, contextID)
+  if authority.IsErr() || authority.Unwrap() == "" then
+    return Ok(())
+  end
+  MutationResult(tx.Exec(
+    "INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'pending') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO NOTHING",
+    postID,
+    contextID,
+    authority.Unwrap(),
+    contextID
+  ))
+end
+
+func ContextAuthority(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  contextID: String
+) -> Result[String, String]
+  let authority = ""
+  let query = db.WithContext(ctx).Raw(
+    "SELECT coalesce(authority_actor_uri,'') FROM discussion_contexts WHERE id = ?",
+    contextID
+  ).Scan(Ref.new(authority))
+  if MutationResult(query).IsErr() then
+    return Err("context unavailable")
+  end
+  Ok(authority)
+end
+
+func CountContextPosts(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  contextID: String
+) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = db.WithContext(ctx).Table("collection_memberships AS cm").Joins("JOIN posts AS p ON p.id = cm.post_id").Where(
+    "cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL",
+    contextID
+  ).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("context unavailable")
+  end
+  Ok(count)
+end
+
+func ListContextPosts(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  contextID: String,
+  limit: Int,
+  offset: Int
+) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = db.WithContext(ctx).Table("collection_memberships AS cm").Select("p.*").Joins("JOIN posts AS p ON p.id = cm.post_id").Where(
+    "cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL",
+    contextID
+  ).Order("p.authored_at, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("context unavailable")
+  end
+  Ok(records)
+end

@@ -1,0 +1,36 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# A subscription is not a membership: the follow row records delivery interest
+# while community_members records authorization.
+func SetCommunityFollow(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String, followURI: String, state: String) -> Result[(), String]
+  if communityID == "" || actorURI == "" || followURI == "" then
+    return Err("invalid follow")
+  end
+  if state != "pending" && state != "accepted" && state != "rejected" && state != "undone" then
+    return Err("invalid follow state")
+  end
+  MutationResult(db.WithContext(ctx).Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET state=EXCLUDED.state, follow_uri=EXCLUDED.follow_uri, updated_at=now()", communityID, actorURI, followURI, state))
+end
+
+func CommunityFollowState(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String) -> Result[String, String]
+  let state = ""
+  let query = db.WithContext(ctx).Raw("SELECT state FROM follows WHERE community_id = ? AND actor_uri = ?", communityID, actorURI).Scan(Ref.new(state))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("not subscribed")
+  end
+  Ok(state)
+end
+
+# Managers advertised through the Group's attributedTo collection, confined to the
+# community read policy.
+func CommunityManagers(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[Slice[String], String]
+  var managers: Slice[String] = []
+  let query = db.WithContext(ctx).Raw("SELECT creator_actor_uri AS actor_uri FROM communities WHERE id = ? UNION SELECT actor_uri FROM moderators WHERE community_id = ? AND revoked_at IS NULL ORDER BY 1", communityID, communityID).Scan(Ref.new(managers))
+  if MutationResult(query).IsErr() then
+    return Err("manager list unavailable")
+  end
+  Ok(managers)
+end

@@ -1,0 +1,20 @@
+package federation
+
+import json "go:encoding/json"
+
+struct ContextAuthorityView
+  AttributedTo: String `json:"attributedTo"`
+  Actor: String `json:"actor"`
+end
+
+# The authority of a remote context collection, when the document states one.
+func ContextAuthorityURI(payload: Slice[Byte]) -> String
+  let view = ContextAuthorityView{}
+  if json.Unmarshal(payload, Ref.new(view)).IsErr() then
+    return ""
+  end
+  if view.AttributedTo != "" then
+    return view.AttributedTo
+  end
+  view.Actor
+end

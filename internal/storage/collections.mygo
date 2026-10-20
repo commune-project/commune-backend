@@ -1,0 +1,65 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# Only federated objects hosted at the owning site whose community is openly
+# readable appear in public collections; local-only and members-only objects are
+# filtered before pagination and counting.
+func publicObjectQuery(ctx: context.Context, db: Ref[gorm.DB], origin: String) -> Ref[gorm.DB]
+  db.WithContext(ctx).Table("posts AS p").Where("p.federation_mode = 'federated' AND p.object_uri LIKE ? AND p.deleted_at IS NULL AND EXISTS (SELECT 1 FROM communities c WHERE c.id = p.community_id AND c.federation_mode = 'federated' AND c.read_policy = 'eligible_users')", origin + "/%")
+end
+
+func CountActorObjects(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, origin: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = publicObjectQuery(ctx, db, origin).Where("p.author_actor_uri = ?", actorURI).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListActorObjects(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, origin: String, limit: Int, offset: Int) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = publicObjectQuery(ctx, db, origin).Where("p.author_actor_uri = ?", actorURI).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end
+
+func CountObjectReplies(ctx: context.Context, db: Ref[gorm.DB], parentID: String, origin: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = publicObjectQuery(ctx, db, origin).Where("p.parent_id = ?", parentID).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListObjectReplies(ctx: context.Context, db: Ref[gorm.DB], parentID: String, origin: String, limit: Int, offset: Int) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = publicObjectQuery(ctx, db, origin).Where("p.parent_id = ?", parentID).Order("p.authored_at, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end
+
+func CountAcceptedFollowers(ctx: context.Context, db: Ref[gorm.DB], communityID: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = db.WithContext(ctx).Table("follows").Where("community_id = ? AND state = 'accepted'", communityID).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListAcceptedFollowers(ctx: context.Context, db: Ref[gorm.DB], communityID: String, limit: Int, offset: Int) -> Result[Slice[String], String]
+  var records: Slice[String] = []
+  let query = db.WithContext(ctx).Table("follows").Select("actor_uri").Where("community_id = ? AND state = 'accepted'", communityID).Order("actor_uri").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end

@@ -1,0 +1,33 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+
+func InsertActivityPayload(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  uri: String,
+  actorURI: String,
+  kind: String,
+  payload: Slice[Byte],
+  communityID: String
+) -> Result[(), String]
+  let checksum = PayloadChecksum(payload)
+  let community = sql.NullString{String: communityID, Valid: communityID != ""}
+  if MutationResult(db.WithContext(ctx).Exec(
+    "INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,?,?)",
+    uri,
+    actorURI,
+    kind,
+    community
+  )).IsErr() then
+    return Err("activity storage failed")
+  end
+  MutationResult(db.WithContext(ctx).Exec(
+    "INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)",
+    uri,
+    payload,
+    checksum
+  ))
+end

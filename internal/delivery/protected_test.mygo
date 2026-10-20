@@ -1,0 +1,78 @@
+package delivery
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresProtectedRecipientExpansion(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let colocated = accounts.Create(ctx, b, "carol", "", "carol-account-password").Unwrap()
+  let _ = storage.EnsureLocalKey(ctx, db, alice.ActorURI).Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let community = communities.Create(ctx, a, alice, "restricted", "Restricted", "federated", "members", "members").Unwrap()
+  let capableMember = "https://peer.example/users/member"
+  let weakMember = "https://weak.example/users/member"
+  let outsider = "https://other.example/users/stranger"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Person'), (?, 'Person'), (?, 'Person')", capableMember, weakMember, outsider)).Unwrap()
+  let _ = storage.SetPeerProtectedReads(ctx, db, "peer.example", true).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?),(?,?,?),(?,?,?)", community.ID, capableMember, alice.ActorURI, community.ID, weakMember, alice.ActorURI, community.ID, colocated.ActorURI, alice.ActorURI)).Unwrap()
+  let activityURI = "https://forum-a.example/activities/restricted-1"
+  let payload = "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, community.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, payload as Slice[Byte], storage.PayloadChecksum(payload as Slice[Byte]))).Unwrap()
+  let planned = storage.PlanRestrictedDelivery(ctx, db, activityURI, alice.ActorURI, community.ID).Unwrap()
+  if planned.Jobs != 1i64 || planned.Receipts != 2i64 then
+    t.Fatalf("restricted expansion did not address exactly the capable, local and colocated members: %d/%d", planned.Jobs, planned.Receipts)
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", weakMember).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("an incompatible peer received restricted content")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", outsider).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a non-member received restricted content")
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("target_inbox = ?", capableMember + "/inbox").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("restricted delivery did not target the member's personal inbox")
+  end
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", colocated.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a colocated member did not receive a local receipt")
+  end
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'a' AND recipient_actor_uri = ?", alice.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a local member did not receive a local receipt")
+  end
+  let _ = storage.MutationResult(db.Table("inbox_receipts").Where("recipient_actor_uri = ?", outsider).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("a non-member received a restricted receipt")
+  end
+  let _ = storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, capableMember)).Unwrap()
+  var calls = 0
+  let counting = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+    calls = calls + 1
+    Ok(202)
+  end
+  let outcome = RunOnce(ctx, db, settings, Limits{BatchSize: 5, LeaseSeconds: 60i64, MaxAttempts: 2i64, BackoffSeconds: 30i64}, counting).Unwrap()
+  if calls != 0 || outcome.Suppressed != 1 || outcome.Delivered != 0 then
+    t.Fatalf("a revoked member's queued restricted delivery was not suppressed: calls=%d suppressed=%d", calls, outcome.Suppressed)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("state = 'suppressed' AND error_code = 'membership-revoked'").Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("revoked-member suppression was not recorded")
+  end
+end

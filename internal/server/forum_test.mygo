@@ -1,0 +1,287 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import io "go:io"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+struct forumCall
+  Method: String
+  Origin: String
+  Path: String
+  Payload: String
+  Cookies: Slice[Ref[http.Cookie]]
+  CSRF: String
+  Source: String
+end
+
+func doForum(handler: http.HandlerFunc, call: forumCall) -> Ref[httptest.ResponseRecorder]
+  let req = httptest.NewRequest(call.Method, call.Origin + call.Path, strings.NewReader(call.Payload) as io.Reader)
+  req.Header.Set("Content-Type", "application/json")
+  req.Header.Set("Origin", call.Source)
+  req.Header.Set("X-CSRF-Token", call.CSRF)
+  call.Cookies.Each(func(cookie: Ref[http.Cookie]) -> ()
+    req.AddCookie(cookie)
+  end)
+  let recorder = httptest.NewRecorder()
+  handler.ServeHTTP(recorder as http.ResponseWriter, req)
+  recorder
+end
+
+func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let _ = accounts.Create(ctx, a, "alice", "alice@example.org", "first-site-password").Unwrap()
+  let _ = accounts.Create(ctx, b, "carol", "carol@example.org", "other-site-password").Unwrap()
+  let handler = Handler(settings, db)
+  let aliceLogin = doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"first-site-password\"}", Cookies: [], CSRF: "", Source: a.Origin})
+  if aliceLogin.Code != 200 then
+    t.Fatal("administrator login failed")
+  end
+  let aliceCookies = aliceLogin.Result().Cookies()
+  let aliceCSRF = aliceCookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+  let carolLogin = doForum(handler, forumCall{Method: "POST", Origin: b.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"carol\",\"password\":\"other-site-password\"}", Cookies: [], CSRF: "", Source: b.Origin})
+  let carolCookies = carolLogin.Result().Cookies()
+  let carolCSRF = carolCookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+  let create = forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"news\",\"title\":\"News\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  let unauthenticated = forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: create.Payload, Cookies: [], CSRF: "", Source: a.Origin}
+  if doForum(handler, unauthenticated).Code != 401 then
+    t.Fatal("unauthenticated community creation was not rejected")
+  end
+  let noCSRF = forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: create.Payload, Cookies: aliceCookies, CSRF: "", Source: a.Origin}
+  if doForum(handler, noCSRF).Code != 403 then
+    t.Fatal("missing CSRF was not rejected")
+  end
+  let community = doForum(handler, create)
+  if community.Code != 201 then
+    t.Fatal("community creation failed")
+  end
+  let communityBody = APICommunity{}
+  let _ = json.Unmarshal(community.Body.Bytes(), Ref.new(communityBody)).Unwrap()
+  let topicCall = forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities/" + communityBody.ID + "/topics", Payload: "{\"title\":\"Hello\",\"body\":\"<script>alert(1)</script>world\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  let topic = doForum(handler, topicCall)
+  if topic.Code != 201 then
+    t.Fatal("topic creation failed")
+  end
+  let topicBody = APIPost{}
+  let _ = json.Unmarshal(topic.Body.Bytes(), Ref.new(topicBody)).Unwrap()
+  if topicBody.Body != "world" || topicBody.ObjectType != "Page" then
+    t.Fatal("topic response leaked markup or the wrong type")
+  end
+  let listPath = "/api/v1/communities/" + communityBody.ID + "/topics?limit=1&offset=0"
+  let list = doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: listPath, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
+  if list.Code != 200 then
+    t.Fatalf("paginated topic listing failed: %d %s", list.Code, list.Body.String())
+  end
+  if !strings.Contains(list.Body.String(), "\"limit\":1") then
+    t.Fatalf("pagination echo missing: %s", list.Body.String())
+  end
+  let badPage = forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + communityBody.ID + "/topics?limit=0", Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""}
+  if doForum(handler, badPage).Code != 400 then
+    t.Fatal("out-of-range pagination was not rejected")
+  end
+  let read = doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
+  if read.Code != 200 then
+    t.Fatal("object read failed")
+  end
+  let crossSite = forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "", Cookies: carolCookies, CSRF: "", Source: ""}
+  if doForum(handler, crossSite).Code != 404 then
+    t.Fatal("another site read an unreceived object or escaped through import")
+  end
+  let carolLike = forumCall{Method: "POST", Origin: b.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: carolCookies, CSRF: carolCSRF, Source: b.Origin}
+  if doForum(handler, carolLike).Code != 404 then
+    t.Fatal("another site reacted to an unreceived object")
+  end
+  let reply = doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/replies", Payload: "{\"body\":\"reply\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
+  if reply.Code != 201 then
+    t.Fatal("reply creation failed")
+  end
+  let replies = doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/replies", Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
+  if replies.Code != 200 || !strings.Contains(replies.Body.String(), "\"object_type\":\"Note\"") then
+    t.Fatal("reply listing failed")
+  end
+  let edit = doForum(handler, forumCall{Method: "PATCH", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "{\"title\":\"Hello\",\"body\":\"edited\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
+  if edit.Code != 200 || !strings.Contains(edit.Body.String(), "edited") then
+    t.Fatal("author edit failed")
+  end
+  let like = forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, like).Code != 204 || doForum(handler, like).Code != 204 then
+    t.Fatal("like or duplicate like failed")
+  end
+  let unlike = forumCall{Method: "DELETE", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, unlike).Code != 204 then
+    t.Fatal("undo like failed")
+  end
+  let formReq = httptest.NewRequest("POST", a.Origin + "/api/v1/communities", strings.NewReader(create.Payload) as io.Reader)
+  formReq.Header.Set("Content-Type", "text/plain")
+  formReq.Header.Set("Origin", a.Origin)
+  formReq.Header.Set("X-CSRF-Token", aliceCSRF)
+  aliceCookies.Each(func(cookie: Ref[http.Cookie]) -> ()
+    formReq.AddCookie(cookie)
+  end)
+  let formRecorder = httptest.NewRecorder()
+  handler.ServeHTTP(formRecorder as http.ResponseWriter, formReq)
+  if formRecorder.Code != 400 then
+    t.Fatal("non-JSON request body was accepted")
+  end
+end
+
+struct APICommunity
+  ID: String `json:"id"`
+  Name: String `json:"name"`
+  FederationMode: String `json:"federation_mode"`
+end
+
+struct APIPost
+  ID: String `json:"id"`
+  ObjectType: String `json:"object_type"`
+  Body: String `json:"body"`
+end
+
+struct APIPage
+  Items: Slice[APIPost] `json:"items"`
+end
+
+func login(handler: http.HandlerFunc, origin: String, login: String, password: String) -> Slice[Ref[http.Cookie]]
+  let payload = "{\"login\":\"" + login + "\",\"password\":\"" + password + "\"}"
+  let call = forumCall{Method: "POST", Origin: origin, Path: "/api/v1/auth/login", Payload: payload, Cookies: [], CSRF: "", Source: origin}
+  doForum(handler, call).Result().Cookies()
+end
+
+func csrfOf(cookies: Slice[Ref[http.Cookie]]) -> String
+  cookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+end
+
+func topicCount(handler: http.HandlerFunc, origin: String, communityID: String, cookies: Slice[Ref[http.Cookie]]) -> Int
+  let path = "/api/v1/communities/" + communityID + "/topics"
+  let response = doForum(handler, forumCall{Method: "GET", Origin: origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+  if response.Code != 200 then
+    return -1
+  end
+  let page = APIPage{}
+  let _ = json.Unmarshal(response.Body.Bytes(), Ref.new(page)).Unwrap()
+  page.Items.Len()
+end
+
+func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let _ = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let bob = accounts.Create(ctx, a, "bob", "", "bob-account-password").Unwrap()
+  let carol = accounts.Create(ctx, b, "carol", "", "carol-account-password").Unwrap()
+  let handler = Handler(settings, db)
+  let aliceCookies = login(handler, a.Origin, "alice", "alice-account-password")
+  let aliceCSRF = csrfOf(aliceCookies)
+  let adminCookies = login(handler, a.Origin, "admin", "administrator-password")
+  let adminCSRF = csrfOf(adminCookies)
+  let createBody = "{\"name\":\"news\",\"title\":\"News\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}"
+  let created = doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: createBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
+  let community = APICommunity{}
+  let _ = json.Unmarshal(created.Body.Bytes(), Ref.new(community)).Unwrap()
+  let topicBody = "{\"title\":\"T\",\"body\":\"B\"}"
+  let path = "/api/v1/communities/" + community.ID + "/topics"
+  let topic = doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: path, Payload: topicBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
+  let post = APIPost{}
+  let _ = json.Unmarshal(topic.Body.Bytes(), Ref.new(post)).Unwrap()
+  let id = community.ID
+  let hidePath = "/api/v1/posts/" + post.ID + "/hide"
+  let creatorHide = forumCall{Method: "POST", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, creatorHide).Code != 403 then
+    t.Fatal("non-administrator hid a post through the API")
+  end
+  let adminHide = forumCall{Method: "POST", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
+  if doForum(handler, adminHide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 then
+    t.Fatal("administrator hide did not affect the site listing")
+  end
+  let adminUnhide = forumCall{Method: "DELETE", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
+  if doForum(handler, adminUnhide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 then
+    t.Fatal("administrator unhide did not restore the listing")
+  end
+  let policyPath = "/api/v1/communities/" + id + "/policy"
+  let policy = forumCall{Method: "PUT", Origin: a.Origin, Path: policyPath, Payload: "{\"read_policy\":\"members\",\"post_policy\":\"members\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, policy).Code != 204 then
+    t.Fatal("policy update failed")
+  end
+  let communityRead = doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + id, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
+  if !strings.Contains(communityRead.Body.String(), "\"post_policy\":\"members\"") then
+    t.Fatal("policy update was not reflected")
+  end
+  let invalidPolicy = forumCall{Method: "PUT", Origin: a.Origin, Path: policyPath, Payload: "{\"read_policy\":\"members\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, invalidPolicy).Code != 400 then
+    t.Fatal("invalid policy combination accepted")
+  end
+  let memberPath = "/api/v1/communities/" + id + "/members"
+  let memberBody = "{\"actor\":\"" + carol.ActorURI + "\"}"
+  let addMember = forumCall{Method: "POST", Origin: a.Origin, Path: memberPath, Payload: memberBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  let removeMember = forumCall{Method: "DELETE", Origin: a.Origin, Path: memberPath, Payload: memberBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, addMember).Code != 204 || doForum(handler, removeMember).Code != 204 then
+    t.Fatal("membership management failed")
+  end
+  let badMember = forumCall{Method: "POST", Origin: a.Origin, Path: memberPath, Payload: "{\"actor\":\"not-a-person\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, badMember).Code == 204 then
+    t.Fatal("invalid member identity accepted")
+  end
+  let managerPath = "/api/v1/communities/" + id + "/managers"
+  let managerBody = "{\"actor\":\"" + bob.ActorURI + "\"}"
+  let addManager = forumCall{Method: "POST", Origin: a.Origin, Path: managerPath, Payload: managerBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  let removeManager = forumCall{Method: "DELETE", Origin: a.Origin, Path: managerPath, Payload: managerBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, addManager).Code != 204 || doForum(handler, removeManager).Code != 204 then
+    t.Fatal("manager management failed")
+  end
+  let removalPath = "/api/v1/communities/" + id + "/removals"
+  let removalBody = "{\"post_id\":\"" + post.ID + "\"}"
+  let remove = forumCall{Method: "POST", Origin: a.Origin, Path: removalPath, Payload: removalBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, remove).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 then
+    t.Fatal("community removal did not exclude the post")
+  end
+  let restore = forumCall{Method: "DELETE", Origin: a.Origin, Path: removalPath, Payload: removalBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, restore).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 then
+    t.Fatal("community restore did not re-include the post")
+  end
+  let submissionPath = "/api/v1/communities/" + id + "/submissions"
+  let rejectBody = "{\"post_id\":\"" + post.ID + "\",\"state\":\"rejected\"}"
+  let reject = forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: rejectBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, reject).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 then
+    t.Fatal("rejected submission was still listed")
+  end
+  let accept = forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"accepted\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, accept).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 then
+    t.Fatal("accepted submission was not listed")
+  end
+  let bogus = forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"bogus\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+  if doForum(handler, bogus).Code != 400 then
+    t.Fatal("invalid submission state accepted")
+  end
+  let foreignHide = forumCall{Method: "POST", Origin: b.Origin, Path: hidePath, Payload: "", Cookies: login(handler, b.Origin, "carol", "carol-account-password"), CSRF: "", Source: b.Origin}
+  if doForum(handler, foreignHide).Code != 403 && doForum(handler, foreignHide).Code != 401 then
+    t.Fatal("foreign session changed site moderation")
+  end
+end

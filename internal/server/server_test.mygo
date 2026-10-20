@@ -1,0 +1,60 @@
+package server
+
+import bytes "go:bytes"
+
+import testing "go:testing"
+import httptest "go:net/http/httptest"
+import http "go:net/http"
+import io "go:io"
+import strings "go:strings"
+import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
+import driver "go:database/sql/driver"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestHealthRoutingAndReadiness(t: Ref[testing.T]) -> ()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let fixture = transport.New().Unwrap()
+  let db = transport.ORM(fixture.DB).Unwrap()
+  t.Cleanup(func() -> ()
+    if fixture.Mock.ExpectationsWereMet().IsErr() then
+      t.Error("health SQL expectations were not met")
+    end
+    let _ = fixture.DB.Close()
+  end)
+  let handler = Handler(settings, db)
+  let origin = settings.Sites.Get(0).Unwrap().Origin
+  let body = strings.NewReader("") as io.Reader
+  let request = func(method: String, url: String, status: Int) -> ()
+    let recorder = httptest.NewRecorder()
+    handler.ServeHTTP(recorder as http.ResponseWriter, httptest.NewRequest(method, url, body))
+    if recorder.Code != status then
+      t.Fatalf("health returned %d, expected %d", recorder.Code, status)
+    end
+    if strings.Contains(recorder.Body.String(), "secret") then
+      t.Fatal("health response exposed database error")
+    end
+  end
+  request("GET", "https://unknown.example/health/live", 404)
+  request("GET", origin + "/health/live", 204)
+  request("POST", origin + "/health/live", 405)
+  request("GET", origin + "/unknown", 404)
+  let _ = fixture.Mock.ExpectPing().WillReturnError(transport.Failure)
+  request("GET", origin + "/health/ready", 503)
+  let _ = fixture.Mock.ExpectPing()
+  let _ = fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows(["exists"]).AddRow(false as driver.Value))
+  request("GET", origin + "/health/ready", 503)
+  let _ = fixture.Mock.ExpectPing()
+  let _ = fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows(["exists"]).AddRow(true as driver.Value))
+  let rows = sqlmock.NewRows(["version", "name", "checksum"])
+  storage.MigrationCatalog().Unwrap().Each(func(migration: storage.Migration) -> ()
+    let _ = rows.AddRow(migration.Version as driver.Value, migration.Name as driver.Value, migration.Checksum as driver.Value)
+  end)
+  let _ = fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
+  request("GET", origin + "/health/ready", 204)
+  let server = NewHTTPServer(settings, db)
+  if server.MaxHeaderBytes != 32768 || server.Addr != settings.Runtime.Listen then
+    t.Fatal("server runtime limits were ignored")
+  end
+end

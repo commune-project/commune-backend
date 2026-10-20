@@ -1,0 +1,134 @@
+package federation
+
+import context "go:context"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+
+let activityJSON: String = "application/activity+json"
+let ldJSONProfile: String = "application/ld+json"
+
+func ActivityJSONType() -> String
+  activityJSON
+end
+
+struct Account
+  Username: String
+  Host: String
+end
+
+struct ResolvedObject
+  Post: storage.PostRecord
+  Community: storage.CommunityRecord
+  Tombstone: Bool
+end
+
+func ParseWebFingerResource(resource: String) -> Result[Account, String]
+  if !strings.HasPrefix(resource, "acct:") then
+    return Err("invalid resource")
+  end
+  let parts = strings.Split(strings.TrimPrefix(resource, "acct:"), "@")
+  if parts.Len() != 2 then
+    return Err("invalid resource")
+  end
+  let username = strings.ToLower(parts.Get(0).Unwrap())
+  let host = strings.ToLower(parts.Get(1).Unwrap())
+  if username == "" || host == "" || strings.ContainsAny(username, "/\\ \t") then
+    return Err("invalid resource")
+  end
+  Ok(Account{Username: username, Host: host})
+end
+
+# Content negotiation: only ActivityPub media types retrieve protocol resources.
+func AcceptsActivityJSON(accept: String) -> Bool
+  accept == "" || strings.Contains(accept, activityJSON) || strings.Contains(accept, ldJSONProfile)
+end
+
+func BuildWebFinger(site: config.Site, account: Account, actorURI: String) -> Result[WebFingerDocument, String]
+  let authority = strings.TrimPrefix(site.Origin, "https://")
+  if account.Host != authority || actorURI == "" then
+    return Err("not found")
+  end
+  Ok(WebFingerDocument{Subject: "acct:" + account.Username + "@" + authority, Links: [WebFingerLink{Rel: "self", Type: activityJSON, Href: actorURI}]})
+end
+
+func ResolvePerson(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, username: String) -> Result[ActorRepresentation, String]
+  let found = storage.LoadLocalPerson(ctx, db, site.ID, username)
+  if found.IsErr() then
+    return Err("not found")
+  end
+  if found.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let actor = found.Unwrap().Unwrap()
+  if !strings.HasPrefix(actor.URI, site.Origin + "/") then
+    return Err("not found")
+  end
+  let key = storage.EnsureLocalKey(ctx, db, actor.URI)
+  if key.IsErr() then
+    return Err("not found")
+  end
+  Ok(PersonRepresentation(site, actor, username, key.Unwrap()))
+end
+
+func ResolveGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, name: String) -> Result[ActorRepresentation, String]
+  let found = storage.LoadCommunityByName(ctx, db, site.ID, name)
+  if found.IsErr() then
+    return Err("not found")
+  end
+  if found.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let community = found.Unwrap().Unwrap()
+  if !FederatedCommunity(community) then
+    return Err("not found")
+  end
+  if !strings.HasPrefix(community.ActorURI.String, site.Origin + "/") then
+    return Err("not found")
+  end
+  let actor = storage.LoadActor(ctx, db, community.ActorURI.String)
+  if actor.IsErr() || actor.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let key = storage.EnsureLocalKey(ctx, db, community.ActorURI.String)
+  if key.IsErr() then
+    return Err("not found")
+  end
+  Ok(GroupRepresentation(community, actor.Unwrap().Unwrap(), key.Unwrap()))
+end
+
+# Public federated objects are retrievable; local-only, non-federated, foreign
+# and members-only objects resolve to a uniform not-found until protected reads
+# land. Deleted objects resolve to a tombstone.
+func ResolveObject(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, id: String) -> Result[Option[ResolvedObject], String]
+  let found = storage.LoadObjectByID(ctx, db, id)
+  if found.IsErr() then
+    return Err("not found")
+  end
+  if found.Unwrap().IsNone() then
+    return Ok[Option[ResolvedObject], String](None)
+  end
+  let post = found.Unwrap().Unwrap()
+  if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin + "/") then
+    return Ok[Option[ResolvedObject], String](None)
+  end
+  let communityFound = storage.LoadCommunityByID(ctx, db, post.CommunityID)
+  if communityFound.IsErr() || communityFound.Unwrap().IsNone() then
+    return Ok[Option[ResolvedObject], String](None)
+  end
+  let community = communityFound.Unwrap().Unwrap()
+  if !FederatedCommunity(community) || community.ReadPolicy != "eligible_users" then
+    return Ok[Option[ResolvedObject], String](None)
+  end
+  Ok(Some(ResolvedObject{Post: post, Community: community, Tombstone: post.DeletedAt.Valid}))
+end
+
+func ResolveActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, id: String) -> Result[Slice[Byte], String]
+  let uri = site.Origin + "/activities/" + id
+  let found = storage.LoadActivityPayload(ctx, db, uri)
+  if found.IsErr() || found.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  Ok(found.Unwrap().Unwrap().Payload)
+end

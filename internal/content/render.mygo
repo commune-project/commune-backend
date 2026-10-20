@@ -1,0 +1,22 @@
+package content
+
+import regexp "go:regexp"
+import strings "go:strings"
+
+let blockedElements: Slice[String] = ["script", "style", "noscript", "iframe", "frame", "frameset", "object", "embed", "applet", "template", "svg", "math", "xmp", "plaintext", "title", "textarea", "canvas", "video", "audio", "form", "button"]
+
+func StripElement(raw: String, name: String) -> String
+  let element = regexp.MustCompile("(?is)<" + name + "\\b[^>]*>.*?</" + name + "\\s*>")
+  element.ReplaceAllString(raw, " ")
+end
+
+# Display rendering only. Inbound protocol payloads are retained unchanged.
+func RenderText(raw: String) -> String
+  let withoutComments = regexp.MustCompile("(?s)<!--.*?-->").ReplaceAllString(raw, " ")
+  let withoutElements = blockedElements.Fold(withoutComments, func(current: String, name: String) -> String
+    StripElement(current, name)
+  end)
+  let withoutTags = regexp.MustCompile("(?s)</?[a-zA-Z][^>]*>").ReplaceAllString(withoutElements, "")
+  let replacer = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;")
+  strings.TrimSpace(replacer.Replace(withoutTags))
+end

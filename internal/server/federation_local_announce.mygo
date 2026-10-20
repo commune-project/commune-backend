@@ -1,0 +1,58 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import rand "go:crypto/rand"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+# A locally published post in a federated community is announced by the Group.
+# Joined remote contexts contribute their authority as an extra, deduplicated
+# destination; a context that cannot be resolved adds nothing.
+func AnnounceLocalPost(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, post: storage.PostRecord) -> Result[(), String]
+  let contextURIs = storage.PostContextURIs(ctx, db, post.ID)
+  if contextURIs.IsErr() then
+    return Err(contextURIs.UnwrapErr())
+  end
+  let declared = contextURIs.Unwrap()
+  let primary = if declared.Len() > 0 then declared.Get(0).Unwrap() else "" end
+  let object = federation.BuildObjectRepresentationWithContext(post, community, primary)
+  let encoded = json.Marshal(object)
+  if encoded.IsErr() then
+    return Err("announce payload failed")
+  end
+  let createURI = site.Origin + "/activities/" + rand.Text()
+  let create = `{"@context":"https://www.w3.org/ns/activitystreams","id":"` + createURI + `","type":"Create","actor":"` + post.AuthorActorURI + `","object":` + (encoded.Unwrap() as String) + `}`
+  let extras = ResolveContextAuthoritiesFromURIs(ctx, settings, declared, site.Origin)
+  PublishGroupAnnouncementTo(ctx, db, site, community, create as Slice[Byte], extras)
+end
+
+func ResolveContextAuthorities(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], postID: String, origin: String) -> Slice[String]
+  let uris = storage.PostContextURIs(ctx, db, postID)
+  if uris.IsErr() then
+    return []
+  end
+  ResolveContextAuthoritiesFromURIs(ctx, settings, uris.Unwrap(), origin)
+end
+
+func ResolveContextAuthoritiesFromURIs(ctx: context.Context, settings: config.Config, uris: Slice[String], origin: String) -> Slice[String]
+  var authorities: Slice[String] = []
+  let limits = FetchLimitsFrom(settings)
+  uris.Each(func(uri: String) -> ()
+    if uri == "" || strings.HasPrefix(uri, origin + "/") then
+      return
+    end
+    let fetched = federation.Fetch(ctx, uri, limits)
+    if fetched.IsErr() then
+      return
+    end
+    let authority = federation.ContextAuthorityURI(fetched.Unwrap().Body)
+    if authority != "" && !authorities.Contains(authority) then
+      authorities = authorities.Append(authority)
+    end
+  end)
+  authorities
+end

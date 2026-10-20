@@ -1,0 +1,38 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresDeclaredVersusVerifiedContext(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://forum-a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let topic = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+  let claimed = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Other", Body: "Body", ParentID: ""}).Unwrap()
+  let discussion = CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin).Unwrap()
+  let _ = AttachPostToContext(ctx, db, topic.ID, discussion.ID).Unwrap()
+  let _ = AttachDeclaredPostContext(ctx, db, claimed.ID, discussion.ID).Unwrap()
+  let total = CountContextPosts(ctx, db, discussion.ID).Unwrap()
+  if total != 1i64 then
+    t.Fatalf("a declared-only claim entered the accepted collection: %d", total)
+  end
+  let accepted = QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'accepted'", topic.ID, discussion.ID)).Unwrap()
+  let pending = QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'pending'", claimed.ID, discussion.ID)).Unwrap()
+  if !accepted || !pending then
+    t.Fatal("declared and verified relationships were not stored separately")
+  end
+  let _ = MutationResult(db.Exec("UPDATE collection_memberships SET state = 'removed' WHERE post_id = ? AND context_id = ?", topic.ID, discussion.ID)).Unwrap()
+  if CountContextPosts(ctx, db, discussion.ID).Unwrap() != 0i64 then
+    t.Fatal("an authoritative removal left the post in the context collection")
+  end
+end

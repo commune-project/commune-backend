@@ -1,0 +1,38 @@
+package server
+
+import http "go:net/http"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import federation "github.com/commune-project/commune-mygo/internal/federation"
+
+func InboxRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  if request.URL.Path == "/inbox" then
+    InboxHandler(settings, db, site, w, request, "")
+    return
+  end
+  let parts = Segments(request.URL.Path)
+  if parts.Len() == 3 && parts.Get(2).Unwrap() == "inbox" then
+    let name = strings.ToLower(parts.Get(1).Unwrap())
+    if parts.Get(0).Unwrap() == "users" then
+      let person = storage.LoadLocalPerson(request.Context(), db, site.ID, name)
+      if person.IsErr() || person.Unwrap().IsNone() then
+        http.NotFound(w, request)
+        return
+      end
+      InboxHandler(settings, db, site, w, request, person.Unwrap().Unwrap().URI)
+      return
+    end
+    if parts.Get(0).Unwrap() == "communities" then
+      let found = storage.LoadCommunityByName(request.Context(), db, site.ID, name)
+      if found.IsErr() || found.Unwrap().IsNone() || !federation.FederatedCommunity(found.Unwrap().Unwrap()) then
+        http.NotFound(w, request)
+        return
+      end
+      InboxHandler(settings, db, site, w, request, found.Unwrap().Unwrap().ActorURI.String)
+      return
+    end
+  end
+  http.NotFound(w, request)
+end

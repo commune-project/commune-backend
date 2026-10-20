@@ -1,0 +1,178 @@
+package server
+
+import http "go:net/http"
+import json "go:encoding/json"
+import io "go:io"
+import errors "go:errors"
+import strings "go:strings"
+import strconv "go:strconv"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import content "github.com/commune-project/commune-mygo/internal/content"
+
+struct ErrorOutput
+  Error: String `json:"error"`
+end
+
+struct CommunityOutput
+  ID: String `json:"id"`
+  Name: String `json:"name"`
+  Title: String `json:"title"`
+  Description: String `json:"description"`
+  FederationMode: String `json:"federation_mode"`
+  ReadPolicy: String `json:"read_policy"`
+  PostPolicy: String `json:"post_policy"`
+  ActorURI: String `json:"actor_uri,omitempty"`
+  HostSiteID: String `json:"host_site_id"`
+end
+
+struct PostOutput
+  ID: String `json:"id"`
+  CommunityID: String `json:"community_id"`
+  ObjectType: String `json:"object_type"`
+  Title: String `json:"title,omitempty"`
+  Body: String `json:"body"`
+  AuthorActorURI: String `json:"author_actor_uri"`
+  ParentID: String `json:"parent_id,omitempty"`
+  AuthoredAt: time.Time `json:"authored_at"`
+  UpdatedAt: time.Time `json:"updated_at"`
+  Deleted: Bool `json:"deleted"`
+end
+
+struct PostPage
+  Items: Slice[PostOutput] `json:"items"`
+  Limit: Int `json:"limit"`
+  Offset: Int `json:"offset"`
+end
+
+func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
+  CommunityOutput{ID: record.ID, Name: record.Name, Title: record.Title, Description: record.Description, FederationMode: record.FederationMode, ReadPolicy: record.ReadPolicy, PostPolicy: record.PostPolicy, ActorURI: record.ActorURI.String, HostSiteID: record.HostSiteID}
+end
+
+func PostDTO(record: storage.PostRecord) -> PostOutput
+  PostOutput{ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
+end
+
+func WriteJSON[T](w: http.ResponseWriter, status: Int, value: T) -> ()
+  switch json.Marshal(value)
+    case Err(_) => http.Error(w, "response unavailable", 500)
+    case Ok(body) then
+      w.Header().Set("Content-Type", "application/json")
+      w.WriteHeader(status)
+      let _ = w.Write(body)
+    end
+  end
+end
+
+func WriteErrorJSON(w: http.ResponseWriter, status: Int, message: String) -> ()
+  WriteJSON(w, status, ErrorOutput{Error: message})
+end
+
+# Maps repository errors to stable HTTP status codes without leaking detail.
+func FailStatus(reason: String) -> Int
+  if reason == "not found" then
+    return 404
+  end
+  if reason == "forbidden" || reason == "invalid parent" then
+    return 403
+  end
+  if reason == "unauthenticated" then
+    return 401
+  end
+  if reason == "invalid page" || reason == "invalid post input" || reason == "invalid community input" || reason == "invalid access policy" || reason == "invalid state" || reason == "invalid member" || reason == "invalid manager" then
+    return 400
+  end
+  if reason == "object version conflict" || reason == "object identity conflict" then
+    return 409
+  end
+  503
+end
+
+func Fail(w: http.ResponseWriter, reason: String) -> ()
+  WriteErrorJSON(w, FailStatus(reason), reason)
+end
+
+func Segments(path: String) -> Slice[String]
+  strings.Split(strings.Trim(path, "/"), "/")
+end
+
+func DecodeJSON[T](w: http.ResponseWriter, request: Ref[http.Request], maxBytes: Int, target: Ref[T]) -> Result[(), String]
+  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") != "application/json" then
+    return Err("expected application/json")
+  end
+  let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
+  let result = DecodeJSONBody(reader as io.ReadCloser, target)
+  let _ = reader.Close()
+  result
+end
+
+func DecodeJSONBody[T](reader: io.ReadCloser, target: Ref[T]) -> Result[(), String]
+  let decoder = json.NewDecoder(reader as io.Reader)
+  decoder.DisallowUnknownFields()
+  if decoder.Decode(target).IsErr() then
+    return Err("invalid request body")
+  end
+  let extra = [] as json.RawMessage
+  let trailing = decoder.Decode(Ref.new(extra))
+  if trailing.IsOk() || !errors.Is(trailing.UnwrapErr(), io.EOF) then
+    return Err("invalid request body")
+  end
+  Ok(())
+end
+
+func PageFromQuery(settings: config.Config, request: Ref[http.Request]) -> Result[storage.Page, String]
+  let query = request.URL.Query()
+  var limit = 20
+  var offset = 0
+  if query.Get("limit") != "" then
+    let parsed = strconv.Atoi(query.Get("limit"))
+    if parsed.IsErr() then
+      return Err("invalid page")
+    end
+    limit = parsed.Unwrap()
+  end
+  if query.Get("offset") != "" then
+    let parsed = strconv.Atoi(query.Get("offset"))
+    if parsed.IsErr() then
+      return Err("invalid page")
+    end
+    offset = parsed.Unwrap()
+  end
+  let page = storage.Page{Limit: limit, Offset: offset}
+  if !page.Valid(settings.Runtime.MaxPageSize) then
+    return Err("invalid page")
+  end
+  Ok(page)
+end
+
+func Authenticated(db: Ref[gorm.DB], site: config.Site, request: Ref[http.Request]) -> Result[storage.AuthenticatedSession, String]
+  let token = ReadSession(request)
+  if token.IsErr() then
+    return Err("unauthenticated")
+  end
+  let sessions = storage.SessionRepository{DB: db}
+  sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
+end
+
+func AuthorizeMutation(settings: config.Config, session: storage.AuthenticatedSession, request: Ref[http.Request]) -> Bool
+  SameOrigin(settings, request) && session.AuthorizesMutation(request.Header.Get("X-CSRF-Token"))
+end
+
+func ForumRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  let parts = Segments(request.URL.Path)
+  if parts.Len() >= 3 && parts.Get(2).Unwrap() == "communities" then
+    CommunityRoute(settings, db, site, w, request, parts)
+  else
+    if parts.Len() >= 3 && parts.Get(2).Unwrap() == "posts" then
+      PostRoute(settings, db, site, w, request, parts)
+    else
+      if parts.Len() == 5 && parts.Get(2).Unwrap() == "contexts" && parts.Get(4).Unwrap() == "backfill" then
+        ContextBackfillRoute(settings, db, site, w, request, parts.Get(3).Unwrap())
+      else
+        WriteErrorJSON(w, 404, "not found")
+      end
+    end
+  end
+end

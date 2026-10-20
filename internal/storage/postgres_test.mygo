@@ -1,0 +1,78 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+
+func postgresFixture(t: Ref[testing.T]) -> Ref[sql.DB]
+  testsupport.Postgres(t)
+end
+
+func TestPostgresMigrationAndConstraints(t: Ref[testing.T]) -> ()
+  let db = postgresFixture(t)
+  let ctx = context.Background()
+  if CheckSchema(ctx, db).IsOk() then
+    t.Fatal("empty database passed schema check")
+  end
+  if Migrate(ctx, db).IsErr() || Migrate(ctx, db).IsErr() || CheckSchema(ctx, db).IsErr() then
+    t.Fatal("migration, repeat migration or readiness failed")
+  end
+  let seeds = [
+    "INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'),('b','https://b.example')",
+    "INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/users/alice','a','Person'),('https://b.example/users/alice','b','Person'),('https://a.example/users/bob','a','Person'),('https://a.example/communities/c','a','Group')",
+    "INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES ('a','https://a.example/users/alice','alice','alice@example.org','hash'),('b','https://b.example/users/alice','alice','alice@example.org','hash')"
+  ]
+  seeds.Each(func(query: String) -> ()
+    if db.Exec(query).IsErr() then
+      t.Fatal("valid multi-site fixture rejected")
+    end
+  end)
+  if db.Exec("INSERT INTO site_roles(site_id,account_id,role) SELECT 'a',id,'administrator' FROM accounts WHERE site_id='a'").IsErr() then
+    t.Fatal("valid site administrator rejected")
+  end
+  let rejected = [
+    "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','https://a.example/users/bob','alice','hash')",
+    "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('b','https://a.example/users/bob','bob','hash')",
+    "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','https://a.example/communities/c','c','hash')",
+    "INSERT INTO actors(uri,kind,private_key_pem) VALUES ('https://remote.example/u/x','Person','secret')",
+    "INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,expires_at) SELECT decode(repeat('aa',32),'hex'),'b',id,decode(repeat('bb',32),'hex'),now()+interval '1 hour' FROM accounts WHERE site_id='a'",
+    "INSERT INTO site_roles(site_id,account_id,role) SELECT 'b',id,'administrator' FROM accounts WHERE site_id='a'",
+    "INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES ('a','https://a.example/users/bob','bob','alice@example.org','hash')"
+  ]
+  rejected.Each(func(query: String) -> ()
+    if db.Exec(query).IsOk() then
+      t.Fatal("database constraint accepted invalid data")
+    end
+  end)
+  let count = 0
+  if db.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() || count != 0 then
+    t.Fatal("deployment roles were implicitly assigned")
+  end
+  if db.Exec("INSERT INTO deployment_roles(account_id,role) SELECT id,'superadministrator' FROM accounts WHERE site_id='a'").IsErr() then
+    t.Fatal("explicit deployment administrator rejected")
+  end
+  if db.Exec("UPDATE commune_schema_migrations SET checksum = repeat('0',64)").IsErr() || CheckSchema(ctx, db).IsOk() || Migrate(ctx, db).IsOk() then
+    t.Fatal("modified migration checksum accepted")
+  end
+end
+
+func TestPostgresMigrationRollback(t: Ref[testing.T]) -> ()
+  let db = postgresFixture(t)
+  # Force the ledger write to fail after the migration DDL has executed.
+  if db.Exec("CREATE TABLE public.commune_schema_migrations (version integer PRIMARY KEY CHECK(version < 0), name text NOT NULL UNIQUE, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())").IsErr() then
+    t.Fatal("cannot construct migration failure fixture")
+  end
+  if Migrate(context.Background(), db).IsOk() then
+    t.Fatal("ledger failure was ignored")
+  end
+  let absent = false
+  if db.QueryRow("SELECT to_regclass('public.sites') IS NULL").Scan(Ref.new(absent)).IsErr() || !absent then
+    t.Fatal("migration DDL survived rollback")
+  end
+  let count = 0
+  if db.QueryRow("SELECT count(*) FROM public.commune_schema_migrations").Scan(Ref.new(count)).IsErr() || count != 0 then
+    t.Fatal("failed migration retained ledger records")
+  end
+end

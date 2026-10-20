@@ -1,0 +1,75 @@
+package federation
+
+import json "go:encoding/json"
+
+struct CollectionTraversal
+  ID: String
+  First: String
+  Next: String
+  Items: Slice[String]
+end
+
+struct CollectionDocument
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  First: json.RawMessage `json:"first"`
+  Next: json.RawMessage `json:"next"`
+  OrderedItems: json.RawMessage `json:"orderedItems"`
+  Items: json.RawMessage `json:"items"`
+end
+
+struct CollectionItemView
+  ID: String `json:"id"`
+  Href: String `json:"href"`
+end
+
+# Collection traversal returns only canonical item identities. Callers fetch each
+# object from its advertised URI so that the object body's id can be verified.
+func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversal, String]
+  let document = CollectionDocument{}
+  if json.Unmarshal(payload, Ref.new(document)).IsErr() then
+    return Err("invalid collection")
+  end
+  if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" then
+    return Err("not a collection")
+  end
+  let rawItems = if (document.OrderedItems as Slice[Byte]).Len() > 0 then document.OrderedItems else document.Items end
+  var items: Slice[String] = []
+  if (rawItems as Slice[Byte]).Len() > 0 then
+    var elements: Slice[json.RawMessage] = []
+    if json.Unmarshal(rawItems as Slice[Byte], Ref.new(elements)).IsErr() then
+      return Err("invalid collection items")
+    end
+    elements.Each(func(element: json.RawMessage) -> ()
+      let uri = DecodeCollectionItemURI(element)
+      if uri != "" && !items.Contains(uri) then
+        items = items.Append(uri)
+      end
+    end)
+  end
+  Ok(CollectionTraversal{
+    ID: document.ID,
+    First: DecodeCollectionLink(document.First),
+    Next: DecodeCollectionLink(document.Next),
+    Items: items,
+  })
+end
+
+func DecodeCollectionItemURI(raw: json.RawMessage) -> String
+  let uri = ""
+  if json.Unmarshal(raw as Slice[Byte], Ref.new(uri)).IsOk() then
+    return uri
+  end
+  let item = CollectionItemView{}
+  if json.Unmarshal(raw as Slice[Byte], Ref.new(item)).IsErr() then
+    return ""
+  end
+  if item.ID != "" then
+    return item.ID
+  end
+  item.Href
+end
+
+func DecodeCollectionLink(raw: json.RawMessage) -> String
+  DecodeCollectionItemURI(raw)
+end

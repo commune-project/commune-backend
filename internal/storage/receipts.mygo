@@ -1,0 +1,126 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import strings "go:strings"
+import time "go:time"
+import sha256 "go:crypto/sha256"
+import hash "go:hash"
+import rand "go:crypto/rand"
+import sql "go:database/sql"
+
+struct ReceiptRecord
+  ActivityURI: String `gorm:"column:activity_uri"`
+  SiteID: String `gorm:"column:site_id"`
+  RecipientActorURI: String `gorm:"column:recipient_actor_uri"`
+  State: String `gorm:"column:state"`
+  LeaseToken: sql.NullString `gorm:"column:lease_token"`
+  LeaseUntil: sql.NullTime `gorm:"column:lease_until"`
+end
+
+func PayloadChecksum(payload: Slice[Byte]) -> Slice[Byte]
+  let digest = sha256.New()
+  let _ = digest.Write(payload)
+  digest.Sum([] as Slice[Byte])
+end
+
+# The stored activity identity and payload are immutable. Reusing a URI with a
+# different actor, kind or payload is rejected; an identical replay is
+# idempotent and still records a receipt for each addressed local recipient.
+func ReceiveActivity(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  recipients: Slice[String],
+  activityURI: String,
+  actorURI: String,
+  kind: String,
+  payload: Slice[Byte]
+) -> Result[Int64, String]
+  if siteID == "" || activityURI == "" || actorURI == "" || recipients.Len() == 0 || !strings.HasPrefix(activityURI, "https://") then
+    return Err("invalid activity")
+  end
+  if payload.Len() == 0 then
+    return Err("invalid activity")
+  end
+  var created = 0i64
+  let result = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if MutationResult(tx.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?) ON CONFLICT (uri) DO NOTHING", activityURI, actorURI, kind)).IsErr() then
+      return Err("invalid activity")
+    end
+    let stored = ReceiptRecord{}
+    let loaded = tx.Raw("SELECT a.uri AS activity_uri, a.actor_uri AS recipient_actor_uri FROM activities a WHERE a.uri = ?", activityURI).Scan(Ref.new(stored))
+    if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
+      return Err("invalid activity")
+    end
+    let actorCheck = QueryExists(tx.Table("activities").Where("uri = ? AND actor_uri = ? AND kind = ?", activityURI, actorURI, kind))
+    if actorCheck.IsErr() then
+      return Err("invalid activity")
+    end
+    if !actorCheck.Unwrap() then
+      return Err("conflicting activity")
+    end
+    let checksum = PayloadChecksum(payload)
+    if MutationResult(tx.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?) ON CONFLICT (activity_uri) DO NOTHING", activityURI, payload, checksum)).IsErr() then
+      return Err("invalid activity")
+    end
+    let payloadCheck = QueryExists(tx.Table("activity_payloads").Where("activity_uri = ? AND checksum = ?", activityURI, checksum))
+    if payloadCheck.IsErr() then
+      return Err("invalid activity")
+    end
+    if !payloadCheck.Unwrap() then
+      return Err("conflicting activity")
+    end
+    recipients.Each(func(recipient: String) -> ()
+      let inserted = tx.Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, siteID, recipient)
+      let mutation = MutationResult(inserted)
+      if mutation.IsOk() && inserted.RowsAffected == 1i64 then
+        created = created + 1i64
+      end
+    end)
+    Ok(())
+  end)
+  if result.IsErr() then
+    return Err(result.UnwrapErr())
+  end
+  Ok(created)
+end
+
+func LocalActors(ctx: context.Context, db: Ref[gorm.DB], siteID: String, candidates: Slice[String]) -> Result[Slice[String], String]
+  var found: Slice[String] = []
+  var failed = false
+  candidates.Each(func(candidate: String) -> ()
+    let match = QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
+    if match.IsErr() then
+      failed = true
+    else
+      if match.Unwrap() && !found.Contains(candidate) then
+        found = found.Append(candidate)
+      end
+    end
+  end)
+  if failed then
+    return Err("receipt unavailable")
+  end
+  Ok(found)
+end
+
+# Accepted work survives restart: pending rows are claimed under a lease and can
+# be reclaimed once the lease expires.
+func ClaimPendingReceipts(ctx: context.Context, db: Ref[gorm.DB], limit: Int, leaseSeconds: Int64) -> Result[Slice[ReceiptRecord], String]
+  var claimed: Slice[ReceiptRecord] = []
+  let token = rand.Text()
+  let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
+  let query = db.WithContext(ctx).Raw("UPDATE inbox_receipts SET state='processing', lease_token=?, lease_until=? WHERE (activity_uri, site_id, recipient_actor_uri) IN (SELECT activity_uri, site_id, recipient_actor_uri FROM inbox_receipts WHERE state IN ('pending','processing') AND (lease_until IS NULL OR lease_until < now()) ORDER BY received_at LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING activity_uri, site_id, recipient_actor_uri, state", token, until, limit).Scan(Ref.new(claimed))
+  if MutationResult(query).IsErr() then
+    return Err("receipt unavailable")
+  end
+  Ok(claimed)
+end
+
+func SettleReceipt(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, siteID: String, recipient: String, state: String) -> Result[(), String]
+  if state != "accepted" && state != "rejected" then
+    return Err("invalid state")
+  end
+  MutationResult(db.WithContext(ctx).Exec("UPDATE inbox_receipts SET state=?, lease_token=NULL, lease_until=NULL WHERE activity_uri=? AND site_id=? AND recipient_actor_uri=?", state, activityURI, siteID, recipient))
+end

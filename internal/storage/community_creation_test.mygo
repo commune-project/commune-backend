@@ -1,0 +1,64 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresCommunityCreation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "alice", "", "community-creator-password").Unwrap()
+  let foreign = accounts.Create(ctx, other, "bob", "", "foreign-creator-password").Unwrap()
+  let repository = CommunityRepository{DB: db, SiteID: site.ID}
+  let modes = ["local_only", "federated"]
+  modes.Each(func(mode: String) -> ()
+    ["eligible_users", "members"].Each(func(read: String) -> ()
+      ["eligible_users", "members"].Each(func(post: String) -> ()
+        if read != "members" || post == "members" then
+          let name = mode + "_" + read + "_" + post
+          let community = repository.Create(ctx, site, creator, name, "Community", mode, read, post).Unwrap()
+          let access = repository.Check(ctx, community.ID, creator, false).Unwrap()
+          if !access.CanRead() || !access.CanPost() || access.Authority.Scope != "community" || community.ActorURI.Valid != (mode == "federated") then
+            t.Fatal("creation lost initial membership, creator authority or immutable participation")
+          end
+          if repository.Create(ctx, site, creator, name, "Replacement", mode, read, post).IsOk() then
+            t.Fatal("duplicate community name replaced an existing community")
+          end
+        end
+      end)
+    end)
+  end)
+  if repository.Create(ctx, site, foreign, "foreign", "Community", "local_only", "eligible_users", "eligible_users").IsOk() || repository.Create(ctx, site, creator, "invalid", "Community", "local_only", "members", "eligible_users").IsOk() then
+    t.Fatal("cross-site creation or invalid policy accepted")
+  end
+  let forged = config.Site{ID: "a", Origin: "https://forged.example"}
+  if repository.Create(ctx, forged, creator, "forged", "Community", "federated", "eligible_users", "eligible_users").IsOk() then
+    t.Fatal("community actor used an unconfigured origin")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("actors").Where("kind='Group'").Count(Ref.new(count))).Unwrap()
+  if count != 3i64 then
+    t.Fatal("local-only creation emitted a Group actor or duplicate leaked one")
+  end
+  let _ = MutationResult(db.Table("communities").Count(Ref.new(count))).Unwrap()
+  if count != 6i64 then
+    t.Fatal("creation failure did not roll back community state")
+  end
+  let localRow = CommunityRecord{}
+  let _ = MutationResult(db.Table("communities").Where("federation_mode='local_only'").Limit(1).Find(Ref.new(localRow))).Unwrap()
+  if MutationResult(db.Exec("UPDATE communities SET federation_mode='federated', actor_uri=? WHERE id=?", "https://a.example/communities/converted", localRow.ID)).IsOk() then
+    t.Fatal("local-only community was converted to federated")
+  end
+  let _ = MutationResult(db.Table("delivery_jobs").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("creation scheduled unintended federation delivery")
+  end
+end

@@ -1,0 +1,42 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+# A Group actor's outbox holds the community's content, not objects authored by
+# the group actor, so these variants filter by community instead of author.
+func CountCommunityObjects(ctx: context.Context, db: Ref[gorm.DB], origin: String, communityID: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = publicObjectQuery(ctx, db, origin).Where("p.community_id = ?", communityID).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListCommunityObjects(ctx: context.Context, db: Ref[gorm.DB], origin: String, communityID: String, limit: Int, offset: Int) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = publicObjectQuery(ctx, db, origin).Where("p.community_id = ?", communityID).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end
+
+func CountMemberCommunityObjects(ctx: context.Context, db: Ref[gorm.DB], origin: String, communityID: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = memberObjectQuery(ctx, db, origin, communityID).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(count)
+end
+
+func ListMemberCommunityObjects(ctx: context.Context, db: Ref[gorm.DB], origin: String, communityID: String, limit: Int, offset: Int) -> Result[Slice[PostRecord], String]
+  var records: Slice[PostRecord] = []
+  let query = memberObjectQuery(ctx, db, origin, communityID).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("collection unavailable")
+  end
+  Ok(records)
+end

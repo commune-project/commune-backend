@@ -1,0 +1,78 @@
+package federation
+
+import base64 "go:encoding/base64"
+import sha256 "go:crypto/sha256"
+import rsa "go:crypto/rsa"
+import rand "go:crypto/rand"
+import crypto "go:crypto"
+import x509 "go:crypto/x509"
+import pem "go:encoding/pem"
+import hash "go:hash"
+# pem.Decode returns a possibly nil pointer; MyGO has no nil literal comparison,
+# so this single bound check stays in Go.
+func BlockMissing(block: Ref[pem.Block]) -> Bool
+  go[Bool] {
+    code: `{block} == nil`
+    in block = block
+  }
+end
+
+func BodyDigest(body: Slice[Byte]) -> String
+  let digest = sha256.New()
+  let _ = digest.Write(body)
+  let sum = digest.Sum([] as Slice[Byte])
+  "sha-256=" + base64.StdEncoding.EncodeToString(sum)
+end
+
+func SignSignature(privatePEM: String, signingString: String) -> Result[String, String]
+  let (block, _) = pem.Decode(privatePEM as Slice[Byte])
+  if BlockMissing(block) then
+    return Err("invalid key")
+  end
+  let parsed = x509.ParsePKCS1PrivateKey(block.Bytes)
+  switch parsed
+    case Err(_) => Err("invalid key")
+    case Ok(key) then
+      let digest = sha256.New()
+      let _ = digest.Write(signingString as Slice[Byte])
+      let sum = digest.Sum([])
+      switch rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, sum)
+        case Err(_) => Err("signing failed")
+        case Ok(signature) => Ok(base64.StdEncoding.EncodeToString(signature))
+      end
+    end
+  end
+end
+
+func VerifySignature(
+  publicPEM: String,
+  signingString: String,
+  signature: String
+) -> Result[Bool, String]
+  let (block, _) = pem.Decode(publicPEM as Slice[Byte])
+  if BlockMissing(block) then
+    return Err("invalid key")
+  end
+  let parsed = x509.ParsePKIXPublicKey(block.Bytes).MapErr(func(err: Error) -> String
+    err.Error()
+  end).Map(func(key: Any) -> Result[Ref[rsa.PublicKey], String]
+    AsRSAPublicKey(key)
+  end).Flatten()
+  switch parsed
+    case Err(_) => Err("invalid key")
+    case Ok(key) then
+      switch base64.StdEncoding.DecodeString(signature)
+        case Err(_) => Err("invalid signature")
+        case Ok(decoded) then
+          let digest = sha256.New()
+          let _ = digest.Write(signingString as Slice[Byte])
+          let sum = digest.Sum([])
+          switch rsa.VerifyPKCS1v15(key, crypto.SHA256, sum, decoded)
+            case Err(_) => Ok(false)
+            case Ok(_) => Ok(true)
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,29 @@
+package auth
+
+import testing "go:testing"
+import time "go:time"
+import http "go:net/http"
+
+func TestSessionTokens(t: Ref[testing.T]) -> ()
+  let first = NewSessionTokens()
+  let second = NewSessionTokens()
+  if !ValidToken(first.Session) || !ValidToken(first.CSRF) || first.Session == first.CSRF || first.Session == second.Session then
+    t.Fatal("session tokens are invalid or repeated")
+  end
+  if !VerifyCSRF(first.CSRFHash(), first.CSRF) || VerifyCSRF(first.CSRFHash(), second.CSRF) || VerifyCSRF(first.CSRFHash(), "") then
+    t.Fatal("CSRF token validation failed")
+  end
+  first.Cookies(time.Now().Add(time.Hour)).Each(func(cookie: http.Cookie) -> ()
+    if cookie.Domain != "" || cookie.Path != "/" || !cookie.Secure || cookie.SameSite != http.SameSiteStrictMode || cookie.MaxAge != 86400 then
+      t.Fatal("cookie is not secure and host-only")
+    end
+    if cookie.Name == "__Host-commune_session" && !cookie.HttpOnly then
+      t.Fatal("session cookie is script-readable")
+    end
+  end)
+  ExpiredCookies().Each(func(cookie: http.Cookie) -> ()
+    if cookie.MaxAge != -1 then
+      t.Fatal("logout cookie does not expire")
+    end
+  end)
+end

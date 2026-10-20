@@ -1,0 +1,175 @@
+package federation
+
+import strings "go:strings"
+import time "go:time"
+import http "go:net/http"
+import regexp "go:regexp"
+
+struct SignatureParameters
+  KeyID: String
+  Algorithm: String
+  Headers: String
+  Signature: String
+end
+
+struct VerifiedRequest
+  KeyID: String
+end
+
+func RequiredHeaders() -> String
+  "(request-target) host date digest"
+end
+
+# A read has no body, so its signature covers only the request target, host and
+# date.
+func RequiredGetHeaders() -> String
+  "(request-target) host date"
+end
+
+func GetSigningString(method: String, requestTarget: String, host: String, date: String) -> String
+  "(request-target): " + strings.ToLower(method) + " " + requestTarget + "\nhost: " + host + "\ndate: " + date
+end
+
+# Actor-signed read: the signer must present its own key over a fresh request.
+func VerifySignedGet(
+  publicPEM: String,
+  method: String,
+  requestTarget: String,
+  host: String,
+  date: String,
+  signatureHeader: String,
+  now: time.Time,
+  windowSeconds: Int64
+) -> Result[VerifiedRequest, String]
+  let header = ParseSignatureHeader(signatureHeader)
+  if header.IsErr() then
+    return Err("invalid signature header")
+  end
+  let params = header.Unwrap()
+  if params.Algorithm != "rsa-sha256" || params.Headers != RequiredGetHeaders() then
+    return Err("unsupported signature")
+  end
+  if !FreshDate(date, now, windowSeconds) then
+    return Err("stale request")
+  end
+  let signing = GetSigningString(method, requestTarget, host, date)
+  let valid = VerifySignature(publicPEM, signing, params.Signature)
+  if valid.IsErr() then
+    return Err(valid.UnwrapErr())
+  end
+  if !valid.Unwrap() then
+    return Err("invalid signature")
+  end
+  Ok(VerifiedRequest{KeyID: params.KeyID})
+end
+
+func ExtractSignatureParam(header: String, name: String) -> Result[String, String]
+  let pattern = regexp.MustCompile(name + "=\"([^\"]*)\"")
+  let match = pattern.FindStringSubmatch(header)
+  if match.Len() < 2 then
+    return Err("missing " + name)
+  end
+  Ok(match.Get(1).Unwrap())
+end
+
+func ParseSignatureHeader(header: String) -> Result[SignatureParameters, String]
+  let keyID = ExtractSignatureParam(header, "keyId")
+  if keyID.IsErr() then
+    return Err(keyID.UnwrapErr())
+  end
+  let algorithm = ExtractSignatureParam(header, "algorithm")
+  if algorithm.IsErr() then
+    return Err(algorithm.UnwrapErr())
+  end
+  let headers = ExtractSignatureParam(header, "headers")
+  if headers.IsErr() then
+    return Err(headers.UnwrapErr())
+  end
+  let signature = ExtractSignatureParam(header, "signature")
+  if signature.IsErr() then
+    return Err(signature.UnwrapErr())
+  end
+  Ok(SignatureParameters{
+    KeyID: keyID.Unwrap(),
+    Algorithm: algorithm.Unwrap(),
+    Headers: strings.ToLower(headers.Unwrap()),
+    Signature: signature.Unwrap(),
+  })
+end
+
+func RequestSigningString(
+  method: String,
+  requestTarget: String,
+  host: String,
+  date: String,
+  digest: String
+) -> String
+  "(request-target): " +
+    strings.ToLower(method) +
+    " " +
+    requestTarget +
+    "\nhost: " +
+    host +
+    "\ndate: " +
+    date +
+    "\ndigest: " +
+    digest
+end
+
+func FormatSignatureHeader(keyID: String, signature: String) -> String
+  `keyId="` +
+    keyID +
+    `",algorithm="rsa-sha256",headers="` +
+    RequiredHeaders() +
+    `",signature="` +
+    signature +
+    `"`
+end
+
+func FreshDate(date: String, now: time.Time, windowSeconds: Int64) -> Bool
+  let parsed = http.ParseTime(date)
+  if parsed.IsErr() then
+    return false
+  end
+  let bound = windowSeconds as time.Duration * time.Second
+  now.Sub(parsed.Unwrap()).Abs() <= bound
+end
+
+# A key identifier must name the signing actor's own key; an instance key is not
+# a delegation for every actor behind it.
+func KeyOwnedByActor(keyID: String, actorURI: String) -> Bool
+  actorURI != "" && keyID == actorURI + "#main-key"
+end
+
+func VerifyRequest(
+  publicPEM: String,
+  method: String,
+  requestTarget: String,
+  host: String,
+  date: String,
+  digest: String,
+  signatureHeader: String,
+  now: time.Time,
+  windowSeconds: Int64
+) -> Result[VerifiedRequest, String]
+  let header = ParseSignatureHeader(signatureHeader)
+  if header.IsErr() then
+    return Err("invalid signature header")
+  end
+  let params = header.Unwrap()
+  if params.Algorithm != "rsa-sha256" || params.Headers != RequiredHeaders() then
+    return Err("unsupported signature")
+  end
+  if !FreshDate(date, now, windowSeconds) then
+    return Err("stale request")
+  end
+  let signing = RequestSigningString(method, requestTarget, host, date, digest)
+  let valid = VerifySignature(publicPEM, signing, params.Signature)
+  if valid.IsErr() then
+    return Err(valid.UnwrapErr())
+  end
+  if !valid.Unwrap() then
+    return Err("invalid signature")
+  end
+  Ok(VerifiedRequest{KeyID: params.KeyID})
+end

@@ -1,0 +1,95 @@
+package config
+
+import url "go:net/url"
+import strings "go:strings"
+import strconv "go:strconv"
+import netip "go:net/netip"
+import regexp "go:regexp"
+
+func ValidDomain(host: String) -> Bool
+  if host.Len() == 0 || host.Len() > 253 then
+    return false
+  end
+  let labels = strings.Split(host, ".")
+  var i = 0
+  while i < labels.Len()
+    let valid = switch regexp.MatchString("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", labels.Get(i).Unwrap())
+      case Err(_) => false
+      case Ok(value) => value
+    end
+    if !valid then
+      return false
+    end
+    i = i + 1
+  end
+  true
+end
+
+func NormalizeAuthority(authority: String) -> Result[String, String]
+  if authority == "" || strings.ContainsAny(authority, "/\\?#@% \t\r\n") then
+    return Err("invalid routing authority")
+  end
+  switch url.Parse("https://" + authority)
+    case Err(_) => Err("invalid routing authority")
+    case Ok(parsed) then
+      var host = strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
+      let addressResult = netip.ParseAddr(host)
+      if addressResult.IsOk() then
+        let address = addressResult.Unwrap()
+        host = address.String()
+        if address.Is6() then
+          if !strings.HasPrefix(authority, "[") then
+            return Err("IPv6 routing authority must use brackets")
+          end
+          host = "[" + host + "]"
+        end
+      end
+      if addressResult.IsErr() && !ValidDomain(host) then
+        return Err("invalid routing hostname; use ASCII IDNA form")
+      end
+      let port = parsed.Port()
+      if strings.HasSuffix(authority, ":") then
+        return Err("empty routing port")
+      end
+      if port != "" then
+        let numberResult = strconv.Atoi(port)
+        if numberResult.IsErr() then
+          return Err("invalid routing port")
+        end
+        let number = numberResult.Unwrap()
+        if number < 1 || number > 65535 then
+          return Err("routing port is out of range")
+        end
+        if number != 443 then
+          host = host + ":" + number.ToString()
+        end
+      end
+      Ok(host)
+    end
+  end
+end
+
+func NormalizeOrigin(origin: String) -> Result[String, String]
+  if strings.ContainsAny(origin, "\\?# \t\r\n") then
+    return Err("canonical origin must be an HTTPS origin without query or fragment")
+  end
+  switch url.Parse(origin)
+    case Err(_) => Err("invalid canonical origin")
+    case Ok(parsed) then
+      if parsed.Scheme != "https" || (parsed.Path != "" && parsed.Path != "/") then
+        return Err("canonical origin must use HTTPS without a path")
+      end
+      switch NormalizeAuthority(parsed.Host)
+        case Err(reason) => Err(reason)
+        case Ok(authority) then
+          let hasCredentials = go[Bool] { code: "{parsed}.User != nil"; in parsed = parsed }
+          if hasCredentials then
+            Err("canonical origin cannot contain credentials")
+          else
+            Ok("https://" + authority)
+          end
+        end
+      end
+    end
+  end
+end

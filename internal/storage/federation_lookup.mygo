@@ -1,0 +1,84 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+struct ActivityPayloadRecord
+  URI: String `gorm:"column:uri"`
+  Payload: Slice[Byte] `gorm:"column:original_payload"`
+end
+
+func LoadObjectByID(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  id: String
+) -> Result[Option[PostRecord], String]
+  if id == "" then
+    return Err("invalid object")
+  end
+  let record = PostRecord{}
+  let query = db.WithContext(ctx).Table("posts").Where("id = ?", id).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("object unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[PostRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+func LoadCommunityByName(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  name: String
+) -> Result[Option[CommunityRecord], String]
+  let record = CommunityRecord{}
+  let query = db.WithContext(ctx).Table("communities").Where(
+    "host_site_id = ? AND name = ?",
+    siteID,
+    name
+  ).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("community unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[CommunityRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+func LoadCommunityByID(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  id: String
+) -> Result[Option[CommunityRecord], String]
+  let record = CommunityRecord{}
+  let query = db.WithContext(ctx).Table("communities").Where("id = ?", id).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("community unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[CommunityRecord], String](None)
+  end
+  Ok(Some(record))
+end
+
+func LoadActivityPayload(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  uri: String
+) -> Result[Option[ActivityPayloadRecord], String]
+  let record = ActivityPayloadRecord{}
+  let query = db.WithContext(ctx).Table("activities AS a").Select("a.uri, p.original_payload").Joins("JOIN activity_payloads AS p ON p.activity_uri = a.uri").Where(
+    "a.uri = ?",
+    uri
+  ).Limit(1).Find(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err("activity unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Ok[Option[ActivityPayloadRecord], String](None)
+  end
+  Ok(Some(record))
+end

@@ -1,0 +1,17 @@
+package auth
+
+struct ManagementAuthority
+  Scope: String
+end
+
+impl ManagementAuthority
+  func Allows(self: ManagementAuthority, action: String) -> Bool
+    if self.Scope == "deployment" then
+      return action == "manage-community" || action == "assign-site-role" || action == "assign-deployment-role"
+    end
+    if self.Scope == "site" then
+      return action == "manage-community" || action == "assign-site-role"
+    end
+    self.Scope == "community" && action == "manage-community"
+  end
+end

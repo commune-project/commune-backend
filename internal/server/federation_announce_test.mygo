@@ -1,0 +1,63 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresSubmissionAnnounce(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
+  let community = communities.Create(ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let authorKey = storage.GeneratePrivatePEM().Unwrap()
+  let author = "https://peer.example/users/writer"
+  let subscriber = "https://fan.example/users/reader"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,public_key_pem) VALUES (?, 'Person', 'https://peer.example/inbox', ?), (?, 'Person', 'https://fan.example/inbox', NULL)", author, storage.PublicPEMFromPrivate(authorKey).Unwrap(), subscriber)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, subscriber, "https://fan.example/activities/f1")).Unwrap()
+  let handler = Handler(settings, db)
+  let date = time.Now().UTC().Format(http.TimeFormat)
+  let create = "{\"id\":\"https://peer.example/activities/create-1\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + community.ActorURI.String + "\",\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"https://peer.example/objects/1\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"extension\":{\"custom\":[1,2]},\"proof\":{\"type\":\"RsaSignature2017\",\"value\":\"abc\"}}}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", create, author, authorKey, date).Code != 202 then
+    t.Fatal("a valid community submission was rejected")
+  end
+  let count: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("an accepted submission was not announced by the Group")
+  end
+  let announceURI = ""
+  let _ = storage.MutationResult(db.Table("activities").Select("uri").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Limit(1).Scan(Ref.new(announceURI))).Unwrap()
+  let stored = storage.LoadActivityPayload(ctx, db, announceURI).Unwrap().Unwrap().Payload
+  let text = stored as String
+  if !strings.Contains(text, "\"extension\":{\"custom\":[1,2]}") || !strings.Contains(text, "\"proof\":{\"type\":\"RsaSignature2017\",\"value\":\"abc\"}") then
+    t.Fatalf("unknown properties or proofs were not preserved verbatim: %s", text)
+  end
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", subscriber).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("the announcement was not fanned out to the subscriber")
+  end
+  let duplicate = "{\"id\":\"https://peer.example/activities/dup\",\"id\":\"https://peer.example/activities/dup2\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/objects/2\"}"
+  let duplicateResult = signedPost(handler, a.Origin, "/users/alice/inbox", duplicate, author, authorKey, date)
+  if duplicateResult.Code != 400 || !strings.Contains(duplicateResult.Body.String(), "ambiguous") then
+    t.Fatalf("a duplicate-key payload was accepted: %d %s", duplicateResult.Code, duplicateResult.Body.String())
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", a.ID, author)).Unwrap()
+  let blocked = "{\"id\":\"https://peer.example/activities/create-2\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + community.ActorURI.String + "\",\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"https://peer.example/objects/3\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\"}}"
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", blocked, author, authorKey, date)
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("a blocked submission was still announced")
+  end
+end

@@ -1,0 +1,80 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import storage "github.com/commune-project/commune-mygo/internal/storage"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func announceBody(id: String, actor: String, inner: String, recipients: String) -> String
+  "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"Announce\",\"to\":[" + recipients + "],\"object\":" + inner + "}"
+end
+
+func TestPostgresNestedAndActionAuthority(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.Federation.AllowPrivateNetwork = true
+  settings.Federation.FetchTimeoutSeconds = 5
+  let a = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-account-password").Unwrap()
+  let hoaxKey = storage.GeneratePrivatePEM().Unwrap()
+  let victimKey = storage.GeneratePrivatePEM().Unwrap()
+  let hoax = "https://hoax.example/users/hopper"
+  let victim = "https://victim.example/users/vera"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", hoax, storage.PublicPEMFromPrivate(hoaxKey).Unwrap(), victim, storage.PublicPEMFromPrivate(victimKey).Unwrap())).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group')", victim + "/communities/c1")).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('c1',?,?,'federated','eligible_users','eligible_users','c1','C1')", victim + "/communities/c1", victim)).Unwrap()
+  let objectURI = victim + "/objects/1"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1',?,'c1','federated',?,'Page','T','B', now(), now())", objectURI, victim)).Unwrap()
+  let handler = Handler(settings, db)
+  let now = time.Now().UTC()
+  let date = now.Format(http.TimeFormat)
+  let recipients = "\"" + alice.ActorURI + "\""
+  let embeddedMismatch = "{\"id\":\"http://127.0.0.1:1/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\"}"
+  let unreachable = announceBody("https://hoax.example/activities/a1", hoax, embeddedMismatch, recipients)
+  let unreachableResult = signedPost(handler, a.Origin, "/users/alice/inbox", unreachable, hoax, hoaxKey, date)
+  if unreachableResult.Code != 403 || !strings.Contains(unreachableResult.Body.String(), "unverifiable") then
+    t.Fatalf("unverifiable embedded author was accepted: %d %s", unreachableResult.Code, unreachableResult.Body.String())
+  end
+  let trustedBody = "{\"id\":\"" + hoax + "/objects/9\",\"actor\":\"" + hoax + "\",\"type\":\"Create\"}"
+  let trusted = announceBody("https://hoax.example/activities/a2", hoax, trustedBody, recipients)
+  if signedPost(handler, a.Origin, "/users/alice/inbox", trusted, hoax, hoaxKey, date).Code != 202 then
+    t.Fatal("an activity embedded by its own signer was rejected")
+  end
+  let peerHandler = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    w.Header().Set("Content-Type", "application/activity+json")
+    let document = "{\"id\":\"http://" + request.Host + "/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\",\"object\":\"" + victim + "/objects/2\"}"
+    let _ = w.Write(document as Slice[Byte])
+  end
+  let peer = httptest.NewServer(peerHandler as http.HandlerFunc)
+  let reachableInner = "{\"id\":\"" + peer.URL + "/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\"}"
+  let relayed = announceBody("https://hoax.example/activities/a3", hoax, reachableInner, recipients)
+  let relayedResult = signedPost(handler, a.Origin, "/users/alice/inbox", relayed, hoax, hoaxKey, date)
+  if relayedResult.Code != 202 then
+    t.Fatalf("canonically confirmed embedded activity was rejected: %d %s", relayedResult.Code, relayedResult.Body.String())
+  end
+  peer.Close()
+  let forgedUpdate = "{\"id\":\"https://hoax.example/activities/a4\",\"actor\":\"" + hoax + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
+  let forgedResult = signedPost(handler, a.Origin, "/users/alice/inbox", forgedUpdate, hoax, hoaxKey, date)
+  if forgedResult.Code != 403 || !strings.Contains(forgedResult.Body.String(), "forged mutation") then
+    t.Fatalf("a signed update of another author's object was accepted: %d %s", forgedResult.Code, forgedResult.Body.String())
+  end
+  let ownerUpdate = "{\"id\":\"https://victim.example/activities/u1\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", ownerUpdate, victim, victimKey, date).Code != 202 then
+    t.Fatal("the object owner's own update was rejected")
+  end
+  let unknownUpdate = "{\"id\":\"https://victim.example/activities/u2\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"https://victim.example/objects/absent\"}"
+  let unknownResult = signedPost(handler, a.Origin, "/users/alice/inbox", unknownUpdate, victim, victimKey, date)
+  if unknownResult.Code != 403 || !strings.Contains(unknownResult.Body.String(), "unknown object") then
+    t.Fatalf("an update of an unknown object was accepted: %d %s", unknownResult.Code, unknownResult.Body.String())
+  end
+end

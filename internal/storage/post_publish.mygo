@@ -1,0 +1,121 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import rand "go:crypto/rand"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+
+struct PublishInput
+  Title: String
+  Body: String
+  ParentID: String
+  ContextURI: String
+end
+
+impl PostRepository
+  # Local eligible publication. ActivityPub artifacts for federated objects are
+  # produced by the group federation layer, not here.
+  func Publish(self: PostRepository, ctx: context.Context, site: config.Site, communityID: String, identity: auth.Identity, remoteVerified: Bool, input: PublishInput) -> Result[PostRecord, String]
+    let body = strings.TrimSpace(input.Body)
+    let title = strings.TrimSpace(input.Title)
+    if self.SiteID == "" || body == "" || (body as Slice[Byte]).Len() > 65536 || (title as Slice[Byte]).Len() > 200 || (input.ParentID != "" && title != "") || (input.ParentID == "" && title == "") then
+      return Err("invalid post input")
+    end
+    if remoteVerified then
+      return Err("forbidden")
+    end
+    var stored = PostRecord{}
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let repository = CommunityRepository{DB: tx, SiteID: self.SiteID}
+      let loaded = repository.Load(ctx, communityID, true)
+      if loaded.IsErr() then
+        return Err(loaded.UnwrapErr())
+      end
+      let community = loaded.Unwrap()
+      if community.FederationMode != "federated" && input.ContextURI != "" then
+        return Err("forbidden")
+      end
+      let access = repository.Access(ctx, community, identity, false)
+      if access.IsErr() then
+        return Err(access.UnwrapErr())
+      end
+      if !access.Unwrap().CanPost() then
+        return Err("forbidden")
+      end
+      let active = QueryExists(tx.Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, self.SiteID, identity.ActorURI))
+      if active.IsErr() then
+        return Err(active.UnwrapErr())
+      end
+      if !active.Unwrap() || community.HostSiteID != self.SiteID then
+        return Err("forbidden")
+      end
+      let identifier = rand.Text()
+      var parent = sql.NullString{}
+      if input.ParentID != "" then
+        let parentResult = queryParent(tx, communityID, input.ParentID)
+        if parentResult.IsErr() then
+          return Err(parentResult.UnwrapErr())
+        end
+        parent = parentResult.Unwrap()
+      end
+      var objectURI = sql.NullString{}
+      if community.FederationMode == "federated" then
+        let canonical = config.CanonicalURI(site, "objects", identifier)
+        if canonical.IsErr() then
+          return Err("invalid post identity")
+        end
+        objectURI = sql.NullString{String: canonical.Unwrap(), Valid: true}
+      end
+      let now = time.Now().UTC().Truncate(time.Microsecond)
+      let objectType = if input.ParentID == "" then "Page" else "Note" end
+      let record = PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ParentID: parent, AuthoredAt: now, UpdatedAt: now}
+      if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI + "/inbox", identity.ActorURI)).IsErr() then
+        return Err("post creation failed")
+      end
+      if MutationResult(tx.Table("posts").Create(Ref.new(record))).IsErr() then
+        return Err("post creation failed")
+      end
+      if MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", self.SiteID, identifier)).IsErr() then
+        return Err("post creation failed")
+      end
+      if MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID)).IsErr() then
+        return Err("post creation failed")
+      end
+      if MutationResult(tx.Table("posts").Where("id=?", identifier).Find(Ref.new(stored))).IsErr() then
+        return Err("post creation failed")
+      end
+      # The declared context is independent of the parent: a reply may join a
+      # different discussion than the one its parent belongs to.
+      if input.ContextURI != "" then
+        let contextID = EnsureContextStub(ctx, tx, input.ContextURI)
+        if contextID.IsErr() then
+          return Err(contextID.UnwrapErr())
+        end
+        let attached = AttachDeclaredPostContextTx(ctx, tx, identifier, contextID.Unwrap())
+        if attached.IsErr() then
+          return Err(attached.UnwrapErr())
+        end
+      end
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(stored)
+  end
+end
+
+func queryParent(tx: Ref[gorm.DB], communityID: String, parentID: String) -> Result[sql.NullString, String]
+  let count: Int64 = 0i64
+  if MutationResult(tx.Table("posts").Where("id=? AND community_id=? AND deleted_at IS NULL", parentID, communityID).Count(Ref.new(count))).IsErr() then
+    return Err("post creation failed")
+  end
+  if count != 1i64 then
+    return Err("invalid parent")
+  end
+  Ok(sql.NullString{String: parentID, Valid: true})
+end

@@ -1,0 +1,226 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import sha256 "go:crypto/sha256"
+import hash "go:hash"
+import hex "go:encoding/hex"
+import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
+import driver "go:database/sql/driver"
+import regexp "go:regexp"
+import gorm "go:gorm.io/gorm"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func catalog(t: Ref[testing.T]) -> Slice[Migration]
+  t.Helper()
+  let migrations = MigrationCatalog().Unwrap()
+  if migrations.Len() == 0 then
+    t.Fatal("empty catalog")
+  end
+  let _ = migrations.Fold(1, func(version: Int, migration: Migration) -> Int
+    let hasher = sha256.New()
+    let _ = hasher.Write(migration.SQL as Slice[Byte])
+    let bytes = hasher.Sum([] as Slice[Byte])
+    if migration.Version != version || migration.Checksum != hex.EncodeToString(bytes) then
+      t.Fatal("catalog ordering or checksum invalid")
+    end
+    version + 1
+  end)
+  migrations
+end
+
+struct HistoryCase
+  Name: String
+  Records: Slice[AppliedMigration]
+  Strict: Bool
+  Valid: Bool
+end
+
+func TestSchemaHistory(t: Ref[testing.T]) -> ()
+  let migrations = catalog(t)
+  let first = migrations.Get(0).Unwrap()
+  let current = migrations.Map(func(migration: Migration) -> AppliedMigration
+    AppliedMigration{Version: migration.Version, Name: migration.Name, Checksum: migration.Checksum}
+  end)
+  let cases = [
+    HistoryCase{Name: "fresh migration", Records: [], Strict: false, Valid: true},
+    HistoryCase{Name: "unmigrated startup", Records: [], Strict: true, Valid: false},
+    HistoryCase{Name: "current", Records: current, Strict: true, Valid: true},
+    HistoryCase{Name: "modified checksum", Records: [AppliedMigration{Version: 1, Name: first.Name, Checksum: "bad"}], Strict: false, Valid: false},
+    HistoryCase{Name: "renamed", Records: [AppliedMigration{Version: 1, Name: "other.sql", Checksum: first.Checksum}], Strict: false, Valid: false},
+    HistoryCase{Name: "gap", Records: [AppliedMigration{Version: 2, Name: first.Name, Checksum: first.Checksum}], Strict: false, Valid: false},
+    HistoryCase{Name: "future", Records: current.Append(AppliedMigration{Version: migrations.Len() + 1, Name: "", Checksum: ""}), Strict: false, Valid: false}
+  ]
+  cases.Each(func(test: HistoryCase) -> ()
+    t.Run(test.Name, func(t: Ref[testing.T]) -> ()
+      if ValidateApplied(test.Records, migrations, test.Strict).IsOk() != test.Valid then
+        t.Fatal("history validation failed")
+      end
+      if ValidateApplied(test.Records, migrations, test.Strict).IsErr() != !test.Valid then
+        t.Fatal("history error has incorrect Result type")
+      end
+    end)
+    ()
+  end)
+end
+
+func mockFixture(t: Ref[testing.T]) -> Ref[transport.Fixture]
+  let fixture = transport.New().Unwrap()
+  t.Cleanup(func() -> ()
+    if fixture.Mock.ExpectationsWereMet().IsErr() then
+      t.Error("SQL expectations were not met")
+    end
+    let _ = fixture.DB.Close()
+  end)
+  fixture
+end
+
+func ExpectMigration(mock: sqlmock.Sqlmock, migrations: Slice[Migration], failure: String, current: Bool) -> ()
+  if failure == "begin" then
+    let _ = mock.ExpectBegin().WillReturnError(transport.Failure)
+  else
+    let _ = mock.ExpectBegin()
+    let steps = ["pg_advisory", "SET LOCAL", "CREATE TABLE IF NOT EXISTS"]
+    let stopped = steps.Fold(false, func(stopped: Bool, step: String) -> Bool
+      if !stopped then
+        if failure == step then
+          let _ = mock.ExpectExec(step).WillReturnError(transport.Failure)
+        else
+          let _ = mock.ExpectExec(step).WillReturnResult(sqlmock.NewResult(0i64, 1i64))
+        end
+      end
+      stopped || failure == step
+    end)
+    if !stopped then
+      if failure == "query" then
+        let _ = mock.ExpectQuery("SELECT version, name, checksum").WillReturnError(transport.Failure)
+      else
+        let rows = sqlmock.NewRows(["version", "name", "checksum"])
+        if current then
+          migrations.Each(func(migration: Migration) -> ()
+            let _ = rows.AddRow(migration.Version as driver.Value, migration.Name as driver.Value, migration.Checksum as driver.Value)
+          end)
+        end
+        let _ = mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
+        if !current then
+          let _ = migrations.Fold(false, func(stopped: Bool, migration: Migration) -> Bool
+            if !stopped then
+              if failure == "DDL" then
+                let _ = mock.ExpectExec(regexp.QuoteMeta(migration.SQL)).WillReturnError(transport.Failure)
+              else
+                let _ = mock.ExpectExec(regexp.QuoteMeta(migration.SQL)).WillReturnResult(sqlmock.NewResult(0i64, 1i64))
+                let record = mock.ExpectExec("INSERT INTO public.commune_schema_migrations").WithArgs(migration.Version as driver.Value, migration.Name as driver.Value, migration.Checksum as driver.Value)
+                if failure == "record" then
+                  let _ = record.WillReturnError(transport.Failure)
+                else
+                  let _ = record.WillReturnResult(sqlmock.NewResult(0i64, 1i64))
+                end
+              end
+            end
+            stopped || failure == "DDL" || failure == "record"
+          end)
+        end
+      end
+    end
+    if failure == "" then
+      let _ = mock.ExpectCommit()
+    else
+      if failure == "commit" then
+        let _ = mock.ExpectCommit().WillReturnError(transport.Failure)
+      else
+        let _ = mock.ExpectRollback()
+      end
+    end
+  end
+end
+
+func TestExplicitMigration(t: Ref[testing.T]) -> ()
+  let failures = ["", "begin", "pg_advisory", "SET LOCAL", "CREATE TABLE IF NOT EXISTS", "DDL", "record", "query", "commit"]
+  failures.Each(func(failure: String) -> ()
+    t.Run(failure, func(t: Ref[testing.T]) -> ()
+      let fixture = mockFixture(t)
+      let migrations = catalog(t)
+      ExpectMigration(fixture.Mock, migrations, failure, false)
+      let result = Migrate(context.Background(), fixture.DB)
+      if result.IsOk() != (failure == "") then
+        t.Fatal("migration error propagation failed")
+      end
+      if result.IsErr() && strings.Contains(result.UnwrapErr(), "secret") then
+        t.Fatal("migration error leaked credentials")
+      end
+      if failure == "" then
+        ExpectMigration(fixture.Mock, migrations, "", true)
+        if Migrate(context.Background(), fixture.DB).IsErr() then
+          t.Fatal("repeat migration failed")
+        end
+      end
+    end)
+    ()
+  end)
+end
+
+func TestReadOnlySchemaCheck(t: Ref[testing.T]) -> ()
+  let fixture = mockFixture(t)
+  let _ = fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows(["exists"]).AddRow(false as driver.Value))
+  if CheckSchema(context.Background(), fixture.DB).IsOk() then
+    t.Fatal("unmigrated database accepted")
+  end
+  let _ = fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows(["exists"]).AddRow(true as driver.Value))
+  let rows = sqlmock.NewRows(["version", "name", "checksum"])
+  catalog(t).Each(func(migration: Migration) -> ()
+    let _ = rows.AddRow(migration.Version as driver.Value, migration.Name as driver.Value, migration.Checksum as driver.Value)
+  end)
+  let _ = fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
+  if CheckSchema(context.Background(), fixture.DB).IsErr() then
+    t.Fatal("current schema rejected")
+  end
+end
+
+func TestGORMTransaction(t: Ref[testing.T]) -> ()
+  let failures = ["", "begin", "callback", "commit", "panic"]
+  failures.Each(func(failure: String) -> ()
+    t.Run(failure, func(t: Ref[testing.T]) -> ()
+      let fixture = mockFixture(t)
+      let db = transport.ORM(fixture.DB).Unwrap()
+      if failure == "begin" then
+        let _ = fixture.Mock.ExpectBegin().WillReturnError(transport.Failure)
+      else
+        let _ = fixture.Mock.ExpectBegin()
+        if failure == "callback" || failure == "panic" then
+          let _ = fixture.Mock.ExpectRollback()
+        else
+          if failure == "commit" then
+            let _ = fixture.Mock.ExpectCommit().WillReturnError(transport.Failure)
+          else
+            let _ = fixture.Mock.ExpectCommit()
+          end
+        end
+      end
+      let work = func(tx: Ref[gorm.DB]) -> Result[(), String]
+        if !transport.DistinctTransaction(tx, db) then
+          t.Fatal("callback lacks transaction handle")
+        end
+        if failure == "panic" then
+          transport.Panic()
+        end
+        if failure == "callback" then
+          return Err("rejected")
+        end
+        Ok(())
+      end
+      if failure == "panic" then
+        if !transport.Panics(func() -> ()
+          let _ = RunTransaction(context.Background(), db, work)
+        end) then
+          t.Fatal("panic was swallowed")
+        end
+      else
+        if RunTransaction(context.Background(), db, work).IsOk() != (failure == "") then
+          t.Fatal("transaction error propagation failed")
+        end
+      end
+    end)
+    ()
+  end)
+end

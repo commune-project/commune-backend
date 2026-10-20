@@ -1,0 +1,57 @@
+package config
+
+import netip "go:net/netip"
+import strings "go:strings"
+import url "go:net/url"
+import http "go:net/http"
+
+func ResolveRequest(config: Config, request: Ref[http.Request]) -> Result[Site, String]
+  ResolveSite(config, request.Host, request.RemoteAddr, request.Header.Get("X-Forwarded-Host"))
+end
+
+func TrustedProxy(config: Config, remoteAddress: String) -> Bool
+  let addressResult = netip.ParseAddrPort(remoteAddress)
+  if addressResult.IsErr() then
+    return false
+  end
+  let address = addressResult.Unwrap().Addr().Unmap()
+  config.TrustedProxies.Fold(false, func(found: Bool, prefix: netip.Prefix) -> Bool
+    found || prefix.Contains(address)
+  end)
+end
+
+func ResolveSite(config: Config, requestHost: String, remoteAddress: String, forwardedHost: String) -> Result[Site, String]
+  var host = requestHost
+  if forwardedHost != "" && TrustedProxy(config, remoteAddress) then
+    if strings.Contains(forwardedHost, ",") then
+      return Err("forwarded host must contain exactly one authority")
+    end
+    host = forwardedHost
+  end
+  let authorityResult = NormalizeAuthority(host)
+  if authorityResult.IsErr() then
+    return Err("unknown site")
+  end
+  let authority = authorityResult.Unwrap()
+  let matches = config.Sites.Filter(func(site: Site) -> Bool
+    strings.TrimPrefix(site.Origin, "https://") == authority || site.Aliases.Contains(authority)
+  end)
+  switch matches.Get(0)
+    case Some(site) => Ok(site)
+    case None => Err("unknown site")
+  end
+end
+
+func CanonicalURI(site: Site, collection: String, identifier: String) -> Result[String, String]
+  if collection != "users" && collection != "communities" && collection != "objects" && collection != "activities" && collection != "contexts" then
+    return Err("unknown canonical resource collection")
+  end
+  if identifier == "" || identifier == "." || identifier == ".." || strings.ContainsAny(identifier, "/\\\r\n") then
+    return Err("invalid canonical resource identifier")
+  end
+  let originResult = NormalizeOrigin(site.Origin)
+  if originResult.IsErr() then
+    return Err("invalid site origin")
+  end
+  Ok(originResult.Unwrap() + "/" + collection + "/" + url.PathEscape(identifier))
+end

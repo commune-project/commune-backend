@@ -1,0 +1,188 @@
+package config
+
+import json "go:encoding/json"
+import os "go:os"
+import url "go:net/url"
+import netip "go:net/netip"
+import strings "go:strings"
+
+struct Site
+  ID: String `json:"id"`
+  Origin: String `json:"origin"`
+  Aliases: Slice[String] `json:"aliases"`
+end
+
+struct Runtime
+  Listen: String `json:"listen"`
+  ReadTimeoutSeconds: Int `json:"read_timeout_seconds"`
+  WriteTimeoutSeconds: Int `json:"write_timeout_seconds"`
+  IdleTimeoutSeconds: Int `json:"idle_timeout_seconds"`
+  ShutdownTimeoutSeconds: Int `json:"shutdown_timeout_seconds"`
+  MaxBodyBytes: Int `json:"max_body_bytes"`
+  MaxPageSize: Int `json:"max_page_size"`
+  Workers: Int `json:"workers"`
+end
+
+struct Federation
+  AllowPrivateNetwork: Bool `json:"allow_private_network"`
+  FetchTimeoutSeconds: Int `json:"fetch_timeout_seconds"`
+  MaxFetchBytes: Int `json:"max_fetch_bytes"`
+  MaxRedirects: Int `json:"max_redirects"`
+  ClockSkewSeconds: Int `json:"clock_skew_seconds"`
+end
+
+struct Input
+  Sites: Slice[Site] `json:"sites"`
+  DatabaseURL: String `json:"database_url"`
+  TrustedProxies: Slice[String] `json:"trusted_proxies"`
+  Runtime: Runtime `json:"runtime"`
+  Federation: Federation `json:"federation"`
+end
+
+struct Config
+  Sites: Slice[Site]
+  DatabaseURL: String
+  TrustedProxies: Slice[netip.Prefix]
+  Runtime: Runtime
+  Federation: Federation
+end
+
+func ValidateRuntime(runtime: Runtime) -> Result[(), String]
+  let addressResult = url.Parse("http://" + runtime.Listen)
+  if addressResult.IsErr() then
+    return Err("invalid runtime listen address")
+  end
+  let address = addressResult.Unwrap()
+  if address.Hostname() == "" || address.Port() == "" || address.Path != "" then
+    return Err("runtime listen address requires host and port")
+  end
+  if NormalizeAuthority(runtime.Listen).IsErr() then
+    return Err("invalid runtime listen address")
+  end
+  if runtime.ReadTimeoutSeconds < 1 || runtime.ReadTimeoutSeconds > 300 || runtime.WriteTimeoutSeconds < 1 || runtime.WriteTimeoutSeconds > 300 || runtime.IdleTimeoutSeconds < 1 || runtime.IdleTimeoutSeconds > 3600 || runtime.ShutdownTimeoutSeconds < 1 || runtime.ShutdownTimeoutSeconds > 300 then
+    return Err("runtime timeouts are missing or out of range")
+  end
+  if runtime.MaxBodyBytes < 1024 || runtime.MaxBodyBytes > 16777216 || runtime.MaxPageSize < 1 || runtime.MaxPageSize > 1000 || runtime.Workers < 1 || runtime.Workers > 128 then
+    return Err("runtime body, page or worker limit is missing or out of range")
+  end
+  Ok(())
+end
+
+func Validate(input: Input) -> Result[Config, String]
+  if input.Sites.Len() == 0 then
+    return Err("at least one site is required")
+  end
+  let runtimeResult = ValidateRuntime(input.Runtime)
+  if runtimeResult.IsErr() then
+    return Err(runtimeResult.UnwrapErr())
+  end
+  let federationResult = ValidateFederation(input.Federation)
+  if federationResult.IsErr() then
+    return Err(federationResult.UnwrapErr())
+  end
+  let databaseResult = url.Parse(input.DatabaseURL)
+  if databaseResult.IsErr() then
+    return Err("invalid PostgreSQL database URL")
+  end
+  let database = databaseResult.Unwrap()
+  if (database.Scheme != "postgres" && database.Scheme != "postgresql") || database.Hostname() == "" || database.Path == "" || database.Path == "/" || database.Fragment != "" then
+    return Err("database URL must identify a PostgreSQL host and database")
+  end
+  if NormalizeAuthority(database.Host).IsErr() || url.ParseQuery(database.RawQuery).IsErr() then
+    return Err("invalid PostgreSQL database host, port or query")
+  end
+  var sites: Slice[Site] = []
+  var authorities: Slice[String] = []
+  var ids: Slice[String] = []
+  var i = 0
+  while i < input.Sites.Len()
+    let site = input.Sites.Get(i).Unwrap()
+    if !ValidDomain(site.ID) || strings.Contains(site.ID, ".") then
+      return Err("site id must be a nonempty ASCII identifier")
+    end
+    var j = 0
+    while j < ids.Len()
+      let existingID = ids.Get(j).Unwrap()
+      if existingID == site.ID then
+        return Err("duplicate site id: " + site.ID)
+      end
+      j = j + 1
+    end
+    ids = ids.Append(site.ID)
+    let originResult = NormalizeOrigin(site.Origin)
+    if originResult.IsErr() then
+      return Err("site " + site.ID + ": " + originResult.UnwrapErr())
+    end
+    let origin = originResult.Unwrap()
+    let canonical = strings.TrimPrefix(origin, "https://")
+    var aliases: Slice[String] = []
+    var names: Slice[String] = [canonical]
+    j = 0
+    while j < site.Aliases.Len()
+      let aliasResult = NormalizeAuthority(site.Aliases.Get(j).Unwrap())
+      if aliasResult.IsErr() then
+        return Err("site " + site.ID + ": " + aliasResult.UnwrapErr())
+      end
+      let value = aliasResult.Unwrap()
+      names = names.Append(value)
+      aliases = aliases.Append(value)
+      j = j + 1
+    end
+    j = 0
+    while j < names.Len()
+      var k = 0
+      while k < authorities.Len()
+        let existingAuthority = authorities.Get(k).Unwrap()
+        let requestedAuthority = names.Get(j).Unwrap()
+        if existingAuthority == requestedAuthority then
+          return Err("duplicate normalized routing domain: " + requestedAuthority)
+        end
+        k = k + 1
+      end
+      authorities = authorities.Append(names.Get(j).Unwrap())
+      j = j + 1
+    end
+    sites = sites.Append(Site { ID: site.ID, Origin: origin, Aliases: aliases })
+    i = i + 1
+  end
+  var proxies: Slice[netip.Prefix] = []
+  i = 0
+  while i < input.TrustedProxies.Len()
+    let prefixResult = netip.ParsePrefix(input.TrustedProxies.Get(i).Unwrap())
+    if prefixResult.IsErr() then
+      return Err("trusted proxy must be an IP CIDR prefix")
+    end
+    proxies = proxies.Append(prefixResult.Unwrap().Masked())
+    i = i + 1
+  end
+  Ok(Config { Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation })
+end
+
+func ValidateFederation(federation: Federation) -> Result[(), String]
+  if federation.FetchTimeoutSeconds < 1 || federation.FetchTimeoutSeconds > 60 then
+    return Err("federation fetch timeout is missing or out of range")
+  end
+  if federation.MaxFetchBytes < 1024 || federation.MaxFetchBytes > 16777216 then
+    return Err("federation fetch byte limit is missing or out of range")
+  end
+  if federation.MaxRedirects < 0 || federation.MaxRedirects > 10 then
+    return Err("federation redirect limit is out of range")
+  end
+  if federation.ClockSkewSeconds < 60 || federation.ClockSkewSeconds > 3600 then
+    return Err("federation clock skew window is missing or out of range")
+  end
+  Ok(())
+end
+
+func Load(path: String) -> Result[Config, String]
+  switch os.ReadFile(path)
+    case Err(_) => Err("cannot read configuration file")
+    case Ok(bytes) then
+      let input = Input {}
+      switch json.Unmarshal(bytes, Ref.new(input))
+        case Err(_) => Err("invalid configuration JSON")
+        case Ok(_) => Validate(input)
+      end
+    end
+  end
+end

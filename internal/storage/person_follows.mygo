@@ -1,0 +1,46 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+
+func AddPersonFollower(ctx: context.Context, db: Ref[gorm.DB], localActorURI: String, follower: String, followURI: String) -> Result[(), String]
+  if localActorURI == "" || follower == "" || followURI == "" then
+    return Err("invalid follow")
+  end
+  MutationResult(db.WithContext(ctx).Exec("INSERT INTO person_follows(local_actor_uri,follower_actor_uri,follow_uri,state) VALUES (?,?,?,'accepted') ON CONFLICT (local_actor_uri,follower_actor_uri) DO UPDATE SET state='accepted', follow_uri=EXCLUDED.follow_uri, updated_at=now()", localActorURI, follower, followURI))
+end
+
+func RemovePersonFollower(ctx: context.Context, db: Ref[gorm.DB], localActorURI: String, follower: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE person_follows SET state='undone', updated_at=now() WHERE local_actor_uri=? AND follower_actor_uri=?", localActorURI, follower))
+end
+
+func IsPersonFollower(ctx: context.Context, db: Ref[gorm.DB], localActorURI: String, follower: String) -> Result[Bool, String]
+  QueryExists(db.WithContext(ctx).Table("person_follows").Where("local_actor_uri=? AND follower_actor_uri=? AND state='accepted'", localActorURI, follower))
+end
+
+func CountPersonFollowers(ctx: context.Context, db: Ref[gorm.DB], localActorURI: String) -> Result[Int64, String]
+  let count: Int64 = 0i64
+  let query = db.WithContext(ctx).Table("person_follows").Where("local_actor_uri=? AND state='accepted'", localActorURI).Count(Ref.new(count))
+  if MutationResult(query).IsErr() then
+    return Err("follower count unavailable")
+  end
+  Ok(count)
+end
+
+func ListPersonFollowers(ctx: context.Context, db: Ref[gorm.DB], localActorURI: String, limit: Int, offset: Int) -> Result[Slice[String], String]
+  var records: Slice[String] = []
+  let query = db.WithContext(ctx).Table("person_follows").Select("follower_actor_uri").Where("local_actor_uri=? AND state='accepted'", localActorURI).Order("follower_actor_uri").Limit(limit).Offset(offset).Find(Ref.new(records))
+  if MutationResult(query).IsErr() then
+    return Err("follower list unavailable")
+  end
+  Ok(records)
+end
+
+func LoadActivityKind(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[String, String]
+  let kind = ""
+  let query = db.WithContext(ctx).Raw("SELECT kind FROM activities WHERE uri = ?", uri).Scan(Ref.new(kind))
+  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
+    return Err("activity unavailable")
+  end
+  Ok(kind)
+end

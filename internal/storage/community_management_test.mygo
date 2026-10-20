@@ -1,0 +1,113 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import auth "github.com/commune-project/commune-mygo/internal/auth"
+import config "github.com/commune-project/commune-mygo/internal/config"
+import testsupport "github.com/commune-project/commune-mygo/internal/testsupport"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func TestPostgresCommunityAuthorityAndRevocation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = config.Site{ID: "a", Origin: "https://a.example"}
+  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, b, "super", "superadministrator-password", true).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let admin = accounts.Authenticate(ctx, "a", "admin", "administrator-password").Unwrap()
+  let superadmin = accounts.Authenticate(ctx, "b", "super", "superadministrator-password").Unwrap()
+  let creator = accounts.Create(ctx, a, "creator", "", "community-creator-password").Unwrap()
+  let member = accounts.Create(ctx, a, "member", "", "ordinary-member-password").Unwrap()
+  let manager = accounts.Create(ctx, a, "manager", "", "community-manager-password").Unwrap()
+  let foreign = accounts.Create(ctx, b, "foreign", "", "foreign-account-password").Unwrap()
+  let repository = CommunityRepository{DB: db, SiteID: "a"}
+  let other = CommunityRepository{DB: db, SiteID: "b"}
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('local','a',?,'local_only','members','members','local','Local')", creator.ActorURI)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('other','b',?,'local_only','members','members','other','Other')", foreign.ActorURI)).Unwrap()
+  let creatorAccess = repository.Check(ctx, "local", creator, false).Unwrap()
+  let _ = repository.Read(ctx, "local", creator, false).Unwrap()
+  if repository.Read(ctx, "local", member, false).IsOk() || repository.Read(ctx, "local", auth.Identity{}, false).IsOk() then
+    t.Fatal("restricted metadata leaked to anonymous or non-member readers")
+  end
+  if creatorAccess.Authority.Scope != "community" || !creatorAccess.CanRead() || creatorAccess.CanPost() || creatorAccess.Authority.Allows("assign-site-role") || creatorAccess.Authority.Allows("assign-deployment-role") then
+    t.Fatal("creator management scope leaked into ordinary membership or higher roles")
+  end
+  if repository.Check(ctx, "local", admin, false).Unwrap().Authority.Scope != "site" || repository.Check(ctx, "local", superadmin, false).Unwrap().Authority.Scope != "deployment" then
+    t.Fatal("site and deployment authorities were not distinguished")
+  end
+  if other.SetPolicy(ctx, "other", admin, false, "eligible_users", "eligible_users").IsOk() || repository.Check(ctx, "other", admin, false).IsOk() then
+    t.Fatal("site administrator crossed tenant boundary")
+  end
+  let _ = other.SetPolicy(ctx, "other", superadmin, false, "eligible_users", "members").Unwrap()
+  if repository.SetMember(ctx, "local", creator, false, foreign.ActorURI, true).IsOk() || repository.SetManager(ctx, "local", creator, false, foreign.ActorURI, true).IsOk() then
+    t.Fatal("local assignments crossed site boundary")
+  end
+  let _ = repository.SetMember(ctx, "local", creator, false, member.ActorURI, true).Unwrap()
+  let sessions = SessionRepository{DB: db}
+  let now = time.Now()
+  let tokens = sessions.Issue(ctx, member, now).Unwrap()
+  let approved = repository.Check(ctx, "local", member, false).Unwrap()
+  if !approved.CanRead() || !approved.CanPost() || !approved.CanEditBody(member.ActorURI) || approved.CanEditBody(creator.ActorURI) then
+    t.Fatal("approved member or author ownership check failed")
+  end
+  let _ = repository.SetMember(ctx, "local", creator, false, member.ActorURI, false).Unwrap()
+  let retained = sessions.Resolve(ctx, "a", tokens.Session, now).Unwrap()
+  let removed = repository.Check(ctx, "local", retained.Identity, false).Unwrap()
+  if removed.CanRead() || removed.CanPost() || removed.CanEditBody(member.ActorURI) then
+    t.Fatal("valid session or historical authorship bypassed revoked membership")
+  end
+  let _ = repository.SetManager(ctx, "local", creator, false, manager.ActorURI, true).Unwrap()
+  let managed = repository.Check(ctx, "local", manager, false).Unwrap()
+  if !managed.CanRead() || managed.Authority.Scope != "community" || managed.CanEditBody(member.ActorURI) || managed.Authority.Allows("assign-site-role") then
+    t.Fatal("manager authority escalated or rewrote another author")
+  end
+  let _ = repository.SetPolicy(ctx, "local", manager, false, "eligible_users", "eligible_users").Unwrap()
+  let publicLocal = repository.Check(ctx, "local", member, false).Unwrap()
+  if !publicLocal.CanRead() || !publicLocal.CanPost() || publicLocal.Community.PolicyVersion != 2i64 then
+    t.Fatal("policy update did not affect current access")
+  end
+  let _ = repository.SetPolicy(ctx, "local", manager, false, "eligible_users", "members").Unwrap()
+  if repository.Check(ctx, "local", member, false).Unwrap().CanPost() then
+    t.Fatal("tightened posting policy required logout")
+  end
+  let _ = repository.SetPolicy(ctx, "local", creator, false, "members", "members").Unwrap()
+  let _ = repository.SetManager(ctx, "local", creator, false, manager.ActorURI, false).Unwrap()
+  if repository.Check(ctx, "local", manager, false).Unwrap().CanRead() || repository.SetPolicy(ctx, "local", manager, false, "eligible_users", "eligible_users").IsOk() then
+    t.Fatal("revoked manager retained read or management authority")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/creator','Person'),('https://remote.example/moderator','Person')")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/communities/fedi','a','Group')")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('fedi','a','https://a.example/communities/fedi','https://remote.example/creator','federated','members','members','fedi','Federated')")).Unwrap()
+  let remoteCreator = auth.Identity{ActorURI: "https://remote.example/creator"}
+  let remoteManager = auth.Identity{ActorURI: "https://remote.example/moderator"}
+  if repository.SetPolicy(ctx, "fedi", remoteCreator, false, "eligible_users", "members").IsOk() then
+    t.Fatal("unverified actor claim granted management")
+  end
+  let _ = repository.SetManager(ctx, "fedi", remoteCreator, true, remoteManager.ActorURI, true).Unwrap()
+  let _ = repository.SetMember(ctx, "fedi", remoteManager, true, member.ActorURI, true).Unwrap()
+  if repository.Check(ctx, "fedi", remoteManager, true).Unwrap().Authority.Scope != "community" || repository.Check(ctx, "fedi", remoteManager, true).Unwrap().CanEditBody(member.ActorURI) then
+    t.Fatal("remote manager scope or author ownership failed")
+  end
+  let _ = repository.SetManager(ctx, "fedi", remoteCreator, true, remoteManager.ActorURI, false).Unwrap()
+  if repository.SetMember(ctx, "fedi", remoteManager, true, member.ActorURI, false).IsOk() then
+    t.Fatal("revoked remote manager retained authority")
+  end
+  let _ = MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", creator.AccountID)).Unwrap()
+  if repository.SetPolicy(ctx, "local", creator, false, "eligible_users", "eligible_users").IsOk() then
+    t.Fatal("disabled creator retained management authority")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("audit_events").Where("scope_kind='deployment' AND acting_actor_uri=? AND target_id='other'", superadmin.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("cross-site deployment management was not audited")
+  end
+  let _ = MutationResult(db.Table("activities").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("local management unexpectedly emitted protocol activities")
+  end
+end

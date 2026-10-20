@@ -1,0 +1,67 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sqlite "go:github.com/glebarez/sqlite"
+import gorm "go:gorm.io/gorm"
+import logger "go:gorm.io/gorm/logger"
+import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
+import driver "go:database/sql/driver"
+import transport "go:github.com/commune-project/commune-mygo/internal/testtransport"
+
+func requireGORM(t: Ref[testing.T], result: Ref[gorm.DB]) -> ()
+  let failed = QueryFailed(result)
+  if failed then
+    t.Fatal("GORM operation failed")
+  end
+end
+
+func TestGORMMappingAndScopedQuery(t: Ref[testing.T]) -> ()
+  let settings = gorm.Config{Logger: logger.Discard}
+  let db = gorm.Open(sqlite.Open("file:" + t.Name() + "?mode=memory&cache=shared"), Ref.new(settings) as gorm.Option).Unwrap()
+  let pool = db.DB().Unwrap()
+  pool.SetMaxOpenConns(1)
+  t.Cleanup(func() -> ()
+    let _ = pool.Close()
+  end)
+  # SQLite fixture schema is for repository tests, not production migrations.
+  requireGORM(t, db.Exec("CREATE TABLE accounts (id INTEGER PRIMARY KEY, site_id TEXT, actor_uri TEXT, actor_kind TEXT, username TEXT, email TEXT, password_hash TEXT, disabled BOOLEAN, created_at DATETIME)"))
+  let username = "alice' OR 1=1 --"
+  requireGORM(t, db.Exec("INSERT INTO accounts VALUES (1, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-a", "https://a.example/users/alice", username))
+  requireGORM(t, db.Exec("INSERT INTO accounts VALUES (2, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-b", "https://b.example/users/alice", username))
+  let account = FindAccount(context.Background(), db, "site-a", username).Unwrap().Unwrap()
+  if account.ID != 1i64 || account.SiteID != "site-a" || account.Username != username || account.Email.Valid then
+    t.Fatal("model mapping or site isolation failed")
+  end
+  if FindAccount(context.Background(), db, "site-c", username).Unwrap().IsSome() then
+    t.Fatal("cross-site lookup returned account")
+  end
+  let work = func(tx: Ref[gorm.DB]) -> Result[(), String]
+    requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
+    Err[(), String]("reject")
+  end
+  if RunTransaction(context.Background(), db, work).IsOk() || FindAccount(context.Background(), db, "site-a", username).Unwrap().Unwrap().Disabled then
+    t.Fatal("transaction failed to roll back")
+  end
+  let commit = func(tx: Ref[gorm.DB]) -> Result[(), String]
+    requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
+    Ok(())
+  end
+  if RunTransaction(context.Background(), db, commit).IsErr() || !FindAccount(context.Background(), db, "site-a", username).Unwrap().Unwrap().Disabled then
+    t.Fatal("transaction failed to commit")
+  end
+  requireGORM(t, db.Exec("DROP TABLE accounts"))
+  if FindAccount(context.Background(), db, "site-a", username).IsOk() then
+    t.Fatal("query error ignored")
+  end
+end
+
+func TestPostgresParameterBinding(t: Ref[testing.T]) -> ()
+  let fixture = mockFixture(t)
+  let db = transport.ORM(fixture.DB).Unwrap()
+  let username = "alice' OR 1=1 --"
+  let _ = fixture.Mock.ExpectQuery("site_id = \\$1 AND username = \\$2").WithArgs("site-a" as driver.Value, username as driver.Value, 1 as driver.Value).WillReturnRows(sqlmock.NewRows(["id"]))
+  if FindAccount(context.Background(), db, "site-a", username).Unwrap().IsSome() then
+    t.Fatal("empty result did not map to None")
+  end
+end

@@ -1,0 +1,102 @@
+package federation
+
+import strconv "go:strconv"
+
+struct OrderedCollection
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  TotalItems: Int64 `json:"totalItems"`
+  First: String `json:"first,omitempty"`
+end
+
+struct ObjectCollectionPage
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  PartOf: String `json:"partOf"`
+  Next: String `json:"next,omitempty"`
+  Prev: String `json:"prev,omitempty"`
+  TotalItems: Int64 `json:"totalItems"`
+  OrderedItems: Slice[ObjectRepresentation] `json:"orderedItems"`
+end
+
+struct UriCollectionPage
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  PartOf: String `json:"partOf"`
+  Next: String `json:"next,omitempty"`
+  Prev: String `json:"prev,omitempty"`
+  TotalItems: Int64 `json:"totalItems"`
+  OrderedItems: Slice[String] `json:"orderedItems"`
+end
+
+func PageParam(raw: String) -> Int
+  if raw == "" || raw == "true" then
+    return 1
+  end
+  let parsed = strconv.Atoi(raw)
+  if parsed.IsErr() then
+    return 1
+  end
+  if parsed.Unwrap() < 1 then
+    return 1
+  end
+  parsed.Unwrap()
+end
+
+func PageLink(collectionID: String, page: Int) -> String
+  collectionID + "?page=" + page.ToString()
+end
+
+func BuildCollection(collectionID: String, totalItems: Int64, hasContent: Bool) -> OrderedCollection
+  var first = ""
+  if hasContent && totalItems > 0i64 then
+    first = PageLink(collectionID, 1)
+  end
+  OrderedCollection{Context: activityStreamsContext, ID: collectionID, Type: "OrderedCollection", TotalItems: totalItems, First: first}
+end
+
+func HasNextPage(page: Int, pageSize: Int, totalItems: Int64) -> Bool
+  (page as Int64) * (pageSize as Int64) < totalItems
+end
+
+func NextLink(collectionID: String, page: Int, pageSize: Int, totalItems: Int64) -> String
+  if !HasNextPage(page, pageSize, totalItems) then
+    return ""
+  end
+  PageLink(collectionID, page + 1)
+end
+
+func PrevLink(collectionID: String, page: Int) -> String
+  if page <= 1 then
+    return ""
+  end
+  PageLink(collectionID, page - 1)
+end
+
+func BuildObjectPage(collectionID: String, page: Int, pageSize: Int, totalItems: Int64, items: Slice[ObjectRepresentation]) -> ObjectCollectionPage
+  ObjectCollectionPage{Context: activityStreamsContext, ID: PageLink(collectionID, page), Type: "OrderedCollectionPage", PartOf: collectionID, Next: NextLink(collectionID, page, pageSize, totalItems), Prev: PrevLink(collectionID, page), TotalItems: totalItems, OrderedItems: items}
+end
+
+func BuildUriPage(collectionID: String, page: Int, pageSize: Int, totalItems: Int64, items: Slice[String]) -> UriCollectionPage
+  UriCollectionPage{Context: activityStreamsContext, ID: PageLink(collectionID, page), Type: "OrderedCollectionPage", PartOf: collectionID, Next: NextLink(collectionID, page, pageSize, totalItems), Prev: PrevLink(collectionID, page), TotalItems: totalItems, OrderedItems: items}
+end
+
+# The inbox is a bounded collection with no discoverable content.
+func BuildInbox(actorURI: String) -> OrderedCollection
+  BuildCollection(actorURI + "/inbox", 0i64, false)
+end
+
+func BuildOutbox(actorURI: String, totalItems: Int64) -> OrderedCollection
+  BuildCollection(actorURI + "/outbox", totalItems, true)
+end
+
+func BuildFollowers(actorURI: String, totalItems: Int64) -> OrderedCollection
+  BuildCollection(actorURI + "/followers", totalItems, totalItems > 0i64)
+end
+
+func BuildReplies(actorURI: String, totalItems: Int64) -> OrderedCollection
+  BuildCollection(actorURI + "/replies", totalItems, true)
+end
