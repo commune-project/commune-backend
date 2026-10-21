@@ -42,7 +42,7 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   start.Send(())
   let a = results.Receive().Unwrap().Unwrap()
   let b = results.Receive().Unwrap().Unwrap()
-  if a.ID != b.ID || a.Body != "same text" then
+  if a.ID != b.ID || a.Body != "same text" || a.Version != 1i64 || b.Version != 1i64 then
     t.Fatal("concurrent reception did not converge on one shared body")
   end
   let count: Int64 = 0i64
@@ -66,15 +66,16 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
     t.Fatal("conflicting body reused the same version")
   end
   let update = first.Receive(ctx, makePost(uri, author, "updated", newer, false), author).Unwrap()
-  if update.ID != a.ID || update.Body != "updated" then
+  if update.ID != a.ID || update.Body != "updated" || update.Version != 2i64 then
     t.Fatal("authoritative update replaced identity or failed to update body")
   end
-  if second.Receive(ctx, post, author).Unwrap().Body != "updated" then
+  let late = second.Receive(ctx, post, author).Unwrap()
+  if late.Body != "updated" || late.Version != 2i64 then
     t.Fatal("late original version replaced a newer body")
   end
   let deleted = first.Receive(ctx, makePost(uri, author, "", newer.Add(time.Second), true), author).Unwrap()
   let replay = second.Receive(ctx, makePost(uri, author, "resurrected", newer.Add(2 as time.Duration * time.Second), false), author).Unwrap()
-  if !deleted.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" then
+  if !deleted.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" || deleted.Version != 3i64 || replay.Version != 3i64 then
     t.Fatal("a newer replay resurrected a tombstone")
   end
   let missing = PostRepository{DB: db, SiteID: "missing"}

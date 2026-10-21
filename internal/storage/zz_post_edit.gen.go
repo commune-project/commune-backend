@@ -11,13 +11,13 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
-func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string) Result[PostRecord, string] {
-	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, "", []string{}, []ResolvedPostMention{}, false)
+func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, expectedVersion int64) Result[PostRecord, string] {
+	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, "", []string{}, []ResolvedPostMention{}, false, expectedVersion)
 }
-func MygoIN14PostRepositoryM11EditContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string) Result[PostRecord, string] {
-	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, []ResolvedPostMention{}, true)
+func MygoIN14PostRepositoryM11EditContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, expectedVersion int64) Result[PostRecord, string] {
+	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, []ResolvedPostMention{}, true, expectedVersion)
 }
-func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, mentions []ResolvedPostMention, replaceAttachments bool) Result[PostRecord, string] {
+func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, mentions []ResolvedPostMention, replaceAttachments bool, expectedVersion int64) Result[PostRecord, string] {
 	trimmed := strings.TrimSpace(body)
 	cleanTitle := strings.TrimSpace(title)
 	if trimmed == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(trimmed)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(cleanTitle)) > 200 {
@@ -27,6 +27,14 @@ func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx conte
 	return MygoIN14PostRepositoryM12MutateAuthor(self, ctx, id, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, string] {
 		if post.DeletedAt.Valid {
 			return Err[struct{}, string]("not found")
+		} else {
+		}
+		if expectedVersion <= int64(0) {
+			return Err[struct{}, string]("invalid expected version")
+		} else {
+		}
+		if post.Version != expectedVersion {
+			return Err[struct{}, string]("edit_conflict")
 		} else {
 		}
 		var __mygo_expr_1 string
@@ -55,7 +63,7 @@ func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx conte
 			return Err[struct{}, string]("invalid post input")
 		} else {
 		}
-		updated := MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=? WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, format, cleanTitle+" "+MygoIN6ResultM6Unwrap[string, string](plain), time.Now().UTC().Truncate(time.Microsecond), id))
+		updated := MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=?,version=version+1 WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, format, cleanTitle+" "+MygoIN6ResultM6Unwrap[string, string](plain), time.Now().UTC().Truncate(time.Microsecond), id))
 		if MygoIN6ResultM5IsErr[struct{}, string](updated) {
 			return updated
 		} else {
@@ -99,7 +107,7 @@ func MygoIN14PostRepositoryM6Delete(self PostRepository, ctx context.Context, id
 			return Err[struct{}, string]("post content unavailable")
 		} else {
 		}
-		return MutationResult(tx.Exec("UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=? WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
+		return MutationResult(tx.Exec("UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=?,version=version+1 WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
 	})
 }
 func MygoIN14PostRepositoryM12MutateAuthor(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, string]) Result[PostRecord, string] {

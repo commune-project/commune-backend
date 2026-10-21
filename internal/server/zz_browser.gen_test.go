@@ -199,7 +199,7 @@ func TestPostgresBrowserDiscoveryAndSource(t *testing.T) {
 	} else {
 	}
 	var __mygo_expr_12 Result[[]byte, error]
-	__mygo_expr_13, __mygo_expr_11 := json.Marshal(EditPostInput{Title: source.Title, Body: source.Body})
+	__mygo_expr_13, __mygo_expr_11 := json.Marshal(EditPostInput{ExpectedVersion: source.Version, Title: source.Title, Body: source.Body})
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[[]byte, error](__mygo_expr_11)
 	} else {

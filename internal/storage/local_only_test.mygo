@@ -53,7 +53,7 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
         t.Fatal("non-member reacted in a members-only local community")
       end
     end
-    let _ = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited").Unwrap()
+    let _ = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).Unwrap()
     let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
     let _ = communities.SetPolicy(ctx, community.ID, alice, false, read, post).Unwrap()
     index = index + 1

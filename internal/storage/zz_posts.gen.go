@@ -27,6 +27,7 @@ type PostRecord struct {
 	ParentID       sql.NullString "gorm:\"column:parent_id\""
 	AuthoredAt     time.Time      "gorm:\"column:authored_at\""
 	UpdatedAt      time.Time      "gorm:\"column:updated_at;autoUpdateTime:false\""
+	Version        int64          "gorm:\"column:version;default:1\""
 	DeletedAt      sql.NullTime   "gorm:\"column:deleted_at\""
 }
 type PostRepository struct {
@@ -93,7 +94,7 @@ func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, i
 		} else {
 		}
 		if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) {
-			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, updated, deleted, current.ID))) {
+			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=?,version=version+1 WHERE id=?", incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, updated, deleted, current.ID))) {
 				return Err[struct{}, string]("object update failed")
 			} else {
 			}

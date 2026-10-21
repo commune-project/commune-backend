@@ -109,7 +109,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t *testing.T) {
 	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ContentFormat: "markdown", Mentions: resolved}))
 	previousMention := storage.PostMentionRecord{}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&previousMention)))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, remotePost.ID))).Version))
 	retainedMention := storage.PostMentionRecord{}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&retainedMention)))
 	if retainedMention.ID != previousMention.ID {
@@ -160,12 +160,12 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t *testing.T) {
 		t.Fatal("source response lost original Markdown")
 	} else {
 	}
-	patched := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"title\":\"Rich\",\"body\":\"still **Markdown** @bob\"}"})
+	patched := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Rich\",\"body\":\"still **Markdown** @bob\"}"})
 	if patched.Code != 200 || browserPost(t, patched).ContentFormat != "markdown" {
 		t.Fatalf("omitted edit format did not preserve Markdown: %s", patched.Body.String())
 	} else {
 	}
-	invalid := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"title\":\"Rich\",\"body\":\"![x](/api/v1/media/foreign)\",\"content_format\":\"markdown\"}"})
+	invalid := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":2,\"title\":\"Rich\",\"body\":\"![x](/api/v1/media/foreign)\",\"content_format\":\"markdown\"}"})
 	if invalid.Code != 400 {
 		t.Fatalf("unbound upload reference did not fail with 400: %s", invalid.Body.String())
 		return

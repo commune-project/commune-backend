@@ -10,10 +10,11 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type EditPostInput struct {
-	Title         string   "json:\"title\""
-	Body          string   "json:\"body\""
-	ContentFormat string   "json:\"content_format\""
-	AttachmentIDs []string "json:\"attachment_ids\""
+	ExpectedVersion int64    "json:\"expected_version\""
+	Title           string   "json:\"title\""
+	Body            string   "json:\"body\""
+	ContentFormat   string   "json:\"content_format\""
+	AttachmentIDs   []string "json:\"attachment_ids\""
 }
 type ReplyInput struct {
 	Body          string   "json:\"body\""
@@ -51,6 +52,11 @@ func PostMutation(settings config.Config, db *gorm.DB, site config.Site, w http.
 			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
 			return
 		} else {
+			if input.ExpectedVersion <= int64(0) {
+				WriteErrorJSON(w, 400, "invalid expected version")
+				return
+			} else {
+			}
 			existing := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: db, SiteID: site.ID}, request.Context(), id, identity, false)
 			if MygoIN6ResultM5IsErr[storage.PostRecord, string](existing) {
 				Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](existing))
@@ -77,7 +83,7 @@ func PostMutation(settings config.Config, db *gorm.DB, site config.Site, w http.
 			}
 			updated := storage.PostRecord{}
 			saved := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
-				result := storage.MygoIN14PostRepositoryM19EditResolvedContent(storage.PostRepository{DB: tx, SiteID: site.ID}, request.Context(), id, identity, false, input.Title, input.Body, input.ContentFormat, input.AttachmentIDs, MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions), !PostAttachmentIDsMissing(input.AttachmentIDs))
+				result := storage.MygoIN14PostRepositoryM19EditResolvedContent(storage.PostRepository{DB: tx, SiteID: site.ID}, request.Context(), id, identity, false, input.Title, input.Body, input.ContentFormat, input.AttachmentIDs, MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions), !PostAttachmentIDsMissing(input.AttachmentIDs), input.ExpectedVersion)
 				if MygoIN6ResultM5IsErr[storage.PostRecord, string](result) {
 					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](result))
 				} else {

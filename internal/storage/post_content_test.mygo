@@ -33,19 +33,19 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     t.Fatal("mention deduplication or private audience filtering failed")
   end
   let occurrence = mentions.Get(0).Unwrap().ID
-  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "prefix " + source, "", []).Unwrap()
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "prefix " + source, "", [], LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).Unwrap()
   let unchanged = PostMentionRecord{}
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(unchanged))).Unwrap()
   if unchanged.ID != occurrence || unchanged.SourceStart == mentions.Get(0).Unwrap().SourceStart then
     t.Fatal("unchanged actor renotified or source span did not move")
   end
-  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "removed", "", []).Unwrap()
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "removed", "", [], LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).Unwrap()
   let retired: Int64 = 0i64
   let _ = MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(Ref.new(retired))).Unwrap()
   if retired != 1i64 then
     t.Fatal("removed mention notification remained active")
   end
-  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", source, "", []).Unwrap()
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", source, "", [], LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).Unwrap()
   let reintroduced = PostMentionRecord{}
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(reintroduced))).Unwrap()
   if reintroduced.ID == occurrence then
@@ -55,7 +55,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
   let expires = time.Now().Add(time.Hour)
   let _ = MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)).Unwrap()
   let illustrated = "![图](/api/v1/media/owned) @bob"
-  let saved = posts.EditContent(ctx, post.ID, alice, false, "Topic", illustrated, "markdown", ["owned"]).Unwrap()
+  let saved = posts.EditContent(ctx, post.ID, alice, false, "Topic", illustrated, "markdown", ["owned"], LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).Unwrap()
   let state = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
   let media = PostRichMedia(state).Unwrap()
   let rendered = RenderStoredPost(saved, state, false).Unwrap()
@@ -64,12 +64,14 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
   end
   # New binding and mention retirement must roll back with invalid source refs.
   let _ = MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)).Unwrap()
-  if posts.EditContent(ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", ["replacement"]).IsOk() then
+  let stale = posts.EditContent(ctx, post.ID, alice, false, "Changed", "![new](/api/v1/media/replacement)", "markdown", ["replacement"], saved.Version - 1i64)
+  if stale.IsOk() || stale.UnwrapErr() != "edit_conflict" then t.Fatal("stale attachment save did not conflict") end
+  if posts.EditContent(ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", ["replacement"], saved.Version).IsOk() then
     t.Fatal("unbound source reference accepted")
   end
   let after = LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap()
   let afterState = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
-  if after.Body != illustrated || PostRichMedia(afterState).Unwrap().Get(0).Unwrap().UploadID != "owned" then
+  if after.Body != illustrated || after.Version != saved.Version || PostRichMedia(afterState).Unwrap().Get(0).Unwrap().UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON then
     t.Fatal("failed edit leaked body or binding changes")
   end
   let rolledBack: Int64 = 0i64
@@ -77,10 +79,10 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
   if rolledBack != 0i64 then
     t.Fatal("failed edit left a new binding")
   end
-  if posts.EditContent(ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", ["owned"]).IsOk() then
+  if posts.EditContent(ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", ["owned"], LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).IsOk() then
     t.Fatal("foreign owner edited content/bindings")
   end
-  let beforeDelete = posts.Edit(ctx, post.ID, alice, false, "Topic", illustrated).Unwrap()
+  let beforeDelete = posts.Edit(ctx, post.ID, alice, false, "Topic", illustrated, LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version).Unwrap()
   if beforeDelete.ContentFormat != "markdown" || PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() != 1 then
     t.Fatal("legacy edit API cleared format/attachments")
   end

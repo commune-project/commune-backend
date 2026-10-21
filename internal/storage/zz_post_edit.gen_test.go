@@ -31,7 +31,7 @@ func TestPostgresAuthorEditAndTombstone(t *testing.T) {
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Original", ParentID: ""}))
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, bob, false, "Topic", "Hijacked")) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, bob, false, "Topic", "Hijacked", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version)) {
 		t.Fatal("non-author edited a post")
 	} else {
 	}
@@ -45,17 +45,17 @@ func TestPostgresAuthorEditAndTombstone(t *testing.T) {
 		t.Fatal("unauthorized mutation changed the shared body")
 	} else {
 	}
-	edited := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited"))
+	edited := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version))
 	if edited.Body != "Edited" || edited.ID != topic.ID || edited.UpdatedAt.Before(edited.AuthoredAt) {
 		t.Fatal("author edit failed or moved identity")
 	} else {
 	}
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "", "Edited")) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "")) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version)) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version)) {
 		t.Fatal("edit accepted a shape change or empty body")
 	} else {
 	}
 	reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Body: "Reply", ParentID: topic.ID}))
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, reply.ID, alice, false, "Title", "Body")) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, reply.ID, alice, false, "Title", "Body", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, reply.ID))).Version)) {
 		t.Fatal("reply edit added a title")
 	} else {
 	}
@@ -66,7 +66,7 @@ func TestPostgresAuthorEditAndTombstone(t *testing.T) {
 		t.Fatal("author deletion did not tombstone the post")
 	} else {
 	}
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Resurrected")) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Resurrected", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version)) {
 		t.Fatal("edit restored a tombstoned body")
 	} else {
 	}
@@ -76,7 +76,7 @@ func TestPostgresAuthorEditAndTombstone(t *testing.T) {
 	}
 	member := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "memberonly", "Member", "local_only", "members", "members"))
 	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, member.ID, alice, false, PublishInput{Title: "Hidden", Body: "Body", ParentID: ""}))
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, hidden.ID, bob, false, "Hidden", "Nope")) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, hidden.ID, bob, false)) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, hidden.ID, bob, false, "Hidden", "Nope", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, hidden.ID))).Version)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, hidden.ID, bob, false)) {
 		t.Fatal("non-member mutated a member-only post")
 		return
 	} else {

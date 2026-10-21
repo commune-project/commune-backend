@@ -22,11 +22,14 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
   let cookies = login(handler, site.Origin, "alice", "alice-password")
   let _ = storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")).Unwrap()
   let _ = storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")).Unwrap()
-  let failure = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Topic","body":"**after**"}`})
-  if failure.Code == 200 || storage.LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Body != "**before**" then t.Fatal("outbox failure committed post mutation") end
+  let failure = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`})
+  let failedPost = storage.LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap()
+  if failure.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version then t.Fatal("outbox failure committed post mutation or revision") end
   let _ = storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")).Unwrap()
-  let updated = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Topic","body":"**after**"}`})
+  let updated = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`})
   if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") then t.Fatal("rich update failed after outbox recovery") end
+  let stale = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"expected_version":1,"title":"Topic","body":"old draft"}`})
+  if stale.Code != 409 then t.Fatal("stale federated edit did not conflict") end
   let removed = doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies)})
   if removed.Code != 204 then t.Fatal("rich delete failed") end
   let kinds: Slice[String] = []

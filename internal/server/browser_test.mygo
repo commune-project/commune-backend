@@ -220,6 +220,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     t.Fatal("source did not preserve stored title/body")
   end
   let payload = json.Marshal(EditPostInput {
+    ExpectedVersion: source.Version,
     Title: source.Title,
     Body: source.Body,
   }).Unwrap()

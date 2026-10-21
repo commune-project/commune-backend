@@ -136,18 +136,60 @@ next request. Remote roster proxying is not provided.
   "id": "post-id",
   "title": "<b>Title &amp;</b>",
   "body": "<p>hello &amp; world</p>",
-  "updated_at": "2026-10-20T00:00:00Z"
+  "updated_at": "2026-10-20T00:00:00Z",
+  "version": 1,
+  "content_format": "legacy",
+  "attachment_ids": []
 }
 ```
 
 Source returns stored values before display processing, including the title;
 untitled replies return `title: ""`. Set editor values from these fields. Never
 insert source as trusted HTML. Display GET continues to sanitize/escape content.
-PATCH continues to accept `title` and `body`; source does not restore whitespace
-already normalized by publication/editing. `updated_at` is version context, not
-an optimistic concurrency precondition. Administration alone cannot read another
+Source does not restore whitespace already normalized by publication/editing.
+`updated_at` remains informational. Administration alone cannot read another
 author's editing source. Revoked read access also revokes historical authors'
 source access. Deleted bodies are unavailable.
+
+PATCH now requires `expected_version` from the source snapshot:
+
+```json
+{
+  "title": "<b>Title &amp;</b>",
+  "body": "<p>updated</p>",
+  "expected_version": 1
+}
+```
+
+This is a breaking request-contract change: missing, null, non-positive,
+fractional, string, and out-of-range values return 400. Versions are positive
+signed 64-bit JSON integers; clients must retain them exactly without floating
+point rounding. `If-Match` and timestamps do not replace `expected_version`.
+Omitted attachment IDs retain existing bindings; an explicit empty array removes
+them. Source content, attachments and version share one database snapshot.
+
+The backend checks the version atomically with the save. Success returns 200
+with the saved browser post and its incremented `version` (the example advances
+to 2); publication and import responses also expose `version`. Every accepted
+save, including unchanged content, advances once. Content changes from other
+accepted writers invalidate drafts; likes and replies do not.
+
+A stale save returns HTTP 409 with `Cache-Control: no-store` and:
+
+```json
+{"error":"edit_conflict"}
+```
+
+Rejected saves leave content, version, attachments, mentions, and outgoing Update
+activities unchanged. Current authentication, CSRF, visibility, authorship and
+deletion rules still apply before conflict disclosure. Preserve the unsaved
+draft and request fresh source for comparison or manual merging. Never fetch a
+new version and automatically retry the old draft against it.
+
+Coordinate client deployment with migration 013 and revision-aware servers;
+mixed old/new content writers are unsupported. Rollback requires pausing author
+writes and retaining revision values. See `post-edit-concurrency-verification.md`
+for writer coverage and validation evidence.
 
 ## Errors and validation
 

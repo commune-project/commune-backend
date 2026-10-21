@@ -160,7 +160,7 @@ func TestPostgresForumHTTPContract(t *testing.T) {
 		t.Fatal("reply listing failed")
 	} else {
 	}
-	edit := doForum(handler, forumCall{Method: "PATCH", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "{\"title\":\"Hello\",\"body\":\"edited\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
+	edit := doForum(handler, forumCall{Method: "PATCH", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "{\"expected_version\":1,\"title\":\"Hello\",\"body\":\"edited\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
 	if edit.Code != 200 || !strings.Contains(edit.Body.String(), "edited") {
 		t.Fatal("author edit failed")
 	} else {

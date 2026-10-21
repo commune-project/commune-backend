@@ -31,6 +31,7 @@ struct CommunityOutput
 end
 
 struct PostOutput
+  Version: Int64 `json:"version"`
   ID: String `json:"id"`
   CommunityID: String `json:"community_id"`
   ObjectType: String `json:"object_type"`
@@ -73,13 +74,25 @@ end
 
 func PostDTO(record: storage.PostRecord) -> PostOutput
   PostOutput{
+    Version: record.Version,
     ID: record.ID,
     CommunityID: record.CommunityID,
     ObjectType: record.ObjectType,
     Title: content.RenderText(record.Title.String),
     Body: content.RenderText(record.Body),
-    BodyHTML: content.RenderRich(record.Body, if record.ContentFormat == "" || record.ContentFormat == "legacy" then "text" else record.ContentFormat end).UnwrapOr(""),
-    ContentFormat: if record.ContentFormat == "" then "legacy" else record.ContentFormat end,
+    BodyHTML: content.RenderRich(
+      record.Body,
+      if record.ContentFormat == "" || record.ContentFormat == "legacy" then
+        "text"
+      else
+        record.ContentFormat
+      end
+    ).UnwrapOr(""),
+    ContentFormat: if record.ContentFormat == "" then
+      "legacy"
+    else
+      record.ContentFormat
+    end,
     AttachmentIDs: [],
     Attachments: [],
     AuthorActorURI: record.AuthorActorURI,
@@ -107,6 +120,12 @@ end
 
 # Maps repository errors to stable HTTP status codes without leaking detail.
 func FailStatus(reason: String) -> Int
+  if reason == "invalid expected version" then
+    return 400
+  end
+  if reason == "edit_conflict" then
+    return 409
+  end
   if reason == "not found" then
     return 404
   end
@@ -128,13 +147,18 @@ func FailStatus(reason: String) -> Int
     reason == "invalid manager" then
     return 400
   end
-  if reason == "object version conflict" || reason == "object identity conflict" || reason == "media binding conflict" then
+  if reason == "object version conflict" ||
+    reason == "object identity conflict" ||
+    reason == "media binding conflict" then
     return 409
   end
   503
 end
 
 func Fail(w: http.ResponseWriter, reason: String) -> ()
+  if reason == "edit_conflict" then
+    w.Header().Set("Cache-Control", "no-store")
+  end
   WriteErrorJSON(w, FailStatus(reason), reason)
 end
 

@@ -48,21 +48,21 @@ func TestPostgresRichPostAtomicityAndMentions(t *testing.T) {
 	} else {
 	}
 	occurrence := MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).ID
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version))
 	unchanged := PostMentionRecord{}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&unchanged)))
 	if unchanged.ID != occurrence || unchanged.SourceStart == MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).SourceStart {
 		t.Fatal("unchanged actor renotified or source span did not move")
 	} else {
 	}
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version))
 	var retired int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(&retired)))
 	if retired != int64(1) {
 		t.Fatal("removed mention notification remained active")
 	} else {
 	}
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version))
 	reintroduced := PostMentionRecord{}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&reintroduced)))
 	if reintroduced.ID == occurrence {
@@ -72,7 +72,7 @@ func TestPostgresRichPostAtomicityAndMentions(t *testing.T) {
 	expires := time.Now().Add(time.Hour)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
 	illustrated := "![图](/api/v1/media/owned) @bob"
-	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}))
+	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version))
 	state := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
 	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(state))
 	rendered := MygoIN6ResultM6Unwrap[string, string](RenderStoredPost(saved, state, false))
@@ -81,13 +81,18 @@ func TestPostgresRichPostAtomicityAndMentions(t *testing.T) {
 	} else {
 	}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"})) {
+	stale := MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![new](/api/v1/media/replacement)", "markdown", []string{"replacement"}, saved.Version-int64(1))
+	if MygoIN6ResultM4IsOk[PostRecord, string](stale) || MygoIN6ResultM9UnwrapErr[PostRecord, string](stale) != "edit_conflict" {
+		t.Fatal("stale attachment save did not conflict")
+	} else {
+	}
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"}, saved.Version)) {
 		t.Fatal("unbound source reference accepted")
 	} else {
 	}
 	after := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID)))
 	afterState := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
-	if after.Body != illustrated || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(afterState)), 0)).UploadID != "owned" {
+	if after.Body != illustrated || after.Version != saved.Version || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(afterState)), 0)).UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON {
 		t.Fatal("failed edit leaked body or binding changes")
 	} else {
 	}
@@ -97,11 +102,11 @@ func TestPostgresRichPostAtomicityAndMentions(t *testing.T) {
 		t.Fatal("failed edit left a new binding")
 	} else {
 	}
-	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"})) {
+	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version)) {
 		t.Fatal("foreign owner edited content/bindings")
 	} else {
 	}
-	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated))
+	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version))
 	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
 		t.Fatal("legacy edit API cleared format/attachments")
 	} else {

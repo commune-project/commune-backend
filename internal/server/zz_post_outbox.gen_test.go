@@ -34,15 +34,21 @@ func TestPostgresRichMutationOutboxAtomicity(t *testing.T) {
 	cookies := login(handler, site.Origin, "alice", "alice-password")
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")))
-	failure := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"title\":\"Topic\",\"body\":\"**after**\"}"})
-	if failure.Code == 200 || MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Body != "**before**" {
-		t.Fatal("outbox failure committed post mutation")
+	failure := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}"})
+	failedPost := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
+	if failure.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version {
+		t.Fatal("outbox failure committed post mutation or revision")
 	} else {
 	}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")))
-	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"title\":\"Topic\",\"body\":\"**after**\"}"})
+	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}"})
 	if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") {
 		t.Fatal("rich update failed after outbox recovery")
+	} else {
+	}
+	stale := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"old draft\"}"})
+	if stale.Code != 409 {
+		t.Fatal("stale federated edit did not conflict")
 	} else {
 	}
 	removed := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies)})

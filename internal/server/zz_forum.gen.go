@@ -32,6 +32,7 @@ type CommunityOutput struct {
 	Permissions    CommunityPermissions  "json:\"permissions\""
 }
 type PostOutput struct {
+	Version        int64                  "json:\"version\""
 	ID             string                 "json:\"id\""
 	CommunityID    string                 "json:\"community_id\""
 	ObjectType     string                 "json:\"object_type\""
@@ -73,7 +74,7 @@ func PostDTO(record storage.PostRecord) PostOutput {
 	} else {
 		__mygo_expr_1 = record.ContentFormat
 	}
-	return PostOutput{ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), BodyHTML: MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(record.Body, __mygo_expr_0), ""), ContentFormat: __mygo_expr_1, AttachmentIDs: []string{}, Attachments: []PostAttachmentOutput{}, AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
+	return PostOutput{Version: record.Version, ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), BodyHTML: MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(record.Body, __mygo_expr_0), ""), ContentFormat: __mygo_expr_1, AttachmentIDs: []string{}, Attachments: []PostAttachmentOutput{}, AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
 }
 func WriteJSON[T any](w http.ResponseWriter, status int, value T) {
 	var __mygo_expr_1 Result[[]byte, error]
@@ -101,6 +102,14 @@ func WriteErrorJSON(w http.ResponseWriter, status int, message string) {
 	return
 }
 func FailStatus(reason string) int {
+	if reason == "invalid expected version" {
+		return 400
+	} else {
+	}
+	if reason == "edit_conflict" {
+		return 409
+	} else {
+	}
 	if reason == "not found" {
 		return 404
 	} else {
@@ -124,6 +133,10 @@ func FailStatus(reason string) int {
 	return 503
 }
 func Fail(w http.ResponseWriter, reason string) {
+	if reason == "edit_conflict" {
+		w.Header().Set("Cache-Control", "no-store")
+	} else {
+	}
 	WriteErrorJSON(w, FailStatus(reason), reason)
 	return
 }

@@ -8,6 +8,7 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct PostSource
+  Version: Int64 `json:"version"`
   ID: String `json:"id"`
   Title: String `json:"title"`
   Body: String `json:"body"`
@@ -208,6 +209,74 @@ func BrowserPostRead(
   id: String,
   source: Bool
 ) -> ()
+  if !source then
+    BrowserPostDisplay(repository, viewer, w, request, id)
+    return
+  end
+  var output = PostSource {}
+  let result = storage.RunTransaction(
+    request.Context(),
+    repository.DB,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let isolation = storage.MutationResult(tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+      if isolation.IsErr() then
+        return isolation
+      end
+      let read = storage.FeedRepository{DB: tx, SiteID: repository.SiteID}.ReadObject(
+        request.Context(),
+        id,
+        viewer.Identity,
+        false
+      )
+      if read.IsErr() then
+        return Err(read.UnwrapErr())
+      end
+      let record = read.Unwrap()
+      if record.DeletedAt.Valid then
+        return Err("not found")
+      end
+      let outputs = BrowserPosts(
+        request.Context(),
+        storage.BrowserRepository {
+          DB: tx,
+          SiteID: repository.SiteID,
+        },
+        viewer,
+        [record]
+      )
+      if outputs.IsErr() then
+        return Err(outputs.UnwrapErr())
+      end
+      let post = outputs.Unwrap().Get(0).Unwrap()
+      if !post.Permissions.CanEdit then
+        return Err("forbidden")
+      end
+      output = PostSource {
+        ID: record.ID,
+        Title: record.Title.String,
+        Body: record.Body,
+        UpdatedAt: record.UpdatedAt,
+        Version: record.Version,
+        ContentFormat: record.ContentFormat,
+        AttachmentIDs: post.AttachmentIDs,
+      }
+      Ok(())
+    end
+  )
+  if result.IsErr() then
+    Fail(w, result.UnwrapErr())
+  else
+    WriteJSON(w, 200, output)
+  end
+end
+
+func BrowserPostDisplay(
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  id: String
+) -> ()
   let feed = storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
   let read = feed.ReadObject(request.Context(), id, viewer.Identity, false)
   if read.IsErr() then
@@ -222,30 +291,7 @@ func BrowserPostRead(
     return
   end
   let output = outputs.Unwrap().Get(0).Unwrap()
-  if source then
-    if record.DeletedAt.Valid then
-      Fail(w, "not found")
-    else
-      if !output.Permissions.CanEdit then
-        Fail(w, "forbidden")
-      else
-        WriteJSON(
-          w,
-          200,
-          PostSource{
-            ID: record.ID,
-            Title: record.Title.String,
-            Body: record.Body,
-            UpdatedAt: record.UpdatedAt,
-            ContentFormat: record.ContentFormat,
-            AttachmentIDs: output.AttachmentIDs,
-          }
-        )
-      end
-    end
-  else
-    WriteJSON(w, 200, output)
-  end
+  WriteJSON(w, 200, output)
 end
 
 func BrowserTopicRead(
@@ -257,7 +303,7 @@ func BrowserTopicRead(
   page: storage.Page,
   max: Int
 ) -> ()
-  let feed = storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
+  let feed = storage.FeedRepository { DB: repository.DB, SiteID: repository.SiteID }
   var records: Result[Slice[storage.PostRecord], String] = Err("not found")
   var readCommunityID: String = ""
   if parts.Get(2).Unwrap() == "topics" then
@@ -307,6 +353,6 @@ func BrowserTopicRead(
   if outputs.IsErr() then
     Fail(w, outputs.UnwrapErr())
   else
-    WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset})
+    WriteJSON(w, 200, PostPage { Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset })
   end
 end

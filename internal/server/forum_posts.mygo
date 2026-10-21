@@ -8,6 +8,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 
 struct EditPostInput
+  ExpectedVersion: Int64 `json:"expected_version"`
   Title: String `json:"title"`
   Body: String `json:"body"`
   ContentFormat: String `json:"content_format"`
@@ -61,6 +62,10 @@ func PostMutation(
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
     else
+      if input.ExpectedVersion <= 0i64 then
+        WriteErrorJSON(w, 400, "invalid expected version")
+        return
+      end
       let existing = storage.FeedRepository{DB: db, SiteID: site.ID}.ReadObject(request.Context(), id, identity, false)
       if existing.IsErr() then
         Fail(w, existing.UnwrapErr())
@@ -70,20 +75,56 @@ func PostMutation(
         Fail(w, "forbidden")
         return
       end
-      let format = if input.ContentFormat == "" then existing.Unwrap().ContentFormat else input.ContentFormat end
-      let mentions = ResolvePostMentions(request.Context(), settings, db, site, identity, existing.Unwrap().CommunityID, input.Body, format, true)
+      let format = if input.ContentFormat == "" then
+        existing.Unwrap().ContentFormat
+      else
+        input.ContentFormat
+      end
+      let mentions = ResolvePostMentions(
+        request.Context(),
+        settings,
+        db,
+        site,
+        identity,
+        existing.Unwrap().CommunityID,
+        input.Body,
+        format,
+        true
+      )
       if mentions.IsErr() then
         Fail(w, mentions.UnwrapErr())
         return
       end
       var updated = storage.PostRecord{}
-      let saved = storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
-        let result = storage.PostRepository{DB: tx, SiteID: site.ID}.EditResolvedContent(request.Context(), id, identity, false, input.Title, input.Body, input.ContentFormat, input.AttachmentIDs, mentions.Unwrap(), !PostAttachmentIDsMissing(input.AttachmentIDs))
-        if result.IsErr() then return Err(result.UnwrapErr()) end
-        updated = result.Unwrap()
-        QueuePostMutation(request.Context(), settings, tx, site, updated, "Update")
-      end)
-      let edited = if saved.IsErr() then Err[storage.PostRecord, String](saved.UnwrapErr()) else Ok[storage.PostRecord, String](updated) end
+      let saved = storage.RunTransaction(
+        request.Context(),
+        db,
+        func(tx: Ref[gorm.DB]) -> Result[(), String]
+          let result = storage.PostRepository{DB: tx, SiteID: site.ID}.EditResolvedContent(
+            request.Context(),
+            id,
+            identity,
+            false,
+            input.Title,
+            input.Body,
+            input.ContentFormat,
+            input.AttachmentIDs,
+            mentions.Unwrap(),
+            !PostAttachmentIDsMissing(input.AttachmentIDs),
+            input.ExpectedVersion
+          )
+          if result.IsErr() then
+            return Err(result.UnwrapErr())
+          end
+          updated = result.Unwrap()
+          QueuePostMutation(request.Context(), settings, tx, site, updated, "Update")
+        end
+      )
+      let edited = if saved.IsErr() then
+        Err[storage.PostRecord, String](saved.UnwrapErr())
+      else
+        Ok[storage.PostRecord, String](updated)
+      end
       if edited.IsErr() then
         Fail(w, edited.UnwrapErr())
       else
@@ -92,13 +133,21 @@ func PostMutation(
     end
   else
     if request.Method == "DELETE" then
-      let deleted = storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
-        let removed = storage.PostRepository{DB: tx, SiteID: site.ID}.Delete(request.Context(), id, identity, false)
-        if removed.IsErr() then return removed end
-        let loaded = storage.LoadObjectByID(request.Context(), tx, id)
-        if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("post unavailable") end
-        QueuePostMutation(request.Context(), settings, tx, site, loaded.Unwrap().Unwrap(), "Delete")
-      end)
+      let deleted = storage.RunTransaction(
+        request.Context(),
+        db,
+        func(tx: Ref[gorm.DB]) -> Result[(), String]
+          let removed = storage.PostRepository{DB: tx, SiteID: site.ID}.Delete(request.Context(), id, identity, false)
+          if removed.IsErr() then
+            return removed
+          end
+          let loaded = storage.LoadObjectByID(request.Context(), tx, id)
+          if loaded.IsErr() || loaded.Unwrap().IsNone() then
+            return Err("post unavailable")
+          end
+          QueuePostMutation(request.Context(), settings, tx, site, loaded.Unwrap().Unwrap(), "Delete")
+        end
+      )
       if deleted.IsErr() then
         Fail(w, deleted.UnwrapErr())
       else
@@ -190,12 +239,24 @@ func ReplyRoute(
         WriteErrorJSON(w, 400, decoded.UnwrapErr())
         return
       end
-      let mentions = ResolvePostMentions(request.Context(), settings, db, site, actor.Unwrap(), parent.Unwrap().CommunityID, input.Body, input.ContentFormat, false)
+      let mentions = ResolvePostMentions(
+        request.Context(),
+        settings,
+        db,
+        site,
+        actor.Unwrap(),
+        parent.Unwrap().CommunityID,
+        input.Body,
+        input.ContentFormat,
+        false
+      )
       if mentions.IsErr() then
         Fail(w, mentions.UnwrapErr())
         return
       end
-      let published = PublishForumPost(settings, db,
+      let published = PublishForumPost(
+        settings,
+        db,
         request.Context(),
         site,
         parent.Unwrap().CommunityID,

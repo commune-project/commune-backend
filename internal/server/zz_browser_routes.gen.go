@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type PostSource struct {
+	Version       int64     "json:\"version\""
 	ID            string    "json:\"id\""
 	Title         string    "json:\"title\""
 	Body          string    "json:\"body\""
@@ -154,6 +155,51 @@ func BrowserCommunityRead(repository storage.BrowserRepository, viewer storage.B
 	}
 }
 func BrowserPostRead(repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string, source bool) {
+	if !source {
+		BrowserPostDisplay(repository, viewer, w, request, id)
+		return
+	} else {
+	}
+	output := PostSource{}
+	result := storage.RunTransaction(request.Context(), repository.DB, func(tx *gorm.DB) Result[struct{}, string] {
+		isolation := storage.MutationResult(tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+		if MygoIN6ResultM5IsErr[struct{}, string](isolation) {
+			return isolation
+		} else {
+		}
+		read := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: tx, SiteID: repository.SiteID}, request.Context(), id, viewer.Identity, false)
+		if MygoIN6ResultM5IsErr[storage.PostRecord, string](read) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](read))
+		} else {
+		}
+		record := MygoIN6ResultM6Unwrap[storage.PostRecord, string](read)
+		if record.DeletedAt.Valid {
+			return Err[struct{}, string]("not found")
+		} else {
+		}
+		outputs := BrowserPosts(request.Context(), storage.BrowserRepository{DB: tx, SiteID: repository.SiteID}, viewer, []storage.PostRecord{record})
+		if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
+		} else {
+		}
+		post := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs), 0))
+		if !post.Permissions.CanEdit {
+			return Err[struct{}, string]("forbidden")
+		} else {
+		}
+		output = PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt, Version: record.Version, ContentFormat: record.ContentFormat, AttachmentIDs: post.AttachmentIDs}
+		return Ok[struct{}, string](struct {
+		}{})
+	})
+	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+		Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+		return
+	} else {
+		WriteJSON(w, 200, output)
+		return
+	}
+}
+func BrowserPostDisplay(repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string) {
 	feed := storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
 	read := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, viewer.Identity, false)
 	if MygoIN6ResultM5IsErr[storage.PostRecord, string](read) {
@@ -170,23 +216,8 @@ func BrowserPostRead(repository storage.BrowserRepository, viewer storage.Browse
 	} else {
 	}
 	output := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs), 0))
-	if source {
-		if record.DeletedAt.Valid {
-			Fail(w, "not found")
-			return
-		} else {
-			if !output.Permissions.CanEdit {
-				Fail(w, "forbidden")
-				return
-			} else {
-				WriteJSON(w, 200, PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt, ContentFormat: record.ContentFormat, AttachmentIDs: output.AttachmentIDs})
-				return
-			}
-		}
-	} else {
-		WriteJSON(w, 200, output)
-		return
-	}
+	WriteJSON(w, 200, output)
+	return
 }
 func BrowserTopicRead(repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, parts []string, page storage.Page, max int) {
 	feed := storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}

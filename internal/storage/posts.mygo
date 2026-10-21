@@ -24,6 +24,7 @@ struct PostRecord
   ParentID: sql.NullString `gorm:"column:parent_id"`
   AuthoredAt: time.Time `gorm:"column:authored_at"`
   UpdatedAt: time.Time `gorm:"column:updated_at;autoUpdateTime:false"`
+  Version: Int64 `gorm:"column:version;default:1"`
   DeletedAt: sql.NullTime `gorm:"column:deleted_at"`
 end
 
@@ -75,7 +76,7 @@ impl PostRepository
         return Err("object identity conflict")
       end
       if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) then
-        if MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, format, normalized.Unwrap(), incoming.RichMetadata, updated, deleted, current.ID)).IsErr() then
+        if MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=?,version=version+1 WHERE id=?", incoming.Title, incoming.Body, format, normalized.Unwrap(), incoming.RichMetadata, updated, deleted, current.ID)).IsErr() then
           return Err("object update failed")
         end
       else

@@ -70,7 +70,7 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t *testing.T) {
 			} else {
 			}
 		}
-		MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited"))
+		MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version))
 		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, topic.ID, alice, false))
 		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(communities, ctx, community.ID, alice, false, read, post))
 		index = index + 1

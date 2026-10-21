@@ -58,7 +58,7 @@ func TestPostgresSharedPostIdentity(t *testing.T) {
 	}{})
 	a := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN6OptionM6Unwrap[Result[PostRecord, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[PostRecord, string]](results)))
 	b := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN6OptionM6Unwrap[Result[PostRecord, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[PostRecord, string]](results)))
-	if a.ID != b.ID || a.Body != "same text" {
+	if a.ID != b.ID || a.Body != "same text" || a.Version != int64(1) || b.Version != int64(1) {
 		t.Fatal("concurrent reception did not converge on one shared body")
 	} else {
 	}
@@ -88,17 +88,18 @@ func TestPostgresSharedPostIdentity(t *testing.T) {
 	} else {
 	}
 	update := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "updated", newer, false), author))
-	if update.ID != a.ID || update.Body != "updated" {
+	if update.ID != a.ID || update.Body != "updated" || update.Version != int64(2) {
 		t.Fatal("authoritative update replaced identity or failed to update body")
 	} else {
 	}
-	if MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, post, author)).Body != "updated" {
+	late := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, post, author))
+	if late.Body != "updated" || late.Version != int64(2) {
 		t.Fatal("late original version replaced a newer body")
 	} else {
 	}
 	deleted_1 := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "", newer.Add(time.Second), true), author))
 	replay := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, makePost(uri_1, author, "resurrected", newer.Add(time.Duration(2)*time.Second), false), author))
-	if !deleted_1.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" {
+	if !deleted_1.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" || deleted_1.Version != int64(3) || replay.Version != int64(3) {
 		t.Fatal("a newer replay resurrected a tombstone")
 	} else {
 	}

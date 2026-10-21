@@ -69,7 +69,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   let remotePost = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ContentFormat: "markdown", Mentions: resolved}).Unwrap()
   let previousMention = storage.PostMentionRecord{}
   let _ = storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(Ref.new(previousMention))).Unwrap()
-  let _ = posts.Edit(ctx, remotePost.ID, alice, false, "Remote", source).Unwrap()
+  let _ = posts.Edit(ctx, remotePost.ID, alice, false, "Remote", source, storage.LoadObjectByID(ctx, db, remotePost.ID).Unwrap().Unwrap().Version).Unwrap()
   let retainedMention = storage.PostMentionRecord{}
   let _ = storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(Ref.new(retainedMention))).Unwrap()
   if retainedMention.ID != previousMention.ID then
@@ -105,11 +105,11 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   if editing.Body != "中文 **内容** @bob `@alice`" || editing.ContentFormat != "markdown" then
     t.Fatal("source response lost original Markdown")
   end
-  let patched = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Rich","body":"still **Markdown** @bob"}`})
+  let patched = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"expected_version":1,"title":"Rich","body":"still **Markdown** @bob"}`})
   if patched.Code != 200 || browserPost(t, patched).ContentFormat != "markdown" then
     t.Fatalf("omitted edit format did not preserve Markdown: %s", patched.Body.String())
   end
-  let invalid = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Rich","body":"![x](/api/v1/media/foreign)","content_format":"markdown"}`})
+  let invalid = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"expected_version":2,"title":"Rich","body":"![x](/api/v1/media/foreign)","content_format":"markdown"}`})
   if invalid.Code != 400 then
     t.Fatalf("unbound upload reference did not fail with 400: %s", invalid.Body.String())
   end

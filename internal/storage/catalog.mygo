@@ -32,6 +32,7 @@ func MigrationCatalog() -> Result[Slice[Migration], String]
     "010_rich_metadata.sql",
     "011_reaction_receipts.sql",
     "012_private_media_invalidation.sql",
+    "013_post_versions.sql",
   ]
   var migrations: Slice[Migration] = []
   var i = 0

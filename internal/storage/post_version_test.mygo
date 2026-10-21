@@ -1,0 +1,48 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let pool = testsupport.Postgres(t)
+  let tx = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
+  let _ = ApplyTransaction(ctx, tx, MigrationCatalog().Unwrap().Take(12)).Unwrap()
+  let _ = tx.Commit().Unwrap()
+  let db = transport.ORM(pool).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let group = CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "old",
+    "Old",
+    "local_only",
+    "members",
+    "members"
+  ).Unwrap()
+  # Use pre-migration SQL, independent of the new record mapping.
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO posts(id,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('old',?,'local_only',?,'Page','Old','preserved','2026-01-01','2026-01-02')",
+    group.ID,
+    alice.ActorURI
+  )).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let post = LoadObjectByID(ctx, db, "old").Unwrap().Unwrap()
+  if post.Version != 1i64 ||
+    post.Body != "preserved" ||
+    post.AuthoredAt.Format("2006-01-02") != "2026-01-01" ||
+    post.UpdatedAt.Format("2006-01-02") != "2026-01-02" then
+    t.Fatal("revision migration changed existing content/timestamps")
+  end
+  if MutationResult(db.Exec("UPDATE posts SET version=0 WHERE id='old'")).IsOk() ||
+    MutationResult(db.Exec("UPDATE posts SET version=-1 WHERE id='old'")).IsOk() then
+    t.Fatal("non-positive revision accepted")
+  end
+end
