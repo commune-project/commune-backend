@@ -16,7 +16,7 @@ Use additive versioned migrations for pending registrations, mail jobs, profiles
 
 ### 2. Verification before account activation
 
-Keep pending registrations separate from accounts and actors. Store a password hash, normalized identifiers, token digest, generation, expiry, and site. Verification locks the pending row and atomically creates the account/Actor, checks unique constraints, and consumes the token; it does not auto-login. Initial tokens expire after 24 hours; resend rotates generation and restarts expiry. Duplicate valid submissions receive the same 202 response and do not overwrite another pending password. An authorized resend renews delivery, not credentials. Existing provisioned accounts are explicitly grandfathered and retain existing login behavior.
+Keep pending registrations separate from accounts and actors. Initial registration accepts username and email only; reject password fields and store no pending password or password hash. Store normalized identifiers, token digest, generation, expiry, and site. Confirmation accepts token and the final password; after validating both, it locks the pending row and atomically creates the account/Actor with the freshly hashed final password, checks unique constraints, and consumes the token; it does not auto-login. Invalid passwords do not consume the token. Initial tokens expire after 24 hours; resend rotates generation and restarts expiry without accepting credentials. Duplicate valid submissions receive the same 202 response and do not overwrite the pending username. Existing provisioned accounts are explicitly grandfathered and retain existing login behavior.
 
 Use a durable SMTP outbox rather than sending inside an HTTP/database transaction. Verification records hold only digests; the temporarily needed outbound link is stored as authenticated encrypted mail-job data using a deployment-supplied secret outside the database. Workers lease, retry transient failures with bounded backoff, discard superseded generations, and erase secret payloads on completion/expiry. SMTP delivery is at-least-once; duplicate delivery of the same link is harmless. Restrict credential disclosure to TLS-protected SMTP; local test transport uses a deliberate test setting. No actual mail is sent during tests. Use site-scoped rate-limit records keyed by trusted client IP and a digest of normalized email; trust forwarded addresses only through configured proxies. Return 429 with Retry-After. Keep username conflicts generic rather than exposing email ownership.
 
@@ -60,9 +60,9 @@ Use PostgreSQL literal substring search with escaped ILIKE expressions, binding 
 
 | Route | Method and contract |
 | --- | --- |
-| /api/v1/auth/register | POST username/email/password; same-origin; 202 generic acceptance |
+| /api/v1/auth/register | POST username/email only; same-origin; 202 generic acceptance |
 | /api/v1/auth/verification/resend | POST email; same-origin; 202 generic acceptance |
-| /api/v1/auth/verification/confirm | POST token; same-origin; 204 success; no session issuance |
+| /api/v1/auth/verification/confirm | POST token/password; same-origin; 204 success; no session issuance |
 | /api/v1/search | GET kind=communities or posts, q, limit, offset; existing page envelope |
 | /api/v1/profiles/{site-local-username} | GET public local profile |
 | /api/v1/profile | GET/PATCH current profile; writes use CSRF |
