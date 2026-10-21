@@ -1,0 +1,128 @@
+package storage
+
+import context "go:context"
+import strconv "go:strconv"
+import strings "go:strings"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+
+struct NotificationRecord
+  ID: Int64 `gorm:"column:id" json:"id"`
+  Kind: String `gorm:"column:kind" json:"kind"`
+  PostID: String `gorm:"column:post_id" json:"post_id"`
+  ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
+  CreatedAt: time.Time `gorm:"column:created_at" json:"created_at"`
+  Read: Bool `gorm:"column:read" json:"read"`
+end
+
+struct NotificationCursor
+  Time: time.Time
+  ID: Int64
+end
+
+struct NotificationPage
+  Items: Slice[NotificationRecord] `json:"items"`
+  Limit: Int `json:"limit"`
+  Offset: Int `json:"offset"`
+  ThroughCursor: String `json:"through_cursor"`
+end
+
+func ParseNotificationCursor(value: String) -> Result[NotificationCursor, String]
+  let parts = strings.Split(value, "|")
+  if parts.Len() != 2 then
+    return Err("invalid page")
+  end
+  let stamp = time.Parse(time.RFC3339Nano, parts.Get(0).Unwrap())
+  let id = strconv.ParseInt(parts.Get(1).Unwrap(), 10, 64)
+  if stamp.IsErr() || id.IsErr() then
+    return Err("invalid page")
+  end
+  if id.Unwrap() < 0i64 || stamp.Unwrap().After(time.Now()) then
+    return Err("invalid page")
+  end
+  Ok(NotificationCursor{Time: stamp.Unwrap(), ID: id.Unwrap()})
+end
+
+func FormatNotificationCursor(cursor: NotificationCursor) -> String
+  cursor.Time.UTC().Format(time.RFC3339Nano) + "|" + strconv.FormatInt(cursor.ID, 10)
+end
+
+# Projection holds row locks until commit, so crash/rollback makes the batch
+# immediately retryable. The advisory lock also serializes snapshot capture;
+# no uncommitted projection can arrive behind an already issued cursor.
+func ProjectNotifications(ctx: context.Context, db: Ref[gorm.DB], limit: Int) -> Result[(), String]
+  if limit < 1 || limit > 1000 then
+    return Err("invalid page")
+  end
+  RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)")).IsErr() then
+      return Err("notifications unavailable")
+    end
+    let query: String = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND commune_notification_eligible(a.id,e.post_id,e.actor_uri) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
+    MutationResult(tx.Exec(query, limit))
+  end)
+end
+
+impl BrowserRepository
+  # Visibility and precedence are inside the SQL relation, before limit/count.
+  # Parent visibility is checked too: replies must not leak a hidden parent.
+  func NotificationsQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, tail: String) -> Ref[gorm.DB]
+    let rows: String = "SELECT n.id,e.kind,e.post_id,e.actor_uri,n.created_at,(n.read_at IS NOT NULL) AS read FROM notifications n JOIN notification_events e ON e.id=n.event_id JOIN posts p ON p.id=e.post_id JOIN readable c ON c.id=p.community_id WHERE n.site_id=@site AND n.account_id=@account AND @verified AND @identity_site = @site AND e.retired_at IS NULL AND commune_notification_eligible(@account,p.id,e.actor_uri) AND (e.kind<>'reply' OR NOT EXISTS(SELECT 1 FROM notification_events m WHERE m.post_id=e.post_id AND m.recipient_uri=e.recipient_uri AND m.kind='mention' AND m.retired_at IS NULL AND EXISTS(SELECT 1 FROM post_mentions pm WHERE pm.id=m.occurrence AND pm.active)))"
+    let readable = self.CommunitiesQuery(ctx, viewer, rows)
+    self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS eligible " + tail, readable)
+  end
+
+  func Notifications(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[NotificationPage, String]
+    if !page.Valid(max) then
+      return Err("invalid page")
+    end
+    var output = NotificationPage{Items: [], Limit: page.Limit, Offset: page.Offset}
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)")).IsErr() then
+        return Err("notifications unavailable")
+      end
+      let repository = BrowserRepository{DB: tx, SiteID: self.SiteID}
+      let top = NotificationRecord{}
+      if MutationResult(repository.NotificationsQuery(ctx, viewer, "ORDER BY created_at DESC,id DESC LIMIT 1").Scan(Ref.new(top))).IsErr() then
+        return Err("notifications unavailable")
+      end
+      let cursor = NotificationCursor{Time: if top.ID == 0i64 then time.Unix(0i64, 0i64) else top.CreatedAt end, ID: top.ID}
+      var rows: Slice[NotificationRecord] = []
+      if MutationResult(repository.NotificationsQuery(ctx, viewer, "ORDER BY created_at DESC,id DESC" + BrowserPageSQL(page)).Scan(Ref.new(rows))).IsErr() then
+        return Err("notifications unavailable")
+      end
+      output = NotificationPage{Items: rows, Limit: page.Limit, Offset: page.Offset, ThroughCursor: FormatNotificationCursor(cursor)}
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(output)
+  end
+
+  func NotificationUnreadCount(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer) -> Result[Int64, String]
+    var count: Int64 = 0i64
+    let eligible = self.NotificationsQuery(ctx, viewer, "WHERE NOT read")
+    if MutationResult(self.DB.WithContext(ctx).Raw("SELECT count(*) FROM (?) AS unread", eligible).Scan(Ref.new(count))).IsErr() then
+      return Err("notifications unavailable")
+    end
+    Ok(count)
+  end
+
+  func ReadNotification(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, id: Int64) -> Result[(), String]
+    let eligible = self.NotificationsQuery(ctx, viewer, "")
+    let result = self.DB.WithContext(ctx).Exec("UPDATE notifications SET read_at=coalesce(read_at,clock_timestamp()) WHERE id=? AND id IN (SELECT id FROM (?) AS visible)", id, eligible)
+    if MutationResult(result).IsErr() then
+      return Err("notifications unavailable")
+    end
+    if result.RowsAffected != 1i64 then
+      return Err("not found")
+    end
+    Ok(())
+  end
+
+  func ReadAllNotifications(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, cursor: NotificationCursor) -> Result[(), String]
+    let eligible = self.NotificationsQuery(ctx, viewer, "")
+    MutationResult(self.DB.WithContext(ctx).Exec("UPDATE notifications SET read_at=coalesce(read_at,clock_timestamp()) WHERE (created_at,id)<=(?,?) AND id IN (SELECT id FROM (?) AS visible)", cursor.Time, cursor.ID, eligible))
+  end
+end

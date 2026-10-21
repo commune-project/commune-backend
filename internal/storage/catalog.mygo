@@ -19,7 +19,20 @@ struct AppliedMigration
 end
 
 func MigrationCatalog() -> Result[Slice[Migration], String]
-  let names: Slice[String] = ["001_identity.sql", "002_forum_identities.sql", "003_forum_relations.sql", "004_person_follows.sql", "005_peer_capabilities.sql"]
+  let names: Slice[String] = [
+    "001_identity.sql",
+    "002_forum_identities.sql",
+    "003_forum_relations.sql",
+    "004_person_follows.sql",
+    "005_peer_capabilities.sql",
+    "006_registration.sql",
+    "007_media.sql",
+    "008_profiles_content.sql",
+    "009_notifications.sql",
+    "010_rich_metadata.sql",
+    "011_reaction_receipts.sql",
+    "012_private_media_invalidation.sql",
+  ]
   var migrations: Slice[Migration] = []
   var i = 0
   while i < names.Len()
@@ -32,13 +45,22 @@ func MigrationCatalog() -> Result[Slice[Migration], String]
     let digester = sha256.New()
     let _ = digester.Write(source as Slice[Byte])
     let bytes = digester.Sum([] as Slice[Byte])
-    migrations = migrations.Append(Migration { Version: i + 1, Name: name, SQL: source, Checksum: hex.EncodeToString(bytes) })
+    migrations = migrations.Append(Migration {
+      Version: i + 1,
+      Name: name,
+      SQL: source,
+      Checksum: hex.EncodeToString(bytes),
+    })
     i = i + 1
   end
   Ok(migrations)
 end
 
-func ValidateApplied(applied: Slice[AppliedMigration], catalog: Slice[Migration], requireCurrent: Bool) -> Result[(), String]
+func ValidateApplied(
+  applied: Slice[AppliedMigration],
+  catalog: Slice[Migration],
+  requireCurrent: Bool
+) -> Result[(), String]
   if applied.Len() > catalog.Len() then
     return Err("database schema is newer than this binary")
   end
@@ -46,7 +68,9 @@ func ValidateApplied(applied: Slice[AppliedMigration], catalog: Slice[Migration]
   while i < applied.Len()
     let record = applied.Get(i).Unwrap()
     let migration = catalog.Get(i).Unwrap()
-    if record.Version != migration.Version || record.Name != migration.Name || record.Checksum != migration.Checksum then
+    if record.Version != migration.Version ||
+      record.Name != migration.Name ||
+      record.Checksum != migration.Checksum then
       return Err("database migration history is incompatible with this binary")
     end
     i = i + 1

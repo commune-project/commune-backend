@@ -1,0 +1,59 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import os "go:os"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+# Federation integration only. Caller MUST verify the request's Actor signature
+# and restricted-peer compatibility before calling; a server-only signature is
+# not an Actor credential. Browser routes must continue to use Read instead.
+impl MediaRepository
+  func ReadVerifiedActor(self: MediaRepository, ctx: context.Context, identity: auth.Identity, bindingID: String, preview: Bool, work: func(MediaUpload, Ref[os.File]) -> Result[(), String]) -> Result[(), String]
+    if identity.ActorURI == "" || identity.AccountID != 0i64 || !MediaFileID(bindingID) then
+      return Err("not found")
+    end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let binding = MediaBinding{}
+      let loaded = tx.Raw("SELECT * FROM media_bindings WHERE id=? AND site_id=? AND purpose='post' AND active FOR SHARE", bindingID, self.SiteID).Scan(Ref.new(binding))
+      if QueryFailed(loaded) then
+        return Err("media unavailable")
+      end
+      if loaded.RowsAffected != 1i64 then
+        return Err("not found")
+      end
+      let post = PostRecord{}
+      let found = tx.Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND p.federation_mode='federated' AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", binding.PostID).Find(Ref.new(post))
+      if QueryFailed(found) then
+        return Err("media unavailable")
+      end
+      if found.RowsAffected != 1i64 then
+        return Err("not found")
+      end
+      let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
+      let checked = community.Check(ctx, post.CommunityID, identity, true)
+      if checked.IsErr() then
+        return Err(checked.UnwrapErr())
+      end
+      let access = checked.Unwrap()
+      if access.Community.FederationMode != "federated" || !access.Subject.Verified || !access.CanRead() then
+        return Err("not found")
+      end
+      let upload = MediaUpload{}
+      let original = tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", binding.UploadID).Scan(Ref.new(upload))
+      if QueryFailed(original) then
+        return Err("media unavailable")
+      end
+      if original.RowsAffected != 1i64 || (preview && upload.PreviewBytes == 0i64) then
+        return Err("not found")
+      end
+      let file = self.Files.Open(if preview then "previews" else "local" end, upload.ID)
+      if file.IsErr() then
+        return Err(file.UnwrapErr())
+      end
+      let opened = file.Unwrap()
+      go[()] { code: "defer {opened}.Close()"; in opened = opened }
+      work(upload, opened)
+    end)
+  end
+end

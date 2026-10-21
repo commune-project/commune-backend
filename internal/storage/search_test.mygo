@@ -1,0 +1,87 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestSearchValidation(t: Ref[testing.T]) -> ()
+  if ValidSearchQuery("") || ValidSearchQuery("  ") || ValidSearchQuery(strings.Repeat("中", 201)) || !ValidSearchQuery(strings.Repeat("中", 200)) then
+    t.Fatal("search bounds failed")
+  end
+  if SearchPattern("%_\\'") != "%\\%\\_\\\\'%" then
+    t.Fatal("literal search escaping failed")
+  end
+end
+
+func TestPostgresSearch(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  # Main owns the production migration and renderer maintenance. Keep this
+  # repository contract test runnable before that parallel work is integrated.
+  let _ = MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(ctx, site, alice, "public", "中文社区", "federated", "eligible_users", "eligible_users").Unwrap()
+  let private = communities.Create(ctx, site, alice, "private", "中文私密", "federated", "members", "members").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let first = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "First", Body: "<b>中文</b>"}).Unwrap()
+  let second = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "Second", Body: "[中文](https://hidden.example)"}).Unwrap()
+  let secret = posts.Publish(ctx, site, private.ID, alice, false, PublishInput{Title: "secret", Body: "中文"}).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE posts SET search_text=?, authored_at='2026-01-01'", "中文 AbC %_\\' literal")).Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, auth.Identity{}).Unwrap()
+  let all = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50).Unwrap()
+  if all.Len() != 2 || browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 1, Offset: 1}, 50).Unwrap().Get(0).Unwrap().ID != all.Get(1).Unwrap().ID then
+    t.Fatal("authorization before paging or deterministic ties failed")
+  end
+  let queries: Slice[String] = ["abc", "%_\\'", "中文"]
+  queries.Each(func(query: String) -> ()
+    if browser.SearchPosts(ctx, viewer, query, Page{Limit: 20}, 50).Unwrap().Len() != 2 then
+      t.Fatal("literal case insensitive Chinese search failed")
+    end
+  end)
+  if browser.SearchPosts(ctx, viewer, "hidden.example", Page{Limit: 20}, 50).Unwrap().Len() != 0 || browser.SearchPosts(ctx, viewer, "<b>", Page{Limit: 20}, 50).Unwrap().Len() != 0 then
+    t.Fatal("search read markup/source instead of normalized text")
+  end
+  if browser.SearchCommunities(ctx, viewer, "中文", Page{Limit: 20}, 50).Unwrap().Len() != 1 then
+    t.Fatal("community read filtering failed")
+  end
+  if browser.SearchPosts(ctx, BrowserViewer{Blocked: true}, "中文", Page{Limit: 20}, 50).Unwrap().Len() != 0 || BrowserRepository{DB: db, SiteID: "unreceived"}.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50).Unwrap().Len() != 0 then
+    t.Fatal("blocked viewer or absent site reception leaked results")
+  end
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", first.ID)).Unwrap()
+  let _ = communities.SetSubmission(ctx, open.ID, second.ID, alice, false, "rejected").Unwrap()
+  if browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50).Unwrap().Len() != 0 then
+    t.Fatal("hidden/rejected posts leaked")
+  end
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", first.ID)).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE posts SET search_text='updated' WHERE id=?", first.ID)).Unwrap()
+  if browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20}, 50).Unwrap().Len() != 1 then
+    t.Fatal("updated search text missing")
+  end
+  let _ = posts.Delete(ctx, first.ID, alice, false).Unwrap()
+  if browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20}, 50).Unwrap().Len() != 0 then
+    t.Fatal("tombstone leaked")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", open.ID, alice.ActorURI)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts ON CONFLICT DO NOTHING", site.ID)).Unwrap()
+  let _ = MutationResult(db.Exec("ANALYZE posts")).Unwrap()
+  let _ = MutationResult(db.Exec("ANALYZE site_posts")).Unwrap()
+  let _ = MutationResult(db.Exec("ANALYZE communities")).Unwrap()
+  let plan = transport.Explain(browser.SearchPostsQuery(ctx, viewer, "中文", Page{Limit: 20})).Unwrap()
+  t.Logf("1000-post literal search plan:\n%s", strings.Join(plan, "\n"))
+  let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let admin = browser.Viewer(ctx, FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()).Unwrap()
+  let _ = browser.SearchCommunities(ctx, admin, "私密", Page{Limit: 20}, 50).Unwrap()
+  if !QueryExists(db.Table("audit_events").Where("acting_actor_uri=? AND action='read-community' AND target_id=?", admin.Identity.ActorURI, private.ID)).Unwrap() then
+    t.Fatal("administrative search was not audited")
+  end
+  let _ = MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", secret.ID)).Unwrap()
+end

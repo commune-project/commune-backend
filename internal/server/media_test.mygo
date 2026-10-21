@@ -1,0 +1,136 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import multipart "go:mime/multipart"
+import textproto "go:net/textproto"
+import bytes "go:bytes"
+import strings "go:strings"
+import time "go:time"
+import io "go:io"
+import json "go:encoding/json"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func mediaMultipartRequest(origin: String, purpose: String, payload: String, filename: String, declared: String, fileFirst: Bool) -> Ref[http.Request]
+  go[Ref[http.Request]] {
+    code: """
+      var body bytes.Buffer
+      writer:=multipart.NewWriter(&body)
+      if !{fileFirst} {_=writer.WriteField("purpose",{purpose})}
+      header:=make(textproto.MIMEHeader)
+      header.Set("Content-Disposition","form-data; name=\"file\"; filename=\""+{filename}+"\"")
+      header.Set("Content-Type",{declared})
+      part,_:=writer.CreatePart(header)
+      _,_=io.WriteString(part,{payload})
+      if {fileFirst} {_=writer.WriteField("purpose",{purpose})}
+      _=writer.Close()
+      request:=httptest.NewRequest("POST",{origin}+"/api/v1/media",&body)
+      request.Header.Set("Content-Type",writer.FormDataContentType())
+      request.Header.Set("Origin",{origin})
+      return request
+    """
+    in origin = origin
+    in purpose = purpose
+    in payload = payload
+    in filename = filename
+    in declared = declared
+    in fileFirst = fileFirst
+  }
+end
+
+func TestPostgresMediaHTTPAuthorizationAndDownloadSafety(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.Media.Enabled = true
+  settings.Media.Root = t.TempDir()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
+  let tokens = storage.SessionRepository{DB: db}.Issue(ctx, alice, time.Now()).Unwrap()
+  let cookies = tokens.Cookies(time.Now().Add(time.Hour))
+  let mediaFS = storage.OpenMediaFiles(settings.Media).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let handler = (func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let _ = MediaRoute(settings, db, site, mediaFS, w, request, Segments(request.URL.Path))
+  end) as http.HandlerFunc
+  let request = mediaMultipartRequest(site.Origin, "post", "<html><script>alert(1)</script></html>", "payload.html", "text/html", false)
+  let anonymous = httptest.NewRecorder()
+  handler.ServeHTTP(anonymous as http.ResponseWriter, request)
+  if anonymous.Code != 401 then t.Fatal("upload did not require session") end
+  let missingCSRF = mediaMultipartRequest(site.Origin, "post", "file", "name.pdf", "application/pdf", false)
+  cookies.Each(func(cookie: http.Cookie) -> () missingCSRF.AddCookie(Ref.new(cookie)) end)
+  let denied = httptest.NewRecorder()
+  handler.ServeHTTP(denied as http.ResponseWriter, missingCSRF)
+  if denied.Code != 403 then t.Fatal("upload accepted missing CSRF") end
+  let crossOrigin = mediaMultipartRequest(site.Origin, "post", "file", "name.pdf", "application/pdf", false)
+  cookies.Each(func(cookie: http.Cookie) -> () crossOrigin.AddCookie(Ref.new(cookie)) end)
+  crossOrigin.Header.Set("X-CSRF-Token", tokens.CSRF)
+  crossOrigin.Header.Set("Origin", "https://evil.example")
+  let crossed = httptest.NewRecorder()
+  handler.ServeHTTP(crossed as http.ResponseWriter, crossOrigin)
+  if crossed.Code != 403 then t.Fatal("cross-origin upload accepted") end
+  let uploadRequest = mediaMultipartRequest(site.Origin, "post", "<html><script>alert(1)</script></html>", "payload.html", "text/html", false)
+  cookies.Each(func(cookie: http.Cookie) -> () uploadRequest.AddCookie(Ref.new(cookie)) end)
+  uploadRequest.Header.Set("X-CSRF-Token", tokens.CSRF)
+  let uploaded = httptest.NewRecorder()
+  handler.ServeHTTP(uploaded as http.ResponseWriter, uploadRequest)
+  if uploaded.Code != 201 then t.Fatalf("upload failed: %d %s", uploaded.Code, uploaded.Body.String()) end
+  let output = MediaOutput{}
+  let _ = json.Unmarshal(uploaded.Body.Bytes(), Ref.new(output)).Unwrap()
+  if output.Size <= 0i64 || output.MediaType != "text/html; charset=utf-8" || output.PreviewURL != "" then t.Fatal("upload metadata incorrect") end
+  let fileFirst = mediaMultipartRequest(site.Origin, "post", "<svg onload='alert(1)'/>", "vector.svg", "image/svg+xml", true)
+  cookies.Each(func(cookie: http.Cookie) -> () fileFirst.AddCookie(Ref.new(cookie)) end)
+  fileFirst.Header.Set("X-CSRF-Token", tokens.CSRF)
+  let fileFirstOutput = httptest.NewRecorder()
+  handler.ServeHTTP(fileFirstOutput as http.ResponseWriter, fileFirst)
+  if fileFirstOutput.Code != 201 then t.Fatalf("file-first multipart failed: %s", fileFirstOutput.Body.String()) end
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
+  let published = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body"})
+  if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr()) end
+  let post = published.Unwrap()
+  var path: String = ""
+  let ids: Slice[String] = [output.ID]
+  let _ = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    path = storage.BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids).Unwrap().Get(0).Unwrap()
+    Ok(())
+  end).Unwrap()
+  let get = httptest.NewRequest("GET", site.Origin + path, strings.NewReader("") as io.Reader)
+  cookies.Each(func(cookie: http.Cookie) -> () get.AddCookie(Ref.new(cookie)) end)
+  let served = httptest.NewRecorder()
+  handler.ServeHTTP(served as http.ResponseWriter, get)
+  if served.Code != 200 || !strings.HasPrefix(served.Header().Get("Content-Disposition"), "attachment;") || served.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.Contains(served.Header().Get("Content-Security-Policy"), "sandbox") then
+    t.Fatal("active ordinary file served unsafely")
+  end
+  let etag = served.Header().Get("ETag")
+  let methods: Slice[String] = ["GET", "HEAD"]
+  methods.Each(func(method: String) -> ()
+    let conditional = httptest.NewRequest(method, site.Origin + path, strings.NewReader("") as io.Reader)
+    conditional.Header.Set("If-None-Match", etag)
+    conditional.Header.Set("Range", "bytes=0-1")
+    let hidden = httptest.NewRecorder()
+    handler.ServeHTTP(hidden as http.ResponseWriter, conditional)
+    if hidden.Code != 404 || hidden.Header().Get("ETag") != "" || hidden.Header().Get("Content-Range") != "" then t.Fatal("unauthorized conditional/range leaked metadata") end
+    cookies.Each(func(cookie: http.Cookie) -> () conditional.AddCookie(Ref.new(cookie)) end)
+    let allowed = httptest.NewRecorder()
+    handler.ServeHTTP(allowed as http.ResponseWriter, conditional)
+    if allowed.Code != 304 then t.Fatal("authorized conditional read failed") end
+  end)
+  let rangeRequest = httptest.NewRequest("GET", site.Origin + path, strings.NewReader("") as io.Reader)
+  cookies.Each(func(cookie: http.Cookie) -> () rangeRequest.AddCookie(Ref.new(cookie)) end)
+  rangeRequest.Header.Set("Range", "bytes=0-1")
+  let partial = httptest.NewRecorder()
+  handler.ServeHTTP(partial as http.ResponseWriter, rangeRequest)
+  if partial.Code != 206 || partial.Body.String() != "<h" then t.Fatal("authorized single range failed") end
+  let _ = storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE post_id=? AND site_id=?", time.Now(), post.ID, site.ID)).Unwrap()
+  let noLonger = httptest.NewRecorder()
+  handler.ServeHTTP(noLonger as http.ResponseWriter, rangeRequest)
+  if noLonger.Code != 404 || noLonger.Header().Get("ETag") != "" then t.Fatal("hidden post range read succeeded") end
+end

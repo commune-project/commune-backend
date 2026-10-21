@@ -8,6 +8,11 @@ Group federation, FEP-7888 discussion contexts, protected member delivery,
 durable inbound/outbound work and lifecycle health endpoints. Live Lemmy,
 Mastodon and Misskey compatibility remains pending pinned-peer verification.
 
+[Participation APIs](docs/participation-api.md) cover email verification,
+profiles and avatars, search, notifications, sanitized Markdown, and attachments.
+See [configuration](docs/configuration.md) before enabling registration,
+authoritative local media storage, or background workers.
+
 ## Development toolchain
 
 Write application code and tests in MyGO. Prefer pure functions, immutable

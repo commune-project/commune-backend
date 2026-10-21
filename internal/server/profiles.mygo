@@ -1,0 +1,164 @@
+package server
+
+import context "go:context"
+import http "go:net/http"
+import json "go:encoding/json"
+import time "go:time"
+import utf8 "go:unicode/utf8"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import content "github.com/commune-project/commune-backend/internal/content"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+
+struct ProfilePatch
+  DisplayName: json.RawMessage `json:"display_name"`
+  Biography: json.RawMessage `json:"biography"`
+  AvatarUploadID: json.RawMessage `json:"avatar_upload_id"`
+end
+
+struct AvatarBinding
+  ID: String
+  URL: String
+end
+
+func BindProfileAvatar(ctx: context.Context, tx: Ref[gorm.DB], site: config.Site, settings: config.Config, identity: auth.Identity, uploadID: String) -> Result[AvatarBinding, String]
+  let media: storage.MediaRepository = storage.MediaRepository{DB: tx, SiteID: site.ID, Settings: settings.Media}
+  let bound = media.BindAvatarTx(ctx, tx, identity, uploadID)
+  if bound.IsErr() then
+    return Err(bound.UnwrapErr())
+  end
+  if bound.Unwrap() == "" then
+    return Ok(AvatarBinding{})
+  end
+  Ok(AvatarBinding{ID: strings.TrimPrefix(bound.Unwrap(), "/api/v1/media/"), URL: site.Origin + bound.Unwrap()})
+end
+
+# Binding and profile changes share tx; no filesystem handle is needed here.
+func ProfilesRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
+  ProfileRoute(settings, db, site, w, request, parts)
+end
+
+func ProfileRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
+  let resource = parts.Get(2).UnwrapOr("")
+  let publicRead = resource == "profiles" && parts.Len() == 4
+  let current = resource == "profile" && parts.Len() == 3
+  if !publicRead && !current then
+    return false
+  end
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("Referrer-Policy", "no-referrer")
+  if publicRead then
+    if request.Method != "GET" then
+      MethodNotAllowed(w, "GET")
+      return true
+    end
+    let loaded = storage.PublicProfile(request.Context(), db, site.ID, parts.Get(3).Unwrap())
+    if loaded.IsErr() then
+      Fail(w, loaded.UnwrapErr())
+    else
+      WriteJSON(w, 200, loaded.Unwrap())
+    end
+    return true
+  end
+  if request.Method != "GET" && request.Method != "PATCH" then
+    MethodNotAllowed(w, "GET, PATCH")
+    return true
+  end
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    Fail(w, session.UnwrapErr())
+    return true
+  end
+  let identity = session.Unwrap().Identity
+  if request.Method == "GET" then
+    let loaded = storage.PublicProfile(request.Context(), db, site.ID, identity.Username)
+    if loaded.IsErr() then
+      Fail(w, loaded.UnwrapErr())
+    else
+      WriteJSON(w, 200, loaded.Unwrap())
+    end
+    return true
+  end
+  if !AuthorizeMutation(settings, session.Unwrap(), request) then
+    WriteErrorJSON(w, 403, "CSRF denied")
+    return true
+  end
+  let patch: ProfilePatch = ProfilePatch{}
+  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(patch)).IsErr() then
+    WriteErrorJSON(w, 400, "invalid profile input")
+    return true
+  end
+  var output: storage.ProfileRecord = storage.ProfileRecord{}
+  let result = storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let locked = storage.LockProfileOwner(request.Context(), tx, site.ID, identity)
+    if locked.IsErr() then
+      return locked
+    end
+    let loaded = storage.LoadProfile(request.Context(), tx, identity.ActorURI)
+    if loaded.IsErr() then
+      return Err(loaded.UnwrapErr())
+    end
+    var profile = loaded.Unwrap()
+    profile.Username = identity.Username
+    if (patch.DisplayName as Slice[Byte]).Len() > 0 then
+      let name = ""
+      if (patch.DisplayName as String) == "null" || json.Unmarshal(patch.DisplayName as Slice[Byte], Ref.new(name)).IsErr() || !utf8.ValidString(name) || utf8.RuneCountInString(name) > settings.Rendering.MaxDisplayNameLength then
+        return Err("invalid profile input")
+      end
+      profile.DisplayName = content.RenderText(name)
+    end
+    if (patch.Biography as Slice[Byte]).Len() > 0 then
+      let biography = ""
+      if (patch.Biography as String) == "null" || json.Unmarshal(patch.Biography as Slice[Byte], Ref.new(biography)).IsErr() || !utf8.ValidString(biography) || utf8.RuneCountInString(biography) > settings.Rendering.MaxBiographyLength then
+        return Err("invalid profile input")
+      end
+      let rendered = content.RenderRich(biography, "markdown")
+      if rendered.IsErr() then
+        return Err("invalid profile input")
+      end
+      profile.Biography = biography
+      profile.BiographyHTML = rendered.Unwrap()
+    end
+    if (patch.AvatarUploadID as Slice[Byte]).Len() > 0 then
+      let upload = ""
+      if (patch.AvatarUploadID as String) != "null" && json.Unmarshal(patch.AvatarUploadID as Slice[Byte], Ref.new(upload)).IsErr() then
+        return Err("invalid profile input")
+      end
+      let binding = BindProfileAvatar(request.Context(), tx, site, settings, identity, upload)
+      if binding.IsErr() then
+        return Err(binding.UnwrapErr())
+      end
+      profile.AvatarBindingID = binding.Unwrap().ID
+      profile.AvatarURL = binding.Unwrap().URL
+    end
+    let now = time.Now()
+    profile.UpdatedAt = if now.After(profile.UpdatedAt) then now else profile.UpdatedAt.Add(time.Microsecond) end
+    let saved = storage.SaveProfile(request.Context(), tx, identity, profile)
+    if saved.IsErr() then
+      return saved
+    end
+    let queued = federation.QueueProfileUpdate(request.Context(), tx, site, profile)
+    if queued.IsErr() then
+      return queued
+    end
+    output = profile
+    Ok(())
+  end)
+  if result.IsErr() then
+    if result.UnwrapErr() == "invalid profile input" || result.UnwrapErr() == "invalid media binding" then
+      WriteErrorJSON(w, 400, result.UnwrapErr())
+    else
+      if result.UnwrapErr() == "media binding conflict" then
+        WriteErrorJSON(w, 409, result.UnwrapErr())
+      else
+        Fail(w, result.UnwrapErr())
+      end
+    end
+  else
+    WriteJSON(w, 200, output)
+  end
+  true
+end

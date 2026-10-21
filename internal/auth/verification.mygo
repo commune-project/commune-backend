@@ -1,0 +1,41 @@
+package auth
+
+import aes "go:crypto/aes"
+import cipher "go:crypto/cipher"
+import rand "go:crypto/rand"
+
+# The mail outbox must retain a recoverable link for retry, independently of
+# the digest-only verification record. The encryption key never lives in DB.
+func SealVerification(key: Slice[Byte], message: String) -> Result[Slice[Byte], String]
+  let block = aes.NewCipher(key)
+  if block.IsErr() then
+    return Err("verification encryption unavailable")
+  end
+  let aead = cipher.NewGCM(block.Unwrap())
+  if aead.IsErr() then
+    return Err("verification encryption unavailable")
+  end
+  let nonce = rand.Text() as Slice[Byte]
+  if rand.Read(nonce).IsErr() then
+    return Err("verification encryption unavailable")
+  end
+  let prefix = nonce.Take(aead.Unwrap().NonceSize())
+  Ok(aead.Unwrap().Seal(prefix, prefix, message as Slice[Byte], "commune-verification-v1" as Slice[Byte]))
+end
+
+func OpenVerification(key: Slice[Byte], encrypted: Slice[Byte]) -> Result[String, String]
+  let block = aes.NewCipher(key)
+  if block.IsErr() then
+    return Err("verification encryption unavailable")
+  end
+  let aead = cipher.NewGCM(block.Unwrap())
+  if aead.IsErr() || encrypted.Len() < aead.Unwrap().NonceSize() then
+    return Err("invalid verification payload")
+  end
+  let size = aead.Unwrap().NonceSize()
+  let opened = aead.Unwrap().Open([] as Slice[Byte], encrypted.Take(size), encrypted.Skip(size), "commune-verification-v1" as Slice[Byte])
+  if opened.IsErr() then
+    return Err("invalid verification payload")
+  end
+  Ok(opened.Unwrap() as String)
+end

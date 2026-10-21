@@ -1,0 +1,99 @@
+package storage
+
+import context "go:context"
+import os "go:os"
+import io "go:io"
+import sort "go:sort"
+import time "go:time"
+
+struct MediaOrphanCandidate
+  Namespace: String
+  ID: String
+  Key: String
+  Modified: time.Time
+end
+
+struct MediaReconcilePage
+  Examined: Int
+  Deleted: Int
+  Next: String
+  Done: Bool
+end
+
+# Directory enumeration uses fixed-size buffers and retains at most max entries.
+# A lexical cursor avoids starvation when known authoritative files precede an
+# orphan. The caller bounds wall time through ctx; no directory-wide allocation.
+func MediaOrphanCandidates(ctx: context.Context, root: Ref[os.Root], after: String, max: Int) -> Result[Slice[MediaOrphanCandidate], String]
+  go[Result[Slice[MediaOrphanCandidate], String]] {
+    code: """
+      rows:=make([]MediaOrphanCandidate,0,{max})
+      for _,namespace:=range []string{"temporary","local","previews","private-cache"} {
+        directory,err:={root}.Open(namespace)
+        if err!=nil {return Err[[]MediaOrphanCandidate,string]("media unavailable")}
+        for {
+          if {ctx}.Err()!=nil {directory.Close();return Err[[]MediaOrphanCandidate,string]("reconciliation canceled")}
+          entries,readErr:=directory.ReadDir(128)
+          for _,entry:=range entries {
+            id:=entry.Name(); key:=namespace+"/"+id
+            if key<={after} || !MediaFileID(id) {continue}
+            info,statErr:={root}.Lstat(key)
+            if statErr!=nil {continue}
+            if !info.Mode().IsRegular() && info.Mode() & os.ModeSymlink==0 {continue}
+            index:=sort.Search(len(rows),func(i int)bool{return rows[i].Key>=key})
+            if index>={max} {continue}
+            rows=append(rows,MediaOrphanCandidate{})
+            copy(rows[index+1:],rows[index:])
+            rows[index]=MediaOrphanCandidate{Namespace:namespace,ID:id,Key:key,Modified:info.ModTime()}
+            if len(rows)>{max} {rows=rows[:{max}]}
+          }
+          if readErr==io.EOF {break}
+          if readErr!=nil {directory.Close();return Err[[]MediaOrphanCandidate,string]("media unavailable")}
+        }
+        directory.Close()
+      }
+      return Ok[[]MediaOrphanCandidate,string](rows)
+    """
+    in ctx = ctx
+    in root = root
+    in after = after
+    in max = max
+  }
+end
+
+impl MediaRepository
+  # Run after Cleanup/CleanupPrivateCache with cutoff <= now-10min. Every file
+  # publish has a durable reservation first, so an absent row proves an orphan.
+  # This scans only generated file IDs and never recursively follows symlinks.
+  func ReconcileOrphans(self: MediaRepository, ctx: context.Context, cutoff: time.Time, after: String, max: Int) -> Result[MediaReconcilePage, String]
+    if max < 1 || max > 1000 || cutoff.After(time.Now().Add(0 as time.Duration - 10 as time.Duration * time.Minute)) then
+      return Err("invalid reconciliation bounds")
+    end
+    let candidates = MediaOrphanCandidates(ctx, self.Files.Root, after, max)
+    if candidates.IsErr() then
+      return Err(candidates.UnwrapErr())
+    end
+    var page = MediaReconcilePage{Next: after, Done: candidates.Unwrap().Len() < max}
+    var index: Int = 0
+    while index < candidates.Unwrap().Len()
+      let row = candidates.Unwrap().Get(index).Unwrap()
+      index = index + 1
+      page.Next = row.Key
+      page.Examined = page.Examined + 1
+      if !row.Modified.After(cutoff) then
+        let owned = QueryExists(self.DB.WithContext(ctx).Table("media_uploads").Where("id=?", row.ID))
+        let cached = QueryExists(self.DB.WithContext(ctx).Table("media_private_cache").Where("generation=?", row.ID))
+        if owned.IsErr() || cached.IsErr() then
+          return Err("media unavailable")
+        end
+        if !owned.Unwrap() && !cached.Unwrap() then
+          let removed = self.Files.Remove(row.Namespace, row.ID)
+          if removed.IsErr() then
+            return Err(removed.UnwrapErr())
+          end
+          page.Deleted = page.Deleted + 1
+        end
+      end
+    end
+    Ok(page)
+  end
+end

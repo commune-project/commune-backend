@@ -1,0 +1,40 @@
+package content
+
+import html "go:golang.org/x/net/html"
+import strings "go:strings"
+
+struct RemoteMediaReference
+  Origin: String
+  URL: String
+end
+
+# Restricted content may embed only resource-authorized cache references.
+# Authoritative source remains intact; this operates on sanitized display HTML.
+func RewritePrivateMedia(rendered: String, references: Slice[RemoteMediaReference]) -> String
+  RewriteMediaReferences(rendered, references, true)
+end
+
+func RewriteMediaReferences(rendered: String, references: Slice[RemoteMediaReference], restrictImages: Bool) -> String
+  let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
+  let output = strings.Builder{}
+  var done = false
+  while !done
+    let kind = tokenizer.Next()
+    if kind == html.ErrorToken then
+      done = true
+    else
+      var token = tokenizer.Token()
+      if kind == html.StartTagToken || kind == html.SelfClosingTagToken then
+        token.Attr = token.Attr.Map(func(attr: html.Attribute) -> html.Attribute
+          if attr.Key != "src" && attr.Key != "href" then return attr end
+          let matches = references.Filter(func(item: RemoteMediaReference) -> Bool item.Origin == attr.Val end)
+          if matches.Len() == 1 then return html.Attribute{Key: attr.Key, Val: matches.Get(0).Unwrap().URL} end
+          if restrictImages && token.Data == "img" && attr.Key == "src" then return html.Attribute{Key: "src", Val: ""} end
+          attr
+        end)
+      end
+      let _ = output.WriteString(token.String())
+    end
+  end
+  SanitizeRichHTML(output.String())
+end

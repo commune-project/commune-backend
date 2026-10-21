@@ -1,0 +1,41 @@
+package auth
+
+import testing "go:testing"
+import strings "go:strings"
+import bytes "go:bytes"
+
+func TestVerificationEncryption(t: Ref[testing.T]) -> ()
+  let key = strings.Repeat("k", 32) as Slice[Byte]
+  let message: String = "https://a.example/verify-email#token=PRIVATE-TOKEN"
+  let first = SealVerification(key, message).Unwrap()
+  let second = SealVerification(key, message).Unwrap()
+  if bytes.Equal(first, second) || bytes.Contains(first, message as Slice[Byte]) || OpenVerification(key, first).Unwrap() != message then
+    t.Fatal("verification encryption did not preserve confidentiality or round trip")
+  end
+  if OpenVerification(strings.Repeat("x", 32) as Slice[Byte], first).IsOk() then
+    t.Fatal("wrong key authenticated a verification link")
+  end
+  # Changing the nonce or authenticated ciphertext must never return a link.
+  let badNonce = first.Take(1).Map(func(value: Byte) -> Byte
+    if value == (0 as Byte) then 1 as Byte else 0 as Byte end
+  end).Concat(first.Skip(1))
+  let last = first.Get(first.Len() - 1).Unwrap()
+  let changed: Byte = if last == (0 as Byte) then 1 as Byte else 0 as Byte end
+  let badBody = first.Take(first.Len() - 1).Append(changed)
+  let invalid: Slice[Slice[Byte]] = [[], first.Take(11), first.Take(12), first.Take(first.Len() - 1), badNonce, badBody]
+  invalid.Each(func(payload: Slice[Byte]) -> ()
+    switch OpenVerification(key, payload)
+    case Ok(_) => t.Fatal("truncated or modified verification payload authenticated")
+    case Err(message) =>
+      if strings.Contains(message, "PRIVATE-TOKEN") || strings.Contains(message, "kkkk") then
+        t.Fatal("decryption error leaked secrets")
+      end
+    end
+  end)
+  let badKeys: Slice[Slice[Byte]] = [[], strings.Repeat("k", 31) as Slice[Byte], strings.Repeat("k", 33) as Slice[Byte]]
+  badKeys.Each(func(badKey: Slice[Byte]) -> ()
+    if SealVerification(badKey, message).IsOk() || OpenVerification(badKey, first).IsOk() then
+      t.Fatal("invalid encryption key accepted")
+    end
+  end)
+end

@@ -19,6 +19,8 @@ end
 struct CreateTopicInput
   Title: String `json:"title"`
   Body: String `json:"body"`
+  ContentFormat: String `json:"content_format"`
+  AttachmentIDs: Slice[String] `json:"attachment_ids"`
 end
 
 struct ActorInput
@@ -204,7 +206,14 @@ func CommunityMemberRoute(
     if section == "members" then
       Settle(
         w,
-        communities.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
+        storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+          let previous = storage.IsCurrentMember(request.Context(), tx, id, input.Actor)
+          if previous.IsErr() then return Err(previous.UnwrapErr()) end
+          let changed = storage.CommunityRepository{DB: tx, SiteID: site.ID}.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
+          if changed.IsErr() then return changed end
+          if request.Method == "DELETE" && previous.Unwrap() then return QueueMemberRevocation(request.Context(), tx, site, id, input.Actor) end
+          Ok(())
+        end)
       )
     else
       Settle(
@@ -247,8 +256,12 @@ func CommunityTopicRoute(
       if decoded.IsErr() then
         WriteErrorJSON(w, 400, decoded.UnwrapErr())
       else
-        let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-        let published = posts.Publish(
+        let mentions = ResolvePostMentions(request.Context(), settings, db, site, identity, id, input.Body, input.ContentFormat, false)
+        if mentions.IsErr() then
+          Fail(w, mentions.UnwrapErr())
+          return
+        end
+        let published = PublishForumPost(settings, db,
           request.Context(),
           site,
           id,
@@ -258,24 +271,14 @@ func CommunityTopicRoute(
             Title: input.Title,
             Body: input.Body,
             ParentID: "",
+            ContentFormat: input.ContentFormat,
+            AttachmentIDs: input.AttachmentIDs,
+            Mentions: mentions.Unwrap(),
           }
         )
         if published.IsErr() then
           Fail(w, published.UnwrapErr())
         else
-          let loaded = storage.LoadCommunityByID(request.Context(), db, id)
-          if loaded.IsOk() &&
-            loaded.Unwrap().IsSome() &&
-            federation.FederatedCommunity(loaded.Unwrap().Unwrap()) then
-            let _ = AnnounceLocalPost(
-              request.Context(),
-              settings,
-              db,
-              site,
-              loaded.Unwrap().Unwrap(),
-              published.Unwrap()
-            )
-          end
           WriteBrowserPost(db, site, w, request, 201, identity, published.Unwrap())
         end
       end

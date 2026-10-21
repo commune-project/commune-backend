@@ -1,0 +1,130 @@
+package content
+
+import testing "go:testing"
+import strings "go:strings"
+import html "go:golang.org/x/net/html"
+
+func TestRichFormatBoundaries(t: Ref[testing.T]) -> ()
+  let source = "# Heading\n\n**bold** &amp; `@code`\n\n- one\n- two\n\n> quote\n\n[link](https://example.org)\n\n![alt](https://example.org/image.png)\n\n<script>alert(1)</script>"
+  let rendered = RenderRich(source, "markdown").Unwrap()
+  ["<h1>Heading</h1>", "<strong>bold</strong>", "<code>@code</code>", "<ul>", "<blockquote>", "https://example.org/image.png", "referrerpolicy=\"no-referrer\"", "noreferrer", "nofollow"].Each(func(fragment: String) -> ()
+    if !strings.Contains(rendered, fragment) then
+      t.Fatalf("missing Markdown feature %s in %s", fragment, rendered)
+    end
+  end)
+  if strings.Contains(rendered, "<script") then
+    t.Fatal("Markdown raw HTML was enabled")
+  end
+  let legacy = "**literal** <b>old</b> &lt;tag&gt;"
+  if RenderRich(legacy, "legacy").Unwrap() != RenderText(legacy) || RenderRich(legacy, "text").Unwrap() != RenderText(legacy) then
+    t.Fatal("legacy rendering changed")
+  end
+  if RenderRich("**literal** <strong>HTML</strong>", "html").Unwrap() != "**literal** <strong>HTML</strong>" then
+    t.Fatal("remote HTML was interpreted as Markdown")
+  end
+  if RenderRich("hello", "unknown").IsOk() || PlainRichText("hello", "unknown").IsOk() then
+    t.Fatal("unknown format accepted")
+  end
+end
+
+# Inspect parsed output, so alternate quote styles/case/encoding cannot make a
+# string-based XSS assertion pass. Also check repeat sanitization convergence.
+func AssertRichSafe(t: Ref[testing.T], rendered: String) -> ()
+  let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
+  var done = false
+  while !done
+    let kind = tokenizer.Next()
+    if kind == html.ErrorToken then
+      done = true
+    else
+      if kind == html.StartTagToken || kind == html.SelfClosingTagToken then
+        let token = tokenizer.Token()
+        let allowed: Slice[String] = ["p", "br", "hr", "em", "strong", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "img"]
+        if !allowed.Contains(token.Data) then
+          t.Fatalf("active/unexpected element survived: %s", rendered)
+        end
+        var imagePolicy = false
+        token.Attr.Each(func(attr: html.Attribute) -> ()
+          if attr.Key != "href" && attr.Key != "src" && attr.Key != "alt" && attr.Key != "title" && attr.Key != "rel" && attr.Key != "referrerpolicy" then
+            t.Fatalf("unsafe attribute survived: %s", rendered)
+          end
+          if attr.Key == "href" || attr.Key == "src" then
+            let value = strings.ToLower(strings.TrimSpace(attr.Val))
+            if strings.Contains(value, ":") && !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") then
+              t.Fatalf("unsafe URL survived: %s", rendered)
+            end
+          end
+          if attr.Key == "referrerpolicy" && attr.Val == "no-referrer" then
+            imagePolicy = true
+          end
+        end)
+        if token.Data == "img" && !imagePolicy then
+          t.Fatalf("image can leak referrer: %s", rendered)
+        end
+      end
+    end
+  end
+  if SanitizeRichHTML(rendered) != rendered then
+    t.Fatalf("sanitization did not converge: %s", rendered)
+  end
+end
+
+func TestRichAdversarialHTML(t: Ref[testing.T]) -> ()
+  let attacks: Slice[String] = [
+    "<script>alert(1)</script><p>safe</p>",
+    "<a href='jAvAsCrIpT:alert(1)' onclick='bad()'>safe</a>",
+    "<a href='&#106;avascript&#58;alert(1)'>safe</a>",
+    "<a href='java&#x09;script:alert(1)'>safe</a>",
+    "<a href='java&#x0a;script:alert(1)'>safe</a>",
+    "<img src='data:image/svg+xml,bad' onerror='bad()'><p>safe</p>",
+    "<img src='vbscript:bad'><p>safe</p>",
+    "<svg><a xlink:href='javascript:bad'>bad</a></svg><p>safe</p>",
+    "<math><mtext><img src=x onerror=bad></mtext></math><p>safe</p>",
+    "<iframe srcdoc='<script>bad()</script>'></iframe><p>safe</p>",
+    "<object data='https://evil.invalid'></object><embed src=x><p>safe</p>",
+    "<p style='background:url(javascript:bad)' class=x id=x>safe</p>",
+    "<IMG SRC='https://example.org/a.png' SRCSET='javascript:bad' onload=bad referrerpolicy='unsafe-url'><p>safe</p>",
+    "<form action='javascript:bad'><input autofocus onfocus=bad></form><p>safe</p>",
+    "<!-- <img src=x onerror=bad> --><p>safe</p>",
+    "<scr<script>ipt>bad</scr<script>ipt><p>safe</p>",
+    "<a href='javascript:bad' <img src=x onerror=bad>>safe</a>",
+    "<style>body{display:none}</style><p>safe</p>",
+    "&lt;script&gt;literal&lt;/script&gt;<p>safe</p>"
+  ]
+  attacks.Each(func(source: String) -> ()
+    let rendered = RenderRich(source, "html").Unwrap()
+    AssertRichSafe(t, rendered)
+    if !strings.Contains(rendered, "safe") then
+      t.Fatalf("safe text was lost: %s => %s", source, rendered)
+    end
+    AssertRichSafe(t, RenderRich(source, "markdown").Unwrap())
+  end)
+  ["[x](javascript:alert%281%29)", "![x](data:image/svg+xml,bad)", "[x](vbscript:bad)", "[x](jav&#x61;script:bad)"].Each(func(source: String) -> ()
+    AssertRichSafe(t, RenderRich(source, "markdown").Unwrap())
+  end)
+end
+
+func TestPlainRichText(t: Ref[testing.T]) -> ()
+  let cases: Slice[Slice[String]] = [
+    ["markdown", "# 中文\n\n**bold** and `code` &amp; ![图像](https://example.org/a.png)", "中文 bold and code & 图像"],
+    ["html", "<p>中<strong>文</strong>&amp; hello</p><p>next<br>line</p><script>hidden</script>", "中文& hello next line"],
+    ["legacy", "a <b>bold</b> &lt;x&gt;", "a bold &lt;x&gt;"],
+    ["html", "&lt;script&gt;literal&lt;/script&gt;", "<script>literal</script>"]
+  ]
+  cases.Each(func(item: Slice[String]) -> ()
+    let output = PlainRichText(item.Get(1).Unwrap(), item.Get(0).Unwrap()).Unwrap()
+    if output != item.Get(2).Unwrap() then
+      t.Fatalf("wrong plain text: %s", output)
+    end
+  end)
+end
+
+func TestRichBounds(t: Ref[testing.T]) -> ()
+  let oversized = strings.Repeat("x", 1048577)
+  if RenderRich(oversized, "markdown").IsOk() || ExtractMentionCandidates(oversized, "markdown").IsOk() || PlainRichText(oversized, "html").IsOk() then
+    t.Fatal("oversized input accepted")
+  end
+  if ExtractMentionCandidates(strings.Repeat("@alice ", 65), "markdown").IsOk() then
+    t.Fatal("candidate bound not enforced")
+  end
+end

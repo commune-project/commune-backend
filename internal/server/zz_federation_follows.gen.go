@@ -25,8 +25,8 @@ func ApplyActivity(ctx context.Context, db *gorm.DB, site config.Site, activity 
 		return Ok[bool, string](false)
 	} else {
 	}
-	if activity.Type == "Follow" {
-		applied := ApplyFollow(ctx, db, site, activity)
+	if activity.Type == "Like" {
+		applied := ApplyRemoteReaction(ctx, db, site, activity)
 		if MygoIN6ResultM5IsErr[struct{}, string](applied) {
 			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied))
 		} else {
@@ -34,8 +34,8 @@ func ApplyActivity(ctx context.Context, db *gorm.DB, site config.Site, activity 
 		return Ok[bool, string](false)
 	} else {
 	}
-	if activity.Type == "Undo" {
-		applied_1 := ApplyUndoFollow(ctx, db, site, activity)
+	if activity.Type == "Follow" {
+		applied_1 := ApplyFollow(ctx, db, site, activity)
 		if MygoIN6ResultM5IsErr[struct{}, string](applied_1) {
 			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_1))
 		} else {
@@ -43,30 +43,76 @@ func ApplyActivity(ctx context.Context, db *gorm.DB, site config.Site, activity 
 		return Ok[bool, string](false)
 	} else {
 	}
+	if activity.Type == "Undo" {
+		reaction := ApplyRemoteReaction(ctx, db, site, activity)
+		if MygoIN6ResultM5IsErr[struct{}, string](reaction) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](reaction))
+		} else {
+		}
+		applied_2 := ApplyUndoFollow(ctx, db, site, activity)
+		if MygoIN6ResultM5IsErr[struct{}, string](applied_2) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_2))
+		} else {
+		}
+		return Ok[bool, string](false)
+	} else {
+	}
 	if activity.Type == "Update" {
+		if MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Person" {
+			applied_3 := federation.ApplyPersonUpdate(ctx, db, site, payload)
+			if MygoIN6ResultM5IsErr[struct{}, string](applied_3) {
+				return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_3))
+			} else {
+			}
+			return Ok[bool, string](false)
+		} else {
+		}
+		if MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && (MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Page" || MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Note") {
+			applied_4 := ApplyRichMutation(ctx, db, site, activity, payload)
+			if MygoIN6ResultM5IsErr[struct{}, string](applied_4) {
+				return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_4))
+			} else {
+			}
+			return Ok[bool, string](false)
+		} else {
+		}
 		return ApplyCommunityState(ctx, db, payload)
 	} else {
 	}
+	if activity.Type == "Delete" {
+		applied_5 := ApplyRichMutation(ctx, db, site, activity, payload)
+		if MygoIN6ResultM5IsErr[struct{}, string](applied_5) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_5))
+		} else {
+		}
+		return Ok[bool, string](false)
+	} else {
+	}
 	if activity.Type == "Create" {
-		applied_2 := ApplyCreateSubmission(ctx, db, site, activity, payload, addressed)
-		if MygoIN6ResultM5IsErr[struct{}, string](applied_2) {
-			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_2))
+		applied_6 := ApplyCreateSubmission(ctx, db, site, activity, payload, addressed)
+		if MygoIN6ResultM5IsErr[struct{}, string](applied_6) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_6))
 		} else {
 		}
 	} else {
 	}
 	if activity.Type == "Announce" {
-		applied_3 := ApplyAnnounce(ctx, db, site, activity)
-		if MygoIN6ResultM5IsErr[struct{}, string](applied_3) {
-			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_3))
+		received := ReceiveRichAnnounce(ctx, db, site, activity, payload)
+		if MygoIN6ResultM5IsErr[struct{}, string](received) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](received))
+		} else {
+		}
+		applied_7 := ApplyAnnounce(ctx, db, site, activity)
+		if MygoIN6ResultM5IsErr[struct{}, string](applied_7) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_7))
 		} else {
 		}
 	} else {
 	}
 	if activity.Type == "Add" || activity.Type == "Remove" {
-		applied_4 := ApplyGroupManagement(ctx, db, site, activity, payload)
-		if MygoIN6ResultM5IsErr[struct{}, string](applied_4) {
-			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_4))
+		applied_8 := ApplyGroupManagement(ctx, db, site, activity, payload)
+		if MygoIN6ResultM5IsErr[struct{}, string](applied_8) {
+			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](applied_8))
 		} else {
 		}
 	} else {

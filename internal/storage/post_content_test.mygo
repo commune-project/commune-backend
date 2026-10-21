@@ -1,0 +1,91 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let outsider = accounts.Create(ctx, site, "outsider", "", "outsider-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "private", "Private", "local_only", "members", "members").Unwrap()
+  let _ = communities.SetMember(ctx, community.ID, alice, false, bob.ActorURI, true).Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let source = "中文 **内容** @bob @bob @outsider `@alice`"
+  let post = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: source, ContentFormat: "markdown"}).Unwrap()
+  if post.Body != source || post.ContentFormat != "markdown" || strings.Contains(post.SearchText, "**") || !strings.Contains(post.SearchText, "中文 内容") then
+    t.Fatal("source/format/search text not preserved correctly")
+  end
+  var mentions: Slice[PostMentionRecord] = []
+  let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(mentions))).Unwrap()
+  if mentions.Len() != 1 || mentions.Get(0).Unwrap().ActorURI != bob.ActorURI then
+    t.Fatal("mention deduplication or private audience filtering failed")
+  end
+  let occurrence = mentions.Get(0).Unwrap().ID
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "prefix " + source, "", []).Unwrap()
+  let unchanged = PostMentionRecord{}
+  let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(unchanged))).Unwrap()
+  if unchanged.ID != occurrence || unchanged.SourceStart == mentions.Get(0).Unwrap().SourceStart then
+    t.Fatal("unchanged actor renotified or source span did not move")
+  end
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", "removed", "", []).Unwrap()
+  let retired: Int64 = 0i64
+  let _ = MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(Ref.new(retired))).Unwrap()
+  if retired != 1i64 then
+    t.Fatal("removed mention notification remained active")
+  end
+  let _ = posts.EditContent(ctx, post.ID, alice, false, "Topic", source, "", []).Unwrap()
+  let reintroduced = PostMentionRecord{}
+  let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(reintroduced))).Unwrap()
+  if reintroduced.ID == occurrence then
+    t.Fatal("reintroduction reused retired occurrence")
+  end
+  # Insert ready metadata only: binding/rendering must perform zero filesystem IO.
+  let expires = time.Now().Add(time.Hour)
+  let _ = MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)).Unwrap()
+  let illustrated = "![图](/api/v1/media/owned) @bob"
+  let saved = posts.EditContent(ctx, post.ID, alice, false, "Topic", illustrated, "markdown", ["owned"]).Unwrap()
+  let state = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
+  let media = PostRichMedia(state).Unwrap()
+  let rendered = RenderStoredPost(saved, state, false).Unwrap()
+  if saved.Body != illustrated || media.Len() != 1 || !strings.Contains(rendered, "/api/v1/media/" + media.Get(0).Unwrap().BindingID + "/preview") || strings.Contains(rendered, "src=\"/api/v1/media/owned\"") then
+    t.Fatal("display binding rewrite changed source or missed safe preview")
+  end
+  # New binding and mention retirement must roll back with invalid source refs.
+  let _ = MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)).Unwrap()
+  if posts.EditContent(ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", ["replacement"]).IsOk() then
+    t.Fatal("unbound source reference accepted")
+  end
+  let after = LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap()
+  let afterState = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
+  if after.Body != illustrated || PostRichMedia(afterState).Unwrap().Get(0).Unwrap().UploadID != "owned" then
+    t.Fatal("failed edit leaked body or binding changes")
+  end
+  let rolledBack: Int64 = 0i64
+  let _ = MutationResult(db.Table("media_bindings").Where("upload_id='replacement'").Count(Ref.new(rolledBack))).Unwrap()
+  if rolledBack != 0i64 then
+    t.Fatal("failed edit left a new binding")
+  end
+  if posts.EditContent(ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", ["owned"]).IsOk() then
+    t.Fatal("foreign owner edited content/bindings")
+  end
+  let beforeDelete = posts.Edit(ctx, post.ID, alice, false, "Topic", illustrated).Unwrap()
+  if beforeDelete.ContentFormat != "markdown" || PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() != 1 then
+    t.Fatal("legacy edit API cleared format/attachments")
+  end
+  let _ = posts.Delete(ctx, post.ID, alice, false).Unwrap()
+  if PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() != 0 then
+    t.Fatal("deletion left readable bindings")
+  end
+end

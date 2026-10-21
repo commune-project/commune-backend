@@ -1,0 +1,138 @@
+package federation
+
+import context "go:context"
+import json "go:encoding/json"
+import url "go:net/url"
+import time "go:time"
+import rand "go:crypto/rand"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+import content "github.com/commune-project/commune-backend/internal/content"
+
+struct ProfileIcon
+  Type: String `json:"type"`
+  URL: String `json:"url"`
+end
+
+struct ProfileObject
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Name: String `json:"name"`
+  Summary: String `json:"summary"`
+  Icon: ProfileIcon `json:"icon"`
+  Updated: time.Time `json:"updated"`
+end
+
+struct ProfileUpdate
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Actor: String `json:"actor"`
+  Object: ActorRepresentation `json:"object"`
+  To: Slice[String] `json:"to"`
+  CC: Slice[String] `json:"cc"`
+end
+
+func WithProfile(actor: ActorRepresentation, profile: storage.ProfileRecord) -> ActorRepresentation
+  var result = actor
+  result.Name = profile.DisplayName
+  result.Summary = profile.BiographyHTML
+  result.Updated = profile.UpdatedAt
+  if profile.AvatarURL != "" then
+    result.Icon = ProfileIcon{Type: "Image", URL: profile.AvatarURL}
+  end
+  result
+end
+
+func PersonUpdateObject(payload: Slice[Byte]) -> Result[ProfileObject, String]
+  let view: ActivityView = ActivityView{}
+  let object: ProfileObject = ProfileObject{}
+  if json.Unmarshal(payload, Ref.new(view)).IsErr() || view.Type != "Update" || json.Unmarshal(view.Object as Slice[Byte], Ref.new(object)).IsErr() || object.Type != "Person" then
+    return Err("not a Person update")
+  end
+  if object.ID != view.Actor || object.Updated.IsZero() || object.Updated.After(time.Now().Add(300 as time.Duration * time.Second)) then
+    return Err("invalid profile authority or freshness")
+  end
+  Ok(object)
+end
+
+# Called only after the outer HTTP signature has been verified. Public avatar
+# metadata is validated without making any request to its URL.
+func ApplyPersonUpdate(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, payload: Slice[Byte]) -> Result[(), String]
+  let parsed = PersonUpdateObject(payload)
+  if parsed.IsErr() then
+    return Err(parsed.UnwrapErr())
+  end
+  let object = parsed.Unwrap()
+  let actor = storage.LoadActor(ctx, db, object.ID)
+  if actor.IsErr() || actor.Unwrap().IsNone() then
+    return Err("unknown profile actor")
+  end
+  if actor.Unwrap().Unwrap().LocalSiteID.Valid || actor.Unwrap().Unwrap().Kind != "Person" then
+    return Err("forbidden")
+  end
+  let policy: storage.SiteRepository = storage.SiteRepository{DB: db, SiteID: site.ID}
+  let blocked = policy.IsBlocked(ctx, object.ID)
+  if blocked.IsErr() || blocked.Unwrap() then
+    return Err("forbidden")
+  end
+  if (object.Name as Slice[Byte]).Len() > 4000 || (object.Summary as Slice[Byte]).Len() > 400000 then
+    return Err("invalid profile input")
+  end
+  let avatar = url.Parse(object.Icon.URL)
+  if object.Icon.URL != "" && (object.Icon.Type != "Image" || avatar.IsErr()) then
+    return Err("invalid avatar URL")
+  end
+  if object.Icon.URL != "" then
+    let address = avatar.Unwrap()
+    if address.Scheme != "https" || address.Host == "" || strings.Contains(object.Icon.URL, "@") then
+      return Err("invalid avatar URL")
+    end
+  end
+  storage.MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,updated_at=EXCLUDED.updated_at WHERE profiles.updated_at < EXCLUDED.updated_at", object.ID, content.RenderText(object.Name), object.Summary, content.SanitizeRichHTML(object.Summary), object.Icon.URL, object.Updated))
+end
+
+# Persist and plan in the SAME transaction as the profile/avatar mutation.
+func QueueProfileUpdate(ctx: context.Context, tx: Ref[gorm.DB], site: config.Site, profile: storage.ProfileRecord) -> Result[(), String]
+  let actor = storage.LoadActor(ctx, tx, profile.ActorURI)
+  let key = storage.EnsureLocalKey(ctx, tx, profile.ActorURI)
+  if actor.IsErr() || actor.Unwrap().IsNone() || key.IsErr() then
+    return Err("profile federation unavailable")
+  end
+  var recipients: Slice[String] = []
+  let query = tx.WithContext(ctx).Raw("SELECT f.follower_actor_uri FROM person_follows f JOIN actors a ON a.uri=f.follower_actor_uri WHERE f.local_actor_uri=? AND f.state='accepted' AND NOT EXISTS (SELECT 1 FROM site_actor_blocks b WHERE b.site_id=? AND b.actor_uri=a.uri) AND NOT EXISTS (SELECT 1 FROM site_domain_blocks b WHERE b.site_id=? AND lower(split_part(split_part(a.uri,'://',2),'/',1))=b.domain)", profile.ActorURI, site.ID, site.ID).Scan(Ref.new(recipients))
+  if storage.MutationResult(query).IsErr() then
+    return Err("profile federation unavailable")
+  end
+  let policy: storage.SiteRepository = storage.SiteRepository{DB: tx, SiteID: site.ID}
+  var eligible: Slice[String] = []
+  var index: Int = 0
+  while index < recipients.Len()
+    let recipient = recipients.Get(index).Unwrap()
+    let blocked = policy.IsBlocked(ctx, recipient)
+    if blocked.IsErr() then
+      return Err(blocked.UnwrapErr())
+    end
+    if !blocked.Unwrap() then
+      eligible = eligible.Append(recipient)
+    end
+    index = index + 1
+  end
+  let uri = site.Origin + "/activities/" + rand.Text()
+  let actorRepresentation = WithProfile(PersonRepresentation(site, actor.Unwrap().Unwrap(), profile.Username, key.Unwrap()), profile)
+  let payload = json.Marshal(ProfileUpdate{Context: activityStreamsContext, ID: uri, Type: "Update", Actor: profile.ActorURI, Object: actorRepresentation, To: [publicAudience], CC: eligible})
+  if payload.IsErr() then
+    return Err("profile federation unavailable")
+  end
+  let stored = storage.InsertActivityPayload(ctx, tx, uri, profile.ActorURI, "Update", payload.Unwrap(), "")
+  if stored.IsErr() then
+    return stored
+  end
+  let planned = storage.PlanDelivery(ctx, tx, uri, profile.ActorURI, eligible, "")
+  if planned.IsErr() then
+    return Err(planned.UnwrapErr())
+  end
+  Ok(())
+end

@@ -1,0 +1,121 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import http "go:net/http"
+import json "go:encoding/json"
+import strconv "go:strconv"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresNotificationRoutes(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = storage.AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let issued = storage.SessionRepository{DB: db}.Issue(ctx, alice, time.Now()).Unwrap()
+  let cookies = issued.Cookies(time.Now().Add(time.Hour)).Map(func(cookie: http.Cookie) -> Ref[http.Cookie]
+    Ref.new(cookie)
+  end)
+  let csrf = cookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let parent = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body"}).Unwrap()
+  let _ = posts.Publish(ctx, site, community.ID, bob, false, storage.PublishInput{ParentID: parent.ID, Body: "reply"}).Unwrap()
+  let _ = storage.ProjectNotifications(ctx, db, 100).Unwrap()
+  let handler = (func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let _ = NotificationRoute(settings, db, site, w, request, Segments(request.URL.Path))
+  end) as http.HandlerFunc
+  let initial = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
+  if initial.Code != 200 || initial.Header().Get("Cache-Control") != "no-store" then
+    t.Fatalf("notification list failed: %d %s", initial.Code, initial.Body.String())
+  end
+  let page = storage.NotificationPage{}
+  let _ = json.Unmarshal(initial.Body.Bytes(), Ref.new(page)).Unwrap()
+  if page.Items.Len() != 1 || page.ThroughCursor == "" then
+    t.Fatal("missing item or snapshot")
+  end
+  let singlePath = "/api/v1/notifications/" + strconv.FormatInt(page.Items.Get(0).Unwrap().ID, 10) + "/read"
+  let bobIssued = storage.SessionRepository{DB: db}.Issue(ctx, bob, time.Now()).Unwrap()
+  let bobCookies = bobIssued.Cookies(time.Now().Add(time.Hour)).Map(func(cookie: http.Cookie) -> Ref[http.Cookie]
+    Ref.new(cookie)
+  end)
+  let bobCSRF = bobCookies.Filter(func(cookie: Ref[http.Cookie]) -> Bool
+    cookie.Name == "__Host-commune_csrf"
+  end).Get(0).Unwrap().Value
+  let crossAccount = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
+  if crossAccount.Code != 404 || crossAccount.Header().Get("Cache-Control") != "no-store" then
+    t.Fatal("another account could read or discover a notification")
+  end
+  let badPage = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications?limit=0", Cookies: cookies})
+  if badPage.Code != 400 then
+    t.Fatal("unbounded notification page accepted")
+  end
+  let unauthenticated = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications"})
+  if unauthenticated.Code != 401 || unauthenticated.Header().Get("Cache-Control") != "no-store" then
+    t.Fatal("notification authentication/no-store failed")
+  end
+  let method = doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
+  if method.Code != 405 || method.Header().Get("Allow") != "GET" then
+    t.Fatal("notification method contract failed")
+  end
+  let payload = json.Marshal(NotificationReadAllInput{ThroughCursor: page.ThroughCursor}).Unwrap() as String
+  let missingCSRF = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, Source: site.Origin})
+  let foreignOrigin = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, CSRF: csrf, Source: "https://foreign.example"})
+  if missingCSRF.Code != 403 || foreignOrigin.Code != 403 then
+    t.Fatal("notification mutation lacked CSRF/origin protection")
+  end
+  let invalid: Slice[String] = ["{}", "{\"through_cursor\":\"garbage\"}", "{\"through_cursor\":\"\",\"unknown\":true}"]
+  invalid.Each(func(body: String) -> ()
+    let response = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: body, Cookies: cookies, CSRF: csrf, Source: site.Origin})
+    if response.Code != 400 then
+      t.Fatal("invalid read-all body accepted")
+    end
+  end)
+  let repeats: Slice[Int] = [1, 2]
+  repeats.Each(func(attempt: Int) -> ()
+    let single = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Cookies: cookies, CSRF: csrf, Source: site.Origin})
+    if single.Code != 204 || single.Header().Get("Cache-Control") != "no-store" then
+      t.Fatalf("single-read attempt %d failed: %d", attempt, single.Code)
+    end
+  end)
+  let read = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, CSRF: csrf, Source: site.Origin})
+  if read.Code != 204 then
+    t.Fatalf("read-all failed: %d %s", read.Code, read.Body.String())
+  end
+  let unread = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications/unread-count", Cookies: cookies})
+  if unread.Code != 200 || unread.Body.String() != "{\"count\":0}" then
+    t.Fatalf("unread count failed: %d %s", unread.Code, unread.Body.String())
+  end
+end
+
+func TestNotificationUnavailableAuthentication(t: Ref[testing.T]) -> ()
+  let fixture = transport.New().Unwrap()
+  let db = transport.ORM(fixture.DB).Unwrap()
+  let _ = fixture.Mock.ExpectClose()
+  let _ = fixture.DB.Close()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let handler = (func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let _ = NotificationRoute(settings, db, site, w, request, Segments(request.URL.Path))
+  end) as http.HandlerFunc
+  let cookies = auth.NewSessionTokens().Cookies(time.Now().Add(time.Hour)).Map(func(cookie: http.Cookie) -> Ref[http.Cookie]
+    Ref.new(cookie)
+  end)
+  let response = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
+  if response.Code != 503 || response.Header().Get("Cache-Control") != "no-store" then
+    t.Fatal("notification storage outage was hidden")
+  end
+  fixture.Mock.ExpectationsWereMet().Unwrap()
+  ()
+end

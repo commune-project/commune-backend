@@ -1,0 +1,42 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresRemoteReactionReplayOccurrences(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "reactions", Origin: "https://reactions.example"}
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users").Unwrap()
+  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body"}).Unwrap()
+  let actor = "https://remote.example/users/bob"
+  let _ = storage.EnsureRemoteActor(ctx, db, actor, "Person").Unwrap()
+  let receive = func(kind: String, id: String, target: String) -> ()
+    let payload = `{"id":"` + id + `","actor":"` + actor + `","type":"` + kind + `","object":"` + target + `"}`
+    let _ = storage.ReceiveActivity(ctx, db, site.ID, [alice.ActorURI], id, actor, kind, payload as Slice[Byte]).Unwrap()
+    let _ = ApplyActivity(ctx, db, site, federation.ParseActivity(payload as Slice[Byte]).Unwrap(), payload as Slice[Byte], [alice.ActorURI]).Unwrap()
+    let _ = storage.ProjectNotifications(ctx, db, 100).Unwrap()
+  end
+  let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, alice).Unwrap()
+  let first = "https://remote.example/activities/like-1"
+  let second = "https://remote.example/activities/like-2"
+  receive("Like", first, post.ObjectURI.String)
+  let original = browser.Notifications(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap().Items.Get(0).Unwrap().ID
+  receive("Undo", "https://remote.example/activities/undo-1", first)
+  receive("Like", first, post.ObjectURI.String)
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 then t.Fatal("replayed old Like resurrected retired notification") end
+  receive("Like", second, post.ObjectURI.String)
+  let repeated = browser.Notifications(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap().Items
+  if repeated.Len() != 1 || repeated.Get(0).Unwrap().ID == original then t.Fatal("new remote re-like lost occurrence identity") end
+  receive("Undo", "https://remote.example/activities/stale-undo", first)
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then t.Fatal("old Undo retired a newer Like") end
+end

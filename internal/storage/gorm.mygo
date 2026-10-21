@@ -1,6 +1,7 @@
 package storage
 
 import gorm "go:gorm.io/gorm"
+import errors "go:errors"
 import postgres "go:gorm.io/driver/postgres"
 import logger "go:gorm.io/gorm/logger"
 import context "go:context"
@@ -70,20 +71,23 @@ func FindAccount(ctx: context.Context, db: Ref[gorm.DB], siteID: String, usernam
 end
 
 func RunTransaction(ctx: context.Context, db: Ref[gorm.DB], work: func(Ref[gorm.DB]) -> Result[(), String]) -> Result[(), String]
-  let tx = db.WithContext(ctx).Begin()
-  let beginFailed = QueryFailed(tx)
-  if beginFailed then
-    return Err("cannot begin repository transaction")
+  var reason: String = "repository transaction unavailable"
+  let callback = func(tx: Ref[gorm.DB]) -> Error
+    let result = work(tx)
+    if result.IsErr() then
+      reason = result.UnwrapErr()
+      return go[Error] { code: "errors.New({reason})"; in reason = reason }
+    end
+    go[Error] { code: "nil" }
   end
-  go[()] { code: "defer {tx}.Rollback()"; in tx = tx }
-  let result = work(tx)
-  if result.IsErr() then
-    return Err(result.UnwrapErr())
-  end
-  let commit = tx.Commit()
-  let commitFailed = QueryFailed(commit)
-  if commitFailed then
-    return Err("cannot commit repository transaction")
-  end
+  # GORM uses a savepoint when the caller already owns a transaction. This
+  # preserves outer atomicity for post/media/mention/outbox composition.
+  let completed = go[Bool] {
+    code: "{db}.WithContext({ctx}).Transaction({callback}) == nil"
+    in db = db
+    in ctx = ctx
+    in callback = callback
+  }
+  if !completed then return Err(reason) end
   Ok(())
 end

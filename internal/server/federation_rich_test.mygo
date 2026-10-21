@@ -1,0 +1,47 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresRichActivityReception(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "rich", Origin: "https://rich.example"}
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let creator = storage.AccountRepository{DB: db}.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, creator, "rich", "Rich", "federated", "eligible_users", "eligible_users").Unwrap()
+  let author = "https://remote.example/users/alice"
+  let _ = storage.EnsureRemoteActor(ctx, db, author, "Person").Unwrap()
+  let objectURI = "https://remote.example/posts/1"
+  let create = `{"id":"https://remote.example/a/create","actor":"` + author + `","type":"Create","object":{"id":"` + objectURI + `","type":"Page","attributedTo":"` + author + `","published":"2026-01-01T00:00:00Z","content":"<p>中文 &amp; rich</p>","mediaType":"text/html","attachment":[{"type":"Image","url":"https://remote.example/image.png"}],"tag":[{"type":"Mention","href":"` + creator.ActorURI + `"}],"source":{"mediaType":"text/markdown","content":"**untrusted source**"}}}`
+  let restricted = strings.Replace(create, "\"published\":", "\"to\":[\"" + creator.ActorURI + "\"],\"published\":", 1)
+  if ApplyActivity(ctx, db, site, federation.ParseActivity(restricted as Slice[Byte]).Unwrap(), restricted as Slice[Byte], [group.ActorURI.String]).IsOk() then
+    t.Fatal("restricted content expanded into public community")
+  end
+  let _ = ApplyActivity(ctx, db, site, federation.ParseActivity(create as Slice[Byte]).Unwrap(), create as Slice[Byte], [group.ActorURI.String]).Unwrap()
+  let stored = storage.LoadObjectByURI(ctx, db, objectURI).Unwrap().Unwrap()
+  if stored.ContentFormat != "html" || stored.SearchText != "中文 & rich" || stored.RichMetadata == "" then
+    t.Fatal("accepted Create failed to receive rich content")
+  end
+  let output = BuildRichObject(ctx, db, stored, group, "").Unwrap()
+  if output.Attachment.Len() != 1 || output.Tag.Len() != 1 || output.Source.Content != "**untrusted source**" || strings.Contains(output.Content, "untrusted") then
+    t.Fatal("rich metadata did not roundtrip independently of display")
+  end
+  let update = strings.Replace(strings.Replace(strings.Replace(create, "a/create", "a/update", 1), "\"type\":\"Create\"", "\"type\":\"Update\"", 1), "<p>中文 &amp; rich</p>", "<p>updated</p>", 1)
+  let newer = strings.Replace(update, "\"published\":", "\"updated\":\"2026-01-02T00:00:00Z\",\"published\":", 1)
+  let _ = ApplyActivity(ctx, db, site, federation.ParseActivity(newer as Slice[Byte]).Unwrap(), newer as Slice[Byte], []).Unwrap()
+  let changed = storage.LoadObjectByURI(ctx, db, objectURI).Unwrap().Unwrap()
+  if changed.ID != stored.ID || changed.SearchText != "updated" then t.Fatal("author update lost identity or text") end
+  let deletion = `{"id":"https://remote.example/a/delete","actor":"` + author + `","type":"Delete","object":"` + objectURI + `"}`
+  let _ = ApplyActivity(ctx, db, site, federation.ParseActivity(deletion as Slice[Byte]).Unwrap(), deletion as Slice[Byte], []).Unwrap()
+  let _ = ApplyActivity(ctx, db, site, federation.ParseActivity(newer as Slice[Byte]).Unwrap(), newer as Slice[Byte], []).Unwrap()
+  let tombstone = storage.LoadObjectByURI(ctx, db, objectURI).Unwrap().Unwrap()
+  if !tombstone.DeletedAt.Valid || tombstone.Body != "" || tombstone.RichMetadata != "" then t.Fatal("rich update resurrected deleted post") end
+end

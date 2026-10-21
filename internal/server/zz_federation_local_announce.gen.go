@@ -10,9 +10,54 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
+type LocalPostActivity struct {
+	Context string          "json:\"@context\""
+	ID      string          "json:\"id\""
+	Type    string          "json:\"type\""
+	Actor   string          "json:\"actor\""
+	Object  json.RawMessage "json:\"object\""
+}
+
+func PublishForumPost(settings config.Config, db *gorm.DB, ctx context.Context, site config.Site, communityID string, identity auth.Identity, remoteVerified bool, input storage.PublishInput) Result[storage.PostRecord, string] {
+	post := storage.PostRecord{}
+	result := storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+		published := storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, site, communityID, identity, remoteVerified, input)
+		if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
+		} else {
+		}
+		post = MygoIN6ResultM6Unwrap[storage.PostRecord, string](published)
+		return QueuePostMutation(ctx, settings, tx, site, post, "Create")
+	})
+	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+		return Err[storage.PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+	} else {
+	}
+	return Ok[storage.PostRecord, string](post)
+}
+func QueuePostMutation(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, post storage.PostRecord, kind string) Result[struct {
+}, string] {
+	loaded := storage.LoadCommunityByID(ctx, db, post.CommunityID)
+	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
+		return Err[struct{}, string]("community unavailable")
+	} else {
+	}
+	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
+	if !federation.FederatedCommunity(community) {
+		return Ok[struct{}, string](struct {
+		}{})
+	} else {
+	}
+	return AnnounceLocalMutation(ctx, settings, db, site, community, post, kind)
+}
 func AnnounceLocalPost(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, community storage.CommunityRecord, post storage.PostRecord) Result[struct {
+}, string] {
+	return AnnounceLocalMutation(ctx, settings, db, site, community, post, "Create")
+}
+func AnnounceLocalMutation(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, community storage.CommunityRecord, post storage.PostRecord, kind string) Result[struct {
 }, string] {
 	contextURIs := storage.PostContextURIs(ctx, db, post.ID)
 	if MygoIN6ResultM5IsErr[[]string, string](contextURIs) {
@@ -27,9 +72,13 @@ func AnnounceLocalPost(ctx context.Context, settings config.Config, db *gorm.DB,
 		__mygo_expr_0 = ""
 	}
 	primary := __mygo_expr_0
-	object := federation.BuildObjectRepresentationWithContext(post, community, primary)
+	object := BuildRichObject(ctx, db, post, community, primary)
+	if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](object) {
+		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ObjectRepresentation, string](object))
+	} else {
+	}
 	var __mygo_expr_2 Result[[]byte, error]
-	__mygo_expr_3, __mygo_expr_1 := json.Marshal(object)
+	__mygo_expr_3, __mygo_expr_1 := json.Marshal(MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](object))
 	if __mygo_expr_1 != nil {
 		__mygo_expr_2 = Err[[]byte, error](__mygo_expr_1)
 	} else {
@@ -41,9 +90,56 @@ func AnnounceLocalPost(ctx context.Context, settings config.Config, db *gorm.DB,
 	} else {
 	}
 	createURI := site.Origin + "/activities/" + rand.Text()
-	create := "{\"@context\":\"https://www.w3.org/ns/activitystreams\",\"id\":\"" + createURI + "\",\"type\":\"Create\",\"actor\":\"" + post.AuthorActorURI + "\",\"object\":" + string(MygoIN6ResultM6Unwrap[[]byte, error](encoded)) + "}"
+	var __mygo_expr_7 Result[[]byte, error]
+	if kind == "Delete" {
+		var __mygo_expr_5 Result[[]byte, error]
+		__mygo_expr_6, __mygo_expr_4 := json.Marshal(federation.BuildTombstoneRepresentation(post))
+		if __mygo_expr_4 != nil {
+			__mygo_expr_5 = Err[[]byte, error](__mygo_expr_4)
+		} else {
+			__mygo_expr_5 = Ok[[]byte, error](__mygo_expr_6)
+		}
+		__mygo_expr_7 = __mygo_expr_5
+	} else {
+		__mygo_expr_7 = encoded
+	}
+	representation := __mygo_expr_7
+	if MygoIN6ResultM5IsErr[[]byte, error](representation) {
+		return Err[struct{}, string]("announce payload failed")
+	} else {
+	}
+	var __mygo_expr_9 Result[[]byte, error]
+	__mygo_expr_10, __mygo_expr_8 := json.Marshal(LocalPostActivity{Context: "https://www.w3.org/ns/activitystreams", ID: createURI, Type: kind, Actor: post.AuthorActorURI, Object: json.RawMessage(MygoIN6ResultM6Unwrap[[]byte, error](representation))})
+	if __mygo_expr_8 != nil {
+		__mygo_expr_9 = Err[[]byte, error](__mygo_expr_8)
+	} else {
+		__mygo_expr_9 = Ok[[]byte, error](__mygo_expr_10)
+	}
+	activity := __mygo_expr_9
+	if MygoIN6ResultM5IsErr[[]byte, error](activity) {
+		return Err[struct{}, string]("announce payload failed")
+	} else {
+	}
+	stored := storage.InsertActivityPayload(ctx, db, createURI, post.AuthorActorURI, kind, MygoIN6ResultM6Unwrap[[]byte, error](activity), community.ID)
+	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
+		return stored
+	} else {
+	}
 	extras := ResolveContextAuthoritiesFromURIs(ctx, settings, declared, site.Origin)
-	return PublishGroupAnnouncementTo(ctx, db, site, community, []byte(create), extras)
+	var recipients []string = []string{}
+	if storage.QueryFailed(db.WithContext(ctx).Raw("SELECT m.actor_uri FROM post_mentions m JOIN actors a ON a.uri=m.actor_uri WHERE m.post_id=? AND m.active AND a.local_site_id IS NULL", post.ID).Scan(&recipients)) {
+		return Err[struct{}, string]("mentions unavailable")
+	} else {
+	}
+	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(recipients, func(uri string) {
+		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(extras, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
+			extras = MygoIN5SliceM6Append(extras, uri)
+			return
+		} else {
+			return
+		}
+	})
+	return PublishGroupAnnouncementTo(ctx, db, site, community, MygoIN6ResultM6Unwrap[[]byte, error](activity), extras)
 }
 func ResolveContextAuthorities(ctx context.Context, settings config.Config, db *gorm.DB, postID string, origin string) []string {
 	uris := storage.PostContextURIs(ctx, db, postID)

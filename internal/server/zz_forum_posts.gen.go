@@ -7,16 +7,19 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
-import "github.com/commune-project/commune-backend/internal/federation"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type EditPostInput struct {
-	Title string "json:\"title\""
-	Body  string "json:\"body\""
+	Title         string   "json:\"title\""
+	Body          string   "json:\"body\""
+	ContentFormat string   "json:\"content_format\""
+	AttachmentIDs []string "json:\"attachment_ids\""
 }
 type ReplyInput struct {
-	Body       string "json:\"body\""
-	ContextURI string "json:\"context_uri\""
+	Body          string   "json:\"body\""
+	ContextURI    string   "json:\"context_uri\""
+	ContentFormat string   "json:\"content_format\""
+	AttachmentIDs []string "json:\"attachment_ids\""
 }
 
 func PostRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) {
@@ -41,7 +44,6 @@ func PostRoute(settings config.Config, db *gorm.DB, site config.Site, w http.Res
 	}
 }
 func PostMutation(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string, identity auth.Identity) {
-	posts := storage.PostRepository{DB: db, SiteID: site.ID}
 	if request.Method == "PATCH" {
 		input := EditPostInput{}
 		decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
@@ -49,7 +51,47 @@ func PostMutation(settings config.Config, db *gorm.DB, site config.Site, w http.
 			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
 			return
 		} else {
-			edited := storage.MygoIN14PostRepositoryM4Edit(posts, request.Context(), id, identity, false, input.Title, input.Body)
+			existing := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: db, SiteID: site.ID}, request.Context(), id, identity, false)
+			if MygoIN6ResultM5IsErr[storage.PostRecord, string](existing) {
+				Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](existing))
+				return
+			} else {
+			}
+			if MygoIN6ResultM6Unwrap[storage.PostRecord, string](existing).AuthorActorURI != identity.ActorURI {
+				Fail(w, "forbidden")
+				return
+			} else {
+			}
+			var __mygo_expr_0 string
+			if input.ContentFormat == "" {
+				__mygo_expr_0 = MygoIN6ResultM6Unwrap[storage.PostRecord, string](existing).ContentFormat
+			} else {
+				__mygo_expr_0 = input.ContentFormat
+			}
+			format := __mygo_expr_0
+			mentions := ResolvePostMentions(request.Context(), settings, db, site, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, string](existing).CommunityID, input.Body, format, true)
+			if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, string](mentions) {
+				Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, string](mentions))
+				return
+			} else {
+			}
+			updated := storage.PostRecord{}
+			saved := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
+				result := storage.MygoIN14PostRepositoryM19EditResolvedContent(storage.PostRepository{DB: tx, SiteID: site.ID}, request.Context(), id, identity, false, input.Title, input.Body, input.ContentFormat, input.AttachmentIDs, MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions), !PostAttachmentIDsMissing(input.AttachmentIDs))
+				if MygoIN6ResultM5IsErr[storage.PostRecord, string](result) {
+					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](result))
+				} else {
+				}
+				updated = MygoIN6ResultM6Unwrap[storage.PostRecord, string](result)
+				return QueuePostMutation(request.Context(), settings, tx, site, updated, "Update")
+			})
+			var __mygo_expr_1 Result[storage.PostRecord, string]
+			if MygoIN6ResultM5IsErr[struct{}, string](saved) {
+				__mygo_expr_1 = Err[storage.PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](saved))
+			} else {
+				__mygo_expr_1 = Ok[storage.PostRecord, string](updated)
+			}
+			edited := __mygo_expr_1
 			if MygoIN6ResultM5IsErr[storage.PostRecord, string](edited) {
 				Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](edited))
 				return
@@ -60,7 +102,19 @@ func PostMutation(settings config.Config, db *gorm.DB, site config.Site, w http.
 		}
 	} else {
 		if request.Method == "DELETE" {
-			deleted := storage.MygoIN14PostRepositoryM6Delete(posts, request.Context(), id, identity, false)
+			deleted := storage.RunTransaction(request.Context(), db, func(tx_1 *gorm.DB) Result[struct{}, string] {
+				removed := storage.MygoIN14PostRepositoryM6Delete(storage.PostRepository{DB: tx_1, SiteID: site.ID}, request.Context(), id, identity, false)
+				if MygoIN6ResultM5IsErr[struct{}, string](removed) {
+					return removed
+				} else {
+				}
+				loaded := storage.LoadObjectByID(request.Context(), tx_1, id)
+				if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
+					return Err[struct{}, string]("post unavailable")
+				} else {
+				}
+				return QueuePostMutation(request.Context(), settings, tx_1, site, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)), "Delete")
+			})
 			if MygoIN6ResultM5IsErr[struct{}, string](deleted) {
 				Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](deleted))
 				return
@@ -150,17 +204,17 @@ func ReplyRoute(settings config.Config, db *gorm.DB, site config.Site, w http.Re
 				return
 			} else {
 			}
-			posts := storage.PostRepository{DB: db, SiteID: site.ID}
-			published := storage.MygoIN14PostRepositoryM7Publish(posts, request.Context(), site, MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI})
+			mentions := ResolvePostMentions(request.Context(), settings, db, site, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID, input.Body, input.ContentFormat, false)
+			if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, string](mentions) {
+				Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, string](mentions))
+				return
+			} else {
+			}
+			published := PublishForumPost(settings, db, request.Context(), site, MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI, ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions)})
 			if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
 				Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
 				return
 			} else {
-				loaded := storage.LoadCommunityByID(request.Context(), db, MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID)
-				if MygoIN6ResultM4IsOk[Option[storage.CommunityRecord], string](loaded) && MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) && federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))) {
-					AnnounceLocalPost(request.Context(), settings, db, site, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)), MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
-				} else {
-				}
 				WriteBrowserPost(db, site, w, request, 201, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
 				return
 			}

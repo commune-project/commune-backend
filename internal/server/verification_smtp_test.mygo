@@ -1,0 +1,27 @@
+package server
+
+import testing "go:testing"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestVerificationSMTPTransport(t: Ref[testing.T]) -> ()
+  let sink = transport.NewSMTP(t)
+  let settings = config.SMTP{Host: sink.Host, Port: sink.Port, From: "forum@example.org", TLSMode: "test", TimeoutSeconds: 2}
+  let link = "https://a.example/verify-email#token=EXAMPLE"
+  if SendVerificationSMTP(settings, "owner@example.org", link).IsErr() then
+    t.Fatal("test SMTP delivery failed")
+  end
+  let messages = sink.Messages()
+  if messages.Len() != 1 || !strings.Contains(messages.Get(0).Unwrap(), link) then
+    t.Fatal("verification email was not delivered to test transport")
+  end
+  var secured = settings
+  secured.TLSMode = "starttls"
+  if SendVerificationSMTP(secured, "owner@example.org", link).IsOk() then
+    t.Fatal("SMTP without STARTTLS accepted on secure path")
+  end
+  if SendVerificationSMTP(settings, "owner@example.org\r\nBcc: victim@example.org", link).IsOk() then
+    t.Fatal("mail header injection accepted")
+  end
+end

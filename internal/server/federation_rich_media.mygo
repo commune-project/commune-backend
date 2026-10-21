@@ -1,0 +1,66 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+# The URL identifies a current binding, never an independently public file.
+# Resolve permissions before touching file metadata, validators or byte ranges.
+func FederationMediaHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], id: String) -> ()
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("X-Content-Type-Options", "nosniff")
+  if !settings.Media.Enabled || !storage.MediaFileID(id) then
+    http.NotFound(w, request)
+    return
+  end
+  if request.Method != "GET" && request.Method != "HEAD" then
+    MethodNotAllowed(w, "GET, HEAD")
+    return
+  end
+  let files = storage.OpenMediaFiles(settings.Media)
+  if files.IsErr() then
+    http.NotFound(w, request)
+    return
+  end
+  let root = files.Unwrap().Root
+  go[()] { code: "defer {root}.Close()"; in root = root }
+  let result = storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let binding = storage.MediaBinding{}
+    let found = tx.Raw("SELECT * FROM media_bindings WHERE id=? AND site_id=? AND purpose='post' AND active FOR SHARE", id, site.ID).Scan(Ref.new(binding))
+    if storage.QueryFailed(found) || found.RowsAffected != 1i64 then return Err("not found") end
+    let loaded = storage.LoadObjectByID(request.Context(), tx, binding.PostID)
+    if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("not found") end
+    let post = loaded.Unwrap().Unwrap()
+    if post.FederationMode != "federated" || post.DeletedAt.Valid then return Err("not found") end
+    let community = storage.LoadCommunityByID(request.Context(), tx, post.CommunityID)
+    if community.IsErr() || community.Unwrap().IsNone() then return Err("not found") end
+    let current = community.Unwrap().Unwrap()
+    if current.FederationMode != "federated" || current.HostSiteID != site.ID then return Err("not found") end
+    var identity = auth.Identity{}
+    if current.ReadPolicy == "members" then
+      let signer = SignedRequester(tx, settings, request)
+      if signer.IsErr() then return Err("not found") end
+      identity = signer.Unwrap()
+      let actor = storage.LoadActor(request.Context(), tx, identity.ActorURI)
+      if actor.IsErr() || actor.Unwrap().IsNone() || actor.Unwrap().Unwrap().Kind != "Person" then return Err("not found") end
+      let capable = storage.PeerSupportsProtectedReads(request.Context(), tx, identity.ActorURI)
+      if capable.IsErr() || !capable.Unwrap() then return Err("not found") end
+    end
+    let allowed = storage.FeedRepository{DB: tx, SiteID: site.ID}.ReadObject(request.Context(), post.ID, identity, identity.ActorURI != "")
+    if allowed.IsErr() then return Err("not found") end
+    let excluded = storage.QueryExists(tx.Table("collection_memberships").Where("post_id=? AND community_id=? AND state IN ('removed','rejected')", post.ID, post.CommunityID))
+    if excluded.IsErr() || excluded.Unwrap() then return Err("not found") end
+    let upload = storage.MediaUpload{}
+    let queried = tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", binding.UploadID).Scan(Ref.new(upload))
+    if storage.QueryFailed(queried) || queried.RowsAffected != 1i64 then return Err("not found") end
+    let file = files.Unwrap().Open("local", upload.ID)
+    if file.IsErr() then return Err("not found") end
+    let opened = file.Unwrap()
+    go[()] { code: "defer {opened}.Close()"; in opened = opened }
+    ServeMedia(w, request, upload, opened, false)
+    Ok(())
+  end)
+  if result.IsErr() then http.NotFound(w, request) end
+end

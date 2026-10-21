@@ -1,0 +1,39 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import context "go:context"
+import io "go:io"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+func ParticipationRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  if SearchRoute(settings, db, site, w, request, parts) ||
+    NotificationRoute(settings, db, site, w, request, parts) ||
+    ProfilesRoute(settings, db, site, w, request, parts) then
+    return true
+  end
+  if parts.Get(2).UnwrapOr("") != "media" then
+    return false
+  end
+  let files = storage.OpenMediaFiles(settings.Media)
+  if files.IsErr() then
+    WriteErrorJSON(w, 503, "media unavailable")
+    return true
+  end
+  let root = files.Unwrap().Root
+  go[()] { code: "defer {root}.Close()"; in root = root }
+  let fetch = func(ctx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+    FetchAuthorizedPrivateMedia(ctx, settings, db, identity, row)
+  end
+  if PrivateMediaRoute(settings, db, site, files.Unwrap(), w, request, parts, fetch) then return true end
+  MediaRoute(settings, db, site, files.Unwrap(), w, request, parts)
+end

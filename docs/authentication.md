@@ -14,7 +14,10 @@ grant. Creation fails for an existing username or email on that site; it never
 replaces credentials. Passwords must contain 12–72 bytes and are hashed with
 bcrypt. Usernames are lowercase; email login is trimmed and case insensitive.
 The same username and email may belong to independent accounts at other sites.
-There is no public registration endpoint yet.
+Sites may enable [email-verified public registration](participation-api.md#email-verified-registration).
+The initial request contains only username and email. The email owner selects
+the password when redeeming the verification token; only then are the account
+and Actor created. Provisioning remains available independently.
 
 All requests select the configured site through its validated HTTP authority.
 Use HTTPS in the browser, including when TLS terminates at a configured proxy.

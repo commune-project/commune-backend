@@ -8,12 +8,16 @@ import strings "go:strings"
 import time "go:time"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 struct PublishInput
   Title: String
   Body: String
   ParentID: String
   ContextURI: String
+  ContentFormat: String
+  AttachmentIDs: Slice[String]
+  Mentions: Slice[ResolvedPostMention]
 end
 
 impl PostRepository
@@ -22,11 +26,19 @@ impl PostRepository
   func Publish(self: PostRepository, ctx: context.Context, site: config.Site, communityID: String, identity: auth.Identity, remoteVerified: Bool, input: PublishInput) -> Result[PostRecord, String]
     let body = strings.TrimSpace(input.Body)
     let title = strings.TrimSpace(input.Title)
+    let format = if input.ContentFormat == "" then "legacy" else input.ContentFormat end
+    if format != "legacy" && format != "markdown" then
+      return Err("invalid content format")
+    end
     if self.SiteID == "" || body == "" || (body as Slice[Byte]).Len() > 65536 || (title as Slice[Byte]).Len() > 200 || (input.ParentID != "" && title != "") || (input.ParentID == "" && title == "") then
       return Err("invalid post input")
     end
     if remoteVerified then
       return Err("forbidden")
+    end
+    let plain = content.PlainRichText(body, format)
+    if plain.IsErr() then
+      return Err("invalid post input")
     end
     var stored = PostRecord{}
     let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
@@ -72,7 +84,7 @@ impl PostRepository
       end
       let now = time.Now().UTC().Truncate(time.Microsecond)
       let objectType = if input.ParentID == "" then "Page" else "Note" end
-      let record = PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ParentID: parent, AuthoredAt: now, UpdatedAt: now}
+      let record = PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ContentFormat: format, SearchText: title + " " + plain.Unwrap(), ParentID: parent, AuthoredAt: now, UpdatedAt: now}
       if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI + "/inbox", identity.ActorURI)).IsErr() then
         return Err("post creation failed")
       end
@@ -84,6 +96,10 @@ impl PostRepository
       end
       if MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID)).IsErr() then
         return Err("post creation failed")
+      end
+      let rich = ValidatePostContentTx(ctx, tx, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
+      if rich.IsErr() then
+        return rich
       end
       if MutationResult(tx.Table("posts").Where("id=?", identifier).Find(Ref.new(stored))).IsErr() then
         return Err("post creation failed")

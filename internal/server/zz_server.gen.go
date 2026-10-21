@@ -24,6 +24,10 @@ func Handler(settings config.Config, db *gorm.DB) http.HandlerFunc {
 		} else {
 			w.Header().Set("Cache-Control", "no-store")
 			w.Header().Set("X-Content-Type-Options", "nosniff")
+			if RegistrationRoute(settings, db, MygoIN6ResultM6Unwrap[config.Site, string](site), w, request) {
+				return
+			} else {
+			}
 			if request.URL.Path == "/api/v1/auth/login" || request.URL.Path == "/api/v1/auth/session" || request.URL.Path == "/api/v1/auth/logout" {
 				AuthenticationRoute(settings, db, MygoIN6ResultM6Unwrap[config.Site, string](site), w, request)
 				return
@@ -96,6 +100,7 @@ func Serve(ctx context.Context, settings config.Config, db *gorm.DB) Result[stru
 	}
 	server := NewHTTPServer(settings, db)
 	lifetime, cancelLifetime := context.WithCancel(ctx)
+	participationStopped := StartParticipationWorkers(lifetime, settings, db)
 	stopped := concurrency.MakeChan[struct{}](1)
 	shutdown := func() {
 		concurrency.MygoIT13IReadableChanFN8RecvChanGN1TEGN8RecvChanGN1TEN1TEM7Receive[struct{}](lifetime.Done())
@@ -131,11 +136,14 @@ func Serve(ctx context.Context, settings config.Config, db *gorm.DB) Result[stru
 	}
 	result_1 := __mygo_expr_1
 	if MygoIN6ResultM5IsErr[struct{}, error](result_1) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](result_1), http.ErrServerClosed) {
+		cancelLifetime()
+		concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](participationStopped)
 		return Err[struct{}, string]("http listener failed")
 	} else {
 	}
 	cancelLifetime()
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](stopped)
+	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](participationStopped)
 	slog.Info("http server stopped")
 	return Ok[struct{}, string](struct {
 	}{})

@@ -1,0 +1,261 @@
+package storage
+
+import context "go:context"
+import json "go:encoding/json"
+import rand "go:crypto/rand"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import content "github.com/commune-project/commune-backend/internal/content"
+
+struct ResolvedPostMention
+  ActorURI: String
+  InboxURI: String
+  Username: String
+  Domain: String
+  Start: Int
+  End: Int
+end
+
+struct PostMentionRecord
+  ID: String
+  PostID: String
+  ActorURI: String
+  SourceStart: Int
+  SourceEnd: Int
+end
+
+struct PostRichState
+  ID: String
+  Origin: String
+  MediaJSON: String
+  MentionsJSON: String
+end
+
+# One batch query for a whole page; consumers have already authorized the posts.
+func LoadPostRichStates(ctx: context.Context, db: Ref[gorm.DB], ids: Slice[String]) -> Result[Slice[PostRichState], String]
+  var states: Slice[PostRichState] = []
+  if ids.Len() == 0 then
+    return Ok(states)
+  end
+  let query = db.WithContext(ctx).Raw("SELECT p.id,coalesce((SELECT s.canonical_origin FROM actors a JOIN sites s ON s.id=a.local_site_id WHERE a.uri=p.author_actor_uri),'') AS origin,coalesce((SELECT json_agg(json_build_object('UploadID',b.upload_id,'BindingID',b.id,'MediaType',u.media_type) ORDER BY b.id)::text FROM media_bindings b JOIN media_uploads u ON u.id=b.upload_id WHERE b.post_id=p.id AND b.active),'[]') AS media_json,coalesce((SELECT json_agg(json_build_object('ActorURI',m.actor_uri,'Start',m.source_start,'End',m.source_end) ORDER BY m.source_start)::text FROM post_mentions m WHERE m.post_id=p.id AND m.active),'[]') AS mentions_json FROM posts p WHERE p.id IN ?", ids).Scan(Ref.new(states))
+  if MutationResult(query).IsErr() then
+    return Err("post content unavailable")
+  end
+  Ok(states)
+end
+
+func PostRichMedia(state: PostRichState) -> Result[Slice[content.RichMedia], String]
+  var media: Slice[content.RichMedia] = []
+  if json.Unmarshal(state.MediaJSON as Slice[Byte], Ref.new(media)).IsErr() then
+    return Err("post content unavailable")
+  end
+  Ok(media)
+end
+
+func RenderStoredPost(post: PostRecord, state: PostRichState, strict: Bool) -> Result[String, String]
+  let media = PostRichMedia(state)
+  var mentions: Slice[content.RichMention] = []
+  if media.IsErr() || json.Unmarshal(state.MentionsJSON as Slice[Byte], Ref.new(mentions)).IsErr() then
+    return Err("post content unavailable")
+  end
+  content.RenderPostRich(post.Body, if post.ContentFormat == "" then "legacy" else post.ContentFormat end, mentions, state.Origin, media.Unwrap(), strict)
+end
+
+# A resolved spelling is merely a proposal: recheck candidate spans, blocks,
+# local activation and current community audience inside the write transaction.
+func SetPostMentionsTx(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, post: PostRecord, resolved: Slice[ResolvedPostMention]) -> Result[(), String]
+  let parsed = content.ExtractMentionCandidates(post.Body, post.ContentFormat)
+  if parsed.IsErr() then
+    return Err("invalid post input")
+  end
+  let repository = CommunityRepository{DB: tx, SiteID: siteID}
+  let loaded = repository.Load(ctx, post.CommunityID, false)
+  if loaded.IsErr() then
+    return Err(loaded.UnwrapErr())
+  end
+  let community = loaded.Unwrap()
+  var next: Slice[content.RichMention] = []
+  var seen: Slice[String] = []
+  var index = 0
+  while index < parsed.Unwrap().Len()
+    let candidate = parsed.Unwrap().Get(index).Unwrap()
+    index = index + 1
+    var uri = ""
+    var inbox = ""
+    let localDomain = if candidate.Domain == "" then Ok(true) else QueryExists(tx.WithContext(ctx).Table("site_authorities").Where("site_id=? AND authority=?", siteID, candidate.Domain)) end
+    if localDomain.IsErr() then
+      return Err(localDomain.UnwrapErr())
+    end
+    if localDomain.Unwrap() then
+      let actor = LoadLocalPerson(ctx, tx, siteID, strings.ToLower(candidate.Username))
+      if actor.IsErr() then
+        return Err(actor.UnwrapErr())
+      end
+      if actor.Unwrap().IsSome() then
+        uri = actor.Unwrap().Unwrap().URI
+      end
+    else
+      if community.FederationMode != "federated" then
+        continue
+      end
+      let matches = resolved.Filter(func(item: ResolvedPostMention) -> Bool
+        item.Start == candidate.Start && item.End == candidate.End && strings.EqualFold(item.Username, candidate.Username) && strings.EqualFold(item.Domain, candidate.Domain)
+      end)
+      if matches.Len() > 0 then
+        uri = matches.Get(0).Unwrap().ActorURI
+        inbox = matches.Get(0).Unwrap().InboxURI
+      end
+    end
+    if uri == "" || seen.Contains(uri) || !CanonicalObjectURI(uri) then
+      continue
+    end
+    let policy = SiteRepository{DB: tx, SiteID: siteID}
+    let blocked = policy.IsBlocked(ctx, uri)
+    if blocked.IsErr() then
+      return Err(blocked.UnwrapErr())
+    end
+    if blocked.Unwrap() then
+      continue
+    end
+    if candidate.Domain != "" then
+      let accountBlocked = policy.IsBlocked(ctx, "https://" + candidate.Domain + "/")
+      if accountBlocked.IsErr() then
+        return Err(accountBlocked.UnwrapErr())
+      end
+      if accountBlocked.Unwrap() then
+        continue
+      end
+    end
+    let member = QueryExists(tx.WithContext(ctx).Table("community_members").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", community.ID, uri))
+    if member.IsErr() then
+      return Err(member.UnwrapErr())
+    end
+    let account = AccountRecord{}
+    let accountQuery = tx.WithContext(ctx).Table("accounts").Where("actor_uri=?", uri).Limit(1).Find(Ref.new(account))
+    if MutationResult(accountQuery).IsErr() then
+      return Err("post content unavailable")
+    end
+    if accountQuery.RowsAffected > 0i64 && account.Disabled then
+      continue
+    end
+    let subject = auth.AccessSubject{SiteID: account.SiteID, AccountID: account.ID, ActorURI: uri, Verified: true, Member: member.Unwrap()}
+    if !community.Policy().CanRead(subject) then
+      continue
+    end
+    if candidate.Domain != "" && accountQuery.RowsAffected == 0i64 then
+      if !CanonicalObjectURI(inbox) then
+        continue
+      end
+      if community.ReadPolicy == "members" then
+        let capable = PeerSupportsProtectedReads(ctx, tx, uri)
+        if capable.IsErr() then
+          return Err(capable.UnwrapErr())
+        end
+        if !capable.Unwrap() then
+          continue
+        end
+      end
+      if MutationResult(tx.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person',?) ON CONFLICT(uri) DO NOTHING", uri, inbox)).IsErr() then
+        return Err("post content unavailable")
+      end
+    end
+    let actor = LoadActor(ctx, tx, uri)
+    if actor.IsErr() then
+      return Err(actor.UnwrapErr())
+    end
+    if actor.Unwrap().IsNone() || actor.Unwrap().Unwrap().Kind != "Person" then
+      continue
+    end
+    next = next.Append(content.RichMention{ActorURI: uri, Start: candidate.Start, End: candidate.End})
+    seen = seen.Append(uri)
+  end
+  var active: Slice[PostMentionRecord] = []
+  if MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(active))).IsErr() then
+    return Err("post content unavailable")
+  end
+  var failure = false
+  active.Each(func(old: PostMentionRecord) -> ()
+    if !seen.Contains(old.ActorURI) then
+      if MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE id=?", old.ID)).IsErr() then
+        failure = true
+      end
+    end
+  end)
+  next.Each(func(mention: content.RichMention) -> ()
+    let old = active.Filter(func(row: PostMentionRecord) -> Bool row.ActorURI == mention.ActorURI end)
+    let changed = if old.Len() == 0 then
+      tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,source_start,source_end) VALUES (?,?,?,?,?)", rand.Text(), post.ID, mention.ActorURI, mention.Start, mention.End)
+    else
+      tx.Exec("UPDATE post_mentions SET source_start=?,source_end=? WHERE id=?", mention.Start, mention.End, old.Get(0).Unwrap().ID)
+    end
+    if MutationResult(changed).IsErr() then
+      failure = true
+    end
+  end)
+  if failure then
+    return Err("post content unavailable")
+  end
+  Ok(())
+end
+
+func ValidatePostContentTx(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, identity: auth.Identity, post: PostRecord, ids: Slice[String], mentions: Slice[ResolvedPostMention]) -> Result[(), String]
+  let media = BindPostMedia(ctx, tx, siteID, identity, post.ID, ids)
+  if media.IsErr() then
+    return Err(media.UnwrapErr())
+  end
+  let set = SetPostMentionsTx(ctx, tx, siteID, post, mentions)
+  if set.IsErr() then
+    return set
+  end
+  let states = LoadPostRichStates(ctx, tx, [post.ID])
+  if states.IsErr() || states.Unwrap().Len() != 1 then
+    return Err("post content unavailable")
+  end
+  let rendered = RenderStoredPost(post, states.Unwrap().Get(0).Unwrap(), true)
+  if rendered.IsErr() then
+    return Err(rendered.UnwrapErr())
+  end
+  Ok(())
+end
+
+# An already verified active identity need not be rediscovered for an unchanged
+# spelling on edit. This avoids retiring/reintroducing mentions during a peer
+# outage. SetPostMentionsTx still rechecks blocks, membership and capabilities.
+func RetainPostMentionsTx(ctx: context.Context, tx: Ref[gorm.DB], previous: PostRecord, source: String, format: String, incoming: Slice[ResolvedPostMention]) -> Result[Slice[ResolvedPostMention], String]
+  var resolved = incoming
+  if previous.ContentFormat != "markdown" || format != "markdown" then
+    return Ok(resolved)
+  end
+  let parsed = content.ExtractMentionCandidates(source, format)
+  if parsed.IsErr() then
+    return Err("invalid post input")
+  end
+  var existing: Slice[PostMentionRecord] = []
+  if MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", previous.ID).Find(Ref.new(existing))).IsErr() then
+    return Err("post content unavailable")
+  end
+  var index = 0
+  while index < parsed.Unwrap().Len()
+    let candidate = parsed.Unwrap().Get(index).Unwrap()
+    index = index + 1
+    if candidate.Domain == "" || resolved.Any(func(item: ResolvedPostMention) -> Bool item.Start == candidate.Start && item.End == candidate.End end) then
+      continue
+    end
+    let spelling = ((source as Slice[Byte]).Slice(candidate.Start, candidate.End).Unwrap()) as String
+    let matches = existing.Filter(func(row: PostMentionRecord) -> Bool
+      let old = ((previous.Body as Slice[Byte]).Slice(row.SourceStart, row.SourceEnd).UnwrapOr([])) as String
+      strings.EqualFold(old, spelling)
+    end)
+    if matches.Len() == 1 then
+      let actor = LoadActor(ctx, tx, matches.Get(0).Unwrap().ActorURI)
+      if actor.IsErr() then
+        return Err(actor.UnwrapErr())
+      end
+      if actor.Unwrap().IsSome() then
+        resolved = resolved.Append(ResolvedPostMention{ActorURI: actor.Unwrap().Unwrap().URI, InboxURI: actor.Unwrap().Unwrap().Inbox(), Username: candidate.Username, Domain: candidate.Domain, Start: candidate.Start, End: candidate.End})
+      end
+    end
+  end
+  Ok(resolved)
+end

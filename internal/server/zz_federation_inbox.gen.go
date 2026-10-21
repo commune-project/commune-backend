@@ -69,7 +69,7 @@ func InboxHandler(settings config.Config, db *gorm.DB, site config.Site, w http.
 		return
 	} else {
 	}
-	action := AuthorizeInbound(request.Context(), db, settings, payload, envelope)
+	action := AuthorizeInbound(request.Context(), db, settings, site.ID, payload, envelope)
 	if MygoIN6ResultM5IsErr[struct{}, string](action) {
 		slog.Warn("inbound activity rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", MygoIN6ResultM9UnwrapErr[struct{}, string](action))
 		WriteErrorJSON(w, 403, MygoIN6ResultM9UnwrapErr[struct{}, string](action))
@@ -144,7 +144,7 @@ type InboxResult struct {
 func FetchLimitsFrom(settings config.Config) federation.FetchLimits {
 	return federation.FetchLimits{TimeoutSeconds: settings.Federation.FetchTimeoutSeconds, MaxBytes: settings.Federation.MaxFetchBytes, MaxRedirects: settings.Federation.MaxRedirects, AllowPrivate: settings.Federation.AllowPrivateNetwork}
 }
-func AuthorizeInbound(ctx context.Context, db *gorm.DB, settings config.Config, payload []byte, envelope ActivityEnvelope) Result[struct {
+func AuthorizeInbound(ctx context.Context, db *gorm.DB, settings config.Config, siteID string, payload []byte, envelope ActivityEnvelope) Result[struct {
 }, string] {
 	parsed := federation.ParseActivity(payload)
 	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) {
@@ -160,7 +160,40 @@ func AuthorizeInbound(ctx context.Context, db *gorm.DB, settings config.Config, 
 		return Err[struct{}, string]("forged author")
 	} else {
 	}
-	embedded := federation.VerifyEmbeddedActivity(ctx, activity, FetchLimitsFrom(settings))
+	signer := federation.ForwardSigner{}
+	if activity.Type == "Announce" {
+		group := storage.LoadReplicaCommunity(ctx, db, activity.Actor)
+		if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](group) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ReplicaCommunity], string](group))
+		} else {
+		}
+		if MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)) && MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)).ReadPolicy == "members" {
+			supported := storage.PeerSupportsProtectedReads(ctx, db, activity.Actor)
+			if MygoIN6ResultM5IsErr[bool, string](supported) || !MygoIN6ResultM6Unwrap[bool, string](supported) {
+				return Err[struct{}, string]("unsupported restricted peer")
+			} else {
+			}
+			var member string = ""
+			found := db.WithContext(ctx).Raw("SELECT a.actor_uri FROM accounts a JOIN community_members m ON m.actor_uri=a.actor_uri WHERE a.site_id=? AND NOT a.disabled AND m.community_id=? AND m.revoked_at IS NULL ORDER BY a.id LIMIT 1", siteID, MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)).ID).Scan(&member)
+			if storage.QueryFailed(found) || found.RowsAffected != int64(1) {
+				return Err[struct{}, string]("no authorized member")
+			} else {
+			}
+			if MygoIN6ResultM5IsErr[string, string](storage.EnsureLocalKey(ctx, db, member)) {
+				return Err[struct{}, string]("signing unavailable")
+			} else {
+			}
+			key := storage.LoadLocalPrivateKey(ctx, db, member)
+			if MygoIN6ResultM5IsErr[string, string](key) {
+				return Err[struct{}, string]("signing unavailable")
+			} else {
+			}
+			signer = federation.ForwardSigner{ActorURI: member, PrivateKey: MygoIN6ResultM6Unwrap[string, string](key)}
+		} else {
+		}
+	} else {
+	}
+	embedded := federation.VerifyEmbeddedActivity(ctx, activity, FetchLimitsFrom(settings), payload, signer)
 	if MygoIN6ResultM5IsErr[struct{}, string](embedded) {
 		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](embedded))
 	} else {
@@ -168,6 +201,25 @@ func AuthorizeInbound(ctx context.Context, db *gorm.DB, settings config.Config, 
 	if activity.Type == "Update" || activity.Type == "Delete" {
 		if activity.ObjectURI == "" {
 			return Err[struct{}, string]("invalid activity")
+		} else {
+		}
+		if activity.Type == "Update" && MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Person" {
+			profile := federation.PersonUpdateObject(payload)
+			if MygoIN6ResultM5IsErr[federation.ProfileObject, string](profile) {
+				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ProfileObject, string](profile))
+			} else {
+			}
+			actor := storage.LoadActor(ctx, db, activity.ObjectURI)
+			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+				return Err[struct{}, string]("unknown profile actor")
+			} else {
+			}
+			if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
+				return Err[struct{}, string]("forbidden")
+			} else {
+			}
+			return Ok[struct{}, string](struct {
+			}{})
 		} else {
 		}
 		replica := storage.LoadReplicaCommunity(ctx, db, activity.ObjectURI)

@@ -9,6 +9,7 @@ import "time"
 import "crypto/rand"
 import "net/url"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type PostRecord struct {
@@ -20,6 +21,9 @@ type PostRecord struct {
 	ObjectType     string         "gorm:\"column:object_type\""
 	Title          sql.NullString "gorm:\"column:title\""
 	Body           string         "gorm:\"column:body\""
+	ContentFormat  string         "gorm:\"column:content_format\""
+	SearchText     string         "gorm:\"column:search_text\""
+	RichMetadata   string         "gorm:\"column:rich_metadata\""
 	ParentID       sql.NullString "gorm:\"column:parent_id\""
 	AuthoredAt     time.Time      "gorm:\"column:authored_at\""
 	UpdatedAt      time.Time      "gorm:\"column:updated_at;autoUpdateTime:false\""
@@ -57,11 +61,23 @@ func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, i
 	} else {
 	}
 	stored := PostRecord{}
+	var __mygo_expr_0 string
+	if incoming.ContentFormat == "" {
+		__mygo_expr_0 = "legacy"
+	} else {
+		__mygo_expr_0 = incoming.ContentFormat
+	}
+	format := __mygo_expr_0
+	normalized := content.PlainRichText(incoming.Body, format)
+	if MygoIN6ResultM5IsErr[string, string](normalized) {
+		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[string, string](normalized))
+	} else {
+	}
 	authored := incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
 	updated := incoming.UpdatedAt.UTC().Truncate(time.Microsecond)
 	deleted := sql.NullTime{Valid: incoming.DeletedAt.Valid, Time: incoming.DeletedAt.Time.UTC().Truncate(time.Microsecond)}
 	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
-		inserted := tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, incoming.ParentID, authored, updated, deleted)
+		inserted := tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,content_format,search_text,rich_metadata,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, incoming.ParentID, authored, updated, deleted)
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
 			return Err[struct{}, string]("object storage failed")
 		} else {
@@ -77,12 +93,12 @@ func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, i
 		} else {
 		}
 		if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) {
-			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, updated, deleted, current.ID))) {
+			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, updated, deleted, current.ID))) {
 				return Err[struct{}, string]("object update failed")
 			} else {
 			}
 		} else {
-			if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.DeletedAt.Valid != deleted.Valid) {
+			if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.ContentFormat != format || current.RichMetadata != incoming.RichMetadata || current.DeletedAt.Valid != deleted.Valid) {
 				return Err[struct{}, string]("object version conflict")
 			} else {
 			}

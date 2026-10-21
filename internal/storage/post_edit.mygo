@@ -6,6 +6,7 @@ import sql "go:database/sql"
 import strings "go:strings"
 import time "go:time"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 impl PostRepository
   func Edit(
@@ -16,6 +17,36 @@ impl PostRepository
     remoteVerified: Bool,
     title: String,
     body: String
+  ) -> Result[PostRecord, String]
+    self.EditResolvedContent(ctx, id, identity, remoteVerified, title, body, "", [] as Slice[String], [] as Slice[ResolvedPostMention], false)
+  end
+
+  func EditContent(
+    self: PostRepository,
+    ctx: context.Context,
+    id: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    title: String,
+    body: String,
+    contentFormat: String,
+    attachmentIDs: Slice[String]
+  ) -> Result[PostRecord, String]
+    self.EditResolvedContent(ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, [] as Slice[ResolvedPostMention], true)
+  end
+
+  func EditResolvedContent(
+    self: PostRepository,
+    ctx: context.Context,
+    id: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    title: String,
+    body: String,
+    contentFormat: String,
+    attachmentIDs: Slice[String],
+    mentions: Slice[ResolvedPostMention],
+    replaceAttachments: Bool
   ) -> Result[PostRecord, String]
     let trimmed = strings.TrimSpace(body)
     let cleanTitle = strings.TrimSpace(title)
@@ -33,19 +64,52 @@ impl PostRepository
         if post.DeletedAt.Valid then
           return Err("not found")
         end
+        let format = if contentFormat == "" then if post.ContentFormat == "" then "legacy" else post.ContentFormat end else contentFormat end
+        if format != "legacy" && format != "markdown" then
+          return Err("invalid content format")
+        end
         if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" then
           return Err("invalid post input")
         end
-        MutationResult(tx.Exec(
-          "UPDATE posts SET title=?,body=?,updated_at=? WHERE id=? AND deleted_at IS NULL",
+        let plain = content.PlainRichText(trimmed, format)
+        if plain.IsErr() then
+          return Err("invalid post input")
+        end
+        let updated = MutationResult(tx.Exec(
+          "UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=? WHERE id=? AND deleted_at IS NULL",
           sql.NullString {
             String: cleanTitle,
             Valid: cleanTitle != "",
           },
           trimmed,
+          format,
+          cleanTitle + " " + plain.Unwrap(),
           time.Now().UTC().Truncate(time.Microsecond),
           id
         ))
+        if updated.IsErr() then
+          return updated
+        end
+        var changed = post
+        changed.Body = trimmed
+        changed.ContentFormat = format
+        var ids = attachmentIDs
+        if !replaceAttachments then
+          let states = LoadPostRichStates(ctx, tx, [post.ID])
+          if states.IsErr() || states.Unwrap().Len() != 1 then
+            return Err("post content unavailable")
+          end
+          let media = PostRichMedia(states.Unwrap().Get(0).Unwrap())
+          if media.IsErr() then
+            return Err(media.UnwrapErr())
+          end
+          ids = media.Unwrap().Map(func(item: content.RichMedia) -> String item.UploadID end)
+        end
+        let retained = RetainPostMentionsTx(ctx, tx, post, trimmed, format, mentions)
+        if retained.IsErr() then
+          return Err(retained.UnwrapErr())
+        end
+        ValidatePostContentTx(ctx, tx, self.SiteID, identity, changed, ids, retained.Unwrap())
       end
     )
   end
@@ -65,8 +129,11 @@ impl PostRepository
         if post.DeletedAt.Valid then
           return Ok(())
         end
+        if MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", id)).IsErr() || MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", id)).IsErr() then
+          return Err("post content unavailable")
+        end
         MutationResult(tx.Exec(
-          "UPDATE posts SET body='',deleted_at=?,updated_at=? WHERE id=?",
+          "UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=? WHERE id=?",
           time.Now().UTC().Truncate(time.Microsecond),
           time.Now().UTC().Truncate(time.Microsecond),
           id

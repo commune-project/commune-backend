@@ -8,6 +8,7 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type CommunityViewerOutput struct {
@@ -59,7 +60,16 @@ func BrowserPosts(ctx context.Context, repository storage.BrowserRepository, vie
 	})
 	views := storage.MygoIN17BrowserRepositoryM5Views(repository, ctx, viewer, communityIDs)
 	stats := storage.MygoIN17BrowserRepositoryM5Stats(repository, ctx, viewer, ids)
-	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIN6ResultM5IsErr[[]storage.PostStats, string](stats) {
+	richStates := storage.LoadPostRichStates(ctx, repository.DB, ids)
+	var cached []storage.PrivateMediaCache = []storage.PrivateMediaCache{}
+	remoteMedia := MygoIN5SliceM3Any(records, func(post_2 storage.PostRecord) bool {
+		return post_2.RichMetadata != ""
+	})
+	if remoteMedia && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where("site_id=? AND post_id IN ? AND error_state<>'invalidated'", repository.SiteID, ids).Find(&cached))) {
+		return Err[[]PostOutput, string]("media unavailable")
+	} else {
+	}
+	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIN6ResultM5IsErr[[]storage.PostStats, string](stats) || MygoIN6ResultM5IsErr[[]storage.PostRichState, string](richStates) {
 		return Err[[]PostOutput, string]("feed unavailable")
 	} else {
 	}
@@ -86,6 +96,29 @@ func BrowserPosts(ctx context.Context, repository storage.BrowserRepository, vie
 		active := !record.DeletedAt.Valid
 		edit := hosted && active && storage.MygoIN15CommunityAccessM11CanEditBody(access, record.AuthorActorURI)
 		output := PostDTO(record)
+		rich := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(MygoIN6ResultM6Unwrap[[]storage.PostRichState, string](richStates), func(state storage.PostRichState) bool {
+			return state.ID == record.ID
+		})
+		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rich) != 1 {
+			return Err[[]PostOutput, string]("post content unavailable")
+		} else {
+		}
+		rendered := storage.RenderStoredPost(record, MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rich, 0)), false)
+		media := storage.PostRichMedia(MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rich, 0)))
+		if MygoIN6ResultM5IsErr[string, string](rendered) || MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {
+			return Err[[]PostOutput, string]("post content unavailable")
+		} else {
+		}
+		output.BodyHTML = MygoIN6ResultM6Unwrap[string, string](rendered)
+		output.AttachmentIDs = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), func(item content.RichMedia) string {
+			return item.UploadID
+		})
+		attachments := BrowserPostMedia(record, MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), access.Community.ReadPolicy == "members", cached, output)
+		if MygoIN6ResultM5IsErr[PostOutput, string](attachments) {
+			return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[PostOutput, string](attachments))
+		} else {
+		}
+		output = MygoIN6ResultM6Unwrap[PostOutput, string](attachments)
 		stat_1 := MygoIN6OptionM6Unwrap[storage.PostStats](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(counts, 0))
 		output.LikeCount = stat_1.LikeCount
 		output.LikedByMe = viewer.Verified && stat_1.LikedByMe

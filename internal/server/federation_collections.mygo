@@ -62,7 +62,12 @@ func BuildObjectItems(ctx: context.Context, db: Ref[gorm.DB], records: Slice[sto
       failed = true
     else
       let contextURI = storage.PrimaryPostContextURI(ctx, db, record.ID)
-      items = items.Append(federation.BuildObjectRepresentationWithContext(record, community.Unwrap().Unwrap(), contextURI))
+      let enriched = BuildRichObject(ctx, db, record, community.Unwrap().Unwrap(), contextURI)
+      if enriched.IsErr() then
+        failed = true
+      else
+        items = items.Append(enriched.Unwrap())
+      end
     end
   end)
   if failed then

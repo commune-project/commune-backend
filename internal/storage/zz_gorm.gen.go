@@ -3,6 +3,7 @@
 package storage
 
 import "gorm.io/gorm"
+import "errors"
 import "gorm.io/driver/postgres"
 import "gorm.io/gorm/logger"
 import "context"
@@ -110,22 +111,19 @@ func FindAccount(ctx context.Context, db *gorm.DB, siteID string, username strin
 func RunTransaction(ctx context.Context, db *gorm.DB, work func(*gorm.DB) Result[struct {
 }, string]) Result[struct {
 }, string] {
-	tx := db.WithContext(ctx).Begin()
-	beginFailed := QueryFailed(tx)
-	if beginFailed {
-		return Err[struct{}, string]("cannot begin repository transaction")
-	} else {
+	var reason string = "repository transaction unavailable"
+	callback := func(tx *gorm.DB) error {
+		result := work(tx)
+		if MygoIN6ResultM5IsErr[struct{}, string](result) {
+			reason = MygoIN6ResultM9UnwrapErr[struct{}, string](result)
+			return errors.New(reason)
+		} else {
+		}
+		return nil
 	}
-	defer tx.Rollback()
-	result := work(tx)
-	if MygoIN6ResultM5IsErr[struct{}, string](result) {
-		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
-	} else {
-	}
-	commit := tx.Commit()
-	commitFailed := QueryFailed(commit)
-	if commitFailed {
-		return Err[struct{}, string]("cannot commit repository transaction")
+	completed := db.WithContext(ctx).Transaction(callback) == nil
+	if !completed {
+		return Err[struct{}, string](reason)
 	} else {
 	}
 	return Ok[struct{}, string](struct {

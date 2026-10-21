@@ -10,9 +10,10 @@ import "strings"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type Site struct {
-	ID      string   "json:\"id\""
-	Origin  string   "json:\"origin\""
-	Aliases []string "json:\"aliases\""
+	ID                  string   "json:\"id\""
+	RegistrationEnabled bool     "json:\"registration_enabled\""
+	Origin              string   "json:\"origin\""
+	Aliases             []string "json:\"aliases\""
 }
 type Runtime struct {
 	Listen                 string "json:\"listen\""
@@ -32,18 +33,28 @@ type Federation struct {
 	ClockSkewSeconds    int  "json:\"clock_skew_seconds\""
 }
 type Input struct {
-	Sites          []Site     "json:\"sites\""
-	DatabaseURL    string     "json:\"database_url\""
-	TrustedProxies []string   "json:\"trusted_proxies\""
-	Runtime        Runtime    "json:\"runtime\""
-	Federation     Federation "json:\"federation\""
+	Registration         Registration         "json:\"registration\""
+	SMTP                 SMTP                 "json:\"smtp\""
+	Media                Media                "json:\"media\""
+	Rendering            Rendering            "json:\"rendering\""
+	ParticipationWorkers ParticipationWorkers "json:\"participation_workers\""
+	Sites                []Site               "json:\"sites\""
+	DatabaseURL          string               "json:\"database_url\""
+	TrustedProxies       []string             "json:\"trusted_proxies\""
+	Runtime              Runtime              "json:\"runtime\""
+	Federation           Federation           "json:\"federation\""
 }
 type Config struct {
-	Sites          []Site
-	DatabaseURL    string
-	TrustedProxies []netip.Prefix
-	Runtime        Runtime
-	Federation     Federation
+	Registration         Registration
+	SMTP                 SMTP
+	Media                Media
+	Rendering            Rendering
+	ParticipationWorkers ParticipationWorkers
+	Sites                []Site
+	DatabaseURL          string
+	TrustedProxies       []netip.Prefix
+	Runtime              Runtime
+	Federation           Federation
 }
 
 func ValidateRuntime(runtime Runtime) Result[struct {
@@ -81,6 +92,17 @@ func ValidateRuntime(runtime Runtime) Result[struct {
 	}{})
 }
 func Validate(input Input) Result[Config, string] {
+	settingsResult := ResolveParticipationSecrets(ParticipationDefaults(input))
+	if MygoIN6ResultM5IsErr[Input, string](settingsResult) {
+		return Err[Config, string](MygoIN6ResultM9UnwrapErr[Input, string](settingsResult))
+	} else {
+	}
+	settings := MygoIN6ResultM6Unwrap[Input, string](settingsResult)
+	participationResult := ValidateParticipation(settings)
+	if MygoIN6ResultM5IsErr[struct{}, string](participationResult) {
+		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](participationResult))
+	} else {
+	}
 	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(input.Sites) == 0 {
 		return Err[Config, string]("at least one site is required")
 	} else {
@@ -179,7 +201,7 @@ func Validate(input Input) Result[Config, string] {
 			authorities = MygoIN5SliceM6Append(authorities, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, j)))
 			j = j + 1
 		}
-		sites = MygoIN5SliceM6Append(sites, Site{ID: site.ID, Origin: origin, Aliases: aliases})
+		sites = MygoIN5SliceM6Append(sites, Site{ID: site.ID, Origin: origin, Aliases: aliases, RegistrationEnabled: site.RegistrationEnabled})
 		i = i + 1
 	}
 	var proxies []netip.Prefix = []netip.Prefix{}
@@ -200,7 +222,7 @@ func Validate(input Input) Result[Config, string] {
 		proxies = MygoIN5SliceM6Append(proxies, MygoIN6ResultM6Unwrap[netip.Prefix, error](prefixResult).Masked())
 		i = i + 1
 	}
-	return Ok[Config, string](Config{Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation})
+	return Ok[Config, string](Config{Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation, Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers})
 }
 func ValidateFederation(federation Federation) Result[struct {
 }, string] {

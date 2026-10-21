@@ -31,7 +31,7 @@ func SignedRequester(db: Ref[gorm.DB], settings: config.Config, request: Ref[htt
   if !record.PublicKeyPEM.Valid || record.PublicKeyPEM.String == "" then
     return Err("unauthenticated")
   end
-  let verified = federation.VerifySignedGet(record.PublicKeyPEM.String, "GET", request.URL.RequestURI(), request.Host, date, header, time.Now(), settings.Federation.ClockSkewSeconds as Int64)
+  let verified = federation.VerifySignedGet(record.PublicKeyPEM.String, request.Method, request.URL.RequestURI(), request.Host, date, header, time.Now(), settings.Federation.ClockSkewSeconds as Int64)
   if verified.IsErr() then
     return Err("unauthenticated")
   end

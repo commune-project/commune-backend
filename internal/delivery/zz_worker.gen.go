@@ -168,6 +168,9 @@ func Apply(ctx context.Context, db *gorm.DB, limits Limits, group []storage.Deli
 	return Ok[Outcome, string](Outcome{Delivered: delivered, Retried: retried, Failed: failed, Suppressed: 0})
 }
 func Post(target string, actorURI string, privateKey string, payload []byte) Result[int, string] {
+	return PostContext(context.Background(), target, actorURI, privateKey, payload)
+}
+func PostContext(ctx context.Context, target string, actorURI string, privateKey string, payload []byte) Result[int, string] {
 	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(target)
 	if __mygo_expr_0 != nil {
@@ -191,7 +194,7 @@ func Post(target string, actorURI string, privateKey string, payload []byte) Res
 	}
 	header := federation.FormatSignatureHeader(actorURI+"#main-key", MygoIN6ResultM6Unwrap[string, string](signature))
 	var __mygo_expr_4 Result[*http.Request, error]
-	__mygo_expr_5, __mygo_expr_3 := http.NewRequest("POST", target, io.Reader(strings.NewReader(string(payload))))
+	__mygo_expr_5, __mygo_expr_3 := http.NewRequestWithContext(ctx, "POST", target, io.Reader(strings.NewReader(string(payload))))
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*http.Request, error](__mygo_expr_3)
 	} else {

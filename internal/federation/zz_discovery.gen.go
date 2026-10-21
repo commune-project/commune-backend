@@ -83,7 +83,12 @@ func ResolvePerson(ctx context.Context, db *gorm.DB, site config.Site, username 
 		return Err[ActorRepresentation, string]("not found")
 	} else {
 	}
-	return Ok[ActorRepresentation, string](PersonRepresentation(site, actor, username, MygoIN6ResultM6Unwrap[string, string](key)))
+	profile := storage.LoadProfile(ctx, db, actor.URI)
+	if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](profile) {
+		return Err[ActorRepresentation, string]("profile unavailable")
+	} else {
+	}
+	return Ok[ActorRepresentation, string](WithProfile(PersonRepresentation(site, actor, username, MygoIN6ResultM6Unwrap[string, string](key)), MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](profile)))
 }
 func ResolveGroup(ctx context.Context, db *gorm.DB, site config.Site, name string) Result[ActorRepresentation, string] {
 	found := storage.LoadCommunityByName(ctx, db, site.ID, name)

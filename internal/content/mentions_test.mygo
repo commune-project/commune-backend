@@ -1,0 +1,61 @@
+package content
+
+import testing "go:testing"
+import strings "go:strings"
+
+func TestMentionCandidatesAndByteSpans(t: Ref[testing.T]) -> ()
+  let source = "中文 @alice, **@Bob@EXAMPLE.org** and @alice."
+  let candidates = ExtractMentionCandidates(source, "markdown").Unwrap()
+  if candidates.Len() != 3 then
+    t.Fatalf("expected 3 occurrences, got %d", candidates.Len())
+  end
+  let first = candidates.Get(0).Unwrap()
+  let remote = candidates.Get(1).Unwrap()
+  if first.Username != "alice" || first.Domain != "" || first.Start != 7 || first.End != 13 || remote.Username != "Bob" || remote.Domain != "example.org" then
+    t.Fatalf("wrong candidate metadata: %v", candidates)
+  end
+  candidates.Each(func(candidate: MentionCandidate) -> ()
+    let spelling = ((source as Slice[Byte]).Slice(candidate.Start, candidate.End).Unwrap()) as String
+    let expected = "@" + candidate.Username + if candidate.Domain == "" then "" else "@" + candidate.Domain end
+    if strings.ToLower(spelling) != strings.ToLower(expected) then
+      t.Fatalf("span does not point into original UTF-8 source: %s", spelling)
+    end
+  end)
+end
+
+func TestMentionSyntaxExclusions(t: Ref[testing.T]) -> ()
+  let authority = ExtractMentionCandidates("@alice@peer.example:8443", "markdown").Unwrap()
+  if authority.Len() != 1 || authority.Get(0).Unwrap().Domain != "peer.example:8443" then
+    t.Fatal("remote mention lost its non-default HTTPS port")
+  end
+  let invalidPorts: Slice[String] = ["@alice@peer.example:0", "@alice@peer.example:65536", "@alice@peer.example:"]
+  invalidPorts.Each(func(source: String) -> ()
+    if ExtractMentionCandidates(source, "markdown").Unwrap().Len() != 0 then t.Fatal("invalid mention port accepted") end
+  end)
+  let cases: Slice[String] = [
+    "`@inline`", "`` @inline ``", "    @indented\n", "```\n@fenced\n```", "~~~\n@fenced\n~~~",
+    "[hello @label](https://example.org/@destination)", "![hello @alt](https://example.org/@image)",
+    "[hello @reference][id]\n\n[id]: https://example.org/@target", "<https://example.org/@autolink>",
+    "<alice@example.org>", "alice@example.org", "a.b+tag@example.org", "\\@escaped", "&#64;entity", "&#x40;entity",
+    "<!-- @comment -->", "<div>\n@html\n</div>", "https://example.org/@path", "@@double", "@bad@-example.org", "@bad@example_org", "@bad@example..org", "@bad@", "@bad@example.org@tail"
+  ]
+  cases.Each(func(source: String) -> ()
+    let output = ExtractMentionCandidates(source, "markdown").Unwrap()
+    if output.Len() != 0 then
+      t.Fatalf("excluded syntax produced candidates: %s => %v", source, output)
+    end
+  end)
+  if ExtractMentionCandidates("@literal", "legacy").Unwrap().Len() != 0 || ExtractMentionCandidates("<p>@remote</p>", "html").Unwrap().Len() != 0 then
+    t.Fatal("non-Markdown content created syntax candidates")
+  end
+  if ExtractMentionCandidates("\\\\@real", "markdown").Unwrap().Len() != 1 then
+    t.Fatal("even number of escapes hid a real mention")
+  end
+  if ExtractMentionCandidates("@" + strings.Repeat("a", 65), "markdown").Unwrap().Len() != 0 then
+    t.Fatal("overlong username accepted")
+  end
+  let names = ExtractMentionCandidates("(@a_b) @a-b @user@sub.example.org.", "markdown").Unwrap()
+  if names.Len() != 3 || names.Get(0).Unwrap().Username != "a_b" || names.Get(1).Unwrap().Username != "a-b" || names.Get(2).Unwrap().Domain != "sub.example.org" then
+    t.Fatalf("valid username/domain punctuation was misparsed: %v", names)
+  end
+end

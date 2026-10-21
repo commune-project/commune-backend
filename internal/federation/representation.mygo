@@ -31,6 +31,9 @@ struct ActorRepresentation
   Type: String `json:"type"`
   PreferredUsername: String `json:"preferredUsername,omitempty"`
   Name: String `json:"name,omitempty"`
+  Summary: String `json:"summary,omitempty"`
+  Icon: ProfileIcon `json:"icon,omitzero"`
+  Updated: time.Time `json:"updated,omitempty"`
   Inbox: String `json:"inbox"`
   Outbox: String `json:"outbox"`
   Followers: String `json:"followers,omitempty"`
@@ -46,6 +49,10 @@ struct ObjectRepresentation
   AttributedTo: String `json:"attributedTo,omitempty"`
   Name: String `json:"name,omitempty"`
   Content: String `json:"content,omitempty"`
+  MediaType: String `json:"mediaType,omitempty"`
+  Source: RichSource `json:"source,omitzero"`
+  Attachment: Slice[RichAttachment] `json:"attachment,omitempty"`
+  Tag: Slice[RichMention] `json:"tag,omitempty"`
   InReplyTo: String `json:"inReplyTo,omitempty"`
   Published: time.Time `json:"published,omitempty"`
   Updated: time.Time `json:"updated,omitempty"`
@@ -76,7 +83,6 @@ func PersonRepresentation(
     Inbox: actor.Inbox(),
     Outbox: uri + "/outbox",
     Followers: uri + "/followers",
-    AttributedTo: uri + "/moderators",
     PublicKey: PublicKeyRepresentation{
       ID: uri + "#main-key",
       Owner: uri,
@@ -130,6 +136,8 @@ func BuildObjectRepresentationWithContext(
   else
     to = [audience]
   end
+  let format = if record.ContentFormat == "" then "legacy" else record.ContentFormat end
+  let rendered = content.RenderRich(record.Body, format)
   ObjectRepresentation{
     Context: activityStreamsContext,
     DiscussionContext: discussionContext,
@@ -137,7 +145,9 @@ func BuildObjectRepresentationWithContext(
     Type: record.ObjectType,
     AttributedTo: record.AuthorActorURI,
     Name: content.RenderText(record.Title.String),
-    Content: content.RenderText(record.Body),
+    Content: rendered.UnwrapOr(""),
+    MediaType: "text/html",
+    Source: if format == "markdown" then RichSource{Content: record.Body, MediaType: "text/markdown"} else RichSource{} end,
     InReplyTo: record.ParentID.String,
     Published: record.AuthoredAt,
     Updated: record.UpdatedAt,

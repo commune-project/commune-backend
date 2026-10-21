@@ -36,6 +36,10 @@ struct PostOutput
   ObjectType: String `json:"object_type"`
   Title: String `json:"title,omitempty"`
   Body: String `json:"body"`
+  BodyHTML: String `json:"body_html"`
+  ContentFormat: String `json:"content_format"`
+  AttachmentIDs: Slice[String] `json:"attachment_ids"`
+  Attachments: Slice[PostAttachmentOutput] `json:"attachments"`
   AuthorActorURI: String `json:"author_actor_uri"`
   ParentID: String `json:"parent_id,omitempty"`
   AuthoredAt: time.Time `json:"authored_at"`
@@ -74,6 +78,10 @@ func PostDTO(record: storage.PostRecord) -> PostOutput
     ObjectType: record.ObjectType,
     Title: content.RenderText(record.Title.String),
     Body: content.RenderText(record.Body),
+    BodyHTML: content.RenderRich(record.Body, if record.ContentFormat == "" || record.ContentFormat == "legacy" then "text" else record.ContentFormat end).UnwrapOr(""),
+    ContentFormat: if record.ContentFormat == "" then "legacy" else record.ContentFormat end,
+    AttachmentIDs: [],
+    Attachments: [],
     AuthorActorURI: record.AuthorActorURI,
     ParentID: record.ParentID.String,
     AuthoredAt: record.AuthoredAt,
@@ -110,6 +118,9 @@ func FailStatus(reason: String) -> Int
   end
   if reason == "invalid page" ||
     reason == "invalid post input" ||
+    reason == "invalid content format" ||
+    reason == "invalid media reference" ||
+    reason == "invalid media binding" ||
     reason == "invalid community input" ||
     reason == "invalid access policy" ||
     reason == "invalid state" ||
@@ -117,7 +128,7 @@ func FailStatus(reason: String) -> Int
     reason == "invalid manager" then
     return 400
   end
-  if reason == "object version conflict" || reason == "object identity conflict" then
+  if reason == "object version conflict" || reason == "object identity conflict" || reason == "media binding conflict" then
     return 409
   end
   503
@@ -218,6 +229,9 @@ func ForumRoute(
   request: Ref[http.Request]
 ) -> ()
   let parts = Segments(request.URL.Path)
+  if ParticipationRoute(settings, db, site, w, request, parts) then
+    return
+  end
   if BrowserReadRoute(settings, db, site, w, request, parts) then
     return
   end

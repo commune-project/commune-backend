@@ -1,0 +1,181 @@
+package content
+
+import goldmark "go:github.com/yuin/goldmark"
+import parser "go:github.com/yuin/goldmark/parser"
+import ast "go:github.com/yuin/goldmark/ast"
+import text "go:github.com/yuin/goldmark/text"
+import strings "go:strings"
+
+# Source offsets are UTF-8 bytes, [Start, End). Repeated occurrences are retained;
+# only a later authorized resolver can deduplicate canonical Actor URIs.
+struct MentionCandidate
+  Username: String
+  Domain: String
+  Start: Int
+  End: Int
+end
+
+# Only Go nil/interface operations lack native MyGO equivalents. Keep these
+# interoperability bridges separate from all syntax and policy decisions.
+func MentionNodeMissing(node: ast.Node) -> Bool
+  go[Bool] {
+    code: `{node} == nil`
+    in node = node
+  }
+end
+
+func MentionTextSegment(node: ast.Node) -> text.Segment
+  go[text.Segment] {
+    code: """
+      if value, ok := {node}.(*ast.Text); ok { return value.Segment }
+      return text.Segment{Start: -1, Stop: -1}
+    """
+    in node = node
+  }
+end
+
+# Markdown syntax only: no discovery, URL fetch, linking, or remote HTML parsing.
+# Explicit errors avoid silently returning incomplete candidates to a resolver.
+func ExtractMentionCandidates(source: String, format: String) -> Result[Slice[MentionCandidate], String]
+  if format != "markdown" && format != "legacy" && format != "text" && format != "html" then
+    return Err("unsupported content format")
+  end
+  if (source as Slice[Byte]).Len() > 1048576 then
+    return Err("content exceeds 1 MiB")
+  end
+  var candidates: Slice[MentionCandidate] = []
+  if format != "markdown" then
+    return Ok(candidates)
+  end
+  let input = source as Slice[Byte]
+  let root = goldmark.New().Parser().Parse(text.NewReader(input))
+  var node = root.FirstChild()
+  while !MentionNodeMissing(node)
+    let kind = node.Kind()
+    let excluded = kind == ast.KindCodeSpan || kind == ast.KindCodeBlock || kind == ast.KindFencedCodeBlock || kind == ast.KindLink || kind == ast.KindImage || kind == ast.KindAutoLink || kind == ast.KindRawHTML || kind == ast.KindHTMLBlock
+    if !excluded then
+      var segment = MentionTextSegment(node)
+      if segment.Start >= 0 then
+        # Goldmark may split ordinary text at emphasis delimiters even when
+        # they remain literal (for example the underscore in @a_b). Merge only
+        # contiguous sibling Text spans, never across a structural boundary.
+        var sibling = node.NextSibling()
+        var merging = true
+        while !MentionNodeMissing(sibling) && merging
+          let following = MentionTextSegment(sibling)
+          if following.Start == segment.Stop then
+            segment.Stop = following.Stop
+            node = sibling
+            sibling = sibling.NextSibling()
+          else
+            merging = false
+          end
+        end
+        candidates = ScanMentionSegment(input, segment.Start, segment.Stop, candidates)
+        if candidates.Len() > 64 then
+          return Err("more than 64 mention candidates")
+        end
+      end
+      if !MentionNodeMissing(node.FirstChild()) then
+        node = node.FirstChild()
+        continue
+      end
+    end
+    while MentionNodeMissing(node.NextSibling()) && node != root
+      node = node.Parent()
+    end
+    if node == root then
+      return Ok(candidates)
+    end
+    node = node.NextSibling()
+  end
+  Ok(candidates)
+end
+
+func MentionByte(source: Slice[Byte], index: Int) -> Int
+  source.Get(index).UnwrapOr(0 as Byte) as Int
+end
+
+func MentionNameByte(code: Int) -> Bool
+  (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || (code >= 48 && code <= 57) || code == 95 || code == 45
+end
+
+func MentionDomainByte(code: Int) -> Bool
+  MentionNameByte(code) || code == 46
+end
+
+func MentionDomainValid(domain: String) -> Bool
+  if (domain as Slice[Byte]).Len() > 253 || !strings.Contains(domain, ".") then
+    return false
+  end
+  strings.Split(domain, ".").All(func(label: String) -> Bool
+    let size = (label as Slice[Byte]).Len()
+    size > 0 && size <= 63 && !strings.HasPrefix(label, "-") && !strings.HasSuffix(label, "-") && !strings.Contains(label, "_")
+  end)
+end
+
+func ScanMentionSegment(input: Slice[Byte], start: Int, stop: Int, previous: Slice[MentionCandidate]) -> Slice[MentionCandidate]
+  var found = previous
+  var index = start
+  while index < stop && found.Len() <= 64
+    if MentionByte(input, index) != 64 then
+      index = index + 1
+      continue
+    end
+    # Check original bytes, including outside this AST text segment. This keeps
+    # emails, URL paths, doubled markers and escaped markers out of candidates.
+    let before = MentionByte(input, index - 1)
+    var back = index - 1
+    var escaped = false
+    while back >= 0 && MentionByte(input, back) == 92
+      escaped = !escaped
+      back = back - 1
+    end
+    if MentionNameByte(before) || before == 46 || before == 64 || before == 47 || before == 58 || before == 43 || before == 37 || escaped then
+      index = index + 1
+      continue
+    end
+    let begin = index
+    index = index + 1
+    let nameStart = index
+    while index < stop && MentionNameByte(MentionByte(input, index))
+      index = index + 1
+    end
+    let name = input.Slice(nameStart, index).UnwrapOr([]) as String
+    var domain = ""
+    var valid = name != "" && index - nameStart <= 64
+    if index < stop && MentionByte(input, index) == 64 then
+      index = index + 1
+      let domainStart = index
+      while index < stop && MentionDomainByte(MentionByte(input, index))
+        index = index + 1
+      end
+      # A sentence-ending dot is punctuation, not part of the host.
+      while index > domainStart && MentionByte(input, index - 1) == 46
+        index = index - 1
+      end
+      domain = input.Slice(domainStart, index).UnwrapOr([]) as String
+      valid = valid && MentionDomainValid(domain)
+      # Non-default HTTPS authorities are also valid WebFinger destinations.
+      # Keep the port in the spelling/lookup key instead of querying port 443.
+      if index < stop && MentionByte(input, index) == 58 then
+        index = index + 1
+        var portNumber: Int = 0
+        let portStart = index
+        while index < stop && MentionByte(input, index) >= 48 && MentionByte(input, index) <= 57
+          if portNumber <= 65535 then portNumber = portNumber * 10 + MentionByte(input, index) - 48 end
+          index = index + 1
+        end
+        valid = valid && index > portStart && portNumber > 0 && portNumber <= 65535
+        domain = input.Slice(domainStart, index).UnwrapOr([]) as String
+      end
+    end
+    if MentionByte(input, index) == 64 || MentionByte(input, index) == 92 then
+      valid = false
+    end
+    if valid then
+      found = found.Append(MentionCandidate{Username: name, Domain: strings.ToLower(domain), Start: begin, End: index})
+    end
+  end
+  found
+end

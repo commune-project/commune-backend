@@ -7,7 +7,6 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
-import "github.com/commune-project/commune-backend/internal/federation"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type CreateCommunityInput struct {
@@ -18,8 +17,10 @@ type CreateCommunityInput struct {
 	PostPolicy string "json:\"post_policy\""
 }
 type CreateTopicInput struct {
-	Title string "json:\"title\""
-	Body  string "json:\"body\""
+	Title         string   "json:\"title\""
+	Body          string   "json:\"body\""
+	ContentFormat string   "json:\"content_format\""
+	AttachmentIDs []string "json:\"attachment_ids\""
 }
 type ActorInput struct {
 	Actor string "json:\"actor\""
@@ -166,7 +167,24 @@ func CommunityMemberRoute(settings config.Config, db *gorm.DB, site config.Site,
 		} else {
 		}
 		if section == "members" {
-			Settle(w, storage.MygoIN19CommunityRepositoryM9SetMember(communities, request.Context(), id, identity, false, input_1.Actor, request.Method == "POST"))
+			Settle(w, storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
+				previous := storage.IsCurrentMember(request.Context(), tx, id, input_1.Actor)
+				if MygoIN6ResultM5IsErr[bool, string](previous) {
+					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](previous))
+				} else {
+				}
+				changed := storage.MygoIN19CommunityRepositoryM9SetMember(storage.CommunityRepository{DB: tx, SiteID: site.ID}, request.Context(), id, identity, false, input_1.Actor, request.Method == "POST")
+				if MygoIN6ResultM5IsErr[struct{}, string](changed) {
+					return changed
+				} else {
+				}
+				if request.Method == "DELETE" && MygoIN6ResultM6Unwrap[bool, string](previous) {
+					return QueueMemberRevocation(request.Context(), tx, site, id, input_1.Actor)
+				} else {
+				}
+				return Ok[struct{}, string](struct {
+				}{})
+			}))
 		} else {
 			Settle(w, storage.MygoIN19CommunityRepositoryM10SetManager(communities, request.Context(), id, identity, false, input_1.Actor, request.Method == "POST"))
 		}
@@ -195,17 +213,17 @@ func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, 
 				WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
 				return
 			} else {
-				posts := storage.PostRepository{DB: db, SiteID: site.ID}
-				published := storage.MygoIN14PostRepositoryM7Publish(posts, request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: ""})
+				mentions := ResolvePostMentions(request.Context(), settings, db, site, identity, id, input.Body, input.ContentFormat, false)
+				if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, string](mentions) {
+					Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, string](mentions))
+					return
+				} else {
+				}
+				published := PublishForumPost(settings, db, request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: "", ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions)})
 				if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
 					Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
 					return
 				} else {
-					loaded := storage.LoadCommunityByID(request.Context(), db, id)
-					if MygoIN6ResultM4IsOk[Option[storage.CommunityRecord], string](loaded) && MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) && federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))) {
-						AnnounceLocalPost(request.Context(), settings, db, site, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)), MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
-					} else {
-					}
 					WriteBrowserPost(db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
 					return
 				}

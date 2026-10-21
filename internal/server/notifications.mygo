@@ -1,0 +1,121 @@
+package server
+
+import http "go:net/http"
+import strconv "go:strconv"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct NotificationCountOutput
+  Count: Int64 `json:"count"`
+end
+
+struct NotificationReadAllInput
+  ThroughCursor: String `json:"through_cursor"`
+end
+
+# Main dispatch calls this before BrowserReadRoute and mutation routing.
+func NotificationRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  if parts.Get(2).UnwrapOr("") != "notifications" then
+    return false
+  end
+  w.Header().Set("Cache-Control", "no-store")
+  let section = parts.Get(3).UnwrapOr("")
+  let list = parts.Len() == 3
+  let count = parts.Len() == 4 && section == "unread-count"
+  let all = parts.Len() == 4 && section == "read-all"
+  let single = parts.Len() == 5 && parts.Get(4).UnwrapOr("") == "read"
+  if !list && !count && !all && !single then
+    WriteErrorJSON(w, 404, "not found")
+    return true
+  end
+  let method = if list || count then
+    "GET"
+  else
+    "POST"
+  end
+  if request.Method != method then
+    MethodNotAllowed(w, method)
+    return true
+  end
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    Fail(w, session.UnwrapErr())
+    return true
+  end
+  if method == "POST" && !AuthorizeMutation(settings, session.Unwrap(), request) then
+    WriteErrorJSON(w, 403, "CSRF denied")
+    return true
+  end
+  let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = repository.Viewer(request.Context(), session.Unwrap().Identity)
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return true
+  end
+  if list then
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      Fail(w, page.UnwrapErr())
+    else
+      let rows = repository.Notifications(
+        request.Context(),
+        viewer.Unwrap(),
+        page.Unwrap(),
+        settings.Runtime.MaxPageSize
+      )
+      if rows.IsErr() then
+        Fail(w, rows.UnwrapErr())
+      else
+        WriteJSON(w, 200, rows.Unwrap())
+      end
+    end
+  elsif count then
+    let unread = repository.NotificationUnreadCount(request.Context(), viewer.Unwrap())
+    if unread.IsErr() then
+      Fail(w, unread.UnwrapErr())
+    else
+      WriteJSON(w, 200, NotificationCountOutput{Count: unread.Unwrap()})
+    end
+  elsif all then
+    var input = NotificationReadAllInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+    else
+      let cursor = storage.ParseNotificationCursor(input.ThroughCursor)
+      if cursor.IsErr() then
+        WriteErrorJSON(w, 400, "invalid cursor")
+      else
+        let result = repository.ReadAllNotifications(request.Context(), viewer.Unwrap(), cursor.Unwrap())
+        if result.IsErr() then
+          Fail(w, result.UnwrapErr())
+        else
+          w.WriteHeader(204)
+        end
+      end
+    end
+  else
+    let id = strconv.ParseInt(section, 10, 64)
+    if id.IsErr() then
+      WriteErrorJSON(w, 400, "invalid notification")
+    elsif id.Unwrap() <= 0i64 then
+      WriteErrorJSON(w, 400, "invalid notification")
+    else
+      let result = repository.ReadNotification(request.Context(), viewer.Unwrap(), id.Unwrap())
+      if result.IsErr() then
+        Fail(w, result.UnwrapErr())
+      else
+        w.WriteHeader(204)
+      end
+    end
+  end
+  true
+end

@@ -19,6 +19,9 @@ func Handler(settings: config.Config, db: Ref[gorm.DB]) -> http.HandlerFunc
     else
       w.Header().Set("Cache-Control", "no-store")
       w.Header().Set("X-Content-Type-Options", "nosniff")
+      if RegistrationRoute(settings, db, site.Unwrap(), w, request) then
+        return
+      end
       if request.URL.Path == "/api/v1/auth/login" ||
         request.URL.Path == "/api/v1/auth/session" ||
         request.URL.Path == "/api/v1/auth/logout" then
@@ -80,6 +83,7 @@ func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> R
   end
   let server = NewHTTPServer(settings, db)
   let (lifetime, cancelLifetime) = context.WithCancel(ctx)
+  let participationStopped = StartParticipationWorkers(lifetime, settings, db)
   let stopped = concurrency.MakeChan[()](1)
   let shutdown = func() -> ()
     let _ = lifetime.Done().Receive()
@@ -99,10 +103,13 @@ func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> R
   slog.Info("http server starting", "sites", settings.Sites.Len())
   let result = server.ListenAndServe()
   if result.IsErr() && !errors.Is(result.UnwrapErr(), http.ErrServerClosed) then
+    cancelLifetime()
+    let _ = participationStopped.Receive()
     return Err("http listener failed")
   end
   cancelLifetime()
   let _ = stopped.Receive()
+  let _ = participationStopped.Receive()
   slog.Info("http server stopped")
   Ok(())
 end

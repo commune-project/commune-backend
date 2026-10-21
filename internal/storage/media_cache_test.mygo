@@ -1,0 +1,99 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import sql "go:database/sql"
+import strings "go:strings"
+import io "go:io"
+import os "go:os"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "cache", Origin: "https://cache.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
+  let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password-long").Unwrap()
+  let author: String = "https://remote.example/users/author"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let post = PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "Private", AuthoredAt: now, UpdatedAt: now}, author).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?),('remote',?,?)", alice.ActorURI, author, bob.ActorURI, author)).Unwrap()
+  let settings = MediaTestSettings(t)
+  let mediaFS = OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let repo = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
+  var cache = PrivateMediaCache{}
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    cache = RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/one", "v1").Unwrap()
+    Ok(())
+  end).Unwrap()
+  var fetches: Int = 0
+  let fetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, String]
+    if actor.ActorURI != alice.ActorURI && actor.ActorURI != bob.ActorURI then t.Fatal("fetch lost requesting actor") end
+    fetches = fetches + 1
+    Ok(io.NopCloser(strings.NewReader("private bytes") as io.Reader))
+  end
+  let transfer = func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), String]
+    if io.ReadAll(file as io.Reader).Unwrap() as String != "private bytes" then t.Fatal("cache bytes changed") end
+    Ok(())
+  end
+  if repo.ReadPrivateCache(ctx, alice, cache.ID, transfer).Unwrap() then t.Fatal("missing cache hit") end
+  let _ = repo.FetchPrivateCache(ctx, alice, cache.ID, fetch).Unwrap()
+  if !repo.ReadPrivateCache(ctx, alice, cache.ID, transfer).Unwrap() then t.Fatal("successful fetch not readable") end
+  let _ = repo.ReadPrivateCache(ctx, alice, cache.ID, func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), String]
+    let future = time.Now().Add((settings.PrivateCacheRetentionSeconds + 1) as time.Duration * time.Second)
+    if repo.CleanupPrivateCache(ctx, future, 100).Unwrap() != 0 then t.Fatal("cleaner unlinked active transfer") end
+    Ok(())
+  end).Unwrap()
+  let first = PrivateMediaCache{}
+  let _ = MutationResult(db.Table("media_private_cache").Where("id=?", cache.ID).Find(Ref.new(first))).Unwrap()
+  let _ = repo.ReadPrivateCache(ctx, bob, cache.ID, transfer).Unwrap()
+  let after = PrivateMediaCache{}
+  let _ = MutationResult(db.Table("media_private_cache").Where("id=?", cache.ID).Find(Ref.new(after))).Unwrap()
+  if first.ExpiresAt != after.ExpiresAt then t.Fatal("cache read renewed expiry") end
+  let _ = MutationResult(db.Exec("UPDATE media_private_cache SET expires_at=? WHERE id=?", now.Add(0 as time.Duration - time.Hour), cache.ID)).Unwrap()
+  if repo.ReadPrivateCache(ctx, alice, cache.ID, transfer).Unwrap() then t.Fatal("expired bytes served before cleanup") end
+  if repo.CleanupPrivateCache(ctx, time.Now(), 100).Unwrap() != 1 then t.Fatal("cache not cleaned") end
+  if !QueryExists(db.Table("media_private_cache").Where("id=?", cache.ID)).Unwrap() then t.Fatal("cache metadata deleted") end
+  if mediaFS.Root.Lstat("private-cache/" + first.Generation).IsOk() then t.Fatal("expired cache file retained") end
+  let _ = MutationResult(db.Exec("UPDATE community_members SET revoked_at=? WHERE community_id='remote' AND actor_uri=?", time.Now(), alice.ActorURI)).Unwrap()
+  if repo.FetchPrivateCache(ctx, alice, cache.ID, fetch).IsOk() || fetches != 1 then t.Fatal("revoked member triggered refetch") end
+  let _ = repo.FetchPrivateCache(ctx, bob, cache.ID, fetch).Unwrap()
+  if !repo.ReadPrivateCache(ctx, bob, cache.ID, transfer).Unwrap() || fetches != 2 then t.Fatal("other member lost valid access") end
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    repo.InvalidatePrivateCache(ctx, tx, post.ID, "")
+  end).Unwrap()
+  if repo.ReadPrivateCache(ctx, bob, cache.ID, transfer).IsOk() || repo.FetchPrivateCache(ctx, bob, cache.ID, fetch).IsOk() then t.Fatal("removed attachment refetched") end
+  let _ = repo.CleanupPrivateCache(ctx, time.Now(), 100).Unwrap()
+  if repo.FetchPrivateCache(ctx, bob, cache.ID, fetch).IsOk() then t.Fatal("cleaner restored invalid attachment") end
+  let imageCache = RegisterPrivateMedia(ctx, db, site.ID, post.ID, "https://remote.example/media/image", "image-v1").Unwrap()
+  let imageFetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, String]
+    Ok(io.NopCloser(strings.NewReader(MediaTestPNG(2, 2) as String) as io.Reader))
+  end
+  let _ = repo.FetchPrivateCache(ctx, bob, imageCache.ID, imageFetch).Unwrap()
+  let imageRow = PrivateMediaCache{}
+  let _ = MutationResult(db.Table("media_private_cache").Where("id=?", imageCache.ID).Find(Ref.new(imageRow))).Unwrap()
+  let preview = mediaFS.Open("previews", imageRow.Generation).Unwrap()
+  let previewBytes = io.ReadAll(preview as io.Reader).Unwrap()
+  let _ = preview.Close().Unwrap()
+  if previewBytes.Len() < 8 || previewBytes.Get(0).Unwrap() != (137 as Byte) then t.Fatal("private image lacks a validated PNG preview") end
+  let _ = MutationResult(db.Exec("UPDATE media_private_cache SET expires_at=now()-interval '1 second' WHERE id=?", imageCache.ID)).Unwrap()
+  let _ = repo.CleanupPrivateCache(ctx, time.Now(), 10).Unwrap()
+  if mediaFS.Root.Lstat("previews/" + imageRow.Generation).IsOk() || mediaFS.Root.Lstat("private-cache/" + imageRow.Generation).IsOk() then t.Fatal("private preview outlived its cache generation") end
+  let _ = MutationResult(db.Exec("UPDATE communities SET read_policy='eligible_users',post_policy='eligible_users' WHERE id='remote'")).Unwrap()
+  if RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let registered = RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/public", "v1")
+    if registered.IsErr() then return Err(registered.UnwrapErr()) end
+    Ok(())
+  end).IsOk() then t.Fatal("public remote media accepted into cache") end
+  if fetches != 2 then t.Fatal("public or revoked media fetched") end
+end

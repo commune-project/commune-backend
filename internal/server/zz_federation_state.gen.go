@@ -6,6 +6,8 @@ import "context"
 import "encoding/json"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/config"
+import "crypto/rand"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type CommunityStatePolicy struct {
@@ -17,6 +19,7 @@ type GroupStateObject struct {
 	Type    string               "json:\"type\""
 	Policy  CommunityStatePolicy "json:\"commune:policy\""
 	Members []string             "json:\"commune:members\""
+	Revoked []string             "json:\"commune:revoked,omitempty\""
 }
 type CommunityStateActivity struct {
 	ID     string           "json:\"id\""
@@ -49,6 +52,12 @@ func ApplyCommunityState(ctx context.Context, db *gorm.DB, payload []byte) Resul
 	} else {
 	}
 	current := MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica))
+	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(state.Object.Revoked) > 0 {
+		return MygoIN6ResultM3Map[struct{}, string](storage.MutationResult(db.WithContext(ctx).Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri IN ? AND revoked_at IS NULL", current.ID, state.Object.Revoked)), func(_ struct{}) bool {
+			return false
+		})
+	} else {
+	}
 	tightened := current.ReadPolicy == "eligible_users" && state.Object.Policy.Read == "members"
 	applied := storage.ApplyCommunityPolicy(ctx, db, current.ID, state.Object.Policy.Read, state.Object.Policy.Post)
 	if MygoIN6ResultM5IsErr[int64, string](applied) {
@@ -61,4 +70,67 @@ func ApplyCommunityState(ctx context.Context, db *gorm.DB, payload []byte) Resul
 	} else {
 	}
 	return Ok[bool, string](tightened)
+}
+func QueueMemberRevocation(ctx context.Context, db *gorm.DB, site config.Site, communityID string, actorURI string) Result[struct {
+}, string] {
+	group := storage.LoadCommunityByID(ctx, db, communityID)
+	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](group) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](group)) {
+		return Err[struct{}, string]("community unavailable")
+	} else {
+	}
+	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](group))
+	if community.FederationMode != "federated" || community.HostSiteID != site.ID {
+		return Ok[struct{}, string](struct {
+		}{})
+	} else {
+	}
+	actor := storage.LoadActor(ctx, db, actorURI)
+	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+		return Err[struct{}, string]("actor unavailable")
+	} else {
+	}
+	if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid {
+		return Ok[struct{}, string](struct {
+		}{})
+	} else {
+	}
+	capable := storage.PeerSupportsProtectedReads(ctx, db, actorURI)
+	if MygoIN6ResultM5IsErr[bool, string](capable) {
+		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](capable))
+	} else {
+	}
+	if !MygoIN6ResultM6Unwrap[bool, string](capable) {
+		return Ok[struct{}, string](struct {
+		}{})
+	} else {
+	}
+	if MygoIN6ResultM5IsErr[string, string](storage.EnsureLocalKey(ctx, db, community.ActorURI.String)) {
+		return Err[struct{}, string]("signing unavailable")
+	} else {
+	}
+	uri := site.Origin + "/activities/" + rand.Text()
+	var __mygo_expr_1 Result[[]byte, error]
+	__mygo_expr_2, __mygo_expr_0 := json.Marshal(CommunityStateActivity{ID: uri, Actor: community.ActorURI.String, Type: "Update", Object: GroupStateObject{ID: community.ActorURI.String, Type: "Group", Revoked: []string{actorURI}}})
+	if __mygo_expr_0 != nil {
+		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
+	} else {
+		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
+	}
+	payload := __mygo_expr_1
+	if MygoIN6ResultM5IsErr[[]byte, error](payload) {
+		return Err[struct{}, string]("revocation unavailable")
+	} else {
+	}
+	stored := storage.InsertActivityPayload(ctx, db, uri, community.ActorURI.String, "Update", MygoIN6ResultM6Unwrap[[]byte, error](payload), community.ID)
+	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
+		return stored
+	} else {
+	}
+	planned := storage.PlanDelivery(ctx, db, uri, community.ActorURI.String, []string{actorURI}, "")
+	if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
+		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned))
+	} else {
+	}
+	return Ok[struct{}, string](struct {
+	}{})
 }

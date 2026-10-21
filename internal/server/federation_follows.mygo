@@ -19,6 +19,11 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
   if excluded.Unwrap() then
     return Ok(false)
   end
+  if activity.Type == "Like" then
+    let applied = ApplyRemoteReaction(ctx, db, site, activity)
+    if applied.IsErr() then return Err(applied.UnwrapErr()) end
+    return Ok(false)
+  end
   if activity.Type == "Follow" then
     let applied = ApplyFollow(ctx, db, site, activity)
     if applied.IsErr() then
@@ -27,6 +32,8 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
     return Ok(false)
   end
   if activity.Type == "Undo" then
+    let reaction = ApplyRemoteReaction(ctx, db, site, activity)
+    if reaction.IsErr() then return Err(reaction.UnwrapErr()) end
     let applied = ApplyUndoFollow(ctx, db, site, activity)
     if applied.IsErr() then
       return Err(applied.UnwrapErr())
@@ -34,7 +41,24 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
     return Ok(false)
   end
   if activity.Type == "Update" then
+    if activity.Embedded.IsSome() && activity.Embedded.Unwrap().Type == "Person" then
+      let applied = federation.ApplyPersonUpdate(ctx, db, site, payload)
+      if applied.IsErr() then
+        return Err(applied.UnwrapErr())
+      end
+      return Ok(false)
+    end
+    if activity.Embedded.IsSome() && (activity.Embedded.Unwrap().Type == "Page" || activity.Embedded.Unwrap().Type == "Note") then
+      let applied = ApplyRichMutation(ctx, db, site, activity, payload)
+      if applied.IsErr() then return Err(applied.UnwrapErr()) end
+      return Ok(false)
+    end
     return ApplyCommunityState(ctx, db, payload)
+  end
+  if activity.Type == "Delete" then
+    let applied = ApplyRichMutation(ctx, db, site, activity, payload)
+    if applied.IsErr() then return Err(applied.UnwrapErr()) end
+    return Ok(false)
   end
   if activity.Type == "Create" then
     let applied = ApplyCreateSubmission(ctx, db, site, activity, payload, addressed)
@@ -43,6 +67,8 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
     end
   end
   if activity.Type == "Announce" then
+    let received = ReceiveRichAnnounce(ctx, db, site, activity, payload)
+    if received.IsErr() then return Err(received.UnwrapErr()) end
     let applied = ApplyAnnounce(ctx, db, site, activity)
     if applied.IsErr() then
       return Err(applied.UnwrapErr())

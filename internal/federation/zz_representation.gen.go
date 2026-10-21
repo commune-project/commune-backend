@@ -6,6 +6,7 @@ import "time"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/content"
+import . "github.com/mygo-lang/mygo/prelude"
 
 var activityStreamsContext string
 
@@ -39,6 +40,9 @@ type ActorRepresentation struct {
 	Type              string                  "json:\"type\""
 	PreferredUsername string                  "json:\"preferredUsername,omitempty\""
 	Name              string                  "json:\"name,omitempty\""
+	Summary           string                  "json:\"summary,omitempty\""
+	Icon              ProfileIcon             "json:\"icon,omitzero\""
+	Updated           time.Time               "json:\"updated,omitempty\""
 	Inbox             string                  "json:\"inbox\""
 	Outbox            string                  "json:\"outbox\""
 	Followers         string                  "json:\"followers,omitempty\""
@@ -46,18 +50,22 @@ type ActorRepresentation struct {
 	PublicKey         PublicKeyRepresentation "json:\"publicKey\""
 }
 type ObjectRepresentation struct {
-	Context           string    "json:\"@context\""
-	DiscussionContext string    "json:\"context,omitempty\""
-	ID                string    "json:\"id\""
-	Type              string    "json:\"type\""
-	AttributedTo      string    "json:\"attributedTo,omitempty\""
-	Name              string    "json:\"name,omitempty\""
-	Content           string    "json:\"content,omitempty\""
-	InReplyTo         string    "json:\"inReplyTo,omitempty\""
-	Published         time.Time "json:\"published,omitempty\""
-	Updated           time.Time "json:\"updated,omitempty\""
-	To                []string  "json:\"to,omitempty\""
-	CC                []string  "json:\"cc,omitempty\""
+	Context           string           "json:\"@context\""
+	DiscussionContext string           "json:\"context,omitempty\""
+	ID                string           "json:\"id\""
+	Type              string           "json:\"type\""
+	AttributedTo      string           "json:\"attributedTo,omitempty\""
+	Name              string           "json:\"name,omitempty\""
+	Content           string           "json:\"content,omitempty\""
+	MediaType         string           "json:\"mediaType,omitempty\""
+	Source            RichSource       "json:\"source,omitzero\""
+	Attachment        []RichAttachment "json:\"attachment,omitempty\""
+	Tag               []RichMention    "json:\"tag,omitempty\""
+	InReplyTo         string           "json:\"inReplyTo,omitempty\""
+	Published         time.Time        "json:\"published,omitempty\""
+	Updated           time.Time        "json:\"updated,omitempty\""
+	To                []string         "json:\"to,omitempty\""
+	CC                []string         "json:\"cc,omitempty\""
 }
 type TombstoneRepresentation struct {
 	Context    string    "json:\"@context\""
@@ -69,7 +77,7 @@ type TombstoneRepresentation struct {
 
 func PersonRepresentation(site config.Site, actor storage.ActorRecord, username string, publicPEM string) ActorRepresentation {
 	uri := actor.URI
-	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Person", PreferredUsername: username, Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", AttributedTo: uri + "/moderators", PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
+	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Person", PreferredUsername: username, Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
 }
 func GroupRepresentation(community storage.CommunityRecord, actor storage.ActorRecord, publicPEM string) ActorRepresentation {
 	uri := actor.URI
@@ -88,7 +96,21 @@ func BuildObjectRepresentationWithContext(record storage.PostRecord, community s
 	} else {
 		to = []string{audience}
 	}
-	return ObjectRepresentation{Context: activityStreamsContext, DiscussionContext: discussionContext, ID: record.ObjectURI.String, Type: record.ObjectType, AttributedTo: record.AuthorActorURI, Name: content.RenderText(record.Title.String), Content: content.RenderText(record.Body), InReplyTo: record.ParentID.String, Published: record.AuthoredAt, Updated: record.UpdatedAt, To: to, CC: cc}
+	var __mygo_expr_0 string
+	if record.ContentFormat == "" {
+		__mygo_expr_0 = "legacy"
+	} else {
+		__mygo_expr_0 = record.ContentFormat
+	}
+	format := __mygo_expr_0
+	rendered := content.RenderRich(record.Body, format)
+	var __mygo_expr_1 RichSource
+	if format == "markdown" {
+		__mygo_expr_1 = RichSource{Content: record.Body, MediaType: "text/markdown"}
+	} else {
+		__mygo_expr_1 = RichSource{}
+	}
+	return ObjectRepresentation{Context: activityStreamsContext, DiscussionContext: discussionContext, ID: record.ObjectURI.String, Type: record.ObjectType, AttributedTo: record.AuthorActorURI, Name: content.RenderText(record.Title.String), Content: MygoIN6ResultM8UnwrapOr[string, string](rendered, ""), MediaType: "text/html", Source: __mygo_expr_1, InReplyTo: record.ParentID.String, Published: record.AuthoredAt, Updated: record.UpdatedAt, To: to, CC: cc}
 }
 func BuildTombstoneRepresentation(record storage.PostRecord) TombstoneRepresentation {
 	return TombstoneRepresentation{Context: activityStreamsContext, ID: record.ObjectURI.String, Type: "Tombstone", FormerType: record.ObjectType, Deleted: record.DeletedAt.Time}

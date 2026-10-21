@@ -1,0 +1,131 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import os "go:os"
+import io "go:io"
+import bytes "go:bytes"
+import image "go:image"
+import png "go:image/png"
+import config "github.com/commune-project/commune-backend/internal/config"
+
+func MediaTestSettings(t: Ref[testing.T]) -> config.Media
+  let input = config.ParticipationDefaults(config.Input{})
+  var settings = input.Media
+  settings.Enabled = true
+  settings.Root = t.TempDir()
+  settings.PreviewDimension = 32
+  settings.MaxFileBytes = 1048576
+  settings.MaxImageBytes = 1048576
+  settings.SiteQuotaBytes = 8388608
+  settings.AccountQuotaBytes = 4194304
+  settings.MaxImagePixels = 4096
+  settings.MaxImageDimension = 128
+  settings
+end
+
+func MediaTestPNG(width: Int, height: Int) -> Slice[Byte]
+  go[Slice[Byte]] { code: "var b bytes.Buffer; _=png.Encode(&b,image.NewNRGBA(image.Rect(0,0,{width},{height}))); return b.Bytes()"; in width = width; in height = height }
+end
+
+func TestMediaRootStreamingAndSymlinks(t: Ref[testing.T]) -> ()
+  let settings = MediaTestSettings(t)
+  let mediaFS = OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let ctx = context.Background()
+  let id: String = "abcdefghijklmnop"
+  if mediaFS.Stream(ctx, "../../escape", strings.NewReader("bad") as io.Reader, 10i64).IsOk() then
+    t.Fatal("traversal accepted")
+  end
+  let outside = t.TempDir() + "/secret"
+  let _ = os.WriteFile(outside, "secret" as Slice[Byte], 384 as os.FileMode).Unwrap()
+  let _ = os.Symlink(outside, settings.Root + "/temporary/" + id).Unwrap()
+  if mediaFS.Stream(ctx, id, strings.NewReader("overwrite") as io.Reader, 100i64).IsOk() || mediaFS.Open("temporary", id).IsOk() then
+    t.Fatal("symlink opened")
+  end
+  if os.ReadFile(outside).Unwrap() as String != "secret" then
+    t.Fatal("symlink target modified")
+  end
+  let _ = mediaFS.Remove("temporary", id).Unwrap()
+  if mediaFS.Stream(ctx, id, strings.NewReader("12345") as io.Reader, 4i64).IsOk() then
+    t.Fatal("stream exceeded limit")
+  end
+  if mediaFS.Root.Lstat("temporary/" + id).IsOk() then
+    t.Fatal("oversize temporary file retained")
+  end
+  let (cancelCtx, cancel) = context.WithCancel(ctx)
+  cancel()
+  if mediaFS.Stream(cancelCtx, id, strings.NewReader("test") as io.Reader, 10i64).IsOk() then
+    t.Fatal("canceled upload succeeded")
+  end
+  let _ = mediaFS.Stream(ctx, id, strings.NewReader("exact") as io.Reader, 5i64).Unwrap()
+  let _ = mediaFS.Publish(id, "local").Unwrap()
+  let original = mediaFS.Open("local", id).Unwrap()
+  if io.ReadAll(original as io.Reader).Unwrap() as String != "exact" then
+    t.Fatal("atomic publication lost bytes")
+  end
+  let _ = original.Close()
+  let _ = mediaFS.Root.Close()
+  if mediaFS.Stream(ctx, "abcdefghijklmnopq", strings.NewReader("fail") as io.Reader, 10i64).IsOk() then
+    t.Fatal("closed root accepted write")
+  end
+end
+
+func TestMediaImageBoundsAndOrdinaryDownloads(t: Ref[testing.T]) -> ()
+  let settings = MediaTestSettings(t)
+  let mediaFS = OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let ctx = context.Background()
+  let id: String = "abcdefghijklmnop"
+  let _ = mediaFS.Stream(ctx, id, bytes.NewReader(MediaTestPNG(64, 64)) as io.Reader, 1048576i64).Unwrap()
+  let info = mediaFS.Inspect(id, "image/png", "avatar", settings).Unwrap()
+  if info.Type != "image/png" || info.PreviewSize <= 0i64 then
+    t.Fatal("raster not previewed")
+  end
+  let preview = mediaFS.Open("previews", id).Unwrap()
+  let bounded = png.DecodeConfig(preview as io.Reader).Unwrap()
+  let _ = preview.Close()
+  if bounded.Width != 32 || bounded.Height != 32 then
+    t.Fatal("preview not bounded")
+  end
+  let huge: String = "abcdefghijklmnopq"
+  let _ = mediaFS.Stream(ctx, huge, bytes.NewReader(MediaTestPNG(128, 128)) as io.Reader, 1048576i64).Unwrap()
+  if mediaFS.Inspect(huge, "image/png", "post", settings).IsOk() then
+    t.Fatal("pixel bomb accepted")
+  end
+  let malformed: String = "abcdefghijklmnopr"
+  let _ = mediaFS.Stream(ctx, malformed, bytes.NewReader(MediaTestPNG(8, 8).Take(30)) as io.Reader, 1048576i64).Unwrap()
+  if mediaFS.Inspect(malformed, "image/png", "post", settings).IsOk() then
+    t.Fatal("malformed declared image accepted")
+  end
+  let ordinary: Slice[String] = ["<html><script>alert(1)</script></html>", "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>", "%PDF-1.7\nfile", "PK archive"]
+  var index: Int = 0
+  ordinary.Each(func(body: String) -> ()
+    let fileID = "abcdefghijklmnop" + strings.Repeat("x", index + 1)
+    index = index + 1
+    let _ = mediaFS.Stream(ctx, fileID, strings.NewReader(body) as io.Reader, 1048576i64).Unwrap()
+    let checked = mediaFS.Inspect(fileID, "application/octet-stream", "post", settings).Unwrap()
+    if checked.PreviewSize != 0i64 then
+      t.Fatal("ordinary file got a preview")
+    end
+    if mediaFS.Inspect(fileID, "image/png", "avatar", settings).IsOk() then
+      t.Fatal("ordinary file accepted as avatar")
+    end
+  end)
+end
+
+func TestMediaRejectNamespaceAndRootSymlinks(t: Ref[testing.T]) -> ()
+  var settings = MediaTestSettings(t)
+  let external = t.TempDir()
+  let _ = os.Symlink(external, settings.Root + "/local").Unwrap()
+  if OpenMediaFiles(settings).IsOk() then
+    t.Fatal("symlink namespace accepted")
+  end
+  let alias = t.TempDir() + "/alias"
+  let _ = os.Symlink(external, alias).Unwrap()
+  settings.Root = alias
+  if OpenMediaFiles(settings).IsOk() then
+    t.Fatal("symlink root accepted")
+  end
+end

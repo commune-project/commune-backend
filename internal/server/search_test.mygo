@@ -1,0 +1,75 @@
+package server
+
+import testing "go:testing"
+import http "go:net/http"
+import io "go:io"
+import httptest "go:net/http/httptest"
+import strings "go:strings"
+import context "go:context"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresSearchRoute(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let _ = storage.MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let handler = (func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    let parts: Slice[String] = ["api", "v1", "search"]
+    let _ = SearchRoute(settings, db, site, w, request, parts)
+  end) as http.HandlerFunc
+  let invalid: Slice[String] = ["", "?q=x", "?kind=wrong&q=x", "?kind=posts", "?kind=posts&q=x&limit=0", "?kind=posts&q=x&offset=-1", "?kind=posts&q=" + strings.Repeat("x", 201)]
+  invalid.Each(func(query: String) -> ()
+    let response = httptest.NewRecorder()
+    handler.ServeHTTP(response as http.ResponseWriter, httptest.NewRequest("GET", "/api/v1/search" + query, strings.NewReader("") as io.Reader))
+    if response.Code != 400 || response.Header().Get("Cache-Control") != "no-store" then
+      t.Fatal("invalid search request accepted")
+    end
+  end)
+  let kinds: Slice[String] = ["posts", "communities"]
+  kinds.Each(func(kind: String) -> ()
+    let response = httptest.NewRecorder()
+    handler.ServeHTTP(response as http.ResponseWriter, httptest.NewRequest("GET", "/api/v1/search?kind=" + kind + "&q=absent&offset=100", strings.NewReader("") as io.Reader))
+    if response.Code != 200 || !strings.Contains(response.Body.String(), "\"items\":[]") then
+      t.Fatalf("empty page failed: %s", response.Body.String())
+    end
+  end)
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users").Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", community.ID, alice.ActorURI)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts", site.ID)).Unwrap()
+  let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, auth.Identity{}).Unwrap()
+  let one = browser.SearchPosts(ctx, viewer, "中文", storage.Page{Limit: 1}, 50).Unwrap()
+  let twenty = browser.SearchPosts(ctx, viewer, "中文", storage.Page{Limit: 20}, 50).Unwrap()
+  let probeOne = transport.NewQueryProbe(db)
+  let probeTwenty = transport.NewQueryProbe(db)
+  let _ = BrowserPosts(ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one).Unwrap()
+  let _ = BrowserPosts(ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty).Unwrap()
+  if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > 3i64 then
+    t.Fatal("search enrichment queries grew with page size")
+  end
+  t.Logf("search enrichment queries one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+  let enriched = httptest.NewRecorder()
+  handler.ServeHTTP(enriched as http.ResponseWriter, httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=Topic&limit=1", strings.NewReader("") as io.Reader))
+  if enriched.Code != 200 || !strings.Contains(enriched.Body.String(), "\"like_count\":0") || !strings.Contains(enriched.Body.String(), "\"permissions\":") then
+    t.Fatalf("search DTO enrichment failed: %s", enriched.Body.String())
+  end
+  let method = httptest.NewRecorder()
+  handler.ServeHTTP(method as http.ResponseWriter, httptest.NewRequest("POST", "/api/v1/search", strings.NewReader("") as io.Reader))
+  if method.Code != 405 || method.Header().Get("Allow") != "GET" then
+    t.Fatal("search method validation failed")
+  end
+  let _ = storage.MutationResult(db.Exec("DROP TABLE site_posts CASCADE")).Unwrap()
+  let unavailable = httptest.NewRecorder()
+  handler.ServeHTTP(unavailable as http.ResponseWriter, httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=x", strings.NewReader("") as io.Reader))
+  if unavailable.Code != 503 then
+    t.Fatalf("storage failure became %d", unavailable.Code)
+  end
+end

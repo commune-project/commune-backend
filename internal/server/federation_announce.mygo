@@ -63,6 +63,10 @@ func ApplyCreateSubmission(ctx: context.Context, db: Ref[gorm.DB], site: config.
       return Ok(())
     end
   end
+  if activity.Embedded.IsSome() && (activity.Embedded.Unwrap().Type == "Page" || activity.Embedded.Unwrap().Type == "Note") then
+    let received = ReceiveRichActivity(ctx, db, site, activity, payload, community.ID)
+    if received.IsErr() then return Err(received.UnwrapErr()) end
+  end
   PublishGroupAnnouncement(ctx, db, site, community, payload)
 end
 

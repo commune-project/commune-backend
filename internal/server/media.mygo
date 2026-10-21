@@ -1,0 +1,222 @@
+package server
+
+import context "go:context"
+import http "go:net/http"
+import io "go:io"
+import os "go:os"
+import mime "go:mime"
+import strings "go:strings"
+import time "go:time"
+import errors "go:errors"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct MediaOutput
+  ID: String `json:"id"`
+  Purpose: String `json:"purpose"`
+  MediaType: String `json:"media_type"`
+  Size: Int64 `json:"size"`
+  Name: String `json:"name"`
+  Reference: String `json:"reference"`
+  PreviewURL: String `json:"preview_url,omitempty"`
+end
+
+func MediaFailure(w: http.ResponseWriter, reason: String) -> ()
+  var status: Int = 503
+  if reason == "not found" then status = 404 end
+  if reason == "forbidden" then status = 403 end
+  if reason == "unauthenticated" then status = 401 end
+  if reason == "media too large" then status = 413 end
+  if reason == "unsupported media" then status = 415 end
+  if reason == "media quota exceeded" then
+    status = 429
+    w.Header().Set("Retry-After", "3600")
+  end
+  if reason == "invalid upload" || reason == "invalid media purpose" || reason == "invalid image" || reason == "invalid media binding" then status = 400 end
+  if reason == "media binding conflict" then status = 409 end
+  WriteErrorJSON(w, status, reason)
+end
+
+# Pass this callback directly to ProfileRoute. It uses the supplied transaction
+# for replacement and returns an absolute public avatar URL for federation.
+func MediaAvatarBinder(site: config.Site) -> func(context.Context, Ref[gorm.DB], auth.Identity, String, String) -> Result[AvatarBinding, String]
+  func(ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, uploadID: String, oldBindingID: String) -> Result[AvatarBinding, String]
+    let repository = storage.MediaRepository{DB: tx, SiteID: site.ID}
+    let bound = repository.BindAvatarTx(ctx, tx, identity, uploadID)
+    if bound.IsErr() then
+      return Err(bound.UnwrapErr())
+    end
+    if bound.Unwrap() == "" then
+      return Ok(AvatarBinding{})
+    end
+    let id = strings.TrimPrefix(bound.Unwrap(), "/api/v1/media/")
+    Ok(AvatarBinding{ID: id, URL: site.Origin + bound.Unwrap()})
+  end
+end
+
+# Integration point only: main dispatch calls this before existing API routes.
+# OpenMediaFiles once at startup, reuse it and close Root after workers stop.
+func MediaRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, mediaFS: storage.MediaFiles, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
+  if parts.Get(2).UnwrapOr("") != "media" then
+    return false
+  end
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("X-Content-Type-Options", "nosniff")
+  w.Header().Set("Referrer-Policy", "no-referrer")
+  if !settings.Media.Enabled then
+    http.NotFound(w, request)
+    return true
+  end
+  let repository = storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
+  if parts.Len() == 5 && parts.Get(3).UnwrapOr("") == "private" then
+    let session = Authenticated(db, site, request)
+    if session.IsErr() then
+      MediaFailure(w, session.UnwrapErr())
+      return true
+    end
+    ServePrivateMedia(repository, session.Unwrap().Identity, parts.Get(4).UnwrapOr(""), w, request, PrivateMediaUnavailable)
+    return true
+  end
+  if parts.Len() == 3 then
+    if request.Method != "POST" then
+      MethodNotAllowed(w, "POST")
+      return true
+    end
+    let session = Authenticated(db, site, request)
+    if session.IsErr() then
+      MediaFailure(w, session.UnwrapErr())
+      return true
+    end
+    if !AuthorizeMutation(settings, session.Unwrap(), request) then
+      MediaFailure(w, "forbidden")
+      return true
+    end
+    UploadMedia(repository, session.Unwrap().Identity, w, request)
+    return true
+  end
+  let preview = parts.Len() == 5 && parts.Get(4).UnwrapOr("") == "preview"
+  if parts.Len() != 4 && !preview then
+    http.NotFound(w, request)
+    return true
+  end
+  if request.Method != "GET" && request.Method != "HEAD" then
+    MethodNotAllowed(w, "GET, HEAD")
+    return true
+  end
+  let identity = BrowserIdentity(db, site, request, false)
+  if identity.IsErr() then
+    MediaFailure(w, identity.UnwrapErr())
+    return true
+  end
+  let result = repository.Read(request.Context(), identity.Unwrap(), parts.Get(3).Unwrap(), preview, func(upload: storage.MediaUpload, file: Ref[os.File]) -> Result[(), String]
+    ServeMedia(w, request, upload, file, preview)
+    Ok(())
+  end)
+  if result.IsErr() then
+    MediaFailure(w, result.UnwrapErr())
+  end
+  true
+end
+
+func UploadMedia(repository: storage.MediaRepository, identity: auth.Identity, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  let max = repository.Settings.MaxFileBytes as Int64 + 65536i64
+  request.Body = http.MaxBytesReader(w, request.Body, max) as io.ReadCloser
+  let body = request.Body
+  go[()] { code: "defer {body}.Close()"; in body = body }
+  let multipartResult = request.MultipartReader()
+  if multipartResult.IsErr() then
+    MediaFailure(w, "unsupported media")
+    return
+  end
+  let reader = multipartResult.Unwrap()
+  let (ctx, cancel) = context.WithTimeout(request.Context(), 5 as time.Duration * time.Minute)
+  go[()] { code: "defer {cancel}()"; in cancel = cancel }
+  var purpose: String = ""
+  var upload = storage.MediaUpload{}
+  var failure: String = ""
+  var done: Bool = false
+  var count: Int = 0
+  while !done && failure == ""
+    let next = reader.NextPart()
+    if next.IsErr() then
+      done = true
+      if !errors.Is(next.UnwrapErr(), io.EOF) then
+        failure = "invalid upload"
+      end
+    else
+      count = count + 1
+      let part = next.Unwrap()
+      if count > 2 then
+        failure = "invalid upload"
+      else
+        if part.FormName() == "purpose" && part.FileName() == "" && purpose == "" then
+          let value = io.ReadAll(io.LimitReader(part as io.Reader, 16i64))
+          if value.IsErr() then
+            failure = "invalid media purpose"
+          else
+            purpose = value.Unwrap() as String
+            if purpose != "post" && purpose != "avatar" then
+              failure = "invalid media purpose"
+            end
+          end
+        else
+          if part.FormName() == "file" && part.FileName() != "" && upload.ID == "" then
+            # File-first clients reserve the larger post budget. A later avatar
+            # purpose still requires a decoded image and the lower image limit.
+            let initialPurpose = if purpose == "" then "post" else purpose end
+            let uploaded = repository.Upload(ctx, identity, initialPurpose, part.FileName(), strings.Split(part.Header.Get("Content-Type"), ";").Get(0).UnwrapOr(""), part as io.Reader)
+            if uploaded.IsErr() then
+              failure = uploaded.UnwrapErr()
+            else
+              upload = uploaded.Unwrap()
+            end
+          else
+            failure = "invalid upload"
+          end
+        end
+      end
+    end
+  end
+  if failure == "" && (purpose == "" || upload.ID == "") then
+    failure = "invalid upload"
+  end
+  if failure == "" && purpose == "avatar" && upload.PreviewBytes == 0i64 then
+    failure = "unsupported media"
+  end
+  if failure == "" && upload.Purpose != purpose then
+    let changed = repository.DB.WithContext(ctx).Exec("UPDATE media_uploads SET purpose=? WHERE id=? AND state='ready' AND NOT EXISTS(SELECT 1 FROM media_bindings WHERE upload_id=?)", purpose, upload.ID, upload.ID)
+    if storage.QueryFailed(changed) || changed.RowsAffected != 1i64 then
+      failure = "media unavailable"
+    end
+  end
+  if failure != "" then
+    if upload.ID != "" then
+      let _ = repository.DB.WithContext(context.Background()).Exec("UPDATE media_uploads SET expires_at=? WHERE id=?", time.Now(), upload.ID)
+    end
+    MediaFailure(w, failure)
+    return
+  end
+  let reference = storage.MediaBindingURL(upload.ID)
+  WriteJSON(w, 201, MediaOutput{ID: upload.ID, Purpose: purpose, MediaType: upload.MediaType, Size: upload.SizeBytes, Name: upload.OriginalName, Reference: reference, PreviewURL: if upload.PreviewBytes > 0i64 then reference + "/preview" else "" end})
+end
+
+func ServeMedia(w: http.ResponseWriter, request: Ref[http.Request], upload: storage.MediaUpload, file: Ref[os.File], preview: Bool) -> ()
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("X-Content-Type-Options", "nosniff")
+  w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+  w.Header().Set("Referrer-Policy", "no-referrer")
+  let raster = upload.MediaType == "image/png" || upload.MediaType == "image/jpeg" || upload.MediaType == "image/gif"
+  let kind = if preview then "image/png" else upload.MediaType end
+  # Ordinary types are always download-only, including HTML, SVG and PDF.
+  w.Header().Set("Content-Type", kind)
+  let disposition = if preview || raster then "inline" else "attachment" end
+  let filename = upload.OriginalName
+  let header = go[String] { code: "mime.FormatMediaType({disposition},map[string]string{\"filename\":{filename}})"; in disposition = disposition; in filename = filename }
+  w.Header().Set("Content-Disposition", header)
+  w.Header().Set("ETag", "\"" + upload.ID + (if preview then "-preview" else "" end) + "\"")
+  # Authorization has completed before ServeContent sees validators, range or
+  # HEAD. Go's standard implementation handles 206/304/416 and byte limits.
+  http.ServeContent(w, request, "", upload.CreatedAt, file as io.ReadSeeker)
+end

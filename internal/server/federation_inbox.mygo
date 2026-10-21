@@ -49,7 +49,7 @@ func InboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
     WriteErrorJSON(w, 401, authorized.UnwrapErr())
     return
   end
-  let action = AuthorizeInbound(request.Context(), db, settings, payload, envelope)
+  let action = AuthorizeInbound(request.Context(), db, settings, site.ID, payload, envelope)
   if action.IsErr() then
     slog.Warn("inbound activity rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", action.UnwrapErr())
     WriteErrorJSON(w, 403, action.UnwrapErr())
@@ -119,7 +119,7 @@ end
 # mutated state: the claimed author must match, an embedded activity from a
 # different actor must be confirmed against its canonical copy, and an update or
 # delete may only target an object the signer actually owns.
-func AuthorizeInbound(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, payload: Slice[Byte], envelope: ActivityEnvelope) -> Result[(), String]
+func AuthorizeInbound(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, siteID: String, payload: Slice[Byte], envelope: ActivityEnvelope) -> Result[(), String]
   let parsed = federation.ParseActivity(payload)
   if parsed.IsErr() then
     return Err("invalid activity")
@@ -131,13 +131,43 @@ func AuthorizeInbound(ctx: context.Context, db: Ref[gorm.DB], settings: config.C
   if !federation.CreateAuthorMatches(activity) then
     return Err("forged author")
   end
-  let embedded = federation.VerifyEmbeddedActivity(ctx, activity, FetchLimitsFrom(settings))
+  var signer = federation.ForwardSigner{}
+  if activity.Type == "Announce" then
+    let group = storage.LoadReplicaCommunity(ctx, db, activity.Actor)
+    if group.IsErr() then return Err(group.UnwrapErr()) end
+    if group.Unwrap().IsSome() && group.Unwrap().Unwrap().ReadPolicy == "members" then
+      let supported = storage.PeerSupportsProtectedReads(ctx, db, activity.Actor)
+      if supported.IsErr() || !supported.Unwrap() then return Err("unsupported restricted peer") end
+      let member: String = ""
+      let found = db.WithContext(ctx).Raw("SELECT a.actor_uri FROM accounts a JOIN community_members m ON m.actor_uri=a.actor_uri WHERE a.site_id=? AND NOT a.disabled AND m.community_id=? AND m.revoked_at IS NULL ORDER BY a.id LIMIT 1", siteID, group.Unwrap().Unwrap().ID).Scan(Ref.new(member))
+      if storage.QueryFailed(found) || found.RowsAffected != 1i64 then return Err("no authorized member") end
+      if storage.EnsureLocalKey(ctx, db, member).IsErr() then return Err("signing unavailable") end
+      let key = storage.LoadLocalPrivateKey(ctx, db, member)
+      if key.IsErr() then return Err("signing unavailable") end
+      signer = federation.ForwardSigner{ActorURI: member, PrivateKey: key.Unwrap()}
+    end
+  end
+  let embedded = federation.VerifyEmbeddedActivity(ctx, activity, FetchLimitsFrom(settings), payload, signer)
   if embedded.IsErr() then
     return Err(embedded.UnwrapErr())
   end
   if activity.Type == "Update" || activity.Type == "Delete" then
     if activity.ObjectURI == "" then
       return Err("invalid activity")
+    end
+    if activity.Type == "Update" && activity.Embedded.IsSome() && activity.Embedded.Unwrap().Type == "Person" then
+      let profile = federation.PersonUpdateObject(payload)
+      if profile.IsErr() then
+        return Err(profile.UnwrapErr())
+      end
+      let actor = storage.LoadActor(ctx, db, activity.ObjectURI)
+      if actor.IsErr() || actor.Unwrap().IsNone() then
+        return Err("unknown profile actor")
+      end
+      if actor.Unwrap().Unwrap().LocalSiteID.Valid || actor.Unwrap().Unwrap().Kind != "Person" then
+        return Err("forbidden")
+      end
+      return Ok(())
     end
     let replica = storage.LoadReplicaCommunity(ctx, db, activity.ObjectURI)
     if replica.IsErr() then

@@ -1,0 +1,159 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import time "go:time"
+import strings "go:strings"
+import bytes "go:bytes"
+import io "go:io"
+import os "go:os"
+import sync "go:sync"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "media", Origin: "https://media.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password-long").Unwrap()
+  let settings = MediaTestSettings(t)
+  let mediaFS = OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let repo = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
+  let upload = repo.Upload(ctx, alice, "post", "../../name.html", "text/html", strings.NewReader("<html>download</html>") as io.Reader).Unwrap()
+  let transfer = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), String]
+    if io.ReadAll(file as io.Reader).Unwrap() as String != "<html>download</html>" then
+      t.Fatal("media bytes changed")
+    end
+    Ok(())
+  end
+  if repo.Read(ctx, bob, upload.ID, false, transfer).IsOk() || repo.Read(ctx, auth.Identity{}, upload.ID, false, transfer).IsOk() then
+    t.Fatal("unbound upload leaked")
+  end
+  let _ = repo.Read(ctx, alice, upload.ID, false, transfer).Unwrap()
+  let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
+  let published = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body"})
+  if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr()) end
+  let post = published.Unwrap()
+  let ids: Slice[String] = [upload.ID]
+  let rolled = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let bound = BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids)
+    if bound.IsErr() then return Err(bound.UnwrapErr()) end
+    Err("rollback probe")
+  end)
+  if rolled.IsOk() || QueryExists(db.Table("media_bindings").Where("upload_id=?", upload.ID)).Unwrap() then
+    t.Fatal("binding survived parent rollback")
+  end
+  var bindingURL: String = ""
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    bindingURL = BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids).Unwrap().Get(0).Unwrap()
+    Ok(())
+  end).Unwrap()
+  let bindingID = strings.TrimPrefix(bindingURL, "/api/v1/media/")
+  if repo.Read(ctx, alice, upload.ID, false, transfer).IsOk() || repo.Read(ctx, bob, bindingID, false, transfer).IsOk() then
+    t.Fatal("raw upload or private non-member access succeeded")
+  end
+  let _ = repo.Read(ctx, alice, bindingID, false, transfer).Unwrap()
+  let remote = auth.Identity{ActorURI: "https://remote.example/users/reader"}
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remote.ActorURI)).Unwrap()
+  if repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).IsOk() then t.Fatal("signed non-member read protected attachment") end
+  let _ = MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", community.ID, remote.ActorURI, alice.ActorURI)).Unwrap()
+  let _ = repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE community_members SET revoked_at=? WHERE community_id=? AND actor_uri=?", time.Now(), community.ID, remote.ActorURI)).Unwrap()
+  if repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).IsOk() || repo.ReadVerifiedActor(ctx, auth.Identity{ActorURI: "https://remote.example/actor"}, bindingID, false, transfer).IsOk() then t.Fatal("revoked Actor or server identity read protected attachment") end
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE post_id=? AND site_id=?", time.Now(), post.ID, site.ID)).Unwrap()
+  if repo.Read(ctx, alice, bindingID, false, transfer).IsOk() then t.Fatal("hidden attachment readable") end
+  let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=? AND site_id=?", post.ID, site.ID)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", community.ID, bob.ActorURI, alice.ActorURI)).Unwrap()
+  let _ = repo.Read(ctx, bob, bindingID, false, transfer).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE community_members SET revoked_at=? WHERE community_id=? AND actor_uri=?", time.Now(), community.ID, bob.ActorURI)).Unwrap()
+  if repo.Read(ctx, bob, bindingID, false, transfer).IsOk() then t.Fatal("revoked member read file") end
+  let _ = MutationResult(db.Exec("UPDATE media_uploads SET expires_at=?", time.Now().Add(0 as time.Duration - time.Hour))).Unwrap()
+  let _ = repo.Cleanup(ctx, time.Now(), 100).Unwrap()
+  let _ = repo.Read(ctx, alice, bindingID, false, transfer).Unwrap()
+  let empty: Slice[String] = []
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let cleared = BindPostMedia(ctx, tx, site.ID, alice, post.ID, empty)
+    if cleared.IsErr() then return Err(cleared.UnwrapErr()) end
+    Ok(())
+  end).Unwrap()
+  if repo.Read(ctx, alice, bindingID, false, transfer).IsOk() then t.Fatal("inactive binding readable") end
+  if repo.Cleanup(ctx, time.Now(), 100).Unwrap() != 1 then t.Fatal("unreferenced source not cleaned") end
+  if repo.Cleanup(ctx, time.Now(), 100).Unwrap() != 0 then t.Fatal("cleanup not idempotent") end
+  # A process can die after publication but before committing readiness. Lease
+  # expiry removes both namespaces and releases the durable quota reservation.
+  let abandoned = repo.Reserve(ctx, alice, "post", "crash").Unwrap()
+  let _ = mediaFS.Stream(ctx, abandoned.ID, strings.NewReader("partial") as io.Reader, 100i64).Unwrap()
+  let _ = mediaFS.Publish(abandoned.ID, "local").Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE media_uploads SET lease_until=? WHERE id=?", time.Now().Add(0 as time.Duration - time.Minute), abandoned.ID)).Unwrap()
+  let crashCleaned = repo.Cleanup(ctx, time.Now(), 100).Unwrap()
+  if crashCleaned != 1 || mediaFS.Root.Lstat("local/" + abandoned.ID).IsOk() then t.Fatalf("crash-stage reservation/source not reconciled: cleaned=%d exists=%t", crashCleaned, mediaFS.Root.Lstat("local/" + abandoned.ID).IsOk()) end
+  # Failed unlink leaves a quota-bearing row for a later retry.
+  let failed = repo.Reserve(ctx, alice, "post", "failure").Unwrap()
+  let _ = mediaFS.Root.Mkdir("local/" + failed.ID, 448 as os.FileMode).Unwrap()
+  let _ = os.WriteFile(settings.Root + "/local/" + failed.ID + "/obstruction", "x" as Slice[Byte], 384 as os.FileMode).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE media_uploads SET lease_until=? WHERE id=?", time.Now().Add(0 as time.Duration - time.Minute), failed.ID)).Unwrap()
+  if repo.Cleanup(ctx, time.Now(), 100).IsOk() || !QueryExists(db.Table("media_uploads").Where("id=?", failed.ID)).Unwrap() then t.Fatal("failed unlink lost retry reservation") end
+  let _ = mediaFS.Root.Remove("local/" + failed.ID + "/obstruction").Unwrap()
+  if repo.Cleanup(ctx, time.Now(), 100).Unwrap() != 1 then t.Fatal("failed unlink did not retry") end
+  let orphan: String = "abcdefghijklmnop"
+  let _ = mediaFS.Stream(ctx, orphan, strings.NewReader("orphan") as io.Reader, 100i64).Unwrap()
+  let _ = mediaFS.Publish(orphan, "local").Unwrap()
+  let old = time.Now().Add(0 as time.Duration - time.Hour)
+  let _ = os.Chtimes(settings.Root + "/local/" + orphan, old, old).Unwrap()
+  let reconciled = repo.ReconcileOrphans(ctx, time.Now().Add(0 as time.Duration - 11 as time.Duration * time.Minute), "", 100).Unwrap()
+  if reconciled.Deleted != 1 || !reconciled.Done then t.Fatal("rowless orphan not removed") end
+  # Concurrent reservations fit only one upload despite a higher per-account
+  # quota. No shared in-memory counter is involved.
+  var tight = settings
+  tight.SiteQuotaBytes = settings.MaxFileBytes + settings.PreviewDimension * settings.PreviewDimension * 5 + 65536
+  let quota = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: tight}
+  let results = makeMediaReservationRace(ctx, quota, alice, bob)
+  if results != 1 then t.Fatal("concurrent uploads bypassed site quota") end
+end
+
+func makeMediaReservationRace(ctx: context.Context, repo: MediaRepository, alice: auth.Identity, bob: auth.Identity) -> Int
+  let reserve = func(actor: auth.Identity) -> Bool
+    repo.Reserve(ctx, actor, "post", "file").IsOk()
+  end
+  go[Int] { code: "var wg sync.WaitGroup; var mu sync.Mutex; successes:=0; for _,actor:=range []auth.Identity{{alice},{bob}} { actor:=actor; wg.Add(1); go func(){defer wg.Done(); result:={reserve}(actor); mu.Lock(); if result {successes++}; mu.Unlock()}() }; wg.Wait(); return successes"; in reserve = reserve; in alice = alice; in bob = bob }
+end
+
+func TestPostgresMediaAvatarReplacement(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "avatar", Origin: "https://avatar.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
+  let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password-long").Unwrap()
+  let settings = MediaTestSettings(t)
+  let mediaFS = OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let repo = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
+  let upload = repo.Upload(ctx, alice, "avatar", "avatar.png", "image/png", bytes.NewReader(MediaTestPNG(16, 16)) as io.Reader).Unwrap()
+  if RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let result = repo.BindAvatarTx(ctx, tx, bob, upload.ID)
+    if result.IsErr() then return Err(result.UnwrapErr()) end
+    Ok(())
+  end).IsOk() then t.Fatal("another account reused avatar") end
+  var url: String = ""
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    url = repo.BindAvatarTx(ctx, tx, alice, upload.ID).Unwrap()
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
+  end).Unwrap()
+  let noop = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), String] Ok(()) end
+  let _ = repo.Read(ctx, auth.Identity{}, strings.TrimPrefix(url, "/api/v1/media/"), true, noop).Unwrap()
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let _ = repo.BindAvatarTx(ctx, tx, alice, "").Unwrap()
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, UpdatedAt: time.Now()})
+  end).Unwrap()
+  if repo.Read(ctx, auth.Identity{}, strings.TrimPrefix(url, "/api/v1/media/"), true, noop).IsOk() then t.Fatal("removed avatar public") end
+end

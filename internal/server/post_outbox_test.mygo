@@ -1,0 +1,35 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "outbox", "Outbox", "federated", "eligible_users", "eligible_users").Unwrap()
+  let post = PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "**before**", ContentFormat: "markdown"}).Unwrap()
+  let handler = Handler(settings, db)
+  let cookies = login(handler, site.Origin, "alice", "alice-password")
+  let _ = storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")).Unwrap()
+  let _ = storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")).Unwrap()
+  let failure = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Topic","body":"**after**"}`})
+  if failure.Code == 200 || storage.LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Body != "**before**" then t.Fatal("outbox failure committed post mutation") end
+  let _ = storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")).Unwrap()
+  let updated = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Topic","body":"**after**"}`})
+  if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") then t.Fatal("rich update failed after outbox recovery") end
+  let removed = doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies)})
+  if removed.Code != 204 then t.Fatal("rich delete failed") end
+  let kinds: Slice[String] = []
+  let _ = storage.MutationResult(db.Raw("SELECT kind FROM activities WHERE actor_uri=? ORDER BY CASE kind WHEN 'Create' THEN 1 WHEN 'Update' THEN 2 WHEN 'Delete' THEN 3 ELSE 4 END", alice.ActorURI).Scan(Ref.new(kinds))).Unwrap()
+  if strings.Join(kinds, ",") != "Create,Update,Delete" then t.Fatalf("missing durable post lifecycle activities: %v", kinds) end
+end

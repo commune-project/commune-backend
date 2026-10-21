@@ -1,0 +1,136 @@
+package server
+
+import context "go:context"
+import time "go:time"
+import base64 "go:encoding/base64"
+import slog "go:log/slog"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import delivery "github.com/commune-project/commune-backend/internal/delivery"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+
+func ParticipationWait(ctx: context.Context, seconds: Int) -> Bool
+  let timer = time.NewTimer(seconds as time.Duration * time.Second)
+  go[()] { code: "defer {timer}.Stop()"; in timer = timer }
+  go[Bool] {
+    code: "select { case <-{ctx}.Done(): return false; case <-{timer}.C: return true }"
+    in ctx = ctx
+    in timer = timer
+  }
+end
+
+func ParticipationBatch(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], kind: String, cursors: Slice[String]) -> Result[(), String]
+  let limits = settings.ParticipationWorkers
+  if kind == "delivery" then
+    let result = delivery.RunOnce(ctx, db, settings, delivery.Limits{BatchSize: limits.BatchSize, LeaseSeconds: limits.LeaseSeconds as Int64, MaxAttempts: limits.MaxAttempts as Int64, BackoffSeconds: limits.RetryBaseSeconds as Int64}, func(target: String, actor: String, key: String, payload: Slice[Byte]) -> Result[Int, String]
+      delivery.PostContext(ctx, target, actor, key, payload)
+    end)
+    if result.IsErr() then return Err(result.UnwrapErr()) end
+    return Ok(())
+  end
+  if kind == "notifications" then
+    return storage.ProjectNotifications(ctx, db, limits.BatchSize)
+  end
+  if kind == "mail" then
+    if settings.Registration.OutboxSecret == "" then
+      return Ok(())
+    end
+    let key = base64.StdEncoding.DecodeString(settings.Registration.OutboxSecret)
+    if key.IsErr() || key.Unwrap().Len() != 32 then
+      return Err("mail key unavailable")
+    end
+    let result = storage.DeliverVerificationMailWithRetry(ctx, db, key.Unwrap(), time.Now(), limits.BatchSize, limits.LeaseSeconds, limits.MaxAttempts, limits.RetryBaseSeconds, limits.RetryMaxSeconds, func(recipient: String, link: String) -> Result[(), String]
+      SendVerificationSMTP(settings.SMTP, recipient, link)
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    return Ok(())
+  end
+  if storage.QueryFailed(db.WithContext(ctx).Exec("DELETE FROM pending_registrations WHERE id IN (SELECT id FROM pending_registrations WHERE expires_at<=? ORDER BY expires_at,id LIMIT ? FOR UPDATE SKIP LOCKED)", time.Now(), limits.BatchSize)) || storage.QueryFailed(db.WithContext(ctx).Exec("DELETE FROM registration_rate_limits WHERE ctid IN (SELECT ctid FROM registration_rate_limits WHERE window_start<? LIMIT ? FOR UPDATE SKIP LOCKED)", time.Now().Add((-48) as time.Duration * time.Hour), limits.BatchSize)) then
+    return Err("registration cleanup unavailable")
+  end
+  if !settings.Media.Enabled then
+    return Ok(())
+  end
+  let files = storage.OpenMediaFiles(settings.Media)
+  if files.IsErr() then
+    return Err("media unavailable")
+  end
+  let root = files.Unwrap().Root
+  go[()] { code: "defer {root}.Close()"; in root = root }
+  var index: Int = 0
+  while index < settings.Sites.Len()
+    let site = settings.Sites.Get(index).Unwrap()
+    let repository = storage.MediaRepository{DB: db, SiteID: site.ID, Files: files.Unwrap(), Settings: settings.Media}
+    let cleaned = repository.Cleanup(ctx, time.Now(), limits.BatchSize)
+    let cached = repository.CleanupPrivateCache(ctx, time.Now(), limits.BatchSize)
+    if cleaned.IsErr() || cached.IsErr() then
+      return Err("media cleanup unavailable")
+    end
+    let retention = if settings.Media.TemporaryRetentionSeconds < 600 then 600 else settings.Media.TemporaryRetentionSeconds end
+    let cutoff = time.Now().Add((-retention) as time.Duration * time.Second)
+    let reconciled = repository.ReconcileOrphans(ctx, cutoff, cursors.Get(index).UnwrapOr(""), limits.BatchSize)
+    if reconciled.IsErr() then
+      return Err(reconciled.UnwrapErr())
+    end
+    cursors.Set(index, if reconciled.Unwrap().Done then "" else reconciled.Unwrap().Next end)
+    index = index + 1
+  end
+  Ok(())
+end
+
+# Each worker owns its loop and exits via the lifetime context; durable database
+# claims coordinate multiple processes without an in-memory leader.
+func StartParticipationWorkers(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> Chan[()]
+  let finished = concurrency.MakeChan[()](1)
+  let workers = settings.ParticipationWorkers
+  if !workers.Enabled then
+    finished.Send(())
+    return finished
+  end
+  let counts: Slice[Int] = [workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, settings.Runtime.Workers]
+  let kinds: Slice[String] = ["mail", "notifications", "media", "delivery"]
+  let signals = concurrency.MakeChan[()](workers.MailWorkers + workers.NotificationWorkers + workers.MediaWorkers + settings.Runtime.Workers)
+  var total: Int = 0
+  var group: Int = 0
+  while group < kinds.Len()
+    let kind = kinds.Get(group).Unwrap()
+    let count = counts.Get(group).Unwrap()
+    var number: Int = 0
+    while number < count
+      total = total + 1
+      number = number + 1
+      let run = func() -> ()
+        let cursors = settings.Sites.Map(func(site: config.Site) -> String
+          ""
+        end)
+        var running: Bool = true
+        while running
+          let (bounded, cancel) = context.WithTimeout(ctx, workers.LeaseSeconds as time.Duration * time.Second)
+          let result = ParticipationBatch(bounded, settings, db, kind, cursors)
+          cancel()
+          if result.IsErr() then
+            slog.Warn("participation worker batch failed", "worker", kind)
+          end
+          let interval = if kind == "media" then settings.Media.CleanupIntervalSeconds else workers.PollIntervalSeconds end
+          running = ParticipationWait(ctx, interval)
+        end
+        signals.Send(())
+      end
+      concurrency.Spawn(run)
+    end
+    group = group + 1
+  end
+  let awaitAll = func() -> ()
+    var remaining = total
+    while remaining > 0
+      let _ = signals.Receive()
+      remaining = remaining - 1
+    end
+    finished.Send(())
+  end
+  concurrency.Spawn(awaitAll)
+  finished
+end

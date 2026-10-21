@@ -1,0 +1,151 @@
+package server
+
+import context "go:context"
+import time "go:time"
+import json "go:encoding/json"
+import url "go:net/url"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import content "github.com/commune-project/commune-backend/internal/content"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+
+# encoding/json preserves omitted/null versus an explicit empty JSON array.
+func PostAttachmentIDsMissing(ids: Slice[String]) -> Bool
+  go[Bool] {
+    code: `{ids} == nil`
+    in ids = ids
+  }
+end
+
+# No network occurs before the caller's publishing/editing access is checked.
+# One deadline covers all discoveries; duplicate spellings, including failed
+# discoveries, share one attempt. Media URLs never enter this path.
+func ResolvePostMentions(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, identity: auth.Identity, communityID: String, body: String, format: String, editing: Bool) -> Result[Slice[storage.ResolvedPostMention], String]
+  ResolvePostMentionsWith(ctx, settings, db, site, identity, communityID, body, format, editing, DiscoverMentionActor)
+end
+
+func ResolvePostMentionsWith(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, identity: auth.Identity, communityID: String, body: String, format: String, editing: Bool, discover: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String, String) -> Result[storage.ResolvedPostMention, String]) -> Result[Slice[storage.ResolvedPostMention], String]
+  var resolved: Slice[storage.ResolvedPostMention] = []
+  let source = strings.TrimSpace(body)
+  if (source as Slice[Byte]).Len() > settings.Rendering.MaxSourceBytes then return Err("invalid post input") end
+  if format != "markdown" then
+    return Ok(resolved)
+  end
+  let candidates = content.ExtractMentionCandidates(source, format)
+  if candidates.IsErr() || candidates.Unwrap().Len() > settings.Rendering.MaxMentions || (source as Slice[Byte]).Len() > settings.Rendering.MaxSourceBytes then
+    return Err("invalid post input")
+  end
+  if candidates.Unwrap().Len() == 0 then
+    return Ok(resolved)
+  end
+  let access = storage.CommunityRepository{DB: db, SiteID: site.ID}.CheckAuthorship(ctx, communityID, identity, false)
+  if access.IsErr() then
+    return Err(access.UnwrapErr())
+  end
+  if (!editing && !access.Unwrap().CanPost()) || (editing && !access.Unwrap().CanEditBody(identity.ActorURI)) then
+    return Err("forbidden")
+  end
+  let (bounded, cancel) = context.WithTimeout(ctx, settings.Rendering.MentionTimeoutSeconds as time.Duration * time.Second)
+  var attempted: Slice[String] = []
+  var cache: Slice[storage.ResolvedPostMention] = []
+  var discoveries = 0
+  var index = 0
+  while index < candidates.Unwrap().Len()
+    let candidate = candidates.Unwrap().Get(index).Unwrap()
+    index = index + 1
+    if candidate.Domain == "" then
+      continue
+    end
+    let key = strings.ToLower(candidate.Username) + "@" + candidate.Domain
+    if !attempted.Contains(key) then
+      attempted = attempted.Append(key)
+      let local = candidate.Domain == strings.TrimPrefix(site.Origin, "https://") || site.Aliases.Contains(candidate.Domain)
+      if local then
+        let person = storage.LoadLocalPerson(bounded, db, site.ID, strings.ToLower(candidate.Username))
+        if person.IsOk() && person.Unwrap().IsSome() then
+          cache = cache.Append(storage.ResolvedPostMention{ActorURI: person.Unwrap().Unwrap().URI, InboxURI: person.Unwrap().Unwrap().Inbox(), Username: candidate.Username, Domain: candidate.Domain})
+        end
+      else
+        if access.Unwrap().Community.FederationMode == "federated" && discoveries < settings.Rendering.MaxRemoteDiscoveries then
+          discoveries = discoveries + 1
+          let blocked = storage.SiteRepository{DB: db, SiteID: site.ID}.IsBlocked(bounded, "https://" + candidate.Domain + "/")
+          if blocked.IsErr() || blocked.Unwrap() then
+            continue
+          end
+          let found = discover(bounded, settings, db, site, candidate.Username, candidate.Domain)
+          if found.IsOk() then
+            cache = cache.Append(found.Unwrap())
+          end
+        end
+      end
+    end
+    let matched = cache.Filter(func(item: storage.ResolvedPostMention) -> Bool
+      strings.EqualFold(item.Username, candidate.Username) && item.Domain == candidate.Domain
+    end)
+    if matched.Len() == 1 then
+      var item = matched.Get(0).Unwrap()
+      item.Start = candidate.Start
+      item.End = candidate.End
+      resolved = resolved.Append(item)
+    end
+  end
+  cancel()
+  Ok(resolved)
+end
+
+# Mention discovery deliberately refuses redirects. This lets every outgoing
+# request pass both site block checks and the existing SSRF-bounded fetcher.
+func FetchMentionDocument(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, uri: String) -> Result[federation.FetchResult, String]
+  let blocked = storage.SiteRepository{DB: db, SiteID: site.ID}.IsBlocked(ctx, uri)
+  if blocked.IsErr() || blocked.Unwrap() then
+    return Err("unresolved mention")
+  end
+  var limits = FetchLimitsFrom(settings)
+  limits.MaxRedirects = 0
+  if limits.MaxBytes > 65536 then
+    limits.MaxBytes = 65536
+  end
+  let fetched = federation.Fetch(ctx, uri, limits)
+  if fetched.IsErr() || fetched.Unwrap().Status != 200 || federation.HasDuplicateKeys(fetched.Unwrap().Body) then
+    return Err("unresolved mention")
+  end
+  fetched
+end
+
+func DiscoverMentionActor(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, username: String, domain: String) -> Result[storage.ResolvedPostMention, String]
+  DiscoverMentionActorWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
+end
+
+func DiscoverMentionActorWith(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, username: String, domain: String, fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, String]) -> Result[storage.ResolvedPostMention, String]
+  let account = "acct:" + username + "@" + domain
+  let finger = fetcher(ctx, settings, db, site, "https://" + domain + "/.well-known/webfinger?resource=" + url.QueryEscape(account))
+  if finger.IsErr() then
+    return Err("unresolved mention")
+  end
+  let document = federation.WebFingerDocument{}
+  if json.Unmarshal(finger.Unwrap().Body, Ref.new(document)).IsErr() || !strings.EqualFold(document.Subject, account) then
+    return Err("unresolved mention")
+  end
+  let links = document.Links.Filter(func(link: federation.WebFingerLink) -> Bool
+    link.Rel == "self" && federation.WantsActivityJSON(link.Type) && storage.CanonicalObjectURI(link.Href)
+  end)
+  if links.Len() != 1 then
+    return Err("unresolved mention")
+  end
+  let uri = links.Get(0).Unwrap().Href
+  if settings.Sites.Any(func(local: config.Site) -> Bool strings.HasPrefix(uri, local.Origin + "/") end) then
+    return Err("unresolved mention")
+  end
+  let fetched = fetcher(ctx, settings, db, site, uri)
+  if fetched.IsErr() || !federation.WantsActivityJSON(fetched.Unwrap().ContentType) then
+    return Err("unresolved mention")
+  end
+  let actor = federation.ActorRepresentation{}
+  if json.Unmarshal(fetched.Unwrap().Body, Ref.new(actor)).IsErr() || actor.ID != uri || actor.Type != "Person" || !strings.EqualFold(actor.PreferredUsername, username) || !storage.CanonicalObjectURI(actor.Inbox) then
+    return Err("unresolved mention")
+  end
+  Ok(storage.ResolvedPostMention{ActorURI: uri, InboxURI: actor.Inbox, Username: username, Domain: domain})
+end

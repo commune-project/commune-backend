@@ -1,0 +1,116 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import json "go:encoding/json"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestMentionDiscoveryCanonicalValidation(t: Ref[testing.T]) -> ()
+  let fixture = transport.New().Unwrap()
+  t.Cleanup(func() -> () let _ = fixture.DB.Close() end)
+  let connection = transport.ORM(fixture.DB).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  var calls = 0
+  var actorID = "https://remote.example/users/bob"
+  let fetcher = func(ctx: context.Context, options: config.Config, db: Ref[gorm.DB], current: config.Site, uri: String) -> Result[federation.FetchResult, String]
+    calls = calls + 1
+    if strings.Contains(uri, "/.well-known/webfinger?") then
+      if !strings.Contains(uri, "acct%3Abob%40remote.example") then
+        t.Fatal("WebFinger account was not query escaped")
+      end
+      Ok(federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: `{"subject":"acct:bob@remote.example","links":[{"rel":"self","type":"application/activity+json","href":"https://remote.example/users/bob"}]}` as Slice[Byte]})
+    else
+      Ok(federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: (`{"id":"` + actorID + `","type":"Person","preferredUsername":"bob","inbox":"https://remote.example/inbox"}`) as Slice[Byte]})
+    end
+  end
+  let actor = DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher).Unwrap()
+  if actor.ActorURI != actorID || calls != 2 then
+    t.Fatal("canonical WebFinger/Actor chain was not resolved")
+  end
+  actorID = "https://other.example/forged"
+  if DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher).IsOk() then
+    t.Fatal("Actor ID differing from WebFinger self identity accepted")
+  end
+  fixture.Mock.ExpectationsWereMet().Unwrap()
+end
+
+func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.Rendering.MaxRemoteDiscoveries = 1
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = storage.AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let local = communities.Create(ctx, site, alice, "local", "Local", "local_only", "members", "members").Unwrap()
+  let _ = communities.SetMember(ctx, local.ID, alice, false, bob.ActorURI, true).Unwrap()
+  var discoveries = 0
+  let discover = func(bounded: context.Context, options: config.Config, connection: Ref[gorm.DB], current: config.Site, username: String, domain: String) -> Result[storage.ResolvedPostMention, String]
+    discoveries = discoveries + 1
+    Ok(storage.ResolvedPostMention{ActorURI: "https://remote.example/users/" + username, InboxURI: "https://remote.example/inbox", Username: username, Domain: domain})
+  end
+  let source = "@remote@remote.example @remote@remote.example @second@second.example `@code@third.example` ![x](https://fourth.example/@image)"
+  let resolved = ResolvePostMentionsWith(ctx, settings, db, site, alice, open.ID, source, "markdown", false, discover).Unwrap()
+  if discoveries != 1 || resolved.Len() != 2 then
+    t.Fatal("remote discovery exceeded budget or repeated duplicate requests")
+  end
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let remotePost = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ContentFormat: "markdown", Mentions: resolved}).Unwrap()
+  let previousMention = storage.PostMentionRecord{}
+  let _ = storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(Ref.new(previousMention))).Unwrap()
+  let _ = posts.Edit(ctx, remotePost.ID, alice, false, "Remote", source).Unwrap()
+  let retainedMention = storage.PostMentionRecord{}
+  let _ = storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(Ref.new(retainedMention))).Unwrap()
+  if retainedMention.ID != previousMention.ID then
+    t.Fatal("unavailable discovery retired/renotified unchanged remote mention")
+  end
+  if ResolvePostMentionsWith(ctx, settings, db, site, alice, local.ID, source, "markdown", false, discover).Unwrap().Len() != 0 || discoveries != 1 then
+    t.Fatal("local-only post caused remote lookup")
+  end
+  let _ = storage.MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)).Unwrap()
+  let _ = ResolvePostMentionsWith(ctx, settings, db, site, alice, open.ID, "@x@blocked.example", "markdown", false, discover).Unwrap()
+  if discoveries != 1 then
+    t.Fatal("blocked account domain caused remote lookup")
+  end
+  let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, alice).Unwrap()
+  let projected = BrowserPosts(ctx, browser, viewer, [remotePost]).Unwrap().Get(0).Unwrap()
+  if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 || !strings.Contains(projected.BodyHTML, "@second@second.example") then
+    t.Fatal("resolved mentions were not linked or unresolved text disappeared")
+  end
+  let handler = Handler(settings, db)
+  let cookies = login(handler, site.Origin, "alice", "alice-password")
+  let published = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + local.ID + "/topics", Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Rich","body":"中文 **内容** @bob ` + "`@alice`" + `","content_format":"markdown"}`})
+  if published.Code != 201 then
+    t.Fatalf("rich publication failed: %s", published.Body.String())
+  end
+  let post = browserPost(t, published)
+  if post.ContentFormat != "markdown" || !strings.Contains(post.BodyHTML, "<strong>内容</strong>") || !strings.Contains(post.BodyHTML, "href=\"" + bob.ActorURI + "\"") then
+    t.Fatalf("mutation response lacks safe rich content: %s", published.Body.String())
+  end
+  let sourceResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID + "/source", cookies, 200)
+  let editing = PostSource{}
+  let _ = json.Unmarshal(sourceResponse.Body.Bytes(), Ref.new(editing)).Unwrap()
+  if editing.Body != "中文 **内容** @bob `@alice`" || editing.ContentFormat != "markdown" then
+    t.Fatal("source response lost original Markdown")
+  end
+  let patched = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Rich","body":"still **Markdown** @bob"}`})
+  if patched.Code != 200 || browserPost(t, patched).ContentFormat != "markdown" then
+    t.Fatalf("omitted edit format did not preserve Markdown: %s", patched.Body.String())
+  end
+  let invalid = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: `{"title":"Rich","body":"![x](/api/v1/media/foreign)","content_format":"markdown"}`})
+  if invalid.Code != 400 then
+    t.Fatalf("unbound upload reference did not fail with 400: %s", invalid.Body.String())
+  end
+end

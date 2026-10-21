@@ -1,0 +1,256 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import time "go:time"
+import rand "go:crypto/rand"
+import io "go:io"
+import os "go:os"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct PrivateMediaCache
+  ID: String `gorm:"column:id"`
+  SiteID: String `gorm:"column:site_id"`
+  PostID: String `gorm:"column:post_id"`
+  OriginURI: String `gorm:"column:origin_uri"`
+  OriginVersion: String `gorm:"column:origin_version"`
+  AccessScope: String `gorm:"column:access_scope"`
+  Generation: String `gorm:"column:generation"`
+  State: String `gorm:"column:state"`
+  FetchedAt: sql.NullTime `gorm:"column:fetched_at"`
+  ExpiresAt: sql.NullTime `gorm:"column:expires_at"`
+  SizeBytes: Int64 `gorm:"column:size_bytes"`
+  LeaseToken: String `gorm:"column:lease_token"`
+  LeaseUntil: time.Time `gorm:"column:lease_until"`
+  ErrorState: String `gorm:"column:error_state"`
+end
+
+# Call only while accepting authoritative attachment metadata, in that object's
+# transaction. This rejects public objects and local-only content outright.
+func RegisterPrivateMedia(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, postID: String, originURI: String, version: String) -> Result[PrivateMediaCache, String]
+  if !CanonicalObjectURI(originURI) || version == "" || (version as Slice[Byte]).Len() > 512 then
+    return Err("invalid media binding")
+  end
+  let post = PostRecord{}
+  let loaded = tx.WithContext(ctx).Raw("SELECT p.* FROM posts p JOIN communities c ON c.id=p.community_id JOIN actors author ON author.uri=p.author_actor_uri JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=? WHERE p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND author.local_site_id IS NULL AND c.federation_mode='federated' AND c.read_policy='members' FOR SHARE OF p,c,sp", siteID, postID).Scan(Ref.new(post))
+  if QueryFailed(loaded) then
+    return Err("media unavailable")
+  end
+  if loaded.RowsAffected != 1i64 then
+    return Err("not found")
+  end
+  let id = rand.Text()
+  let inserted = tx.Exec("INSERT INTO media_private_cache(id,site_id,post_id,origin_uri,origin_version,access_scope,generation,state) VALUES (?,?,?,?,?,?,?,'missing') ON CONFLICT(site_id,post_id,origin_uri,origin_version,access_scope) DO UPDATE SET error_state=''", id, siteID, postID, originURI, version, post.CommunityID, rand.Text())
+  if QueryFailed(inserted) then
+    return Err("media unavailable")
+  end
+  let row = PrivateMediaCache{}
+  let found = tx.Table("media_private_cache").Where("site_id=? AND post_id=? AND origin_uri=? AND origin_version=? AND access_scope=?", siteID, postID, originURI, version, post.CommunityID).Find(Ref.new(row))
+  if QueryFailed(found) || found.RowsAffected != 1i64 then
+    return Err("media unavailable")
+  end
+  Ok(row)
+end
+
+impl MediaRepository
+  # Rechecks classification as well as authorization. Public reclassification
+  # never downloads, proxies, or serves an old private generation.
+  func AllowPrivateCache(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, row: PrivateMediaCache) -> Result[(), String]
+    if row.SiteID != self.SiteID || identity.SiteID != self.SiteID || identity.AccountID <= 0i64 || row.ErrorState == "invalidated" then
+      return Err("not found")
+    end
+    let allowed = self.AllowPost(ctx, tx, identity, row.PostID)
+    if allowed.IsErr() then
+      return allowed
+    end
+    let classified = QueryExists(tx.Table("posts AS p").Joins("JOIN communities c ON c.id=p.community_id JOIN actors author ON author.uri=p.author_actor_uri").Where("p.id=? AND c.id=? AND author.local_site_id IS NULL AND c.federation_mode='federated' AND c.read_policy='members'", row.PostID, row.AccessScope))
+    if classified.IsErr() then
+      return Err("media unavailable")
+    end
+    if !classified.Unwrap() then
+      return Err("not found")
+    end
+    Ok(())
+  end
+
+  # hit/miss false is private to the authenticated integration caller. Each
+  # successful transfer holds a shared metadata lock, blocking cleaner unlink.
+  func ReadPrivateCache(self: MediaRepository, ctx: context.Context, identity: auth.Identity, id: String, work: func(PrivateMediaCache, Ref[os.File]) -> Result[(), String]) -> Result[Bool, String]
+    var hit: Bool = false
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let row = PrivateMediaCache{}
+      let loaded = tx.Raw("SELECT * FROM media_private_cache WHERE id=? AND site_id=? FOR SHARE", id, self.SiteID).Scan(Ref.new(row))
+      if QueryFailed(loaded) then
+        return Err("media unavailable")
+      end
+      if loaded.RowsAffected != 1i64 then
+        return Err("not found")
+      end
+      let allowed = self.AllowPrivateCache(ctx, tx, identity, row)
+      if allowed.IsErr() then
+        return allowed
+      end
+      if row.State != "ready" || !row.ExpiresAt.Valid || !row.ExpiresAt.Time.After(time.Now()) then
+        return Ok(())
+      end
+      let file = self.Files.Open("private-cache", row.Generation)
+      if file.IsErr() then
+        return Err("media unavailable")
+      end
+      let opened = file.Unwrap()
+      go[()] { code: "defer {opened}.Close()"; in opened = opened }
+      let transferred = work(row, opened)
+      if transferred.IsErr() then
+        return transferred
+      end
+      hit = true
+      Ok(())
+    end)
+    if result.IsErr() then
+      return Err(result.UnwrapErr())
+    end
+    Ok(hit)
+  end
+
+  # Mandatory federation callback must recheck compatibility and origin access,
+  # sign as identity.ActorURI, and use the controlled federation network client.
+  # It is never invoked for public metadata and has no anonymous fallback here.
+  func FetchPrivateCache(self: MediaRepository, ctx: context.Context, identity: auth.Identity, id: String, fetch: func(context.Context, auth.Identity, PrivateMediaCache) -> Result[io.ReadCloser, String]) -> Result[(), String]
+    var claimed = PrivateMediaCache{}
+    let token = rand.Text()
+    let lease = time.Now().Add(10 as time.Duration * time.Minute)
+    let reserve = self.Settings.MaxFileBytes as Int64 + (self.Settings.PreviewDimension * self.Settings.PreviewDimension * 4 + 65536) as Int64
+    let claim = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let site: String = ""
+      if QueryFailed(tx.Raw("SELECT id FROM sites WHERE id=? FOR UPDATE", self.SiteID).Scan(Ref.new(site))) then
+        return Err("media unavailable")
+      end
+      let row = PrivateMediaCache{}
+      let loaded = tx.Raw("SELECT * FROM media_private_cache WHERE id=? AND site_id=? FOR UPDATE", id, self.SiteID).Scan(Ref.new(row))
+      if QueryFailed(loaded) then
+        return Err("media unavailable")
+      end
+      if loaded.RowsAffected != 1i64 then
+        return Err("not found")
+      end
+      let allowed = self.AllowPrivateCache(ctx, tx, identity, row)
+      if allowed.IsErr() then
+        return allowed
+      end
+      if row.State == "ready" && row.ExpiresAt.Valid && row.ExpiresAt.Time.After(time.Now()) then
+        return Ok(())
+      end
+      if row.State == "fetching" && row.LeaseUntil.After(time.Now()) then
+        return Err("media cache busy")
+      end
+      # Exclusive row lock proves no in-flight reader can hold these bytes.
+      if self.Files.Remove("private-cache", row.Generation).IsErr() || self.Files.Remove("temporary", row.Generation).IsErr() || self.Files.Remove("previews", row.Generation).IsErr() then
+        return Err("media unlink failed")
+      end
+      let used: Int64 = 0i64
+      if QueryFailed(tx.Raw("SELECT COALESCE((SELECT sum(reserved_bytes) FROM media_uploads WHERE site_id=?),0)+COALESCE((SELECT sum(size_bytes) FROM media_private_cache WHERE site_id=? AND id<>?),0)", self.SiteID, self.SiteID, row.ID).Scan(Ref.new(used))) then
+        return Err("media unavailable")
+      end
+      if reserve > self.Settings.SiteQuotaBytes as Int64 - used then
+        return Err("media quota exceeded")
+      end
+      row.Generation = rand.Text()
+      row.LeaseToken = token
+      row.LeaseUntil = lease
+      row.State = "fetching"
+      claimed = row
+      MutationResult(tx.Exec("UPDATE media_private_cache SET state='fetching',generation=?,lease_token=?,lease_until=?,size_bytes=?,fetched_at=NULL,expires_at=NULL,error_state='' WHERE id=?", row.Generation, token, lease, reserve, row.ID))
+    end)
+    if claim.IsErr() then
+      return claim
+    end
+    if claimed.ID == "" then
+      return Ok(())
+    end
+    let (fetchCtx, cancel) = context.WithTimeout(ctx, 5 as time.Duration * time.Minute)
+    go[()] { code: "defer {cancel}()"; in cancel = cancel }
+    let response = fetch(fetchCtx, identity, claimed)
+    if response.IsErr() then
+      let _ = self.FailPrivateCache(context.Background(), claimed, "origin denied or unavailable")
+      return Err("protected media fetch failed")
+    end
+    let body = response.Unwrap()
+    go[()] { code: "defer {body}.Close()"; in body = body }
+    let streamed = self.Files.Stream(fetchCtx, claimed.Generation, body as io.Reader, self.Settings.MaxFileBytes as Int64)
+    if streamed.IsErr() then
+      let _ = self.FailPrivateCache(context.Background(), claimed, "transfer failed")
+      return Err(streamed.UnwrapErr())
+    end
+    let inspected = self.Files.InspectContext(fetchCtx, claimed.Generation, "", "post", self.Settings)
+    if inspected.IsErr() then
+      let _ = self.FailPrivateCache(context.Background(), claimed, "media validation failed")
+      return Err(inspected.UnwrapErr())
+    end
+    let finalized = RunTransaction(fetchCtx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let current = PrivateMediaCache{}
+      let found = tx.Raw("SELECT * FROM media_private_cache WHERE id=? AND state='fetching' AND generation=? AND lease_token=? AND lease_until>? FOR UPDATE", claimed.ID, claimed.Generation, token, time.Now()).Scan(Ref.new(current))
+      if QueryFailed(found) || found.RowsAffected != 1i64 then
+        return Err("media cache lease lost")
+      end
+      let allowed = self.AllowPrivateCache(fetchCtx, tx, identity, current)
+      if allowed.IsErr() then
+        return allowed
+      end
+      let published = self.Files.Publish(claimed.Generation, "private-cache")
+      if published.IsErr() then
+        return published
+      end
+      let now = time.Now()
+      MutationResult(tx.Exec("UPDATE media_private_cache SET state='ready',fetched_at=?,expires_at=?,size_bytes=?,lease_token='',lease_until=?,error_state='' WHERE id=? AND generation=?", now, now.Add(self.Settings.PrivateCacheRetentionSeconds as time.Duration * time.Second), streamed.Unwrap() + inspected.Unwrap().PreviewSize, now, claimed.ID, claimed.Generation))
+    end)
+    if finalized.IsErr() then
+      let _ = self.FailPrivateCache(context.Background(), claimed, "finalization failed")
+    end
+    finalized
+  end
+
+  func FailPrivateCache(self: MediaRepository, ctx: context.Context, row: PrivateMediaCache, reason: String) -> Result[(), String]
+    MutationResult(self.DB.WithContext(ctx).Exec("UPDATE media_private_cache SET state='deleting',lease_until=?,error_state=? WHERE id=? AND generation=? AND state='fetching' AND lease_token=?", time.Now(), reason, row.ID, row.Generation, row.LeaseToken))
+  end
+
+  # Accepting an authoritative attachment removal/version change must call this
+  # in the acceptance transaction. It never touches media_uploads/local files.
+  func InvalidatePrivateCache(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], postID: String, originURI: String) -> Result[(), String]
+    MutationResult(tx.WithContext(ctx).Exec("UPDATE media_private_cache SET state='deleting',lease_until=?,error_state='invalidated' WHERE site_id=? AND post_id=? AND (?='' OR origin_uri=?)", time.Now(), self.SiteID, postID, originURI, originURI))
+  end
+
+  func CleanupPrivateCache(self: MediaRepository, ctx: context.Context, now: time.Time, max: Int) -> Result[Int, String]
+    if max < 1 || max > 1000 then
+      return Err("invalid cleanup limit")
+    end
+    var count: Int = 0
+    while count < max
+      var found: Bool = false
+      let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+        let row = PrivateMediaCache{}
+        let selected = tx.Raw("SELECT * FROM media_private_cache WHERE site_id=? AND ((state='ready' AND expires_at<=?) OR (state='fetching' AND lease_until<=?) OR state='deleting') ORDER BY lease_until,id LIMIT 1 FOR UPDATE SKIP LOCKED", self.SiteID, now, now).Scan(Ref.new(row))
+        if QueryFailed(selected) then
+          return Err("media unavailable")
+        end
+        if selected.RowsAffected == 0i64 then
+          return Ok(())
+        end
+        found = true
+        if self.Files.Remove("private-cache", row.Generation).IsErr() || self.Files.Remove("temporary", row.Generation).IsErr() || self.Files.Remove("previews", row.Generation).IsErr() then
+          return Err("media unlink failed")
+        end
+        # Metadata and immutable origin identity survive every expiry cycle.
+        MutationResult(tx.Exec("UPDATE media_private_cache SET state='missing',size_bytes=0,lease_token='',lease_until=?,error_state=CASE WHEN state='deleting' THEN error_state ELSE '' END WHERE id=?", now, row.ID))
+      end)
+      if result.IsErr() then
+        return Err(result.UnwrapErr())
+      end
+      if !found then
+        return Ok(count)
+      end
+      count = count + 1
+    end
+    Ok(count)
+  end
+end

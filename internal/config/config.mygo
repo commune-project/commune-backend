@@ -8,6 +8,7 @@ import strings "go:strings"
 
 struct Site
   ID: String `json:"id"`
+  RegistrationEnabled: Bool `json:"registration_enabled"`
   Origin: String `json:"origin"`
   Aliases: Slice[String] `json:"aliases"`
 end
@@ -32,6 +33,11 @@ struct Federation
 end
 
 struct Input
+  Registration: Registration `json:"registration"`
+  SMTP: SMTP `json:"smtp"`
+  Media: Media `json:"media"`
+  Rendering: Rendering `json:"rendering"`
+  ParticipationWorkers: ParticipationWorkers `json:"participation_workers"`
   Sites: Slice[Site] `json:"sites"`
   DatabaseURL: String `json:"database_url"`
   TrustedProxies: Slice[String] `json:"trusted_proxies"`
@@ -40,6 +46,11 @@ struct Input
 end
 
 struct Config
+  Registration: Registration
+  SMTP: SMTP
+  Media: Media
+  Rendering: Rendering
+  ParticipationWorkers: ParticipationWorkers
   Sites: Slice[Site]
   DatabaseURL: String
   TrustedProxies: Slice[netip.Prefix]
@@ -69,6 +80,15 @@ func ValidateRuntime(runtime: Runtime) -> Result[(), String]
 end
 
 func Validate(input: Input) -> Result[Config, String]
+  let settingsResult = ResolveParticipationSecrets(ParticipationDefaults(input))
+  if settingsResult.IsErr() then
+    return Err(settingsResult.UnwrapErr())
+  end
+  let settings = settingsResult.Unwrap()
+  let participationResult = ValidateParticipation(settings)
+  if participationResult.IsErr() then
+    return Err(participationResult.UnwrapErr())
+  end
   if input.Sites.Len() == 0 then
     return Err("at least one site is required")
   end
@@ -142,7 +162,7 @@ func Validate(input: Input) -> Result[Config, String]
       authorities = authorities.Append(names.Get(j).Unwrap())
       j = j + 1
     end
-    sites = sites.Append(Site { ID: site.ID, Origin: origin, Aliases: aliases })
+    sites = sites.Append(Site { ID: site.ID, Origin: origin, Aliases: aliases, RegistrationEnabled: site.RegistrationEnabled })
     i = i + 1
   end
   var proxies: Slice[netip.Prefix] = []
@@ -155,7 +175,7 @@ func Validate(input: Input) -> Result[Config, String]
     proxies = proxies.Append(prefixResult.Unwrap().Masked())
     i = i + 1
   end
-  Ok(Config { Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation })
+  Ok(Config { Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation, Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers })
 end
 
 func ValidateFederation(federation: Federation) -> Result[(), String]

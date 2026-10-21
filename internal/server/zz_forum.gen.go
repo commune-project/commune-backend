@@ -32,20 +32,24 @@ type CommunityOutput struct {
 	Permissions    CommunityPermissions  "json:\"permissions\""
 }
 type PostOutput struct {
-	ID             string          "json:\"id\""
-	CommunityID    string          "json:\"community_id\""
-	ObjectType     string          "json:\"object_type\""
-	Title          string          "json:\"title,omitempty\""
-	Body           string          "json:\"body\""
-	AuthorActorURI string          "json:\"author_actor_uri\""
-	ParentID       string          "json:\"parent_id,omitempty\""
-	AuthoredAt     time.Time       "json:\"authored_at\""
-	UpdatedAt      time.Time       "json:\"updated_at\""
-	Deleted        bool            "json:\"deleted\""
-	LikeCount      int64           "json:\"like_count\""
-	LikedByMe      bool            "json:\"liked_by_me\""
-	ReplyCount     int64           "json:\"reply_count\""
-	Permissions    PostPermissions "json:\"permissions\""
+	ID             string                 "json:\"id\""
+	CommunityID    string                 "json:\"community_id\""
+	ObjectType     string                 "json:\"object_type\""
+	Title          string                 "json:\"title,omitempty\""
+	Body           string                 "json:\"body\""
+	BodyHTML       string                 "json:\"body_html\""
+	ContentFormat  string                 "json:\"content_format\""
+	AttachmentIDs  []string               "json:\"attachment_ids\""
+	Attachments    []PostAttachmentOutput "json:\"attachments\""
+	AuthorActorURI string                 "json:\"author_actor_uri\""
+	ParentID       string                 "json:\"parent_id,omitempty\""
+	AuthoredAt     time.Time              "json:\"authored_at\""
+	UpdatedAt      time.Time              "json:\"updated_at\""
+	Deleted        bool                   "json:\"deleted\""
+	LikeCount      int64                  "json:\"like_count\""
+	LikedByMe      bool                   "json:\"liked_by_me\""
+	ReplyCount     int64                  "json:\"reply_count\""
+	Permissions    PostPermissions        "json:\"permissions\""
 }
 type PostPage struct {
 	Items  []PostOutput "json:\"items\""
@@ -57,7 +61,19 @@ func CommunityDTO(record storage.CommunityRecord) CommunityOutput {
 	return CommunityOutput{ID: record.ID, Name: record.Name, Title: record.Title, Description: record.Description, FederationMode: record.FederationMode, ReadPolicy: record.ReadPolicy, PostPolicy: record.PostPolicy, ActorURI: record.ActorURI.String, HostSiteID: record.HostSiteID}
 }
 func PostDTO(record storage.PostRecord) PostOutput {
-	return PostOutput{ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
+	var __mygo_expr_0 string
+	if record.ContentFormat == "" || record.ContentFormat == "legacy" {
+		__mygo_expr_0 = "text"
+	} else {
+		__mygo_expr_0 = record.ContentFormat
+	}
+	var __mygo_expr_1 string
+	if record.ContentFormat == "" {
+		__mygo_expr_1 = "legacy"
+	} else {
+		__mygo_expr_1 = record.ContentFormat
+	}
+	return PostOutput{ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), BodyHTML: MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(record.Body, __mygo_expr_0), ""), ContentFormat: __mygo_expr_1, AttachmentIDs: []string{}, Attachments: []PostAttachmentOutput{}, AuthorActorURI: record.AuthorActorURI, ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid}
 }
 func WriteJSON[T any](w http.ResponseWriter, status int, value T) {
 	var __mygo_expr_1 Result[[]byte, error]
@@ -97,11 +113,11 @@ func FailStatus(reason string) int {
 		return 401
 	} else {
 	}
-	if reason == "invalid page" || reason == "invalid post input" || reason == "invalid community input" || reason == "invalid access policy" || reason == "invalid state" || reason == "invalid member" || reason == "invalid manager" {
+	if reason == "invalid page" || reason == "invalid post input" || reason == "invalid content format" || reason == "invalid media reference" || reason == "invalid media binding" || reason == "invalid community input" || reason == "invalid access policy" || reason == "invalid state" || reason == "invalid member" || reason == "invalid manager" {
 		return 400
 	} else {
 	}
-	if reason == "object version conflict" || reason == "object identity conflict" {
+	if reason == "object version conflict" || reason == "object identity conflict" || reason == "media binding conflict" {
 		return 409
 	} else {
 	}
@@ -215,6 +231,10 @@ func AuthorizeMutation(settings config.Config, session storage.AuthenticatedSess
 }
 func ForumRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	parts := Segments(request.URL.Path)
+	if ParticipationRoute(settings, db, site, w, request, parts) {
+		return
+	} else {
+	}
 	if BrowserReadRoute(settings, db, site, w, request, parts) {
 		return
 	} else {

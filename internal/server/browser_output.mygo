@@ -6,6 +6,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 struct CommunityViewerOutput
   IsMember: Bool `json:"is_member"`
@@ -82,7 +83,13 @@ func BrowserPosts(
   end)
   let views = repository.Views(ctx, viewer, communityIDs)
   let stats = repository.Stats(ctx, viewer, ids)
-  if views.IsErr() || stats.IsErr() then
+  let richStates = storage.LoadPostRichStates(ctx, repository.DB, ids)
+  var cached: Slice[storage.PrivateMediaCache] = []
+  let remoteMedia = records.Any(func(post: storage.PostRecord) -> Bool post.RichMetadata != "" end)
+  if remoteMedia && storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where("site_id=? AND post_id IN ? AND error_state<>'invalidated'", repository.SiteID, ids).Find(Ref.new(cached))).IsErr() then
+    return Err("media unavailable")
+  end
+  if views.IsErr() || stats.IsErr() || richStates.IsErr() then
     return Err("feed unavailable")
   end
   var index: Int = 0
@@ -102,6 +109,20 @@ func BrowserPosts(
     let active = !record.DeletedAt.Valid
     let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
     var output = PostDTO(record)
+    let rich = richStates.Unwrap().Filter(func(state: storage.PostRichState) -> Bool state.ID == record.ID end)
+    if rich.Len() != 1 then
+      return Err("post content unavailable")
+    end
+    let rendered = storage.RenderStoredPost(record, rich.Get(0).Unwrap(), false)
+    let media = storage.PostRichMedia(rich.Get(0).Unwrap())
+    if rendered.IsErr() || media.IsErr() then
+      return Err("post content unavailable")
+    end
+    output.BodyHTML = rendered.Unwrap()
+    output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String item.UploadID end)
+    let attachments = BrowserPostMedia(record, media.Unwrap(), access.Community.ReadPolicy == "members", cached, output)
+    if attachments.IsErr() then return Err(attachments.UnwrapErr()) end
+    output = attachments.Unwrap()
     let stat = counts.Get(0).Unwrap()
     output.LikeCount = stat.LikeCount
     output.LikedByMe = viewer.Verified && stat.LikedByMe

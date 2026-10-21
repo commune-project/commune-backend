@@ -36,7 +36,7 @@ func SignedRequester(db *gorm.DB, settings config.Config, request *http.Request)
 		return Err[auth.Identity, string]("unauthenticated")
 	} else {
 	}
-	verified := federation.VerifySignedGet(record.PublicKeyPEM.String, "GET", request.URL.RequestURI(), request.Host, date, header, time.Now(), int64(settings.Federation.ClockSkewSeconds))
+	verified := federation.VerifySignedGet(record.PublicKeyPEM.String, request.Method, request.URL.RequestURI(), request.Host, date, header, time.Now(), int64(settings.Federation.ClockSkewSeconds))
 	if MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) {
 		return Err[auth.Identity, string]("unauthenticated")
 	} else {

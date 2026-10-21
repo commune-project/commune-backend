@@ -1,0 +1,64 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import time "go:time"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct ProfileRecord
+  ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
+  Username: String `gorm:"column:username" json:"username"`
+  DisplayName: String `gorm:"column:display_name" json:"display_name"`
+  Biography: String `gorm:"column:biography" json:"biography"`
+  BiographyHTML: String `gorm:"column:biography_html" json:"biography_html"`
+  AvatarURL: String `gorm:"column:avatar_url" json:"avatar_url"`
+  AvatarBindingID: String `gorm:"column:avatar_binding_id" json:"-"`
+  UpdatedAt: time.Time `gorm:"column:updated_at" json:"updated_at"`
+end
+
+func LoadProfile(ctx: context.Context, db: Ref[gorm.DB], actorURI: String) -> Result[ProfileRecord, String]
+  let profile: ProfileRecord = ProfileRecord{ActorURI: actorURI}
+  let query = db.WithContext(ctx).Table("profiles").Where("actor_uri=?", actorURI).Limit(1).Find(Ref.new(profile))
+  if MutationResult(query).IsErr() then
+    return Err("profile unavailable")
+  end
+  Ok(profile)
+end
+
+func PublicProfile(ctx: context.Context, db: Ref[gorm.DB], siteID: String, username: String) -> Result[ProfileRecord, String]
+  let account: AccountRecord = AccountRecord{}
+  let query = db.WithContext(ctx).Table("accounts").Where("site_id=? AND username=? AND NOT disabled", siteID, username).Limit(1).Find(Ref.new(account))
+  if MutationResult(query).IsErr() then
+    return Err("profile unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Err("not found")
+  end
+  let loaded = LoadProfile(ctx, db, account.ActorURI)
+  if loaded.IsErr() then
+    return loaded
+  end
+  var profile = loaded.Unwrap()
+  profile.Username = account.Username
+  Ok(profile)
+end
+
+# Call inside the profile/media/outgoing-activity transaction after locking owner.
+func SaveProfile(ctx: context.Context, db: Ref[gorm.DB], identity: auth.Identity, profile: ProfileRecord) -> Result[(), String]
+  if profile.ActorURI != identity.ActorURI then
+    return Err("forbidden")
+  end
+  MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,avatar_binding_id,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,avatar_binding_id=EXCLUDED.avatar_binding_id,updated_at=EXCLUDED.updated_at", identity.ActorURI, profile.DisplayName, profile.Biography, profile.BiographyHTML, profile.AvatarURL, profile.AvatarBindingID, profile.UpdatedAt))
+end
+
+func LockProfileOwner(ctx: context.Context, db: Ref[gorm.DB], siteID: String, identity: auth.Identity) -> Result[(), String]
+  let account: AccountRecord = AccountRecord{}
+  let query = db.WithContext(ctx).Raw("SELECT * FROM accounts WHERE id=? AND site_id=? AND actor_uri=? AND NOT disabled FOR UPDATE", identity.AccountID, siteID, identity.ActorURI).Scan(Ref.new(account))
+  if MutationResult(query).IsErr() then
+    return Err("profile unavailable")
+  end
+  if query.RowsAffected != 1i64 then
+    return Err("forbidden")
+  end
+  Ok(())
+end

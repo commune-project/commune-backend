@@ -18,6 +18,11 @@ struct ActivityView
   Object: json.RawMessage `json:"object"`
 end
 
+struct ForwardSigner
+  ActorURI: String
+  PrivateKey: String
+end
+
 struct ParsedActivity
   ID: String
   Actor: String
@@ -60,7 +65,7 @@ end
 
 # A relayed activity whose claimed author differs from the forwarder must be
 # confirmed through the author's own canonical copy before it can alter state.
-func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limits: FetchLimits) -> Result[(), String]
+func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limits: FetchLimits, payload: Slice[Byte], signer: ForwardSigner) -> Result[(), String]
   if activity.Embedded.IsNone() then
     return Ok(())
   end
@@ -71,17 +76,30 @@ func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limi
   if inner.ID == "" then
     return Err("unverifiable embedded author")
   end
-  let canonical = Fetch(ctx, inner.ID, limits)
+  let canonical = if signer.ActorURI != "" then
+    FetchSignedResource(ctx, inner.ID, signer.ActorURI, signer.PrivateKey, limits, ActivityJSONType())
+  else
+    Fetch(ctx, inner.ID, limits).Map(func(response: FetchResult) -> Slice[Byte] response.Body end)
+  end
   if canonical.IsErr() then
     return Err("unverifiable embedded author")
   end
-  let parsed = ParseActivity(canonical.Unwrap().Body)
+  let parsed = ParseActivity(canonical.Unwrap())
   if parsed.IsErr() then
     return Err("unverifiable embedded author")
   end
   let copy = parsed.Unwrap()
   if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type then
     return Err("unverifiable embedded author")
+  end
+  let envelope = ActivityView{}
+  if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then return Err("invalid forwarded activity") end
+  let forwarded = json.Marshal(envelope.Object)
+  let authoritative = json.Marshal(canonical.Unwrap() as json.RawMessage)
+  let document = ActivityView{}
+  if json.Unmarshal(envelope.Object as Slice[Byte], Ref.new(document)).IsErr() then return Err("invalid forwarded activity") end
+  if (document.Object as Slice[Byte]).Len() > 0 && (forwarded.IsErr() || authoritative.IsErr() || (forwarded.Unwrap() as String) != (authoritative.Unwrap() as String)) then
+    return Err("modified forwarded activity")
   end
   Ok(())
 end

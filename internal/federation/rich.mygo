@@ -1,0 +1,80 @@
+package federation
+
+import json "go:encoding/json"
+import time "go:time"
+import content "github.com/commune-project/commune-backend/internal/content"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct RichSource
+  Content: String `json:"content"`
+  MediaType: String `json:"mediaType"`
+end
+
+struct RichAttachment
+  Type: String `json:"type"`
+  URL: String `json:"url"`
+  MediaType: String `json:"mediaType,omitempty"`
+  Name: String `json:"name,omitempty"`
+end
+
+struct RichMention
+  Type: String `json:"type"`
+  Href: String `json:"href"`
+  Name: String `json:"name,omitempty"`
+end
+
+struct RichMetadata
+  Source: RichSource `json:"source,omitzero"`
+  Attachment: Slice[RichAttachment] `json:"attachment,omitempty"`
+  Tag: Slice[RichMention] `json:"tag,omitempty"`
+end
+
+struct RichObject
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  AttributedTo: String `json:"attributedTo"`
+  Name: String `json:"name"`
+  Content: String `json:"content"`
+  MediaType: String `json:"mediaType"`
+  Source: RichSource `json:"source"`
+  Attachment: Slice[RichAttachment] `json:"attachment"`
+  Tag: Slice[RichMention] `json:"tag"`
+  To: Slice[String] `json:"to"`
+  CC: Slice[String] `json:"cc"`
+  InReplyTo: String `json:"inReplyTo"`
+  Published: time.Time `json:"published"`
+  Updated: time.Time `json:"updated"`
+end
+
+# source is retained only as metadata. Display always interprets content using
+# its declared media type; optional source cannot smuggle executable Markdown.
+func ParseRichObject(payload: Slice[Byte]) -> Result[RichObject, String]
+  let object = RichObject{}
+  if HasDuplicateKeys(payload) || json.Unmarshal(payload, Ref.new(object)).IsErr() then
+    return Err("invalid rich object")
+  end
+  if !storage.CanonicalObjectURI(object.ID) || !storage.CanonicalObjectURI(object.AttributedTo) || (object.Type != "Page" && object.Type != "Note") || object.Attachment.Len() > 32 || object.Tag.Len() > 100 then
+    return Err("invalid rich object")
+  end
+  if object.MediaType != "" && object.MediaType != "text/html" && object.MediaType != "text/plain" then
+    return Err("unsupported object media type")
+  end
+  if !object.Updated.IsZero() && object.Updated.Before(object.Published) then
+    return Err("invalid object version")
+  end
+  if (object.Source.Content as Slice[Byte]).Len() > 1048576 then
+    return Err("invalid source")
+  end
+  if content.RenderRich(object.Content, if object.MediaType == "text/plain" then "legacy" else "html" end).IsErr() then
+    return Err("invalid object content")
+  end
+  var valid: Bool = true
+  object.Attachment.Each(func(item: RichAttachment) -> ()
+    if !storage.CanonicalObjectURI(item.URL) then valid = false end
+  end)
+  object.Tag.Each(func(item: RichMention) -> ()
+    if item.Type == "Mention" && !storage.CanonicalObjectURI(item.Href) then valid = false end
+  end)
+  if !valid then return Err("invalid rich metadata") end
+  Ok(object)
+end

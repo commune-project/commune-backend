@@ -19,6 +19,10 @@ type ActivityView struct {
 	Target string          "json:\"target\""
 	Object json.RawMessage "json:\"object\""
 }
+type ForwardSigner struct {
+	ActorURI   string
+	PrivateKey string
+}
 type ParsedActivity struct {
 	ID        string
 	Actor     string
@@ -84,7 +88,7 @@ func TrustedBySameSigner(activity ParsedActivity) bool {
 	}
 	return MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).Actor == activity.Actor
 }
-func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits FetchLimits) Result[struct {
+func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits FetchLimits, payload []byte, signer ForwardSigner) Result[struct {
 }, string] {
 	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
 		return Ok[struct{}, string](struct {
@@ -101,12 +105,20 @@ func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits
 		return Err[struct{}, string]("unverifiable embedded author")
 	} else {
 	}
-	canonical := Fetch(ctx, inner.ID, limits)
-	if MygoIN6ResultM5IsErr[FetchResult, string](canonical) {
+	var __mygo_expr_0 Result[[]byte, string]
+	if signer.ActorURI != "" {
+		__mygo_expr_0 = FetchSignedResource(ctx, inner.ID, signer.ActorURI, signer.PrivateKey, limits, ActivityJSONType())
+	} else {
+		__mygo_expr_0 = MygoIN6ResultM3Map[FetchResult, string](Fetch(ctx, inner.ID, limits), func(response FetchResult) []byte {
+			return response.Body
+		})
+	}
+	canonical := __mygo_expr_0
+	if MygoIN6ResultM5IsErr[[]byte, string](canonical) {
 		return Err[struct{}, string]("unverifiable embedded author")
 	} else {
 	}
-	parsed := ParseActivity(MygoIN6ResultM6Unwrap[FetchResult, string](canonical).Body)
+	parsed := ParseActivity(MygoIN6ResultM6Unwrap[[]byte, string](canonical))
 	if MygoIN6ResultM5IsErr[ParsedActivity, string](parsed) {
 		return Err[struct{}, string]("unverifiable embedded author")
 	} else {
@@ -114,6 +126,52 @@ func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits
 	copy := MygoIN6ResultM6Unwrap[ParsedActivity, string](parsed)
 	if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type {
 		return Err[struct{}, string]("unverifiable embedded author")
+	} else {
+	}
+	envelope := ActivityView{}
+	var __mygo_expr_2 Result[struct{}, error]
+	__mygo_expr_1 := json.Unmarshal(payload, &envelope)
+	if __mygo_expr_1 != nil {
+		__mygo_expr_2 = Err[struct{}, error](__mygo_expr_1)
+	} else {
+		__mygo_expr_2 = Ok[struct{}, error](struct {
+		}{})
+	}
+	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
+		return Err[struct{}, string]("invalid forwarded activity")
+	} else {
+	}
+	var __mygo_expr_4 Result[[]byte, error]
+	__mygo_expr_5, __mygo_expr_3 := json.Marshal(envelope.Object)
+	if __mygo_expr_3 != nil {
+		__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
+	} else {
+		__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
+	}
+	forwarded := __mygo_expr_4
+	var __mygo_expr_7 Result[[]byte, error]
+	__mygo_expr_8, __mygo_expr_6 := json.Marshal(json.RawMessage(MygoIN6ResultM6Unwrap[[]byte, string](canonical)))
+	if __mygo_expr_6 != nil {
+		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
+	} else {
+		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
+	}
+	authoritative := __mygo_expr_7
+	document := ActivityView{}
+	var __mygo_expr_10 Result[struct{}, error]
+	__mygo_expr_9 := json.Unmarshal([]byte(envelope.Object), &document)
+	if __mygo_expr_9 != nil {
+		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
+	} else {
+		__mygo_expr_10 = Ok[struct{}, error](struct {
+		}{})
+	}
+	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
+		return Err[struct{}, string]("invalid forwarded activity")
+	} else {
+	}
+	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.Object)) > 0 && (MygoIN6ResultM5IsErr[[]byte, error](forwarded) || MygoIN6ResultM5IsErr[[]byte, error](authoritative) || string(MygoIN6ResultM6Unwrap[[]byte, error](forwarded)) != string(MygoIN6ResultM6Unwrap[[]byte, error](authoritative))) {
+		return Err[struct{}, string]("modified forwarded activity")
 	} else {
 	}
 	return Ok[struct{}, string](struct {

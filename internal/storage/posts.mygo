@@ -7,6 +7,7 @@ import time "go:time"
 import rand "go:crypto/rand"
 import url "go:net/url"
 import config "github.com/commune-project/commune-backend/internal/config"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 struct PostRecord
   ID: String `gorm:"column:id"`
@@ -17,6 +18,9 @@ struct PostRecord
   ObjectType: String `gorm:"column:object_type"`
   Title: sql.NullString `gorm:"column:title"`
   Body: String `gorm:"column:body"`
+  ContentFormat: String `gorm:"column:content_format"`
+  SearchText: String `gorm:"column:search_text"`
+  RichMetadata: String `gorm:"column:rich_metadata"`
   ParentID: sql.NullString `gorm:"column:parent_id"`
   AuthoredAt: time.Time `gorm:"column:authored_at"`
   UpdatedAt: time.Time `gorm:"column:updated_at;autoUpdateTime:false"`
@@ -49,11 +53,16 @@ impl PostRepository
       return Err("invalid object")
     end
     var stored = PostRecord{}
+    let format = if incoming.ContentFormat == "" then "legacy" else incoming.ContentFormat end
+    let normalized = content.PlainRichText(incoming.Body, format)
+    if normalized.IsErr() then
+      return Err(normalized.UnwrapErr())
+    end
     let authored = incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
     let updated = incoming.UpdatedAt.UTC().Truncate(time.Microsecond)
     let deleted = sql.NullTime{Valid: incoming.DeletedAt.Valid, Time: incoming.DeletedAt.Time.UTC().Truncate(time.Microsecond)}
     let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let inserted = tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, incoming.ParentID, authored, updated, deleted)
+      let inserted = tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,content_format,search_text,rich_metadata,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, format, normalized.Unwrap(), incoming.RichMetadata, incoming.ParentID, authored, updated, deleted)
       if MutationResult(inserted).IsErr() then
         return Err("object storage failed")
       end
@@ -66,11 +75,11 @@ impl PostRepository
         return Err("object identity conflict")
       end
       if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) then
-        if MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, updated, deleted, current.ID)).IsErr() then
+        if MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=? WHERE id=?", incoming.Title, incoming.Body, format, normalized.Unwrap(), incoming.RichMetadata, updated, deleted, current.ID)).IsErr() then
           return Err("object update failed")
         end
       else
-        if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.DeletedAt.Valid != deleted.Valid) then
+        if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.ContentFormat != format || current.RichMetadata != incoming.RichMetadata || current.DeletedAt.Valid != deleted.Valid) then
           return Err("object version conflict")
         end
       end

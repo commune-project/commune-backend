@@ -1,0 +1,39 @@
+package server
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+
+# Called after signature verification and durable activity receipt. Occurrence
+# receipts and the reaction mutation commit together, including notification events.
+func ApplyRemoteReaction(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+  var original = activity
+  if activity.Type == "Undo" then
+    let stored = storage.LoadActivityPayload(ctx, db, activity.ObjectURI)
+    if stored.IsErr() then return Err(stored.UnwrapErr()) end
+    if stored.Unwrap().IsNone() then return Ok(()) end
+    let parsed = federation.ParseActivity(stored.Unwrap().Unwrap().Payload)
+    if parsed.IsErr() then return Err(parsed.UnwrapErr()) end
+    original = parsed.Unwrap()
+    if original.Type != "Like" then return Ok(()) end
+    if original.Actor != activity.Actor then return Err("forged reaction undo") end
+  end
+  let post = storage.LoadObjectByURI(ctx, db, original.ObjectURI)
+  if post.IsErr() then return Err(post.UnwrapErr()) end
+  if post.Unwrap().IsNone() then return Ok(()) end
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let claimed = tx.Exec("INSERT INTO applied_reaction_activities(activity_uri) VALUES (?) ON CONFLICT DO NOTHING", activity.ID)
+    if storage.QueryFailed(claimed) then return Err("reaction receipt unavailable") end
+    if claimed.RowsAffected == 0i64 then return Ok(()) end
+    let identity = auth.Identity{ActorURI: activity.Actor}
+    let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
+    if activity.Type == "Like" then return repository.Like(ctx, post.Unwrap().Unwrap().ID, identity, true, activity.ID) end
+    let matching = storage.QueryExists(tx.Table("reactions").Where("post_id=? AND actor_uri=? AND reaction_uri=? AND undone_at IS NULL", post.Unwrap().Unwrap().ID, activity.Actor, original.ID))
+    if matching.IsErr() then return Err(matching.UnwrapErr()) end
+    if !matching.Unwrap() then return Ok(()) end
+    repository.Undo(ctx, post.Unwrap().Unwrap().ID, identity, true)
+  end)
+end

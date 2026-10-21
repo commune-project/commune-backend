@@ -76,6 +76,16 @@ func TestPostgresHostAuthoritativeState(t *testing.T) {
 	} else {
 	}
 	relaxed := "{\"id\":\"https://host.example/activities/state-3\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[]}}"
+	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id='replica' AND actor_uri=?", dropped)))
+	revocation := "{\"id\":\"https://host.example/activities/revocation\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:revoked\":[\"" + kept + "\"]}}"
+	if signedPost(handler, a.Origin, "/users/alice/inbox", revocation, group, groupKey, date).Code != 202 {
+		t.Fatal("host targeted revocation rejected")
+	} else {
+	}
+	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) || MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+		t.Fatal("targeted revocation altered unrelated membership or policy")
+	} else {
+	}
 	relaxedResult := signedPost(handler, a.Origin, "/users/alice/inbox", relaxed, group, groupKey, date)
 	if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") {
 		t.Fatal("a non-tightening update wrongly disclosed a recall limitation")

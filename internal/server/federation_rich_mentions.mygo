@@ -1,0 +1,47 @@
+package server
+
+import context "go:context"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+
+# Received tags never cause discovery or grant access. Only known Person actors
+# with current audience eligibility become durable mention occurrences.
+func ReconcileRichMentions(ctx: context.Context, tx: Ref[gorm.DB], site: config.Site, post: storage.PostRecord, tags: Slice[federation.RichMention], addressed: Slice[String]) -> Result[(), String]
+  let loaded = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("community unavailable") end
+  let community = loaded.Unwrap().Unwrap()
+  var eligible: Slice[String] = []
+  var index: Int = 0
+  while index < tags.Len()
+    let tag = tags.Get(index).Unwrap()
+    index = index + 1
+    if tag.Type != "Mention" || eligible.Contains(tag.Href) then continue end
+    let actor = storage.LoadActor(ctx, tx, tag.Href)
+    if actor.IsErr() then return Err(actor.UnwrapErr()) end
+    if actor.Unwrap().IsNone() || actor.Unwrap().Unwrap().Kind != "Person" then continue end
+    if actor.Unwrap().Unwrap().LocalSiteID.Valid && !addressed.Contains(tag.Href) then continue end
+    let blocked = storage.SiteRepository{DB: tx, SiteID: site.ID}.IsBlocked(ctx, tag.Href)
+    if blocked.IsErr() then return Err(blocked.UnwrapErr()) end
+    if blocked.Unwrap() then continue end
+    let member = storage.IsCurrentMember(ctx, tx, community.ID, tag.Href)
+    if member.IsErr() then return Err(member.UnwrapErr()) end
+    if community.ReadPolicy == "members" && !member.Unwrap() then continue end
+    eligible = eligible.Append(tag.Href)
+  end
+  if eligible.Len() == 0 then
+    if storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID)).IsErr() then return Err("mentions unavailable") end
+  else
+    if storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active AND actor_uri NOT IN ?", post.ID, eligible)).IsErr() then return Err("mentions unavailable") end
+  end
+  var failure: String = ""
+  eligible.Each(func(uri: String) -> ()
+    if failure == "" && storage.MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) WHERE active DO NOTHING", rand.Text(), post.ID, uri)).IsErr() then
+      failure = "mentions unavailable"
+    end
+  end)
+  if failure != "" then return Err(failure) end
+  Ok(())
+end

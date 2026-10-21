@@ -1,0 +1,199 @@
+package storage
+
+import os "go:os"
+import io "go:io"
+import filepath "go:path/filepath"
+import syscall "go:syscall"
+import context "go:context"
+import strings "go:strings"
+import errors "go:errors"
+import sync "go:sync"
+import image "go:image"
+import png "go:image/png"
+import jpeg "go:image/jpeg"
+import gif "go:image/gif"
+import http "go:net/http"
+import config "github.com/commune-project/commune-backend/internal/config"
+
+# At most one full raster decode is resident per process, regardless of how
+# many uploads have already reserved disk bytes concurrently.
+let mediaRasterMutex: Ref[sync.Mutex] = Ref.new(sync.Mutex{})
+
+struct MediaFiles
+  Root: Ref[os.Root]
+end
+
+struct MediaInspected
+  Type: String
+  Size: Int64
+  PreviewSize: Int64
+end
+
+# A persistent directory descriptor confines every operation even if a parent
+# directory is concurrently renamed. Only generated flat IDs are accepted.
+func OpenMediaFiles(settings: config.Media) -> Result[MediaFiles, String]
+  if !settings.Enabled || !filepath.IsAbs(settings.Root) || filepath.Clean(settings.Root) == "/" then
+    return Err("media unavailable")
+  end
+  if os.MkdirAll(settings.Root, 448 as os.FileMode).IsErr() then
+    return Err("media unavailable")
+  end
+  let resolved = filepath.EvalSymlinks(settings.Root)
+  if resolved.IsErr() || resolved.Unwrap() != filepath.Clean(settings.Root) then
+    return Err("media root must not contain symlinks")
+  end
+  let opened = os.OpenRoot(settings.Root)
+  if opened.IsErr() then
+    return Err("media unavailable")
+  end
+  let root = opened.Unwrap()
+  let namespaces: Slice[String] = ["temporary", "local", "previews", "private-cache"]
+  var failure: Bool = false
+  namespaces.Each(func(name: String) -> ()
+    let made = root.Mkdir(name, 448 as os.FileMode)
+    if made.IsErr() && !errors.Is(made.UnwrapErr(), os.ErrExist) then
+      failure = true
+    end
+    let info = root.Lstat(name)
+    if info.IsErr() then
+      failure = true
+    else
+      if !info.Unwrap().IsDir() then
+        failure = true
+      end
+    end
+  end)
+  if failure then
+    let _ = root.Close()
+    return Err("media namespace unavailable")
+  end
+  Ok(MediaFiles{Root: root})
+end
+
+func MediaFileID(id: String) -> Bool
+  go[Bool] { code: "if len({id}) < 16 || len({id}) > 128 { return false }; for _, c := range {id} { if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_') { return false } }; return true"; in id = id }
+end
+
+func MediaSafeName(name: String) -> String
+  go[String] { code: "s := strings.Map(func(r rune) rune { if r < 32 || r == 127 || r == '/' || r == 92 { return '_' }; return r }, {name}); if len(s)>180 { s=\"download\" }; if s==\"\" || s==\".\" || s==\"..\" { s=\"download\" }; return s"; in name = name }
+end
+
+impl MediaFiles
+  func Open(self: MediaFiles, namespace: String, id: String) -> Result[Ref[os.File], String]
+    if !MediaFileID(id) || (namespace != "local" && namespace != "previews" && namespace != "private-cache" && namespace != "temporary") then
+      return Err("not found")
+    end
+    let flags = go[Int] { code: "os.O_RDONLY | syscall.O_NOFOLLOW" }
+    let opened = self.Root.OpenFile(namespace + "/" + id, flags, 0 as os.FileMode)
+    if opened.IsErr() then
+      return Err("media unavailable")
+    end
+    let info = opened.Unwrap().Stat()
+    if info.IsErr() then
+      let _ = opened.Unwrap().Close()
+      return Err("media unavailable")
+    end
+    let stat = info.Unwrap()
+    let regular = go[Bool] { code: "{stat}.Mode().IsRegular()"; in stat = stat }
+    if !regular then
+      let _ = opened.Unwrap().Close()
+      return Err("media unavailable")
+    end
+    Ok(opened.Unwrap())
+  end
+
+  func Remove(self: MediaFiles, namespace: String, id: String) -> Result[(), String]
+    if !MediaFileID(id) || (namespace != "local" && namespace != "previews" && namespace != "temporary" && namespace != "private-cache") then
+      return Err("invalid media path")
+    end
+    let removed = self.Root.Remove(namespace + "/" + id)
+    if removed.IsErr() && !errors.Is(removed.UnwrapErr(), os.ErrNotExist) then
+      return Err("media unlink failed")
+    end
+    Ok(())
+  end
+
+  func Stream(self: MediaFiles, ctx: context.Context, id: String, reader: io.Reader, limit: Int64) -> Result[Int64, String]
+    if !MediaFileID(id) || limit <= 0i64 then
+      return Err("invalid media path")
+    end
+    let flags = go[Int] { code: "os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW" }
+    let opened = self.Root.OpenFile("temporary/" + id, flags, 384 as os.FileMode)
+    if opened.IsErr() then
+      return Err("media unavailable")
+    end
+    let file = opened.Unwrap()
+    go[()] { code: "defer {file}.Close()"; in file = file }
+    # The context is checked before every bounded read and write, not only once.
+    let copied = go[Result[Int64, String]] { code: "func() Result[int64,string] { var total int64; buf := make([]byte,32768); empty:=0; for { if {ctx}.Err()!=nil { return Err[int64,string](\"upload canceled\") }; remaining:={limit}+1-total; if remaining<int64(len(buf)) {buf=buf[:remaining]}; n,e:={reader}.Read(buf); if {ctx}.Err()!=nil {return Err[int64,string](\"upload canceled\")}; if n>0 { empty=0; if total+int64(n)>{limit} { return Err[int64,string](\"media too large\") }; written,werr:={file}.Write(buf[:n]); total+=int64(written); if werr!=nil || written!=n {return Err[int64,string](\"media unavailable\")} } else { empty++; if empty>100 {return Err[int64,string](\"invalid upload\")} }; if e==io.EOF {break}; if e!=nil {return Err[int64,string](\"invalid upload\")} }; if total==0 {return Err[int64,string](\"invalid upload\")}; if {file}.Sync()!=nil {return Err[int64,string](\"media unavailable\")}; return Ok[int64,string](total) }()"; in ctx = ctx; in limit = limit; in reader = reader; in file = file }
+    if copied.IsErr() then
+      let _ = self.Remove("temporary", id)
+    end
+    copied
+  end
+
+  func Inspect(self: MediaFiles, id: String, declared: String, purpose: String, settings: config.Media) -> Result[MediaInspected, String]
+    self.InspectContext(context.Background(), id, declared, purpose, settings)
+  end
+
+  func InspectContext(self: MediaFiles, ctx: context.Context, id: String, declared: String, purpose: String, settings: config.Media) -> Result[MediaInspected, String]
+    let opened = self.Open("temporary", id)
+    if opened.IsErr() then
+      return Err(opened.UnwrapErr())
+    end
+    let file = opened.Unwrap()
+    go[()] { code: "defer {file}.Close()"; in file = file }
+    let stat = file.Stat()
+    if stat.IsErr() then
+      return Err("media unavailable")
+    end
+    let size = stat.Unwrap().Size()
+    let mime = go[String] { code: "func() string { b:=make([]byte,512); n,_:={file}.Read(b); _,_={file}.Seek(0,0); return http.DetectContentType(b[:n]) }()"; in file = file }
+    let raster = mime == "image/png" || mime == "image/jpeg" || mime == "image/gif"
+    if purpose == "avatar" && !raster then
+      return Err("unsupported media")
+    end
+    if strings.HasPrefix(declared, "image/") && declared != "image/svg+xml" && !raster then
+      return Err("invalid image")
+    end
+    if !raster then
+      return Ok(MediaInspected{Type: mime, Size: size})
+    end
+    if size > settings.MaxImageBytes as Int64 then
+      return Err("media too large")
+    end
+    mediaRasterMutex.Lock()
+    let guard = mediaRasterMutex
+    go[()] { code: "defer {guard}.Unlock()"; in guard = guard }
+    if go[Bool] { code: "{ctx}.Err()!=nil"; in ctx = ctx } then
+      return Err("upload canceled")
+    end
+    let flags = go[Int] { code: "os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW" }
+    let preview = self.Root.OpenFile("previews/" + id, flags, 384 as os.FileMode)
+    if preview.IsErr() then
+      return Err("media unavailable")
+    end
+    let output = preview.Unwrap()
+    go[()] { code: "defer {output}.Close()"; in output = output }
+    # DecodeConfig precedes allocation; only one frame of an animated GIF is
+    # decoded. All decoders are explicit, so imports need no global registration.
+    let result = go[Result[Int64, String]] { code: "func() Result[int64,string] { var cfg image.Config; var err error; switch {mime} {case \"image/png\": cfg,err=png.DecodeConfig({file}); case \"image/jpeg\": cfg,err=jpeg.DecodeConfig({file}); case \"image/gif\": cfg,err=gif.DecodeConfig({file})}; if err!=nil || cfg.Width<=0 || cfg.Height<=0 || cfg.Width>{settings}.MaxImageDimension || cfg.Height>{settings}.MaxImageDimension || int64(cfg.Width)*int64(cfg.Height)>int64({settings}.MaxImagePixels) {return Err[int64,string](\"invalid image\")}; if _,err={file}.Seek(0,0); err!=nil {return Err[int64,string](\"media unavailable\")}; var src image.Image; switch {mime} {case \"image/png\": src,err=png.Decode({file}); case \"image/jpeg\": src,err=jpeg.Decode({file}); case \"image/gif\": src,err=gif.Decode({file})}; if err!=nil {return Err[int64,string](\"invalid image\")}; w,h:=cfg.Width,cfg.Height; max:={settings}.PreviewDimension; if w>max || h>max {if w>=h {h=h*max/w; w=max} else {w=w*max/h; h=max}}; if w<1 {w=1}; if h<1 {h=1}; dst:=image.NewNRGBA(image.Rect(0,0,w,h)); bounds:=src.Bounds(); for y:=0;y<h;y++ {for x:=0;x<w;x++ {dst.Set(x,y,src.At(bounds.Min.X+x*cfg.Width/w,bounds.Min.Y+y*cfg.Height/h))}}; if err=png.Encode({output},dst); err!=nil {return Err[int64,string](\"media unavailable\")}; if err={output}.Sync(); err!=nil {return Err[int64,string](\"media unavailable\")}; info,err:={output}.Stat(); if err!=nil {return Err[int64,string](\"media unavailable\")}; return Ok[int64,string](info.Size()) }()"; in mime = mime; in file = file; in output = output; in settings = settings }
+    if result.IsErr() then
+      let _ = self.Remove("previews", id)
+      return Err(result.UnwrapErr())
+    end
+    Ok(MediaInspected{Type: mime, Size: size, PreviewSize: result.Unwrap()})
+  end
+
+  func Publish(self: MediaFiles, id: String, namespace: String) -> Result[(), String]
+    if !MediaFileID(id) || (namespace != "local" && namespace != "private-cache") then
+      return Err("invalid media path")
+    end
+    if self.Root.Rename("temporary/" + id, namespace + "/" + id).IsErr() then
+      return Err("media unavailable")
+    end
+    # fsync both directories makes the rename durable before metadata is ready.
+    let root = self.Root
+    go[Result[(), String]] { code: "for _,name:=range []string{\"temporary\",{namespace}} {d,e:={root}.Open(name); if e!=nil {return Err[struct{},string](\"media unavailable\")}; e=d.Sync(); d.Close(); if e!=nil {return Err[struct{},string](\"media unavailable\")} }; return Ok[struct{},string](struct{}{})"; in root = root; in namespace = namespace }
+  end
+end

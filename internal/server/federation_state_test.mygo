@@ -57,6 +57,14 @@ func TestPostgresHostAuthoritativeState(t: Ref[testing.T]) -> ()
     t.Fatal("a forged state change added an unauthorized member")
   end
   let relaxed = "{\"id\":\"https://host.example/activities/state-3\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[]}}"
+  let _ = storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id='replica' AND actor_uri=?", dropped)).Unwrap()
+  let revocation = `{"id":"https://host.example/activities/revocation","actor":"` + group + `","type":"Update","object":{"id":"` + group + `","type":"Group","commune:revoked":["` + kept + `"]}}`
+  if signedPost(handler, a.Origin, "/users/alice/inbox", revocation, group, groupKey, date).Code != 202 then
+    t.Fatal("host targeted revocation rejected")
+  end
+  if storage.IsCurrentMember(ctx, db, "replica", kept).Unwrap() || !storage.IsCurrentMember(ctx, db, "replica", dropped).Unwrap() || storage.CommunityReadPolicy(ctx, db, "replica").Unwrap() != "members" then
+    t.Fatal("targeted revocation altered unrelated membership or policy")
+  end
   let relaxedResult = signedPost(handler, a.Origin, "/users/alice/inbox", relaxed, group, groupKey, date)
   if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") then
     t.Fatal("a non-tightening update wrongly disclosed a recall limitation")

@@ -7,16 +7,21 @@ replace github.com/mygo-lang/mygo => ../../mygo
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/glebarez/sqlite v1.11.0
+	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mygo-lang/mygo v0.0.0-00010101000000-000000000000
+	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.31.0
+	golang.org/x/net v0.26.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.2
 )
 
 require (
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect

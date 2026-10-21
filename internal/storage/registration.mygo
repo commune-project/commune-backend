@@ -1,0 +1,172 @@
+package storage
+
+import context "go:context"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import strings "go:strings"
+import regexp "go:regexp"
+import mail "go:net/mail"
+import rand "go:crypto/rand"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct PendingRegistration
+  ID: String `gorm:"column:id"`
+  SiteID: String `gorm:"column:site_id"`
+  Username: String `gorm:"column:username"`
+  Email: String `gorm:"column:email"`
+  TokenHash: Slice[Byte] `gorm:"column:token_hash"`
+  Generation: Int64 `gorm:"column:generation"`
+  CreatedAt: time.Time `gorm:"column:created_at"`
+  ExpiresAt: time.Time `gorm:"column:expires_at"`
+end
+
+struct RegistrationRepository
+  DB: Ref[gorm.DB]
+  Site: config.Site
+  EncryptionKey: Slice[Byte]
+  IPAttempts: Int
+  EmailAttempts: Int
+  TokenTTLSeconds: Int
+  RateWindowSeconds: Int
+end
+
+func RegistrationEmail(email: String) -> Result[String, String]
+  let address = strings.ToLower(strings.TrimSpace(email))
+  let parsed = mail.ParseAddress(address)
+  if address == "" || (address as Slice[Byte]).Len() > 254 || parsed.IsErr() || parsed.Unwrap().Address != address then
+    return Err("invalid registration input")
+  end
+  Ok(address)
+end
+
+impl RegistrationRepository
+  # Rate charges commit independently so rejected attempts cannot roll them back.
+  func Charge(self: RegistrationRepository, ctx: context.Context, ip: String, email: String, now: time.Time) -> Result[(), String]
+    let start = now.Truncate(self.RateWindowSeconds as time.Duration * time.Second)
+    let dimensions: Slice[String] = ["ip", "email"]
+    let subjects: Slice[String] = [ip, email]
+    let limits: Slice[Int] = [self.IPAttempts, self.EmailAttempts]
+    var index: Int = 0
+    while index < 2
+      let count = 0
+      let query = self.DB.WithContext(ctx).Raw("INSERT INTO registration_rate_limits(site_id,dimension,subject_hash,window_start,attempts) VALUES (?,?,?,?,1) ON CONFLICT(site_id,dimension,subject_hash,window_start) DO UPDATE SET attempts=registration_rate_limits.attempts+1 RETURNING attempts", self.Site.ID, dimensions.Get(index).Unwrap(), auth.TokenHash(subjects.Get(index).Unwrap()), start).Scan(Ref.new(count))
+      if QueryFailed(query) then
+        return Err("registration unavailable")
+      end
+      if count > limits.Get(index).Unwrap() then
+        return Err("registration rate limited")
+      end
+      index = index + 1
+    end
+    Ok(())
+  end
+
+  func Enqueue(self: RegistrationRepository, tx: Ref[gorm.DB], pending: PendingRegistration, token: String, now: time.Time) -> Result[(), String]
+    let link = self.Site.Origin + "/verify-email#token=" + token
+    let sealed = auth.SealVerification(self.EncryptionKey, link)
+    if sealed.IsErr() then
+      return Err("registration unavailable")
+    end
+    MutationResult(tx.Exec("INSERT INTO verification_mail_jobs(id,registration_id,generation,encrypted_payload,available_at) VALUES (?,?,?,?,?)", rand.Text(), pending.ID, pending.Generation, sealed.Unwrap(), now))
+  end
+
+  func Register(self: RegistrationRepository, ctx: context.Context, username: String, email: String, ip: String, now: time.Time) -> Result[(), String]
+    let normalized = RegistrationEmail(email)
+    if normalized.IsErr() || !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username).UnwrapOr(false) then
+      return Err("invalid registration input")
+    end
+    let address = normalized.Unwrap()
+    let charged = self.Charge(ctx, ip, address, now)
+    if charged.IsErr() then
+      return charged
+    end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      if QueryFailed(tx.Exec("DELETE FROM pending_registrations WHERE site_id=? AND expires_at<=?", self.Site.ID, now)) then
+        return Err("registration unavailable")
+      end
+      let exists = QueryExists(tx.Table("accounts").Where("site_id=? AND (email=? OR username=?)", self.Site.ID, address, username))
+      if exists.IsErr() then
+        return Err("registration unavailable")
+      end
+      if exists.Unwrap() then
+        return Ok(())
+      end
+      let token = rand.Text()
+      let pending = PendingRegistration{ID: rand.Text(), SiteID: self.Site.ID, Username: username, Email: address, TokenHash: auth.TokenHash(token), Generation: 1i64, CreatedAt: now, ExpiresAt: now.Add(self.TokenTTLSeconds as time.Duration * time.Second)}
+      let inserted = tx.Exec("INSERT INTO pending_registrations(id,site_id,username,email,token_hash,generation,created_at,expires_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING", pending.ID, pending.SiteID, pending.Username, pending.Email, pending.TokenHash, pending.Generation, pending.CreatedAt, pending.ExpiresAt)
+      if QueryFailed(inserted) then
+        return Err("registration unavailable")
+      end
+      if inserted.RowsAffected == 0i64 then
+        return Ok(())
+      end
+      self.Enqueue(tx, pending, token, now)
+    end)
+  end
+
+  func Resend(self: RegistrationRepository, ctx: context.Context, email: String, ip: String, now: time.Time) -> Result[(), String]
+    let address = RegistrationEmail(email)
+    if address.IsErr() then
+      return Err(address.UnwrapErr())
+    end
+    let charged = self.Charge(ctx, ip, address.Unwrap(), now)
+    if charged.IsErr() then
+      return charged
+    end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let token = rand.Text()
+      let pending = PendingRegistration{}
+      let query = tx.Raw("UPDATE pending_registrations SET token_hash=?,generation=generation+1,expires_at=? WHERE site_id=? AND email=? AND expires_at>? RETURNING *", auth.TokenHash(token), now.Add(self.TokenTTLSeconds as time.Duration * time.Second), self.Site.ID, address.Unwrap(), now).Scan(Ref.new(pending))
+      if QueryFailed(query) then
+        return Err("registration unavailable")
+      end
+      if query.RowsAffected == 0i64 then
+        return Ok(())
+      end
+      if QueryFailed(tx.Exec("UPDATE verification_mail_jobs SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL WHERE registration_id=? AND state IN ('pending','leased')", pending.ID)) then
+        return Err("registration unavailable")
+      end
+      self.Enqueue(tx, pending, token, now)
+    end)
+  end
+
+  func Confirm(self: RegistrationRepository, ctx: context.Context, token: String, password: String, now: time.Time) -> Result[(), String]
+    if !auth.ValidToken(token) then
+      return Err("invalid verification token")
+    end
+    let hash = auth.HashPassword(password)
+    if hash.IsErr() then
+      return Err("invalid registration password")
+    end
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let pending = PendingRegistration{}
+      let query = tx.Raw("SELECT * FROM pending_registrations WHERE site_id=? AND token_hash=? AND expires_at>? FOR UPDATE", self.Site.ID, auth.TokenHash(token), now).Scan(Ref.new(pending))
+      if QueryFailed(query) then
+        return Err("registration unavailable")
+      end
+      if query.RowsAffected != 1i64 then
+        return Err("invalid verification token")
+      end
+      let uri = config.CanonicalURI(self.Site, "users", pending.Username)
+      if uri.IsErr() then
+        return Err("invalid registration input")
+      end
+      let actors = tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT DO NOTHING", uri.Unwrap(), self.Site.ID, uri.Unwrap() + "/inbox")
+      if QueryFailed(actors) then
+        return Err("registration unavailable")
+      end
+      if actors.RowsAffected != 1i64 then
+        return Err("registration conflict")
+      end
+      let accounts = tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING", self.Site.ID, uri.Unwrap(), pending.Username, pending.Email, hash.Unwrap())
+      if QueryFailed(accounts) then
+        return Err("registration unavailable")
+      end
+      if accounts.RowsAffected != 1i64 then
+        return Err("registration conflict")
+      end
+      MutationResult(tx.Exec("DELETE FROM pending_registrations WHERE id=?", pending.ID))
+    end)
+  end
+end

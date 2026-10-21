@@ -1,0 +1,250 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestNotificationCursor(t: Ref[testing.T]) -> ()
+  let cursor = NotificationCursor{Time: time.Now().UTC().Truncate(time.Microsecond), ID: 73i64}
+  let parsed = ParseNotificationCursor(FormatNotificationCursor(cursor)).Unwrap()
+  if parsed.ID != cursor.ID || !parsed.Time.Equal(cursor.Time) then
+    t.Fatal("snapshot cursor failed round trip")
+  end
+  let invalid: Slice[String] = ["", "garbage", "2020-01-01T00:00:00Z|-1", "2020-01-01T00:00:00Z|x", "2020-01-01T00:00:00Z|1|2", "2999-01-01T00:00:00Z|1"]
+  invalid.Each(func(value: String) -> ()
+    if ParseNotificationCursor(value).IsOk() then
+      t.Fatal("invalid cursor accepted")
+    end
+  end)
+end
+
+struct NotificationTestFixture
+  DB: Ref[gorm.DB]
+  Site: config.Site
+  Alice: auth.Identity
+  Bob: auth.Identity
+  Community: CommunityRecord
+  Parent: PostRecord
+end
+
+func notificationFixture(t: Ref[testing.T]) -> NotificationTestFixture
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
+  let published = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Parent", Body: "body"})
+  if published.IsErr() then
+    t.Fatalf("notification fixture publication failed: %s", published.UnwrapErr())
+  end
+  let parent = published.Unwrap()
+  NotificationTestFixture{DB: db, Site: site, Alice: alice, Bob: bob, Community: community, Parent: parent}
+end
+
+func TestPostgresNotificationsRemoteAndRevocation(t: Ref[testing.T]) -> ()
+  let f = notificationFixture(t)
+  let ctx = context.Background()
+  let author: String = "https://remote.example/users/actor"
+  let _ = MutationResult(f.DB.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", author)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let posts = PostRepository{DB: f.DB, SiteID: f.Site.ID}
+  let incoming = PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/objects/reply", Valid: true}, CommunityID: f.Community.ID, FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "remote", ParentID: sql.NullString{String: f.Parent.ID, Valid: true}, AuthoredAt: now, UpdatedAt: now}
+  if posts.Receive(ctx, incoming, "https://forged.example/actor").IsOk() then
+    t.Fatal("unverified remote author accepted")
+  end
+  let received = posts.Receive(ctx, incoming, author).Unwrap()
+  let _ = posts.Receive(ctx, incoming, author).Unwrap()
+  let _ = ProjectNotifications(ctx, f.DB, 100).Unwrap()
+  let browser = BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
+  let viewer = browser.Viewer(ctx, f.Alice).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("accepted remote reply was missing or duplicated")
+  end
+  let snapshot = browser.Notifications(ctx, viewer, Page{Limit: 20}, 50).Unwrap()
+  let _ = MutationResult(f.DB.Exec("UPDATE site_posts SET hidden_at=clock_timestamp() WHERE post_id=?", received.ID)).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 then
+    t.Fatal("hidden reception leaked notification count")
+  end
+  if browser.ReadNotification(ctx, viewer, snapshot.Items.Get(0).Unwrap().ID).IsOk() then
+    t.Fatal("inaccessible target could be marked read")
+  end
+  let _ = browser.ReadAllNotifications(ctx, viewer, ParseNotificationCursor(snapshot.ThroughCursor).Unwrap()).Unwrap()
+  let _ = MutationResult(f.DB.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", received.ID)).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("read-all changed an inaccessible notification")
+  end
+  let _ = MutationResult(f.DB.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'remote.example')", f.Site.ID)).Unwrap()
+  if browser.Notifications(ctx, viewer, Page{Limit: 1}, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("blocked remote domain leaked notification")
+  end
+  let _ = MutationResult(f.DB.Exec("DELETE FROM site_domain_blocks")).Unwrap()
+  let _ = MutationResult(f.DB.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('public-bob',?,?)", f.Parent.ID, f.Bob.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, f.DB, 100).Unwrap()
+  let bob = browser.Viewer(ctx, f.Bob).Unwrap()
+  if browser.NotificationUnreadCount(ctx, bob).Unwrap() != 1i64 then
+    t.Fatal("eligible public mention was not projected")
+  end
+  let _ = MutationResult(f.DB.Exec("UPDATE communities SET read_policy='members',post_policy='members' WHERE id=?", f.Community.ID)).Unwrap()
+  let reply = posts.Publish(ctx, f.Site, f.Community.ID, f.Alice, false, PublishInput{ParentID: f.Parent.ID, Body: "mention bob"}).Unwrap()
+  let _ = MutationResult(f.DB.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('private-bob',?,?)", reply.ID, f.Bob.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, f.DB, 100).Unwrap()
+  if browser.NotificationUnreadCount(ctx, bob).Unwrap() != 0i64 || browser.Notifications(ctx, bob, Page{Limit: 1}, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("outsider mention expanded private audience")
+  end
+  let _ = posts.Delete(ctx, f.Parent.ID, f.Alice, false).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 then
+    t.Fatal("deleted parent retained reply notification")
+  end
+end
+
+func TestPostgresNotificationsConcurrentProjectionSnapshot(t: Ref[testing.T]) -> ()
+  let f = notificationFixture(t)
+  let (ctx, cancel) = context.WithTimeout(context.Background(), 15 as time.Duration * time.Second)
+  t.Cleanup(cancel)
+  let reactions = ReactionRepository{DB: f.DB, SiteID: f.Site.ID}
+  let _ = reactions.Like(ctx, f.Parent.ID, f.Bob, false, "").Unwrap()
+  let results = concurrency.MakeChan[Result[(), String]](2)
+  let workers: Slice[Int] = [1, 2]
+  workers.Each(func(worker: Int) -> ()
+    concurrency.Spawn(func() -> ()
+      results.Send(ProjectNotifications(ctx, f.DB, worker))
+    end)
+  end)
+  let _ = results.Receive().Unwrap().Unwrap()
+  let _ = results.Receive().Unwrap().Unwrap()
+  let browser = BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
+  let viewer = browser.Viewer(ctx, f.Alice).Unwrap()
+  let snapshot = browser.Notifications(ctx, viewer, Page{Limit: 1}, 50).Unwrap()
+  if snapshot.Items.Len() != 1 then
+    t.Fatal("concurrent projectors duplicated or lost notification")
+  end
+  let _ = reactions.Undo(ctx, f.Parent.ID, f.Bob, false).Unwrap()
+  let _ = reactions.Like(ctx, f.Parent.ID, f.Bob, false, "").Unwrap()
+  concurrency.Spawn(func() -> ()
+    results.Send(ProjectNotifications(ctx, f.DB, 100))
+  end)
+  let _ = browser.ReadAllNotifications(ctx, viewer, ParseNotificationCursor(snapshot.ThroughCursor).Unwrap()).Unwrap()
+  let _ = results.Receive().Unwrap().Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("concurrent arrival was marked by an older snapshot")
+  end
+end
+
+func TestPostgresNotificationsOccurrenceAndPrivacy(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let outsider = AccountRepository{DB: db}.Create(ctx, other, "outsider", "", "outsider-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "private", "Private", "local_only", "members", "members").Unwrap()
+  let _ = communities.SetMember(ctx, community.ID, alice, false, bob.ActorURI, true).Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let parent = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Parent", Body: "body"}).Unwrap()
+  let reply = posts.Publish(ctx, site, community.ID, bob, false, PublishInput{ParentID: parent.ID, Body: "reply"}).Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = browser.Viewer(ctx, alice).Unwrap()
+  let bobView = browser.Viewer(ctx, bob).Unwrap()
+  let page = Page{Limit: 20}
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  var checkedRows: Slice[NotificationRecord] = []
+  let checked = browser.NotificationsQuery(ctx, viewer, "ORDER BY created_at DESC,id DESC").Scan(Ref.new(checkedRows))
+  if QueryFailed(checked) then
+    t.Fatalf("notification SQL failed: %v", checked.Error)
+  end
+  let initial = browser.Notifications(ctx, viewer, page, 50).Unwrap()
+  if initial.Items.Len() != 1 || initial.Items.Get(0).Unwrap().Kind != "reply" then
+    t.Fatal("reply not projected")
+  end
+  let firstID = initial.Items.Get(0).Unwrap().ID
+  let rollback = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    if MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('rolled-back',?,?)", reply.ID, alice.ActorURI)).IsErr() then
+      return Err("fixture failed")
+    end
+    Err("deliberate rollback")
+  end)
+  if rollback.IsOk() then
+    t.Fatal("failed action committed")
+  end
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("rolled back action produced notification")
+  end
+  if browser.ReadNotification(ctx, bobView, firstID).IsOk() then
+    t.Fatal("another account marked notification read")
+  end
+  let cross = BrowserRepository{DB: db, SiteID: other.ID}
+  if cross.Notifications(ctx, cross.Viewer(ctx, outsider).Unwrap(), page, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("cross-site notification leaked")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,active) VALUES ('mention-one',?,?,true)", reply.ID, alice.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let mentioned = browser.Notifications(ctx, viewer, page, 50).Unwrap()
+  if mentioned.Items.Len() != 1 || mentioned.Items.Get(0).Unwrap().Kind != "mention" then
+    t.Fatal("mention did not take precedence")
+  end
+  let _ = MutationResult(db.Exec("UPDATE post_mentions SET active=false WHERE id='mention-one'")).Unwrap()
+  if browser.Notifications(ctx, viewer, page, 50).Unwrap().Items.Get(0).Unwrap().Kind != "reply" then
+    t.Fatal("removed mention did not restore reply")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('mention-two',?,?)", reply.ID, alice.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let secondMention = browser.Notifications(ctx, viewer, page, 50).Unwrap().Items.Get(0).Unwrap()
+  if secondMention.Kind != "mention" || secondMention.ID == mentioned.Items.Get(0).Unwrap().ID then
+    t.Fatal("reintroduced mention reused an occurrence")
+  end
+  let _ = MutationResult(db.Exec("DELETE FROM post_mentions WHERE id='mention-two'")).Unwrap()
+  let _ = ReactionRepository{DB: db, SiteID: site.ID}.Like(ctx, parent.ID, alice, false, "").Unwrap()
+  let reactions = ReactionRepository{DB: db, SiteID: site.ID}
+  let _ = reactions.Like(ctx, parent.ID, bob, false, "").Unwrap()
+  let _ = reactions.Like(ctx, parent.ID, bob, false, "").Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 2i64 then
+    t.Fatal("like or projector replay duplicated notifications")
+  end
+  let snapshot = browser.Notifications(ctx, viewer, page, 50).Unwrap()
+  let _ = reactions.Undo(ctx, parent.ID, bob, false).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("Undo did not immediately retire like")
+  end
+  let _ = browser.ReadNotification(ctx, viewer, firstID).Unwrap()
+  let _ = browser.ReadNotification(ctx, viewer, firstID).Unwrap()
+  let _ = reactions.Like(ctx, parent.ID, bob, false, "").Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let _ = browser.ReadAllNotifications(ctx, viewer, ParseNotificationCursor(snapshot.ThroughCursor).Unwrap()).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then
+    t.Fatal("mark-all consumed a later re-like")
+  end
+  let _ = communities.SetMember(ctx, community.ID, alice, false, bob.ActorURI, false).Unwrap()
+  # Bob's notification target is now inaccessible before paging and counting.
+  let _ = MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,active) VALUES ('ineligible',?,?,true)", parent.ID, bob.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  if browser.NotificationUnreadCount(ctx, bobView).Unwrap() != 0i64 || browser.Notifications(ctx, bobView, Page{Limit: 1}, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("revoked member received notification")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, bob.ActorURI)).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 || browser.Notifications(ctx, viewer, page, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("blocked author leaked through notification counts/page")
+  end
+  let _ = MutationResult(db.Exec("DELETE FROM site_actor_blocks")).Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE actor_uri=?", bob.ActorURI)).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 || browser.Notifications(ctx, viewer, page, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("disabled author retained visible notifications")
+  end
+end

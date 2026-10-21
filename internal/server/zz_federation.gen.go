@@ -31,10 +31,20 @@ func WriteActivity[T any](w http.ResponseWriter, status int, value T) {
 	}
 }
 func FederationPath(path string) bool {
-	return path == "/.well-known/webfinger" || path == "/inbox" || strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/communities/") || strings.HasPrefix(path, "/objects/") || strings.HasPrefix(path, "/activities/") || strings.HasPrefix(path, "/contexts/")
+	return path == "/.well-known/webfinger" || path == "/inbox" || strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/communities/") || strings.HasPrefix(path, "/objects/") || strings.HasPrefix(path, "/activities/") || strings.HasPrefix(path, "/contexts/") || strings.HasPrefix(path, "/federation-media/")
 }
 func FederationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	path := request.URL.Path
+	if strings.HasPrefix(path, "/federation-media/") {
+		mediaParts := Segments(path)
+		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mediaParts) == 2 {
+			FederationMediaHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mediaParts, 1)))
+		} else {
+			http.NotFound(w, request)
+		}
+		return
+	} else {
+	}
 	if request.Method == "POST" {
 		InboxRoute(settings, db, site, w, request)
 		return
@@ -82,6 +92,21 @@ func FederationRoute(settings config.Config, db *gorm.DB, site config.Site, w ht
 	} else {
 	}
 	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "activities" {
+		community := storage.CommunityRecord{}
+		scoped := db.WithContext(request.Context()).Raw("SELECT c.* FROM communities c JOIN activities a ON a.community_id=c.id WHERE a.uri=?", site.Origin+request.URL.Path).Scan(&community)
+		if storage.QueryFailed(scoped) {
+			http.NotFound(w, request)
+			return
+		} else {
+		}
+		if scoped.RowsAffected == int64(1) {
+			if community.FederationMode != "federated" || community.ReadPolicy == "members" && MygoIN6ResultM5IsErr[struct{}, string](MemberReadAllowed(db, settings, request, site, community)) {
+				http.NotFound(w, request)
+				return
+			} else {
+			}
+		} else {
+		}
 		resolved_2 := federation.ResolveActivity(request.Context(), db, site, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
 		if MygoIN6ResultM5IsErr[[]byte, string](resolved_2) {
 			http.NotFound(w, request)
@@ -163,7 +188,13 @@ func ObjectHandler(settings config.Config, db *gorm.DB, site config.Site, w http
 		return
 	} else {
 		contextURI := storage.PrimaryPostContextURI(request.Context(), db, post.ID)
-		WriteActivity(w, 200, federation.BuildObjectRepresentationWithContext(post, community, contextURI))
-		return
+		enriched := BuildRichObject(request.Context(), db, post, community, contextURI)
+		if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](enriched) {
+			http.NotFound(w, request)
+			return
+		} else {
+			WriteActivity(w, 200, MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](enriched))
+			return
+		}
 	}
 }

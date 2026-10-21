@@ -1,0 +1,295 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import bytes "go:bytes"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func registrationFixture(t: Ref[testing.T]) -> RegistrationRepository
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true}).Unwrap()
+  RegistrationRepository{DB: db, Site: site, EncryptionKey: strings.Repeat("k", 32) as Slice[Byte], IPAttempts: 100, EmailAttempts: 100, TokenTTLSeconds: 86400, RateWindowSeconds: 3600}
+end
+
+func registrationCount(db: Ref[gorm.DB], query: String) -> Int
+  let count: Int = 0
+  let _ = MutationResult(db.Raw(query).Scan(Ref.new(count))).Unwrap()
+  count
+end
+
+func registrationToken(repository: RegistrationRepository, email: String) -> String
+  let encrypted: Slice[Byte] = []
+  let _ = repository.DB.Raw("SELECT j.encrypted_payload FROM verification_mail_jobs j JOIN pending_registrations p ON p.id=j.registration_id WHERE p.site_id=? AND p.email=? ORDER BY j.generation DESC LIMIT 1", repository.Site.ID, email).Row().Scan(Ref.new(encrypted)).Unwrap()
+  let link = auth.OpenVerification(repository.EncryptionKey, encrypted).Unwrap()
+  strings.TrimPrefix(link, repository.Site.Origin + "/verify-email#token=")
+end
+
+func TestRegistrationEmailValidation(t: Ref[testing.T]) -> ()
+  if RegistrationEmail("  Alice@Example.COM  ").Unwrap() != "alice@example.com" then
+    t.Fatal("registration email was not normalized")
+  end
+  let invalid: Slice[String] = ["", "a", "Name <alice@example.com>", "a@example.com,b@example.com", "a@example.com\nBcc: x@example.com", strings.Repeat("a", 255) + "@example.com"]
+  invalid.Each(func(email: String) -> ()
+    if RegistrationEmail(email).IsOk() then
+      t.Fatal("invalid registration email accepted")
+    end
+  end)
+end
+
+func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
+  let pool = testsupport.Postgres(t)
+  let ctx = context.Background()
+  let options = sql.TxOptions{}
+  let tx = pool.BeginTx(ctx, Ref.new(options)).Unwrap()
+  let _ = ApplyTransaction(ctx, tx, MigrationCatalog().Unwrap().Take(5)).Unwrap()
+  let _ = tx.Commit().Unwrap()
+  let db = transport.ORM(pool).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let provisioned = accounts.Create(ctx, site, "existing", "existing@example.com", "existing-account-password").Unwrap()
+  let issued = SessionRepository{DB: db}.Issue(ctx, provisioned, time.Now()).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let _ = CheckGORM(ctx, db).Unwrap()
+  if registrationCount(db, "SELECT count(*) FROM commune_schema_migrations WHERE version=6 AND name='006_registration.sql'") != 1 || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 then
+    t.Fatal("registration migration did not upgrade existing schema exactly once")
+  end
+  if accounts.Authenticate(ctx, "a", "existing", "existing-account-password").Unwrap().AccountID != provisioned.AccountID || SessionRepository{DB: db}.Resolve(ctx, "a", issued.Session, time.Now()).Unwrap().Identity.AccountID != provisioned.AccountID then
+    t.Fatal("registration migration changed existing login/session")
+  end
+end
+
+func TestPostgresRegistrationFinalPassword(t: Ref[testing.T]) -> ()
+  let repository = registrationFixture(t)
+  let db = repository.DB
+  let ctx = context.Background()
+  let now = time.Unix(1800000000, 0)
+  let _ = repository.Register(ctx, "alice", " Alice@Example.COM ", "192.0.2.10", now).Unwrap()
+  let token = registrationToken(repository, "alice@example.com")
+  if !auth.ValidToken(token) then
+    t.Fatal("issued verification token is invalid")
+  end
+  if registrationCount(db, "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='pending_registrations' AND (column_name LIKE '%password%' OR column_name LIKE '%credential%')") != 0 then
+    t.Fatal("pending registrations retain credentials")
+  end
+  if registrationCount(db, "SELECT count(*) FROM accounts") != 0 || registrationCount(db, "SELECT count(*) FROM actors WHERE kind='Person'") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 then
+    t.Fatal("pending registration created an identity, role or session")
+  end
+  if AccountRepository{DB: db}.Authenticate(ctx, "a", "alice", "final-password-choice").IsOk() then
+    t.Fatal("pending account authenticated")
+  end
+  let pending = PendingRegistration{}
+  let _ = MutationResult(db.Table("pending_registrations").Where("site_id='a'").Take(Ref.new(pending))).Unwrap()
+  if !bytes.Equal(pending.TokenHash, auth.TokenHash(token)) || bytes.Equal(pending.TokenHash, token as Slice[Byte]) then
+    t.Fatal("verification record does not contain only a token digest")
+  end
+  let passwords: Slice[String] = ["", "short", strings.Repeat("x", 73)]
+  passwords.Each(func(password: String) -> ()
+    if repository.Confirm(ctx, token, password, now).UnwrapErr() != "invalid registration password" || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 1 then
+      t.Fatal("invalid password consumed verification token")
+    end
+  end)
+  let _ = repository.Confirm(ctx, token, "final-password-choice", now).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let identity = accounts.Authenticate(ctx, "a", "alice@example.com", "final-password-choice").Unwrap()
+  if identity.Username != "alice" || identity.ActorURI != "https://a.example/users/alice" || accounts.Authenticate(ctx, "a", "alice", "another-password").IsOk() then
+    t.Fatal("confirmation failed to use the final chosen password")
+  end
+  if repository.Confirm(ctx, token, "replacement-password", now).IsOk() || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 || registrationCount(db, "SELECT count(*) FROM deployment_roles") != 0 then
+    t.Fatal("confirmation was replayable or granted sessions/roles")
+  end
+  let _ = accounts.Authenticate(ctx, "a", "alice", "final-password-choice").Unwrap()
+end
+
+func TestPostgresRegistrationResendIsolationAndExpiry(t: Ref[testing.T]) -> ()
+  let repository = registrationFixture(t)
+  let ctx = context.Background()
+  let now = time.Unix(1800000000, 0)
+  let _ = repository.Register(ctx, "alice", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let first = registrationToken(repository, "alice@example.com")
+  let later = now.Add(time.Hour)
+  let _ = repository.Resend(ctx, "ALICE@example.com", "192.0.2.10", later).Unwrap()
+  let second = registrationToken(repository, "alice@example.com")
+  if first == second || repository.Confirm(ctx, first, "chosen-final-password", later).IsOk() then
+    t.Fatal("resend did not invalidate previous generation")
+  end
+  let pending = PendingRegistration{}
+  let _ = MutationResult(repository.DB.Table("pending_registrations").Take(Ref.new(pending))).Unwrap()
+  if pending.Generation != 2i64 || !pending.ExpiresAt.Equal(later.Add(24 as time.Duration * time.Hour)) || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs WHERE generation=1 AND state='failed' AND octet_length(encrypted_payload)=0") != 1 then
+    t.Fatal("resend expiry or old payload invalidation failed")
+  end
+  var other = repository
+  other.Site = config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true}
+  if other.Confirm(ctx, second, "chosen-final-password", later).IsOk() then
+    t.Fatal("token redeemed on another site")
+  end
+  let _ = other.Register(ctx, "alice", "alice@example.com", "192.0.2.10", later).Unwrap()
+  let foreign = registrationToken(other, "alice@example.com")
+  let _ = other.Confirm(ctx, foreign, "other-site-password", later).Unwrap()
+  let _ = repository.Confirm(ctx, second, "chosen-final-password", later).Unwrap()
+  if registrationCount(repository.DB, "SELECT count(*) FROM accounts WHERE username='alice' AND email='alice@example.com'") != 2 then
+    t.Fatal("site-local username/email uniqueness leaked across sites")
+  end
+  let _ = repository.Register(ctx, "expired", "expired@example.com", "192.0.2.10", now).Unwrap()
+  let expired = registrationToken(repository, "expired@example.com")
+  let deadline = now.Add(24 as time.Duration * time.Hour)
+  if repository.Confirm(ctx, expired, "chosen-final-password", deadline).IsOk() then
+    t.Fatal("token was redeemable at expiry")
+  end
+  let _ = repository.Resend(ctx, "expired@example.com", "192.0.2.10", deadline).Unwrap()
+  if registrationToken(repository, "expired@example.com") != expired then
+    t.Fatal("resend revived an expired registration")
+  end
+  let _ = repository.Register(ctx, "expired", "expired@example.com", "192.0.2.10", deadline).Unwrap()
+  let replacement = registrationToken(repository, "expired@example.com")
+  if replacement == expired || repository.Confirm(ctx, expired, "chosen-final-password", deadline).IsOk() then
+    t.Fatal("expired registration replacement reused stale token")
+  end
+  let _ = repository.Confirm(ctx, replacement, "replacement-password", deadline).Unwrap()
+end
+
+func TestPostgresRegistrationDuplicatesAndRateLimits(t: Ref[testing.T]) -> ()
+  var repository = registrationFixture(t)
+  let ctx = context.Background()
+  let now = time.Unix(1800000000, 0)
+  let _ = repository.Register(ctx, "alice", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let token = registrationToken(repository, "alice@example.com")
+  let _ = repository.Register(ctx, "alice", "different@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Register(ctx, "different", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Resend(ctx, "missing@example.com", "192.0.2.10", now).Unwrap()
+  if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs") != 1 || registrationToken(repository, "alice@example.com") != token then
+    t.Fatal("duplicate pending submissions changed identity/token or queued extra mail")
+  end
+  let _ = repository.Confirm(ctx, token, "chosen-final-password", now).Unwrap()
+  let _ = repository.Register(ctx, "alice", "different@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Register(ctx, "different", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Resend(ctx, "alice@example.com", "192.0.2.10", now).Unwrap()
+  if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 then
+    t.Fatal("existing account was re-registered")
+  end
+  let _ = AccountRepository{DB: repository.DB}.Authenticate(ctx, "a", "alice", "chosen-final-password").Unwrap()
+  let invalid: Slice[String] = ["", "Alice", "a/b", strings.Repeat("a", 65)]
+  invalid.Each(func(username: String) -> ()
+    if repository.Register(ctx, username, "invalid@example.com", "192.0.2.10", now).IsOk() then
+      t.Fatal("invalid registration username accepted")
+    end
+  end)
+  repository.EmailAttempts = 1
+  let _ = repository.Resend(ctx, "limited@example.com", "192.0.2.20", now).Unwrap()
+  if repository.Resend(ctx, " LIMITED@EXAMPLE.COM ", "192.0.2.21", now).UnwrapErr() != "registration rate limited" then
+    t.Fatal("email rate limit bypassed by normalization or another IP")
+  end
+  let _ = repository.Resend(ctx, "limited@example.com", "192.0.2.21", now.Add(time.Hour)).Unwrap()
+  repository.IPAttempts = 1
+  let _ = repository.Resend(ctx, "one@example.com", "192.0.2.30", now).Unwrap()
+  if repository.Resend(ctx, "two@example.com", "192.0.2.30", now).UnwrapErr() != "registration rate limited" then
+    t.Fatal("IP rate limit bypassed with another email")
+  end
+  var other = repository
+  other.Site = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = other.Resend(ctx, "one@example.com", "192.0.2.30", now).Unwrap()
+end
+
+func TestPostgresRegistrationConcurrentRedemption(t: Ref[testing.T]) -> ()
+  let repository = registrationFixture(t)
+  let (ctx, cancel) = context.WithTimeout(context.Background(), 15 as time.Duration * time.Second)
+  t.Cleanup(cancel)
+  let now = time.Unix(1800000000, 0)
+  let _ = repository.Register(ctx, "alice", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let token = registrationToken(repository, "alice@example.com")
+  let ready = concurrency.MakeChan[()](2)
+  let start = concurrency.MakeChan[()](2)
+  let results = concurrency.MakeChan[Result[(), String]](2)
+  let passwords: Slice[String] = ["first-final-password", "second-final-password"]
+  passwords.Each(func(password: String) -> ()
+    concurrency.Spawn(func() -> ()
+      ready.Send(())
+      let _ = start.Receive()
+      results.Send(repository.Confirm(ctx, token, password, now))
+    end)
+  end)
+  let _ = ready.Receive()
+  let _ = ready.Receive()
+  start.Send(())
+  start.Send(())
+  let first = results.Receive().Unwrap()
+  let second = results.Receive().Unwrap()
+  if first.IsOk() == second.IsOk() || registrationCount(repository.DB, "SELECT count(*) FROM accounts") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE kind='Person'") != 1 then
+    t.Fatal("concurrent redemption did not yield exactly one account/Actor")
+  end
+  let accounts = AccountRepository{DB: repository.DB}
+  if accounts.Authenticate(ctx, "a", "alice", "first-final-password").IsOk() == accounts.Authenticate(ctx, "a", "alice", "second-final-password").IsOk() then
+    t.Fatal("concurrent confirmation did not retain exactly one final password")
+  end
+end
+
+func TestPostgresRegistrationConflictRollbackAndProvisionedLogin(t: Ref[testing.T]) -> ()
+  let repository = registrationFixture(t)
+  let ctx = context.Background()
+  let now = time.Unix(1800000000, 0)
+  let accounts = AccountRepository{DB: repository.DB}
+  let provisioned = accounts.Create(ctx, repository.Site, "provisioned", "existing@example.com", "provisioned-password").Unwrap()
+  let _ = repository.Register(ctx, "provisioned", "new@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Register(ctx, "new", "existing@example.com", "192.0.2.10", now).Unwrap()
+  let _ = repository.Resend(ctx, "existing@example.com", "192.0.2.10", now).Unwrap()
+  if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 || accounts.Authenticate(ctx, "a", "provisioned", "provisioned-password").Unwrap().AccountID != provisioned.AccountID then
+    t.Fatal("public registration altered provisioned-account login")
+  end
+  let _ = repository.Register(ctx, "alice", "alice@example.com", "192.0.2.10", now).Unwrap()
+  let token = registrationToken(repository, "alice@example.com")
+  # A provisioned account wins the email uniqueness race after token issuance.
+  let winner = accounts.Create(ctx, repository.Site, "winner", "alice@example.com", "winner-account-password").Unwrap()
+  if repository.Confirm(ctx, token, "chosen-final-password", now).UnwrapErr() != "registration conflict" then
+    t.Fatal("account uniqueness race did not report a conflict")
+  end
+  if registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE uri='https://a.example/users/alice'") != 0 || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 then
+    t.Fatal("failed confirmation left an Actor or consumed the token")
+  end
+  let _ = accounts.Authenticate(ctx, "a", "winner", "winner-account-password").Unwrap()
+  let _ = MutationResult(repository.DB.Exec("DELETE FROM accounts WHERE id=?", winner.AccountID)).Unwrap()
+  let _ = MutationResult(repository.DB.Exec("DELETE FROM actors WHERE uri=?", winner.ActorURI)).Unwrap()
+  let _ = repository.Confirm(ctx, token, "chosen-final-password", now).Unwrap()
+  let _ = accounts.Authenticate(ctx, "a", "alice", "chosen-final-password").Unwrap()
+end
+
+func TestPostgresRegistrationConcurrentRateCharge(t: Ref[testing.T]) -> ()
+  var repository = registrationFixture(t)
+  repository.IPAttempts = 1
+  repository.EmailAttempts = 1
+  let (ctx, cancel) = context.WithTimeout(context.Background(), 15 as time.Duration * time.Second)
+  t.Cleanup(cancel)
+  let now = time.Unix(1800000000, 0)
+  let start = concurrency.MakeChan[()](2)
+  let ready = concurrency.MakeChan[()](2)
+  let results = concurrency.MakeChan[Result[(), String]](2)
+  let names: Slice[String] = ["first", "second"]
+  names.Each(func(name: String) -> ()
+    concurrency.Spawn(func() -> ()
+      ready.Send(())
+      let _ = start.Receive()
+      results.Send(repository.Register(ctx, name, name + "@example.com", "192.0.2.10", now))
+    end)
+  end)
+  let _ = ready.Receive()
+  let _ = ready.Receive()
+  start.Send(())
+  start.Send(())
+  let first = results.Receive().Unwrap()
+  let second = results.Receive().Unwrap()
+  if first.IsOk() == second.IsOk() || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT attempts FROM registration_rate_limits WHERE dimension='ip'") != 2 then
+    t.Fatal("concurrent registration bypassed committed IP charges")
+  end
+end

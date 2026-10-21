@@ -1,0 +1,561 @@
+package config
+
+import testing "go:testing"
+import strings "go:strings"
+import json "go:encoding/json"
+import os "go:os"
+import filepath "go:path/filepath"
+
+func TestParticipationDefaults(t: Ref[testing.T]) -> ()
+  let settings = Validate(validInput()).Unwrap()
+  if settings.Registration.TokenTTLSeconds != 86400 then
+    t.Fatal("Registration.TokenTTLSeconds default changed")
+  end
+  if settings.Registration.RateWindowSeconds != 3600 then
+    t.Fatal("Registration.RateWindowSeconds default changed")
+  end
+  if settings.Registration.IPLimit != 20 then
+    t.Fatal("Registration.IPLimit default changed")
+  end
+  if settings.Registration.EmailLimit != 3 then
+    t.Fatal("Registration.EmailLimit default changed")
+  end
+  if settings.SMTP.Port != 587 then
+    t.Fatal("SMTP.Port default changed")
+  end
+  if settings.SMTP.TimeoutSeconds != 10 then
+    t.Fatal("SMTP.TimeoutSeconds default changed")
+  end
+  if settings.Media.MaxFileBytes != 26214400 then
+    t.Fatal("Media.MaxFileBytes default changed")
+  end
+  if settings.Media.MaxImageBytes != 10485760 then
+    t.Fatal("Media.MaxImageBytes default changed")
+  end
+  if settings.Media.MaxImagePixels != 20000000 then
+    t.Fatal("Media.MaxImagePixels default changed")
+  end
+  if settings.Media.MaxImageDimension != 16384 then
+    t.Fatal("Media.MaxImageDimension default changed")
+  end
+  if settings.Media.PreviewDimension != 1024 then
+    t.Fatal("Media.PreviewDimension default changed")
+  end
+  if settings.Media.AccountQuotaBytes != 1073741824 then
+    t.Fatal("Media.AccountQuotaBytes default changed")
+  end
+  if settings.Media.SiteQuotaBytes != 10737418240 then
+    t.Fatal("Media.SiteQuotaBytes default changed")
+  end
+  if settings.Media.TemporaryRetentionSeconds != 86400 then
+    t.Fatal("Media.TemporaryRetentionSeconds default changed")
+  end
+  if settings.Media.PrivateCacheRetentionSeconds != 604800 then
+    t.Fatal("Media.PrivateCacheRetentionSeconds default changed")
+  end
+  if settings.Media.CleanupIntervalSeconds != 3600 then
+    t.Fatal("Media.CleanupIntervalSeconds default changed")
+  end
+  if settings.Rendering.MaxSourceBytes != 1048576 then
+    t.Fatal("Rendering.MaxSourceBytes default changed")
+  end
+  if settings.Rendering.MaxDisplayNameLength != 100 then
+    t.Fatal("Rendering.MaxDisplayNameLength default changed")
+  end
+  if settings.Rendering.MaxBiographyLength != 5000 then
+    t.Fatal("Rendering.MaxBiographyLength default changed")
+  end
+  if settings.Rendering.MaxMentions != 20 then
+    t.Fatal("Rendering.MaxMentions default changed")
+  end
+  if settings.Rendering.MaxRemoteDiscoveries != 10 then
+    t.Fatal("Rendering.MaxRemoteDiscoveries default changed")
+  end
+  if settings.Rendering.MentionTimeoutSeconds != 10 then
+    t.Fatal("Rendering.MentionTimeoutSeconds default changed")
+  end
+  if settings.ParticipationWorkers.MailWorkers != 1 then
+    t.Fatal("ParticipationWorkers.MailWorkers default changed")
+  end
+  if settings.ParticipationWorkers.NotificationWorkers != 1 then
+    t.Fatal("ParticipationWorkers.NotificationWorkers default changed")
+  end
+  if settings.ParticipationWorkers.MediaWorkers != 1 then
+    t.Fatal("ParticipationWorkers.MediaWorkers default changed")
+  end
+  if settings.ParticipationWorkers.BatchSize != 100 then
+    t.Fatal("ParticipationWorkers.BatchSize default changed")
+  end
+  if settings.ParticipationWorkers.PollIntervalSeconds != 5 then
+    t.Fatal("ParticipationWorkers.PollIntervalSeconds default changed")
+  end
+  if settings.ParticipationWorkers.LeaseSeconds != 60 then
+    t.Fatal("ParticipationWorkers.LeaseSeconds default changed")
+  end
+  if settings.ParticipationWorkers.MaxAttempts != 8 then
+    t.Fatal("ParticipationWorkers.MaxAttempts default changed")
+  end
+  if settings.ParticipationWorkers.RetryBaseSeconds != 30 then
+    t.Fatal("ParticipationWorkers.RetryBaseSeconds default changed")
+  end
+  if settings.ParticipationWorkers.RetryMaxSeconds != 3600 then
+    t.Fatal("ParticipationWorkers.RetryMaxSeconds default changed")
+  end
+  if settings.Sites.Get(0).Unwrap().RegistrationEnabled || settings.Media.Enabled || settings.ParticipationWorkers.Enabled || settings.SMTP.TLSMode != "starttls" then
+    t.Fatal("feature defaults changed")
+  end
+end
+
+func TestParticipationLoadAndSecretEnvironment(t: Ref[testing.T]) -> ()
+  let key: String = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+  let envName: String = "COMMUNE_CONFIG_TEST_OUTBOX_KEY"
+  t.Setenv(envName, key)
+  var input = validInput()
+  input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+  input.Registration.OutboxSecretEnv = envName
+  input.Registration.IPLimit = 7
+  input.Registration.EmailLimit = 2
+  input.SMTP.Host = "smtp.example"
+  input.SMTP.From = "noreply@example.com"
+  input.SMTP.Username = "mail-user"
+  input.SMTP.Password = "mail-password"
+  input.SMTP.TLSMode = "tls"
+  input.Media.Enabled = true
+  input.Media.Root = filepath.Join(t.TempDir(), "media")
+  input.Media.PrivateCacheRetentionSeconds = 600
+  let path: String = filepath.Join(t.TempDir(), "config.json")
+  let content = json.Marshal(input).Unwrap()
+  if os.WriteFile(path, content, 0o600 as os.FileMode).IsErr() then
+    t.Fatal("cannot write configuration fixture")
+  end
+  let settings = Load(path).Unwrap()
+  if settings.Registration.OutboxSecret != key || settings.Registration.IPLimit != 7 || settings.Registration.EmailLimit != 2 || settings.Media.PrivateCacheRetentionSeconds != 600 || settings.SMTP.TLSMode != "tls" || settings.SMTP.Password != "mail-password" || !settings.Sites.Get(0).Unwrap().RegistrationEnabled then
+    t.Fatal("JSON fields, overrides or environment key were lost")
+  end
+  input.Registration.OutboxSecret = key
+  if Validate(input).IsOk() then
+    t.Fatal("ambiguous secret sources accepted")
+  end
+  input.Registration.OutboxSecret = ""
+  t.Setenv(envName, "")
+  if Validate(input).IsOk() then
+    t.Fatal("empty secret environment accepted")
+  end
+  input.Registration.OutboxSecretEnv = "COMMUNE_CONFIG_TEST_MISSING_KEY"
+  t.Setenv("COMMUNE_CONFIG_TEST_MISSING_KEY", "")
+  if Validate(input).IsOk() then
+    t.Fatal("missing environment secret accepted")
+  end
+  input.Registration.OutboxSecretEnv = envName
+  t.Setenv(envName, "not-a-valid-secret")
+  switch Validate(input)
+  case Ok(_) => t.Fatal("invalid environment key accepted")
+  case Err(message) =>
+    if strings.Contains(message, "not-a-valid-secret") || strings.Contains(message, envName) then
+      t.Fatal("environment secret error leaked input")
+    end
+  end
+end
+
+func TestParticipationBounds(t: Ref[testing.T]) -> ()
+  t.Run("Registration.TokenTTLSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Registration.TokenTTLSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Registration.TokenTTLSeconds = 604801
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Registration.RateWindowSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Registration.RateWindowSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Registration.RateWindowSeconds = 86401
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Registration.IPLimit", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Registration.IPLimit = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Registration.IPLimit = 10001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Registration.EmailLimit", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Registration.EmailLimit = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Registration.EmailLimit = 101
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("SMTP.Port", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.SMTP.Port = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.SMTP.Port = 65536
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("SMTP.TimeoutSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.SMTP.TimeoutSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.SMTP.TimeoutSeconds = 61
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.MaxFileBytes", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.MaxFileBytes = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.MaxFileBytes = 1073741825
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.MaxImageBytes", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.MaxImageBytes = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.MaxImageBytes = 1073741825
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.MaxImagePixels", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.MaxImagePixels = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.MaxImagePixels = 100000001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.MaxImageDimension", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.MaxImageDimension = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.MaxImageDimension = 65537
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.PreviewDimension", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.PreviewDimension = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.PreviewDimension = 4097
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.AccountQuotaBytes", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.AccountQuotaBytes = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.AccountQuotaBytes = 1099511627777
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.SiteQuotaBytes", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.SiteQuotaBytes = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.SiteQuotaBytes = 1099511627777
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.TemporaryRetentionSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.TemporaryRetentionSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.TemporaryRetentionSeconds = 2592001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.PrivateCacheRetentionSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.PrivateCacheRetentionSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.PrivateCacheRetentionSeconds = 31536001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Media.CleanupIntervalSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Media.CleanupIntervalSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Media.CleanupIntervalSeconds = 86401
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MaxSourceBytes", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MaxSourceBytes = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MaxSourceBytes = 16777217
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MaxDisplayNameLength", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MaxDisplayNameLength = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MaxDisplayNameLength = 1001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MaxBiographyLength", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MaxBiographyLength = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MaxBiographyLength = 100001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MaxMentions", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MaxMentions = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MaxMentions = 101
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MaxRemoteDiscoveries", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MaxRemoteDiscoveries = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MaxRemoteDiscoveries = 101
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("Rendering.MentionTimeoutSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.Rendering.MentionTimeoutSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.Rendering.MentionTimeoutSeconds = 61
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.MailWorkers", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.MailWorkers = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.MailWorkers = 33
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.NotificationWorkers", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.NotificationWorkers = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.NotificationWorkers = 33
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.MediaWorkers", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.MediaWorkers = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.MediaWorkers = 33
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.BatchSize", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.BatchSize = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.BatchSize = 1001
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.PollIntervalSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.PollIntervalSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.PollIntervalSeconds = 301
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.LeaseSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.LeaseSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.LeaseSeconds = 3601
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.MaxAttempts", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.MaxAttempts = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.MaxAttempts = 101
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.RetryBaseSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.RetryBaseSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.RetryBaseSeconds = 3601
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.RetryMaxSeconds", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.RetryMaxSeconds = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.RetryMaxSeconds = 86401
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  ()
+end
+
+func TestParticipationEnabledValidation(t: Ref[testing.T]) -> ()
+  let cases = ["relative", "root", "traversal", "nul", "missing root", "missing secret", "short secret", "bad secret", "missing smtp", "bad sender", "test credentials", "bad tls", "quota", "image", "lease", "retry"]
+  cases.Each(func(name: String) -> ()
+    t.Run(name, func(t: Ref[testing.T]) -> ()
+      var input = validInput()
+      switch name
+      case "relative" => input.Media.Root = "media"
+      case "root" => input.Media.Root = "/"
+      case "traversal" => input.Media.Root = "/tmp/../media"
+      case "nul" =>
+        let nul: Slice[Byte] = [0 as Byte]
+        input.Media.Root = "/tmp/" + (nul as String)
+      case "missing root" => input.Media.Enabled = true
+      case "missing secret" => input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+      case "short secret" => input.Registration.OutboxSecret = "c2VjcmV0"
+      case "bad secret" => input.Registration.OutboxSecret = "secret"
+      case "missing smtp" =>
+        input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+        input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+      case "bad sender" =>
+        input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+        input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+        input.SMTP.Host = "smtp.example"
+        input.SMTP.From = "secret"
+      case "test credentials" =>
+        input.SMTP.TLSMode = "test"
+        input.SMTP.Password = "secret"
+      case "bad tls" => input.SMTP.TLSMode = "none"
+      case "quota" => input.Media.AccountQuotaBytes = 1024
+      case "image" => input.Media.MaxImageBytes = 1073741824
+      case "lease" => input.ParticipationWorkers.LeaseSeconds = 1
+      case "retry" => input.ParticipationWorkers.RetryMaxSeconds = 1
+      case _ => ()
+      end
+      switch Validate(input)
+      case Ok(_) => t.Fatal("invalid participation settings accepted")
+      case Err(message) =>
+        if strings.Contains(message, "MDEy") || strings.Contains(message, "c2Vj") then
+          t.Fatal("configuration error leaked key")
+        end
+      end
+    end)
+    ()
+  end)
+  var input = validInput()
+  input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+  input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+  input.SMTP.Host = "smtp.example"
+  input.SMTP.From = "Commune <noreply@example.com>"
+  input.Media.Enabled = true
+  input.Media.Root = "/var/lib/commune/media"
+  input.ParticipationWorkers.Enabled = true
+  let settings = Validate(input).Unwrap()
+  if !settings.Sites.Get(0).Unwrap().RegistrationEnabled || settings.Media.Root != input.Media.Root then
+    t.Fatal("enabled feature settings lost")
+  end
+end

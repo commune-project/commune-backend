@@ -1,0 +1,57 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import sql "go:database/sql"
+import io "go:io"
+import strings "go:strings"
+import httptest "go:net/http/httptest"
+import http "go:net/http"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresMediaPrivateHTTPACLAndPublicNoProxy(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "cache-http", Origin: "https://cache.example"}
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
+  let author: String = "https://remote.example/users/author"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "Private", AuthoredAt: now, UpdatedAt: now}, author).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?)", alice.ActorURI, author)).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap().Media
+  settings.Enabled = true
+  settings.Root = t.TempDir()
+  let mediaFS = storage.OpenMediaFiles(settings).Unwrap()
+  t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
+  let repo = storage.MediaRepository{DB: db, SiteID: site.ID, Settings: settings, Files: mediaFS}
+  let cache = storage.RegisterPrivateMedia(ctx, db, site.ID, post.ID, "https://remote.example/media/one", "v1").Unwrap()
+  var fetches: Int = 0
+  let fetch = func(fetchCtx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+    fetches = fetches + 1
+    Ok(io.NopCloser(strings.NewReader("<svg onload='bad()'/>") as io.Reader))
+  end
+  let response = httptest.NewRecorder()
+  ServePrivateMedia(repo, alice, cache.ID, response as http.ResponseWriter, httptest.NewRequest("GET", "/", strings.NewReader("") as io.Reader), fetch)
+  if response.Code != 200 || response.Header().Get("Content-Type") != "application/octet-stream" || !strings.HasPrefix(response.Header().Get("Content-Disposition"), "attachment") || fetches != 1 then t.Fatal("private download unsafe or missing") end
+  let _ = storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", alice.ActorURI)).Unwrap()
+  let denied = httptest.NewRecorder()
+  let request = httptest.NewRequest("HEAD", "/", strings.NewReader("") as io.Reader)
+  request.Header.Set("Range", "bytes=0-1")
+  request.Header.Set("If-None-Match", response.Header().Get("ETag"))
+  ServePrivateMedia(repo, alice, cache.ID, denied as http.ResponseWriter, request, fetch)
+  if denied.Code == 200 || denied.Code == 206 || denied.Code == 304 || denied.Header().Get("ETag") != "" || fetches != 1 then t.Fatal("revoked reader accessed cache metadata") end
+  let _ = storage.MutationResult(db.Exec("UPDATE communities SET read_policy='eligible_users',post_policy='eligible_users' WHERE id='remote'")).Unwrap()
+  let urls = ReconcileRemoteMedia(ctx, db, site.ID, post, "v2", [federation.RichAttachment{Type: "Document", URL: "https://remote.example/media/public"}]).Unwrap()
+  if urls.Get(0).Unwrap() != "https://remote.example/media/public" then t.Fatal("public attachment proxied") end
+  if storage.QueryExists(db.Table("media_private_cache").Where("origin_uri=?", "https://remote.example/media/public")).Unwrap() || fetches != 1 then t.Fatal("public attachment cached or fetched") end
+end

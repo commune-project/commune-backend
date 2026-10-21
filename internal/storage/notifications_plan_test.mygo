@@ -1,0 +1,74 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+
+struct NotificationPlanLine
+  Line: String `gorm:"column:QUERY PLAN"`
+end
+
+func TestPostgresNotificationsQueryPlan(t: Ref[testing.T]) -> ()
+  let f = notificationFixture(t)
+  let ctx = context.Background()
+  let _ = MutationResult(f.DB.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,body,parent_id,authored_at,updated_at) SELECT 'plan-'||i,'https://a.example/objects/plan-'||i,?,'federated',?,'Note','representative notification',?,now(),now() FROM generate_series(1,2000) i", f.Community.ID, f.Bob.ActorURI, f.Parent.ID)).Unwrap()
+  let _ = MutationResult(f.DB.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts WHERE id LIKE 'plan-%'", f.Site.ID)).Unwrap()
+  let _ = MutationResult(f.DB.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) SELECT 'mention-'||id,id,? FROM posts WHERE id LIKE 'plan-%' AND substring(id from 6)::integer%2=0", f.Alice.ActorURI)).Unwrap()
+  var batch: Int = 0
+  while batch < 4
+    let _ = ProjectNotifications(ctx, f.DB, 1000).Unwrap()
+    batch = batch + 1
+  end
+  # Revoke reception after all rows have been projected: stale notifications
+  # must be excluded by the read query, not merely by projection-time checks.
+  let _ = MutationResult(f.DB.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id LIKE 'plan-%' AND substring(post_id from 6)::integer%4=0")).Unwrap()
+  # Deterministic ties exercise the descending ID ordering across pages.
+  let _ = MutationResult(f.DB.Exec("UPDATE notifications SET created_at=?", time.Now().UTC().Truncate(time.Microsecond))).Unwrap()
+  let _ = MutationResult(f.DB.Exec("ANALYZE")).Unwrap()
+  let browser = BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
+  let viewer = browser.Viewer(ctx, f.Alice).Unwrap()
+  if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1500i64 then
+    t.Fatal("hidden targets or reply/mention precedence changed representative count")
+  end
+  let first = browser.Notifications(ctx, viewer, Page{Limit: 20}, 50).Unwrap()
+  let next = browser.Notifications(ctx, viewer, Page{Limit: 20, Offset: 20}, 50).Unwrap()
+  if first.Items.Len() != 20 || next.Items.Len() != 20 || first.Items.Get(19).Unwrap().ID <= next.Items.Get(0).Unwrap().ID then
+    t.Fatal("equal-time notification pagination lost deterministic ID order")
+  end
+  var selects: Int = 0
+  let registered = f.DB.Callback().Row().Before("gorm:row").Register("notification_select_count", func(tx: Ref[gorm.DB]) -> ()
+    selects = selects + 1
+  end)
+  if registered.IsErr() then
+    t.Fatal("cannot register notification query counter")
+  end
+  let sizes: Slice[Int] = [1, 20, 50]
+  sizes.Each(func(size: Int) -> ()
+    selects = 0
+    let result = browser.Notifications(ctx, viewer, Page{Limit: size}, 50).Unwrap()
+    if result.Items.Len() != size || selects != 2 then
+      t.Fatalf("notification page %d returned %d items using %d selects", size, result.Items.Len(), selects)
+    end
+    t.Logf("notification page-size=%d selects=%d enrichment-selects=0", size, selects)
+  end)
+  let _ = f.DB.Callback().Row().Remove("notification_select_count")
+  let variants: Slice[String] = ["page", "unread-count"]
+  variants.Each(func(kind: String) -> ()
+    let query = if kind == "page" then
+      browser.NotificationsQuery(ctx, viewer, "ORDER BY created_at DESC,id DESC LIMIT 20")
+    else
+      f.DB.Raw("SELECT count(*) FROM (?) AS unread", browser.NotificationsQuery(ctx, viewer, "WHERE NOT read"))
+    end
+    var lines: Slice[NotificationPlanLine] = []
+    let result = f.DB.Raw("EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM (?) AS notification_plan", query).Scan(Ref.new(lines))
+    if QueryFailed(result) then
+      t.Fatalf("notification EXPLAIN failed: %v", result.Error)
+    end
+    t.Logf("notification plan %s: posts=2000 mentions=1000 visible=1500 page-size=20", kind)
+    lines.Each(func(line: NotificationPlanLine) -> ()
+      t.Logf("%s", line.Line)
+    end)
+  end)
+end

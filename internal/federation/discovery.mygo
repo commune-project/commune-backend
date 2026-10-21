@@ -69,7 +69,11 @@ func ResolvePerson(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, us
   if key.IsErr() then
     return Err("not found")
   end
-  Ok(PersonRepresentation(site, actor, username, key.Unwrap()))
+  let profile = storage.LoadProfile(ctx, db, actor.URI)
+  if profile.IsErr() then
+    return Err("profile unavailable")
+  end
+  Ok(WithProfile(PersonRepresentation(site, actor, username, key.Unwrap()), profile.Unwrap()))
 end
 
 func ResolveGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, name: String) -> Result[ActorRepresentation, String]

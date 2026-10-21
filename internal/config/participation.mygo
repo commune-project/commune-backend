@@ -1,0 +1,316 @@
+package config
+
+import base64 "go:encoding/base64"
+import filepath "go:path/filepath"
+import mail "go:net/mail"
+import os "go:os"
+import strings "go:strings"
+
+struct Registration
+  OutboxSecret: String `json:"outbox_secret"`
+  OutboxSecretEnv: String `json:"outbox_secret_env"`
+  TokenTTLSeconds: Int `json:"token_ttl_seconds"`
+  RateWindowSeconds: Int `json:"rate_window_seconds"`
+  IPLimit: Int `json:"ip_limit"`
+  EmailLimit: Int `json:"email_limit"`
+end
+
+func ResolveParticipationSecrets(input: Input) -> Result[Input, String]
+  var settings = input
+  if settings.Registration.OutboxSecretEnv != "" then
+    if settings.Registration.OutboxSecret != "" then
+      return Err("configure only one outbox secret source")
+    end
+    let secret = os.Getenv(settings.Registration.OutboxSecretEnv)
+    if secret == "" then
+      return Err("outbox secret environment variable is missing or empty")
+    end
+    settings.Registration.OutboxSecret = secret
+  end
+  Ok(settings)
+end
+
+struct SMTP
+  Host: String `json:"host"`
+  Username: String `json:"username"`
+  Password: String `json:"password"`
+  From: String `json:"from"`
+  TLSMode: String `json:"tls_mode"`
+  Port: Int `json:"port"`
+  TimeoutSeconds: Int `json:"timeout_seconds"`
+end
+
+struct Media
+  Enabled: Bool `json:"enabled"`
+  Root: String `json:"root"`
+  MaxFileBytes: Int `json:"max_file_bytes"`
+  MaxImageBytes: Int `json:"max_image_bytes"`
+  MaxImagePixels: Int `json:"max_image_pixels"`
+  MaxImageDimension: Int `json:"max_image_dimension"`
+  PreviewDimension: Int `json:"preview_dimension"`
+  AccountQuotaBytes: Int `json:"account_quota_bytes"`
+  SiteQuotaBytes: Int `json:"site_quota_bytes"`
+  TemporaryRetentionSeconds: Int `json:"temporary_retention_seconds"`
+  PrivateCacheRetentionSeconds: Int `json:"private_cache_retention_seconds"`
+  CleanupIntervalSeconds: Int `json:"cleanup_interval_seconds"`
+end
+
+struct Rendering
+  MaxSourceBytes: Int `json:"max_source_bytes"`
+  MaxDisplayNameLength: Int `json:"max_display_name_length"`
+  MaxBiographyLength: Int `json:"max_biography_length"`
+  MaxMentions: Int `json:"max_mentions"`
+  MaxRemoteDiscoveries: Int `json:"max_remote_discoveries"`
+  MentionTimeoutSeconds: Int `json:"mention_timeout_seconds"`
+end
+
+struct ParticipationWorkers
+  Enabled: Bool `json:"enabled"`
+  MailWorkers: Int `json:"mail_workers"`
+  NotificationWorkers: Int `json:"notification_workers"`
+  MediaWorkers: Int `json:"media_workers"`
+  BatchSize: Int `json:"batch_size"`
+  PollIntervalSeconds: Int `json:"poll_interval_seconds"`
+  LeaseSeconds: Int `json:"lease_seconds"`
+  MaxAttempts: Int `json:"max_attempts"`
+  RetryBaseSeconds: Int `json:"retry_base_seconds"`
+  RetryMaxSeconds: Int `json:"retry_max_seconds"`
+end
+
+func ParticipationDefaults(input: Input) -> Input
+  var settings = input
+  if settings.Registration.TokenTTLSeconds == 0 then
+    settings.Registration.TokenTTLSeconds = 86400
+  end
+  if settings.Registration.RateWindowSeconds == 0 then
+    settings.Registration.RateWindowSeconds = 3600
+  end
+  if settings.Registration.IPLimit == 0 then
+    settings.Registration.IPLimit = 20
+  end
+  if settings.Registration.EmailLimit == 0 then
+    settings.Registration.EmailLimit = 3
+  end
+  if settings.SMTP.Port == 0 then
+    settings.SMTP.Port = 587
+  end
+  if settings.SMTP.TimeoutSeconds == 0 then
+    settings.SMTP.TimeoutSeconds = 10
+  end
+  if settings.Media.MaxFileBytes == 0 then
+    settings.Media.MaxFileBytes = 26214400
+  end
+  if settings.Media.MaxImageBytes == 0 then
+    settings.Media.MaxImageBytes = 10485760
+  end
+  if settings.Media.MaxImagePixels == 0 then
+    settings.Media.MaxImagePixels = 20000000
+  end
+  if settings.Media.MaxImageDimension == 0 then
+    settings.Media.MaxImageDimension = 16384
+  end
+  if settings.Media.PreviewDimension == 0 then
+    settings.Media.PreviewDimension = 1024
+  end
+  if settings.Media.AccountQuotaBytes == 0 then
+    settings.Media.AccountQuotaBytes = 1073741824
+  end
+  if settings.Media.SiteQuotaBytes == 0 then
+    settings.Media.SiteQuotaBytes = 10737418240
+  end
+  if settings.Media.TemporaryRetentionSeconds == 0 then
+    settings.Media.TemporaryRetentionSeconds = 86400
+  end
+  if settings.Media.PrivateCacheRetentionSeconds == 0 then
+    settings.Media.PrivateCacheRetentionSeconds = 604800
+  end
+  if settings.Media.CleanupIntervalSeconds == 0 then
+    settings.Media.CleanupIntervalSeconds = 3600
+  end
+  if settings.Rendering.MaxSourceBytes == 0 then
+    settings.Rendering.MaxSourceBytes = 1048576
+  end
+  if settings.Rendering.MaxDisplayNameLength == 0 then
+    settings.Rendering.MaxDisplayNameLength = 100
+  end
+  if settings.Rendering.MaxBiographyLength == 0 then
+    settings.Rendering.MaxBiographyLength = 5000
+  end
+  if settings.Rendering.MaxMentions == 0 then
+    settings.Rendering.MaxMentions = 20
+  end
+  if settings.Rendering.MaxRemoteDiscoveries == 0 then
+    settings.Rendering.MaxRemoteDiscoveries = 10
+  end
+  if settings.Rendering.MentionTimeoutSeconds == 0 then
+    settings.Rendering.MentionTimeoutSeconds = 10
+  end
+  if settings.ParticipationWorkers.MailWorkers == 0 then
+    settings.ParticipationWorkers.MailWorkers = 1
+  end
+  if settings.ParticipationWorkers.NotificationWorkers == 0 then
+    settings.ParticipationWorkers.NotificationWorkers = 1
+  end
+  if settings.ParticipationWorkers.MediaWorkers == 0 then
+    settings.ParticipationWorkers.MediaWorkers = 1
+  end
+  if settings.ParticipationWorkers.BatchSize == 0 then
+    settings.ParticipationWorkers.BatchSize = 100
+  end
+  if settings.ParticipationWorkers.PollIntervalSeconds == 0 then
+    settings.ParticipationWorkers.PollIntervalSeconds = 5
+  end
+  if settings.ParticipationWorkers.LeaseSeconds == 0 then
+    settings.ParticipationWorkers.LeaseSeconds = 60
+  end
+  if settings.ParticipationWorkers.MaxAttempts == 0 then
+    settings.ParticipationWorkers.MaxAttempts = 8
+  end
+  if settings.ParticipationWorkers.RetryBaseSeconds == 0 then
+    settings.ParticipationWorkers.RetryBaseSeconds = 30
+  end
+  if settings.ParticipationWorkers.RetryMaxSeconds == 0 then
+    settings.ParticipationWorkers.RetryMaxSeconds = 3600
+  end
+  if settings.SMTP.TLSMode == "" then
+    settings.SMTP.TLSMode = "starttls"
+  end
+  settings
+end
+
+func ValidateParticipation(input: Input) -> Result[(), String]
+  if input.Registration.TokenTTLSeconds < 60 || input.Registration.TokenTTLSeconds > 604800 then
+    return Err("registration.token_ttl_seconds is out of range")
+  end
+  if input.Registration.RateWindowSeconds < 60 || input.Registration.RateWindowSeconds > 86400 then
+    return Err("registration.rate_window_seconds is out of range")
+  end
+  if input.Registration.IPLimit < 1 || input.Registration.IPLimit > 10000 then
+    return Err("registration.ip_limit is out of range")
+  end
+  if input.Registration.EmailLimit < 1 || input.Registration.EmailLimit > 100 then
+    return Err("registration.email_limit is out of range")
+  end
+  if input.SMTP.Port < 1 || input.SMTP.Port > 65535 then
+    return Err("smtp.port is out of range")
+  end
+  if input.SMTP.TimeoutSeconds < 1 || input.SMTP.TimeoutSeconds > 60 then
+    return Err("smtp.timeout_seconds is out of range")
+  end
+  if input.Media.MaxFileBytes < 1024 || input.Media.MaxFileBytes > 1073741824 then
+    return Err("media.max_file_bytes is out of range")
+  end
+  if input.Media.MaxImageBytes < 1024 || input.Media.MaxImageBytes > 1073741824 then
+    return Err("media.max_image_bytes is out of range")
+  end
+  if input.Media.MaxImagePixels < 1 || input.Media.MaxImagePixels > 100000000 then
+    return Err("media.max_image_pixels is out of range")
+  end
+  if input.Media.MaxImageDimension < 1 || input.Media.MaxImageDimension > 65536 then
+    return Err("media.max_image_dimension is out of range")
+  end
+  if input.Media.PreviewDimension < 1 || input.Media.PreviewDimension > 4096 then
+    return Err("media.preview_dimension is out of range")
+  end
+  if input.Media.AccountQuotaBytes < 1024 || input.Media.AccountQuotaBytes > 1099511627776 then
+    return Err("media.account_quota_bytes is out of range")
+  end
+  if input.Media.SiteQuotaBytes < 1024 || input.Media.SiteQuotaBytes > 1099511627776 then
+    return Err("media.site_quota_bytes is out of range")
+  end
+  if input.Media.TemporaryRetentionSeconds < 60 || input.Media.TemporaryRetentionSeconds > 2592000 then
+    return Err("media.temporary_retention_seconds is out of range")
+  end
+  if input.Media.PrivateCacheRetentionSeconds < 60 || input.Media.PrivateCacheRetentionSeconds > 31536000 then
+    return Err("media.private_cache_retention_seconds is out of range")
+  end
+  if input.Media.CleanupIntervalSeconds < 1 || input.Media.CleanupIntervalSeconds > 86400 then
+    return Err("media.cleanup_interval_seconds is out of range")
+  end
+  if input.Rendering.MaxSourceBytes < 1 || input.Rendering.MaxSourceBytes > 16777216 then
+    return Err("rendering.max_source_bytes is out of range")
+  end
+  if input.Rendering.MaxDisplayNameLength < 1 || input.Rendering.MaxDisplayNameLength > 1000 then
+    return Err("rendering.max_display_name_length is out of range")
+  end
+  if input.Rendering.MaxBiographyLength < 1 || input.Rendering.MaxBiographyLength > 100000 then
+    return Err("rendering.max_biography_length is out of range")
+  end
+  if input.Rendering.MaxMentions < 1 || input.Rendering.MaxMentions > 100 then
+    return Err("rendering.max_mentions is out of range")
+  end
+  if input.Rendering.MaxRemoteDiscoveries < 1 || input.Rendering.MaxRemoteDiscoveries > 100 then
+    return Err("rendering.max_remote_discoveries is out of range")
+  end
+  if input.Rendering.MentionTimeoutSeconds < 1 || input.Rendering.MentionTimeoutSeconds > 60 then
+    return Err("rendering.mention_timeout_seconds is out of range")
+  end
+  if input.ParticipationWorkers.MailWorkers < 1 || input.ParticipationWorkers.MailWorkers > 32 then
+    return Err("participation_workers.mail_workers is out of range")
+  end
+  if input.ParticipationWorkers.NotificationWorkers < 1 || input.ParticipationWorkers.NotificationWorkers > 32 then
+    return Err("participation_workers.notification_workers is out of range")
+  end
+  if input.ParticipationWorkers.MediaWorkers < 1 || input.ParticipationWorkers.MediaWorkers > 32 then
+    return Err("participation_workers.media_workers is out of range")
+  end
+  if input.ParticipationWorkers.BatchSize < 1 || input.ParticipationWorkers.BatchSize > 1000 then
+    return Err("participation_workers.batch_size is out of range")
+  end
+  if input.ParticipationWorkers.PollIntervalSeconds < 1 || input.ParticipationWorkers.PollIntervalSeconds > 300 then
+    return Err("participation_workers.poll_interval_seconds is out of range")
+  end
+  if input.ParticipationWorkers.LeaseSeconds < 1 || input.ParticipationWorkers.LeaseSeconds > 3600 then
+    return Err("participation_workers.lease_seconds is out of range")
+  end
+  if input.ParticipationWorkers.MaxAttempts < 1 || input.ParticipationWorkers.MaxAttempts > 100 then
+    return Err("participation_workers.max_attempts is out of range")
+  end
+  if input.ParticipationWorkers.RetryBaseSeconds < 1 || input.ParticipationWorkers.RetryBaseSeconds > 3600 then
+    return Err("participation_workers.retry_base_seconds is out of range")
+  end
+  if input.ParticipationWorkers.RetryMaxSeconds < 1 || input.ParticipationWorkers.RetryMaxSeconds > 86400 then
+    return Err("participation_workers.retry_max_seconds is out of range")
+  end
+  if input.Media.MaxImageBytes > input.Media.MaxFileBytes || input.Media.AccountQuotaBytes < input.Media.MaxFileBytes || input.Media.SiteQuotaBytes < input.Media.AccountQuotaBytes || input.Media.PreviewDimension > input.Media.MaxImageDimension then
+    return Err("media limits are inconsistent")
+  end
+  if input.ParticipationWorkers.RetryBaseSeconds > input.ParticipationWorkers.RetryMaxSeconds || input.ParticipationWorkers.LeaseSeconds <= input.SMTP.TimeoutSeconds then
+    return Err("worker retry or lease limits are inconsistent")
+  end
+  if input.Media.Root != "" || input.Media.Enabled then
+    if !filepath.IsAbs(input.Media.Root) || filepath.Clean(input.Media.Root) != input.Media.Root || input.Media.Root == "/" || strings.IndexByte(input.Media.Root, 0 as Byte) >= 0 then
+      return Err("media root must be a clean absolute non-root path")
+    end
+  end
+  if input.SMTP.TLSMode != "starttls" && input.SMTP.TLSMode != "tls" && input.SMTP.TLSMode != "test" then
+    return Err("invalid SMTP TLS mode")
+  end
+  if input.SMTP.TLSMode == "test" && (input.SMTP.Username != "" || input.SMTP.Password != "") then
+    return Err("test SMTP transport cannot carry credentials")
+  end
+  var enabled = false
+  input.Sites.Each(func(site: Site) -> ()
+    if site.RegistrationEnabled then
+      enabled = true
+    end
+  end)
+  if input.Registration.OutboxSecret != "" || enabled then
+    let decoded = base64.StdEncoding.DecodeString(input.Registration.OutboxSecret)
+    if decoded.IsErr() then
+      return Err("registration requires a base64-encoded 32-byte outbox secret")
+    end
+    if decoded.Unwrap().Len() != 32 then
+      return Err("registration requires a base64-encoded 32-byte outbox secret")
+    end
+  end
+  if enabled then
+    if NormalizeAuthority(input.SMTP.Host).IsErr() || strings.Contains(input.SMTP.Host, ":") || mail.ParseAddress(input.SMTP.From).IsErr() then
+      return Err("registration requires an SMTP host and valid sender")
+    end
+    if (input.SMTP.Username == "") != (input.SMTP.Password == "") then
+      return Err("SMTP username and password must be supplied together")
+    end
+  end
+  Ok(())
+end

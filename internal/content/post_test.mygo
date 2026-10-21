@@ -1,0 +1,38 @@
+package content
+
+import testing "go:testing"
+import strings "go:strings"
+
+func TestPostRichReferences(t: Ref[testing.T]) -> ()
+  let media: Slice[RichMedia] = [RichMedia{UploadID: "upload", BindingID: "binding", MediaType: "image/png"}]
+  let source = "![图](/api/v1/media/upload) [download](/api/v1/media/upload) `![code](/api/v1/media/upload)` @alice @alice"
+  let candidates = ExtractMentionCandidates(source, "markdown").Unwrap()
+  let candidate = candidates.Get(0).Unwrap()
+  let mentions: Slice[RichMention] = [RichMention{ActorURI: "https://a.example/users/alice", Start: candidate.Start, End: candidate.End}]
+  let rendered = RenderPostRich(source, "markdown", mentions, "https://a.example", media, true).Unwrap()
+  if !strings.Contains(rendered, "src=\"/api/v1/media/binding/preview\"") || !strings.Contains(rendered, "href=\"/api/v1/media/binding\"") || !strings.Contains(rendered, "<code>![code](/api/v1/media/upload)</code>") || strings.Count(rendered, "href=\"https://a.example/users/alice\"") != 2 then
+    t.Fatalf("source references were not rewritten structurally: %s", rendered)
+  end
+  AssertRichSafe(t, rendered)
+  if RenderPostRich("![x](/api/v1/media/foreign)", "markdown", [], "https://a.example", media, true).IsOk() then
+    t.Fatal("foreign upload reference accepted")
+  end
+  if RenderPostRich("![x](https://a.example/api/v1/media/%66oreign)", "markdown", [], "https://a.example", media, true).IsOk() then
+    t.Fatal("encoded absolute foreign upload accepted")
+  end
+  if RenderPostRich("![x](/api/v1/posts/../media/foreign)", "markdown", [], "https://a.example", media, true).IsOk() then
+    t.Fatal("dot-segment foreign upload accepted")
+  end
+  let file: Slice[RichMedia] = [RichMedia{UploadID: "svg", BindingID: "download", MediaType: "image/svg+xml"}]
+  if RenderPostRich("![x](/api/v1/media/svg)", "markdown", [], "https://a.example", file, true).IsOk() then
+    t.Fatal("active document accepted as raster image")
+  end
+  let removed = RenderPostRich("![x](/api/v1/media/foreign)", "markdown", [], "https://a.example", [], false).Unwrap()
+  if strings.Contains(removed, "/api/v1/media/foreign") then
+    t.Fatal("stale/unbound upload reference leaked to display")
+  end
+  let external = "![x](https://remote.example/public.png)"
+  if !strings.Contains(RenderPostRich(external, "markdown", [], "https://a.example", [], true).Unwrap(), "https://remote.example/public.png") then
+    t.Fatal("external image was proxied or discarded")
+  end
+end

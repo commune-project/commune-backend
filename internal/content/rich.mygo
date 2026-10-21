@@ -1,0 +1,105 @@
+package content
+
+import bytes "go:bytes"
+import io "go:io"
+import strings "go:strings"
+import goldmark "go:github.com/yuin/goldmark"
+import bluemonday "go:github.com/microcosm-cc/bluemonday"
+import html "go:golang.org/x/net/html"
+
+# Format strings are persisted by callers; unknown formats fail closed.
+func RenderRich(source: String, format: String) -> Result[String, String]
+  if (source as Slice[Byte]).Len() > 1048576 then
+    return Err("content exceeds 1 MiB")
+  end
+  if format == "legacy" || format == "text" then
+    return Ok(RenderText(source))
+  end
+  var rendered = source
+  if format == "markdown" then
+    let output = bytes.Buffer{}
+    # Goldmark defaults: CommonMark, no raw HTML, no unsafe URLs/extensions.
+    if goldmark.New().Convert(source as Slice[Byte], Ref.new(output) as io.Writer).IsErr() then
+      return Err("Markdown rendering failed")
+    end
+    rendered = output.String()
+  else
+    if format != "html" then
+      return Err("unsupported content format")
+    end
+  end
+  Ok(SanitizeRichHTML(rendered))
+end
+
+# Search normalization follows the same interpretation as display, decodes HTML
+# entities once, includes image alt text, and separates blocks before folding
+# whitespace. It does not replace the author's editable source.
+func PlainRichText(source: String, format: String) -> Result[String, String]
+  switch RenderRich(source, format)
+    case Err(message) => Err(message)
+    case Ok(rendered) then
+      let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
+      let output = strings.Builder{}
+      var done = false
+      while !done
+        let kind = tokenizer.Next()
+        if kind == html.ErrorToken then
+          done = true
+        else
+          let token = tokenizer.Token()
+          if kind == html.TextToken then
+            let _ = output.WriteString(token.Data)
+          else
+            if token.Data == "img" then
+              token.Attr.Each(func(attr: html.Attribute) -> ()
+                if attr.Key == "alt" then
+                  let _ = output.WriteString(" " + attr.Val + " ")
+                end
+              end)
+            else
+              if token.Data != "a" && token.Data != "em" && token.Data != "strong" && token.Data != "code" then
+                let _ = output.WriteString(" ")
+              end
+            end
+          end
+        end
+      end
+      Ok(strings.Join(strings.Fields(output.String()), " "))
+    end
+  end
+end
+
+# A fresh policy avoids shared mutable state. No CSS, class/id, event attributes,
+# SVG/MathML, forms, embeds, data URLs, or arbitrary schemes are admitted.
+func SanitizeRichHTML(source: String) -> String
+  let policy = bluemonday.NewPolicy()
+  let _ = policy.AllowElements("p", "br", "hr", "em", "strong", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "img")
+  let _ = policy.AllowAttrs("href", "title").OnElements("a")
+  let _ = policy.AllowAttrs("src", "alt", "title", "referrerpolicy").OnElements("img")
+  let _ = policy.AllowURLSchemes("http", "https")
+  let _ = policy.AllowRelativeURLs(true)
+  let _ = policy.RequireParseableURLs(true)
+  let _ = policy.RequireNoFollowOnLinks(true)
+  let _ = policy.RequireNoReferrerOnLinks(true)
+  # Parse and reserialize, never patch HTML with regular expressions. Override
+  # any supplied image policy, then run the final allowlist once more.
+  let clean = policy.Sanitize(source)
+  let tokenizer = html.NewTokenizer(strings.NewReader(clean))
+  let output = strings.Builder{}
+  var done = false
+  while !done
+    let kind = tokenizer.Next()
+    if kind == html.ErrorToken then
+      done = true
+    else
+      var token = tokenizer.Token()
+      if (kind == html.StartTagToken || kind == html.SelfClosingTagToken) && token.Data == "img" then
+        token.Attr = token.Attr.Filter(func(attr: html.Attribute) -> Bool
+          attr.Key != "referrerpolicy"
+        end).Append(html.Attribute{Key: "referrerpolicy", Val: "no-referrer"})
+      end
+      let _ = output.WriteString(token.String())
+    end
+  end
+  policy.Sanitize(output.String())
+end

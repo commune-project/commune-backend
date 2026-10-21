@@ -11,10 +11,12 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type PostSource struct {
-	ID        string    "json:\"id\""
-	Title     string    "json:\"title\""
-	Body      string    "json:\"body\""
-	UpdatedAt time.Time "json:\"updated_at\""
+	ID            string    "json:\"id\""
+	Title         string    "json:\"title\""
+	Body          string    "json:\"body\""
+	UpdatedAt     time.Time "json:\"updated_at\""
+	ContentFormat string    "json:\"content_format\""
+	AttachmentIDs []string  "json:\"attachment_ids\""
 }
 
 func BrowserIdentity(db *gorm.DB, site config.Site, request *http.Request, required bool) Result[auth.Identity, string] {
@@ -177,7 +179,7 @@ func BrowserPostRead(repository storage.BrowserRepository, viewer storage.Browse
 				Fail(w, "forbidden")
 				return
 			} else {
-				WriteJSON(w, 200, PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt})
+				WriteJSON(w, 200, PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt, ContentFormat: record.ContentFormat, AttachmentIDs: output.AttachmentIDs})
 				return
 			}
 		}

@@ -1,0 +1,91 @@
+package federation
+
+import context "go:context"
+import http "go:net/http"
+import net "go:net"
+import errors "go:errors"
+import url "go:net/url"
+import io "go:io"
+import strings "go:strings"
+import time "go:time"
+
+# Resolve inside the dialer and connect to the checked address itself. This
+# closes DNS rebinding and avoids environment proxies bypassing address policy.
+func MediaTransport(client: Ref[http.Client], allowPrivate: Bool) -> ()
+  let blocked = func(address: String) -> Bool BlockedIP(address) end
+  go[()] {
+    code: """
+    mediaTransport := &http.Transport{DisableKeepAlives:true}
+    mediaTransport.DialContext = func(ctx context.Context, network, address string) (net.Conn,error) {
+      host,port,err := net.SplitHostPort(address)
+      if err != nil { return nil,err }
+      ips,err := net.DefaultResolver.LookupNetIP(ctx,"ip",host)
+      if err != nil { return nil,err }
+      if len(ips)==0 { return nil,errors.New("unresolvable destination") }
+      for _,ip := range ips { if !{allowPrivate} && {blocked}(ip.String()) { return nil,errors.New("blocked destination") } }
+      dialer := net.Dialer{}
+      return dialer.DialContext(ctx,network,net.JoinHostPort(ips[0].String(),port))
+    }
+    {client}.Transport = mediaTransport
+    """
+    in client = client
+    in allowPrivate = allowPrivate
+    in blocked = blocked
+  }
+end
+
+# Only a caller with a currently authorized private binding may invoke this.
+# Sign each hop separately and never disclose Actor credentials across origins.
+func FetchPrivateMedia(ctx: context.Context, raw: String, actor: String, key: String, limits: FetchLimits) -> Result[Slice[Byte], String]
+  FetchSignedResource(ctx, raw, actor, key, limits, "application/octet-stream, image/*")
+end
+
+func FetchSignedResource(ctx: context.Context, raw: String, actor: String, key: String, limits: FetchLimits, accept: String) -> Result[Slice[Byte], String]
+  if limits.MaxBytes < 1 || limits.TimeoutSeconds < 1 || limits.MaxRedirects < 0 then return Err("invalid media limits") end
+  let (bounded, cancel) = context.WithTimeout(ctx, limits.TimeoutSeconds as time.Duration * time.Second)
+  go[()] { code: "defer {cancel}()"; in cancel = cancel }
+  let original = url.Parse(raw)
+  if original.IsErr() then return Err("invalid destination") end
+  let client = http.Client{}
+  DisableRedirects(Ref.new(client))
+  MediaTransport(Ref.new(client), limits.AllowPrivate)
+  var current = raw
+  var hops = 0
+  while hops <= limits.MaxRedirects
+    if ValidateDestination(current, limits.AllowPrivate).IsErr() then return Err("blocked destination") end
+    let parsed = url.Parse(current)
+    if parsed.IsErr() then return Err("invalid destination") end
+    let target = parsed.Unwrap()
+    let credentials = go[Bool] { code: "{target}.User != nil"; in target = target }
+    if target.Scheme != original.Unwrap().Scheme || target.Host != original.Unwrap().Host || credentials then return Err("cross-origin media redirect") end
+    let date = time.Now().UTC().Format(http.TimeFormat)
+    let signed = SignSignature(key, GetSigningString("GET", target.RequestURI(), target.Host, date))
+    if signed.IsErr() then return Err("media signing failed") end
+    let request = http.NewRequestWithContext(bounded, "GET", current, strings.NewReader("") as io.Reader)
+    if request.IsErr() then return Err("invalid destination") end
+    request.Unwrap().Header.Set("Date", date)
+    request.Unwrap().Header.Set("Signature", FormatGetSignatureHeader(actor + "#main-key", signed.Unwrap()))
+    request.Unwrap().Header.Set("Accept", accept)
+    let response = client.Do(request.Unwrap())
+    if response.IsErr() then return Err("media fetch failed") end
+    let received = response.Unwrap()
+    if received.StatusCode >= 300 && received.StatusCode < 400 then
+      let next = ResolveLocation(received, received.Header.Get("Location"))
+      let _ = received.Body.Close()
+      if next.IsErr() then return Err("invalid redirect") end
+      current = next.Unwrap()
+      hops = hops + 1
+      continue
+    end
+    if received.StatusCode != 200 then
+      let _ = received.Body.Close()
+      return Err("origin denied media")
+    end
+    let bytes = io.ReadAll(io.LimitReader(received.Body, (limits.MaxBytes + 1) as Int64))
+    let _ = received.Body.Close()
+    if bytes.IsErr() then return Err("media fetch failed") end
+    if bytes.Unwrap().Len() > limits.MaxBytes then return Err("media too large") end
+    return Ok(bytes.Unwrap())
+  end
+  Err("redirect limit exceeded")
+end

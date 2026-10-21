@@ -1,0 +1,154 @@
+package content
+
+import html "go:golang.org/x/net/html"
+import url "go:net/url"
+import path "go:path"
+import strings "go:strings"
+
+struct RichMention
+  ActorURI: String
+  Start: Int
+  End: Int
+end
+
+struct RichMedia
+  UploadID: String
+  BindingID: String
+  MediaType: String
+end
+
+# Re-rendering uses original byte spans; editing source is never overwritten.
+func RenderPostRich(
+  source: String,
+  format: String,
+  mentions: Slice[RichMention],
+  origin: String,
+  media: Slice[RichMedia],
+  strict: Bool
+) -> Result[String, String]
+  var expanded = source
+  if format == "markdown" && mentions.Len() > 0 then
+    let candidates = ExtractMentionCandidates(source, format)
+    if candidates.IsErr() then
+      return Err(candidates.UnwrapErr())
+    end
+    let output = strings.Builder{}
+    var position = 0
+    candidates.Unwrap().Each(func(candidate: MentionCandidate) -> ()
+      let spelling = ((source as Slice[Byte]).Slice(candidate.Start, candidate.End).Unwrap()) as String
+      let matched = mentions.Filter(func(mention: RichMention) -> Bool
+        let original = ((source as Slice[Byte]).Slice(mention.Start, mention.End).UnwrapOr([])) as String
+        strings.EqualFold(original, spelling) && mention.ActorURI != ""
+      end)
+      if matched.Len() > 0 then
+        let prefix = ((source as Slice[Byte]).Slice(position, candidate.Start).UnwrapOr([])) as String
+        let escaped = strings.NewReplacer("\\", "\\\\", "_", "\\_", "[", "\\[", "]", "\\]").Replace(spelling)
+        let target = strings.NewReplacer(
+          "(",
+          "%28",
+          ")",
+          "%29",
+          "<",
+          "%3C",
+          ">",
+          "%3E",
+          "\\",
+          "%5C",
+          " ",
+          "%20",
+          "\n",
+          "%0A",
+          "\r",
+          "%0D"
+        ).Replace(matched.Get(0).Unwrap().ActorURI)
+        let _ = output.WriteString(prefix + "[" + escaped + "](" + target + ")")
+        position = candidate.End
+      end
+    end)
+    let _ = output.WriteString(((source as Slice[Byte]).Slice(position, (source as Slice[Byte]).Len()).UnwrapOr([])) as String)
+    expanded = output.String()
+  end
+  switch RenderRich(expanded, format)
+    case Err(message) => Err(message)
+    case Ok(rendered) => RewritePostMedia(rendered, origin, media, strict)
+  end
+end
+
+# Only URL attributes are rewritten, after parsing and entity decoding. Neither
+# code examples nor plain text can be rewritten by a coincidental ID substring.
+func RewritePostMedia(
+  rendered: String,
+  origin: String,
+  media: Slice[RichMedia],
+  strict: Bool
+) -> Result[String, String]
+  let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
+  let output = strings.Builder{}
+  var done = false
+  var invalid = false
+  while !done
+    let kind = tokenizer.Next()
+    if kind == html.ErrorToken then
+      done = true
+    else
+      var token = tokenizer.Token()
+      if kind == html.StartTagToken || kind == html.SelfClosingTagToken then
+        token.Attr = token.Attr.Map(func(attr: html.Attribute) -> html.Attribute
+          if attr.Key != "href" && attr.Key != "src" then
+            return attr
+          end
+          let parsed = url.Parse(attr.Val)
+          if parsed.IsErr() then
+            return attr
+          end
+          let value = parsed.Unwrap()
+          if value.Host != "" then
+            let base = url.Parse(origin)
+            if base.IsErr() || !strings.EqualFold(value.Host, base.Unwrap().Host) then
+              return attr
+            end
+          end
+          let mediaPath = path.Clean("/" + strings.TrimPrefix(value.Path, "/"))
+          if !strings.HasPrefix(mediaPath, "/api/v1/media/") then
+            return attr
+          end
+          let parts = strings.Split(strings.TrimPrefix(mediaPath, "/api/v1/media/"), "/")
+          let id = parts.Get(0).UnwrapOr("")
+          let matched = media.Filter(func(item: RichMedia) -> Bool
+            item.UploadID == id || item.BindingID == id
+          end)
+          if matched.Len() != 1 ||
+            parts.Len() > 2 ||
+            (parts.Len() == 2 && parts.Get(1).Unwrap() != "preview") then
+            invalid = true
+            return html.Attribute{Key: attr.Key, Val: ""}
+          end
+          let item = matched.Get(0).Unwrap()
+          let raster = item.MediaType == "image/png" ||
+            item.MediaType == "image/jpeg" ||
+            item.MediaType == "image/gif" ||
+            item.MediaType == "image/webp"
+          if token.Data == "img" && !raster then
+            invalid = true
+            return html.Attribute{Key: attr.Key, Val: ""}
+          end
+          html.Attribute{
+            Key: attr.Key,
+            Val: "/api/v1/media/" +
+              item.BindingID +
+              if token.Data == "img" || parts.Len() == 2 then
+                "/preview"
+              else
+                ""
+              end,
+          }
+        end)
+      end
+      let _ = output.WriteString(token.String())
+    end
+  end
+  if strict && invalid then
+    return Err("invalid media reference")
+  end
+  Ok(SanitizeRichHTML(output.String()))
+end

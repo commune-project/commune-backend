@@ -1,0 +1,51 @@
+package storage
+
+import context "go:context"
+import strings "go:strings"
+import utf8 "go:unicode/utf8"
+import gorm "go:gorm.io/gorm"
+
+# The renderer owns search_text: decoded visible text, never HTML or Markdown
+# source. It must be persisted atomically on local and remote source updates.
+func ValidSearchQuery(query: String) -> Bool
+  strings.TrimSpace(query) != "" && utf8.ValidString(query) && utf8.RuneCountInString(query) <= 200 && !strings.ContainsRune(query, 0 as Rune)
+end
+
+func SearchPattern(query: String) -> String
+  "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(query) + "%"
+end
+
+impl BrowserRepository
+  func SearchPostsQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page) -> Ref[gorm.DB]
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+    self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\' ORDER BY authored_at DESC,id" + BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query))
+  end
+
+  func SearchPosts(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page, max: Int) -> Result[Slice[PostRecord], String]
+    if !ValidSearchQuery(query) || !page.Valid(max) then
+      return Err("invalid page")
+    end
+    var rows: Slice[PostRecord] = []
+    if MutationResult(self.SearchPostsQuery(ctx, viewer, query, page).Scan(Ref.new(rows))).IsErr() then
+      return Err("search unavailable")
+    end
+    Ok(rows)
+  end
+
+  func SearchCommunities(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page, max: Int) -> Result[Slice[CommunityView], String]
+    if !ValidSearchQuery(query) || !page.Valid(max) then
+      return Err("invalid page")
+    end
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable WHERE host_site_id=@site OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=@site AND p.community_id=readable.id AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))))")
+    var rows: Slice[CommunityView] = []
+    let result = self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE name ILIKE ? ESCAPE E'\\\\' OR title ILIKE ? ESCAPE E'\\\\' OR description ILIKE ? ESCAPE E'\\\\' ORDER BY name,id" + BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query), SearchPattern(query)).Scan(Ref.new(rows))
+    if MutationResult(result).IsErr() then
+      return Err("search unavailable")
+    end
+    let audit = self.AuditViews(ctx, viewer, rows)
+    if audit.IsErr() then
+      return Err(audit.UnwrapErr())
+    end
+    Ok(rows)
+  end
+end

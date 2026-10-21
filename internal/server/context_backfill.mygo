@@ -125,8 +125,10 @@ func ImportBackfilledObject(
   if payload.IsErr() then
     return Ok(2)
   end
-  let object = BackfillObject{}
-  if json.Unmarshal(payload.Unwrap(), Ref.new(object)).IsErr() ||
+  let parsedRich = federation.ParseRichObject(payload.Unwrap())
+  if parsedRich.IsErr() then return Ok(2) end
+  let object = parsedRich.Unwrap()
+  if
     object.ID != objectURI ||
     (object.Type != "Page" && object.Type != "Note") ||
     object.AttributedTo == "" ||
@@ -157,6 +159,8 @@ func ImportBackfilledObject(
     return Err(insertedActor.UnwrapErr())
   end
   let title = sql.NullString { String: object.Name, Valid: object.Name != "" }
+  let metadata = json.Marshal(federation.RichMetadata{Source: object.Source, Attachment: object.Attachment, Tag: object.Tag})
+  if metadata.IsErr() then return Err("invalid rich metadata") end
   let incoming = storage.PostRecord {
     ObjectURI: sql.NullString { String: object.ID, Valid: true },
     CommunityID: communityID,
@@ -165,6 +169,8 @@ func ImportBackfilledObject(
     ObjectType: object.Type,
     Title: title,
     Body: object.Content,
+    ContentFormat: if object.MediaType == "text/plain" then "legacy" else "html" end,
+    RichMetadata: metadata.Unwrap() as String,
     ParentID: parent,
     AuthoredAt: object.Published,
     UpdatedAt: updated,

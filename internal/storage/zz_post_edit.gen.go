@@ -8,9 +8,16 @@ import "database/sql"
 import "strings"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
 func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string) Result[PostRecord, string] {
+	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, "", []string{}, []ResolvedPostMention{}, false)
+}
+func MygoIN14PostRepositoryM11EditContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string) Result[PostRecord, string] {
+	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, []ResolvedPostMention{}, true)
+}
+func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, mentions []ResolvedPostMention, replaceAttachments bool) Result[PostRecord, string] {
 	trimmed := strings.TrimSpace(body)
 	cleanTitle := strings.TrimSpace(title)
 	if trimmed == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(trimmed)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(cleanTitle)) > 200 {
@@ -22,11 +29,63 @@ func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id s
 			return Err[struct{}, string]("not found")
 		} else {
 		}
+		var __mygo_expr_1 string
+		if contentFormat == "" {
+			var __mygo_expr_0 string
+			if post.ContentFormat == "" {
+				__mygo_expr_0 = "legacy"
+			} else {
+				__mygo_expr_0 = post.ContentFormat
+			}
+			__mygo_expr_1 = __mygo_expr_0
+		} else {
+			__mygo_expr_1 = contentFormat
+		}
+		format := __mygo_expr_1
+		if format != "legacy" && format != "markdown" {
+			return Err[struct{}, string]("invalid content format")
+		} else {
+		}
 		if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" {
 			return Err[struct{}, string]("invalid post input")
 		} else {
 		}
-		return MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,updated_at=? WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, time.Now().UTC().Truncate(time.Microsecond), id))
+		plain := content.PlainRichText(trimmed, format)
+		if MygoIN6ResultM5IsErr[string, string](plain) {
+			return Err[struct{}, string]("invalid post input")
+		} else {
+		}
+		updated := MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=? WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, format, cleanTitle+" "+MygoIN6ResultM6Unwrap[string, string](plain), time.Now().UTC().Truncate(time.Microsecond), id))
+		if MygoIN6ResultM5IsErr[struct{}, string](updated) {
+			return updated
+		} else {
+		}
+		changed := post
+		changed.Body = trimmed
+		changed.ContentFormat = format
+		ids := attachmentIDs
+		if !replaceAttachments {
+			states := LoadPostRichStates(ctx, tx, []string{post.ID})
+			if MygoIN6ResultM5IsErr[[]PostRichState, string](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRichState, string](states)) != 1 {
+				return Err[struct{}, string]("post content unavailable")
+			} else {
+			}
+			media := PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)))
+			if MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {
+				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]content.RichMedia, string](media))
+			} else {
+			}
+			ids = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), func(item content.RichMedia) string {
+				return item.UploadID
+			})
+		} else {
+		}
+		retained := RetainPostMentionsTx(ctx, tx, post, trimmed, format, mentions)
+		if MygoIN6ResultM5IsErr[[]ResolvedPostMention, string](retained) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]ResolvedPostMention, string](retained))
+		} else {
+		}
+		return ValidatePostContentTx(ctx, tx, self.SiteID, identity, changed, ids, MygoIN6ResultM6Unwrap[[]ResolvedPostMention, string](retained))
 	})
 }
 func MygoIN14PostRepositoryM6Delete(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
@@ -36,7 +95,11 @@ func MygoIN14PostRepositoryM6Delete(self PostRepository, ctx context.Context, id
 			}{})
 		} else {
 		}
-		return MutationResult(tx.Exec("UPDATE posts SET body='',deleted_at=?,updated_at=? WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
+		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", id))) || MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", id))) {
+			return Err[struct{}, string]("post content unavailable")
+		} else {
+		}
+		return MutationResult(tx.Exec("UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=? WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
 	})
 }
 func MygoIN14PostRepositoryM12MutateAuthor(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, string]) Result[PostRecord, string] {

@@ -76,8 +76,14 @@ func BuildObjectItems(ctx context.Context, db *gorm.DB, records []storage.PostRe
 			return
 		} else {
 			contextURI := storage.PrimaryPostContextURI(ctx, db, record.ID)
-			items = MygoIN5SliceM6Append(items, federation.BuildObjectRepresentationWithContext(record, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)), contextURI))
-			return
+			enriched := BuildRichObject(ctx, db, record, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)), contextURI)
+			if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](enriched) {
+				failed = true
+				return
+			} else {
+				items = MygoIN5SliceM6Append(items, MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](enriched))
+				return
+			}
 		}
 	})
 	if failed {

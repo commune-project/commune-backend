@@ -109,16 +109,13 @@ func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gor
 		return Ok[int, string](2)
 	} else {
 	}
-	object := BackfillObject{}
-	var __mygo_expr_1 Result[struct{}, error]
-	__mygo_expr_0 := json.Unmarshal(MygoIN6ResultM6Unwrap[[]byte, string](payload), &object)
-	if __mygo_expr_0 != nil {
-		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
+	parsedRich := federation.ParseRichObject(MygoIN6ResultM6Unwrap[[]byte, string](payload))
+	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsedRich) {
+		return Ok[int, string](2)
 	} else {
-		__mygo_expr_1 = Ok[struct{}, error](struct {
-		}{})
 	}
-	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || object.ID != objectURI || object.Type != "Page" && object.Type != "Note" || object.AttributedTo == "" || object.Published.IsZero() {
+	object := MygoIN6ResultM6Unwrap[federation.RichObject, string](parsedRich)
+	if object.ID != objectURI || object.Type != "Page" && object.Type != "Note" || object.AttributedTo == "" || object.Published.IsZero() {
 		return Ok[int, string](2)
 	} else {
 	}
@@ -136,13 +133,13 @@ func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gor
 		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).ID, Valid: true}
 	} else {
 	}
-	var __mygo_expr_2 time.Time
+	var __mygo_expr_0 time.Time
 	if object.Updated.IsZero() {
-		__mygo_expr_2 = object.Published
+		__mygo_expr_0 = object.Published
 	} else {
-		__mygo_expr_2 = object.Updated
+		__mygo_expr_0 = object.Updated
 	}
-	updated := __mygo_expr_2
+	updated := __mygo_expr_0
 	if updated.Before(object.Published) {
 		return Ok[int, string](2)
 	} else {
@@ -153,7 +150,25 @@ func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gor
 	} else {
 	}
 	title := sql.NullString{String: object.Name, Valid: object.Name != ""}
-	incoming := storage.PostRecord{ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: title, Body: object.Content, ParentID: parent, AuthoredAt: object.Published, UpdatedAt: updated}
+	var __mygo_expr_2 Result[[]byte, error]
+	__mygo_expr_3, __mygo_expr_1 := json.Marshal(federation.RichMetadata{Source: object.Source, Attachment: object.Attachment, Tag: object.Tag})
+	if __mygo_expr_1 != nil {
+		__mygo_expr_2 = Err[[]byte, error](__mygo_expr_1)
+	} else {
+		__mygo_expr_2 = Ok[[]byte, error](__mygo_expr_3)
+	}
+	metadata := __mygo_expr_2
+	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
+		return Err[int, string]("invalid rich metadata")
+	} else {
+	}
+	var __mygo_expr_4 string
+	if object.MediaType == "text/plain" {
+		__mygo_expr_4 = "legacy"
+	} else {
+		__mygo_expr_4 = "html"
+	}
+	incoming := storage.PostRecord{ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: title, Body: object.Content, ContentFormat: __mygo_expr_4, RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: updated}
 	received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, incoming, object.AttributedTo)
 	if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
 		return Err[int, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))

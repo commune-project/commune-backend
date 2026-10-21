@@ -10,24 +10,44 @@ import "strings"
 import "time"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
 type PublishInput struct {
-	Title      string
-	Body       string
-	ParentID   string
-	ContextURI string
+	Title         string
+	Body          string
+	ParentID      string
+	ContextURI    string
+	ContentFormat string
+	AttachmentIDs []string
+	Mentions      []ResolvedPostMention
 }
 
 func MygoIN14PostRepositoryM7Publish(self PostRepository, ctx context.Context, site config.Site, communityID string, identity auth.Identity, remoteVerified bool, input PublishInput) Result[PostRecord, string] {
 	body := strings.TrimSpace(input.Body)
 	title := strings.TrimSpace(input.Title)
+	var __mygo_expr_0 string
+	if input.ContentFormat == "" {
+		__mygo_expr_0 = "legacy"
+	} else {
+		__mygo_expr_0 = input.ContentFormat
+	}
+	format := __mygo_expr_0
+	if format != "legacy" && format != "markdown" {
+		return Err[PostRecord, string]("invalid content format")
+	} else {
+	}
 	if self.SiteID == "" || body == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(body)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(title)) > 200 || input.ParentID != "" && title != "" || input.ParentID == "" && title == "" {
 		return Err[PostRecord, string]("invalid post input")
 	} else {
 	}
 	if remoteVerified {
 		return Err[PostRecord, string]("forbidden")
+	} else {
+	}
+	plain := content.PlainRichText(body, format)
+	if MygoIN6ResultM5IsErr[string, string](plain) {
+		return Err[PostRecord, string]("invalid post input")
 	} else {
 	}
 	stored := PostRecord{}
@@ -83,14 +103,14 @@ func MygoIN14PostRepositoryM7Publish(self PostRepository, ctx context.Context, s
 		} else {
 		}
 		now := time.Now().UTC().Truncate(time.Microsecond)
-		var __mygo_expr_0 string
+		var __mygo_expr_1 string
 		if input.ParentID == "" {
-			__mygo_expr_0 = "Page"
+			__mygo_expr_1 = "Page"
 		} else {
-			__mygo_expr_0 = "Note"
+			__mygo_expr_1 = "Note"
 		}
-		objectType := __mygo_expr_0
-		record := PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ParentID: parent, AuthoredAt: now, UpdatedAt: now}
+		objectType := __mygo_expr_1
+		record := PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ContentFormat: format, SearchText: title + " " + MygoIN6ResultM6Unwrap[string, string](plain), ParentID: parent, AuthoredAt: now, UpdatedAt: now}
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI+"/inbox", identity.ActorURI))) {
 			return Err[struct{}, string]("post creation failed")
 		} else {
@@ -105,6 +125,11 @@ func MygoIN14PostRepositoryM7Publish(self PostRepository, ctx context.Context, s
 		}
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID))) {
 			return Err[struct{}, string]("post creation failed")
+		} else {
+		}
+		rich := ValidatePostContentTx(ctx, tx, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
+		if MygoIN6ResultM5IsErr[struct{}, string](rich) {
+			return rich
 		} else {
 		}
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", identifier).Find(&stored))) {

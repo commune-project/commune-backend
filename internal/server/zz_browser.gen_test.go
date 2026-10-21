@@ -506,7 +506,7 @@ func TestPostgresBrowserBatchQueries(t *testing.T) {
 	probeTwenty := transport.NewQueryProbe(db)
 	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
 	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
-	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(3) {
+	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(4) {
 		t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
 	} else {
 	}

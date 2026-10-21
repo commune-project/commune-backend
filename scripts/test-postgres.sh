@@ -16,4 +16,4 @@ if ! pg_ctl -D "$test_root/data" -l "$test_root/server.log" \
   exit 1
 fi
 export COMMUNE_TEST_POSTGRES_DSN="host=$test_root/socket port=55439 user=commune_test dbname=postgres sslmode=disable connect_timeout=5"
-go test ./... -count=1
+go test ./... -count=1 "$@"

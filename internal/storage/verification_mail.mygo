@@ -1,0 +1,161 @@
+package storage
+
+import context "go:context"
+import time "go:time"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct VerificationMail
+  ID: String `gorm:"column:id"`
+  RegistrationID: String `gorm:"column:registration_id"`
+  Generation: Int64 `gorm:"column:generation"`
+  EncryptedPayload: Slice[Byte] `gorm:"column:encrypted_payload"`
+  LeaseToken: String `gorm:"column:lease_token"`
+  Email: String `gorm:"column:email"`
+  Attempts: Int `gorm:"column:attempts"`
+end
+
+func VerificationRetrySeconds(base: Int, maximum: Int, attempts: Int) -> Int
+  var delay = base
+  var remaining = attempts - 1
+  while remaining > 0 && delay < maximum
+    delay = if delay > maximum / 2 then maximum else delay * 2 end
+    remaining = remaining - 1
+  end
+  delay
+end
+
+func DeliverVerificationMail(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  key: Slice[Byte],
+  now: time.Time,
+  batch: Int,
+  leaseSeconds: Int,
+  maxAttempts: Int,
+  retrySeconds: Int,
+  send: func(String, String) -> Result[(), String]
+) -> Result[Int, String]
+  DeliverVerificationMailWithRetry(
+    ctx,
+    db,
+    key,
+    now,
+    batch,
+    leaseSeconds,
+    maxAttempts,
+    retrySeconds,
+    retrySeconds,
+    send
+  )
+end
+
+func DeliverVerificationMailWithRetry(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  key: Slice[Byte],
+  now: time.Time,
+  batch: Int,
+  leaseSeconds: Int,
+  maxAttempts: Int,
+  retrySeconds: Int,
+  retryMaxSeconds: Int,
+  send: func(String, String) -> Result[(), String]
+) -> Result[Int, String]
+  if batch < 1 ||
+    batch > 1000 ||
+    leaseSeconds < 1 ||
+    maxAttempts < 1 ||
+    retrySeconds < 1 ||
+    retryMaxSeconds < retrySeconds then
+    return Err("invalid mail worker limits")
+  end
+  let erased = db.WithContext(ctx).Exec(
+    "UPDATE verification_mail_jobs j SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL FROM pending_registrations p WHERE j.registration_id=p.id AND j.state IN ('pending','leased') AND (j.generation<>p.generation OR p.expires_at<=? OR (j.attempts>=? AND (j.state='pending' OR j.lease_until<=?)))",
+    now,
+    maxAttempts,
+    now
+  )
+  if QueryFailed(erased) then
+    return Err("mail unavailable")
+  end
+  let lease = rand.Text()
+  let jobs: Slice[VerificationMail] = []
+  let query = db.WithContext(ctx).Raw(
+    "WITH ready AS (SELECT j.id FROM verification_mail_jobs j JOIN pending_registrations p ON p.id=j.registration_id AND p.generation=j.generation WHERE p.expires_at>? AND j.available_at<=? AND j.attempts<? AND (j.state='pending' OR (j.state='leased' AND j.lease_until<=?)) ORDER BY j.available_at,j.id FOR UPDATE OF j SKIP LOCKED LIMIT ?), claimed AS (UPDATE verification_mail_jobs j SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1 FROM ready WHERE j.id=ready.id RETURNING j.*) SELECT c.*,p.email FROM claimed c JOIN pending_registrations p ON p.id=c.registration_id",
+    now,
+    now,
+    maxAttempts,
+    now,
+    batch,
+    lease,
+    now.Add(leaseSeconds as time.Duration * time.Second)
+  ).Scan(Ref.new(jobs))
+  if QueryFailed(query) then
+    return Err("mail unavailable")
+  end
+  var delivered: Int = 0
+  var failed: Bool = false
+  jobs.Each(func(job: VerificationMail) -> ()
+    let cancelled = go[Bool] { code: "{ctx}.Err() != nil"; in ctx = ctx }
+    if cancelled then
+      failed = true
+      return
+    end
+    # Recheck after claiming: resend/confirmation may have superseded this job.
+    let current = QueryExists(db.WithContext(ctx).Table("pending_registrations").Where(
+      "id=? AND generation=? AND expires_at>?",
+      job.RegistrationID,
+      job.Generation,
+      now
+    ))
+    if current.IsErr() then
+      failed = true
+    else
+      if current.Unwrap() then
+        let opened = auth.OpenVerification(key, job.EncryptedPayload)
+        let sent = if opened.IsOk() then
+          send(job.Email, opened.Unwrap())
+        else
+          Err[(), String]("invalid mail payload")
+        end
+        let terminal = sent.IsOk() || opened.IsErr() || job.Attempts >= maxAttempts
+        let state = if sent.IsOk() then
+          "sent"
+        else
+          if terminal then
+            "failed"
+          else
+            "pending"
+          end
+        end
+        let payload = if terminal then
+          [] as Slice[Byte]
+        else
+          job.EncryptedPayload
+        end
+        let delay = VerificationRetrySeconds(retrySeconds, retryMaxSeconds, job.Attempts)
+        let settle = db.WithContext(ctx).Exec(
+          "UPDATE verification_mail_jobs SET state=?,encrypted_payload=?,lease_token=NULL,lease_until=NULL,available_at=? WHERE id=? AND state='leased' AND lease_token=?",
+          state,
+          payload,
+          now.Add(delay as time.Duration * time.Second),
+          job.ID,
+          lease
+        )
+        if QueryFailed(settle) then
+          failed = true
+        else
+          if sent.IsOk() && settle.RowsAffected == 1i64 then
+            delivered = delivered + 1
+          end
+        end
+      end
+    end
+  end)
+  if failed then
+    return Err("mail unavailable")
+  end
+  Ok(delivered)
+end

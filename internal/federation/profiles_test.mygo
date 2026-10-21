@@ -1,0 +1,44 @@
+package federation
+
+import testing "go:testing"
+import json "go:encoding/json"
+import strings "go:strings"
+import time "go:time"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import config "github.com/commune-project/commune-backend/internal/config"
+
+func TestPersonProfileSerialization(t: Ref[testing.T]) -> ()
+  let person = PersonRepresentation(config.Site{}, storage.ActorRecord{URI: "https://a.example/users/alice"}, "alice", "public-key")
+  let update = json.Marshal(ProfileUpdate{ID: "https://a.example/activities/profile", Type: "Update", Actor: person.ID, Object: person}).Unwrap()
+  if !CreateAuthorMatches(ParseActivity(update).Unwrap()) || person.AttributedTo != "" then
+    t.Fatal("Person representation falsely attributes profile to a moderators collection")
+  end
+  let actor = WithProfile(ActorRepresentation{ID: "https://a.example/users/alice", Type: "Person"}, storage.ProfileRecord{DisplayName: "Alice", BiographyHTML: "<p>hello</p>", AvatarURL: "https://a.example/api/v1/media/avatar", UpdatedAt: time.Now()})
+  let encoded = json.Marshal(actor).Unwrap() as String
+  if !strings.Contains(encoded, `"icon":{"type":"Image","url":"https://a.example/api/v1/media/avatar"}`) || !strings.Contains(encoded, `"name":"Alice"`) then
+    t.Fatalf("profile metadata missing: %s", encoded)
+  end
+  let withoutAvatar = json.Marshal(ActorRepresentation{Type: "Person"}).Unwrap() as String
+  if strings.Contains(withoutAvatar, `"icon"`) then
+    t.Fatalf("empty icon must be absent: %s", withoutAvatar)
+  end
+end
+
+func TestPersonUpdateAuthorityAndFreshness(t: Ref[testing.T]) -> ()
+  let valid = `{"id":"https://remote.example/activities/1","type":"Update","actor":"https://remote.example/users/a","object":{"id":"https://remote.example/users/a","type":"Person","updated":"2026-01-01T00:00:00Z","icon":{"type":"Image","url":"https://never-fetch.example/avatar.png"}}}`
+  if PersonUpdateObject(valid as Slice[Byte]).IsErr() then
+    t.Fatal("valid Person update rejected")
+  end
+  let forged = strings.Replace(valid, `"id":"https://remote.example/users/a"`, `"id":"https://other.example/users/b"`, 1)
+  if PersonUpdateObject(forged as Slice[Byte]).IsOk() then
+    t.Fatal("foreign Actor identity accepted")
+  end
+  let missingFreshness = strings.Replace(valid, `"updated":"2026-01-01T00:00:00Z",`, "", 1)
+  if PersonUpdateObject(missingFreshness as Slice[Byte]).IsOk() then
+    t.Fatal("missing update timestamp accepted")
+  end
+  let future = strings.Replace(valid, "2026-01-01T00:00:00Z", "2999-01-01T00:00:00Z", 1)
+  if PersonUpdateObject(future as Slice[Byte]).IsOk() then
+    t.Fatal("future update can poison freshness")
+  end
+end

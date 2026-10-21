@@ -153,6 +153,10 @@ end
 # Signed outbound POST: the site's actor signs the request target, host, date and
 # body digest.
 func Post(target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, String]
+  PostContext(context.Background(), target, actorURI, privateKey, payload)
+end
+
+func PostContext(ctx: context.Context, target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, String]
   let parsed = url.Parse(target)
   if parsed.IsErr() then
     return Err("invalid-target")
@@ -166,7 +170,7 @@ func Post(target: String, actorURI: String, privateKey: String, payload: Slice[B
     return Err("signing-failed")
   end
   let header = federation.FormatSignatureHeader(actorURI + "#main-key", signature.Unwrap())
-  let request = http.NewRequest("POST", target, strings.NewReader(payload as String) as io.Reader)
+  let request = http.NewRequestWithContext(ctx, "POST", target, strings.NewReader(payload as String) as io.Reader)
   if request.IsErr() then
     return Err("invalid-target")
   end

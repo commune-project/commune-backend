@@ -1,0 +1,124 @@
+package server
+
+import http "go:net/http"
+import net "go:net"
+import netip "go:net/netip"
+import strings "go:strings"
+import strconv "go:strconv"
+import base64 "go:encoding/base64"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct RegistrationInput
+  Username: String `json:"username"`
+  Email: String `json:"email"`
+end
+
+struct VerificationInput
+  Token: String `json:"token"`
+  Password: String `json:"password"`
+end
+
+struct VerificationResendInput
+  Email: String `json:"email"`
+end
+
+func RegistrationClientIP(settings: config.Config, request: Ref[http.Request]) -> Result[String, String]
+  let peer = netip.ParseAddrPort(request.RemoteAddr)
+  if peer.IsErr() then
+    return Err("invalid client address")
+  end
+  var value = peer.Unwrap().Addr().Unmap().String()
+  if config.TrustedProxy(settings, request.RemoteAddr) then
+    let forwarded = request.Header.Get("X-Forwarded-For")
+    if forwarded != "" then
+      # Walk from the trusted edge, never use a spoofable leftmost value.
+      let hops = strings.Split(forwarded, ",")
+      var index = hops.Len() - 1
+      while index >= 0
+        let candidate = netip.ParseAddr(strings.TrimSpace(hops.Get(index).Unwrap()))
+        if candidate.IsErr() then
+          return Err("invalid client address")
+        end
+        value = candidate.Unwrap().Unmap().String()
+        if !config.TrustedProxy(settings, net.JoinHostPort(value, "1")) then
+          break
+        end
+        index = index - 1
+      end
+    end
+  end
+  let parsed = netip.ParseAddr(value)
+  if parsed.IsErr() then
+    return Err("invalid client address")
+  end
+  Ok(parsed.Unwrap().Unmap().String())
+end
+
+func RegistrationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> Bool
+  let path = request.URL.Path
+  if path != "/api/v1/auth/register" && path != "/api/v1/auth/verification/resend" && path != "/api/v1/auth/verification/confirm" then
+    return false
+  end
+  if request.Method != "POST" then
+    w.Header().Set("Allow", "POST")
+    WriteErrorJSON(w, 405, "method not allowed")
+    return true
+  end
+  if !site.RegistrationEnabled || !SameOrigin(settings, request) then
+    WriteErrorJSON(w, 403, "registration forbidden")
+    return true
+  end
+  let key = base64.StdEncoding.DecodeString(settings.Registration.OutboxSecret)
+  if key.IsErr() || key.Unwrap().Len() != 32 then
+    WriteErrorJSON(w, 503, "registration unavailable")
+    return true
+  end
+  let ip = RegistrationClientIP(settings, request)
+  if ip.IsErr() then
+    WriteErrorJSON(w, 400, "invalid client address")
+    return true
+  end
+  let repository = storage.RegistrationRepository{DB: db, Site: site, EncryptionKey: key.Unwrap(), IPAttempts: settings.Registration.IPLimit, EmailAttempts: settings.Registration.EmailLimit, TokenTTLSeconds: settings.Registration.TokenTTLSeconds, RateWindowSeconds: settings.Registration.RateWindowSeconds}
+  var result: Result[(), String] = Ok(())
+  if path == "/api/v1/auth/register" then
+    let input = RegistrationInput{}
+    if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+      WriteErrorJSON(w, 400, "invalid registration request")
+      return true
+    end
+    result = repository.Register(request.Context(), input.Username, input.Email, ip.Unwrap(), time.Now())
+  else if path == "/api/v1/auth/verification/resend" then
+    let input = VerificationResendInput{}
+    if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+      WriteErrorJSON(w, 400, "invalid registration request")
+      return true
+    end
+    result = repository.Resend(request.Context(), input.Email, ip.Unwrap(), time.Now())
+  else
+    let input = VerificationInput{}
+    if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+      WriteErrorJSON(w, 400, "invalid verification request")
+      return true
+    end
+    result = repository.Confirm(request.Context(), input.Token, input.Password, time.Now())
+  end end
+  if result.IsErr() then
+    let reason = result.UnwrapErr()
+    if reason == "registration rate limited" then
+      w.Header().Set("Retry-After", strconv.Itoa(settings.Registration.RateWindowSeconds))
+      WriteErrorJSON(w, 429, reason)
+    else if reason == "registration conflict" then
+      WriteErrorJSON(w, 409, "registration conflict")
+    else if strings.HasPrefix(reason, "invalid ") then
+      WriteErrorJSON(w, 400, reason)
+    else
+      WriteErrorJSON(w, 503, "registration unavailable")
+    end end end
+  else
+    w.WriteHeader(if path == "/api/v1/auth/verification/confirm" then 204 else 202 end)
+  end
+  true
+end

@@ -1,0 +1,272 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import sql "go:database/sql"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+
+struct RichActivityObject
+  Object: json.RawMessage `json:"object"`
+end
+
+# The inbox has verified this exact inner payload against its canonical copy.
+# Only the owning Group may introduce a post into a received community.
+func ReceiveRichAnnounce(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  activity: federation.ParsedActivity,
+  payload: Slice[Byte]
+) -> Result[(), String]
+  if activity.Embedded.IsNone() then
+    return Ok(())
+  end
+  let community = storage.LoadReplicaCommunity(ctx, db, activity.Actor)
+  if community.IsErr() then
+    return Err(community.UnwrapErr())
+  end
+  if community.Unwrap().IsNone() then
+    return Ok(())
+  end
+  let envelope = RichActivityObject{}
+  if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
+    return Err("invalid announce")
+  end
+  let inner = federation.ParseActivity(envelope.Object as Slice[Byte])
+  if inner.IsErr() then
+    return Err(inner.UnwrapErr())
+  end
+  let current = inner.Unwrap()
+  if current.Type != "Create" && current.Type != "Update" && current.Type != "Delete" then
+    return Ok(())
+  end
+  if current.Type != "Delete" && current.Embedded.IsNone() then
+    return Ok(())
+  end
+  storage.RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let stored = storage.LoadActivityPayload(ctx, tx, current.ID)
+      if stored.IsErr() then
+        return Err(stored.UnwrapErr())
+      end
+      if stored.Unwrap().IsNone() then
+        let saved = storage.InsertActivityPayload(
+          ctx,
+          tx,
+          current.ID,
+          current.Actor,
+          current.Type,
+          envelope.Object as Slice[Byte],
+          community.Unwrap().Unwrap().ID
+        )
+        if saved.IsErr() then
+          return saved
+        end
+      end
+      if current.Type == "Delete" then
+        return ApplyRichMutation(ctx, tx, site, current, envelope.Object as Slice[Byte])
+      end
+      ReceiveRichActivity(
+        ctx,
+        tx,
+        site,
+        current,
+        envelope.Object as Slice[Byte],
+        community.Unwrap().Unwrap().ID
+      )
+    end
+  )
+end
+
+# Called only after signature/action authorization. A hosted Group's posting
+# gate runs before initial reception; updates retain the stored community.
+func ReceiveRichActivity(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  activity: federation.ParsedActivity,
+  payload: Slice[Byte],
+  communityID: String
+) -> Result[(), String]
+  let envelope = RichActivityObject{}
+  if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
+    return Err("invalid activity")
+  end
+  let parsed = federation.ParseRichObject(envelope.Object as Slice[Byte])
+  if parsed.IsErr() then
+    return Err(parsed.UnwrapErr())
+  end
+  var object = parsed.Unwrap()
+  if object.ID != activity.ObjectURI || object.AttributedTo != activity.Actor then
+    return Err("forged author")
+  end
+  if object.Published.IsZero() then
+    let previous = storage.LoadObjectByURI(ctx, db, object.ID)
+    if previous.IsErr() then
+      return Err(previous.UnwrapErr())
+    end
+    object.Published = if previous.Unwrap().IsSome() then
+      previous.Unwrap().Unwrap().AuthoredAt
+    else
+      time.Now().UTC().Truncate(time.Microsecond)
+    end
+  end
+  let blocked = storage.SiteRepository{DB: db, SiteID: site.ID}.IsBlocked(ctx, activity.Actor)
+  if blocked.IsErr() then
+    return Err(blocked.UnwrapErr())
+  end
+  if blocked.Unwrap() then
+    return Err("forbidden")
+  end
+  let community = storage.LoadCommunityByID(ctx, db, communityID)
+  if community.IsErr() || community.Unwrap().IsNone() then
+    return Err("unknown community")
+  end
+  if community.Unwrap().Unwrap().FederationMode != "federated" then
+    return Err("forbidden")
+  end
+  # A narrower explicit audience cannot be received into a publicly readable
+  # community: that would expose both the object and its media. Legacy objects
+  # without audience fields retain the verified community delivery boundary.
+  let publicAudience = object.To.Contains("https://www.w3.org/ns/activitystreams#Public") ||
+    object.CC.Contains("https://www.w3.org/ns/activitystreams#Public")
+  if community.Unwrap().Unwrap().ReadPolicy != "members" &&
+    object.To.Len() + object.CC.Len() > 0 && !publicAudience then
+    return Err("restricted audience expansion")
+  end
+  if community.Unwrap().Unwrap().ReadPolicy == "members" &&
+    (object.To.Contains("https://www.w3.org/ns/activitystreams#Public") ||
+      object.CC.Contains("https://www.w3.org/ns/activitystreams#Public")) then
+    return Err("restricted audience expansion")
+  end
+  var parent = sql.NullString{}
+  if object.InReplyTo != "" then
+    let loaded = storage.LoadObjectByURI(ctx, db, object.InReplyTo)
+    if loaded.IsErr() || loaded.Unwrap().IsNone() then
+      return Err("unknown parent")
+    end
+    if loaded.Unwrap().Unwrap().CommunityID != communityID then
+      return Err("invalid parent")
+    end
+    parent = sql.NullString{String: loaded.Unwrap().Unwrap().ID, Valid: true}
+  end
+  let metadata = json.Marshal(federation.RichMetadata{
+    Source: object.Source,
+    Attachment: object.Attachment,
+    Tag: object.Tag,
+  })
+  if metadata.IsErr() then
+    return Err("invalid rich metadata")
+  end
+  let incoming = storage.PostRecord{
+    ObjectURI: sql.NullString{String: object.ID, Valid: true},
+    CommunityID: communityID,
+    FederationMode: "federated",
+    AuthorActorURI: object.AttributedTo,
+    ObjectType: object.Type,
+    Title: sql.NullString{String: object.Name, Valid: object.Name != ""},
+    Body: object.Content,
+    ContentFormat: if object.MediaType == "text/plain" then
+      "legacy"
+    else
+      "html"
+    end,
+    RichMetadata: metadata.Unwrap() as String,
+    ParentID: parent,
+    AuthoredAt: object.Published,
+    UpdatedAt: if object.Updated.IsZero() then
+      object.Published
+    else
+      object.Updated
+    end,
+  }
+  storage.RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let actor = storage.EnsureRemoteActor(ctx, tx, activity.Actor, "Person")
+      if actor.IsErr() then
+        return Err(actor.UnwrapErr())
+      end
+      let received = storage.PostRepository{DB: tx, SiteID: site.ID}.Receive(ctx, incoming, activity.Actor)
+      if received.IsErr() then
+        return Err(received.UnwrapErr())
+      end
+      let stored = received.Unwrap()
+      # Stale updates and tombstone replays must never reconcile old metadata.
+      if stored.DeletedAt.Valid ||
+        !stored.UpdatedAt.Equal(incoming.UpdatedAt.UTC().Truncate(time.Microsecond)) then
+        return Ok(())
+      end
+      let media = ReconcileRemoteMedia(
+        ctx,
+        tx,
+        site.ID,
+        stored,
+        stored.UpdatedAt.UTC().Format(time.RFC3339Nano),
+        object.Attachment
+      )
+      if media.IsErr() then
+        return Err(media.UnwrapErr())
+      end
+      ReconcileRichMentions(ctx, tx, site, stored, object.Tag, MergeAddresses(object.To, object.CC))
+    end
+  )
+end
+
+func ApplyRichMutation(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  activity: federation.ParsedActivity,
+  payload: Slice[Byte]
+) -> Result[(), String]
+  let found = storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
+  if found.IsErr() then
+    return Err(found.UnwrapErr())
+  end
+  if found.Unwrap().IsNone() then
+    return Ok(())
+  end
+  var post = found.Unwrap().Unwrap()
+  if post.AuthorActorURI != activity.Actor || post.FederationMode != "federated" then
+    return Err("forged mutation")
+  end
+  if post.DeletedAt.Valid then
+    return Ok(())
+  end
+  if activity.Type == "Update" then
+    return ReceiveRichActivity(ctx, db, site, activity, payload, post.CommunityID)
+  end
+  post.Body = ""
+  post.RichMetadata = ""
+  post.UpdatedAt = time.Now().UTC()
+  if !post.UpdatedAt.After(post.AuthoredAt) then
+    post.UpdatedAt = post.AuthoredAt.Add(time.Microsecond)
+  end
+  post.DeletedAt = sql.NullTime{Time: post.UpdatedAt, Valid: true}
+  storage.RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let received = storage.PostRepository{DB: tx, SiteID: site.ID}.Receive(ctx, post, activity.Actor)
+      if received.IsErr() then
+        return Err(received.UnwrapErr())
+      end
+      if storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID)).IsErr() then
+        return Err("media unavailable")
+      end
+      let invalidated = storage.MediaRepository{DB: tx, SiteID: site.ID}.InvalidatePrivateCache(ctx, tx, post.ID, "")
+      if invalidated.IsErr() then
+        return invalidated
+      end
+      storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))
+    end
+  )
+end

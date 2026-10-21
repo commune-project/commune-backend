@@ -20,11 +20,20 @@ func WriteActivity[T](w: http.ResponseWriter, status: Int, value: T) -> ()
 end
 
 func FederationPath(path: String) -> Bool
-  path == "/.well-known/webfinger" || path == "/inbox" || strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/communities/") || strings.HasPrefix(path, "/objects/") || strings.HasPrefix(path, "/activities/") || strings.HasPrefix(path, "/contexts/")
+  path == "/.well-known/webfinger" || path == "/inbox" || strings.HasPrefix(path, "/users/") || strings.HasPrefix(path, "/communities/") || strings.HasPrefix(path, "/objects/") || strings.HasPrefix(path, "/activities/") || strings.HasPrefix(path, "/contexts/") || strings.HasPrefix(path, "/federation-media/")
 end
 
 func FederationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> ()
   let path = request.URL.Path
+  if strings.HasPrefix(path, "/federation-media/") then
+    let mediaParts = Segments(path)
+    if mediaParts.Len() == 2 then
+      FederationMediaHandler(settings, db, site, w, request, mediaParts.Get(1).Unwrap())
+    else
+      http.NotFound(w, request)
+    end
+    return
+  end
   if request.Method == "POST" then
     InboxRoute(settings, db, site, w, request)
     return
@@ -65,6 +74,18 @@ func FederationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Sit
     return
   end
   if parts.Len() == 2 && parts.Get(0).Unwrap() == "activities" then
+    let community = storage.CommunityRecord{}
+    let scoped = db.WithContext(request.Context()).Raw("SELECT c.* FROM communities c JOIN activities a ON a.community_id=c.id WHERE a.uri=?", site.Origin + request.URL.Path).Scan(Ref.new(community))
+    if storage.QueryFailed(scoped) then
+      http.NotFound(w, request)
+      return
+    end
+    if scoped.RowsAffected == 1i64 then
+      if community.FederationMode != "federated" || (community.ReadPolicy == "members" && MemberReadAllowed(db, settings, request, site, community).IsErr()) then
+        http.NotFound(w, request)
+        return
+      end
+    end
     let resolved = federation.ResolveActivity(request.Context(), db, site, parts.Get(1).Unwrap())
     if resolved.IsErr() then
       http.NotFound(w, request)
@@ -134,6 +155,11 @@ func ObjectHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     WriteActivity(w, 200, federation.BuildTombstoneRepresentation(post))
   else
     let contextURI = storage.PrimaryPostContextURI(request.Context(), db, post.ID)
-    WriteActivity(w, 200, federation.BuildObjectRepresentationWithContext(post, community, contextURI))
+    let enriched = BuildRichObject(request.Context(), db, post, community, contextURI)
+    if enriched.IsErr() then
+      http.NotFound(w, request)
+    else
+      WriteActivity(w, 200, enriched.Unwrap())
+    end
   end
 end

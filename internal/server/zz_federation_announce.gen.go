@@ -79,6 +79,14 @@ func ApplyCreateSubmission(ctx context.Context, db *gorm.DB, site config.Site, a
 		}
 	} else {
 	}
+	if MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && (MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Page" || MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Note") {
+		received := ReceiveRichActivity(ctx, db, site, activity, payload, community.ID)
+		if MygoIN6ResultM5IsErr[struct{}, string](received) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](received))
+		} else {
+		}
+	} else {
+	}
 	return PublishGroupAnnouncement(ctx, db, site, community, payload)
 }
 func PublishGroupAnnouncement(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, payload []byte) Result[struct {

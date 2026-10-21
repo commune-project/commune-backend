@@ -1,0 +1,63 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
+
+struct FederationAttachmentRow
+  ID: String
+  MediaType: String
+  OriginalName: String
+end
+
+# Only callers that completed the object's access boundary may use this builder.
+# Remote source is metadata; rendered content never comes from source metadata.
+func BuildRichObject(ctx: context.Context, db: Ref[gorm.DB], post: storage.PostRecord, community: storage.CommunityRecord, contextURI: String) -> Result[federation.ObjectRepresentation, String]
+  var output = federation.BuildObjectRepresentationWithContext(post, community, contextURI)
+  if post.ParentID.Valid then
+    let parent = storage.LoadObjectByID(ctx, db, post.ParentID.String)
+    if parent.IsErr() || parent.Unwrap().IsNone() then return Err("parent unavailable") end
+    output.InReplyTo = parent.Unwrap().Unwrap().ObjectURI.String
+  end
+  if post.RichMetadata != "" then
+    let metadata = federation.RichMetadata{}
+    if json.Unmarshal(post.RichMetadata as Slice[Byte], Ref.new(metadata)).IsErr() then return Err("rich metadata unavailable") end
+    output.Source = metadata.Source
+    output.Attachment = metadata.Attachment
+    output.Tag = metadata.Tag
+  else
+    var rows: Slice[FederationAttachmentRow] = []
+    let queried = db.WithContext(ctx).Raw("SELECT b.id,u.media_type,u.original_name FROM media_bindings b JOIN media_uploads u ON u.id=b.upload_id WHERE b.post_id=? AND b.active AND u.state='ready' ORDER BY b.id", post.ID).Scan(Ref.new(rows))
+    if storage.MutationResult(queried).IsErr() then return Err("media unavailable") end
+    let origin = strings.Split(post.ObjectURI.String, "/objects/").Get(0).UnwrapOr("")
+    output.Attachment = rows.Map(func(row: FederationAttachmentRow) -> federation.RichAttachment
+      federation.RichAttachment{Type: if strings.HasPrefix(row.MediaType, "image/") then "Image" else "Document" end, URL: origin + "/federation-media/" + row.ID, MediaType: row.MediaType, Name: row.OriginalName}
+    end)
+    let states = storage.LoadPostRichStates(ctx, db, [post.ID])
+    if states.IsErr() || states.Unwrap().Len() != 1 then return Err("post content unavailable") end
+    let rendered = storage.RenderStoredPost(post, states.Unwrap().Get(0).Unwrap(), false)
+    if rendered.IsErr() then return Err(rendered.UnwrapErr()) end
+    var references: Slice[content.RemoteMediaReference] = []
+    rows.Each(func(row: FederationAttachmentRow) -> ()
+      let target = origin + "/federation-media/" + row.ID
+      references = references.Append(content.RemoteMediaReference{Origin: "/api/v1/media/" + row.ID, URL: target})
+      references = references.Append(content.RemoteMediaReference{Origin: "/api/v1/media/" + row.ID + "/preview", URL: target})
+    end)
+    output.Content = content.RewriteMediaReferences(rendered.Unwrap(), references, false)
+  end
+  var mentions: Slice[storage.PostMentionRecord] = []
+  if storage.MutationResult(db.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Order("actor_uri").Find(Ref.new(mentions))).IsErr() then return Err("mentions unavailable") end
+  if post.RichMetadata == "" then
+    output.Tag = mentions.Map(func(mention: storage.PostMentionRecord) -> federation.RichMention
+      federation.RichMention{Type: "Mention", Href: mention.ActorURI}
+    end)
+  end
+  output.CC = mentions.Fold(output.CC, func(recipients: Slice[String], mention: storage.PostMentionRecord) -> Slice[String]
+    if recipients.Contains(mention.ActorURI) then recipients else recipients.Append(mention.ActorURI) end
+  end)
+  Ok(output)
+end

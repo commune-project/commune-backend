@@ -1,0 +1,130 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+
+func TestVerificationRetryBound(t: Ref[testing.T]) -> ()
+  if VerificationRetrySeconds(30, 100, 1) != 30 || VerificationRetrySeconds(30, 100, 2) != 60 || VerificationRetrySeconds(30, 100, 100) != 100 then
+    t.Fatal("verification retry backoff is not capped")
+  end
+end
+
+func TestPostgresVerificationMailRetryAndErasure(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(postgresFixture(t)).Unwrap()
+  let ctx = context.Background()
+  MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  ProvisionSite(ctx, db, site).Unwrap()
+  let key = strings.Repeat("k", 32) as Slice[Byte]
+  let repository = RegistrationRepository{DB: db, Site: site, EncryptionKey: key, IPAttempts: 20, EmailAttempts: 5, TokenTTLSeconds: 86400, RateWindowSeconds: 3600}
+  let now = time.Now()
+  repository.Register(ctx, "alice", "alice@example.org", "192.0.2.1", now).Unwrap()
+  var attempts: Int = 0
+  let reject = func(recipient: String, link: String) -> Result[(), String]
+    attempts = attempts + 1
+    Err("temporary SMTP failure")
+  end
+  if DeliverVerificationMail(ctx, db, key, now, 10, 30, 3, 5, reject).Unwrap() != 0 || attempts != 1 then
+    t.Fatal("initial mail failure was not retained for retry")
+  end
+  if DeliverVerificationMail(ctx, db, key, now.Add(1 as time.Duration * time.Second), 10, 30, 3, 5, reject).Unwrap() != 0 || attempts != 1 then
+    t.Fatal("retry ignored available_at")
+  end
+  let deliver = func(recipient: String, link: String) -> Result[(), String]
+    if recipient != "alice@example.org" || !strings.HasPrefix(link, site.Origin + "/verify-email#token=") then
+      t.Fatal("outbox decrypted wrong recipient or verification URL")
+    end
+    attempts = attempts + 1
+    Ok(())
+  end
+  if DeliverVerificationMail(ctx, db, key, now.Add(6 as time.Duration * time.Second), 10, 30, 3, 5, deliver).Unwrap() != 1 || attempts != 2 then
+    t.Fatal("retry after worker restart did not deliver")
+  end
+  let remaining: Int64 = 0i64
+  db.Table("verification_mail_jobs").Where("state<>'sent' OR octet_length(encrypted_payload)<>0 OR lease_token IS NOT NULL").Count(Ref.new(remaining))
+  if remaining != 0i64 then
+    t.Fatal("successful job retained token-bearing payload or lease")
+  end
+  repository.Resend(ctx, "alice@example.org", "192.0.2.1", now.Add(7 as time.Duration * time.Second)).Unwrap()
+  repository.Resend(ctx, "alice@example.org", "192.0.2.1", now.Add(8 as time.Duration * time.Second)).Unwrap()
+  if DeliverVerificationMail(ctx, db, key, now.Add(9 as time.Duration * time.Second), 10, 30, 3, 5, deliver).Unwrap() != 1 then
+    t.Fatal("resend delivered superseded token generation")
+  end
+  repository.Register(ctx, "bob", "bob@example.org", "192.0.2.1", now).Unwrap()
+  let (bounded, cancel) = context.WithCancel(ctx)
+  cancel()
+  if DeliverVerificationMail(bounded, db, key, now, 10, 30, 3, 5, reject).IsOk() then
+    t.Fatal("cancelled mail batch was accepted")
+  end
+end
+
+func TestPostgresVerificationMailFinalAttemptActiveLease(t: Ref[testing.T]) -> ()
+  let outcomes: Slice[String] = ["success", "failure"]
+  outcomes.Each(func(outcome: String) -> ()
+    t.Run(outcome, func(t: Ref[testing.T]) -> ()
+      let repository = registrationFixture(t)
+      let db = repository.DB
+      let (ctx, cancel) = context.WithTimeout(context.Background(), 15 as time.Duration * time.Second)
+      t.Cleanup(cancel)
+      let now = time.Now()
+      let _ = repository.Register(ctx, "alice", "alice@example.com", "192.0.2.1", now).Unwrap()
+      let _ = MutationResult(db.Exec("UPDATE verification_mail_jobs SET attempts=2")).Unwrap()
+      let started = concurrency.MakeChan[Bool](1)
+      let release = concurrency.MakeChan[()](1)
+      let results = concurrency.MakeChan[Result[Int, String]](1)
+      t.Cleanup(func() -> ()
+        release.Close()
+      end)
+      concurrency.Spawn(func() -> ()
+        let result = DeliverVerificationMail(ctx, db, repository.EncryptionKey, now, 1, 30, 3, 5, func(recipient: String, link: String) -> Result[(), String]
+          started.Send(true)
+          let _ = release.Receive()
+          if outcome == "failure" then
+            return Err("temporary SMTP failure")
+          end
+          Ok(())
+        end)
+        if result.IsErr() then
+          started.Send(false)
+        end
+        results.Send(result)
+      end)
+      if !started.Receive().Unwrap() then
+        t.Fatal("first worker failed before final-attempt SMTP call")
+      end
+      let before = registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='leased' AND attempts=3 AND octet_length(encrypted_payload)>0 AND lease_token IS NOT NULL AND lease_until IS NOT NULL")
+      var competingSends: Int = 0
+      let competing = func(recipient: String, link: String) -> Result[(), String]
+        competingSends = competingSends + 1
+        Ok(())
+      end
+      let second = DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(time.Second), 1, 30, 3, 5, competing)
+      let after = registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='leased' AND attempts=3 AND octet_length(encrypted_payload)>0 AND lease_token IS NOT NULL AND lease_until IS NOT NULL")
+      release.Send(())
+      let settled = results.Receive().Unwrap().Unwrap()
+      if before != 1 || after != 1 || second.Unwrap() != 0 || competingSends != 0 then
+        t.Fatal("another worker erased or stole an active final-attempt lease")
+      end
+      let expected: Int = if outcome == "success" then 1 else 0 end
+      let state: String = if outcome == "success" then "sent" else "failed" end
+      let remaining: Int64 = 0i64
+      let _ = MutationResult(db.Table("verification_mail_jobs").Where("state=? AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL", state).Count(Ref.new(remaining))).Unwrap()
+      if settled != expected || remaining != 1i64 then
+        t.Fatal("final-attempt owner could not settle and erase its own payload")
+      end
+      let _ = repository.Register(ctx, "expired", "expired@example.com", "192.0.2.1", now).Unwrap()
+      let _ = MutationResult(db.Exec("UPDATE verification_mail_jobs SET state='leased',attempts=3,lease_token='crashed-worker',lease_until=? WHERE state='pending'", now.Add(30 as time.Duration * time.Second))).Unwrap()
+      let expired = DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(30 as time.Duration * time.Second), 1, 30, 3, 5, competing).Unwrap()
+      let failedJobs: Int = if outcome == "failure" then 2 else 1 end
+      if expired != 0 || competingSends != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='failed' AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL") != failedJobs then
+        t.Fatal("expired exhausted lease was retried or retained its secret payload")
+      end
+    end)
+    ()
+  end)
+end
