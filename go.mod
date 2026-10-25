@@ -2,13 +2,11 @@ module github.com/commune-project/commune-backend
 
 go 1.27
 
-replace github.com/mygo-lang/mygo => ../../mygo
-
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/glebarez/sqlite v1.11.0
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/mygo-lang/mygo v0.0.0-00010101000000-000000000000
+	github.com/mygo-lang/mygo v0.1.3
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.31.0
 	golang.org/x/net v0.26.0

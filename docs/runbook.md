@@ -4,6 +4,9 @@ This runbook covers the current Commune backend. Commands fail closed when the
 configuration or database schema is incompatible; normal serving never migrates,
 seeds, clears tables, or changes account credentials.
 
+For the minimal containerized topology, see
+[Docker Compose deployment](docker-compose.md).
+
 ## Prerequisites
 
 - Go 1.27.1.

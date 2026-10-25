@@ -1,0 +1,51 @@
+{
+  "sites": [
+    {
+      "id": "a",
+      "origin": "https://forum.example",
+      "aliases": ["localhost"],
+      "registration_enabled": false
+    }
+  ],
+  "database_url": "postgres://commune:placeholder@postgres:5432/commune?sslmode=disable",
+  "trusted_proxies": ["172.28.0.0/24"],
+  "runtime": {
+    "listen": "0.0.0.0:8080",
+    "read_timeout_seconds": 15,
+    "write_timeout_seconds": 30,
+    "idle_timeout_seconds": 60,
+    "shutdown_timeout_seconds": 10,
+    "max_body_bytes": 1048576,
+    "max_page_size": 100,
+    "workers": 2
+  },
+  "federation": {
+    "allow_private_network": false,
+    "fetch_timeout_seconds": 10,
+    "max_fetch_bytes": 1048576,
+    "max_redirects": 5,
+    "clock_skew_seconds": 300
+  },
+  "registration": {
+    "token_ttl_seconds": 86400,
+    "rate_window_seconds": 3600,
+    "ip_limit": 20,
+    "email_limit": 3
+  },
+  "smtp": {
+    "host": "",
+    "username": "",
+    "password": "__SMTP_PASSWORD__",
+    "from": "",
+    "tls_mode": "starttls",
+    "port": 587,
+    "timeout_seconds": 10
+  },
+  "media": {
+    "enabled": true,
+    "root": "/var/lib/commune/media"
+  },
+  "participation_workers": {
+    "enabled": true
+  }
+}

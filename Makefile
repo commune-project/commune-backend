@@ -4,7 +4,7 @@ GOCACHE ?= /tmp/commune-mygo-gocache
 GOMODCACHE ?= /tmp/commune-mygo-modcache
 export GOCACHE GOMODCACHE
 
-.PHONY: compiler generate build test test-postgres smoke-runbook verify-protocol verify clean
+.PHONY: compiler generate build test test-postgres smoke-runbook verify-protocol verify clean docker-context docker-build docker-up docker-down docker-logs
 
 compiler:
 	mkdir -p "$(BUILD_DIR)"
@@ -42,3 +42,18 @@ verify: verify-protocol build test-postgres smoke-runbook
 
 clean:
 	rm -f "$(BUILD_DIR)/commune" "$(BUILD_DIR)/mygo"
+
+docker-context:
+	bash scripts/prepare-mygo-context.sh
+
+docker-build: docker-context
+	MYGO_CONTEXT=.build/mygo docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f app

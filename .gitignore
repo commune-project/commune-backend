@@ -1,0 +1,11 @@
+.env
+.build/
+secrets/
+data/
+backups/
+certs/
+deploy/commune.json
+/commune
+*.dump
+*.tgz
+*.log

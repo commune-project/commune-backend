@@ -1,0 +1,43 @@
+{
+	admin off
+	local_certs
+	auto_https disable_redirects
+}
+
+(spa) {
+	root * /srv/frontend
+	try_files {path} /index.html
+	file_server
+	header Cache-Control "no-cache"
+}
+
+https://forum.example, https://localhost {
+	# Hashed assets are immutable; a missing hashed catalog must return 404,
+	# never the SPA document.
+	@assets path /assets/*
+	handle @assets {
+		root * /srv/frontend
+		try_files {path} =404
+		file_server
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	# API, health, WebFinger and public protocol/media paths always go upstream.
+	@backend path_regexp backend ^/(api|users|inbox|objects|activities|contexts|federation-media|collections|health|\.well-known)(/|$)
+	handle @backend {
+		reverse_proxy app:8080
+	}
+
+	# /communities/:id is both an Elm page and an ActivityPub Group resource.
+	@communities_ap {
+		path /communities/*
+		header_regexp Accept (?i)application/(activity\+json|ld\+json)
+	}
+	handle @communities_ap {
+		reverse_proxy app:8080
+	}
+
+	handle {
+		import spa
+	}
+}

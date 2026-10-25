@@ -87,6 +87,8 @@ representations, tombstone and activity retrieval, and content negotiation.
 behavior from Commune's direct-collection convention.
 [Deployment runbook](docs/runbook.md) covers access modes, scopes, provisioning,
 protected-peer limits, recovery, retention, backup and rollback.
+[Docker Compose deployment](docs/docker-compose.md) covers the minimal container
+topology, local MyGO build context, migrations, health checks and backup.
 Go dependencies are cached in `/tmp/commune-mygo-modcache` by default; set
 `GOMODCACHE` to use another location.
 
