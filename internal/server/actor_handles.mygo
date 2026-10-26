@@ -1,0 +1,185 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import url "go:net/url"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
+
+struct ResolvedActorHandle
+  Acct: String
+  DisplayName: String
+end
+
+struct ActorHandleOutcome
+  Resolved: Int
+  Retried: Int
+  Failed: Int
+  Suppressed: Int
+end
+
+func FetchActorHandleDocument(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+  federation.FetchWithAccept(ctx, uri, limits, accept)
+end
+
+# The Actor document locates the remote preferredUsername; the verified
+# WebFinger subject supplies the displayed handle. The Actor URI path is never
+# interpreted as a username.
+func ResolveActorHandle(ctx: context.Context, settings: config.Config, actorURI: String) -> Result[ResolvedActorHandle, String]
+  ResolveActorHandleWith(ctx, settings, actorURI, FetchActorHandleDocument)
+end
+
+func ResolveActorHandleWith(
+  ctx: context.Context,
+  settings: config.Config,
+  actorURI: String,
+  fetcher: func(context.Context, String, String, federation.FetchLimits) -> Result[federation.FetchResult, String]
+) -> Result[ResolvedActorHandle, String]
+  let parsedURI = url.Parse(actorURI)
+  if parsedURI.IsErr() || parsedURI.Unwrap().Scheme != "https" then
+    return Err("invalid actor uri")
+  end
+  let authority = config.NormalizeAuthority(parsedURI.Unwrap().Host)
+  if authority.IsErr() then
+    return Err("invalid actor uri")
+  end
+  let limits = FetchLimitsFrom(settings)
+  let actorDocument = fetcher(ctx, actorURI, federation.ActivityJSONType(), limits)
+  if actorDocument.IsErr() || actorDocument.Unwrap().Status != 200 || federation.HasDuplicateKeys(actorDocument.Unwrap().Body) || !federation.WantsActivityJSON(actorDocument.Unwrap().ContentType) then
+    return Err("actor document unavailable")
+  end
+  let actor = federation.ActorRepresentation{}
+  if json.Unmarshal(actorDocument.Unwrap().Body, Ref.new(actor)).IsErr() || actor.ID != actorURI || actor.Type != "Person" || actor.PreferredUsername == "" then
+    return Err("invalid actor document")
+  end
+  let parsedAccount = federation.ParseWebFingerResource("acct:" + actor.PreferredUsername + "@" + authority.Unwrap())
+  if parsedAccount.IsErr() then
+    return Err("invalid actor username")
+  end
+  let account = parsedAccount.Unwrap()
+  let webfinger = "https://" + account.Host + "/.well-known/webfinger?resource=" + url.QueryEscape("acct:" + account.Username + "@" + account.Host)
+  var fingerLimits = limits
+  fingerLimits.MaxRedirects = 0
+  if fingerLimits.MaxBytes > 65536 then
+    fingerLimits.MaxBytes = 65536
+  end
+  let finger = fetcher(ctx, webfinger, federation.WebFingerJSONType(), fingerLimits)
+  if finger.IsErr() || finger.Unwrap().Status != 200 || federation.HasDuplicateKeys(finger.Unwrap().Body) || !federation.WantsWebFingerJSON(finger.Unwrap().ContentType) then
+    return Err("webfinger unavailable")
+  end
+  let document = federation.WebFingerDocument{}
+  if json.Unmarshal(finger.Unwrap().Body, Ref.new(document)).IsErr() || !strings.EqualFold(document.Subject, "acct:" + account.Username + "@" + account.Host) then
+    return Err("webfinger subject mismatch")
+  end
+  let links = document.Links.Filter(func(link: federation.WebFingerLink) -> Bool
+    link.Rel == "self" && federation.WantsActivityJSON(link.Type) && link.Href == actorURI
+  end)
+  if links.Len() != 1 then
+    return Err("webfinger self link mismatch")
+  end
+  Ok(ResolvedActorHandle{Acct: strings.TrimPrefix(document.Subject, "acct:"), DisplayName: content.RenderText(actor.Name)})
+end
+
+func SettleActorHandleFailure(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, job: storage.ActorHandleJobRecord, reason: String) -> Result[Bool, String]
+  let limits = settings.ParticipationWorkers
+  if job.Attempts >= limits.MaxAttempts as Int64 then
+    let failed = storage.MarkActorHandleFailed(ctx, db, job.SiteID, job.ActorURI, reason)
+    if failed.IsErr() then return Err(failed.UnwrapErr()) end
+    return Ok(false)
+  end
+  var backoff = limits.RetryBaseSeconds as Int64 * job.Attempts
+  if backoff > limits.RetryMaxSeconds as Int64 then
+    backoff = limits.RetryMaxSeconds as Int64
+  end
+  let retried = storage.MarkActorHandleRetry(ctx, db, job.SiteID, job.ActorURI, reason, backoff)
+  if retried.IsErr() then
+    return Err(retried.UnwrapErr())
+  end
+  Ok(true)
+end
+
+func RunActorHandleBatch(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> Result[ActorHandleOutcome, String]
+  RunActorHandleBatchWith(ctx, settings, db, FetchActorHandleDocument)
+end
+
+func RunActorHandleBatchWith(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  fetcher: func(context.Context, String, String, federation.FetchLimits) -> Result[federation.FetchResult, String]
+) -> Result[ActorHandleOutcome, String]
+  let limits = settings.ParticipationWorkers
+  let claimed = storage.ClaimActorHandleJobs(ctx, db, limits.BatchSize, limits.LeaseSeconds as Int64)
+  if claimed.IsErr() then
+    return Err(claimed.UnwrapErr())
+  end
+  var outcome = ActorHandleOutcome{Resolved: 0, Retried: 0, Failed: 0, Suppressed: 0}
+  claimed.Unwrap().Each(func(job: storage.ActorHandleJobRecord) -> ()
+    let actor = storage.LoadActor(ctx, db, job.ActorURI)
+    if actor.IsErr() then
+      let settled = SettleActorHandleFailure(ctx, db, settings, job, "actor unavailable")
+      if settled.IsErr() then return end
+      if settled.Unwrap() then outcome.Retried = outcome.Retried + 1 else outcome.Failed = outcome.Failed + 1 end
+      return
+    end
+    if actor.Unwrap().IsNone() then
+      let suppressed = storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "actor missing")
+      if suppressed.IsOk() then outcome.Suppressed = outcome.Suppressed + 1 end
+      return
+    end
+    let found = actor.Unwrap().Unwrap()
+    if found.LocalSiteID.Valid || found.Kind != "Person" then
+      let suppressed = storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "not a remote person")
+      if suppressed.IsOk() then outcome.Suppressed = outcome.Suppressed + 1 end
+      return
+    end
+    if found.Acct != "" then
+      let done = storage.MarkActorHandleDone(ctx, db, job.SiteID, job.ActorURI)
+      if done.IsOk() then outcome.Resolved = outcome.Resolved + 1 end
+      return
+    end
+    let blocked = storage.SiteRepository{DB: db, SiteID: job.SiteID}.IsBlocked(ctx, job.ActorURI)
+    if blocked.IsErr() then
+      let settled = SettleActorHandleFailure(ctx, db, settings, job, "site policy unavailable")
+      if settled.IsErr() then return end
+      if settled.Unwrap() then outcome.Retried = outcome.Retried + 1 else outcome.Failed = outcome.Failed + 1 end
+      return
+    end
+    if blocked.Unwrap() then
+      let suppressed = storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "actor blocked")
+      if suppressed.IsOk() then outcome.Suppressed = outcome.Suppressed + 1 end
+      return
+    end
+    let resolved = ResolveActorHandleWith(ctx, settings, job.ActorURI, fetcher)
+    if resolved.IsErr() then
+      let settled = SettleActorHandleFailure(ctx, db, settings, job, resolved.UnwrapErr())
+      if settled.IsErr() then return end
+      if settled.Unwrap() then outcome.Retried = outcome.Retried + 1 else outcome.Failed = outcome.Failed + 1 end
+      return
+    end
+    let handle = resolved.Unwrap()
+    let bootstrapped = storage.BootstrapRemoteDisplayName(ctx, db, job.ActorURI, handle.DisplayName)
+    if bootstrapped.IsErr() then
+      let settled = SettleActorHandleFailure(ctx, db, settings, job, bootstrapped.UnwrapErr())
+      if settled.IsErr() then return end
+      if settled.Unwrap() then outcome.Retried = outcome.Retried + 1 else outcome.Failed = outcome.Failed + 1 end
+      return
+    end
+    let saved = storage.SaveVerifiedActorHandle(ctx, db, job.ActorURI, handle.Acct)
+    if saved.IsErr() then
+      let settled = SettleActorHandleFailure(ctx, db, settings, job, saved.UnwrapErr())
+      if settled.IsErr() then return end
+      if settled.Unwrap() then outcome.Retried = outcome.Retried + 1 else outcome.Failed = outcome.Failed + 1 end
+      return
+    end
+    let done = storage.MarkActorHandleDone(ctx, db, job.SiteID, job.ActorURI)
+    if done.IsOk() then
+      outcome.Resolved = outcome.Resolved + 1
+    end
+  end)
+  Ok(outcome)
+end

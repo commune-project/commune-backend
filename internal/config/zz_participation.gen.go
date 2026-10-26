@@ -72,6 +72,7 @@ type ParticipationWorkers struct {
 	MailWorkers         int  "json:\"mail_workers\""
 	NotificationWorkers int  "json:\"notification_workers\""
 	MediaWorkers        int  "json:\"media_workers\""
+	ActorWorkers        int  "json:\"actor_workers\""
 	BatchSize           int  "json:\"batch_size\""
 	PollIntervalSeconds int  "json:\"poll_interval_seconds\""
 	LeaseSeconds        int  "json:\"lease_seconds\""
@@ -180,6 +181,10 @@ func ParticipationDefaults(input Input) Input {
 	}
 	if settings.ParticipationWorkers.MediaWorkers == 0 {
 		settings.ParticipationWorkers.MediaWorkers = 1
+	} else {
+	}
+	if settings.ParticipationWorkers.ActorWorkers == 0 {
+		settings.ParticipationWorkers.ActorWorkers = 1
 	} else {
 	}
 	if settings.ParticipationWorkers.BatchSize == 0 {
@@ -312,6 +317,10 @@ func ValidateParticipation(input Input) Result[struct {
 	}
 	if input.ParticipationWorkers.MediaWorkers < 1 || input.ParticipationWorkers.MediaWorkers > 32 {
 		return Err[struct{}, string]("participation_workers.media_workers is out of range")
+	} else {
+	}
+	if input.ParticipationWorkers.ActorWorkers < 1 || input.ParticipationWorkers.ActorWorkers > 32 {
+		return Err[struct{}, string]("participation_workers.actor_workers is out of range")
 	} else {
 	}
 	if input.ParticipationWorkers.BatchSize < 1 || input.ParticipationWorkers.BatchSize > 1000 {

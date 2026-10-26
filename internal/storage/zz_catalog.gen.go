@@ -20,7 +20,7 @@ type AppliedMigration struct {
 }
 
 func MigrationCatalog() Result[[]Migration, string] {
-	var names []string = []string{"001_identity.sql", "002_forum_identities.sql", "003_forum_relations.sql", "004_person_follows.sql", "005_peer_capabilities.sql", "006_registration.sql", "007_media.sql", "008_profiles_content.sql", "009_notifications.sql", "010_rich_metadata.sql", "011_reaction_receipts.sql", "012_private_media_invalidation.sql", "013_post_versions.sql"}
+	var names []string = []string{"001_identity.sql", "002_forum_identities.sql", "003_forum_relations.sql", "004_person_follows.sql", "005_peer_capabilities.sql", "006_registration.sql", "007_media.sql", "008_profiles_content.sql", "009_notifications.sql", "010_rich_metadata.sql", "011_reaction_receipts.sql", "012_private_media_invalidation.sql", "013_post_versions.sql", "014_actor_handles.sql"}
 	var migrations []Migration = []Migration{}
 	i := 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(names) {

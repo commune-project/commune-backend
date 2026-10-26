@@ -20,8 +20,17 @@ var ldJSONProfile string
 func init() {
 	ldJSONProfile = "application/ld+json"
 }
+
+var webFingerJSON string
+
+func init() {
+	webFingerJSON = "application/jrd+json"
+}
 func ActivityJSONType() string {
 	return activityJSON
+}
+func WebFingerJSONType() string {
+	return webFingerJSON
 }
 
 type Account struct {
@@ -54,6 +63,9 @@ func ParseWebFingerResource(resource string) Result[Account, string] {
 }
 func AcceptsActivityJSON(accept string) bool {
 	return accept == "" || strings.Contains(accept, activityJSON) || strings.Contains(accept, ldJSONProfile)
+}
+func WantsWebFingerJSON(contentType string) bool {
+	return strings.Contains(contentType, webFingerJSON) || strings.Contains(contentType, "application/json")
 }
 func BuildWebFinger(site config.Site, account Account, actorURI string) Result[WebFingerDocument, string] {
 	authority := strings.TrimPrefix(site.Origin, "https://")

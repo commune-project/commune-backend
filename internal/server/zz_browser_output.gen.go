@@ -4,6 +4,7 @@ package server
 
 import "context"
 import "net/http"
+import "strings"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
@@ -49,6 +50,13 @@ func BrowserCommunityDTO(repository storage.BrowserRepository, view storage.Comm
 	output.Viewer = CommunityViewerOutput{IsMember: viewer.Verified && view.Member, IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI, IsManager: viewer.Verified && view.Manager, ManagementScope: access.Authority.Scope}
 	output.Permissions = CommunityPermissions{CanPost: view.Record.HostSiteID == repository.SiteID && auth.MygoIN8IdentityM9BelongsTo(viewer.Identity, repository.SiteID) && storage.MygoIN15CommunityAccessM7CanPost(access), CanManage: managed, CanManageMembers: managed, CanManageManagers: managed}
 	return output
+}
+func BrowserPostAuthor(state storage.PostRichState) AuthorOutput {
+	if state.AuthorUsername != "" && strings.HasPrefix(state.Origin, "https://") {
+		return AuthorOutput{Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"), DisplayName: state.AuthorDisplayName}
+	} else {
+	}
+	return AuthorOutput{Acct: state.AuthorAcct, DisplayName: state.AuthorDisplayName}
 }
 func BrowserPosts(ctx context.Context, repository storage.BrowserRepository, viewer storage.BrowserViewer, records []storage.PostRecord) Result[[]PostOutput, string] {
 	var outputs []PostOutput = []PostOutput{}
@@ -103,6 +111,7 @@ func BrowserPosts(ctx context.Context, repository storage.BrowserRepository, vie
 			return Err[[]PostOutput, string]("post content unavailable")
 		} else {
 		}
+		output.Author = BrowserPostAuthor(MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rich, 0)))
 		rendered := storage.RenderStoredPost(record, MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rich, 0)), false)
 		media := storage.PostRichMedia(MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rich, 0)))
 		if MygoIN6ResultM5IsErr[string, string](rendered) || MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {

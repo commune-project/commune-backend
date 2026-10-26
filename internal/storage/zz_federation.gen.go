@@ -17,6 +17,7 @@ type ActorRecord struct {
 	Kind         string         "gorm:\"column:kind\""
 	InboxURI     sql.NullString "gorm:\"column:inbox_uri\""
 	PublicKeyPEM sql.NullString "gorm:\"column:public_key_pem\""
+	Acct         string         "gorm:\"column:acct\""
 }
 
 func GeneratePrivatePEM() Result[string, string] {

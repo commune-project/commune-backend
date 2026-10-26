@@ -31,6 +31,10 @@ type CommunityOutput struct {
 	Viewer         CommunityViewerOutput "json:\"viewer\""
 	Permissions    CommunityPermissions  "json:\"permissions\""
 }
+type AuthorOutput struct {
+	Acct        string "json:\"acct\""
+	DisplayName string "json:\"display_name\""
+}
 type PostOutput struct {
 	Version        int64                  "json:\"version\""
 	ID             string                 "json:\"id\""
@@ -43,6 +47,7 @@ type PostOutput struct {
 	AttachmentIDs  []string               "json:\"attachment_ids\""
 	Attachments    []PostAttachmentOutput "json:\"attachments\""
 	AuthorActorURI string                 "json:\"author_actor_uri\""
+	Author         AuthorOutput           "json:\"author\""
 	ParentID       string                 "json:\"parent_id,omitempty\""
 	AuthoredAt     time.Time              "json:\"authored_at\""
 	UpdatedAt      time.Time              "json:\"updated_at\""

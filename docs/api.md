@@ -60,9 +60,11 @@ read_policy, post_policy, actor_uri (federated only) and host_site_id`, plus
 | POST | `/api/v1/contexts/{id}/backfill` | | 200 counts |
 
 A post carries `id, community_id, object_type, title (topics only), body,
-author_actor_uri, parent_id (replies only), authored_at, updated_at and
+author_actor_uri, author, parent_id (replies only), authored_at, updated_at and
 deleted`, plus `like_count`, `liked_by_me`, site-visible direct `reply_count`,
-and current action `permissions`. `body` and `title` are rendered for display; see
+and current action `permissions`. `author` contains `acct` and `display_name`;
+both are empty when unknown, and `author_actor_uri` remains authoritative. `body`
+and `title` are rendered for display; see
 [rendering.md](rendering.md). A page is `{items, limit, offset}`. `limit`
 defaults to 20 and must be within the configured maximum; `offset` is
 non-negative. Topics require a title; replies must omit it. A reply's optional

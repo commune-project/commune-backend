@@ -32,6 +32,11 @@ func ParticipationBatch(ctx: context.Context, settings: config.Config, db: Ref[g
   if kind == "notifications" then
     return storage.ProjectNotifications(ctx, db, limits.BatchSize)
   end
+  if kind == "actor_handles" then
+    let result = RunActorHandleBatch(ctx, settings, db)
+    if result.IsErr() then return Err(result.UnwrapErr()) end
+    return Ok(())
+  end
   if kind == "mail" then
     if settings.Registration.OutboxSecret == "" then
       return Ok(())
@@ -90,9 +95,9 @@ func StartParticipationWorkers(ctx: context.Context, settings: config.Config, db
     finished.Send(())
     return finished
   end
-  let counts: Slice[Int] = [workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, settings.Runtime.Workers]
-  let kinds: Slice[String] = ["mail", "notifications", "media", "delivery"]
-  let signals = concurrency.MakeChan[()](workers.MailWorkers + workers.NotificationWorkers + workers.MediaWorkers + settings.Runtime.Workers)
+  let counts: Slice[Int] = [workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, workers.ActorWorkers, settings.Runtime.Workers]
+  let kinds: Slice[String] = ["mail", "notifications", "media", "actor_handles", "delivery"]
+  let signals = concurrency.MakeChan[()](workers.MailWorkers + workers.NotificationWorkers + workers.MediaWorkers + workers.ActorWorkers + settings.Runtime.Workers)
   var total: Int = 0
   var group: Int = 0
   while group < kinds.Len()

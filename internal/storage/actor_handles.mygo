@@ -1,0 +1,100 @@
+package storage
+
+import context "go:context"
+import sql "go:database/sql"
+import strings "go:strings"
+import time "go:time"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+
+struct ActorHandleJobRecord
+  SiteID: String `gorm:"column:site_id"`
+  ActorURI: String `gorm:"column:actor_uri"`
+  State: String `gorm:"column:state"`
+  Attempts: Int64 `gorm:"column:attempts"`
+  AvailableAt: time.Time `gorm:"column:available_at"`
+  LeaseToken: sql.NullString `gorm:"column:lease_token"`
+  LeaseUntil: sql.NullTime `gorm:"column:lease_until"`
+  ErrorCode: sql.NullString `gorm:"column:error_code"`
+end
+
+struct ActorHandleStateRecord
+  LocalSiteID: sql.NullString `gorm:"column:local_site_id"`
+  Kind: String `gorm:"column:kind"`
+  Acct: String `gorm:"column:acct"`
+end
+
+# Called inside the receiving transaction after a remote post is accepted.
+func QueueActorHandleResolution(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, actorURI: String) -> Result[Int64, String]
+  if siteID == "" || actorURI == "" then
+    return Err("invalid actor handle job")
+  end
+  let actor = ActorHandleStateRecord{}
+  let loaded = tx.WithContext(ctx).Raw("SELECT local_site_id,kind,acct FROM actors WHERE uri=?", actorURI).Scan(Ref.new(actor))
+  if MutationResult(loaded).IsErr() then
+    return Err("actor handle enqueue failed")
+  end
+  if loaded.RowsAffected != 1i64 || actor.LocalSiteID.Valid || actor.Kind != "Person" || actor.Acct != "" then
+    return Ok(0i64)
+  end
+  let inserted = tx.WithContext(ctx).Exec("INSERT INTO actor_handle_jobs(site_id,actor_uri) VALUES (?,?) ON CONFLICT (site_id,actor_uri) DO NOTHING", siteID, actorURI)
+  if MutationResult(inserted).IsErr() then
+    return Err("actor handle enqueue failed")
+  end
+  Ok(inserted.RowsAffected)
+end
+
+# A live lease cannot be claimed twice; an expired lease can.
+func ClaimActorHandleJobs(ctx: context.Context, db: Ref[gorm.DB], limit: Int, leaseSeconds: Int64) -> Result[Slice[ActorHandleJobRecord], String]
+  var claimed: Slice[ActorHandleJobRecord] = []
+  let token = rand.Text()
+  let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
+  let query = db.WithContext(ctx).Raw("UPDATE actor_handle_jobs SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1 WHERE (site_id,actor_uri) IN (SELECT site_id,actor_uri FROM actor_handle_jobs WHERE state IN ('pending','leased') AND available_at<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY available_at,site_id,actor_uri LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING site_id,actor_uri,state,attempts,available_at,lease_token,lease_until,error_code", token, until, limit).Scan(Ref.new(claimed))
+  if MutationResult(query).IsErr() then
+    return Err("actor handle claim failed")
+  end
+  Ok(claimed)
+end
+
+func MarkActorHandleDone(ctx: context.Context, db: Ref[gorm.DB], siteID: String, actorURI: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='done',lease_token=NULL,lease_until=NULL,error_code=NULL WHERE site_id=? AND actor_uri=?", siteID, actorURI))
+end
+
+func MarkActorHandleRetry(ctx: context.Context, db: Ref[gorm.DB], siteID: String, actorURI: String, errorCode: String, backoffSeconds: Int64) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='pending',lease_token=NULL,lease_until=NULL,error_code=?,available_at=now() + (? * interval '1 second') WHERE site_id=? AND actor_uri=?", errorCode, backoffSeconds, siteID, actorURI))
+end
+
+func MarkActorHandleFailed(ctx: context.Context, db: Ref[gorm.DB], siteID: String, actorURI: String, errorCode: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='failed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", errorCode, siteID, actorURI))
+end
+
+func SuppressActorHandle(ctx: context.Context, db: Ref[gorm.DB], siteID: String, actorURI: String, reason: String) -> Result[(), String]
+  MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='suppressed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", reason, siteID, actorURI))
+end
+
+func SaveVerifiedActorHandle(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, acct: String) -> Result[Bool, String]
+  if acct == "" || strings.HasPrefix(acct, "@") || !strings.Contains(acct, "@") then
+    return Err("invalid actor handle")
+  end
+  let updated = db.WithContext(ctx).Exec("UPDATE actors SET acct=? WHERE uri=? AND acct=''", acct, actorURI)
+  if MutationResult(updated).IsErr() then
+    return Err("actor handle storage failed")
+  end
+  Ok(updated.RowsAffected == 1i64)
+end
+
+# Bootstrap only fills an empty remote display name and never advances freshness.
+func BootstrapRemoteDisplayName(ctx: context.Context, db: Ref[gorm.DB], actorURI: String, displayName: String) -> Result[(), String]
+  if displayName == "" then
+    return Ok(())
+  end
+  let actor = ActorHandleStateRecord{}
+  let loaded = db.WithContext(ctx).Raw("SELECT local_site_id,kind,acct FROM actors WHERE uri=?", actorURI).Scan(Ref.new(actor))
+  if MutationResult(loaded).IsErr() then
+    return Err("profile bootstrap failed")
+  end
+  if loaded.RowsAffected != 1i64 || actor.LocalSiteID.Valid || actor.Kind != "Person" then
+    return Ok(())
+  end
+  MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,to_timestamp(0)) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name WHERE profiles.display_name=''", actorURI, displayName))
+end

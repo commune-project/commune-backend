@@ -87,6 +87,10 @@ impl PostRepository
       if MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, current.ID)).IsErr() then
         return Err("object reception failed")
       end
+      let queued = QueueActorHandleResolution(ctx, tx, self.SiteID, incoming.AuthorActorURI)
+      if queued.IsErr() then
+        return Err(queued.UnwrapErr())
+      end
       if MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(Ref.new(stored))).IsErr() then
         return Err("object storage failed")
       end

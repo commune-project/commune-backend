@@ -8,9 +8,14 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 
 let activityJSON: String = "application/activity+json"
 let ldJSONProfile: String = "application/ld+json"
+let webFingerJSON: String = "application/jrd+json"
 
 func ActivityJSONType() -> String
   activityJSON
+end
+
+func WebFingerJSONType() -> String
+  webFingerJSON
 end
 
 struct Account
@@ -43,6 +48,10 @@ end
 # Content negotiation: only ActivityPub media types retrieve protocol resources.
 func AcceptsActivityJSON(accept: String) -> Bool
   accept == "" || strings.Contains(accept, activityJSON) || strings.Contains(accept, ldJSONProfile)
+end
+
+func WantsWebFingerJSON(contentType: String) -> Bool
+  strings.Contains(contentType, webFingerJSON) || strings.Contains(contentType, "application/json")
 end
 
 func BuildWebFinger(site: config.Site, account: Account, actorURI: String) -> Result[WebFingerDocument, String]

@@ -33,6 +33,27 @@ Content negotiation requires an ActivityPub `Accept` (`application/activity+json
 or an `application/ld+json` profile); other media types receive `404`. WebFinger
 is independent of that check because it is a JRD document.
 
+## Verified remote author handles
+
+Browser posts expose a display handle separately from `author_actor_uri`. Remote
+handles are not inferred from Actor URI path segments. When a site first accepts
+content from a remote Person whose `actors.acct` is empty, it enqueues one
+site-scoped `actor_handle_jobs` row inside the reception transaction. A leased
+worker later:
+
+1. Fetches the stored Actor URI with the bounded federation client and requires
+   a matching `id`, type `Person`, and non-empty `preferredUsername`.
+2. Requests WebFinger for `acct:<preferredUsername>@<actor-authority>` and
+   requires the returned `subject` and its single ActivityPub `self` link to
+   match the Actor URI.
+3. Stores the verified subject as `actors.acct` and may fill a blank remote
+   `profiles.display_name` from the Actor document's ActivityPub `name`.
+
+Resolution is restartable, retried with the configured worker limits, and
+suppressed for blocked actors without a remote request. Browser reads use only
+stored data. A custom handle domain that cannot be resolved through the Actor
+authority remains empty rather than being guessed.
+
 `TestPostgresFederationDiscovery` verifies WebFinger self-link and host scoping,
 Person fields, inbox and public key, Group fields, local-only exclusion for both
 Group and objects, members-only and cross-site object denial, tombstone

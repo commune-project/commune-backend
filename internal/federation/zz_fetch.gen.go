@@ -124,12 +124,18 @@ func DisableRedirects(client *http.Client) {
 	client.CheckRedirect = checkRedirect
 }
 func Fetch(ctx context.Context, raw string, limits FetchLimits) Result[FetchResult, string] {
+	return FetchWithAccept(ctx, raw, limits, activityJSON)
+}
+func FetchWithAccept(ctx context.Context, raw string, limits FetchLimits, accept string) Result[FetchResult, string] {
 	bounded, cancel := context.WithTimeout(ctx, time.Duration(limits.TimeoutSeconds)*time.Second)
-	result := FetchBounded(bounded, raw, limits)
+	result := FetchBoundedWithAccept(bounded, raw, limits, accept)
 	cancel()
 	return result
 }
 func FetchBounded(ctx context.Context, raw string, limits FetchLimits) Result[FetchResult, string] {
+	return FetchBoundedWithAccept(ctx, raw, limits, activityJSON)
+}
+func FetchBoundedWithAccept(ctx context.Context, raw string, limits FetchLimits, accept string) Result[FetchResult, string] {
 	client := http.Client{}
 	DisableRedirects(&client)
 	current := raw
@@ -156,7 +162,7 @@ func FetchBounded(ctx context.Context, raw string, limits FetchLimits) Result[Fe
 			return Err[FetchResult, string]("invalid destination")
 		} else {
 		}
-		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Accept", activityJSON)
+		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Accept", accept)
 		var __mygo_expr_4 Result[*http.Response, error]
 		__mygo_expr_5, __mygo_expr_3 := client.Do(MygoIN6ResultM6Unwrap[*http.Request, error](request))
 		if __mygo_expr_3 != nil {

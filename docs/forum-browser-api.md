@@ -72,10 +72,14 @@ be managed or posted to through hosted-community mutation routes.
 Existing fields remain: `id`, `community_id`, `object_type`, optional `title`,
 `body`, `author_actor_uri`, optional `parent_id`, `authored_at`, `updated_at`, and
 `deleted`. All post-producing routes, including creation, editing, and import,
-add these fields:
+add `author` and these interaction fields:
 
 ```json
 {
+  "author": {
+    "acct": "alice@forum.example",
+    "display_name": "Alice"
+  },
   "like_count": 3,
   "liked_by_me": true,
   "reply_count": 2,
@@ -89,6 +93,14 @@ add these fields:
   }
 }
 ```
+
+`author_actor_uri` remains the authoritative identity. `author.acct` is a
+verified local or remote `username@domain` handle without a leading `@`, or an
+empty string when unknown; it is never derived from an Actor URI path.
+`author.display_name` is the stored ActivityPub `name` value, or an empty string
+when unset. Browser reads use stored data only and never perform a synchronous
+Actor or WebFinger lookup. Remote handles are resolved asynchronously after the
+site first receives content from that author.
 
 Like counts describe the shared object's known active reactions, excluding
 undone likes; they are not complete federation-wide totals. `liked_by_me` uses

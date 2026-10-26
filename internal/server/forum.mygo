@@ -30,6 +30,11 @@ struct CommunityOutput
   Permissions: CommunityPermissions `json:"permissions"`
 end
 
+struct AuthorOutput
+  Acct: String `json:"acct"`
+  DisplayName: String `json:"display_name"`
+end
+
 struct PostOutput
   Version: Int64 `json:"version"`
   ID: String `json:"id"`
@@ -42,6 +47,7 @@ struct PostOutput
   AttachmentIDs: Slice[String] `json:"attachment_ids"`
   Attachments: Slice[PostAttachmentOutput] `json:"attachments"`
   AuthorActorURI: String `json:"author_actor_uri"`
+  Author: AuthorOutput `json:"author"`
   ParentID: String `json:"parent_id,omitempty"`
   AuthoredAt: time.Time `json:"authored_at"`
   UpdatedAt: time.Time `json:"updated_at"`

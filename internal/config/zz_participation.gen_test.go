@@ -111,6 +111,10 @@ func TestParticipationDefaults(t *testing.T) {
 		t.Fatal("ParticipationWorkers.MediaWorkers default changed")
 	} else {
 	}
+	if settings.ParticipationWorkers.ActorWorkers != 1 {
+		t.Fatal("ParticipationWorkers.ActorWorkers default changed")
+	} else {
+	}
 	if settings.ParticipationWorkers.BatchSize != 100 {
 		t.Fatal("ParticipationWorkers.BatchSize default changed")
 	} else {
@@ -594,14 +598,14 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.BatchSize", func(t_26 *testing.T) {
+	t.Run("ParticipationWorkers.ActorWorkers", func(t_26 *testing.T) {
 		input_25 := validInput()
-		input_25.ParticipationWorkers.BatchSize = -1
+		input_25.ParticipationWorkers.ActorWorkers = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
 			t_26.Fatal("negative limit accepted")
 		} else {
 		}
-		input_25.ParticipationWorkers.BatchSize = 1001
+		input_25.ParticipationWorkers.ActorWorkers = 33
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
 			t_26.Fatal("excessive limit accepted")
 			return
@@ -609,14 +613,14 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.PollIntervalSeconds", func(t_27 *testing.T) {
+	t.Run("ParticipationWorkers.BatchSize", func(t_27 *testing.T) {
 		input_26 := validInput()
-		input_26.ParticipationWorkers.PollIntervalSeconds = -1
+		input_26.ParticipationWorkers.BatchSize = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
 			t_27.Fatal("negative limit accepted")
 		} else {
 		}
-		input_26.ParticipationWorkers.PollIntervalSeconds = 301
+		input_26.ParticipationWorkers.BatchSize = 1001
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
 			t_27.Fatal("excessive limit accepted")
 			return
@@ -624,14 +628,14 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.LeaseSeconds", func(t_28 *testing.T) {
+	t.Run("ParticipationWorkers.PollIntervalSeconds", func(t_28 *testing.T) {
 		input_27 := validInput()
-		input_27.ParticipationWorkers.LeaseSeconds = -1
+		input_27.ParticipationWorkers.PollIntervalSeconds = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
 			t_28.Fatal("negative limit accepted")
 		} else {
 		}
-		input_27.ParticipationWorkers.LeaseSeconds = 3601
+		input_27.ParticipationWorkers.PollIntervalSeconds = 301
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
 			t_28.Fatal("excessive limit accepted")
 			return
@@ -639,14 +643,14 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.MaxAttempts", func(t_29 *testing.T) {
+	t.Run("ParticipationWorkers.LeaseSeconds", func(t_29 *testing.T) {
 		input_28 := validInput()
-		input_28.ParticipationWorkers.MaxAttempts = -1
+		input_28.ParticipationWorkers.LeaseSeconds = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
 			t_29.Fatal("negative limit accepted")
 		} else {
 		}
-		input_28.ParticipationWorkers.MaxAttempts = 101
+		input_28.ParticipationWorkers.LeaseSeconds = 3601
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
 			t_29.Fatal("excessive limit accepted")
 			return
@@ -654,14 +658,14 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.RetryBaseSeconds", func(t_30 *testing.T) {
+	t.Run("ParticipationWorkers.MaxAttempts", func(t_30 *testing.T) {
 		input_29 := validInput()
-		input_29.ParticipationWorkers.RetryBaseSeconds = -1
+		input_29.ParticipationWorkers.MaxAttempts = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
 			t_30.Fatal("negative limit accepted")
 		} else {
 		}
-		input_29.ParticipationWorkers.RetryBaseSeconds = 3601
+		input_29.ParticipationWorkers.MaxAttempts = 101
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
 			t_30.Fatal("excessive limit accepted")
 			return
@@ -669,16 +673,31 @@ func TestParticipationBounds(t *testing.T) {
 			return
 		}
 	})
-	t.Run("ParticipationWorkers.RetryMaxSeconds", func(t_31 *testing.T) {
+	t.Run("ParticipationWorkers.RetryBaseSeconds", func(t_31 *testing.T) {
 		input_30 := validInput()
-		input_30.ParticipationWorkers.RetryMaxSeconds = -1
+		input_30.ParticipationWorkers.RetryBaseSeconds = -1
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
 			t_31.Fatal("negative limit accepted")
 		} else {
 		}
-		input_30.ParticipationWorkers.RetryMaxSeconds = 86401
+		input_30.ParticipationWorkers.RetryBaseSeconds = 3601
 		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
 			t_31.Fatal("excessive limit accepted")
+			return
+		} else {
+			return
+		}
+	})
+	t.Run("ParticipationWorkers.RetryMaxSeconds", func(t_32 *testing.T) {
+		input_31 := validInput()
+		input_31.ParticipationWorkers.RetryMaxSeconds = -1
+		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
+			t_32.Fatal("negative limit accepted")
+		} else {
+		}
+		input_31.ParticipationWorkers.RetryMaxSeconds = 86401
+		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
+			t_32.Fatal("excessive limit accepted")
 			return
 		} else {
 			return

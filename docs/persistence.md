@@ -64,6 +64,9 @@ To use a dedicated existing test server, set `COMMUNE_TEST_POSTGRES_DSN` to a
 PostgreSQL keyword/value DSN. Its user must have CREATEDB permission; tests
 create and drop uniquely named databases, never reset existing schemas.
 Without this variable ordinary `make test` skips real PostgreSQL tests.
+Migration 014 adds the verified `actors.acct` handle and the site-scoped durable
+`actor_handle_jobs` queue used by asynchronous WebFinger resolution. Existing
+actors start with an empty handle; no historical rows are rewritten.
 Migrations 002 and 003 add forum identities and relationships: communities,
 posts, contexts, memberships, moderators, follows, site reception, audiences,
 verified inclusion, reactions, activities, original payloads, receipts and jobs.

@@ -95,8 +95,11 @@ never treated as executable inline previews. Image dimensions, upload bytes,
 per-user/site quotas, and attachment counts are bounded.
 
 Browser post output retains the existing escaped/plain `body` and adds
-`body_html`, `content_format`, `attachment_ids`, and `attachments`. Each attachment
-contains `url`, `media_type`, and optional `name`/`preview_url`. Editing reads the existing author-only source
+`author {acct, display_name}`, `body_html`, `content_format`, `attachment_ids`,
+and `attachments`. `author_actor_uri` remains the authoritative identity;
+`author.acct` is a verified handle or empty, and `author.display_name` is the
+stored ActivityPub name or empty. Each attachment contains `url`, `media_type`,
+and optional `name`/`preview_url`. Editing reads the existing author-only source
 route, never reconstructs Markdown from rendered HTML. Old posts retain legacy
 interpretation unless explicitly edited as Markdown. Source whitespace remains
 subject to existing publication normalization.

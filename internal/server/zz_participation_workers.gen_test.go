@@ -44,6 +44,7 @@ func TestParticipationWorkerCancellation(t *testing.T) {
 	settings.ParticipationWorkers.MailWorkers = 2
 	settings.ParticipationWorkers.NotificationWorkers = 2
 	settings.ParticipationWorkers.MediaWorkers = 2
+	settings.ParticipationWorkers.ActorWorkers = 2
 	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
 		t.Fatal("cancelled workers leaked or ignored shutdown context")
 		return

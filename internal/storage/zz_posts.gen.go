@@ -108,6 +108,11 @@ func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, i
 			return Err[struct{}, string]("object reception failed")
 		} else {
 		}
+		queued := QueueActorHandleResolution(ctx, tx, self.SiteID, incoming.AuthorActorURI)
+		if MygoIN6ResultM5IsErr[int64, string](queued) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int64, string](queued))
+		} else {
+		}
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(&stored))) {
 			return Err[struct{}, string]("object storage failed")
 		} else {

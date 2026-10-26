@@ -88,3 +88,32 @@ func TestFetchLimitsAndRedirects(t: Ref[testing.T]) -> ()
   end
   server.Close()
 end
+
+func TestFetchAcceptVariants(t: Ref[testing.T]) -> ()
+  let handler = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+    if request.URL.Path == "/webfinger" then
+      if request.Header.Get("Accept") != webFingerJSON then
+        w.WriteHeader(400)
+        return
+      end
+      w.Header().Set("Content-Type", webFingerJSON)
+    else
+      if request.Header.Get("Accept") != activityJSON then
+        w.WriteHeader(400)
+        return
+      end
+      w.Header().Set("Content-Type", activityJSON)
+    end
+    w.WriteHeader(200)
+    let _ = w.Write("{}" as Slice[Byte])
+  end
+  let server = httptest.NewServer(handler as http.HandlerFunc)
+  let limits = FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 0, AllowPrivate: true}
+  if Fetch(context.Background(), server.URL + "/actor", limits).IsErr() then
+    t.Fatal("default ActivityPub Accept changed")
+  end
+  if FetchWithAccept(context.Background(), server.URL + "/webfinger", limits, webFingerJSON).IsErr() then
+    t.Fatal("WebFinger Accept was not sent")
+  end
+  server.Close()
+end

@@ -91,13 +91,21 @@ func DisableRedirects(client: Ref[http.Client]) -> ()
 end
 
 func Fetch(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+  FetchWithAccept(ctx, raw, limits, activityJSON)
+end
+
+func FetchWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, String]
   let (bounded, cancel) = context.WithTimeout(ctx, limits.TimeoutSeconds as time.Duration * time.Second)
-  let result = FetchBounded(bounded, raw, limits)
+  let result = FetchBoundedWithAccept(bounded, raw, limits, accept)
   cancel()
   result
 end
 
 func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+  FetchBoundedWithAccept(ctx, raw, limits, activityJSON)
+end
+
+func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, String]
   let client = http.Client{}
   DisableRedirects(Ref.new(client))
   var current = raw
@@ -115,7 +123,7 @@ func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Res
     if request.IsErr() then
       return Err("invalid destination")
     end
-    request.Unwrap().Header.Set("Accept", activityJSON)
+    request.Unwrap().Header.Set("Accept", accept)
     let response = client.Do(request.Unwrap())
     if response.IsErr() then
       return Err("fetch failed")

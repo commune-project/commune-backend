@@ -42,6 +42,16 @@ func ParticipationBatch(ctx context.Context, settings config.Config, db *gorm.DB
 		return storage.ProjectNotifications(ctx, db, limits.BatchSize)
 	} else {
 	}
+	if kind == "actor_handles" {
+		result_1 := RunActorHandleBatch(ctx, settings, db)
+		if MygoIN6ResultM5IsErr[ActorHandleOutcome, string](result_1) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[ActorHandleOutcome, string](result_1))
+		} else {
+		}
+		return Ok[struct{}, string](struct {
+		}{})
+	} else {
+	}
 	if kind == "mail" {
 		if settings.Registration.OutboxSecret == "" {
 			return Ok[struct{}, string](struct {
@@ -60,11 +70,11 @@ func ParticipationBatch(ctx context.Context, settings config.Config, db *gorm.DB
 			return Err[struct{}, string]("mail key unavailable")
 		} else {
 		}
-		result_1 := storage.DeliverVerificationMailWithRetry(ctx, db, MygoIN6ResultM6Unwrap[[]byte, error](key_1), time.Now(), limits.BatchSize, limits.LeaseSeconds, limits.MaxAttempts, limits.RetryBaseSeconds, limits.RetryMaxSeconds, func(recipient string, link string) Result[struct{}, string] {
+		result_2 := storage.DeliverVerificationMailWithRetry(ctx, db, MygoIN6ResultM6Unwrap[[]byte, error](key_1), time.Now(), limits.BatchSize, limits.LeaseSeconds, limits.MaxAttempts, limits.RetryBaseSeconds, limits.RetryMaxSeconds, func(recipient string, link string) Result[struct{}, string] {
 			return SendVerificationSMTP(settings.SMTP, recipient, link)
 		})
-		if MygoIN6ResultM5IsErr[int, string](result_1) {
-			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int, string](result_1))
+		if MygoIN6ResultM5IsErr[int, string](result_2) {
+			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int, string](result_2))
 		} else {
 		}
 		return Ok[struct{}, string](struct {
@@ -132,9 +142,9 @@ func StartParticipationWorkers(ctx context.Context, settings config.Config, db *
 		return finished
 	} else {
 	}
-	var counts []int = []int{workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, settings.Runtime.Workers}
-	var kinds []string = []string{"mail", "notifications", "media", "delivery"}
-	signals := concurrency.MakeChan[struct{}](workers.MailWorkers + workers.NotificationWorkers + workers.MediaWorkers + settings.Runtime.Workers)
+	var counts []int = []int{workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, workers.ActorWorkers, settings.Runtime.Workers}
+	var kinds []string = []string{"mail", "notifications", "media", "actor_handles", "delivery"}
+	signals := concurrency.MakeChan[struct{}](workers.MailWorkers + workers.NotificationWorkers + workers.MediaWorkers + workers.ActorWorkers + settings.Runtime.Workers)
 	var total int = 0
 	var group int = 0
 	for group < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(kinds) {

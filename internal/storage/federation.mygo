@@ -14,6 +14,7 @@ struct ActorRecord
   Kind: String `gorm:"column:kind"`
   InboxURI: sql.NullString `gorm:"column:inbox_uri"`
   PublicKeyPEM: sql.NullString `gorm:"column:public_key_pem"`
+  Acct: String `gorm:"column:acct"`
 end
 
 # Key material never crosses the representation boundary; only public PEM does.

@@ -1,0 +1,131 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresActorHandleMigrationDefault(t: Ref[testing.T]) -> ()
+  let ctx = context.Background()
+  let pool = testsupport.Postgres(t)
+  let first = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
+  let _ = ApplyTransaction(ctx, first, MigrationCatalog().Unwrap().Take(13)).Unwrap()
+  let _ = first.Commit().Unwrap()
+  let db = transport.ORM(pool).Unwrap()
+  let legacy = "https://old.example/users/legacy"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", legacy)).Unwrap()
+  let second = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
+  let _ = ApplyTransaction(ctx, second, MigrationCatalog().Unwrap()).Unwrap()
+  let _ = second.Commit().Unwrap()
+  let acct = ""
+  let loaded = db.Raw("SELECT acct FROM actors WHERE uri=?", legacy).Scan(Ref.new(acct))
+  if MutationResult(loaded).IsErr() || acct != "" then
+    t.Fatal("existing actor did not receive an empty handle")
+  end
+  let count: Int64 = 0i64
+  let _ = MutationResult(db.Table("actor_handle_jobs").Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("migration seeded unexpected resolution jobs")
+  end
+end
+
+func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = config.Site{ID: "a", Origin: "https://a.example"}
+  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, a, "alice", "", "alice-password").Unwrap()
+  let remote = "https://peer.example/users/bob"
+  let group = "https://peer.example/groups/news"
+  let handled = "https://peer.example/users/already"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),(?,'Group')", remote, group)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')", handled)).Unwrap()
+
+  if QueueActorHandleResolution(ctx, db, a.ID, remote).Unwrap() != 1i64 then
+    t.Fatal("remote person did not enqueue")
+  end
+  if QueueActorHandleResolution(ctx, db, a.ID, remote).Unwrap() != 0i64 then
+    t.Fatal("duplicate enqueue was not idempotent")
+  end
+  if QueueActorHandleResolution(ctx, db, a.ID, alice.ActorURI).Unwrap() != 0i64 then
+    t.Fatal("local actor enqueued")
+  end
+  if QueueActorHandleResolution(ctx, db, a.ID, group).Unwrap() != 0i64 then
+    t.Fatal("group actor enqueued")
+  end
+  if QueueActorHandleResolution(ctx, db, a.ID, handled).Unwrap() != 0i64 then
+    t.Fatal("already resolved actor enqueued")
+  end
+  if QueueActorHandleResolution(ctx, db, b.ID, remote).Unwrap() != 1i64 then
+    t.Fatal("second site did not receive its own job")
+  end
+
+  let claimed = ClaimActorHandleJobs(ctx, db, 10, 60i64).Unwrap()
+  if claimed.Len() != 2 then
+    t.Fatal("site-scoped jobs were not both claimed")
+  end
+  claimed.Each(func(job: ActorHandleJobRecord) -> ()
+    if job.State != "leased" || job.Attempts != 1i64 || !job.LeaseToken.Valid || !job.LeaseUntil.Valid then
+      t.Fatal("claimed job state or lease was incomplete")
+    end
+  end)
+  if ClaimActorHandleJobs(ctx, db, 10, 60i64).Unwrap().Len() != 0 then
+    t.Fatal("active leases were claimed twice")
+  end
+  let _ = MutationResult(db.Exec("UPDATE actor_handle_jobs SET lease_until=now() - interval '1 minute'")).Unwrap()
+  let reclaimed = ClaimActorHandleJobs(ctx, db, 10, 60i64).Unwrap()
+  if reclaimed.Len() != 2 || reclaimed.Get(0).Unwrap().Attempts != 2i64 then
+    t.Fatal("expired leases were not reclaimed")
+  end
+
+  let retried = reclaimed.Filter(func(job: ActorHandleJobRecord) -> Bool job.SiteID == a.ID end).Get(0).Unwrap()
+  let failed = reclaimed.Filter(func(job: ActorHandleJobRecord) -> Bool job.SiteID == b.ID end).Get(0).Unwrap()
+  let _ = MarkActorHandleRetry(ctx, db, retried.SiteID, retried.ActorURI, "temporary", 60i64).Unwrap()
+  let _ = MarkActorHandleFailed(ctx, db, failed.SiteID, failed.ActorURI, "permanent").Unwrap()
+  let retryState = ActorHandleJobRecord{}
+  let _ = MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", a.ID, remote).Take(Ref.new(retryState))).Unwrap()
+  let failedState = ActorHandleJobRecord{}
+  let _ = MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", b.ID, remote).Take(Ref.new(failedState))).Unwrap()
+  if retryState.State != "pending" || !retryState.ErrorCode.Valid || failedState.State != "failed" || !failedState.ErrorCode.Valid then
+    t.Fatal("retry or terminal failure state was not recorded")
+  end
+
+  if !SaveVerifiedActorHandle(ctx, db, remote, "bob@peer.example").Unwrap() then
+    t.Fatal("verified handle was not stored")
+  end
+  if SaveVerifiedActorHandle(ctx, db, remote, "other@peer.example").Unwrap() then
+    t.Fatal("stored handle was overwritten")
+  end
+  let stored = ActorRecord{}
+  let _ = MutationResult(db.Table("actors").Where("uri=?", remote).Take(Ref.new(stored))).Unwrap()
+  if stored.Acct != "bob@peer.example" then
+    t.Fatal("verified handle was lost or overwritten")
+  end
+
+  let _ = BootstrapRemoteDisplayName(ctx, db, remote, "Bob").Unwrap()
+  let bootstrapped = LoadProfile(ctx, db, remote).Unwrap()
+  if bootstrapped.DisplayName != "Bob" then
+    t.Fatal("blank remote display name was not bootstrapped")
+  end
+  let _ = MutationResult(db.Exec("UPDATE profiles SET display_name='Authoritative', updated_at=now() WHERE actor_uri=?", remote)).Unwrap()
+  let _ = BootstrapRemoteDisplayName(ctx, db, remote, "Bootstrap").Unwrap()
+  let authoritative = LoadProfile(ctx, db, remote).Unwrap()
+  if authoritative.DisplayName != "Authoritative" then
+    t.Fatal("bootstrap overwrote a non-empty display name")
+  end
+  let _ = BootstrapRemoteDisplayName(ctx, db, alice.ActorURI, "Local Bootstrap").Unwrap()
+  let local = LoadProfile(ctx, db, alice.ActorURI).Unwrap()
+  if local.DisplayName == "Local Bootstrap" then
+    t.Fatal("bootstrap wrote a local profile")
+  end
+  let remaining: Int64 = 0i64
+  let _ = MutationResult(db.Table("actor_handle_jobs").Where("state='suppressed'").Count(Ref.new(remaining))).Unwrap()
+  if remaining != 0i64 then
+    t.Fatal("unexpected suppressed jobs")
+  end
+end

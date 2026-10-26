@@ -2,6 +2,7 @@ package server
 
 import context "go:context"
 import http "go:net/http"
+import strings "go:strings"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
@@ -68,6 +69,13 @@ func BrowserCommunityDTO(
   output
 end
 
+func BrowserPostAuthor(state: storage.PostRichState) -> AuthorOutput
+  if state.AuthorUsername != "" && strings.HasPrefix(state.Origin, "https://") then
+    return AuthorOutput{Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"), DisplayName: state.AuthorDisplayName}
+  end
+  AuthorOutput{Acct: state.AuthorAcct, DisplayName: state.AuthorDisplayName}
+end
+
 func BrowserPosts(
   ctx: context.Context,
   repository: storage.BrowserRepository,
@@ -113,6 +121,7 @@ func BrowserPosts(
     if rich.Len() != 1 then
       return Err("post content unavailable")
     end
+    output.Author = BrowserPostAuthor(rich.Get(0).Unwrap())
     let rendered = storage.RenderStoredPost(record, rich.Get(0).Unwrap(), false)
     let media = storage.PostRichMedia(rich.Get(0).Unwrap())
     if rendered.IsErr() || media.IsErr() then

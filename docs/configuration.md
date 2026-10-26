@@ -110,6 +110,7 @@ Remote public media must never be fetched or cached by backend workers.
 | participation_workers.mail_workers | 1 | 1–32 |
 | participation_workers.notification_workers | 1 | 1–32 |
 | participation_workers.media_workers | 1 | 1–32 |
+| participation_workers.actor_workers | 1 | 1–32 |
 | participation_workers.batch_size | 100 | 1–1000 |
 | participation_workers.poll_interval_seconds | 5 | 1–300 |
 | participation_workers.lease_seconds | 60 | 1–3600 |
@@ -129,7 +130,9 @@ The operational defaults are 25 MiB/file, 10 MiB/image, 20 megapixels, 1 GiB/acc
 10 GiB/site, 24-hour temporary retention, 7-day private-cache retention and hourly
 cleanup. Cache retention begins at successful fetch and is never renewed by reads.
 Enable `participation_workers.enabled` to run mail, notification, media cleanup,
-orphan reconciliation, and federation delivery loops. `runtime.workers` sets the
-number of federation delivery workers per process. All loops stop with the server
-lifetime; database leases coordinate concurrent processes. Cleanup never prefetches
-remote public media.
+orphan reconciliation, actor-handle resolution, and federation delivery loops.
+`runtime.workers` sets the number of federation delivery workers per process.
+All loops stop with the server lifetime; database leases coordinate concurrent
+processes. Actor-handle workers perform bounded, site-block-aware WebFinger
+resolution for remote Person authors; browser reads never perform this lookup.
+Cleanup never prefetches remote public media.

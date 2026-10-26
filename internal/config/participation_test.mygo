@@ -83,6 +83,9 @@ func TestParticipationDefaults(t: Ref[testing.T]) -> ()
   if settings.ParticipationWorkers.MediaWorkers != 1 then
     t.Fatal("ParticipationWorkers.MediaWorkers default changed")
   end
+  if settings.ParticipationWorkers.ActorWorkers != 1 then
+    t.Fatal("ParticipationWorkers.ActorWorkers default changed")
+  end
   if settings.ParticipationWorkers.BatchSize != 100 then
     t.Fatal("ParticipationWorkers.BatchSize default changed")
   end
@@ -429,6 +432,17 @@ func TestParticipationBounds(t: Ref[testing.T]) -> ()
       t.Fatal("negative limit accepted")
     end
     input.ParticipationWorkers.MediaWorkers = 33
+    if Validate(input).IsOk() then
+      t.Fatal("excessive limit accepted")
+    end
+  end)
+  t.Run("ParticipationWorkers.ActorWorkers", func(t: Ref[testing.T]) -> ()
+    var input = validInput()
+    input.ParticipationWorkers.ActorWorkers = -1
+    if Validate(input).IsOk() then
+      t.Fatal("negative limit accepted")
+    end
+    input.ParticipationWorkers.ActorWorkers = 33
     if Validate(input).IsOk() then
       t.Fatal("excessive limit accepted")
     end

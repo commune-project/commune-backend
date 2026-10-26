@@ -27,10 +27,13 @@ type PostMentionRecord struct {
 	SourceEnd   int
 }
 type PostRichState struct {
-	ID           string
-	Origin       string
-	MediaJSON    string
-	MentionsJSON string
+	ID                string
+	Origin            string
+	AuthorUsername    string
+	AuthorAcct        string
+	AuthorDisplayName string
+	MediaJSON         string
+	MentionsJSON      string
 }
 
 func LoadPostRichStates(ctx context.Context, db *gorm.DB, ids []string) Result[[]PostRichState, string] {
@@ -39,7 +42,7 @@ func LoadPostRichStates(ctx context.Context, db *gorm.DB, ids []string) Result[[
 		return Ok[[]PostRichState, string](states)
 	} else {
 	}
-	query := db.WithContext(ctx).Raw("SELECT p.id,coalesce((SELECT s.canonical_origin FROM actors a JOIN sites s ON s.id=a.local_site_id WHERE a.uri=p.author_actor_uri),'') AS origin,coalesce((SELECT json_agg(json_build_object('UploadID',b.upload_id,'BindingID',b.id,'MediaType',u.media_type) ORDER BY b.id)::text FROM media_bindings b JOIN media_uploads u ON u.id=b.upload_id WHERE b.post_id=p.id AND b.active),'[]') AS media_json,coalesce((SELECT json_agg(json_build_object('ActorURI',m.actor_uri,'Start',m.source_start,'End',m.source_end) ORDER BY m.source_start)::text FROM post_mentions m WHERE m.post_id=p.id AND m.active),'[]') AS mentions_json FROM posts p WHERE p.id IN ?", ids).Scan(&states)
+	query := db.WithContext(ctx).Raw("SELECT p.id,coalesce((SELECT s.canonical_origin FROM actors a JOIN sites s ON s.id=a.local_site_id WHERE a.uri=p.author_actor_uri),'') AS origin,coalesce((SELECT acc.username FROM accounts acc WHERE acc.actor_uri=p.author_actor_uri LIMIT 1),'') AS author_username,coalesce((SELECT a.acct FROM actors a WHERE a.uri=p.author_actor_uri),'') AS author_acct,coalesce((SELECT pr.display_name FROM profiles pr WHERE pr.actor_uri=p.author_actor_uri),'') AS author_display_name,coalesce((SELECT json_agg(json_build_object('UploadID',b.upload_id,'BindingID',b.id,'MediaType',u.media_type) ORDER BY b.id)::text FROM media_bindings b JOIN media_uploads u ON u.id=b.upload_id WHERE b.post_id=p.id AND b.active),'[]') AS media_json,coalesce((SELECT json_agg(json_build_object('ActorURI',m.actor_uri,'Start',m.source_start,'End',m.source_end) ORDER BY m.source_start)::text FROM post_mentions m WHERE m.post_id=p.id AND m.active),'[]') AS mentions_json FROM posts p WHERE p.id IN ?", ids).Scan(&states)
 	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
 		return Err[[]PostRichState, string]("post content unavailable")
 	} else {

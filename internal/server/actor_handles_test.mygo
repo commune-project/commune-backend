@@ -1,0 +1,191 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import strings "go:strings"
+import http "go:net/http"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestActorHandleResolutionValidation(t: Ref[testing.T]) -> ()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let actorURI = "https://peer.example/users/bob"
+  var actorID = actorURI
+  var subject = "acct:bob@peer.example"
+  var selfHref = actorURI
+  var actorType = "Person"
+  var preferred = "bob"
+  var name = "Bob"
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+    if strings.Contains(uri, "/.well-known/webfinger?") then
+      if !strings.Contains(accept, "application/jrd+json") || !strings.Contains(uri, "acct%3Abob%40peer.example") then
+        t.Fatal("WebFinger Accept or resource escaping was wrong")
+      end
+      return Ok(federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: (`{"subject":"` + subject + `","links":[{"rel":"self","type":"application/activity+json","href":"` + selfHref + `"}]}`) as Slice[Byte]})
+    end
+    if !strings.Contains(accept, "application/activity+json") then
+      t.Fatal("Actor document Accept was wrong")
+    end
+    Ok(federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: (`{"id":"` + actorID + `","type":"` + actorType + `","preferredUsername":"` + preferred + `","name":"` + name + `","inbox":"https://peer.example/inbox"}`) as Slice[Byte]})
+  end
+  let resolved = ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).Unwrap()
+  if resolved.Acct != "bob@peer.example" || resolved.DisplayName != "Bob" then
+    t.Fatal("verified handle or display name was wrong")
+  end
+  subject = "acct:bob@custom.example"
+  if ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).IsOk() then
+    t.Fatal("custom-domain subject was guessed from the Actor authority")
+  end
+  subject = "acct:bob@peer.example"
+  selfHref = "https://other.example/users/bob"
+  if ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).IsOk() then
+    t.Fatal("mismatched self link was accepted")
+  end
+  selfHref = actorURI
+  actorID = "https://other.example/users/bob"
+  if ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).IsOk() then
+    t.Fatal("mismatched Actor id was accepted")
+  end
+  actorID = actorURI
+  actorType = "Group"
+  if ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).IsOk() then
+    t.Fatal("Group Actor document was accepted")
+  end
+  actorType = "Person"
+  preferred = ""
+  if ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher).IsOk() then
+    t.Fatal("empty preferredUsername was accepted")
+  end
+  ()
+end
+
+func TestPostgresActorHandleWorkerAndBrowserProjection(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.ParticipationWorkers.MaxAttempts = 2
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let _ = storage.SaveProfile(ctx, db, alice, storage.ProfileRecord{ActorURI: alice.ActorURI, DisplayName: "Alice", UpdatedAt: time.Now()}).Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let local = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Local", Body: "local body"}).Unwrap()
+  let remote = "https://peer.example/users/bob"
+  let _ = storage.EnsureRemoteActor(ctx, db, remote, "Person").Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let incoming = storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/1", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remote, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote body", AuthoredAt: now, UpdatedAt: now}
+  let received = posts.Receive(ctx, incoming, remote).Unwrap()
+  let _ = posts.Receive(ctx, incoming, remote).Unwrap()
+
+  let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = repository.Viewer(ctx, alice).Unwrap()
+  let before = BrowserPosts(ctx, repository, viewer, [local, received]).Unwrap()
+  let localBefore = before.Filter(func(post: PostOutput) -> Bool post.ID == local.ID end).Get(0).Unwrap()
+  let remoteBefore = before.Filter(func(post: PostOutput) -> Bool post.ID == received.ID end).Get(0).Unwrap()
+  if localBefore.Author.Acct != "alice@forum-a.example" || localBefore.Author.DisplayName != "Alice" then
+    t.Fatal("local author handle or display name was wrong")
+  end
+  if remoteBefore.Author.Acct != "" || remoteBefore.Author.DisplayName != "" then
+    t.Fatal("unresolved remote author was guessed")
+  end
+  let queued: Int64 = 0i64
+  let _ = storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, remote).Count(Ref.new(queued))).Unwrap()
+  if queued != 1i64 then
+    t.Fatal("remote reception did not enqueue exactly one resolution job")
+  end
+
+  var fetches = 0
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+    fetches = fetches + 1
+    if strings.Contains(uri, "/.well-known/webfinger?") then
+      return Ok(federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: (`{"subject":"acct:bob@peer.example","links":[{"rel":"self","type":"application/activity+json","href":"` + remote + `"}]}`) as Slice[Byte]})
+    end
+    Ok(federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: (`{"id":"` + remote + `","type":"Person","preferredUsername":"bob","name":"Bob","inbox":"https://peer.example/inbox"}`) as Slice[Byte]})
+  end
+  let outcome = RunActorHandleBatchWith(ctx, settings, db, fetcher).Unwrap()
+  if outcome.Resolved != 1 || fetches != 2 then
+    t.Fatal("actor handle worker did not resolve the queued author")
+  end
+  let after = BrowserPosts(ctx, repository, viewer, [received]).Unwrap().Get(0).Unwrap()
+  if fetches != 2 || after.Author.Acct != "bob@peer.example" || after.Author.DisplayName != "Bob" then
+    t.Fatal("browser projection fetched remotely or did not use the resolved handle")
+  end
+
+  let handler = Handler(settings, db)
+  var noCookies: Slice[Ref[http.Cookie]] = []
+  let localHTTP = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + local.ID, noCookies, 200))
+  let remoteHTTP = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + received.ID, noCookies, 200))
+  if localHTTP.Author.Acct != "alice@forum-a.example" || localHTTP.Author.DisplayName != "Alice" || remoteHTTP.Author.Acct != "bob@peer.example" || remoteHTTP.Author.DisplayName != "Bob" then
+    t.Fatal("HTTP post responses did not expose the author projection")
+  end
+  if fetches != 2 then
+    t.Fatal("browser reads triggered remote handle resolution")
+  end
+end
+
+func TestPostgresActorHandleWorkerOutcomes(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  var settings = config.Load("../../config/example.json").Unwrap()
+  settings.ParticipationWorkers.MaxAttempts = 2
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let good = "https://peer.example/users/good"
+  let bad = "https://peer.example/users/bad"
+  let blocked = "https://peer.example/users/blocked"
+  let _ = storage.EnsureRemoteActor(ctx, db, good, "Person").Unwrap()
+  let _ = storage.EnsureRemoteActor(ctx, db, bad, "Person").Unwrap()
+  let _ = storage.EnsureRemoteActor(ctx, db, blocked, "Person").Unwrap()
+  let _ = storage.QueueActorHandleResolution(ctx, db, site.ID, good).Unwrap()
+  let _ = storage.QueueActorHandleResolution(ctx, db, site.ID, bad).Unwrap()
+  let _ = storage.QueueActorHandleResolution(ctx, db, site.ID, blocked).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, blocked)).Unwrap()
+
+  var calls = 0
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+    calls = calls + 1
+    if strings.Contains(uri, "good") then
+      if strings.Contains(uri, "/.well-known/webfinger?") then
+        return Ok(federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: (`{"subject":"acct:good@peer.example","links":[{"rel":"self","type":"application/activity+json","href":"` + good + `"}]}`) as Slice[Byte]})
+      end
+      return Ok(federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: (`{"id":"` + good + `","type":"Person","preferredUsername":"good","name":"Good","inbox":"https://peer.example/inbox"}`) as Slice[Byte]})
+    end
+    Err("unreachable")
+  end
+  let first = RunActorHandleBatchWith(ctx, settings, db, fetcher).Unwrap()
+  if first.Resolved != 1 || first.Retried != 1 || first.Suppressed != 1 || calls != 3 then
+    t.Fatal("worker did not isolate success, retry, and block outcomes")
+  end
+  let goodActor = storage.ActorRecord{}
+  let _ = storage.MutationResult(db.Table("actors").Where("uri=?", good).Take(Ref.new(goodActor))).Unwrap()
+  let badActor = storage.ActorRecord{}
+  let _ = storage.MutationResult(db.Table("actors").Where("uri=?", bad).Take(Ref.new(badActor))).Unwrap()
+  if goodActor.Acct != "good@peer.example" || badActor.Acct != "" then
+    t.Fatal("worker wrote a handle for the failed actor or missed the good actor")
+  end
+  let blockedJob = storage.ActorHandleJobRecord{}
+  let _ = storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, blocked).Take(Ref.new(blockedJob))).Unwrap()
+  if blockedJob.State != "suppressed" then
+    t.Fatal("blocked actor job was not suppressed")
+  end
+
+  let _ = storage.MutationResult(db.Exec("UPDATE actor_handle_jobs SET attempts=?,available_at=now() - interval '1 minute' WHERE site_id=? AND actor_uri=?", settings.ParticipationWorkers.MaxAttempts as Int64, site.ID, bad)).Unwrap()
+  let exhausted = RunActorHandleBatchWith(ctx, settings, db, fetcher).Unwrap()
+  if exhausted.Failed != 1 then
+    t.Fatal("exhausted actor handle job did not fail")
+  end
+  let badJob = storage.ActorHandleJobRecord{}
+  let _ = storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, bad).Take(Ref.new(badJob))).Unwrap()
+  if badJob.State != "failed" || !badJob.ErrorCode.Valid then
+    t.Fatal("failed actor handle job did not retain its terminal reason")
+  end
+end
