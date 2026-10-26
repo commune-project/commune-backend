@@ -47,6 +47,30 @@ All successful browser post representations, including topic/reply lists, detail
 - **WHEN** an anonymous reader receives a public post or an authorized reader receives a tombstone
 - **THEN** unavailable actions are false and deleted content is not returned as editable source
 
+### Requirement: Browser post author projection
+
+Every successful browser post representation, including topic and reply lists, post detail, search results, publication, editing, and import, SHALL retain `author_actor_uri` and add an `author` object with string fields `acct` and `display_name`. `acct` SHALL be the verified local or remote handle in `username@domain` form without a leading `@`, or the empty string when unknown. `display_name` SHALL be the ActivityPub `name` value currently stored for the author, or the empty string when unset. The server SHALL NOT derive `acct` from Actor URI path segments and SHALL NOT perform a synchronous remote lookup while producing a browser response. `author_actor_uri` SHALL remain the authoritative identity for permissions, editing, and fallback display. Both strings SHALL always be present and SHALL NOT be null.
+
+#### Scenario: Local author projection
+- **WHEN** a browser reads a post authored by local account `alice` with display name `Alice`
+- **THEN** `author_actor_uri` remains the account Actor URI and `author` is `{acct: "alice@forum.example", display_name: "Alice"}`
+
+#### Scenario: Remote author with resolved handle
+- **WHEN** a remote Person author has a verified stored handle and display name
+- **THEN** every list, detail, search, and mutation response exposes the same `acct` and `display_name`
+
+#### Scenario: Unresolved remote author
+- **WHEN** a remote Person author has no verified handle or display name yet
+- **THEN** `author` is `{acct: "", display_name: ""}` and clients fall back to `author_actor_uri`
+
+#### Scenario: Display name without handle
+- **WHEN** an author has a display name but no verified handle
+- **THEN** `display_name` is returned and `acct` remains empty rather than being guessed
+
+#### Scenario: No synchronous federation during read
+- **WHEN** a browser lists posts whose authors have unresolved handles
+- **THEN** the response is produced from stored data without a WebFinger or Actor fetch and without an additional per-post lookup that grows with page size
+
 ### Requirement: Current viewer roles and community permissions
 Successful login and session responses SHALL retain existing identity fields and add `roles` containing current `site_administrator` and `deployment_superadministrator` booleans. Community representations from creation, detail, and discovery SHALL add `viewer` containing `is_member`, `is_creator`, `is_manager`, and `management_scope`, and `permissions` containing `can_post`, `can_manage`, `can_manage_members`, and `can_manage_managers`. `is_manager` SHALL denote a current explicit community-manager assignment; creator status SHALL be separate. `management_scope` SHALL be one of the empty string, `community`, `site`, or `deployment`. Management authority SHALL NOT imply membership, authorship, or ordinary posting permission. Anonymous relationship flags and mutation permissions SHALL be false with empty management scope. Every request SHALL reflect current policy, membership, role, block, and account state; metadata SHALL NOT replace mutation checks.
 
