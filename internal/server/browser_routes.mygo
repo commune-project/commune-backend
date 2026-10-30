@@ -1,11 +1,42 @@
 package server
 
 import http "go:net/http"
+import strconv "go:strconv"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+
+func ThreadDepth(request: Ref[http.Request]) -> Result[Int, String]
+  let view = request.URL.Query().Get("view")
+  if view != "" && view != "tree" && view != "flat" then
+    return Err("invalid view")
+  end
+  if view == "flat" then
+    return Ok(1)
+  end
+  let raw = request.URL.Query().Get("max_depth")
+  if raw == "" then
+    return Ok(6)
+  end
+  let parsed = strconv.Atoi(raw)
+  if parsed.IsErr() || parsed.Unwrap() < 1 || parsed.Unwrap() > 8 then
+    return Err("invalid depth")
+  end
+  Ok(parsed.Unwrap())
+end
+
+func ThreadSort(request: Ref[http.Request]) -> Result[String, String]
+  let sort = request.URL.Query().Get("sort")
+  if sort == "" then
+    return Ok("old")
+  end
+  if sort != "new" && sort != "old" && sort != "top" && sort != "controversial" then
+    return Err("invalid sort")
+  end
+  Ok(sort)
+end
 
 struct PostSource
   Version: Int64 `json:"version"`
@@ -102,7 +133,7 @@ func BrowserReadRoute(
       Fail(w, views.UnwrapErr())
     else
       let outputs = views.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
-        BrowserCommunityDTO(repository, view, viewer.Unwrap())
+        BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
       end)
       WriteJSON(
         w,
@@ -197,7 +228,7 @@ func BrowserCommunityRead(
   if audit.IsErr() then
     Fail(w, audit.UnwrapErr())
   else
-    WriteJSON(w, 200, BrowserCommunityDTO(repository, view, viewer))
+    WriteJSON(w, 200, BrowserCommunityDTO(request.Context(), repository, view, viewer))
   end
 end
 
@@ -304,6 +335,12 @@ func BrowserTopicRead(
   max: Int
 ) -> ()
   let feed = storage.FeedRepository { DB: repository.DB, SiteID: repository.SiteID }
+  let threadDepth = ThreadDepth(request)
+  let threadSort = ThreadSort(request)
+  if threadDepth.IsErr() || threadSort.IsErr() then
+    Fail(w, "invalid page")
+    return
+  end
   var records: Result[Slice[storage.PostRecord], String] = Err("not found")
   var readCommunityID: String = ""
   if parts.Get(2).Unwrap() == "topics" then
@@ -320,15 +357,28 @@ func BrowserTopicRead(
         return
       end
       readCommunityID = parent.Unwrap().CommunityID
-      records = feed.ListReplies(
+      let rows = feed.Thread(
         request.Context(),
         parent.Unwrap().CommunityID,
         id,
         viewer.Identity,
         false,
         page,
-        max
+        max,
+        threadDepth.Unwrap(),
+        threadSort.Unwrap()
       )
+      if rows.IsErr() then
+        Fail(w, rows.UnwrapErr())
+        return
+      end
+      let outputs = BrowserThread(request.Context(), repository, viewer, rows.Unwrap(), id, threadSort.Unwrap())
+      if outputs.IsErr() then
+        Fail(w, outputs.UnwrapErr())
+      else
+        WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset})
+      end
+      return
     end
   end
   if records.IsErr() then

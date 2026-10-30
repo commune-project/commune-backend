@@ -14,6 +14,7 @@ struct CommunityViewerOutput
   IsCreator: Bool `json:"is_creator"`
   IsManager: Bool `json:"is_manager"`
   ManagementScope: String `json:"management_scope"`
+  CanFollow: Bool `json:"can_follow"`
 end
 
 struct CommunityPermissions
@@ -27,8 +28,13 @@ struct PostPermissions
   CanEdit: Bool `json:"can_edit"`
   CanDelete: Bool `json:"can_delete"`
   CanLike: Bool `json:"can_like"`
+  CanVote: Bool `json:"can_vote"`
+  CanUpvote: Bool `json:"can_upvote"`
+  CanDownvote: Bool `json:"can_downvote"`
   CanReply: Bool `json:"can_reply"`
   CanHide: Bool `json:"can_hide"`
+  CanSave: Bool `json:"can_save"`
+  CanHideForMe: Bool `json:"can_hide_for_me"`
   CanModerate: Bool `json:"can_moderate"`
 end
 
@@ -45,6 +51,7 @@ struct RosterPage
 end
 
 func BrowserCommunityDTO(
+  ctx: context.Context,
   repository: storage.BrowserRepository,
   view: storage.CommunityView,
   viewer: storage.BrowserViewer
@@ -52,12 +59,30 @@ func BrowserCommunityDTO(
   var output = CommunityDTO(view.Record)
   let access = repository.Access(view, viewer)
   let managed = access.Authority.Allows("manage-community")
+  let state = if view.FollowState.Valid then
+    view.FollowState.String
+  else
+    "none"
+  end
+  let loadedRule = storage.LoadCommunityFollowRule(ctx, repository.DB, view.Record.ID)
+  let policy = if loadedRule.IsErr() then "open" else loadedRule.Unwrap() end
+  let accepted = state == "accepted"
+  let pending = state == "pending"
+  let canFollow = viewer.Verified &&
+    !accepted &&
+    !pending &&
+    (policy == "open" ||
+      (policy == "approval" && !view.Member && !view.Manager) ||
+      (policy == "members" && (view.Member || view.Manager)))
   output.Viewer = CommunityViewerOutput {
     IsMember: viewer.Verified && view.Member,
     IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI,
     IsManager: viewer.Verified && view.Manager,
     ManagementScope: access.Authority.Scope,
+    CanFollow: canFollow,
   }
+  output.FollowPolicy = policy
+  output.FollowerCount = view.FollowerCount
   output.Permissions = CommunityPermissions {
     CanPost: view.Record.HostSiteID == repository.SiteID &&
       viewer.Identity.BelongsTo(repository.SiteID) &&
@@ -71,7 +96,10 @@ end
 
 func BrowserPostAuthor(state: storage.PostRichState) -> AuthorOutput
   if state.AuthorUsername != "" && strings.HasPrefix(state.Origin, "https://") then
-    return AuthorOutput{Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"), DisplayName: state.AuthorDisplayName}
+    return AuthorOutput{
+      Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"),
+      DisplayName: state.AuthorDisplayName,
+    }
   end
   AuthorOutput{Acct: state.AuthorAcct, DisplayName: state.AuthorDisplayName}
 end
@@ -94,7 +122,12 @@ func BrowserPosts(
   let richStates = storage.LoadPostRichStates(ctx, repository.DB, ids)
   var cached: Slice[storage.PrivateMediaCache] = []
   let remoteMedia = records.Any(func(post: storage.PostRecord) -> Bool post.RichMetadata != "" end)
-  if remoteMedia && storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where("site_id=? AND post_id IN ? AND error_state<>'invalidated'", repository.SiteID, ids).Find(Ref.new(cached))).IsErr() then
+  if remoteMedia &&
+    storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where(
+      "site_id=? AND post_id IN ? AND error_state<>'invalidated'",
+      repository.SiteID,
+      ids
+    ).Find(Ref.new(cached))).IsErr() then
     return Err("media unavailable")
   end
   if views.IsErr() || stats.IsErr() || richStates.IsErr() then
@@ -117,7 +150,9 @@ func BrowserPosts(
     let active = !record.DeletedAt.Valid
     let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
     var output = PostDTO(record)
-    let rich = richStates.Unwrap().Filter(func(state: storage.PostRichState) -> Bool state.ID == record.ID end)
+    let rich = richStates.Unwrap().Filter(func(state: storage.PostRichState) -> Bool
+      state.ID == record.ID
+    end)
     if rich.Len() != 1 then
       return Err("post content unavailable")
     end
@@ -128,20 +163,46 @@ func BrowserPosts(
       return Err("post content unavailable")
     end
     output.BodyHTML = rendered.Unwrap()
-    output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String item.UploadID end)
+    output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String
+      item.UploadID
+    end)
     let attachments = BrowserPostMedia(record, media.Unwrap(), access.Community.ReadPolicy == "members", cached, output)
-    if attachments.IsErr() then return Err(attachments.UnwrapErr()) end
+    if attachments.IsErr() then
+      return Err(attachments.UnwrapErr())
+    end
     output = attachments.Unwrap()
     let stat = counts.Get(0).Unwrap()
-    output.LikeCount = stat.LikeCount
+    output.Score = stat.Score
+    output.Upvotes = stat.Upvotes
+    output.Downvotes = stat.Downvotes
+    output.VotedByMe = stat.VotedByMe
+    output.LikeCount = stat.Upvotes
     output.LikedByMe = viewer.Verified && stat.LikedByMe
     output.ReplyCount = stat.ReplyCount
+    output.SavedByMe = viewer.Verified && stat.SavedByMe
+    output.ReadByMe = viewer.Verified && stat.ReadByMe
+    output.HiddenByMe = viewer.Verified && stat.HiddenByMe
+    let up = if viewer.VoteSettingsLoaded then
+      viewer.UpvotesEnabled
+    else
+      true
+    end
+    let down = if viewer.VoteSettingsLoaded then
+      viewer.DownvotesEnabled
+    else
+      true
+    end
     output.Permissions = PostPermissions {
       CanEdit: edit,
       CanDelete: edit,
-      CanLike: hosted && active && access.Subject.Verified && access.CanRead(),
+      CanLike: hosted && active && access.Subject.Verified && access.CanRead() && up,
+      CanVote: hosted && active && access.Subject.Verified && access.CanRead() && (up || down),
+      CanUpvote: hosted && active && access.Subject.Verified && access.CanRead() && up,
+      CanDownvote: hosted && active && access.Subject.Verified && access.CanRead() && down,
       CanReply: hosted && active && viewer.Identity.BelongsTo(repository.SiteID) && access.CanPost(),
       CanHide: viewer.Roles.SiteAdministrator || viewer.Roles.DeploymentSuperadministrator,
+      CanSave: viewer.Verified && access.CanRead() && active,
+      CanHideForMe: viewer.Verified && active,
       CanModerate: hosted && access.Authority.Allows("manage-community"),
     }
     outputs = outputs.Append(output)
@@ -151,6 +212,108 @@ func BrowserPosts(
     return Err(audit.UnwrapErr())
   end
   Ok(outputs)
+end
+
+func ThreadBefore(left: PostOutput, right: PostOutput, mode: String) -> Bool
+  if mode == "new" then
+    if !left.AuthoredAt.Equal(right.AuthoredAt) then
+      return left.AuthoredAt.After(right.AuthoredAt)
+    end
+  else
+    if mode == "top" then
+      if left.Score != right.Score then
+        return left.Score > right.Score
+      end
+    else
+      if mode == "controversial" then
+        let leftBalance = if left.Upvotes < left.Downvotes then
+          left.Upvotes
+        else
+          left.Downvotes
+        end
+        let rightBalance = if right.Upvotes < right.Downvotes then
+          right.Upvotes
+        else
+          right.Downvotes
+        end
+        if leftBalance != rightBalance then
+          return leftBalance > rightBalance
+        end
+        if left.Score != right.Score then
+          return left.Score < right.Score
+        end
+      else
+        if !left.AuthoredAt.Equal(right.AuthoredAt) then
+          return left.AuthoredAt.Before(right.AuthoredAt)
+        end
+      end
+    end
+  end
+  left.ID < right.ID
+end
+
+func SortThread(items: Slice[PostOutput], mode: String) -> Slice[PostOutput]
+  var remaining = items
+  var output: Slice[PostOutput] = []
+  while remaining.Len() > 0
+    var best = 0
+    var index = 1
+    while index < remaining.Len()
+      if ThreadBefore(remaining.Get(index).Unwrap(), remaining.Get(best).Unwrap(), mode) then
+        best = index
+      end
+      index = index + 1
+    end
+    output = output.Append(remaining.Get(best).Unwrap())
+    var next: Slice[PostOutput] = []
+    index = 0
+    while index < remaining.Len()
+      if index != best then
+        next = next.Append(remaining.Get(index).Unwrap())
+      end
+      index = index + 1
+    end
+    remaining = next
+  end
+  output
+end
+
+func ThreadChildren(all: Slice[PostOutput], parentID: String, mode: String) -> Slice[PostOutput]
+  var children: Slice[PostOutput] = []
+  all.Each(func(item: PostOutput) -> ()
+    if item.ParentID == parentID then
+      var child = item
+      child.Children = ThreadChildren(all, item.ID, mode)
+      child.ChildCount = child.Children.Len()
+      children = children.Append(child)
+    end
+  end)
+  SortThread(children, mode)
+end
+
+func BrowserThread(
+  ctx: context.Context,
+  repository: storage.BrowserRepository,
+  viewer: storage.BrowserViewer,
+  rows: Slice[storage.ThreadRow],
+  parentID: String,
+  mode: String
+) -> Result[Slice[PostOutput], String]
+  let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord row.Post end)
+  let outputs = BrowserPosts(ctx, repository, viewer, records)
+  if outputs.IsErr() then
+    return Err(outputs.UnwrapErr())
+  end
+  let all = outputs.Unwrap()
+  var adjusted: Slice[PostOutput] = []
+  var index = 0
+  while index < all.Len()
+    var item = all.Get(index).Unwrap()
+    item.Depth = rows.Get(index).Unwrap().Depth
+    adjusted = adjusted.Append(item)
+    index = index + 1
+  end
+  Ok(ThreadChildren(adjusted, parentID, mode))
 end
 
 func WriteBrowserPost(
@@ -200,7 +363,7 @@ func WriteBrowserCommunity(
     WriteJSON(
       w,
       status,
-      BrowserCommunityDTO(repository, views.Unwrap().Get(0).Unwrap(), viewer.Unwrap())
+      BrowserCommunityDTO(request.Context(), repository, views.Unwrap().Get(0).Unwrap(), viewer.Unwrap())
     )
   end
 end

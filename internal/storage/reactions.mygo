@@ -22,6 +22,34 @@ impl ReactionRepository
     remoteVerified: Bool,
     reactionURI: String
   ) -> Result[(), String]
+    self.Vote(ctx, postID, identity, remoteVerified, 1, reactionURI)
+  end
+
+  # A vote is the same one-row state as a like. Score zero clears the row
+  # without deleting it, so a later re-vote can reuse the same identity.
+  func Vote(
+    self: ReactionRepository,
+    ctx: context.Context,
+    postID: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    score: Int,
+    reactionURI: String
+  ) -> Result[(), String]
+    if score != -1 && score != 0 && score != 1 then
+      return Err("invalid vote")
+    end
+    if score == 0 then
+      return self.Undo(ctx, postID, identity, remoteVerified)
+    end
+    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+    let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
+    if score == 1 && !up then
+      return Err("feature_disabled")
+    end
+    if score == -1 && !down then
+      return Err("feature_disabled")
+    end
     self.React(
       ctx,
       postID,
@@ -32,10 +60,11 @@ impl ReactionRepository
           return Err("invalid reaction")
         end
         MutationResult(tx.Exec(
-          "INSERT INTO reactions(post_id,actor_uri,reaction_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri",
+          "INSERT INTO reactions(post_id,actor_uri,reaction_uri,score) VALUES (?,?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri,score=EXCLUDED.score",
           postID,
           identity.ActorURI,
-          sql.NullString { String: reactionURI, Valid: reactionURI != "" }
+          sql.NullString { String: reactionURI, Valid: reactionURI != "" },
+          score
         ))
       end
     )
@@ -99,6 +128,21 @@ impl ReactionRepository
           return Err(access.UnwrapErr())
         end
         if !access.Unwrap().CanRead() || !access.Unwrap().Subject.Verified then
+          return Err("forbidden")
+        end
+        let communityBan = ActiveCommunityBan(ctx, tx, post.CommunityID, identity.ActorURI, time.Now())
+        let siteBan = ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, time.Now())
+        if communityBan.IsErr() || siteBan.IsErr() then
+          return Err("moderation unavailable")
+        end
+        if communityBan.Unwrap() || siteBan.Unwrap() then
+          return Err("forbidden")
+        end
+        let blocked = IsInteractionBlocked(ctx, tx, self.SiteID, post.AuthorActorURI, identity.ActorURI)
+        if blocked.IsErr() then
+          return Err(blocked.UnwrapErr())
+        end
+        if blocked.Unwrap() then
           return Err("forbidden")
         end
         work(tx, post)

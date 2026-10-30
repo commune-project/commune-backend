@@ -10,6 +10,8 @@ struct NotificationRecord
   ID: Int64 `gorm:"column:id" json:"id"`
   Kind: String `gorm:"column:kind" json:"kind"`
   PostID: String `gorm:"column:post_id" json:"post_id"`
+  TargetKind: String `gorm:"column:target_kind" json:"target_kind"`
+  TargetID: String `gorm:"column:target_id" json:"target_id"`
   ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
   CreatedAt: time.Time `gorm:"column:created_at" json:"created_at"`
   Read: Bool `gorm:"column:read" json:"read"`
@@ -47,6 +49,13 @@ func FormatNotificationCursor(cursor: NotificationCursor) -> String
   cursor.Time.UTC().Format(time.RFC3339Nano) + "|" + strconv.FormatInt(cursor.ID, 10)
 end
 
+func QueueModerationNotification(ctx: context.Context, tx: Ref[gorm.DB], kind: String, targetKind: String, targetID: String, recipientURI: String, actorURI: String, occurrence: String) -> Result[(), String]
+  if kind != "report" && kind != "moderation" then
+    return Err("invalid notification")
+  end
+  MutationResult(tx.WithContext(ctx).Exec("INSERT INTO notification_events(kind,occurrence,post_id,target_kind,target_id,actor_uri,recipient_uri) VALUES (?,?,NULL,?,?,?,?) ON CONFLICT DO NOTHING", kind, occurrence, targetKind, targetID, actorURI, recipientURI))
+end
+
 # Projection holds row locks until commit, so crash/rollback makes the batch
 # immediately retryable. The advisory lock also serializes snapshot capture;
 # no uncommitted projection can arrive behind an already issued cursor.
@@ -58,7 +67,7 @@ func ProjectNotifications(ctx: context.Context, db: Ref[gorm.DB], limit: Int) ->
     if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)")).IsErr() then
       return Err("notifications unavailable")
     end
-    let query: String = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND commune_notification_eligible(a.id,e.post_id,e.actor_uri) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
+    let query: String = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND (e.target_kind<>'post' OR commune_notification_eligible(a.id,e.post_id,e.actor_uri)) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
     MutationResult(tx.Exec(query, limit))
   end)
 end
@@ -67,7 +76,7 @@ impl BrowserRepository
   # Visibility and precedence are inside the SQL relation, before limit/count.
   # Parent visibility is checked too: replies must not leak a hidden parent.
   func NotificationsQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, tail: String) -> Ref[gorm.DB]
-    let rows: String = "SELECT n.id,e.kind,e.post_id,e.actor_uri,n.created_at,(n.read_at IS NOT NULL) AS read FROM notifications n JOIN notification_events e ON e.id=n.event_id JOIN posts p ON p.id=e.post_id JOIN readable c ON c.id=p.community_id WHERE n.site_id=@site AND n.account_id=@account AND @verified AND @identity_site = @site AND e.retired_at IS NULL AND commune_notification_eligible(@account,p.id,e.actor_uri) AND (e.kind<>'reply' OR NOT EXISTS(SELECT 1 FROM notification_events m WHERE m.post_id=e.post_id AND m.recipient_uri=e.recipient_uri AND m.kind='mention' AND m.retired_at IS NULL AND EXISTS(SELECT 1 FROM post_mentions pm WHERE pm.id=m.occurrence AND pm.active)))"
+    let rows: String = "SELECT n.id,e.kind,COALESCE(e.post_id,'') AS post_id,e.target_kind,e.target_id,e.actor_uri,n.created_at,(n.read_at IS NOT NULL) AS read FROM notifications n JOIN notification_events e ON e.id=n.event_id LEFT JOIN posts p ON p.id=e.post_id LEFT JOIN readable c ON c.id=p.community_id WHERE n.site_id=@site AND n.account_id=@account AND @verified AND @identity_site = @site AND e.retired_at IS NULL AND (e.target_kind<>'post' OR (p.id IS NOT NULL AND c.id IS NOT NULL AND " + PersonalBlockP + ")) AND NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND ((b.kind='person' AND b.target=e.actor_uri) OR (b.kind='instance' AND b.target=lower(split_part(split_part(e.actor_uri,'://',2),'/',1))))) AND (e.target_kind<>'post' OR commune_notification_eligible(@account,p.id,e.actor_uri)) AND (e.kind<>'reply' OR NOT EXISTS(SELECT 1 FROM notification_events m WHERE m.post_id=e.post_id AND m.recipient_uri=e.recipient_uri AND m.kind='mention' AND m.retired_at IS NULL AND EXISTS(SELECT 1 FROM post_mentions pm WHERE pm.id=m.occurrence AND pm.active)))"
     let readable = self.CommunitiesQuery(ctx, viewer, rows)
     self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS eligible " + tail, readable)
   end

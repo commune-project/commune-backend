@@ -24,6 +24,8 @@ struct CommunityOutput
   FederationMode: String `json:"federation_mode"`
   ReadPolicy: String `json:"read_policy"`
   PostPolicy: String `json:"post_policy"`
+  FollowPolicy: String `json:"follow_policy"`
+  FollowerCount: Int64 `json:"follower_count"`
   ActorURI: String `json:"actor_uri,omitempty"`
   HostSiteID: String `json:"host_site_id"`
   Viewer: CommunityViewerOutput `json:"viewer"`
@@ -52,9 +54,19 @@ struct PostOutput
   AuthoredAt: time.Time `json:"authored_at"`
   UpdatedAt: time.Time `json:"updated_at"`
   Deleted: Bool `json:"deleted"`
+  Score: Int64 `json:"score"`
+  Upvotes: Int64 `json:"upvotes"`
+  Downvotes: Int64 `json:"downvotes"`
+  VotedByMe: Int64 `json:"voted_by_me"`
   LikeCount: Int64 `json:"like_count"`
   LikedByMe: Bool `json:"liked_by_me"`
   ReplyCount: Int64 `json:"reply_count"`
+  SavedByMe: Bool `json:"saved_by_me"`
+  ReadByMe: Bool `json:"read_by_me"`
+  HiddenByMe: Bool `json:"hidden_by_me"`
+  Depth: Int `json:"depth"`
+  ChildCount: Int `json:"child_count"`
+  Children: Slice[PostOutput] `json:"children"`
   Permissions: PostPermissions `json:"permissions"`
 end
 
@@ -73,6 +85,8 @@ func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
     FederationMode: record.FederationMode,
     ReadPolicy: record.ReadPolicy,
     PostPolicy: record.PostPolicy,
+    FollowPolicy: "open",
+    FollowerCount: 0i64,
     ActorURI: record.ActorURI.String,
     HostSiteID: record.HostSiteID,
   }
@@ -135,7 +149,12 @@ func FailStatus(reason: String) -> Int
   if reason == "not found" then
     return 404
   end
-  if reason == "forbidden" || reason == "invalid parent" then
+  if reason == "forbidden" ||
+    reason == "invalid parent" ||
+    reason == "follow_requires_membership" then
+    return 403
+  end
+  if reason == "feature_disabled" then
     return 403
   end
   if reason == "unauthenticated" then
@@ -143,6 +162,12 @@ func FailStatus(reason: String) -> Int
   end
   if reason == "invalid page" ||
     reason == "invalid post input" ||
+    reason == "invalid vote" ||
+    reason == "invalid vote settings" ||
+    reason == "invalid block" ||
+    reason == "invalid report" ||
+    reason == "invalid report state" ||
+    reason == "invalid ban" ||
     reason == "invalid content format" ||
     reason == "invalid media reference" ||
     reason == "invalid media binding" ||
@@ -155,7 +180,8 @@ func FailStatus(reason: String) -> Int
   end
   if reason == "object version conflict" ||
     reason == "object identity conflict" ||
-    reason == "media binding conflict" then
+    reason == "media binding conflict" ||
+    reason == "report conflict" then
     return 409
   end
   503
@@ -265,7 +291,7 @@ func ForumRoute(
   if BrowserReadRoute(settings, db, site, w, request, parts) then
     return
   end
-  if parts.Len() >= 3 && parts.Len() <= 5 && parts.Get(2).Unwrap() == "communities" then
+  if parts.Len() >= 3 && parts.Len() <= 6 && parts.Get(2).Unwrap() == "communities" then
     CommunityRoute(settings, db, site, w, request, parts)
   else
     if parts.Len() >= 4 && parts.Len() <= 5 && parts.Get(2).Unwrap() == "posts" then

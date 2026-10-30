@@ -1,6 +1,8 @@
 package server
 
 import http "go:net/http"
+import json "go:encoding/json"
+import time "go:time"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
@@ -20,6 +22,10 @@ struct ReplyInput
   ContextURI: String `json:"context_uri"`
   ContentFormat: String `json:"content_format"`
   AttachmentIDs: Slice[String] `json:"attachment_ids"`
+end
+
+struct VoteInput
+  Score: json.RawMessage `json:"score"`
 end
 
 func PostRoute(
@@ -179,6 +185,46 @@ func PostSectionRoute(
     return
   end
   let identity = actor.Unwrap()
+  if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
+    (section == "read" && request.Method == "POST") ||
+    (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
+    let readable = storage.FeedRepository{DB: db, SiteID: site.ID}.ReadObject(request.Context(), id, identity, false)
+    if readable.IsErr() then
+      Fail(w, readable.UnwrapErr())
+      return
+    end
+    let state = storage.ContentStateRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
+    var result: Result[(), String] = Err("not found")
+    if section == "save" then
+      result = state.Save(request.Context(), id, request.Method == "POST")
+    else if section == "read" then
+      result = state.Read(request.Context(), id)
+    else
+      result = state.Hide(request.Context(), id, request.Method == "POST")
+    end end
+    Settle(w, result)
+    return
+  end
+  if section == "vote" && request.Method == "POST" then
+    let input = VoteInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, "invalid vote")
+      return
+    end
+    if (input.Score as Slice[Byte]).Len() == 0 then
+      WriteErrorJSON(w, 400, "invalid vote")
+      return
+    end
+    let score = 0
+    if json.Unmarshal(input.Score as Slice[Byte], Ref.new(score)).IsErr() || (score != -1 && score != 0 && score != 1) then
+      WriteErrorJSON(w, 400, "invalid vote")
+      return
+    end
+    let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
+    Settle(w, reactions.Vote(request.Context(), id, identity, false, score, ""))
+    return
+  end
   if section == "likes" then
     let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
     var result: Result[(), String] = Err("not found")
@@ -231,6 +277,25 @@ func ReplyRoute(
       let parent = feed.ReadObject(request.Context(), id, actor.Unwrap(), false)
       if parent.IsErr() then
         Fail(w, parent.UnwrapErr())
+        return
+      end
+      let communityBan = storage.ActiveCommunityBan(request.Context(), db, parent.Unwrap().CommunityID, actor.Unwrap().ActorURI, time.Now())
+      let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.Unwrap().ActorURI, time.Now())
+      if communityBan.IsErr() || siteBan.IsErr() then
+        Fail(w, "moderation unavailable")
+        return
+      end
+      if communityBan.Unwrap() || siteBan.Unwrap() then
+        Fail(w, "forbidden")
+        return
+      end
+      let blocked = storage.IsInteractionBlocked(request.Context(), db, site.ID, parent.Unwrap().AuthorActorURI, actor.Unwrap().ActorURI)
+      if blocked.IsErr() then
+        Fail(w, blocked.UnwrapErr())
+        return
+      end
+      if blocked.Unwrap() then
+        Fail(w, "forbidden")
         return
       end
       let input = ReplyInput{}

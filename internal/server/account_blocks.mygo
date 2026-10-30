@@ -1,0 +1,64 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct AccountBlockInput
+  Kind: String `json:"kind"`
+  Target: String `json:"target"`
+end
+
+struct AccountBlockPage
+  Items: Slice[storage.AccountBlockRecord] `json:"items"`
+end
+
+func AccountBlockRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  if parts.Len() != 4 || parts.Get(2).UnwrapOr("") != "account" || parts.Get(3).UnwrapOr("") != "blocks" then
+    return false
+  end
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    Fail(w, session.UnwrapErr())
+    return true
+  end
+  let identity = session.Unwrap().Identity
+  let repository = storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
+  if request.Method == "GET" then
+    let rows = repository.List(request.Context())
+    if rows.IsErr() then
+      Fail(w, rows.UnwrapErr())
+    else
+      WriteJSON(w, 200, AccountBlockPage{Items: rows.Unwrap()})
+    end
+    return true
+  end
+  if request.Method != "POST" && request.Method != "DELETE" then
+    MethodNotAllowed(w, "GET, POST, DELETE")
+    return true
+  end
+  if !AuthorizeMutation(settings, session.Unwrap(), request) then
+    WriteErrorJSON(w, 403, "CSRF denied")
+    return true
+  end
+  let input = AccountBlockInput{}
+  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+    WriteErrorJSON(w, 400, "invalid block")
+    return true
+  end
+  let result = if request.Method == "POST" then
+    repository.Add(request.Context(), identity, input.Kind, input.Target)
+  else
+    repository.Remove(request.Context(), identity, input.Kind, input.Target)
+  end
+  Settle(w, result)
+  true
+end

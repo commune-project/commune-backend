@@ -10,12 +10,29 @@ import transport "go:github.com/commune-project/commune-backend/internal/testtra
 func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let pool = testsupport.Postgres(t)
-  let tx = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
-  let _ = ApplyTransaction(ctx, tx, MigrationCatalog().Unwrap().Take(12)).Unwrap()
-  let _ = tx.Commit().Unwrap()
+  let catalog = MigrationCatalog()
+  if catalog.IsErr() then
+    t.Fatalf("load migration catalog: %s", catalog.UnwrapErr())
+  end
+  let begin = pool.BeginTx(ctx, Ref.new(sql.TxOptions{}))
+  if begin.IsErr() then
+    t.Fatalf("begin migration transaction: %s", begin.UnwrapErr())
+  end
+  let tx = begin.Unwrap()
+  let applied = ApplyTransaction(ctx, tx, catalog.Unwrap().Take(12))
+  if applied.IsErr() then
+    t.Fatalf("apply first twelve migrations: %s", applied.UnwrapErr())
+  end
+  let committed = tx.Commit()
+  if committed.IsErr() then
+    t.Fatalf("commit first twelve migrations: %s", committed.UnwrapErr())
+  end
   let db = transport.ORM(pool).Unwrap()
   let site = config.Site{ID: "a", Origin: "https://a.example"}
-  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let provisioned = ProvisionSite(ctx, db, site)
+  if provisioned.IsErr() then
+    t.Fatalf("provision site: %s", provisioned.UnwrapErr())
+  end
   let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let group = CommunityRepository{DB: db, SiteID: site.ID}.Create(
     ctx,

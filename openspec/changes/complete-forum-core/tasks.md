@@ -1,20 +1,20 @@
 ## 1. Schema and shared foundations
 
-- [ ] 1.1 Add `015_votes.sql` with the reaction `score` column, its check constraint, and the `Dislike` activity kind; verify migration on a fresh database and on a database containing existing reactions.
-- [ ] 1.2 Add `016_password_reset.sql` with reset tokens, reset mail jobs, and reset rate limits; verify constraints, indexes, and cascade behavior with migration tests.
-- [ ] 1.3 Add `017_community_follows.sql` with a `follow_policy` column, a backfill of existing members-only communities to `members`, and indexes for accepted follower counts and pending follow review; verify the backfill, query plans, and existing follow tests.
-- [ ] 1.4 Add `018_account_blocks.sql` with person, community, and instance block rows; verify primary keys, site/account foreign keys, and duplicate-block behavior.
-- [ ] 1.5 Add `019_moderation.sql` with reports, moderation log entries, community bans, and site bans; verify the partial unique open-report index and the append-only log trigger.
-- [ ] 1.6 Add `020_saved_read_state.sql` with saved, read, and personal-hidden rows; verify per-account uniqueness and post foreign keys.
-- [ ] 1.7 Add `021_notification_targets.sql` making notification post targets nullable and adding target kind and identifier; verify existing rows backfill as post targets.
-- [ ] 1.8 Register every new migration in the migration catalog and verify `make test-postgres` applies them in order on a fresh cluster.
+- [x] 1.1 Add `015_votes.sql` with the reaction `score` column, its check constraint, and the `Dislike` activity kind; verify migration on a fresh database and on a database containing existing reactions.
+- [x] 1.2 Add `016_password_reset.sql` with reset tokens, reset mail jobs, and reset rate limits; verify constraints, indexes, and cascade behavior with migration tests.
+- [x] 1.3 Add `017_community_follows.sql` with a `follow_policy` column, a backfill of existing members-only communities to `members`, and indexes for accepted follower counts and pending follow review; verify the backfill, query plans, and existing follow tests.
+- [x] 1.4 Add `018_account_blocks.sql` with person, community, and instance block rows; verify primary keys, site/account foreign keys, and duplicate-block behavior.
+- [x] 1.5 Add `019_moderation.sql` with reports, moderation log entries, community bans, and site bans; verify the partial unique open-report index and the append-only log trigger.
+- [x] 1.6 Add `020_saved_read_state.sql` with saved, read, and personal-hidden rows; verify per-account uniqueness and post foreign keys.
+- [x] 1.7 Add `021_notification_targets.sql` making notification post targets nullable and adding target kind and identifier; verify existing rows backfill as post targets.
+- [x] 1.8 Register every new migration in the migration catalog and verify `make test-postgres` applies them in order on a fresh cluster.
 - [ ] 1.9 Add a shared personal-block SQL predicate or CTE builder; verify it with person, community, and instance cases in a storage test.
 - [ ] 1.10 Add shared parsers for vote values, sort modes, thread depth, block kinds, report states, and ban expiry; verify invalid values return `400`.
 - [ ] 1.11 Add shared pagination and visibility helpers for the new account and moderation listings; verify malformed and exhausted pages.
-- [ ] 1.12 Add `022_site_vote_settings.sql` with one row per site, default-true upvote/downvote booleans, update metadata, and an actor reference; verify defaults, constraints, and provisioning upserts.
-- [ ] 1.13 Implement a site vote settings repository with read and partial-update operations; verify missing-row defaults, site isolation, and audit writes.
-- [ ] 1.14 Implement `GET /api/v1/site/vote-settings` and `PUT /api/v1/admin/vote-settings` with site-admin/deployment authority, validation, CSRF, and no-store responses.
-- [ ] 1.15 Add a shared disabled-feature error mapping and a vote-direction gate helper; verify stable `403 feature_disabled` behavior.
+- [x] 1.12 Add `022_site_vote_settings.sql` with one row per site, default-true upvote/downvote booleans, update metadata, and an actor reference; verify defaults, constraints, and provisioning upserts.
+- [x] 1.13 Implement a site vote settings repository with read and partial-update operations; verify missing-row defaults, site isolation, and audit writes.
+- [x] 1.14 Implement `GET /api/v1/site/vote-settings` and `PUT /api/v1/admin/vote-settings` with site-admin/deployment authority, validation, CSRF, and no-store responses.
+- [x] 1.15 Add a shared disabled-feature error mapping and a vote-direction gate helper; verify stable `403 feature_disabled` behavior.
 - [ ] 1.16 Seed vote settings during site provisioning and verify existing sites without a row still resolve both directions as enabled.
 - [ ] 1.17 Add HTTP and storage tests for site A disabling downvotes while site B remains enabled, partial updates, and unauthorized updates.
 

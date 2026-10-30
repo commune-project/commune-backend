@@ -17,7 +17,7 @@ end
 
 impl BrowserRepository
   func SearchPostsQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page) -> Ref[gorm.DB]
-    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockP + " AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
     self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\' ORDER BY authored_at DESC,id" + BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query))
   end
 

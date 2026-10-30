@@ -52,12 +52,34 @@ func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
   let pool = testsupport.Postgres(t)
   let ctx = context.Background()
   let options = sql.TxOptions{}
-  let tx = pool.BeginTx(ctx, Ref.new(options)).Unwrap()
-  let _ = ApplyTransaction(ctx, tx, MigrationCatalog().Unwrap().Take(5)).Unwrap()
-  let _ = tx.Commit().Unwrap()
+  let begin = pool.BeginTx(ctx, Ref.new(options))
+  if begin.IsErr() then
+    t.Fatalf("begin migration transaction: %s", begin.UnwrapErr())
+    return
+  end
+  let tx = begin.Unwrap()
+  let catalog = MigrationCatalog()
+  if catalog.IsErr() then
+    t.Fatalf("catalog: %s", catalog.UnwrapErr())
+    return
+  end
+  let applied = ApplyTransaction(ctx, tx, catalog.Unwrap().Take(5))
+  if applied.IsErr() then
+    t.Fatalf("apply five: %s", applied.UnwrapErr())
+    return
+  end
+  let committed = tx.Commit()
+  if committed.IsErr() then
+    t.Fatalf("commit five: %s", committed.UnwrapErr())
+    return
+  end
   let db = transport.ORM(pool).Unwrap()
   let site = config.Site{ID: "a", Origin: "https://a.example"}
-  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let provisionedSite = ProvisionSite(ctx, db, site)
+  if provisionedSite.IsErr() then
+    t.Fatalf("provision site: %s", provisionedSite.UnwrapErr())
+    return
+  end
   let accounts = AccountRepository{DB: db}
   let provisioned = accounts.Create(ctx, site, "existing", "existing@example.com", "existing-account-password").Unwrap()
   let issued = SessionRepository{DB: db}.Issue(ctx, provisioned, time.Now()).Unwrap()

@@ -1,0 +1,120 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import time "go:time"
+import url "go:net/url"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct AccountBlockRecord
+  Kind: String `gorm:"column:kind" json:"kind"`
+  Target: String `gorm:"column:target" json:"target"`
+  CreatedAt: time.Time `gorm:"column:created_at" json:"created_at"`
+end
+
+struct AccountBlockRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+  AccountID: Int64
+end
+
+let PersonalBlockP = "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND ((b.kind='person' AND b.target=p.author_actor_uri) OR (b.kind='community' AND b.target=p.community_id) OR (b.kind='instance' AND b.target=lower(split_part(split_part(p.author_actor_uri,'://',2),'/',1)))))"
+let PersonalBlockC = "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND ((b.kind='person' AND b.target=c.author_actor_uri) OR (b.kind='community' AND b.target=c.community_id) OR (b.kind='instance' AND b.target=lower(split_part(split_part(c.author_actor_uri,'://',2),'/',1)))))"
+let PersonalBlockPArgs = "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=? AND b.account_id=? AND ((b.kind='person' AND b.target=p.author_actor_uri) OR (b.kind='community' AND b.target=p.community_id) OR (b.kind='instance' AND b.target=lower(split_part(split_part(p.author_actor_uri,'://',2),'/',1)))))"
+let PersonalBlockCArgs = "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=? AND b.account_id=? AND ((b.kind='person' AND b.target=c.author_actor_uri) OR (b.kind='community' AND b.target=c.community_id) OR (b.kind='instance' AND b.target=lower(split_part(split_part(c.author_actor_uri,'://',2),'/',1)))))"
+
+func IsInteractionBlocked(ctx: context.Context, db: Ref[gorm.DB], siteID: String, ownerActorURI: String, targetActorURI: String) -> Result[Bool, String]
+  let blocked = false
+  let query = db.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM account_blocks b JOIN accounts a ON a.site_id=b.site_id AND a.id=b.account_id WHERE b.site_id=? AND a.actor_uri=? AND ((b.kind='person' AND b.target=?) OR (b.kind='instance' AND b.target=lower(split_part(split_part(?,'://',2),'/',1))))) AS blocked", siteID, ownerActorURI, targetActorURI, targetActorURI).Scan(Ref.new(blocked))
+  if MutationResult(query).IsErr() then
+    return Err("blocks unavailable")
+  end
+  Ok(blocked)
+end
+
+
+impl AccountBlockRepository
+  func List(self: AccountBlockRepository, ctx: context.Context) -> Result[Slice[AccountBlockRecord], String]
+    var rows: Slice[AccountBlockRecord] = []
+    let query = self.DB.WithContext(ctx).Table("account_blocks").Where("site_id=? AND account_id=?", self.SiteID, self.AccountID).Order("kind,target").Find(Ref.new(rows))
+    if MutationResult(query).IsErr() then
+      return Err("blocks unavailable")
+    end
+    Ok(rows)
+  end
+
+  func Add(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), String]
+    if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" then
+      return Err("forbidden")
+    end
+    if kind != "person" && kind != "community" && kind != "instance" then
+      return Err("invalid block")
+    end
+    let value = strings.TrimSpace(target)
+    if value == "" then
+      return Err("invalid block")
+    end
+    if kind == "person" then
+      if value == identity.ActorURI then
+        return Err("invalid block")
+      end
+      if !CanonicalObjectURI(value) then
+        return Err("invalid block")
+      end
+      let known = QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri=? AND kind='Person'", value))
+      if known.IsErr() || !known.Unwrap() then
+        return Err("invalid block")
+      end
+    end
+    if kind == "community" then
+      let community = CommunityRepository{DB: self.DB, SiteID: self.SiteID}.Open(ctx, value, false)
+      if community.IsErr() then
+        return Err("invalid block")
+      end
+      let access = CommunityRepository{DB: self.DB, SiteID: self.SiteID}.Access(ctx, community.Unwrap(), identity, false)
+      if access.IsErr() || !access.Unwrap().CanRead() then
+        return Err("invalid block")
+      end
+    end
+    if kind == "instance" then
+      if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") then
+        return Err("invalid block")
+      end
+      let parsed = url.Parse("https://" + value)
+      if parsed.IsErr() || parsed.Unwrap().Host == "" || parsed.Unwrap().Path != "" || parsed.Unwrap().RawQuery != "" then
+        return Err("invalid block")
+      end
+      let normalized = config.NormalizeAuthority(value)
+      if normalized.IsErr() then
+        return Err("invalid block")
+      end
+      value = normalized.Unwrap()
+      let origin = ""
+      let lookup = self.DB.WithContext(ctx).Raw("SELECT canonical_origin FROM sites WHERE id=?", self.SiteID).Scan(Ref.new(origin))
+      if MutationResult(lookup).IsErr() || lookup.RowsAffected != 1i64 then
+        return Err("blocks unavailable")
+      end
+      let siteURL = url.Parse(origin)
+      if siteURL.IsErr() || config.NormalizeAuthority(siteURL.Unwrap().Host).UnwrapOr("") == value then
+        return Err("invalid block")
+      end
+    end
+    let query = self.DB.WithContext(ctx).Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,?,?) ON CONFLICT DO NOTHING", self.SiteID, self.AccountID, kind, value)
+    if MutationResult(query).IsErr() then
+      return Err("block update failed")
+    end
+    Ok(())
+  end
+
+  func Remove(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), String]
+    if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" then
+      return Err("forbidden")
+    end
+    if kind != "person" && kind != "community" && kind != "instance" then
+      return Err("invalid block")
+    end
+    MutationResult(self.DB.WithContext(ctx).Exec("DELETE FROM account_blocks WHERE site_id=? AND account_id=? AND kind=? AND target=?", self.SiteID, self.AccountID, kind, strings.TrimSpace(target)))
+  end
+end

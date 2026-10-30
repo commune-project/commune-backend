@@ -2,6 +2,9 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import rand "go:crypto/rand"
+import time "go:time"
+import auth "github.com/commune-project/commune-backend/internal/auth"
 
 # A subscription is not a membership: the follow row records delivery interest
 # while community_members records authorization.
@@ -22,6 +25,87 @@ func CommunityFollowState(ctx: context.Context, db: Ref[gorm.DB], communityID: S
     return Err("not subscribed")
   end
   Ok(state)
+end
+
+struct FollowRequestRecord
+  ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
+  UpdatedAt: time.Time `gorm:"column:updated_at" json:"updated_at"`
+end
+
+func BrowserFollow(ctx: context.Context, db: Ref[gorm.DB], siteID: String, communityID: String, identity: auth.Identity, follow: Bool) -> Result[String, String]
+  let community = CommunityRepository{DB: db, SiteID: siteID}.Open(ctx, communityID, false)
+  if community.IsErr() then
+    return Err("not found")
+  end
+  let _ = community.Unwrap()
+  let site = SiteRepository{DB: db, SiteID: siteID}
+  let blocked = site.IsBlocked(ctx, identity.ActorURI)
+  if blocked.IsErr() then
+    return Err(blocked.UnwrapErr())
+  end
+  if blocked.Unwrap() then
+    return Err("forbidden")
+  end
+  let member = QueryExists(db.WithContext(ctx).Table("community_members").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, identity.ActorURI))
+  let manager = QueryExists(db.WithContext(ctx).Table("moderators").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, identity.ActorURI))
+  if member.IsErr() || manager.IsErr() then
+    return Err("follow unavailable")
+  end
+  if !follow then
+    let undone = SetCommunityFollow(ctx, db, communityID, identity.ActorURI, "urn:commune:undo:" + rand.Text(), "undone")
+    if undone.IsErr() then
+      return Err(undone.UnwrapErr())
+    end
+    return Ok("undone")
+  end
+  let policyResult = LoadCommunityFollowRule(ctx, db, communityID)
+  if policyResult.IsErr() then
+    return Err(policyResult.UnwrapErr())
+  end
+  let policy = policyResult.Unwrap()
+  if policy == "disabled" then
+    return Err("feature_disabled")
+  end
+  if policy == "members" && !member.Unwrap() && !manager.Unwrap() then
+    return Err("follow_requires_membership")
+  end
+  let state = if policy == "approval" && !member.Unwrap() && !manager.Unwrap() then "pending" else "accepted" end
+  let saved = SetCommunityFollow(ctx, db, communityID, identity.ActorURI, "urn:commune:follow:" + rand.Text(), state)
+  if saved.IsErr() then
+    return Err(saved.UnwrapErr())
+  end
+  Ok(state)
+end
+
+func PendingFollows(ctx: context.Context, db: Ref[gorm.DB], communityID: String, limit: Int, offset: Int) -> Result[Slice[FollowRequestRecord], String]
+  var rows: Slice[FollowRequestRecord] = []
+  let query = db.WithContext(ctx).Raw("SELECT actor_uri, updated_at FROM follows WHERE community_id=? AND state='pending' ORDER BY updated_at,actor_uri LIMIT ? OFFSET ?", communityID, limit, offset).Scan(Ref.new(rows))
+  if MutationResult(query).IsErr() then
+    return Err("follow requests unavailable")
+  end
+  Ok(rows)
+end
+
+func ReviewFollow(ctx: context.Context, db: Ref[gorm.DB], siteID: String, communityID: String, identity: auth.Identity, actorURI: String, accept: Bool) -> Result[(), String]
+  CommunityRepository{DB: db, SiteID: siteID}.Manage(ctx, communityID, identity, false, "review-follow", actorURI, func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
+    let pending = QueryExists(tx.WithContext(ctx).Table("follows").Where("community_id=? AND actor_uri=? AND state='pending'", communityID, actorURI))
+    if pending.IsErr() then
+      return Err(pending.UnwrapErr())
+    end
+    if !pending.Unwrap() then
+      return Err("not found")
+    end
+    let state = if accept then "accepted" else "rejected" end
+    if MutationResult(tx.Exec("UPDATE follows SET state=?,updated_at=now() WHERE community_id=? AND actor_uri=?", state, communityID, actorURI)).IsErr() then
+      return Err("follow review failed")
+    end
+    if accept then
+      if MutationResult(tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by,approved_at=now(),revoked_at=NULL", communityID, actorURI, identity.ActorURI)).IsErr() then
+        return Err("follow review failed")
+      end
+    end
+    Ok(())
+  end)
 end
 
 # Managers advertised through the Group's attributedTo collection, confined to the

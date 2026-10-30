@@ -1,0 +1,213 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct ContentStateRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+  AccountID: Int64
+end
+
+struct ContentStateFlags
+  Saved: Slice[String]
+  Read: Slice[String]
+  Hidden: Slice[String]
+end
+
+struct ContentStateRow
+  PostID: String `gorm:"column:post_id"`
+  Saved: Bool `gorm:"column:saved"`
+  Read: Bool `gorm:"column:read"`
+  Hidden: Bool `gorm:"column:hidden"`
+end
+
+impl ContentStateRepository
+  func Save(
+    self: ContentStateRepository,
+    ctx: context.Context,
+    postID: String,
+    saved: Bool
+  ) -> Result[(), String]
+    let query = if saved then
+      self.DB.WithContext(ctx).Exec(
+        "INSERT INTO saved_posts(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
+        self.SiteID,
+        self.AccountID,
+        postID
+      )
+    else
+      self.DB.WithContext(ctx).Exec(
+        "DELETE FROM saved_posts WHERE site_id=? AND account_id=? AND post_id=?",
+        self.SiteID,
+        self.AccountID,
+        postID
+      )
+    end
+    if MutationResult(query).IsErr() then
+      return Err("content state unavailable")
+    end
+    Ok(())
+  end
+  func Read(
+    self: ContentStateRepository,
+    ctx: context.Context,
+    postID: String
+  ) -> Result[(), String]
+    let query = self.DB.WithContext(ctx).Exec(
+      "INSERT INTO post_reads(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
+      self.SiteID,
+      self.AccountID,
+      postID
+    )
+    if MutationResult(query).IsErr() then
+      return Err("content state unavailable")
+    end
+    Ok(())
+  end
+  func Hide(
+    self: ContentStateRepository,
+    ctx: context.Context,
+    postID: String,
+    hidden: Bool
+  ) -> Result[(), String]
+    let query = if hidden then
+      self.DB.WithContext(ctx).Exec(
+        "INSERT INTO post_hidden(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
+        self.SiteID,
+        self.AccountID,
+        postID
+      )
+    else
+      self.DB.WithContext(ctx).Exec(
+        "DELETE FROM post_hidden WHERE site_id=? AND account_id=? AND post_id=?",
+        self.SiteID,
+        self.AccountID,
+        postID
+      )
+    end
+    if MutationResult(query).IsErr() then
+      return Err("content state unavailable")
+    end
+    Ok(())
+  end
+  func States(
+    self: ContentStateRepository,
+    ctx: context.Context,
+    ids: Slice[String]
+  ) -> Result[ContentStateFlags, String]
+    var saved: Slice[String] = []
+    var read: Slice[String] = []
+    var hidden: Slice[String] = []
+    if ids.Len() == 0 then
+      return Ok(ContentStateFlags{})
+    end
+    var rows: Slice[ContentStateRow] = []
+    let query = self.DB.WithContext(ctx).Raw(
+      "SELECT post_id, bool_or(source='saved') AS saved, bool_or(source='read') AS read, bool_or(source='hidden') AS hidden FROM (SELECT post_id,'saved' AS source FROM saved_posts WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'read' FROM post_reads WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'hidden' FROM post_hidden WHERE site_id=? AND account_id=? AND post_id IN ?) states GROUP BY post_id",
+      self.SiteID, self.AccountID, ids,
+      self.SiteID, self.AccountID, ids,
+      self.SiteID, self.AccountID, ids
+    ).Scan(Ref.new(rows))
+    if MutationResult(query).IsErr() then
+      return Err("content state unavailable")
+    end
+    rows.Each(func(row: ContentStateRow) -> ()
+      if row.Saved then saved = saved.Append(row.PostID) end
+      if row.Read then read = read.Append(row.PostID) end
+      if row.Hidden then hidden = hidden.Append(row.PostID) end
+    end)
+    Ok(ContentStateFlags{Saved: saved, Read: read, Hidden: hidden})
+  end
+end
+
+impl BrowserRepository
+  func accountPosts(
+    self: BrowserRepository,
+    ctx: context.Context,
+    viewer: BrowserViewer,
+    page: Page,
+    max: Int,
+    source: String,
+    order: String
+  ) -> Result[Slice[PostRecord], String]
+    if !page.Valid(max) then
+      return Err("invalid page")
+    end
+    var records: Slice[PostRecord] = []
+    let base = "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id "
+    let hideFilter = if source == "hidden" then
+      ""
+    else
+      " AND NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id)"
+    end
+    let common = " WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " +
+      PersonalBlockP +
+      hideFilter +
+      " AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) "
+    let join = if source == "saved" then
+      "JOIN saved_posts s ON s.post_id=p.id AND s.site_id=@site AND s.account_id=@account "
+    else
+      if source == "read" then
+        "JOIN post_reads r ON r.post_id=p.id AND r.site_id=@site AND r.account_id=@account "
+      else
+        if source == "hidden" then
+          "JOIN post_hidden h2 ON h2.post_id=p.id AND h2.site_id=@site AND h2.account_id=@account "
+        else
+          "JOIN reactions v ON v.post_id=p.id AND v.actor_uri=@actor AND v.undone_at IS NULL AND v.score=1 "
+        end
+      end
+    end
+    let query = self.CommunitiesQuery(
+      ctx,
+      viewer,
+      base + join + common + "ORDER BY " + order + ",p.id" + BrowserPageSQL(page)
+    ).Scan(Ref.new(records))
+    if MutationResult(query).IsErr() then
+      return Err("content state unavailable")
+    end
+    Ok(records)
+  end
+  func SavedPosts(
+    self: BrowserRepository,
+    ctx: context.Context,
+    viewer: BrowserViewer,
+    page: Page,
+    max: Int
+  ) -> Result[Slice[PostRecord], String]
+    self.accountPosts(ctx, viewer, page, max, "saved", "s.created_at DESC")
+  end
+  func ReadPosts(
+    self: BrowserRepository,
+    ctx: context.Context,
+    viewer: BrowserViewer,
+    page: Page,
+    max: Int
+  ) -> Result[Slice[PostRecord], String]
+    self.accountPosts(ctx, viewer, page, max, "read", "r.read_at DESC")
+  end
+  func HiddenPosts(
+    self: BrowserRepository,
+    ctx: context.Context,
+    viewer: BrowserViewer,
+    page: Page,
+    max: Int
+  ) -> Result[Slice[PostRecord], String]
+    self.accountPosts(ctx, viewer, page, max, "hidden", "h2.hidden_at DESC")
+  end
+  func LikedPosts(
+    self: BrowserRepository,
+    ctx: context.Context,
+    viewer: BrowserViewer,
+    page: Page,
+    max: Int
+  ) -> Result[Slice[PostRecord], String]
+    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+    if !up then
+      let empty: Slice[PostRecord] = []
+      return Ok(empty)
+    end
+    self.accountPosts(ctx, viewer, page, max, "liked", "v.created_at DESC")
+  end
+end

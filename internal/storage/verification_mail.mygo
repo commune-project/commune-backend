@@ -20,7 +20,11 @@ func VerificationRetrySeconds(base: Int, maximum: Int, attempts: Int) -> Int
   var delay = base
   var remaining = attempts - 1
   while remaining > 0 && delay < maximum
-    delay = if delay > maximum / 2 then maximum else delay * 2 end
+    delay = if delay > maximum / 2 then
+      maximum
+    else
+      delay * 2
+    end
     remaining = remaining - 1
   end
   delay

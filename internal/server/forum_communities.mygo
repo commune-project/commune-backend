@@ -14,6 +14,7 @@ struct CreateCommunityInput
   Mode: String `json:"mode"`
   ReadPolicy: String `json:"read_policy"`
   PostPolicy: String `json:"post_policy"`
+  FollowPolicy: String `json:"follow_policy"`
 end
 
 struct CreateTopicInput
@@ -30,6 +31,7 @@ end
 struct PolicyInput
   ReadPolicy: String `json:"read_policy"`
   PostPolicy: String `json:"post_policy"`
+  FollowPolicy: String `json:"follow_policy"`
 end
 
 struct PostRefInput
@@ -38,6 +40,16 @@ end
 
 struct SubmissionInput
   PostID: String `json:"post_id"`
+  State: String `json:"state"`
+end
+
+struct FollowRequestPage
+  Items: Slice[storage.FollowRequestRecord] `json:"items"`
+  Limit: Int `json:"limit"`
+  Offset: Int `json:"offset"`
+end
+
+struct FollowDecisionInput
   State: String `json:"state"`
 end
 
@@ -84,7 +96,7 @@ func CommunityRoute(
         if decoded.IsErr() then
           WriteErrorJSON(w, 400, decoded.UnwrapErr())
         else
-          let created = communities.Create(
+          let created = communities.CreateWithFollow(
             request.Context(),
             site,
             actor.Unwrap(),
@@ -92,7 +104,8 @@ func CommunityRoute(
             input.Title,
             input.Mode,
             input.ReadPolicy,
-            input.PostPolicy
+            input.PostPolicy,
+            input.FollowPolicy
           )
           if created.IsErr() then
             Fail(w, created.UnwrapErr())
@@ -130,12 +143,64 @@ func CommunityMemberRoute(
     CommunityTopicRoute(settings, db, site, w, request, id)
     return
   end
+  if section == "follow-requests" && request.Method == "GET" && parts.Len() == 5 then
+    let session = Authenticated(db, site, request)
+    if session.IsErr() then
+      Fail(w, session.UnwrapErr())
+      return
+    end
+    let checked = communities.Check(request.Context(), id, session.Unwrap().Identity, false)
+    if checked.IsErr() then
+      Fail(w, checked.UnwrapErr())
+      return
+    end
+    if !checked.Unwrap().Authority.Allows("manage-community") then
+      Fail(w, "forbidden")
+      return
+    end
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      Fail(w, page.UnwrapErr())
+      return
+    end
+    let rows = storage.PendingFollows(request.Context(), db, id, page.Unwrap().Limit, page.Unwrap().Offset)
+    if rows.IsErr() then
+      Fail(w, rows.UnwrapErr())
+    else
+      WriteJSON(w, 200, FollowRequestPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+    end
+    return
+  end
   let actor = RequireMutation(settings, db, site, request)
   if actor.IsErr() then
     Fail(w, actor.UnwrapErr())
     return
   end
   let identity = actor.Unwrap()
+  if section == "follow" && (request.Method == "POST" || request.Method == "DELETE") then
+    let result = storage.BrowserFollow(request.Context(), db, site.ID, id, identity, request.Method == "POST")
+    if result.IsErr() then
+      Fail(w, result.UnwrapErr())
+    else
+      w.WriteHeader(204)
+    end
+    return
+  end
+  if section == "follow-requests" && request.Method == "POST" && parts.Len() == 6 then
+    let input = FollowDecisionInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      return
+    end
+    let accepted = input.State == "accepted"
+    if input.State != "accepted" && input.State != "rejected" then
+      WriteErrorJSON(w, 400, "invalid state")
+      return
+    end
+    Settle(w, storage.ReviewFollow(request.Context(), db, site.ID, id, identity, parts.Get(5).Unwrap(), accepted))
+    return
+  end
   if section == "policy" then
     let input = PolicyInput {}
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
@@ -145,7 +210,11 @@ func CommunityMemberRoute(
       if decoded.IsErr() then
         WriteErrorJSON(w, 400, decoded.UnwrapErr())
       else
-        let result = communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
+        let result = if input.FollowPolicy == "" then
+          communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
+        else
+          communities.SetPolicyAll(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy, input.FollowPolicy)
+        end
         if result.IsErr() then
           Fail(w, result.UnwrapErr())
         else
@@ -153,6 +222,26 @@ func CommunityMemberRoute(
         end
       end
     end
+    return
+  end
+  if section == "bans" && (request.Method == "POST" || request.Method == "DELETE") then
+    let input = BanInput{}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, "invalid ban")
+      return
+    end
+    let expiry = BanExpiry(input.ExpiresAt)
+    if expiry.IsErr() then
+      WriteErrorJSON(w, 400, "invalid ban")
+      return
+    end
+    let result = if request.Method == "POST" then
+      storage.BanCommunity(request.Context(), db, site.ID, id, identity, input.Actor, input.Reason, expiry.Unwrap())
+    else
+      storage.UnbanCommunity(request.Context(), db, site.ID, id, identity, input.Actor)
+    end
+    Settle(w, result)
     return
   end
   if section == "removals" && (request.Method == "POST" || request.Method == "DELETE") then

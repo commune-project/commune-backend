@@ -16,12 +16,17 @@ struct BrowserViewer
   Verified: Bool
   Blocked: Bool
   Roles: ViewerRoles
+  UpvotesEnabled: Bool
+  DownvotesEnabled: Bool
+  VoteSettingsLoaded: Bool
 end
 
 struct CommunityView
   Record: CommunityRecord `gorm:"embedded"`
   Member: Bool `gorm:"column:member"`
   Manager: Bool `gorm:"column:manager"`
+  FollowState: sql.NullString `gorm:"column:follow_state"`
+  FollowerCount: Int64 `gorm:"column:follower_count"`
 end
 
 struct BrowserRepository
@@ -60,13 +65,15 @@ impl BrowserRepository
     if blocked.IsErr() || admin.IsErr() || deployment.IsErr() then
       return Err("policy unavailable")
     end
-    Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}})
+    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+    let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
+    Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
   end
 
   # Named bindings keep actor/site values out of SQL text. The CTE mirrors
   # CommunityPolicy and CommunityAccess; parity tests cover both paths.
   func CommunitiesQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, tail: String) -> Ref[gorm.DB]
-    let facts: String = "WITH facts AS (SELECT c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS manager FROM communities c), eligible AS (SELECT facts.*, (@verified AND NOT @blocked AND @actor <> '' AND (federation_mode='federated' OR (host_site_id=@identity_site AND @account > 0))) AS eligible, (federation_mode IN ('federated','local_only') AND (federation_mode<>'local_only' OR host_site_id IS NOT NULL) AND read_policy IN ('eligible_users','members') AND post_policy IN ('eligible_users','members') AND (read_policy<>'members' OR post_policy='members')) AS valid FROM facts), access AS (SELECT eligible.*, (NOT @blocked AND valid AND ((federation_mode='federated' AND read_policy='eligible_users') OR (eligible AND (read_policy='eligible_users' OR member)))) AS ordinary_read, (host_site_id=@site AND @verified AND NOT @blocked AND (@deployment OR @admin OR (valid AND eligible AND (creator_actor_uri=@actor OR manager)))) AS managed FROM eligible), readable AS (SELECT * FROM access WHERE ordinary_read OR managed) "
+    let facts: String = "WITH facts AS (SELECT c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=@actor LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count FROM communities c), eligible AS (SELECT facts.*, (@verified AND NOT @blocked AND @actor <> '' AND (federation_mode='federated' OR (host_site_id=@identity_site AND @account > 0))) AS eligible, (federation_mode IN ('federated','local_only') AND (federation_mode<>'local_only' OR host_site_id IS NOT NULL) AND read_policy IN ('eligible_users','members') AND post_policy IN ('eligible_users','members') AND (read_policy<>'members' OR post_policy='members')) AS valid FROM facts), access AS (SELECT eligible.*, (NOT @blocked AND valid AND ((federation_mode='federated' AND read_policy='eligible_users') OR (eligible AND (read_policy='eligible_users' OR member)))) AS ordinary_read, (host_site_id=@site AND @verified AND NOT @blocked AND (@deployment OR @admin OR (valid AND eligible AND (creator_actor_uri=@actor OR manager)))) AS managed FROM eligible), readable AS (SELECT * FROM access WHERE (ordinary_read OR managed) AND NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND b.kind='community' AND b.target=access.id)) "
     self.DB.WithContext(ctx).Raw(facts + tail, sql.Named("actor", viewer.Identity.ActorURI), sql.Named("site", self.SiteID), sql.Named("identity_site", viewer.Identity.SiteID), sql.Named("account", viewer.Identity.AccountID), sql.Named("verified", viewer.Verified), sql.Named("blocked", viewer.Blocked), sql.Named("admin", viewer.Roles.SiteAdministrator), sql.Named("deployment", viewer.Roles.DeploymentSuperadministrator))
   end
 
@@ -81,7 +88,7 @@ impl BrowserRepository
       return Ok(views)
     end
     # Batch IDs are passed as bound values, never SQL fragments.
-    let query = self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager", viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(Ref.new(views))
+    let query = self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=? LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count", viewer.Identity.ActorURI, viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(Ref.new(views))
     if MutationResult(query).IsErr() then
       return Err("community unavailable")
     end

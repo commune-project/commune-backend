@@ -18,7 +18,11 @@ func ParticipationRoute(
 ) -> Bool
   if SearchRoute(settings, db, site, w, request, parts) ||
     NotificationRoute(settings, db, site, w, request, parts) ||
-    ProfilesRoute(settings, db, site, w, request, parts) then
+    ProfilesRoute(settings, db, site, w, request, parts) ||
+    SiteVoteRoute(settings, db, site, w, request, parts) ||
+    AccountBlockRoute(settings, db, site, w, request, parts) ||
+    AccountContentRoute(settings, db, site, w, request, parts) ||
+    ModerationRoute(settings, db, site, w, request, parts) then
     return true
   end
   if parts.Get(2).UnwrapOr("") != "media" then
