@@ -22,6 +22,7 @@ func TestPostgresGroupFollowPolicy(t: Ref[testing.T]) -> ()
   let communities = storage.CommunityRepository{DB: db, SiteID: a.ID}
   let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let restricted = communities.Create(ctx, a, alice, "restricted", "Restricted", "federated", "members", "members").Unwrap()
+  let approval = communities.CreateWithFollow(ctx, a, alice, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval").Unwrap()
   let fanKey = storage.GeneratePrivatePEM().Unwrap()
   let fan = "https://peer.example/users/fan"
   let member = "https://peer.example/users/member"
@@ -62,15 +63,49 @@ func TestPostgresGroupFollowPolicy(t: Ref[testing.T]) -> ()
   if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "accepted" then
     t.Fatal("an approved member was not admitted to the restricted subscription")
   end
+  let newerFollowURI = "https://peer.example/activities/follow-approved-2"
+  let newerFollow = "{\"id\":\"" + newerFollowURI + "\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", newerFollow, fan, fanKey, date).Code != 202 then
+    t.Fatal("a newer restricted follow was not processed")
+  end
+  if storage.CommunityFollowURI(ctx, db, restricted.ID, fan).Unwrap() != newerFollowURI then
+    t.Fatal("newer follow did not replace the current follow activity")
+  end
   let undo = "{\"id\":\"https://peer.example/activities/undo-restricted\",\"actor\":\"" + fan + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/activities/follow-approved\"}"
   if signedPost(handler, a.Origin, "/users/alice/inbox", undo, fan, fanKey, date).Code != 202 then
     t.Fatal("unsubscribing was not accepted")
+  end
+  if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "accepted" then
+    t.Fatal("stale Undo cleared a newer follow")
+  end
+  let undoNewer = "{\"id\":\"https://peer.example/activities/undo-restricted-2\",\"actor\":\"" + fan + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + newerFollowURI + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", undoNewer, fan, fanKey, date).Code != 202 then
+    t.Fatal("newer Undo was not accepted")
   end
   if storage.CommunityFollowState(ctx, db, restricted.ID, fan).Unwrap() != "undone" then
     t.Fatal("unsubscribing was not recorded")
   end
   if !storage.IsCurrentMember(ctx, db, restricted.ID, fan).Unwrap() then
     t.Fatal("unsubscribing implicitly removed membership")
+  end
+  let approvalFollow = "{\"id\":\"https://peer.example/activities/follow-approval\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + approval.ActorURI.String + "\"}"
+  if signedPost(handler, a.Origin, "/users/alice/inbox", approvalFollow, fan, fanKey, date).Code != 202 then
+    t.Fatal("approval-policy follow was not accepted for review")
+  end
+  if storage.CommunityFollowState(ctx, db, approval.ID, fan).Unwrap() != "pending" ||
+    storage.IsCurrentMember(ctx, db, approval.ID, fan).Unwrap() then
+    t.Fatal("approval follow did not remain pending without membership")
+  end
+  let _ = signedPost(handler, a.Origin, "/users/alice/inbox", approvalFollow, fan, fanKey, date)
+  let _ = ApplyReviewCommunityFollow(ctx, db, a, approval.ID, alice, fan, true).Unwrap()
+  let _ = ApplyReviewCommunityFollow(ctx, db, a, approval.ID, alice, fan, true).Unwrap()
+  if storage.CommunityFollowState(ctx, db, approval.ID, fan).Unwrap() != "accepted" ||
+    !storage.IsCurrentMember(ctx, db, approval.ID, fan).Unwrap() then
+    t.Fatal("approval review did not atomically accept follow and membership")
+  end
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Accept'", approval.ActorURI.String).Count(Ref.new(count))).Unwrap()
+  if count != 1i64 then
+    t.Fatal("approval review did not queue exactly one Accept")
   end
   let group = getAP(handler, a.Origin, "/communities/open", "application/activity+json")
   if group.Code != 200 || !strings.Contains(group.Body.String(), "/moderators") || !strings.Contains(group.Body.String(), "/followers") then

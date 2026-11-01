@@ -19,7 +19,7 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
   if excluded.Unwrap() then
     return Ok(false)
   end
-  if activity.Type == "Like" then
+  if activity.Type == "Like" || activity.Type == "Dislike" then
     let applied = ApplyRemoteReaction(ctx, db, site, activity)
     if applied.IsErr() then return Err(applied.UnwrapErr()) end
     return Ok(false)
@@ -29,6 +29,11 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
     if applied.IsErr() then
       return Err(applied.UnwrapErr())
     end
+    return Ok(false)
+  end
+  if activity.Type == "Accept" || activity.Type == "Reject" then
+    let applied = ApplyFollowResponse(ctx, db, site, activity)
+    if applied.IsErr() then return Err(applied.UnwrapErr()) end
     return Ok(false)
   end
   if activity.Type == "Undo" then

@@ -1,0 +1,114 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct LocalFollowActivity
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Actor: String `json:"actor"`
+  Object: String `json:"object"`
+end
+
+func ApplyBrowserCommunityFollow(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  communityID: String,
+  identity: auth.Identity,
+  follow: Bool
+) -> Result[String, String]
+  let loaded = storage.LoadCommunityByID(ctx, db, communityID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then
+    return Err("not found")
+  end
+  let community = loaded.Unwrap().Unwrap()
+  let remote = community.HostSiteID != site.ID && community.FederationMode == "federated" && community.ActorURI.Valid
+  let priorState = storage.CommunityFollowState(ctx, db, communityID, identity.ActorURI)
+  let priorURI = storage.CommunityFollowURI(ctx, db, communityID, identity.ActorURI)
+  if !follow then
+    if priorState.IsOk() && priorState.Unwrap() == "undone" then
+      return storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, false, "")
+    end
+    let undoURI = if remote && priorURI.IsOk() && storage.CanonicalObjectURI(priorURI.Unwrap()) then site.Origin + "/activities/" + rand.Text() else "" end
+    let changed = storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, false, undoURI)
+    if changed.IsErr() then return Err(changed.UnwrapErr()) end
+    if undoURI == "" || priorURI.IsErr() then return Ok(changed.Unwrap()) end
+    return QueueBrowserFollowActivity(ctx, db, site, community, identity, "Undo", undoURI, priorURI.Unwrap())
+  end
+  if priorState.IsOk() && (priorState.Unwrap() == "accepted" || priorState.Unwrap() == "pending") then
+    let uri = if priorURI.IsOk() then priorURI.Unwrap() else "" end
+    return storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, true, uri)
+  end
+  let followURI = if remote then site.Origin + "/activities/" + rand.Text() else "" end
+  let changed = storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, true, followURI)
+  if changed.IsErr() then return Err(changed.UnwrapErr()) end
+  if !remote || (changed.Unwrap() != "accepted" && changed.Unwrap() != "pending") then
+    return Ok(changed.Unwrap())
+  end
+  let object = community.ActorURI.String
+  let queued = QueueBrowserFollowActivity(ctx, db, site, community, identity, "Follow", followURI, object)
+  if queued.IsErr() then return Err(queued.UnwrapErr()) end
+  Ok(changed.Unwrap())
+end
+
+func QueueBrowserFollowActivity(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  community: storage.CommunityRecord,
+  identity: auth.Identity,
+  kind: String,
+  activityURI: String,
+  objectURI: String
+) -> Result[String, String]
+  if !storage.CanonicalObjectURI(activityURI) || !storage.CanonicalObjectURI(objectURI) then
+    return Err("follow activity unavailable")
+  end
+  let key = storage.EnsureLocalKey(ctx, db, identity.ActorURI)
+  if key.IsErr() then return Err(key.UnwrapErr()) end
+  let payload = json.Marshal(LocalFollowActivity{Context: "https://www.w3.org/ns/activitystreams", ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
+  if payload.IsErr() then return Err("follow activity unavailable") end
+  let stored = storage.InsertActivityPayload(ctx, db, activityURI, identity.ActorURI, kind, payload.Unwrap(), community.ID)
+  if stored.IsErr() then return Err(stored.UnwrapErr()) end
+  let planned = storage.PlanDelivery(ctx, db, activityURI, identity.ActorURI, [community.ActorURI.String], community.ID)
+  if planned.IsErr() then return Err(planned.UnwrapErr()) end
+  Ok(objectURI)
+end
+
+func ApplyReviewCommunityFollow(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  communityID: String,
+  identity: auth.Identity,
+  actorURI: String,
+  accept: Bool
+) -> Result[(), String]
+  let changed = storage.ReviewFollowChanged(ctx, db, site.ID, communityID, identity, actorURI, accept)
+  if changed.IsErr() then
+    return Err(changed.UnwrapErr())
+  end
+  if !changed.Unwrap() then
+    return Ok(())
+  end
+  let loaded = storage.LoadCommunityByID(ctx, db, communityID)
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("community unavailable") end
+  let community = loaded.Unwrap().Unwrap()
+  if community.HostSiteID != site.ID || community.FederationMode != "federated" || !community.ActorURI.Valid then
+    return Ok(())
+  end
+  let actor = storage.LoadActor(ctx, db, actorURI)
+  if actor.IsErr() || actor.Unwrap().IsNone() then return Err("actor unavailable") end
+  if actor.Unwrap().Unwrap().LocalSiteID.Valid then return Ok(()) end
+  let followURI = storage.CommunityFollowURI(ctx, db, communityID, actorURI)
+  if followURI.IsErr() then return Err(followURI.UnwrapErr()) end
+  SendFollowResponse(ctx, db, site, community.ActorURI.String, actorURI, followURI.Unwrap(), if accept then "Accept" else "Reject" end)
+end

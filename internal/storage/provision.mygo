@@ -25,6 +25,11 @@ func ProvisionSite(ctx: context.Context, db: Ref[gorm.DB], site: config.Site) ->
     if MutationResult(insert).IsErr() || insert.RowsAffected != 1i64 then
       return Err("site identity conflicts with existing configuration")
     end
+    if tx.Migrator().HasTable("site_vote_settings") then
+      if MutationResult(tx.Exec("INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING", site.ID)).IsErr() then
+        return Err("cannot provision vote settings")
+      end
+    end
     let authorities = site.Aliases.Append(strings.TrimPrefix(origin, "https://"))
     authorities.Fold(Ok[(), String](()), func(previous: Result[(), String], authority: String) -> Result[(), String]
       if previous.IsErr() then

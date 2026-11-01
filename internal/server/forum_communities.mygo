@@ -178,7 +178,7 @@ func CommunityMemberRoute(
   end
   let identity = actor.Unwrap()
   if section == "follow" && (request.Method == "POST" || request.Method == "DELETE") then
-    let result = storage.BrowserFollow(request.Context(), db, site.ID, id, identity, request.Method == "POST")
+    let result = ApplyBrowserCommunityFollow(request.Context(), settings, db, site, id, identity, request.Method == "POST")
     if result.IsErr() then
       Fail(w, result.UnwrapErr())
     else
@@ -198,28 +198,28 @@ func CommunityMemberRoute(
       WriteErrorJSON(w, 400, "invalid state")
       return
     end
-    Settle(w, storage.ReviewFollow(request.Context(), db, site.ID, id, identity, parts.Get(5).Unwrap(), accepted))
+    Settle(w, ApplyReviewCommunityFollow(request.Context(), db, site, id, identity, parts.Get(5).Unwrap(), accepted))
     return
   end
   if section == "policy" then
-    let input = PolicyInput {}
-    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if request.Method != "PUT" then
       MethodNotAllowed(w, "PUT")
+      return
+    end
+    let input = PolicyInput {}
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr())
     else
-      if decoded.IsErr() then
-        WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      let result = if input.FollowPolicy == "" then
+        communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
       else
-        let result = if input.FollowPolicy == "" then
-          communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
-        else
-          communities.SetPolicyAll(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy, input.FollowPolicy)
-        end
-        if result.IsErr() then
-          Fail(w, result.UnwrapErr())
-        else
-          w.WriteHeader(204)
-        end
+        communities.SetPolicyAll(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy, input.FollowPolicy)
+      end
+      if result.IsErr() then
+        Fail(w, result.UnwrapErr())
+      else
+        w.WriteHeader(204)
       end
     end
     return
@@ -231,7 +231,7 @@ func CommunityMemberRoute(
       WriteErrorJSON(w, 400, "invalid ban")
       return
     end
-    let expiry = BanExpiry(input.ExpiresAt)
+    let expiry = ParseBanExpiry(input.ExpiresAt)
     if expiry.IsErr() then
       WriteErrorJSON(w, 400, "invalid ban")
       return

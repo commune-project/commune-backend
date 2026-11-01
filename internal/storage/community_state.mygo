@@ -8,6 +8,7 @@ struct ReplicaCommunity
   ActorURI: String `gorm:"column:actor_uri"`
   ReadPolicy: String `gorm:"column:read_policy"`
   PostPolicy: String `gorm:"column:post_policy"`
+  FollowPolicy: String `gorm:"column:follow_policy"`
 end
 
 # A replica is a federated community we do not host: its host is authoritative for

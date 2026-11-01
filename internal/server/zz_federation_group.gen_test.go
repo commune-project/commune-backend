@@ -34,6 +34,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
 	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
+	approval := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, a, alice, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval"))
 	fanKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
 	fan := "https://peer.example/users/fan"
 	member := "https://peer.example/users/member"
@@ -41,83 +42,123 @@ import . "github.com/mygo-lang/mygo/prelude"
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	openFollow := "{\"id\":\"https://peer.example/activities/follow-open\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + open.ActorURI.String + "\"}"
- /*line federation_group_test.mygo:32:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", openFollow, fan, fanKey, date).Code != 202 {
- /*line federation_group_test.mygo:33:5*/		t.Fatal("an open community follow was not accepted")
- /*line federation_group_test.mygo:32:6*/	} else {
- /*line zz_federation_group.gen_test.go:47:1*/	}
- /*line federation_group_test.mygo:35:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, open.ID, fan)) != "accepted" {
- /*line federation_group_test.mygo:36:5*/		t.Fatal("an open community subscription was not recorded as accepted")
- /*line federation_group_test.mygo:35:6*/	} else {
- /*line zz_federation_group.gen_test.go:51:1*/	}
+ /*line federation_group_test.mygo:33:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", openFollow, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:34:5*/		t.Fatal("an open community follow was not accepted")
+ /*line federation_group_test.mygo:33:6*/	} else {
+ /*line zz_federation_group.gen_test.go:48:1*/	}
+ /*line federation_group_test.mygo:36:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, open.ID, fan)) != "accepted" {
+ /*line federation_group_test.mygo:37:5*/		t.Fatal("an open community subscription was not recorded as accepted")
+ /*line federation_group_test.mygo:36:6*/	} else {
+ /*line zz_federation_group.gen_test.go:52:1*/	}
  /*line federation_group_test.mygo:13:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Accept'", open.ActorURI.String).Count(&count)))
- /*line federation_group_test.mygo:40:6*/	if count != int64(1) {
- /*line federation_group_test.mygo:41:5*/		t.Fatal("an accepted subscription did not issue an Accept")
- /*line federation_group_test.mygo:40:6*/	} else {
- /*line zz_federation_group.gen_test.go:57:1*/	}
+ /*line federation_group_test.mygo:41:6*/	if count != int64(1) {
+ /*line federation_group_test.mygo:42:5*/		t.Fatal("an accepted subscription did not issue an Accept")
+ /*line federation_group_test.mygo:41:6*/	} else {
+ /*line zz_federation_group.gen_test.go:58:1*/	}
  /*line federation_group_test.mygo:13:1*/	restrictedFollow := "{\"id\":\"https://peer.example/activities/follow-restricted\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
- /*line federation_group_test.mygo:44:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", restrictedFollow, fan, fanKey, date).Code != 202 {
- /*line federation_group_test.mygo:45:5*/		t.Fatal("a restricted community follow was not processed")
- /*line federation_group_test.mygo:44:6*/	} else {
- /*line zz_federation_group.gen_test.go:62:1*/	}
- /*line federation_group_test.mygo:47:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "rejected" {
- /*line federation_group_test.mygo:48:5*/		t.Fatal("a non-member was admitted to a members-only subscription")
- /*line federation_group_test.mygo:47:6*/	} else {
- /*line zz_federation_group.gen_test.go:66:1*/	}
+ /*line federation_group_test.mygo:45:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", restrictedFollow, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:46:5*/		t.Fatal("a restricted community follow was not processed")
+ /*line federation_group_test.mygo:45:6*/	} else {
+ /*line zz_federation_group.gen_test.go:63:1*/	}
+ /*line federation_group_test.mygo:48:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "rejected" {
+ /*line federation_group_test.mygo:49:5*/		t.Fatal("a non-member was admitted to a members-only subscription")
+ /*line federation_group_test.mygo:48:6*/	} else {
+ /*line zz_federation_group.gen_test.go:67:1*/	}
  /*line federation_group_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Reject'", restricted.ActorURI.String).Count(&count)))
- /*line federation_group_test.mygo:51:6*/	if count != int64(1) {
- /*line federation_group_test.mygo:52:5*/		t.Fatal("a rejected subscription did not issue a Reject")
- /*line federation_group_test.mygo:51:6*/	} else {
- /*line zz_federation_group.gen_test.go:71:1*/	}
- /*line federation_group_test.mygo:54:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, restricted.ID, fan)) {
- /*line federation_group_test.mygo:55:5*/		t.Fatal("a subscription granted membership")
- /*line federation_group_test.mygo:54:6*/	} else {
- /*line zz_federation_group.gen_test.go:75:1*/	}
+ /*line federation_group_test.mygo:52:6*/	if count != int64(1) {
+ /*line federation_group_test.mygo:53:5*/		t.Fatal("a rejected subscription did not issue a Reject")
+ /*line federation_group_test.mygo:52:6*/	} else {
+ /*line zz_federation_group.gen_test.go:72:1*/	}
+ /*line federation_group_test.mygo:55:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, restricted.ID, fan)) {
+ /*line federation_group_test.mygo:56:5*/		t.Fatal("a subscription granted membership")
+ /*line federation_group_test.mygo:55:6*/	} else {
+ /*line zz_federation_group.gen_test.go:76:1*/	}
  /*line federation_group_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, fan, alice.ActorURI)))
 	approvedFollow := "{\"id\":\"https://peer.example/activities/follow-approved\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
- /*line federation_group_test.mygo:59:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", approvedFollow, fan, fanKey, date).Code != 202 {
- /*line federation_group_test.mygo:60:5*/		t.Fatal("an approved member's follow was not processed")
- /*line federation_group_test.mygo:59:6*/	} else {
- /*line zz_federation_group.gen_test.go:81:1*/	}
- /*line federation_group_test.mygo:62:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "accepted" {
- /*line federation_group_test.mygo:63:5*/		t.Fatal("an approved member was not admitted to the restricted subscription")
- /*line federation_group_test.mygo:62:6*/	} else {
- /*line zz_federation_group.gen_test.go:85:1*/	}
+ /*line federation_group_test.mygo:60:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", approvedFollow, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:61:5*/		t.Fatal("an approved member's follow was not processed")
+ /*line federation_group_test.mygo:60:6*/	} else {
+ /*line zz_federation_group.gen_test.go:82:1*/	}
+ /*line federation_group_test.mygo:63:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "accepted" {
+ /*line federation_group_test.mygo:64:5*/		t.Fatal("an approved member was not admitted to the restricted subscription")
+ /*line federation_group_test.mygo:63:6*/	} else {
+ /*line zz_federation_group.gen_test.go:86:1*/	}
+ /*line federation_group_test.mygo:13:1*/	newerFollowURI := "https://peer.example/activities/follow-approved-2"
+	newerFollow := "{\"id\":\"" + newerFollowURI + "\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + restricted.ActorURI.String + "\"}"
+ /*line federation_group_test.mygo:68:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", newerFollow, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:69:5*/		t.Fatal("a newer restricted follow was not processed")
+ /*line federation_group_test.mygo:68:6*/	} else {
+ /*line zz_federation_group.gen_test.go:92:1*/	}
+ /*line federation_group_test.mygo:71:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowURI(ctx, db, restricted.ID, fan)) != newerFollowURI {
+ /*line federation_group_test.mygo:72:5*/		t.Fatal("newer follow did not replace the current follow activity")
+ /*line federation_group_test.mygo:71:6*/	} else {
+ /*line zz_federation_group.gen_test.go:96:1*/	}
  /*line federation_group_test.mygo:13:1*/	undo := "{\"id\":\"https://peer.example/activities/undo-restricted\",\"actor\":\"" + fan + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/activities/follow-approved\"}"
- /*line federation_group_test.mygo:66:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", undo, fan, fanKey, date).Code != 202 {
- /*line federation_group_test.mygo:67:5*/		t.Fatal("unsubscribing was not accepted")
- /*line federation_group_test.mygo:66:6*/	} else {
- /*line zz_federation_group.gen_test.go:90:1*/	}
- /*line federation_group_test.mygo:69:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "undone" {
- /*line federation_group_test.mygo:70:5*/		t.Fatal("unsubscribing was not recorded")
- /*line federation_group_test.mygo:69:6*/	} else {
- /*line zz_federation_group.gen_test.go:94:1*/	}
- /*line federation_group_test.mygo:72:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, restricted.ID, fan)) {
- /*line federation_group_test.mygo:73:5*/		t.Fatal("unsubscribing implicitly removed membership")
- /*line federation_group_test.mygo:72:6*/	} else {
- /*line zz_federation_group.gen_test.go:98:1*/	}
+ /*line federation_group_test.mygo:75:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", undo, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:76:5*/		t.Fatal("unsubscribing was not accepted")
+ /*line federation_group_test.mygo:75:6*/	} else {
+ /*line zz_federation_group.gen_test.go:101:1*/	}
+ /*line federation_group_test.mygo:78:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "accepted" {
+ /*line federation_group_test.mygo:79:5*/		t.Fatal("stale Undo cleared a newer follow")
+ /*line federation_group_test.mygo:78:6*/	} else {
+ /*line zz_federation_group.gen_test.go:105:1*/	}
+ /*line federation_group_test.mygo:13:1*/	undoNewer := "{\"id\":\"https://peer.example/activities/undo-restricted-2\",\"actor\":\"" + fan + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + newerFollowURI + "\"}"
+ /*line federation_group_test.mygo:82:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", undoNewer, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:83:5*/		t.Fatal("newer Undo was not accepted")
+ /*line federation_group_test.mygo:82:6*/	} else {
+ /*line zz_federation_group.gen_test.go:110:1*/	}
+ /*line federation_group_test.mygo:85:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, restricted.ID, fan)) != "undone" {
+ /*line federation_group_test.mygo:86:5*/		t.Fatal("unsubscribing was not recorded")
+ /*line federation_group_test.mygo:85:6*/	} else {
+ /*line zz_federation_group.gen_test.go:114:1*/	}
+ /*line federation_group_test.mygo:88:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, restricted.ID, fan)) {
+ /*line federation_group_test.mygo:89:5*/		t.Fatal("unsubscribing implicitly removed membership")
+ /*line federation_group_test.mygo:88:6*/	} else {
+ /*line zz_federation_group.gen_test.go:118:1*/	}
+ /*line federation_group_test.mygo:13:1*/	approvalFollow := "{\"id\":\"https://peer.example/activities/follow-approval\",\"actor\":\"" + fan + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + approval.ActorURI.String + "\"}"
+ /*line federation_group_test.mygo:92:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", approvalFollow, fan, fanKey, date).Code != 202 {
+ /*line federation_group_test.mygo:93:5*/		t.Fatal("approval-policy follow was not accepted for review")
+ /*line federation_group_test.mygo:92:6*/	} else {
+ /*line zz_federation_group.gen_test.go:123:1*/	}
+ /*line federation_group_test.mygo:95:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, fan)) != "pending" || MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, fan)) {
+ /*line federation_group_test.mygo:97:5*/		t.Fatal("approval follow did not remain pending without membership")
+ /*line federation_group_test.mygo:95:6*/	} else {
+ /*line zz_federation_group.gen_test.go:127:1*/	}
+ /*line federation_group_test.mygo:13:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", approvalFollow, fan, fanKey, date)
+	MygoIN6ResultM6Unwrap[struct{}, string](ApplyReviewCommunityFollow(ctx, db, a, approval.ID, alice, fan, true))
+	MygoIN6ResultM6Unwrap[struct{}, string](ApplyReviewCommunityFollow(ctx, db, a, approval.ID, alice, fan, true))
+ /*line federation_group_test.mygo:102:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, fan)) != "accepted" || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, fan)) {
+ /*line federation_group_test.mygo:104:5*/		t.Fatal("approval review did not atomically accept follow and membership")
+ /*line federation_group_test.mygo:102:6*/	} else {
+ /*line zz_federation_group.gen_test.go:134:1*/	}
+ /*line federation_group_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Accept'", approval.ActorURI.String).Count(&count)))
+ /*line federation_group_test.mygo:107:6*/	if count != int64(1) {
+ /*line federation_group_test.mygo:108:5*/		t.Fatal("approval review did not queue exactly one Accept")
+ /*line federation_group_test.mygo:107:6*/	} else {
+ /*line zz_federation_group.gen_test.go:139:1*/	}
  /*line federation_group_test.mygo:13:1*/	group := getAP(handler, a.Origin, "/communities/open", "application/activity+json")
- /*line federation_group_test.mygo:76:6*/	if group.Code != 200 || !strings.Contains(group.Body.String(), "/moderators") || !strings.Contains(group.Body.String(), "/followers") {
- /*line federation_group_test.mygo:77:5*/		t.Fatalf("the Group did not advertise its management and follower collections: %d %s", group.Code, group.Body.String())
- /*line federation_group_test.mygo:76:6*/	} else {
- /*line zz_federation_group.gen_test.go:103:1*/	}
- /*line federation_group_test.mygo:79:6*/	if getAP(handler, a.Origin, "/communities/restricted/moderators", "application/activity+json").Code != 404 {
- /*line federation_group_test.mygo:80:5*/		t.Fatal("an unsigned read reached a protected management collection")
- /*line federation_group_test.mygo:79:6*/	} else {
- /*line zz_federation_group.gen_test.go:107:1*/	}
+ /*line federation_group_test.mygo:111:6*/	if group.Code != 200 || !strings.Contains(group.Body.String(), "/moderators") || !strings.Contains(group.Body.String(), "/followers") {
+ /*line federation_group_test.mygo:112:5*/		t.Fatalf("the Group did not advertise its management and follower collections: %d %s", group.Code, group.Body.String())
+ /*line federation_group_test.mygo:111:6*/	} else {
+ /*line zz_federation_group.gen_test.go:144:1*/	}
+ /*line federation_group_test.mygo:114:6*/	if getAP(handler, a.Origin, "/communities/restricted/moderators", "application/activity+json").Code != 404 {
+ /*line federation_group_test.mygo:115:5*/		t.Fatal("an unsigned read reached a protected management collection")
+ /*line federation_group_test.mygo:114:6*/	} else {
+ /*line zz_federation_group.gen_test.go:148:1*/	}
  /*line federation_group_test.mygo:13:1*/	membersKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE actors SET public_key_pem = ? WHERE uri = ?", MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(membersKey)), member)))
 	managerRead := signedGet(handler, a.Origin, "/communities/restricted/moderators", member, membersKey, date)
- /*line federation_group_test.mygo:85:6*/	if managerRead.Code != 404 {
- /*line federation_group_test.mygo:86:5*/		t.Fatal("a non-manager member read the management collection")
- /*line federation_group_test.mygo:85:6*/	} else {
- /*line zz_federation_group.gen_test.go:114:1*/	}
+ /*line federation_group_test.mygo:120:6*/	if managerRead.Code != 404 {
+ /*line federation_group_test.mygo:121:5*/		t.Fatal("a non-manager member read the management collection")
+ /*line federation_group_test.mygo:120:6*/	} else {
+ /*line zz_federation_group.gen_test.go:155:1*/	}
  /*line federation_group_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, member, alice.ActorURI)))
 	publicMods := getAP(handler, a.Origin, "/communities/open/moderators", "application/activity+json")
- /*line federation_group_test.mygo:90:6*/	if publicMods.Code != 200 || !strings.Contains(publicMods.Body.String(), alice.ActorURI) {
- /*line federation_group_test.mygo:91:5*/		t.Fatalf("the open management collection did not list the creator: %d %s", publicMods.Code, publicMods.Body.String())
+ /*line federation_group_test.mygo:125:6*/	if publicMods.Code != 200 || !strings.Contains(publicMods.Body.String(), alice.ActorURI) {
+ /*line federation_group_test.mygo:126:5*/		t.Fatalf("the open management collection did not list the creator: %d %s", publicMods.Code, publicMods.Body.String())
 		return
- /*line federation_group_test.mygo:90:6*/	} else {
- /*line federation_group_test.mygo:90:3*/		return
- /*line zz_federation_group.gen_test.go:122:1*/	}
+ /*line federation_group_test.mygo:125:6*/	} else {
+ /*line federation_group_test.mygo:125:3*/		return
+ /*line zz_federation_group.gen_test.go:163:1*/	}
 }

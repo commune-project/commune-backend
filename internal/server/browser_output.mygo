@@ -14,6 +14,8 @@ struct CommunityViewerOutput
   IsCreator: Bool `json:"is_creator"`
   IsManager: Bool `json:"is_manager"`
   ManagementScope: String `json:"management_scope"`
+  IsFollowing: Bool `json:"is_following"`
+  FollowState: String `json:"follow_state"`
   CanFollow: Bool `json:"can_follow"`
 end
 
@@ -79,10 +81,12 @@ func BrowserCommunityDTO(
     IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI,
     IsManager: viewer.Verified && view.Manager,
     ManagementScope: access.Authority.Scope,
+    IsFollowing: accepted,
+    FollowState: state,
     CanFollow: canFollow,
   }
   output.FollowPolicy = policy
-  output.FollowerCount = view.FollowerCount
+  output.FollowerCount = if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) then view.FollowerCount else 0i64 end
   output.Permissions = CommunityPermissions {
     CanPost: view.Record.HostSiteID == repository.SiteID &&
       viewer.Identity.BelongsTo(repository.SiteID) &&
@@ -224,6 +228,9 @@ func ThreadBefore(left: PostOutput, right: PostOutput, mode: String) -> Bool
       if left.Score != right.Score then
         return left.Score > right.Score
       end
+      if !left.AuthoredAt.Equal(right.AuthoredAt) then
+        return left.AuthoredAt.After(right.AuthoredAt)
+      end
     else
       if mode == "controversial" then
         let leftBalance = if left.Upvotes < left.Downvotes then
@@ -241,6 +248,9 @@ func ThreadBefore(left: PostOutput, right: PostOutput, mode: String) -> Bool
         end
         if left.Score != right.Score then
           return left.Score < right.Score
+        end
+        if !left.AuthoredAt.Equal(right.AuthoredAt) then
+          return left.AuthoredAt.After(right.AuthoredAt)
         end
       else
         if !left.AuthoredAt.Equal(right.AuthoredAt) then

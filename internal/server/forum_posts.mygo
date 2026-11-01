@@ -179,6 +179,14 @@ func PostSectionRoute(
     ReplyRoute(settings, db, site, w, request, id)
     return
   end
+  if section == "vote" && request.Method != "POST" then
+    MethodNotAllowed(w, "POST")
+    return
+  end
+  if section == "likes" && request.Method != "POST" && request.Method != "DELETE" then
+    MethodNotAllowed(w, "POST, DELETE")
+    return
+  end
   let actor = RequireMutation(settings, db, site, request)
   if actor.IsErr() then
     Fail(w, actor.UnwrapErr())
@@ -193,6 +201,10 @@ func PostSectionRoute(
       Fail(w, readable.UnwrapErr())
       return
     end
+    if readable.Unwrap().DeletedAt.Valid then
+      Fail(w, "not found")
+      return
+    end
     let state = storage.ContentStateRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
     var result: Result[(), String] = Err("not found")
     if section == "save" then
@@ -205,36 +217,24 @@ func PostSectionRoute(
     Settle(w, result)
     return
   end
-  if section == "vote" && request.Method == "POST" then
+  if section == "vote" then
     let input = VoteInput{}
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, "invalid vote")
       return
     end
-    if (input.Score as Slice[Byte]).Len() == 0 then
+    let score = ParseVoteValue(input.Score)
+    if score.IsErr() then
       WriteErrorJSON(w, 400, "invalid vote")
       return
     end
-    let score = 0
-    if json.Unmarshal(input.Score as Slice[Byte], Ref.new(score)).IsErr() || (score != -1 && score != 0 && score != 1) then
-      WriteErrorJSON(w, 400, "invalid vote")
-      return
-    end
-    let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
-    Settle(w, reactions.Vote(request.Context(), id, identity, false, score, ""))
+    Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score.Unwrap()))
     return
   end
   if section == "likes" then
-    let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
-    var result: Result[(), String] = Err("not found")
-    if request.Method == "POST" then
-      result = reactions.Like(request.Context(), id, identity, false, "")
-    end
-    if request.Method == "DELETE" then
-      result = reactions.Undo(request.Context(), id, identity, false)
-    end
-    Settle(w, result)
+    let score = if request.Method == "POST" then 1 else 0 end
+    Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
     return
   end
   if section == "import" && request.Method == "POST" then

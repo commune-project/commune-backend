@@ -7,61 +7,62 @@ import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line community_state.mygo:6:1*/type ReplicaCommunity struct {
-	ID         string "gorm:\"column:id\""
-	ActorURI   string "gorm:\"column:actor_uri\""
-	ReadPolicy string "gorm:\"column:read_policy\""
-	PostPolicy string "gorm:\"column:post_policy\""
- /*line zz_community_state.gen.go:14:1*/}
+	ID           string "gorm:\"column:id\""
+	ActorURI     string "gorm:\"column:actor_uri\""
+	ReadPolicy   string "gorm:\"column:read_policy\""
+	PostPolicy   string "gorm:\"column:post_policy\""
+	FollowPolicy string "gorm:\"column:follow_policy\""
+ /*line zz_community_state.gen.go:15:1*/}
 
- /*line community_state.mygo:15:1*/func LoadReplicaCommunity(ctx context.Context, db *gorm.DB, actorURI string) Result[Option[ReplicaCommunity], string] {
+ /*line community_state.mygo:16:1*/func LoadReplicaCommunity(ctx context.Context, db *gorm.DB, actorURI string) Result[Option[ReplicaCommunity], string] {
 	record := ReplicaCommunity{}
 	query := db.WithContext(ctx).Table("communities").Where("actor_uri = ? AND host_site_id IS NULL AND federation_mode = 'federated'", actorURI).Limit(1).Find(&record)
- /*line community_state.mygo:18:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line community_state.mygo:19:12*/		return Err[Option[ReplicaCommunity], string]("community unavailable")
- /*line community_state.mygo:18:6*/	} else {
- /*line zz_community_state.gen.go:22:1*/	}
- /*line community_state.mygo:21:6*/	if query.RowsAffected != int64(1) {
- /*line community_state.mygo:22:12*/		return Ok[Option[ReplicaCommunity], string](None[ReplicaCommunity]())
- /*line community_state.mygo:21:6*/	} else {
- /*line zz_community_state.gen.go:26:1*/	}
- /*line community_state.mygo:24:3*/	return Ok[Option[ReplicaCommunity], string](Some[ReplicaCommunity](record))
- /*line zz_community_state.gen.go:28:1*/}
- /*line community_state.mygo:27:1*/func ApplyCommunityPolicy(ctx context.Context, db *gorm.DB, communityID string, readPolicy string, postPolicy string) Result[int64, string] {
+ /*line community_state.mygo:19:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line community_state.mygo:20:12*/		return Err[Option[ReplicaCommunity], string]("community unavailable")
+ /*line community_state.mygo:19:6*/	} else {
+ /*line zz_community_state.gen.go:23:1*/	}
+ /*line community_state.mygo:22:6*/	if query.RowsAffected != int64(1) {
+ /*line community_state.mygo:23:12*/		return Ok[Option[ReplicaCommunity], string](None[ReplicaCommunity]())
+ /*line community_state.mygo:22:6*/	} else {
+ /*line zz_community_state.gen.go:27:1*/	}
+ /*line community_state.mygo:25:3*/	return Ok[Option[ReplicaCommunity], string](Some[ReplicaCommunity](record))
+ /*line zz_community_state.gen.go:29:1*/}
+ /*line community_state.mygo:28:1*/func ApplyCommunityPolicy(ctx context.Context, db *gorm.DB, communityID string, readPolicy string, postPolicy string) Result[int64, string] {
 	readValid := readPolicy == "eligible_users" || readPolicy == "members"
 	postValid := postPolicy == "eligible_users" || postPolicy == "members"
- /*line community_state.mygo:30:6*/	if !readValid || !postValid || readPolicy == "members" && postPolicy != "members" {
- /*line community_state.mygo:31:12*/		return Err[int64, string]("invalid access policy")
- /*line community_state.mygo:30:6*/	} else {
- /*line zz_community_state.gen.go:35:1*/	}
- /*line community_state.mygo:27:1*/	updated := db.WithContext(ctx).Exec("UPDATE communities SET read_policy = ?, post_policy = ?, policy_version = policy_version + 1 WHERE id = ? AND host_site_id IS NULL", readPolicy, postPolicy, communityID)
- /*line community_state.mygo:34:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(updated)) {
- /*line community_state.mygo:35:12*/		return Err[int64, string]("state update failed")
- /*line community_state.mygo:34:6*/	} else {
- /*line zz_community_state.gen.go:40:1*/	}
- /*line community_state.mygo:37:3*/	return Ok[int64, string](updated.RowsAffected)
- /*line zz_community_state.gen.go:42:1*/}
- /*line community_state.mygo:42:1*/func ReplaceReplicaMembers(ctx context.Context, db *gorm.DB, communityID string, authorityActorURI string, approved []string) Result[struct {
+ /*line community_state.mygo:31:6*/	if !readValid || !postValid || readPolicy == "members" && postPolicy != "members" {
+ /*line community_state.mygo:32:12*/		return Err[int64, string]("invalid access policy")
+ /*line community_state.mygo:31:6*/	} else {
+ /*line zz_community_state.gen.go:36:1*/	}
+ /*line community_state.mygo:28:1*/	updated := db.WithContext(ctx).Exec("UPDATE communities SET read_policy = ?, post_policy = ?, policy_version = policy_version + 1 WHERE id = ? AND host_site_id IS NULL", readPolicy, postPolicy, communityID)
+ /*line community_state.mygo:35:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(updated)) {
+ /*line community_state.mygo:36:12*/		return Err[int64, string]("state update failed")
+ /*line community_state.mygo:35:6*/	} else {
+ /*line zz_community_state.gen.go:41:1*/	}
+ /*line community_state.mygo:38:3*/	return Ok[int64, string](updated.RowsAffected)
+ /*line zz_community_state.gen.go:43:1*/}
+ /*line community_state.mygo:43:1*/func ReplaceReplicaMembers(ctx context.Context, db *gorm.DB, communityID string, authorityActorURI string, approved []string) Result[struct {
 }, string] {
- /*line community_state.mygo:43:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line community_state.mygo:44:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND revoked_at IS NULL", communityID))) {
- /*line community_state.mygo:45:14*/			return Err[struct{}, string]("membership update failed")
- /*line community_state.mygo:44:8*/		} else {
- /*line zz_community_state.gen.go:49:1*/		}
- /*line community_state.mygo:43:27*/		failed := false
- /*line community_state.mygo:48:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(approved, func(member string) {
- /*line community_state.mygo:48:19*/			inserted := tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by, approved_at=now(), revoked_at=NULL", communityID, member, authorityActorURI)
- /*line community_state.mygo:50:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
+ /*line community_state.mygo:44:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line community_state.mygo:45:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND revoked_at IS NULL", communityID))) {
+ /*line community_state.mygo:46:14*/			return Err[struct{}, string]("membership update failed")
+ /*line community_state.mygo:45:8*/		} else {
+ /*line zz_community_state.gen.go:50:1*/		}
+ /*line community_state.mygo:44:27*/		failed := false
+ /*line community_state.mygo:49:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(approved, func(member string) {
+ /*line community_state.mygo:49:19*/			inserted := tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by, approved_at=now(), revoked_at=NULL", communityID, member, authorityActorURI)
+ /*line community_state.mygo:51:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
 				failed = true
 				return
 			} else {
- /*line community_state.mygo:50:7*/				return
- /*line zz_community_state.gen.go:58:1*/			}
+ /*line community_state.mygo:51:7*/				return
+ /*line zz_community_state.gen.go:59:1*/			}
 		})
- /*line community_state.mygo:54:8*/		if failed {
- /*line community_state.mygo:55:14*/			return Err[struct{}, string]("membership update failed")
- /*line community_state.mygo:54:8*/		} else {
- /*line zz_community_state.gen.go:63:1*/		}
- /*line community_state.mygo:57:5*/		return Ok[struct{}, string](struct {
- /*line zz_community_state.gen.go:65:1*/		}{})
+ /*line community_state.mygo:55:8*/		if failed {
+ /*line community_state.mygo:56:14*/			return Err[struct{}, string]("membership update failed")
+ /*line community_state.mygo:55:8*/		} else {
+ /*line zz_community_state.gen.go:64:1*/		}
+ /*line community_state.mygo:58:5*/		return Ok[struct{}, string](struct {
+ /*line zz_community_state.gen.go:66:1*/		}{})
 	})
 }

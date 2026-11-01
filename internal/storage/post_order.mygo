@@ -1,0 +1,35 @@
+package storage
+
+func PostVoteScoreSQL(alias: String, upEnabled: Bool, downEnabled: Bool) -> String
+  let up = if upEnabled then "true" else "false" end
+  let down = if downEnabled then "true" else "false" end
+  "COALESCE((SELECT sum(CASE WHEN r.score=1 AND " + up + " THEN 1 WHEN r.score=-1 AND " + down + " THEN -1 ELSE 0 END) FROM reactions r WHERE r.post_id=" + alias + ".id AND r.undone_at IS NULL),0)"
+end
+
+func PostVoteSideSQL(alias: String, score: Int, enabled: Bool) -> String
+  if !enabled then
+    return "0"
+  end
+  "COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=" + alias + ".id AND r.undone_at IS NULL AND r.score=" + score.ToString() + "),0)"
+end
+
+func PostSortSQL(alias: String, sort: String, upEnabled: Bool, downEnabled: Bool) -> String
+  let time = alias + ".authored_at"
+  let id = alias + ".id"
+  if sort == "old" then
+    return time + "," + id
+  end
+  let score = PostVoteScoreSQL(alias, upEnabled, downEnabled)
+  if sort == "top" then
+    return score + " DESC," + time + " DESC," + id
+  end
+  if sort == "controversial" then
+    let up = PostVoteSideSQL(alias, 1, upEnabled)
+    let down = PostVoteSideSQL(alias, -1, downEnabled)
+    return "LEAST((" + up + "),(" + down + ")) DESC," + score + " DESC," + time + " DESC," + id
+  end
+  if sort == "hot" then
+    return "((" + score + ")::double precision / (1.0 + GREATEST(EXTRACT(EPOCH FROM (now()-" + time + ")),0.0)/86400.0)) DESC," + time + " DESC," + id
+  end
+  time + " DESC," + id
+end

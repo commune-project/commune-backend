@@ -55,13 +55,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_blocks.mygo:55:12*/		return true
  /*line account_blocks.mygo:53:6*/	} else {
  /*line zz_account_blocks.gen.go:57:1*/	}
+ /*line account_blocks.mygo:17:1*/	kind := ParseBlockKind(input.Kind)
+ /*line account_blocks.mygo:58:6*/	if MygoIN6ResultM5IsErr[string, string](kind) {
+ /*line account_blocks.mygo:59:5*/		WriteErrorJSON(w, 400, "invalid block")
+ /*line account_blocks.mygo:60:12*/		return true
+ /*line account_blocks.mygo:58:6*/	} else {
+ /*line zz_account_blocks.gen.go:63:1*/	}
  /*line account_blocks.mygo:17:1*/	var __mygo_expr_0 Result[struct{}, string]
 	if request.Method == "POST" {
-		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM3Add(repository, request.Context(), identity, input.Kind, input.Target)
+		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM3Add(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, string](kind), input.Target)
 	} else {
-		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM6Remove(repository, request.Context(), identity, input.Kind, input.Target)
- /*line zz_account_blocks.gen.go:63:1*/	}
+		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM6Remove(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, string](kind), input.Target)
+ /*line zz_account_blocks.gen.go:69:1*/	}
  /*line account_blocks.mygo:17:1*/	result := __mygo_expr_0
- /*line account_blocks.mygo:62:3*/	Settle(w, result)
- /*line account_blocks.mygo:63:3*/	return true
- /*line zz_account_blocks.gen.go:67:1*/}
+ /*line account_blocks.mygo:67:3*/	Settle(w, result)
+ /*line account_blocks.mygo:68:3*/	return true
+ /*line zz_account_blocks.gen.go:73:1*/}

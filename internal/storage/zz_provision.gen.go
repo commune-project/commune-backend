@@ -33,98 +33,105 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line provision.mygo:26:14*/			return Err[struct{}, string]("site identity conflicts with existing configuration")
  /*line provision.mygo:25:8*/		} else {
  /*line zz_provision.gen.go:35:1*/		}
+ /*line provision.mygo:28:8*/		if tx.Migrator().HasTable("site_vote_settings") {
+			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING", site.ID))) {
+ /*line provision.mygo:30:16*/				return Err[struct{}, string]("cannot provision vote settings")
+ /*line provision.mygo:28:8*/			} else {
+ /*line zz_provision.gen.go:40:1*/			}
+ /*line provision.mygo:28:8*/		} else {
+ /*line zz_provision.gen.go:42:1*/		}
  /*line provision.mygo:23:27*/		authorities := MygoIN5SliceM6Append(site.Aliases, strings.TrimPrefix(origin, "https://"))
- /*line provision.mygo:29:5*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(authorities, Ok[struct{}, string](struct {
- /*line provision.mygo:29:42*/		}{}), func(previous Result[struct{}, string], authority string) Result[struct{}, string] {
- /*line provision.mygo:30:10*/			if MygoIN6ResultM5IsErr[struct{}, string](previous) {
- /*line provision.mygo:31:16*/				return previous
- /*line provision.mygo:30:10*/			} else {
- /*line zz_provision.gen.go:42:1*/			}
- /*line provision.mygo:29:42*/			normalized := config.NormalizeAuthority(authority)
- /*line provision.mygo:34:10*/			if MygoIN6ResultM5IsErr[string, string](normalized) {
- /*line provision.mygo:35:16*/				return Err[struct{}, string]("invalid site authority")
- /*line provision.mygo:34:10*/			} else {
- /*line zz_provision.gen.go:47:1*/			}
- /*line provision.mygo:29:42*/			insert_1 := tx.Exec("INSERT INTO site_authorities(authority,site_id) VALUES (?,?) ON CONFLICT(authority) DO UPDATE SET site_id=site_authorities.site_id WHERE site_authorities.site_id=excluded.site_id", MygoIN6ResultM6Unwrap[string, string](normalized), site.ID)
- /*line provision.mygo:38:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(insert_1)) || insert_1.RowsAffected != int64(1) {
- /*line provision.mygo:39:16*/				return Err[struct{}, string]("site authority is already assigned")
- /*line provision.mygo:38:10*/			} else {
- /*line zz_provision.gen.go:52:1*/			}
- /*line provision.mygo:41:7*/			return Ok[struct{}, string](struct {
- /*line zz_provision.gen.go:54:1*/			}{})
+ /*line provision.mygo:34:5*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(authorities, Ok[struct{}, string](struct {
+ /*line provision.mygo:34:42*/		}{}), func(previous Result[struct{}, string], authority string) Result[struct{}, string] {
+ /*line provision.mygo:35:10*/			if MygoIN6ResultM5IsErr[struct{}, string](previous) {
+ /*line provision.mygo:36:16*/				return previous
+ /*line provision.mygo:35:10*/			} else {
+ /*line zz_provision.gen.go:49:1*/			}
+ /*line provision.mygo:34:42*/			normalized := config.NormalizeAuthority(authority)
+ /*line provision.mygo:39:10*/			if MygoIN6ResultM5IsErr[string, string](normalized) {
+ /*line provision.mygo:40:16*/				return Err[struct{}, string]("invalid site authority")
+ /*line provision.mygo:39:10*/			} else {
+ /*line zz_provision.gen.go:54:1*/			}
+ /*line provision.mygo:34:42*/			insert_1 := tx.Exec("INSERT INTO site_authorities(authority,site_id) VALUES (?,?) ON CONFLICT(authority) DO UPDATE SET site_id=site_authorities.site_id WHERE site_authorities.site_id=excluded.site_id", MygoIN6ResultM6Unwrap[string, string](normalized), site.ID)
+ /*line provision.mygo:43:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(insert_1)) || insert_1.RowsAffected != int64(1) {
+ /*line provision.mygo:44:16*/				return Err[struct{}, string]("site authority is already assigned")
+ /*line provision.mygo:43:10*/			} else {
+ /*line zz_provision.gen.go:59:1*/			}
+ /*line provision.mygo:46:7*/			return Ok[struct{}, string](struct {
+ /*line zz_provision.gen.go:61:1*/			}{})
 		})
 	})
 }
- /*line provision.mygo:46:1*/func ProvisionAdministrator(ctx context.Context, db *gorm.DB, site config.Site, username string, password string, deploymentRole bool) Result[struct {
+ /*line provision.mygo:51:1*/func ProvisionAdministrator(ctx context.Context, db *gorm.DB, site config.Site, username string, password string, deploymentRole bool) Result[struct {
 }, string] {
- /*line provision.mygo:47:7*/	var __mygo_expr_1 Result[bool, error]
+ /*line provision.mygo:52:7*/	var __mygo_expr_1 Result[bool, error]
 	__mygo_expr_2, __mygo_expr_0 := regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[bool, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[bool, error](__mygo_expr_2)
- /*line zz_provision.gen.go:66:1*/	}
- /*line provision.mygo:47:6*/	if !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
- /*line provision.mygo:48:12*/		return Err[struct{}, string]("invalid administrator username")
- /*line provision.mygo:47:6*/	} else {
- /*line zz_provision.gen.go:70:1*/	}
- /*line provision.mygo:46:1*/	uri := config.CanonicalURI(site, "users", username)
-	hash := auth.HashPassword(password)
- /*line provision.mygo:52:6*/	if MygoIN6ResultM5IsErr[string, string](uri) || MygoIN6ResultM5IsErr[string, string](hash) {
- /*line provision.mygo:53:12*/		return Err[struct{}, string]("invalid administrator credentials or site identity")
+ /*line zz_provision.gen.go:73:1*/	}
+ /*line provision.mygo:52:6*/	if !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
+ /*line provision.mygo:53:12*/		return Err[struct{}, string]("invalid administrator username")
  /*line provision.mygo:52:6*/	} else {
- /*line zz_provision.gen.go:76:1*/	}
- /*line provision.mygo:55:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line provision.mygo:56:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", site.ID+"/"+username))) {
- /*line provision.mygo:57:14*/			return Err[struct{}, string]("cannot serialize account provisioning")
- /*line provision.mygo:56:8*/		} else {
- /*line zz_provision.gen.go:81:1*/		}
- /*line provision.mygo:59:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT(uri) DO NOTHING", MygoIN6ResultM6Unwrap[string, string](uri), site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox"))) {
- /*line provision.mygo:60:14*/			return Err[struct{}, string]("cannot provision account actor")
- /*line provision.mygo:59:8*/		} else {
- /*line zz_provision.gen.go:85:1*/		}
- /*line provision.mygo:62:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES (?,?,?,?) ON CONFLICT(site_id,username) DO NOTHING", site.ID, MygoIN6ResultM6Unwrap[string, string](uri), username, MygoIN6ResultM6Unwrap[string, string](hash)))) {
- /*line provision.mygo:63:14*/			return Err[struct{}, string]("cannot provision administrator account")
- /*line provision.mygo:62:8*/		} else {
- /*line zz_provision.gen.go:89:1*/		}
- /*line provision.mygo:55:27*/		found := FindAccount(ctx, tx, site.ID, username)
- /*line provision.mygo:66:8*/		if MygoIN6ResultM5IsErr[Option[AccountRecord], string](found) || MygoIN6OptionM6IsNone[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](found)) {
- /*line provision.mygo:67:14*/			return Err[struct{}, string]("cannot read provisioned administrator")
- /*line provision.mygo:66:8*/		} else {
- /*line zz_provision.gen.go:94:1*/		}
- /*line provision.mygo:55:27*/		account := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](found))
- /*line provision.mygo:70:8*/		if account.ActorURI != MygoIN6ResultM6Unwrap[string, string](uri) || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) {
- /*line provision.mygo:71:14*/			return Err[struct{}, string]("existing account credentials cannot be replaced")
- /*line provision.mygo:70:8*/		} else {
- /*line zz_provision.gen.go:99:1*/		}
- /*line provision.mygo:55:27*/		grant := tx.Exec("INSERT INTO site_roles(site_id,account_id,role) VALUES (?,?,'administrator') ON CONFLICT DO NOTHING", site.ID, account.ID)
- /*line provision.mygo:74:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(grant)) {
- /*line provision.mygo:75:14*/			return Err[struct{}, string]("cannot assign site administrator")
- /*line provision.mygo:74:8*/		} else {
- /*line zz_provision.gen.go:104:1*/		}
- /*line provision.mygo:77:8*/		if grant.RowsAffected > int64(0) {
-			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'grant_site_administrator',?)", account.ActorURI, site.ID, account.ActorURI))) {
- /*line provision.mygo:79:16*/				return Err[struct{}, string]("cannot audit site administrator assignment")
- /*line provision.mygo:77:8*/			} else {
- /*line zz_provision.gen.go:109:1*/			}
- /*line provision.mygo:77:8*/		} else {
+ /*line zz_provision.gen.go:77:1*/	}
+ /*line provision.mygo:51:1*/	uri := config.CanonicalURI(site, "users", username)
+	hash := auth.HashPassword(password)
+ /*line provision.mygo:57:6*/	if MygoIN6ResultM5IsErr[string, string](uri) || MygoIN6ResultM5IsErr[string, string](hash) {
+ /*line provision.mygo:58:12*/		return Err[struct{}, string]("invalid administrator credentials or site identity")
+ /*line provision.mygo:57:6*/	} else {
+ /*line zz_provision.gen.go:83:1*/	}
+ /*line provision.mygo:60:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line provision.mygo:61:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", site.ID+"/"+username))) {
+ /*line provision.mygo:62:14*/			return Err[struct{}, string]("cannot serialize account provisioning")
+ /*line provision.mygo:61:8*/		} else {
+ /*line zz_provision.gen.go:88:1*/		}
+ /*line provision.mygo:64:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT(uri) DO NOTHING", MygoIN6ResultM6Unwrap[string, string](uri), site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox"))) {
+ /*line provision.mygo:65:14*/			return Err[struct{}, string]("cannot provision account actor")
+ /*line provision.mygo:64:8*/		} else {
+ /*line zz_provision.gen.go:92:1*/		}
+ /*line provision.mygo:67:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES (?,?,?,?) ON CONFLICT(site_id,username) DO NOTHING", site.ID, MygoIN6ResultM6Unwrap[string, string](uri), username, MygoIN6ResultM6Unwrap[string, string](hash)))) {
+ /*line provision.mygo:68:14*/			return Err[struct{}, string]("cannot provision administrator account")
+ /*line provision.mygo:67:8*/		} else {
+ /*line zz_provision.gen.go:96:1*/		}
+ /*line provision.mygo:60:27*/		found := FindAccount(ctx, tx, site.ID, username)
+ /*line provision.mygo:71:8*/		if MygoIN6ResultM5IsErr[Option[AccountRecord], string](found) || MygoIN6OptionM6IsNone[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](found)) {
+ /*line provision.mygo:72:14*/			return Err[struct{}, string]("cannot read provisioned administrator")
+ /*line provision.mygo:71:8*/		} else {
+ /*line zz_provision.gen.go:101:1*/		}
+ /*line provision.mygo:60:27*/		account := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](found))
+ /*line provision.mygo:75:8*/		if account.ActorURI != MygoIN6ResultM6Unwrap[string, string](uri) || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) {
+ /*line provision.mygo:76:14*/			return Err[struct{}, string]("existing account credentials cannot be replaced")
+ /*line provision.mygo:75:8*/		} else {
+ /*line zz_provision.gen.go:106:1*/		}
+ /*line provision.mygo:60:27*/		grant := tx.Exec("INSERT INTO site_roles(site_id,account_id,role) VALUES (?,?,'administrator') ON CONFLICT DO NOTHING", site.ID, account.ID)
+ /*line provision.mygo:79:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(grant)) {
+ /*line provision.mygo:80:14*/			return Err[struct{}, string]("cannot assign site administrator")
+ /*line provision.mygo:79:8*/		} else {
  /*line zz_provision.gen.go:111:1*/		}
- /*line provision.mygo:82:8*/		if deploymentRole {
-			grant_1 := tx.Exec("INSERT INTO deployment_roles(account_id,role) VALUES (?,'superadministrator') ON CONFLICT DO NOTHING", account.ID)
- /*line provision.mygo:84:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(grant_1)) {
- /*line provision.mygo:85:16*/				return Err[struct{}, string]("cannot assign deployment administrator")
- /*line provision.mygo:84:10*/			} else {
- /*line zz_provision.gen.go:117:1*/			}
- /*line provision.mygo:82:8*/			if grant_1.RowsAffected > int64(0) {
-				if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'deployment','deployment','grant_superadministrator',?)", account.ActorURI, account.ActorURI))) {
- /*line provision.mygo:89:18*/					return Err[struct{}, string]("cannot audit deployment administrator assignment")
- /*line provision.mygo:82:8*/				} else {
- /*line zz_provision.gen.go:122:1*/				}
+ /*line provision.mygo:82:8*/		if grant.RowsAffected > int64(0) {
+			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'grant_site_administrator',?)", account.ActorURI, site.ID, account.ActorURI))) {
+ /*line provision.mygo:84:16*/				return Err[struct{}, string]("cannot audit site administrator assignment")
  /*line provision.mygo:82:8*/			} else {
- /*line zz_provision.gen.go:124:1*/			}
+ /*line zz_provision.gen.go:116:1*/			}
  /*line provision.mygo:82:8*/		} else {
- /*line zz_provision.gen.go:126:1*/		}
- /*line provision.mygo:93:5*/		return Ok[struct{}, string](struct {
- /*line zz_provision.gen.go:128:1*/		}{})
+ /*line zz_provision.gen.go:118:1*/		}
+ /*line provision.mygo:87:8*/		if deploymentRole {
+			grant_1 := tx.Exec("INSERT INTO deployment_roles(account_id,role) VALUES (?,'superadministrator') ON CONFLICT DO NOTHING", account.ID)
+ /*line provision.mygo:89:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(grant_1)) {
+ /*line provision.mygo:90:16*/				return Err[struct{}, string]("cannot assign deployment administrator")
+ /*line provision.mygo:89:10*/			} else {
+ /*line zz_provision.gen.go:124:1*/			}
+ /*line provision.mygo:87:8*/			if grant_1.RowsAffected > int64(0) {
+				if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'deployment','deployment','grant_superadministrator',?)", account.ActorURI, account.ActorURI))) {
+ /*line provision.mygo:94:18*/					return Err[struct{}, string]("cannot audit deployment administrator assignment")
+ /*line provision.mygo:87:8*/				} else {
+ /*line zz_provision.gen.go:129:1*/				}
+ /*line provision.mygo:87:8*/			} else {
+ /*line zz_provision.gen.go:131:1*/			}
+ /*line provision.mygo:87:8*/		} else {
+ /*line zz_provision.gen.go:133:1*/		}
+ /*line provision.mygo:98:5*/		return Ok[struct{}, string](struct {
+ /*line zz_provision.gen.go:135:1*/		}{})
 	})
 }

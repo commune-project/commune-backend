@@ -121,6 +121,13 @@ func SetPostMentionsTx(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, p
     if blocked.Unwrap() then
       continue
     end
+    let interactionBlocked = IsInteractionBlocked(ctx, tx, siteID, post.AuthorActorURI, uri)
+    if interactionBlocked.IsErr() then
+      return Err(interactionBlocked.UnwrapErr())
+    end
+    if interactionBlocked.Unwrap() then
+      return Err("forbidden")
+    end
     if candidate.Domain != "" then
       let accountBlocked = policy.IsBlocked(ctx, "https://" + candidate.Domain + "/")
       if accountBlocked.IsErr() then

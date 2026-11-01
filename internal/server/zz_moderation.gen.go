@@ -4,281 +4,273 @@ package server
 
 import "net/http"
 import "strconv"
-import "time"
-import "database/sql"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line moderation.mygo:11:1*/type ReportInput struct {
+ /*line moderation.mygo:9:1*/type ReportInput struct {
 	TargetKind  string "json:\"target_kind\""
 	TargetID    string "json:\"target_id\""
 	CommunityID string "json:\"community_id\""
 	Reason      string "json:\"reason\""
- /*line zz_moderation.gen.go:19:1*/}
- /*line moderation.mygo:18:1*/type ReportResolveInput struct {
+ /*line zz_moderation.gen.go:18:1*/}
+ /*line moderation.mygo:16:1*/type ReportResolveInput struct {
 	State string "json:\"state\""
 	Note  string "json:\"note\""
- /*line zz_moderation.gen.go:23:1*/}
- /*line moderation.mygo:23:1*/type BanInput struct {
+ /*line zz_moderation.gen.go:22:1*/}
+ /*line moderation.mygo:21:1*/type BanInput struct {
 	Actor     string "json:\"actor\""
 	Reason    string "json:\"reason\""
 	ExpiresAt string "json:\"expires_at\""
- /*line zz_moderation.gen.go:28:1*/}
- /*line moderation.mygo:29:1*/type ReportPage struct {
+ /*line zz_moderation.gen.go:27:1*/}
+ /*line moderation.mygo:27:1*/type ReportPage struct {
 	Items  []storage.ReportRecord "json:\"items\""
 	Limit  int                    "json:\"limit\""
 	Offset int                    "json:\"offset\""
- /*line zz_moderation.gen.go:33:1*/}
- /*line moderation.mygo:35:1*/type ModlogPage struct {
+ /*line zz_moderation.gen.go:32:1*/}
+ /*line moderation.mygo:33:1*/type ModlogPage struct {
 	Items  []storage.ModerationLogRecord "json:\"items\""
 	Limit  int                           "json:\"limit\""
 	Offset int                           "json:\"offset\""
- /*line zz_moderation.gen.go:38:1*/}
+ /*line zz_moderation.gen.go:37:1*/}
 
- /*line moderation.mygo:41:1*/func BanExpiry(value string) Result[sql.NullTime, string] {
- /*line moderation.mygo:42:6*/	if value == "" {
- /*line moderation.mygo:43:12*/		return Ok[sql.NullTime, string](sql.NullTime{})
- /*line moderation.mygo:42:6*/	} else {
- /*line zz_moderation.gen.go:44:1*/	}
- /*line moderation.mygo:45:16*/	var __mygo_expr_1 Result[time.Time, error]
-	__mygo_expr_2, __mygo_expr_0 := time.Parse(time.RFC3339, value)
-	if __mygo_expr_0 != nil {
-		__mygo_expr_1 = Err[time.Time, error](__mygo_expr_0)
-	} else {
-		__mygo_expr_1 = Ok[time.Time, error](__mygo_expr_2)
- /*line zz_moderation.gen.go:51:1*/	}
- /*line moderation.mygo:41:1*/	parsed := __mygo_expr_1
- /*line moderation.mygo:46:6*/	if MygoIN6ResultM5IsErr[time.Time, error](parsed) {
- /*line moderation.mygo:47:12*/		return Err[sql.NullTime, string]("invalid ban")
- /*line moderation.mygo:46:6*/	} else {
- /*line zz_moderation.gen.go:56:1*/	}
- /*line moderation.mygo:49:3*/	return Ok[sql.NullTime, string](sql.NullTime{Time: MygoIN6ResultM6Unwrap[time.Time, error](parsed), Valid: true})
- /*line zz_moderation.gen.go:58:1*/}
- /*line moderation.mygo:52:1*/func ModerationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line moderation.mygo:39:1*/func ModerationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
 	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
- /*line moderation.mygo:54:6*/	if resource == "modlog" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
- /*line moderation.mygo:55:12*/		return ModlogRoute(settings, db, site, w, request)
- /*line moderation.mygo:54:6*/	} else {
- /*line zz_moderation.gen.go:64:1*/	}
- /*line moderation.mygo:57:6*/	if resource == "reports" {
- /*line moderation.mygo:58:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
- /*line moderation.mygo:59:14*/			return ReportsRoute(settings, db, site, w, request)
- /*line moderation.mygo:58:8*/		} else {
- /*line zz_moderation.gen.go:69:1*/		}
- /*line moderation.mygo:61:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "resolve" {
- /*line moderation.mygo:62:14*/			return ResolveReportRoute(settings, db, site, w, request, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), ""))
- /*line moderation.mygo:61:8*/		} else {
- /*line zz_moderation.gen.go:73:1*/		}
- /*line moderation.mygo:64:12*/		return false
- /*line moderation.mygo:57:6*/	} else {
- /*line zz_moderation.gen.go:76:1*/	}
- /*line moderation.mygo:66:6*/	if resource == "admin" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") == "bans" {
- /*line moderation.mygo:67:12*/		return AdminBanRoute(settings, db, site, w, request)
- /*line moderation.mygo:66:6*/	} else {
+ /*line moderation.mygo:41:6*/	if resource == "modlog" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line moderation.mygo:42:12*/		return ModlogRoute(settings, db, site, w, request)
+ /*line moderation.mygo:41:6*/	} else {
+ /*line zz_moderation.gen.go:44:1*/	}
+ /*line moderation.mygo:44:6*/	if resource == "reports" {
+ /*line moderation.mygo:45:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line moderation.mygo:46:14*/			return ReportsRoute(settings, db, site, w, request)
+ /*line moderation.mygo:45:8*/		} else {
+ /*line zz_moderation.gen.go:49:1*/		}
+ /*line moderation.mygo:48:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "resolve" {
+ /*line moderation.mygo:49:14*/			return ResolveReportRoute(settings, db, site, w, request, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), ""))
+ /*line moderation.mygo:48:8*/		} else {
+ /*line zz_moderation.gen.go:53:1*/		}
+ /*line moderation.mygo:51:12*/		return false
+ /*line moderation.mygo:44:6*/	} else {
+ /*line zz_moderation.gen.go:56:1*/	}
+ /*line moderation.mygo:53:6*/	if resource == "admin" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") == "bans" {
+ /*line moderation.mygo:54:12*/		return AdminBanRoute(settings, db, site, w, request)
+ /*line moderation.mygo:53:6*/	} else {
+ /*line zz_moderation.gen.go:60:1*/	}
+ /*line moderation.mygo:56:3*/	return false
+ /*line zz_moderation.gen.go:62:1*/}
+ /*line moderation.mygo:59:1*/func ModlogRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
+ /*line moderation.mygo:60:6*/	if request.Method != "GET" {
+ /*line moderation.mygo:61:5*/		MethodNotAllowed(w, "GET")
+ /*line moderation.mygo:62:12*/		return true
+ /*line moderation.mygo:60:6*/	} else {
+ /*line zz_moderation.gen.go:68:1*/	}
+ /*line moderation.mygo:59:1*/	session := Authenticated(db, site, request)
+ /*line moderation.mygo:65:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line moderation.mygo:66:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line moderation.mygo:67:12*/		return true
+ /*line moderation.mygo:65:6*/	} else {
+ /*line zz_moderation.gen.go:74:1*/	}
+ /*line moderation.mygo:59:1*/	page := PageFromQuery(settings, request)
+ /*line moderation.mygo:70:6*/	if MygoIN6ResultM5IsErr[storage.Page, string](page) {
+ /*line moderation.mygo:71:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
+ /*line moderation.mygo:72:12*/		return true
+ /*line moderation.mygo:70:6*/	} else {
  /*line zz_moderation.gen.go:80:1*/	}
- /*line moderation.mygo:69:3*/	return false
- /*line zz_moderation.gen.go:82:1*/}
- /*line moderation.mygo:72:1*/func ModlogRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
- /*line moderation.mygo:73:6*/	if request.Method != "GET" {
- /*line moderation.mygo:74:5*/		MethodNotAllowed(w, "GET")
- /*line moderation.mygo:75:12*/		return true
- /*line moderation.mygo:73:6*/	} else {
- /*line zz_moderation.gen.go:88:1*/	}
- /*line moderation.mygo:72:1*/	session := Authenticated(db, site, request)
- /*line moderation.mygo:78:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line moderation.mygo:79:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line moderation.mygo:80:12*/		return true
- /*line moderation.mygo:78:6*/	} else {
- /*line zz_moderation.gen.go:94:1*/	}
- /*line moderation.mygo:72:1*/	page := PageFromQuery(settings, request)
- /*line moderation.mygo:83:6*/	if MygoIN6ResultM5IsErr[storage.Page, string](page) {
- /*line moderation.mygo:84:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
- /*line moderation.mygo:85:12*/		return true
- /*line moderation.mygo:83:6*/	} else {
- /*line zz_moderation.gen.go:100:1*/	}
- /*line moderation.mygo:72:1*/	rows := storage.ModerationLog(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, request.URL.Query().Get("community_id"), MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
- /*line moderation.mygo:88:6*/	if MygoIN6ResultM5IsErr[[]storage.ModerationLogRecord, string](rows) {
- /*line moderation.mygo:89:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ModerationLogRecord, string](rows))
- /*line moderation.mygo:88:6*/	} else {
- /*line moderation.mygo:91:5*/		WriteJSON(w, 200, ModlogPage{Items: MygoIN6ResultM6Unwrap[[]storage.ModerationLogRecord, string](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
- /*line zz_moderation.gen.go:106:1*/	}
- /*line moderation.mygo:93:3*/	return true
- /*line zz_moderation.gen.go:108:1*/}
- /*line moderation.mygo:96:1*/func ReportsRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
+ /*line moderation.mygo:59:1*/	rows := storage.ModerationLog(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, request.URL.Query().Get("community_id"), MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
+ /*line moderation.mygo:75:6*/	if MygoIN6ResultM5IsErr[[]storage.ModerationLogRecord, string](rows) {
+ /*line moderation.mygo:76:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ModerationLogRecord, string](rows))
+ /*line moderation.mygo:75:6*/	} else {
+ /*line moderation.mygo:78:5*/		WriteJSON(w, 200, ModlogPage{Items: MygoIN6ResultM6Unwrap[[]storage.ModerationLogRecord, string](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
+ /*line zz_moderation.gen.go:86:1*/	}
+ /*line moderation.mygo:80:3*/	return true
+ /*line zz_moderation.gen.go:88:1*/}
+ /*line moderation.mygo:83:1*/func ReportsRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
 	session := Authenticated(db, site, request)
- /*line moderation.mygo:98:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line moderation.mygo:99:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line moderation.mygo:100:12*/		return true
- /*line moderation.mygo:98:6*/	} else {
- /*line zz_moderation.gen.go:115:1*/	}
- /*line moderation.mygo:102:6*/	if request.Method == "GET" {
+ /*line moderation.mygo:85:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line moderation.mygo:86:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line moderation.mygo:87:12*/		return true
+ /*line moderation.mygo:85:6*/	} else {
+ /*line zz_moderation.gen.go:95:1*/	}
+ /*line moderation.mygo:89:6*/	if request.Method == "GET" {
 		page := PageFromQuery(settings, request)
- /*line moderation.mygo:104:8*/		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
- /*line moderation.mygo:105:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
- /*line moderation.mygo:106:14*/			return true
- /*line moderation.mygo:104:8*/		} else {
- /*line zz_moderation.gen.go:122:1*/		}
- /*line moderation.mygo:102:6*/		rows := storage.ListReports(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, request.URL.Query().Get("state"), request.URL.Query().Get("community_id"), MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
- /*line moderation.mygo:109:8*/		if MygoIN6ResultM5IsErr[[]storage.ReportRecord, string](rows) {
- /*line moderation.mygo:110:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ReportRecord, string](rows))
- /*line moderation.mygo:109:8*/		} else {
- /*line moderation.mygo:112:7*/			WriteJSON(w, 200, ReportPage{Items: MygoIN6ResultM6Unwrap[[]storage.ReportRecord, string](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
- /*line zz_moderation.gen.go:128:1*/		}
+ /*line moderation.mygo:91:8*/		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
+ /*line moderation.mygo:92:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
+ /*line moderation.mygo:93:14*/			return true
+ /*line moderation.mygo:91:8*/		} else {
+ /*line zz_moderation.gen.go:102:1*/		}
+ /*line moderation.mygo:89:6*/		state := ParseReportState(request.URL.Query().Get("state"), true)
+ /*line moderation.mygo:96:8*/		if MygoIN6ResultM5IsErr[string, string](state) {
+ /*line moderation.mygo:97:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[string, string](state))
+ /*line moderation.mygo:98:14*/			return true
+ /*line moderation.mygo:96:8*/		} else {
+ /*line zz_moderation.gen.go:108:1*/		}
+ /*line moderation.mygo:89:6*/		rows := storage.ListReports(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6ResultM6Unwrap[string, string](state), request.URL.Query().Get("community_id"), MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
+ /*line moderation.mygo:101:8*/		if MygoIN6ResultM5IsErr[[]storage.ReportRecord, string](rows) {
+ /*line moderation.mygo:102:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ReportRecord, string](rows))
+ /*line moderation.mygo:101:8*/		} else {
+ /*line moderation.mygo:104:7*/			WriteJSON(w, 200, ReportPage{Items: MygoIN6ResultM6Unwrap[[]storage.ReportRecord, string](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
+ /*line zz_moderation.gen.go:114:1*/		}
+ /*line moderation.mygo:106:12*/		return true
+ /*line moderation.mygo:89:6*/	} else {
+ /*line zz_moderation.gen.go:117:1*/	}
+ /*line moderation.mygo:108:6*/	if request.Method != "POST" {
+ /*line moderation.mygo:109:5*/		MethodNotAllowed(w, "GET, POST")
+ /*line moderation.mygo:110:12*/		return true
+ /*line moderation.mygo:108:6*/	} else {
+ /*line zz_moderation.gen.go:122:1*/	}
+ /*line moderation.mygo:112:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line moderation.mygo:113:5*/		WriteErrorJSON(w, 403, "CSRF denied")
  /*line moderation.mygo:114:12*/		return true
- /*line moderation.mygo:102:6*/	} else {
- /*line zz_moderation.gen.go:131:1*/	}
- /*line moderation.mygo:116:6*/	if request.Method != "POST" {
- /*line moderation.mygo:117:5*/		MethodNotAllowed(w, "GET, POST")
- /*line moderation.mygo:118:12*/		return true
- /*line moderation.mygo:116:6*/	} else {
- /*line zz_moderation.gen.go:136:1*/	}
- /*line moderation.mygo:120:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
- /*line moderation.mygo:121:5*/		WriteErrorJSON(w, 403, "CSRF denied")
- /*line moderation.mygo:122:12*/		return true
- /*line moderation.mygo:120:6*/	} else {
- /*line zz_moderation.gen.go:141:1*/	}
- /*line moderation.mygo:96:1*/	input := ReportInput{}
- /*line moderation.mygo:125:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
- /*line moderation.mygo:126:5*/		WriteErrorJSON(w, 400, "invalid report")
- /*line moderation.mygo:127:12*/		return true
- /*line moderation.mygo:125:6*/	} else {
- /*line zz_moderation.gen.go:147:1*/	}
- /*line moderation.mygo:96:1*/	communityID := input.CommunityID
- /*line moderation.mygo:130:6*/	if input.TargetKind == "post" {
+ /*line moderation.mygo:112:6*/	} else {
+ /*line zz_moderation.gen.go:127:1*/	}
+ /*line moderation.mygo:83:1*/	input := ReportInput{}
+ /*line moderation.mygo:117:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line moderation.mygo:118:5*/		WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:119:12*/		return true
+ /*line moderation.mygo:117:6*/	} else {
+ /*line zz_moderation.gen.go:133:1*/	}
+ /*line moderation.mygo:83:1*/	communityID := input.CommunityID
+ /*line moderation.mygo:122:6*/	if input.TargetKind == "post" {
 		post := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: db, SiteID: site.ID}, request.Context(), input.TargetID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, false)
- /*line moderation.mygo:132:8*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](post) {
- /*line moderation.mygo:133:7*/			Fail(w, "not found")
- /*line moderation.mygo:134:14*/			return true
- /*line moderation.mygo:132:8*/		} else {
- /*line zz_moderation.gen.go:155:1*/		}
- /*line moderation.mygo:136:8*/		if MygoIN6ResultM6Unwrap[storage.PostRecord, string](post).AuthorActorURI == MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity.ActorURI {
- /*line moderation.mygo:137:7*/			WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:124:8*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](post) {
+ /*line moderation.mygo:125:7*/			Fail(w, "not found")
+ /*line moderation.mygo:126:14*/			return true
+ /*line moderation.mygo:124:8*/		} else {
+ /*line zz_moderation.gen.go:141:1*/		}
+ /*line moderation.mygo:128:8*/		if MygoIN6ResultM6Unwrap[storage.PostRecord, string](post).AuthorActorURI == MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity.ActorURI {
+ /*line moderation.mygo:129:7*/			WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:130:14*/			return true
+ /*line moderation.mygo:128:8*/		} else {
+ /*line zz_moderation.gen.go:146:1*/		}
+ /*line moderation.mygo:122:6*/		communityID = MygoIN6ResultM6Unwrap[storage.PostRecord, string](post).CommunityID
+	} else {
+ /*line zz_moderation.gen.go:149:1*/	}
+ /*line moderation.mygo:134:6*/	if input.TargetKind == "community" {
+		community := storage.MygoIN19CommunityRepositoryM5Check(storage.CommunityRepository{DB: db, SiteID: site.ID}, request.Context(), input.TargetID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, false)
+ /*line moderation.mygo:136:8*/		if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](community) || !storage.MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](community)) {
+ /*line moderation.mygo:137:7*/			Fail(w, "not found")
  /*line moderation.mygo:138:14*/			return true
  /*line moderation.mygo:136:8*/		} else {
- /*line zz_moderation.gen.go:160:1*/		}
- /*line moderation.mygo:130:6*/		communityID = MygoIN6ResultM6Unwrap[storage.PostRecord, string](post).CommunityID
+ /*line zz_moderation.gen.go:156:1*/		}
+ /*line moderation.mygo:134:6*/		communityID = input.TargetID
 	} else {
- /*line zz_moderation.gen.go:163:1*/	}
- /*line moderation.mygo:142:6*/	if input.TargetKind == "community" {
-		community := storage.MygoIN19CommunityRepositoryM5Check(storage.CommunityRepository{DB: db, SiteID: site.ID}, request.Context(), input.TargetID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, false)
- /*line moderation.mygo:144:8*/		if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](community) || !storage.MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](community)) {
- /*line moderation.mygo:145:7*/			Fail(w, "not found")
- /*line moderation.mygo:146:14*/			return true
- /*line moderation.mygo:144:8*/		} else {
- /*line zz_moderation.gen.go:170:1*/		}
- /*line moderation.mygo:142:6*/		communityID = input.TargetID
-	} else {
- /*line zz_moderation.gen.go:173:1*/	}
- /*line moderation.mygo:150:6*/	if input.TargetKind == "person" {
- /*line moderation.mygo:151:8*/		if input.TargetID == MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity.ActorURI {
- /*line moderation.mygo:152:7*/			WriteErrorJSON(w, 400, "invalid report")
- /*line moderation.mygo:153:14*/			return true
- /*line moderation.mygo:151:8*/		} else {
- /*line zz_moderation.gen.go:179:1*/		}
- /*line moderation.mygo:150:6*/		known := storage.QueryExists(db.WithContext(request.Context()).Table("actors").Where("uri=? AND kind='Person'", input.TargetID))
+ /*line zz_moderation.gen.go:159:1*/	}
+ /*line moderation.mygo:142:6*/	if input.TargetKind == "person" {
+ /*line moderation.mygo:143:8*/		if input.TargetID == MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity.ActorURI {
+ /*line moderation.mygo:144:7*/			WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:145:14*/			return true
+ /*line moderation.mygo:143:8*/		} else {
+ /*line zz_moderation.gen.go:165:1*/		}
+ /*line moderation.mygo:142:6*/		known := storage.QueryExists(db.WithContext(request.Context()).Table("actors").Where("uri=? AND kind='Person'", input.TargetID))
 		if MygoIN6ResultM5IsErr[bool, string](known) || !MygoIN6ResultM6Unwrap[bool, string](known) {
- /*line moderation.mygo:157:7*/			Fail(w, "not found")
- /*line moderation.mygo:158:14*/			return true
- /*line moderation.mygo:150:6*/		} else {
- /*line zz_moderation.gen.go:185:1*/		}
- /*line moderation.mygo:150:6*/	} else {
- /*line zz_moderation.gen.go:187:1*/	}
- /*line moderation.mygo:161:6*/	if input.TargetKind != "post" && input.TargetKind != "community" && input.TargetKind != "person" {
- /*line moderation.mygo:162:5*/		WriteErrorJSON(w, 400, "invalid report")
- /*line moderation.mygo:163:12*/		return true
- /*line moderation.mygo:161:6*/	} else {
- /*line zz_moderation.gen.go:192:1*/	}
- /*line moderation.mygo:96:1*/	created := storage.CreateReport(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, input.TargetKind, input.TargetID, communityID, input.Reason)
- /*line moderation.mygo:166:6*/	if MygoIN6ResultM5IsErr[bool, string](created) {
- /*line moderation.mygo:167:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[bool, string](created))
- /*line moderation.mygo:166:6*/	} else {
- /*line moderation.mygo:169:22*/		var __mygo_expr_0 int
+ /*line moderation.mygo:149:7*/			Fail(w, "not found")
+ /*line moderation.mygo:150:14*/			return true
+ /*line moderation.mygo:142:6*/		} else {
+ /*line zz_moderation.gen.go:171:1*/		}
+ /*line moderation.mygo:142:6*/	} else {
+ /*line zz_moderation.gen.go:173:1*/	}
+ /*line moderation.mygo:153:6*/	if input.TargetKind != "post" && input.TargetKind != "community" && input.TargetKind != "person" {
+ /*line moderation.mygo:154:5*/		WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:155:12*/		return true
+ /*line moderation.mygo:153:6*/	} else {
+ /*line zz_moderation.gen.go:178:1*/	}
+ /*line moderation.mygo:83:1*/	created := storage.CreateReport(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, input.TargetKind, input.TargetID, communityID, input.Reason)
+ /*line moderation.mygo:158:6*/	if MygoIN6ResultM5IsErr[bool, string](created) {
+ /*line moderation.mygo:159:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[bool, string](created))
+ /*line moderation.mygo:158:6*/	} else {
+ /*line moderation.mygo:161:22*/		var __mygo_expr_0 int
 		if MygoIN6ResultM6Unwrap[bool, string](created) {
 			__mygo_expr_0 = 201
 		} else {
 			__mygo_expr_0 = 200
- /*line zz_moderation.gen.go:202:1*/		}
- /*line moderation.mygo:169:5*/		w.WriteHeader(__mygo_expr_0)
+ /*line zz_moderation.gen.go:188:1*/		}
+ /*line moderation.mygo:161:5*/		w.WriteHeader(__mygo_expr_0)
+ /*line zz_moderation.gen.go:190:1*/	}
+ /*line moderation.mygo:163:3*/	return true
+ /*line zz_moderation.gen.go:192:1*/}
+ /*line moderation.mygo:166:1*/func ResolveReportRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, rawID string) bool {
+ /*line moderation.mygo:167:6*/	if request.Method != "POST" {
+ /*line moderation.mygo:168:5*/		MethodNotAllowed(w, "POST")
+ /*line moderation.mygo:169:12*/		return true
+ /*line moderation.mygo:167:6*/	} else {
+ /*line zz_moderation.gen.go:198:1*/	}
+ /*line moderation.mygo:166:1*/	session := Authenticated(db, site, request)
+ /*line moderation.mygo:172:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line moderation.mygo:173:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line moderation.mygo:174:12*/		return true
+ /*line moderation.mygo:172:6*/	} else {
  /*line zz_moderation.gen.go:204:1*/	}
- /*line moderation.mygo:171:3*/	return true
- /*line zz_moderation.gen.go:206:1*/}
- /*line moderation.mygo:174:1*/func ResolveReportRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, rawID string) bool {
- /*line moderation.mygo:175:6*/	if request.Method != "POST" {
- /*line moderation.mygo:176:5*/		MethodNotAllowed(w, "POST")
- /*line moderation.mygo:177:12*/		return true
- /*line moderation.mygo:175:6*/	} else {
- /*line zz_moderation.gen.go:212:1*/	}
- /*line moderation.mygo:174:1*/	session := Authenticated(db, site, request)
- /*line moderation.mygo:180:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line moderation.mygo:181:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line moderation.mygo:182:12*/		return true
- /*line moderation.mygo:180:6*/	} else {
- /*line zz_moderation.gen.go:218:1*/	}
- /*line moderation.mygo:184:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
- /*line moderation.mygo:185:5*/		WriteErrorJSON(w, 403, "CSRF denied")
- /*line moderation.mygo:186:12*/		return true
- /*line moderation.mygo:184:6*/	} else {
- /*line zz_moderation.gen.go:223:1*/	}
- /*line moderation.mygo:188:12*/	var __mygo_expr_1 Result[int64, error]
+ /*line moderation.mygo:176:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line moderation.mygo:177:5*/		WriteErrorJSON(w, 403, "CSRF denied")
+ /*line moderation.mygo:178:12*/		return true
+ /*line moderation.mygo:176:6*/	} else {
+ /*line zz_moderation.gen.go:209:1*/	}
+ /*line moderation.mygo:180:12*/	var __mygo_expr_1 Result[int64, error]
 	__mygo_expr_2, __mygo_expr_0 := strconv.ParseInt(rawID, 10, 64)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[int64, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[int64, error](__mygo_expr_2)
- /*line zz_moderation.gen.go:230:1*/	}
- /*line moderation.mygo:174:1*/	id := __mygo_expr_1
- /*line moderation.mygo:189:6*/	if MygoIN6ResultM5IsErr[int64, error](id) || MygoIN6ResultM6Unwrap[int64, error](id) <= int64(0) {
- /*line moderation.mygo:190:5*/		WriteErrorJSON(w, 400, "invalid report")
- /*line moderation.mygo:191:12*/		return true
- /*line moderation.mygo:189:6*/	} else {
- /*line zz_moderation.gen.go:236:1*/	}
- /*line moderation.mygo:174:1*/	input := ReportResolveInput{}
- /*line moderation.mygo:194:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
- /*line moderation.mygo:195:5*/		WriteErrorJSON(w, 400, "invalid report")
- /*line moderation.mygo:196:12*/		return true
- /*line moderation.mygo:194:6*/	} else {
- /*line zz_moderation.gen.go:242:1*/	}
- /*line moderation.mygo:198:3*/	Settle(w, storage.ResolveReport(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6ResultM6Unwrap[int64, error](id), input.State, input.Note))
- /*line moderation.mygo:199:3*/	return true
- /*line zz_moderation.gen.go:245:1*/}
- /*line moderation.mygo:202:1*/func AdminBanRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
- /*line moderation.mygo:203:6*/	if request.Method != "POST" && request.Method != "DELETE" {
- /*line moderation.mygo:204:5*/		MethodNotAllowed(w, "POST, DELETE")
- /*line moderation.mygo:205:12*/		return true
- /*line moderation.mygo:203:6*/	} else {
- /*line zz_moderation.gen.go:251:1*/	}
- /*line moderation.mygo:202:1*/	session := Authenticated(db, site, request)
- /*line moderation.mygo:208:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line moderation.mygo:209:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line moderation.mygo:210:12*/		return true
- /*line moderation.mygo:208:6*/	} else {
- /*line zz_moderation.gen.go:257:1*/	}
- /*line moderation.mygo:212:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
- /*line moderation.mygo:213:5*/		WriteErrorJSON(w, 403, "CSRF denied")
- /*line moderation.mygo:214:12*/		return true
- /*line moderation.mygo:212:6*/	} else {
- /*line zz_moderation.gen.go:262:1*/	}
- /*line moderation.mygo:202:1*/	input := BanInput{}
- /*line moderation.mygo:217:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
- /*line moderation.mygo:218:5*/		WriteErrorJSON(w, 400, "invalid ban")
- /*line moderation.mygo:219:12*/		return true
- /*line moderation.mygo:217:6*/	} else {
- /*line zz_moderation.gen.go:268:1*/	}
- /*line moderation.mygo:202:1*/	expiry := BanExpiry(input.ExpiresAt)
- /*line moderation.mygo:222:6*/	if MygoIN6ResultM5IsErr[sql.NullTime, string](expiry) {
- /*line moderation.mygo:223:5*/		WriteErrorJSON(w, 400, "invalid ban")
- /*line moderation.mygo:224:12*/		return true
- /*line moderation.mygo:222:6*/	} else {
- /*line zz_moderation.gen.go:274:1*/	}
- /*line moderation.mygo:202:1*/	var __mygo_expr_0 Result[struct{}, string]
+ /*line zz_moderation.gen.go:216:1*/	}
+ /*line moderation.mygo:166:1*/	id := __mygo_expr_1
+ /*line moderation.mygo:181:6*/	if MygoIN6ResultM5IsErr[int64, error](id) || MygoIN6ResultM6Unwrap[int64, error](id) <= int64(0) {
+ /*line moderation.mygo:182:5*/		WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:183:12*/		return true
+ /*line moderation.mygo:181:6*/	} else {
+ /*line zz_moderation.gen.go:222:1*/	}
+ /*line moderation.mygo:166:1*/	input := ReportResolveInput{}
+ /*line moderation.mygo:186:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line moderation.mygo:187:5*/		WriteErrorJSON(w, 400, "invalid report")
+ /*line moderation.mygo:188:12*/		return true
+ /*line moderation.mygo:186:6*/	} else {
+ /*line zz_moderation.gen.go:228:1*/	}
+ /*line moderation.mygo:166:1*/	resolution := ParseReportResolutionState(input.State)
+ /*line moderation.mygo:191:6*/	if MygoIN6ResultM5IsErr[string, string](resolution) {
+ /*line moderation.mygo:192:5*/		WriteErrorJSON(w, 400, "invalid report state")
+ /*line moderation.mygo:193:12*/		return true
+ /*line moderation.mygo:191:6*/	} else {
+ /*line zz_moderation.gen.go:234:1*/	}
+ /*line moderation.mygo:195:3*/	Settle(w, storage.ResolveReport(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6ResultM6Unwrap[int64, error](id), input.State, input.Note))
+ /*line moderation.mygo:196:3*/	return true
+ /*line zz_moderation.gen.go:237:1*/}
+ /*line moderation.mygo:199:1*/func AdminBanRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
+ /*line moderation.mygo:200:6*/	if request.Method != "POST" && request.Method != "DELETE" {
+ /*line moderation.mygo:201:5*/		MethodNotAllowed(w, "POST, DELETE")
+ /*line moderation.mygo:202:12*/		return true
+ /*line moderation.mygo:200:6*/	} else {
+ /*line zz_moderation.gen.go:243:1*/	}
+ /*line moderation.mygo:199:1*/	session := Authenticated(db, site, request)
+ /*line moderation.mygo:205:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line moderation.mygo:206:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line moderation.mygo:207:12*/		return true
+ /*line moderation.mygo:205:6*/	} else {
+ /*line zz_moderation.gen.go:249:1*/	}
+ /*line moderation.mygo:209:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line moderation.mygo:210:5*/		WriteErrorJSON(w, 403, "CSRF denied")
+ /*line moderation.mygo:211:12*/		return true
+ /*line moderation.mygo:209:6*/	} else {
+ /*line zz_moderation.gen.go:254:1*/	}
+ /*line moderation.mygo:199:1*/	input := BanInput{}
+ /*line moderation.mygo:214:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line moderation.mygo:215:5*/		WriteErrorJSON(w, 400, "invalid ban")
+ /*line moderation.mygo:216:12*/		return true
+ /*line moderation.mygo:214:6*/	} else {
+ /*line zz_moderation.gen.go:260:1*/	}
+ /*line moderation.mygo:199:1*/	expiry := ParseBanExpiry(input.ExpiresAt)
+ /*line moderation.mygo:219:6*/	if MygoIN6ResultM5IsErr[sql.NullTime, string](expiry) {
+ /*line moderation.mygo:220:5*/		WriteErrorJSON(w, 400, "invalid ban")
+ /*line moderation.mygo:221:12*/		return true
+ /*line moderation.mygo:219:6*/	} else {
+ /*line zz_moderation.gen.go:266:1*/	}
+ /*line moderation.mygo:199:1*/	var __mygo_expr_0 Result[struct{}, string]
 	if request.Method == "POST" {
 		__mygo_expr_0 = storage.BanSite(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, input.Actor, input.Reason, MygoIN6ResultM6Unwrap[sql.NullTime, string](expiry))
 	} else {
 		__mygo_expr_0 = storage.UnbanSite(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, input.Actor)
- /*line zz_moderation.gen.go:280:1*/	}
- /*line moderation.mygo:202:1*/	result := __mygo_expr_0
- /*line moderation.mygo:231:3*/	Settle(w, result)
- /*line moderation.mygo:232:3*/	return true
- /*line zz_moderation.gen.go:284:1*/}
+ /*line zz_moderation.gen.go:272:1*/	}
+ /*line moderation.mygo:199:1*/	result := __mygo_expr_0
+ /*line moderation.mygo:228:3*/	Settle(w, result)
+ /*line moderation.mygo:229:3*/	return true
+ /*line zz_moderation.gen.go:276:1*/}

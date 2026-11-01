@@ -1,0 +1,95 @@
+package server
+
+import http "go:net/http"
+import json "go:encoding/json"
+import sql "go:database/sql"
+import strconv "go:strconv"
+import strings "go:strings"
+import time "go:time"
+
+func ParseVoteValue(raw: json.RawMessage) -> Result[Int, String]
+  let text = strings.TrimSpace(raw as String)
+  if text == "" || text == "null" then
+    return Err("invalid vote")
+  end
+  let score = 0
+  if json.Unmarshal(raw as Slice[Byte], Ref.new(score)).IsErr() || (score != -1 && score != 0 && score != 1) then
+    return Err("invalid vote")
+  end
+  Ok(score)
+end
+
+func ParseSort(value: String, fallback: String, allowHot: Bool) -> Result[String, String]
+  if value == "" then
+    return Ok(fallback)
+  end
+  if value != "new" && value != "old" && value != "top" && value != "controversial" && (!allowHot || value != "hot") then
+    return Err("invalid sort")
+  end
+  Ok(value)
+end
+
+func ParseTopicSort(request: Ref[http.Request]) -> Result[String, String]
+  ParseSort(request.URL.Query().Get("sort"), "new", true)
+end
+
+func ParseThreadSort(request: Ref[http.Request]) -> Result[String, String]
+  ParseSort(request.URL.Query().Get("sort"), "old", false)
+end
+
+func ParseThreadDepth(request: Ref[http.Request]) -> Result[Int, String]
+  let view = request.URL.Query().Get("view")
+  if view != "" && view != "tree" && view != "flat" then
+    return Err("invalid view")
+  end
+  if view == "flat" then
+    return Ok(1)
+  end
+  let raw = request.URL.Query().Get("max_depth")
+  if raw == "" then
+    return Ok(6)
+  end
+  let parsed = strconv.Atoi(raw)
+  if parsed.IsErr() || parsed.Unwrap() < 1 || parsed.Unwrap() > 8 then
+    return Err("invalid depth")
+  end
+  Ok(parsed.Unwrap())
+end
+
+func ParseBlockKind(value: String) -> Result[String, String]
+  if value != "person" && value != "community" && value != "instance" then
+    return Err("invalid block")
+  end
+  Ok(value)
+end
+
+func ParseReportState(value: String, allowEmpty: Bool) -> Result[String, String]
+  if value == "" then
+    if allowEmpty then
+      return Ok(value)
+    end
+    return Err("invalid report state")
+  end
+  if value != "open" && value != "resolved" && value != "rejected" then
+    return Err("invalid report state")
+  end
+  Ok(value)
+end
+
+func ParseReportResolutionState(value: String) -> Result[String, String]
+  if value != "resolved" && value != "rejected" then
+    return Err("invalid report state")
+  end
+  Ok(value)
+end
+
+func ParseBanExpiry(value: String) -> Result[sql.NullTime, String]
+  if value == "" then
+    return Ok(sql.NullTime{})
+  end
+  let parsed = time.Parse(time.RFC3339, value)
+  if parsed.IsErr() then
+    return Err("invalid ban")
+  end
+  Ok(sql.NullTime{Time: parsed.Unwrap(), Valid: true})
+end

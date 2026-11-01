@@ -18,7 +18,8 @@ end
 impl BrowserRepository
   func SearchPostsQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page) -> Ref[gorm.DB]
     let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockP + " AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
-    self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\' ORDER BY authored_at DESC,id" + BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query))
+    let pattern = SearchPattern(query)
+    self.DB.WithContext(ctx).Table("(?) AS searchable", readable).Where("(coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\')", pattern, pattern).Order("authored_at DESC,id").Limit(page.Limit).Offset(page.Offset)
   end
 
   func SearchPosts(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, query: String, page: Page, max: Int) -> Result[Slice[PostRecord], String]
@@ -38,7 +39,8 @@ impl BrowserRepository
     end
     let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable WHERE host_site_id=@site OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=@site AND p.community_id=readable.id AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))))")
     var rows: Slice[CommunityView] = []
-    let result = self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE name ILIKE ? ESCAPE E'\\\\' OR title ILIKE ? ESCAPE E'\\\\' OR description ILIKE ? ESCAPE E'\\\\' ORDER BY name,id" + BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query), SearchPattern(query)).Scan(Ref.new(rows))
+    let pattern = SearchPattern(query)
+    let result = self.DB.WithContext(ctx).Table("(?) AS searchable", readable).Where("(name ILIKE ? ESCAPE E'\\\\' OR title ILIKE ? ESCAPE E'\\\\' OR description ILIKE ? ESCAPE E'\\\\')", pattern, pattern, pattern).Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     if MutationResult(result).IsErr() then
       return Err("search unavailable")
     end

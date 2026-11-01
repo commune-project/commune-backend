@@ -25,12 +25,20 @@ end
 
 impl BrowserRepository
   func Latest(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[PostRecord], String]
+    self.LatestSorted(ctx, viewer, page, max, "new")
+  end
+
+  func LatestSorted(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int, sort: String) -> Result[Slice[PostRecord], String]
     if !page.Valid(max) then
       return Err("invalid page")
     end
+    let up = if viewer.VoteSettingsLoaded then viewer.UpvotesEnabled else true end
+    let down = if viewer.VoteSettingsLoaded then viewer.DownvotesEnabled else true end
     var records: Slice[PostRecord] = []
-    let query = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockP + " AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id" + BrowserPageSQL(page)).Scan(Ref.new(records))
-    if MutationResult(query).IsErr() then
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockP + " AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+    var query = self.DB.WithContext(ctx).Table("(?) AS page", readable)
+    query = query.Order(PostSortSQL("page", sort, up, down)).Limit(page.Limit).Offset(page.Offset)
+    if MutationResult(query.Scan(Ref.new(records))).IsErr() then
       return Err("feed unavailable")
     end
     Ok(records)
@@ -71,9 +79,10 @@ impl BrowserRepository
     end
     var rows: Slice[RosterEntry] = []
     let query = if managers then
-      self.DB.WithContext(ctx).Raw("SELECT actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager FROM (SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL) roster GROUP BY actor_uri ORDER BY actor_uri" + BrowserPageSQL(page), id, id).Scan(Ref.new(rows))
+      let roster = self.DB.WithContext(ctx).Raw("SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL", id, id)
+      self.DB.WithContext(ctx).Table("(?) AS roster", roster).Select("actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager").Group("actor_uri").Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     else
-      self.DB.WithContext(ctx).Raw("SELECT actor_uri,false AS is_creator,false AS is_manager FROM community_members WHERE community_id=? AND revoked_at IS NULL ORDER BY actor_uri" + BrowserPageSQL(page), id).Scan(Ref.new(rows))
+      self.DB.WithContext(ctx).Table("community_members").Select("actor_uri,false AS is_creator,false AS is_manager").Where("community_id=? AND revoked_at IS NULL", id).Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     end
     if MutationResult(query).IsErr() then
       return Err("roster unavailable")

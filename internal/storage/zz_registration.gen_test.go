@@ -127,75 +127,87 @@ import . "github.com/mygo-lang/mygo/prelude"
 	} else {
  /*line zz_registration.gen_test.go:128:1*/	}
  /*line registration_test.mygo:51:1*/	accounts := AccountRepository{DB: db}
-	provisioned := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "existing", "existing@example.com", "existing-account-password"))
-	issued := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, provisioned, time.Now()))
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	existing := MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "existing", "existing@example.com", "existing-account-password")
+ /*line registration_test.mygo:85:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](existing) {
+ /*line registration_test.mygo:86:5*/		t.Fatalf("create pre-registration account: %s", MygoIN6ResultM9UnwrapErr[auth.Identity, string](existing))
+ /*line registration_test.mygo:85:6*/	} else {
+ /*line zz_registration.gen_test.go:134:1*/	}
+ /*line registration_test.mygo:51:1*/	provisioned := MygoIN6ResultM6Unwrap[auth.Identity, string](existing)
+	issued := auth.NewSessionTokens()
+	issuedAt := time.Now()
+	sessionRecord := SessionRecord{TokenHash: auth.MygoIN13SessionTokensM11SessionHash(issued), SiteID: provisioned.SiteID, AccountID: provisioned.AccountID, CSRFHash: auth.MygoIN13SessionTokensM8CSRFHash(issued), CreatedAt: issuedAt, ExpiresAt: issuedAt.Add(time.Duration(24) * time.Hour)}
+	issuedInsert := db.Table("sessions").Create(&sessionRecord)
+ /*line registration_test.mygo:93:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(issuedInsert)) {
+ /*line registration_test.mygo:94:5*/		t.Fatalf("create pre-registration session fixture failed: %v", issuedInsert.Error)
+ /*line registration_test.mygo:93:6*/	} else {
+ /*line zz_registration.gen_test.go:143:1*/	}
+ /*line registration_test.mygo:51:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
 	MygoIN6ResultM6Unwrap[struct{}, string](CheckGORM(ctx, db))
- /*line registration_test.mygo:89:6*/	if registrationCount(db, "SELECT count(*) FROM commune_schema_migrations WHERE version=6 AND name='006_registration.sql'") != 1 || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 {
- /*line registration_test.mygo:90:5*/		t.Fatal("registration migration did not upgrade existing schema exactly once")
- /*line registration_test.mygo:89:6*/	} else {
- /*line zz_registration.gen_test.go:138:1*/	}
- /*line registration_test.mygo:92:6*/	if MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "existing", "existing-account-password")).AccountID != provisioned.AccountID || MygoIN6ResultM6Unwrap[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, "a", issued.Session, time.Now())).Identity.AccountID != provisioned.AccountID {
- /*line registration_test.mygo:93:5*/		t.Fatal("registration migration changed existing login/session")
+ /*line registration_test.mygo:99:6*/	if registrationCount(db, "SELECT count(*) FROM commune_schema_migrations WHERE version=6 AND name='006_registration.sql'") != 1 || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 {
+ /*line registration_test.mygo:100:5*/		t.Fatal("registration migration did not upgrade existing schema exactly once")
+ /*line registration_test.mygo:99:6*/	} else {
+ /*line zz_registration.gen_test.go:150:1*/	}
+ /*line registration_test.mygo:102:6*/	if MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "existing", "existing-account-password")).AccountID != provisioned.AccountID || MygoIN6ResultM6Unwrap[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, "a", issued.Session, time.Now())).Identity.AccountID != provisioned.AccountID {
+ /*line registration_test.mygo:103:5*/		t.Fatal("registration migration changed existing login/session")
 		return
- /*line registration_test.mygo:92:6*/	} else {
- /*line registration_test.mygo:92:3*/		return
- /*line zz_registration.gen_test.go:144:1*/	}
+ /*line registration_test.mygo:102:6*/	} else {
+ /*line registration_test.mygo:102:3*/		return
+ /*line zz_registration.gen_test.go:156:1*/	}
 }
- /*line registration_test.mygo:97:1*/func TestPostgresRegistrationFinalPassword(t *testing.T) {
+ /*line registration_test.mygo:107:1*/func TestPostgresRegistrationFinalPassword(t *testing.T) {
 	repository := registrationFixture(t)
 	db := repository.DB
 	ctx := context.Background()
 	now := time.Unix(1800000000, 0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", " Alice@Example.COM ", "192.0.2.10", now))
 	token := registrationToken(repository, "alice@example.com")
- /*line registration_test.mygo:104:6*/	if !auth.ValidToken(token) {
- /*line registration_test.mygo:105:5*/		t.Fatal("issued verification token is invalid")
- /*line registration_test.mygo:104:6*/	} else {
- /*line zz_registration.gen_test.go:156:1*/	}
- /*line registration_test.mygo:107:6*/	if registrationCount(db, "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='pending_registrations' AND (column_name LIKE '%password%' OR column_name LIKE '%credential%')") != 0 {
- /*line registration_test.mygo:108:5*/		t.Fatal("pending registrations retain credentials")
- /*line registration_test.mygo:107:6*/	} else {
- /*line zz_registration.gen_test.go:160:1*/	}
- /*line registration_test.mygo:110:6*/	if registrationCount(db, "SELECT count(*) FROM accounts") != 0 || registrationCount(db, "SELECT count(*) FROM actors WHERE kind='Person'") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 {
- /*line registration_test.mygo:111:5*/		t.Fatal("pending registration created an identity, role or session")
- /*line registration_test.mygo:110:6*/	} else {
- /*line zz_registration.gen_test.go:164:1*/	}
- /*line registration_test.mygo:113:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, "a", "alice", "final-password-choice")) {
- /*line registration_test.mygo:114:5*/		t.Fatal("pending account authenticated")
- /*line registration_test.mygo:113:6*/	} else {
+ /*line registration_test.mygo:114:6*/	if !auth.ValidToken(token) {
+ /*line registration_test.mygo:115:5*/		t.Fatal("issued verification token is invalid")
+ /*line registration_test.mygo:114:6*/	} else {
  /*line zz_registration.gen_test.go:168:1*/	}
- /*line registration_test.mygo:97:1*/	pending := PendingRegistration{}
+ /*line registration_test.mygo:117:6*/	if registrationCount(db, "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='pending_registrations' AND (column_name LIKE '%password%' OR column_name LIKE '%credential%')") != 0 {
+ /*line registration_test.mygo:118:5*/		t.Fatal("pending registrations retain credentials")
+ /*line registration_test.mygo:117:6*/	} else {
+ /*line zz_registration.gen_test.go:172:1*/	}
+ /*line registration_test.mygo:120:6*/	if registrationCount(db, "SELECT count(*) FROM accounts") != 0 || registrationCount(db, "SELECT count(*) FROM actors WHERE kind='Person'") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 {
+ /*line registration_test.mygo:121:5*/		t.Fatal("pending registration created an identity, role or session")
+ /*line registration_test.mygo:120:6*/	} else {
+ /*line zz_registration.gen_test.go:176:1*/	}
+ /*line registration_test.mygo:123:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, "a", "alice", "final-password-choice")) {
+ /*line registration_test.mygo:124:5*/		t.Fatal("pending account authenticated")
+ /*line registration_test.mygo:123:6*/	} else {
+ /*line zz_registration.gen_test.go:180:1*/	}
+ /*line registration_test.mygo:107:1*/	pending := PendingRegistration{}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("pending_registrations").Where("site_id='a'").Take(&pending)))
- /*line registration_test.mygo:118:6*/	if !bytes.Equal(pending.TokenHash, auth.TokenHash(token)) || bytes.Equal(pending.TokenHash, []byte(token)) {
- /*line registration_test.mygo:119:5*/		t.Fatal("verification record does not contain only a token digest")
- /*line registration_test.mygo:118:6*/	} else {
- /*line zz_registration.gen_test.go:174:1*/	}
- /*line registration_test.mygo:97:1*/	var passwords []string = []string{"", "short", strings.Repeat("x", 73)}
- /*line registration_test.mygo:122:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(passwords, func(password string) {
- /*line registration_test.mygo:123:8*/		if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, password, now)) != "invalid registration password" || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 1 {
- /*line registration_test.mygo:124:7*/			t.Fatal("invalid password consumed verification token")
+ /*line registration_test.mygo:128:6*/	if !bytes.Equal(pending.TokenHash, auth.TokenHash(token)) || bytes.Equal(pending.TokenHash, []byte(token)) {
+ /*line registration_test.mygo:129:5*/		t.Fatal("verification record does not contain only a token digest")
+ /*line registration_test.mygo:128:6*/	} else {
+ /*line zz_registration.gen_test.go:186:1*/	}
+ /*line registration_test.mygo:107:1*/	var passwords []string = []string{"", "short", strings.Repeat("x", 73)}
+ /*line registration_test.mygo:132:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(passwords, func(password string) {
+ /*line registration_test.mygo:133:8*/		if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, password, now)) != "invalid registration password" || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 1 {
+ /*line registration_test.mygo:134:7*/			t.Fatal("invalid password consumed verification token")
 			return
- /*line registration_test.mygo:123:8*/		} else {
- /*line registration_test.mygo:123:5*/			return
- /*line zz_registration.gen_test.go:182:1*/		}
+ /*line registration_test.mygo:133:8*/		} else {
+ /*line registration_test.mygo:133:5*/			return
+ /*line zz_registration.gen_test.go:194:1*/		}
 	})
- /*line registration_test.mygo:97:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "final-password-choice", now))
+ /*line registration_test.mygo:107:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "final-password-choice", now))
 	accounts := AccountRepository{DB: db}
 	identity := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice@example.com", "final-password-choice"))
- /*line registration_test.mygo:130:6*/	if identity.Username != "alice" || identity.ActorURI != "https://a.example/users/alice" || MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "another-password")) {
- /*line registration_test.mygo:131:5*/		t.Fatal("confirmation failed to use the final chosen password")
- /*line registration_test.mygo:130:6*/	} else {
- /*line zz_registration.gen_test.go:190:1*/	}
- /*line registration_test.mygo:133:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "replacement-password", now)) || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 || registrationCount(db, "SELECT count(*) FROM deployment_roles") != 0 {
- /*line registration_test.mygo:134:5*/		t.Fatal("confirmation was replayable or granted sessions/roles")
- /*line registration_test.mygo:133:6*/	} else {
- /*line zz_registration.gen_test.go:194:1*/	}
- /*line registration_test.mygo:97:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "final-password-choice"))
+ /*line registration_test.mygo:140:6*/	if identity.Username != "alice" || identity.ActorURI != "https://a.example/users/alice" || MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "another-password")) {
+ /*line registration_test.mygo:141:5*/		t.Fatal("confirmation failed to use the final chosen password")
+ /*line registration_test.mygo:140:6*/	} else {
+ /*line zz_registration.gen_test.go:202:1*/	}
+ /*line registration_test.mygo:143:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "replacement-password", now)) || registrationCount(db, "SELECT count(*) FROM pending_registrations") != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs") != 0 || registrationCount(db, "SELECT count(*) FROM sessions") != 0 || registrationCount(db, "SELECT count(*) FROM site_roles") != 0 || registrationCount(db, "SELECT count(*) FROM deployment_roles") != 0 {
+ /*line registration_test.mygo:144:5*/		t.Fatal("confirmation was replayable or granted sessions/roles")
+ /*line registration_test.mygo:143:6*/	} else {
+ /*line zz_registration.gen_test.go:206:1*/	}
+ /*line registration_test.mygo:107:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "final-password-choice"))
 	return
- /*line zz_registration.gen_test.go:197:1*/}
- /*line registration_test.mygo:139:1*/func TestPostgresRegistrationResendIsolationAndExpiry(t *testing.T) {
+ /*line zz_registration.gen_test.go:209:1*/}
+ /*line registration_test.mygo:149:1*/func TestPostgresRegistrationResendIsolationAndExpiry(t *testing.T) {
 	repository := registrationFixture(t)
 	ctx := context.Background()
 	now := time.Unix(1800000000, 0)
@@ -204,52 +216,52 @@ import . "github.com/mygo-lang/mygo/prelude"
 	later := now.Add(time.Hour)
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "ALICE@example.com", "192.0.2.10", later))
 	second := registrationToken(repository, "alice@example.com")
- /*line registration_test.mygo:148:6*/	if first == second || MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, first, "chosen-final-password", later)) {
- /*line registration_test.mygo:149:5*/		t.Fatal("resend did not invalidate previous generation")
- /*line registration_test.mygo:148:6*/	} else {
- /*line zz_registration.gen_test.go:210:1*/	}
- /*line registration_test.mygo:139:1*/	pending := PendingRegistration{}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(repository.DB.Table("pending_registrations").Take(&pending)))
- /*line registration_test.mygo:153:6*/	if pending.Generation != int64(2) || !pending.ExpiresAt.Equal(later.Add(time.Duration(24)*time.Hour)) || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs WHERE generation=1 AND state='failed' AND octet_length(encrypted_payload)=0") != 1 {
- /*line registration_test.mygo:154:5*/		t.Fatal("resend expiry or old payload invalidation failed")
- /*line registration_test.mygo:153:6*/	} else {
- /*line zz_registration.gen_test.go:216:1*/	}
- /*line registration_test.mygo:139:1*/	other := repository
-	other.Site = config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true}
- /*line registration_test.mygo:158:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(other, ctx, second, "chosen-final-password", later)) {
- /*line registration_test.mygo:159:5*/		t.Fatal("token redeemed on another site")
+ /*line registration_test.mygo:158:6*/	if first == second || MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, first, "chosen-final-password", later)) {
+ /*line registration_test.mygo:159:5*/		t.Fatal("resend did not invalidate previous generation")
  /*line registration_test.mygo:158:6*/	} else {
  /*line zz_registration.gen_test.go:222:1*/	}
- /*line registration_test.mygo:139:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(other, ctx, "alice", "alice@example.com", "192.0.2.10", later))
+ /*line registration_test.mygo:149:1*/	pending := PendingRegistration{}
+	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(repository.DB.Table("pending_registrations").Take(&pending)))
+ /*line registration_test.mygo:163:6*/	if pending.Generation != int64(2) || !pending.ExpiresAt.Equal(later.Add(time.Duration(24)*time.Hour)) || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs WHERE generation=1 AND state='failed' AND octet_length(encrypted_payload)=0") != 1 {
+ /*line registration_test.mygo:164:5*/		t.Fatal("resend expiry or old payload invalidation failed")
+ /*line registration_test.mygo:163:6*/	} else {
+ /*line zz_registration.gen_test.go:228:1*/	}
+ /*line registration_test.mygo:149:1*/	other := repository
+	other.Site = config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true}
+ /*line registration_test.mygo:168:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(other, ctx, second, "chosen-final-password", later)) {
+ /*line registration_test.mygo:169:5*/		t.Fatal("token redeemed on another site")
+ /*line registration_test.mygo:168:6*/	} else {
+ /*line zz_registration.gen_test.go:234:1*/	}
+ /*line registration_test.mygo:149:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(other, ctx, "alice", "alice@example.com", "192.0.2.10", later))
 	foreign := registrationToken(other, "alice@example.com")
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(other, ctx, foreign, "other-site-password", later))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, second, "chosen-final-password", later))
- /*line registration_test.mygo:165:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM accounts WHERE username='alice' AND email='alice@example.com'") != 2 {
- /*line registration_test.mygo:166:5*/		t.Fatal("site-local username/email uniqueness leaked across sites")
- /*line registration_test.mygo:165:6*/	} else {
- /*line zz_registration.gen_test.go:230:1*/	}
- /*line registration_test.mygo:139:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.10", now))
-	expired := registrationToken(repository, "expired@example.com")
-	deadline := now.Add(time.Duration(24) * time.Hour)
- /*line registration_test.mygo:171:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, expired, "chosen-final-password", deadline)) {
- /*line registration_test.mygo:172:5*/		t.Fatal("token was redeemable at expiry")
- /*line registration_test.mygo:171:6*/	} else {
- /*line zz_registration.gen_test.go:237:1*/	}
- /*line registration_test.mygo:139:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "expired@example.com", "192.0.2.10", deadline))
- /*line registration_test.mygo:175:6*/	if registrationToken(repository, "expired@example.com") != expired {
- /*line registration_test.mygo:176:5*/		t.Fatal("resend revived an expired registration")
+ /*line registration_test.mygo:175:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM accounts WHERE username='alice' AND email='alice@example.com'") != 2 {
+ /*line registration_test.mygo:176:5*/		t.Fatal("site-local username/email uniqueness leaked across sites")
  /*line registration_test.mygo:175:6*/	} else {
  /*line zz_registration.gen_test.go:242:1*/	}
- /*line registration_test.mygo:139:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.10", deadline))
+ /*line registration_test.mygo:149:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.10", now))
+	expired := registrationToken(repository, "expired@example.com")
+	deadline := now.Add(time.Duration(24) * time.Hour)
+ /*line registration_test.mygo:181:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, expired, "chosen-final-password", deadline)) {
+ /*line registration_test.mygo:182:5*/		t.Fatal("token was redeemable at expiry")
+ /*line registration_test.mygo:181:6*/	} else {
+ /*line zz_registration.gen_test.go:249:1*/	}
+ /*line registration_test.mygo:149:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "expired@example.com", "192.0.2.10", deadline))
+ /*line registration_test.mygo:185:6*/	if registrationToken(repository, "expired@example.com") != expired {
+ /*line registration_test.mygo:186:5*/		t.Fatal("resend revived an expired registration")
+ /*line registration_test.mygo:185:6*/	} else {
+ /*line zz_registration.gen_test.go:254:1*/	}
+ /*line registration_test.mygo:149:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.10", deadline))
 	replacement := registrationToken(repository, "expired@example.com")
- /*line registration_test.mygo:180:6*/	if replacement == expired || MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, expired, "chosen-final-password", deadline)) {
- /*line registration_test.mygo:181:5*/		t.Fatal("expired registration replacement reused stale token")
- /*line registration_test.mygo:180:6*/	} else {
- /*line zz_registration.gen_test.go:248:1*/	}
- /*line registration_test.mygo:139:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, replacement, "replacement-password", deadline))
+ /*line registration_test.mygo:190:6*/	if replacement == expired || MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, expired, "chosen-final-password", deadline)) {
+ /*line registration_test.mygo:191:5*/		t.Fatal("expired registration replacement reused stale token")
+ /*line registration_test.mygo:190:6*/	} else {
+ /*line zz_registration.gen_test.go:260:1*/	}
+ /*line registration_test.mygo:149:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, replacement, "replacement-password", deadline))
 	return
- /*line zz_registration.gen_test.go:251:1*/}
- /*line registration_test.mygo:186:1*/func TestPostgresRegistrationDuplicatesAndRateLimits(t *testing.T) {
+ /*line zz_registration.gen_test.go:263:1*/}
+ /*line registration_test.mygo:196:1*/func TestPostgresRegistrationDuplicatesAndRateLimits(t *testing.T) {
 	repository := registrationFixture(t)
 	ctx := context.Background()
 	now := time.Unix(1800000000, 0)
@@ -258,88 +270,88 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "different@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "different", "alice@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "missing@example.com", "192.0.2.10", now))
- /*line registration_test.mygo:195:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs") != 1 || registrationToken(repository, "alice@example.com") != token {
- /*line registration_test.mygo:196:5*/		t.Fatal("duplicate pending submissions changed identity/token or queued extra mail")
- /*line registration_test.mygo:195:6*/	} else {
- /*line zz_registration.gen_test.go:264:1*/	}
- /*line registration_test.mygo:186:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "chosen-final-password", now))
+ /*line registration_test.mygo:205:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM verification_mail_jobs") != 1 || registrationToken(repository, "alice@example.com") != token {
+ /*line registration_test.mygo:206:5*/		t.Fatal("duplicate pending submissions changed identity/token or queued extra mail")
+ /*line registration_test.mygo:205:6*/	} else {
+ /*line zz_registration.gen_test.go:276:1*/	}
+ /*line registration_test.mygo:196:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "chosen-final-password", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "different@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "different", "alice@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "alice@example.com", "192.0.2.10", now))
- /*line registration_test.mygo:202:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 {
- /*line registration_test.mygo:203:5*/		t.Fatal("existing account was re-registered")
- /*line registration_test.mygo:202:6*/	} else {
- /*line zz_registration.gen_test.go:272:1*/	}
- /*line registration_test.mygo:186:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: repository.DB}, ctx, "a", "alice", "chosen-final-password"))
+ /*line registration_test.mygo:212:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 {
+ /*line registration_test.mygo:213:5*/		t.Fatal("existing account was re-registered")
+ /*line registration_test.mygo:212:6*/	} else {
+ /*line zz_registration.gen_test.go:284:1*/	}
+ /*line registration_test.mygo:196:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: repository.DB}, ctx, "a", "alice", "chosen-final-password"))
 	var invalid []string = []string{"", "Alice", "a/b", strings.Repeat("a", 65)}
- /*line registration_test.mygo:207:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(username string) {
- /*line registration_test.mygo:208:8*/		if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, username, "invalid@example.com", "192.0.2.10", now)) {
- /*line registration_test.mygo:209:7*/			t.Fatal("invalid registration username accepted")
+ /*line registration_test.mygo:217:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(username string) {
+ /*line registration_test.mygo:218:8*/		if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, username, "invalid@example.com", "192.0.2.10", now)) {
+ /*line registration_test.mygo:219:7*/			t.Fatal("invalid registration username accepted")
 			return
- /*line registration_test.mygo:208:8*/		} else {
- /*line registration_test.mygo:208:5*/			return
- /*line zz_registration.gen_test.go:281:1*/		}
+ /*line registration_test.mygo:218:8*/		} else {
+ /*line registration_test.mygo:218:5*/			return
+ /*line zz_registration.gen_test.go:293:1*/		}
 	})
- /*line registration_test.mygo:186:1*/	repository.EmailAttempts = 1
+ /*line registration_test.mygo:196:1*/	repository.EmailAttempts = 1
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "limited@example.com", "192.0.2.20", now))
- /*line registration_test.mygo:214:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, " LIMITED@EXAMPLE.COM ", "192.0.2.21", now)) != "registration rate limited" {
- /*line registration_test.mygo:215:5*/		t.Fatal("email rate limit bypassed by normalization or another IP")
- /*line registration_test.mygo:214:6*/	} else {
- /*line zz_registration.gen_test.go:288:1*/	}
- /*line registration_test.mygo:186:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "limited@example.com", "192.0.2.21", now.Add(time.Hour)))
+ /*line registration_test.mygo:224:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, " LIMITED@EXAMPLE.COM ", "192.0.2.21", now)) != "registration rate limited" {
+ /*line registration_test.mygo:225:5*/		t.Fatal("email rate limit bypassed by normalization or another IP")
+ /*line registration_test.mygo:224:6*/	} else {
+ /*line zz_registration.gen_test.go:300:1*/	}
+ /*line registration_test.mygo:196:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "limited@example.com", "192.0.2.21", now.Add(time.Hour)))
 	repository.IPAttempts = 1
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "one@example.com", "192.0.2.30", now))
- /*line registration_test.mygo:220:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "two@example.com", "192.0.2.30", now)) != "registration rate limited" {
- /*line registration_test.mygo:221:5*/		t.Fatal("IP rate limit bypassed with another email")
- /*line registration_test.mygo:220:6*/	} else {
- /*line zz_registration.gen_test.go:295:1*/	}
- /*line registration_test.mygo:186:1*/	other := repository
+ /*line registration_test.mygo:230:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "two@example.com", "192.0.2.30", now)) != "registration rate limited" {
+ /*line registration_test.mygo:231:5*/		t.Fatal("IP rate limit bypassed with another email")
+ /*line registration_test.mygo:230:6*/	} else {
+ /*line zz_registration.gen_test.go:307:1*/	}
+ /*line registration_test.mygo:196:1*/	other := repository
 	other.Site = config.Site{ID: "b", Origin: "https://b.example"}
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(other, ctx, "one@example.com", "192.0.2.30", now))
 	return
- /*line zz_registration.gen_test.go:300:1*/}
- /*line registration_test.mygo:228:1*/func TestPostgresRegistrationConcurrentRedemption(t *testing.T) {
+ /*line zz_registration.gen_test.go:312:1*/}
+ /*line registration_test.mygo:238:1*/func TestPostgresRegistrationConcurrentRedemption(t *testing.T) {
 	repository := registrationFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(15)*time.Second)
- /*line registration_test.mygo:231:3*/	t.Cleanup(cancel)
- /*line registration_test.mygo:228:1*/	now := time.Unix(1800000000, 0)
+ /*line registration_test.mygo:241:3*/	t.Cleanup(cancel)
+ /*line registration_test.mygo:238:1*/	now := time.Unix(1800000000, 0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.com", "192.0.2.10", now))
 	token := registrationToken(repository, "alice@example.com")
 	ready := concurrency.MakeChan[struct{}](2)
 	start := concurrency.MakeChan[struct{}](2)
 	results := concurrency.MakeChan[Result[struct{}, string]](2)
 	var passwords []string = []string{"first-final-password", "second-final-password"}
- /*line registration_test.mygo:239:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(passwords, func(password string) {
- /*line registration_test.mygo:240:5*/		concurrency.Spawn(func() {
- /*line registration_test.mygo:241:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
- /*line zz_registration.gen_test.go:315:1*/			}{})
- /*line registration_test.mygo:240:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
- /*line registration_test.mygo:243:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, password, now))
+ /*line registration_test.mygo:249:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(passwords, func(password string) {
+ /*line registration_test.mygo:250:5*/		concurrency.Spawn(func() {
+ /*line registration_test.mygo:251:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
+ /*line zz_registration.gen_test.go:327:1*/			}{})
+ /*line registration_test.mygo:250:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
+ /*line registration_test.mygo:253:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, password, now))
 			return
- /*line zz_registration.gen_test.go:319:1*/		})
- /*line registration_test.mygo:240:5*/		return
- /*line zz_registration.gen_test.go:321:1*/	})
- /*line registration_test.mygo:228:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
+ /*line zz_registration.gen_test.go:331:1*/		})
+ /*line registration_test.mygo:250:5*/		return
+ /*line zz_registration.gen_test.go:333:1*/	})
+ /*line registration_test.mygo:238:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
- /*line registration_test.mygo:248:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_registration.gen_test.go:325:1*/	}{})
- /*line registration_test.mygo:249:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_registration.gen_test.go:327:1*/	}{})
- /*line registration_test.mygo:228:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
+ /*line registration_test.mygo:258:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_registration.gen_test.go:337:1*/	}{})
+ /*line registration_test.mygo:259:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_registration.gen_test.go:339:1*/	}{})
+ /*line registration_test.mygo:238:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
 	second := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
- /*line registration_test.mygo:252:6*/	if MygoIN6ResultM4IsOk[struct{}, string](first) == MygoIN6ResultM4IsOk[struct{}, string](second) || registrationCount(repository.DB, "SELECT count(*) FROM accounts") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE kind='Person'") != 1 {
- /*line registration_test.mygo:253:5*/		t.Fatal("concurrent redemption did not yield exactly one account/Actor")
- /*line registration_test.mygo:252:6*/	} else {
- /*line zz_registration.gen_test.go:333:1*/	}
- /*line registration_test.mygo:228:1*/	accounts := AccountRepository{DB: repository.DB}
- /*line registration_test.mygo:256:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "first-final-password")) == MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "second-final-password")) {
- /*line registration_test.mygo:257:5*/		t.Fatal("concurrent confirmation did not retain exactly one final password")
+ /*line registration_test.mygo:262:6*/	if MygoIN6ResultM4IsOk[struct{}, string](first) == MygoIN6ResultM4IsOk[struct{}, string](second) || registrationCount(repository.DB, "SELECT count(*) FROM accounts") != 1 || registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE kind='Person'") != 1 {
+ /*line registration_test.mygo:263:5*/		t.Fatal("concurrent redemption did not yield exactly one account/Actor")
+ /*line registration_test.mygo:262:6*/	} else {
+ /*line zz_registration.gen_test.go:345:1*/	}
+ /*line registration_test.mygo:238:1*/	accounts := AccountRepository{DB: repository.DB}
+ /*line registration_test.mygo:266:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "first-final-password")) == MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "second-final-password")) {
+ /*line registration_test.mygo:267:5*/		t.Fatal("concurrent confirmation did not retain exactly one final password")
 		return
- /*line registration_test.mygo:256:6*/	} else {
- /*line registration_test.mygo:256:3*/		return
- /*line zz_registration.gen_test.go:340:1*/	}
+ /*line registration_test.mygo:266:6*/	} else {
+ /*line registration_test.mygo:266:3*/		return
+ /*line zz_registration.gen_test.go:352:1*/	}
 }
- /*line registration_test.mygo:261:1*/func TestPostgresRegistrationConflictRollbackAndProvisionedLogin(t *testing.T) {
+ /*line registration_test.mygo:271:1*/func TestPostgresRegistrationConflictRollbackAndProvisionedLogin(t *testing.T) {
 	repository := registrationFixture(t)
 	ctx := context.Background()
 	now := time.Unix(1800000000, 0)
@@ -348,61 +360,61 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "provisioned", "new@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "new", "existing@example.com", "192.0.2.10", now))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "existing@example.com", "192.0.2.10", now))
- /*line registration_test.mygo:270:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 || MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "provisioned", "provisioned-password")).AccountID != provisioned.AccountID {
- /*line registration_test.mygo:271:5*/		t.Fatal("public registration altered provisioned-account login")
- /*line registration_test.mygo:270:6*/	} else {
- /*line zz_registration.gen_test.go:354:1*/	}
- /*line registration_test.mygo:261:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.com", "192.0.2.10", now))
+ /*line registration_test.mygo:280:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 0 || MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "provisioned", "provisioned-password")).AccountID != provisioned.AccountID {
+ /*line registration_test.mygo:281:5*/		t.Fatal("public registration altered provisioned-account login")
+ /*line registration_test.mygo:280:6*/	} else {
+ /*line zz_registration.gen_test.go:366:1*/	}
+ /*line registration_test.mygo:271:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.com", "192.0.2.10", now))
 	token := registrationToken(repository, "alice@example.com")
 	winner := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, repository.Site, "winner", "alice@example.com", "winner-account-password"))
- /*line registration_test.mygo:277:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "chosen-final-password", now)) != "registration conflict" {
- /*line registration_test.mygo:278:5*/		t.Fatal("account uniqueness race did not report a conflict")
- /*line registration_test.mygo:277:6*/	} else {
- /*line zz_registration.gen_test.go:361:1*/	}
- /*line registration_test.mygo:280:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE uri='https://a.example/users/alice'") != 0 || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 {
- /*line registration_test.mygo:281:5*/		t.Fatal("failed confirmation left an Actor or consumed the token")
- /*line registration_test.mygo:280:6*/	} else {
- /*line zz_registration.gen_test.go:365:1*/	}
- /*line registration_test.mygo:261:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "winner", "winner-account-password"))
+ /*line registration_test.mygo:287:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "chosen-final-password", now)) != "registration conflict" {
+ /*line registration_test.mygo:288:5*/		t.Fatal("account uniqueness race did not report a conflict")
+ /*line registration_test.mygo:287:6*/	} else {
+ /*line zz_registration.gen_test.go:373:1*/	}
+ /*line registration_test.mygo:290:6*/	if registrationCount(repository.DB, "SELECT count(*) FROM actors WHERE uri='https://a.example/users/alice'") != 0 || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 {
+ /*line registration_test.mygo:291:5*/		t.Fatal("failed confirmation left an Actor or consumed the token")
+ /*line registration_test.mygo:290:6*/	} else {
+ /*line zz_registration.gen_test.go:377:1*/	}
+ /*line registration_test.mygo:271:1*/	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "winner", "winner-account-password"))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(repository.DB.Exec("DELETE FROM accounts WHERE id=?", winner.AccountID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(repository.DB.Exec("DELETE FROM actors WHERE uri=?", winner.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(repository, ctx, token, "chosen-final-password", now))
 	MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "chosen-final-password"))
 	return
- /*line zz_registration.gen_test.go:372:1*/}
- /*line registration_test.mygo:290:1*/func TestPostgresRegistrationConcurrentRateCharge(t *testing.T) {
+ /*line zz_registration.gen_test.go:384:1*/}
+ /*line registration_test.mygo:300:1*/func TestPostgresRegistrationConcurrentRateCharge(t *testing.T) {
 	repository := registrationFixture(t)
 	repository.IPAttempts = 1
 	repository.EmailAttempts = 1
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(15)*time.Second)
- /*line registration_test.mygo:295:3*/	t.Cleanup(cancel)
- /*line registration_test.mygo:290:1*/	now := time.Unix(1800000000, 0)
+ /*line registration_test.mygo:305:3*/	t.Cleanup(cancel)
+ /*line registration_test.mygo:300:1*/	now := time.Unix(1800000000, 0)
 	start := concurrency.MakeChan[struct{}](2)
 	ready := concurrency.MakeChan[struct{}](2)
 	results := concurrency.MakeChan[Result[struct{}, string]](2)
 	var names []string = []string{"first", "second"}
- /*line registration_test.mygo:301:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(names, func(name string) {
- /*line registration_test.mygo:302:5*/		concurrency.Spawn(func() {
- /*line registration_test.mygo:303:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
- /*line zz_registration.gen_test.go:387:1*/			}{})
- /*line registration_test.mygo:302:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
- /*line registration_test.mygo:305:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN22RegistrationRepositoryM8Register(repository, ctx, name, name+"@example.com", "192.0.2.10", now))
+ /*line registration_test.mygo:311:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(names, func(name string) {
+ /*line registration_test.mygo:312:5*/		concurrency.Spawn(func() {
+ /*line registration_test.mygo:313:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
+ /*line zz_registration.gen_test.go:399:1*/			}{})
+ /*line registration_test.mygo:312:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
+ /*line registration_test.mygo:315:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN22RegistrationRepositoryM8Register(repository, ctx, name, name+"@example.com", "192.0.2.10", now))
 			return
- /*line zz_registration.gen_test.go:391:1*/		})
- /*line registration_test.mygo:302:5*/		return
- /*line zz_registration.gen_test.go:393:1*/	})
- /*line registration_test.mygo:290:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
+ /*line zz_registration.gen_test.go:403:1*/		})
+ /*line registration_test.mygo:312:5*/		return
+ /*line zz_registration.gen_test.go:405:1*/	})
+ /*line registration_test.mygo:300:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
- /*line registration_test.mygo:310:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_registration.gen_test.go:397:1*/	}{})
- /*line registration_test.mygo:311:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_registration.gen_test.go:399:1*/	}{})
- /*line registration_test.mygo:290:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
+ /*line registration_test.mygo:320:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_registration.gen_test.go:409:1*/	}{})
+ /*line registration_test.mygo:321:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_registration.gen_test.go:411:1*/	}{})
+ /*line registration_test.mygo:300:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
 	second := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
- /*line registration_test.mygo:314:6*/	if MygoIN6ResultM4IsOk[struct{}, string](first) == MygoIN6ResultM4IsOk[struct{}, string](second) || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT attempts FROM registration_rate_limits WHERE dimension='ip'") != 2 {
- /*line registration_test.mygo:315:5*/		t.Fatal("concurrent registration bypassed committed IP charges")
+ /*line registration_test.mygo:324:6*/	if MygoIN6ResultM4IsOk[struct{}, string](first) == MygoIN6ResultM4IsOk[struct{}, string](second) || registrationCount(repository.DB, "SELECT count(*) FROM pending_registrations") != 1 || registrationCount(repository.DB, "SELECT attempts FROM registration_rate_limits WHERE dimension='ip'") != 2 {
+ /*line registration_test.mygo:325:5*/		t.Fatal("concurrent registration bypassed committed IP charges")
 		return
- /*line registration_test.mygo:314:6*/	} else {
- /*line registration_test.mygo:314:3*/		return
- /*line zz_registration.gen_test.go:407:1*/	}
+ /*line registration_test.mygo:324:6*/	} else {
+ /*line registration_test.mygo:324:3*/		return
+ /*line zz_registration.gen_test.go:419:1*/	}
 }

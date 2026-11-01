@@ -2,8 +2,6 @@ package server
 
 import http "go:net/http"
 import strconv "go:strconv"
-import time "go:time"
-import sql "go:database/sql"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
@@ -36,17 +34,6 @@ struct ModlogPage
   Items: Slice[storage.ModerationLogRecord] `json:"items"`
   Limit: Int `json:"limit"`
   Offset: Int `json:"offset"`
-end
-
-func BanExpiry(value: String) -> Result[sql.NullTime, String]
-  if value == "" then
-    return Ok[sql.NullTime, String](sql.NullTime{})
-  end
-  let parsed = time.Parse(time.RFC3339, value)
-  if parsed.IsErr() then
-    return Err("invalid ban")
-  end
-  Ok[sql.NullTime, String](sql.NullTime{Time: parsed.Unwrap(), Valid: true})
 end
 
 func ModerationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
@@ -105,7 +92,12 @@ func ReportsRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
       Fail(w, page.UnwrapErr())
       return true
     end
-    let rows = storage.ListReports(request.Context(), db, site.ID, session.Unwrap().Identity, request.URL.Query().Get("state"), request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
+    let state = ParseReportState(request.URL.Query().Get("state"), true)
+    if state.IsErr() then
+      Fail(w, state.UnwrapErr())
+      return true
+    end
+    let rows = storage.ListReports(request.Context(), db, site.ID, session.Unwrap().Identity, state.Unwrap(), request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
     if rows.IsErr() then
       Fail(w, rows.UnwrapErr())
     else
@@ -195,6 +187,11 @@ func ResolveReportRoute(settings: config.Config, db: Ref[gorm.DB], site: config.
     WriteErrorJSON(w, 400, "invalid report")
     return true
   end
+  let resolution = ParseReportResolutionState(input.State)
+  if resolution.IsErr() then
+    WriteErrorJSON(w, 400, "invalid report state")
+    return true
+  end
   Settle(w, storage.ResolveReport(request.Context(), db, site.ID, session.Unwrap().Identity, id.Unwrap(), input.State, input.Note))
   true
 end
@@ -218,7 +215,7 @@ func AdminBanRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     WriteErrorJSON(w, 400, "invalid ban")
     return true
   end
-  let expiry = BanExpiry(input.ExpiresAt)
+  let expiry = ParseBanExpiry(input.ExpiresAt)
   if expiry.IsErr() then
     WriteErrorJSON(w, 400, "invalid ban")
     return true

@@ -35,7 +35,10 @@ impl FeedRepository
       if MutationResult(tx.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id=? AND post_id=?", stamp, self.SiteID, postID)).IsErr() then
         return Err("moderation failed")
       end
-      MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, postID))
+      if MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, postID)).IsErr() then
+        return Err("moderation failed")
+      end
+      WriteModerationLog(ctx, tx, self.SiteID, "", identity, action, "post", postID, "")
     end)
   end
 end
@@ -55,7 +58,10 @@ impl CommunityRepository
       end
       let state = if remove then "removed" else "accepted" end
       let authority = if community.ActorURI.Valid then community.ActorURI.String else community.CreatorActorURI end
-      MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, communityID, state))
+      if MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, communityID, state)).IsErr() then
+        return Err("moderation failed")
+      end
+      WriteModerationLog(ctx, tx, self.SiteID, communityID, identity, action, "post", postID, "")
     end)
   end
 

@@ -297,6 +297,70 @@ collection counts and pages the follower, that the follow creates no community
 membership, that its Undo removes the follower and empties the collection, and
 that a boost produces a receipt with neither membership nor inclusion.
 
+### Community follow policy and browser follows
+
+Each hosted Group advertises `commune:followPolicy` and applies its current
+`follow_policy` to every inbound `Follow`. `open` accepts an eligible Person;
+`members` accepts only a current approved member or manager and rejects others;
+`approval` accepts members or managers and records a pending request for other
+eligible actors; `disabled` rejects every new follow. Pending follows do not
+enter the accepted follower collection or grant membership.
+
+The hosting Group replies with a signed `Accept` or `Reject` for terminal
+decisions. A manager deciding a pending request performs the follow transition
+and, on acceptance, membership creation in one transaction before queueing the
+response. A replayed decision is idempotent.
+
+A browser follow of a federated remote Group stores one canonical local Follow
+activity and queues it to the Group. Browser unfollow queues `Undo` for the
+current Follow only. Local hosted and local-only groups resolve the state
+locally without creating a remote protocol job. Repeating a pending or accepted
+follow does not queue a duplicate; repeating an unfollow does not queue another
+Undo.
+
+Inbound `Accept` and `Reject` resolve the original stored Follow, verify that the
+responding actor is its target Group, and update only when the current follow
+activity matches. A stale response therefore cannot overwrite a newer request.
+Similarly, `Undo` only clears the matching current Follow. Authoritative Group
+state updates may replace the replica's cached `follow_policy`, read policy, and
+post policy.
+
+## Votes and Dislike
+
+`reactions` stores one row per `(post_id, actor_uri)`. The row's `score` is
+either `1` or `-1`, and `undone_at` marks a cleared vote. This keeps legacy
+`Like` behavior compatible while allowing an actor to replace an upvote with a
+downvote without creating a second active vote. Aggregate `score`, `upvotes`,
+and `downvotes` always exclude undone rows and directions disabled at the
+resolved site.
+
+Signed inbound `Like`, `Dislike`, and `Undo` activities pass the normal inbox
+signature, actor, object, community, site-block, and current-receipt checks.
+`Dislike` writes score `-1`; `Undo` resolves the original stored activity and
+accepts both `Like` and `Dislike`. Receipts use `applied_reaction_activities`,
+so concurrent or repeated delivery cannot apply a vote twice. Undoing an older
+activity does not clear a newer vote because the active `reaction_uri` must
+match the undone activity.
+
+When a direction is disabled, inbound `Like` or `Dislike` for that direction is
+still receipted but produces no reaction mutation. Clearing an existing vote
+remains allowed. Blocked remote actors are rejected before state changes, and
+because `PlanDelivery` consults the local-only predicates, a local-only post
+never creates a protocol activity or delivery job.
+
+A local vote change on federated content stores the corresponding signed
+activity payload and plans delivery to eligible remote recipients in the same
+transaction as the reaction mutation. `Like` is used for an upvote, `Dislike`
+for a downvote, and `Undo` for a clear; the clear references the stored active
+reaction activity URI. Repeating the current vote is idempotent and does not
+queue another activity. Local-only content is stored locally with no outbound
+activity.
+
+`federation_reactions_test.mygo` covers remote Like replay, stale Undo,
+Dislike, Undo of Dislike, disabled-direction no-op receipts, and blocked actors.
+`vote_outbox_test.mygo` covers Like/Dislike/Undo payloads, recipient jobs,
+idempotent repeats, and local-only exclusion.
+
 ## Central local-only exclusion (stage 5.10)
 
 `internal/storage/local_only.mygo` holds the exclusion predicates every

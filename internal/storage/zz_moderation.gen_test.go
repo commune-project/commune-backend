@@ -95,8 +95,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "pending"))
  /*line moderation_test.mygo:74:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "bogus")) {
  /*line moderation_test.mygo:75:5*/		t.Fatal("invalid submission state accepted")
-		return
  /*line moderation_test.mygo:74:6*/	} else {
- /*line moderation_test.mygo:74:3*/		return
- /*line zz_moderation.gen_test.go:101:1*/	}
+ /*line zz_moderation.gen_test.go:99:1*/	}
+ /*line moderation_test.mygo:9:1*/	logCount := int64(0)
+	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("moderation_log").Where("community_id=? AND action IN ('remove-post','restore-post')", open.ID).Count(&logCount)))
+ /*line moderation_test.mygo:82:6*/	if logCount != int64(2) {
+ /*line moderation_test.mygo:83:5*/		t.Fatal("community post removal and restore were not logged")
+ /*line moderation_test.mygo:82:6*/	} else {
+ /*line zz_moderation.gen_test.go:105:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("moderation_log").Where("site_id=? AND community_id IS NULL AND action IN ('hide-post','unhide-post')", site.ID).Count(&logCount)))
+ /*line moderation_test.mygo:89:6*/	if logCount != int64(2) {
+ /*line moderation_test.mygo:90:5*/		t.Fatal("site post hide and unhide were not logged")
+		return
+ /*line moderation_test.mygo:89:6*/	} else {
+ /*line moderation_test.mygo:89:3*/		return
+ /*line zz_moderation.gen_test.go:112:1*/	}
 }

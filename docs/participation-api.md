@@ -31,6 +31,43 @@ consume a valid token. Existing provisioned accounts remain usable. SMTP failure
 after durable acceptance retry asynchronously; API acceptance does not promise
 that the destination mailbox has already received the message.
 
+## Password reset and change
+
+Password reset is available for existing accounts even when public registration
+is disabled and remains site-scoped by the resolved authority.
+
+1. `POST /api/v1/auth/password/reset` with
+   `{"email":"alice@example.org"}`.
+2. A syntactically valid address receives the same empty `202` response whether
+   the account exists or not. Invalid bodies/addresses return 400, invalid origin
+   returns 403, and configured per-IP or normalized-email limits return 429 with
+   `Retry-After`.
+3. An existing account receives an email whose frontend link is
+   `/reset-password#token=...`.
+4. `POST /api/v1/auth/password/reset/confirm` with
+   `{"token":"...","password":"new-password"}` consumes the single-use token,
+   installs the password, and returns 204. All prior sessions are revoked.
+
+The token is unpredictable, stored only as a digest, and expires after
+`registration.token_ttl_seconds`. Email payloads are encrypted at rest with the
+outbox key and carry no plaintext token into logs or database columns. Invalid,
+expired, reused, or cross-site tokens return 400. A new request invalidates the
+preceding unused token. An invalid final password returns 400 without consuming
+the token.
+
+`POST /api/v1/auth/password/change` requires a current session, same-origin
+validation, and CSRF. It accepts
+`{"current_password":"old","new_password":"new"}`. A wrong current password or
+invalid new password returns 400; missing session returns 401; origin/CSRF
+failure returns 403; success returns 204. Other sessions are revoked while the
+current session remains valid.
+
+Reset mail jobs are durable and leased. Transient SMTP failures retry with
+bounded backoff; success or terminal failure clears encrypted payload bytes.
+Worker restarts resume pending or expired leases. Mail settings and worker
+enablement are shared with registration and described in
+[configuration.md](configuration.md).
+
 ## Search
 
 `GET /api/v1/search?kind=posts&q=中文&limit=20&offset=0` searches titles and normalized

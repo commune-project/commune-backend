@@ -71,9 +71,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line notifications_plan_test.mygo:58:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(variants, func(kind string) {
  /*line notifications_plan_test.mygo:58:17*/		var __mygo_expr_2 *gorm.DB
 		if kind == "page" {
-			__mygo_expr_2 = MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer, "ORDER BY created_at DESC,id DESC LIMIT 20")
+			__mygo_expr_2 = MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer).Order("created_at DESC,id DESC").Limit(20)
 		} else {
-			__mygo_expr_2 = f.DB.Raw("SELECT count(*) FROM (?) AS unread", MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer, "WHERE NOT read"))
+			__mygo_expr_2 = f.DB.Table("(?) AS unread", MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer)).Where("NOT unread.read")
  /*line zz_notifications_plan.gen_test.go:77:1*/		}
  /*line notifications_plan_test.mygo:58:17*/		query := __mygo_expr_2
 		var lines []NotificationPlanLine = []NotificationPlanLine{}

@@ -1,0 +1,86 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import sql "go:database/sql"
+import time "go:time"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresReportsModerationAndBans(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let author = accounts.Create(ctx, site, "author", "", "author-password").Unwrap()
+  let reporter = accounts.Create(ctx, site, "reporter", "", "reporter-password").Unwrap()
+  let target = accounts.Create(ctx, site, "target", "", "target-password").Unwrap()
+  let admin = accounts.Authenticate(ctx, site.ID, "admin", "administrator-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let post = posts.Publish(ctx, site, community.ID, author, false, PublishInput{Title: "Reported", Body: "body"}).Unwrap()
+  if CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "  spam  ").Unwrap() != true ||
+    CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "duplicate").Unwrap() then
+    t.Fatal("open report deduplication failed")
+  end
+  if CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, strings.Repeat("中", 1001)).IsOk() then
+    t.Fatal("overlong report reason was accepted")
+  end
+  let reports = ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0).Unwrap()
+  if reports.Len() != 1 || reports.Get(0).Unwrap().Reason != "spam" then
+    t.Fatal("report listing was missing or unnormalized")
+  end
+  let reportID = reports.Get(0).Unwrap().ID
+  let _ = ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled").Unwrap()
+  let _ = ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled").Unwrap()
+  if ResolveReport(ctx, db, site.ID, admin, reportID, "rejected", "changed").UnwrapErr() != "report conflict" then
+    t.Fatal("conflicting report resolution was not a conflict")
+  end
+  let _ = BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "community ban", sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true}).Unwrap()
+  if !ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now()).Unwrap() then
+    t.Fatal("community ban was not active")
+  end
+  if posts.Publish(ctx, site, community.ID, target, false, PublishInput{Title: "Blocked", Body: "blocked"}).IsOk() then
+    t.Fatal("community-banned actor published")
+  end
+  if UnbanCommunity(ctx, db, site.ID, community.ID, admin, "https://missing.example/users/none").UnwrapErr() != "not found" then
+    t.Fatal("unban of absent community ban was accepted")
+  end
+  let _ = UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI).Unwrap()
+  if posts.Publish(ctx, site, community.ID, target, false, PublishInput{Title: "Allowed", Body: "allowed"}).IsErr() then
+    t.Fatal("community unban did not restore posting")
+  end
+  let _ = BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "expired", sql.NullTime{Time: time.Now().Add((-1) as time.Duration * time.Hour), Valid: true}).Unwrap()
+  if ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now()).Unwrap() then
+    t.Fatal("expired community ban remained active")
+  end
+  let session = SessionRepository{DB: db}.Issue(ctx, target, time.Now()).Unwrap()
+  let _ = BanSite(ctx, db, site.ID, admin, target.ActorURI, "site ban", sql.NullTime{}).Unwrap()
+  if !ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now()).Unwrap() ||
+    SessionRepository{DB: db}.Resolve(ctx, site.ID, session.Session, time.Now()).IsOk() then
+    t.Fatal("site ban was not active or did not revoke sessions")
+  end
+  let targetRecord = AccountRecord{}
+  let _ = MutationResult(db.Table("accounts").Where("site_id=? AND id=?", site.ID, target.AccountID).Find(Ref.new(targetRecord))).Unwrap()
+  if targetRecord.Disabled then
+    t.Fatal("site ban overwrote independent account disabled state")
+  end
+  let _ = UnbanSite(ctx, db, site.ID, admin, target.ActorURI).Unwrap()
+  if ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now()).Unwrap() then
+    t.Fatal("site unban did not revoke the ban")
+  end
+  let logs = ModerationLog(ctx, db, site.ID, admin, "", 100, 0).Unwrap()
+  if logs.Len() < 5 then
+    t.Fatal("moderation actions were not logged")
+  end
+  if MutationResult(db.Exec("UPDATE moderation_log SET reason='changed'")).IsOk() ||
+    MutationResult(db.Exec("DELETE FROM moderation_log")).IsOk() then
+    t.Fatal("moderation log was mutable")
+  end
+end

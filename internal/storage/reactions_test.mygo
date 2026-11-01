@@ -67,4 +67,22 @@ func TestPostgresReactions(t: Ref[testing.T]) -> ()
   if reactions.Like(ctx, localPost.ID, carol, false, "").IsOk() then
     t.Fatal("cross-site account reached a local-only reaction")
   end
+  let voted = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "Votes", Body: "Body", ParentID: ""}).Unwrap()
+  let _ = reactions.Vote(ctx, voted.ID, bob, false, 1, "").Unwrap()
+  var score = 0
+  let _ = MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(Ref.new(score))).Unwrap()
+  if score != 1 then
+    t.Fatal("initial upvote was not stored")
+  end
+  let _ = reactions.Vote(ctx, voted.ID, bob, false, -1, "").Unwrap()
+  let _ = MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(Ref.new(score))).Unwrap()
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(Ref.new(count))).Unwrap()
+  if score != -1 || count != 1i64 then
+    t.Fatal("vote change did not retain exactly one active row")
+  end
+  let _ = reactions.Vote(ctx, voted.ID, bob, false, 0, "").Unwrap()
+  let _ = MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(Ref.new(count))).Unwrap()
+  if count != 0i64 then
+    t.Fatal("vote clear left an active row")
+  end
 end

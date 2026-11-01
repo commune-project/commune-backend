@@ -27,81 +27,101 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_browser_posts.gen.go:27:1*/}
 
  /*line browser_posts.mygo:26:1*/func MygoIN17BrowserRepositoryM6Latest(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
- /*line browser_posts.mygo:28:8*/	if !MygoIN4PageM5Valid(page, max) {
- /*line browser_posts.mygo:29:14*/		return Err[[]PostRecord, string]("invalid page")
- /*line browser_posts.mygo:28:8*/	} else {
- /*line zz_browser_posts.gen.go:33:1*/	}
- /*line browser_posts.mygo:26:1*/	var records []PostRecord = []PostRecord{}
-	query := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND "+PersonalBlockP+" AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id"+BrowserPageSQL(page)).Scan(&records)
- /*line browser_posts.mygo:33:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line browser_posts.mygo:34:14*/		return Err[[]PostRecord, string]("feed unavailable")
- /*line browser_posts.mygo:33:8*/	} else {
- /*line zz_browser_posts.gen.go:39:1*/	}
- /*line browser_posts.mygo:36:5*/	return Ok[[]PostRecord, string](records)
- /*line zz_browser_posts.gen.go:41:1*/}
- /*line browser_posts.mygo:26:1*/func MygoIN17BrowserRepositoryM5Stats(self BrowserRepository, ctx context.Context, viewer BrowserViewer, ids []string) Result[[]PostStats, string] {
-	var stats []PostStats = []PostStats{}
- /*line browser_posts.mygo:41:8*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
- /*line browser_posts.mygo:42:14*/		return Ok[[]PostStats, string](stats)
- /*line browser_posts.mygo:41:8*/	} else {
- /*line zz_browser_posts.gen.go:47:1*/	}
+ /*line browser_posts.mygo:28:5*/	return MygoIN17BrowserRepositoryM12LatestSorted(self, ctx, viewer, page, max, "new")
+ /*line zz_browser_posts.gen.go:31:1*/}
+ /*line browser_posts.mygo:26:1*/func MygoIN17BrowserRepositoryM12LatestSorted(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int, sort string) Result[[]PostRecord, string] {
+ /*line browser_posts.mygo:32:8*/	if !MygoIN4PageM5Valid(page, max) {
+ /*line browser_posts.mygo:33:14*/		return Err[[]PostRecord, string]("invalid page")
+ /*line browser_posts.mygo:32:8*/	} else {
+ /*line zz_browser_posts.gen.go:36:1*/	}
  /*line browser_posts.mygo:26:1*/	var __mygo_expr_0 bool
 	if viewer.VoteSettingsLoaded {
 		__mygo_expr_0 = viewer.UpvotesEnabled
 	} else {
 		__mygo_expr_0 = true
- /*line zz_browser_posts.gen.go:53:1*/	}
+ /*line zz_browser_posts.gen.go:42:1*/	}
  /*line browser_posts.mygo:26:1*/	up := __mygo_expr_0
 	var __mygo_expr_1 bool
 	if viewer.VoteSettingsLoaded {
 		__mygo_expr_1 = viewer.DownvotesEnabled
 	} else {
 		__mygo_expr_1 = true
- /*line zz_browser_posts.gen.go:60:1*/	}
+ /*line zz_browser_posts.gen.go:49:1*/	}
+ /*line browser_posts.mygo:26:1*/	down := __mygo_expr_1
+	var records []PostRecord = []PostRecord{}
+	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND "+PersonalBlockP+" AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+	query := self.DB.WithContext(ctx).Table("(?) AS page", readable)
+	query = query.Order(PostSortSQL("page", sort, up, down)).Limit(page.Limit).Offset(page.Offset)
+ /*line browser_posts.mygo:41:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query.Scan(&records))) {
+ /*line browser_posts.mygo:42:14*/		return Err[[]PostRecord, string]("feed unavailable")
+ /*line browser_posts.mygo:41:8*/	} else {
+ /*line zz_browser_posts.gen.go:58:1*/	}
+ /*line browser_posts.mygo:44:5*/	return Ok[[]PostRecord, string](records)
+ /*line zz_browser_posts.gen.go:60:1*/}
+ /*line browser_posts.mygo:26:1*/func MygoIN17BrowserRepositoryM5Stats(self BrowserRepository, ctx context.Context, viewer BrowserViewer, ids []string) Result[[]PostStats, string] {
+	var stats []PostStats = []PostStats{}
+ /*line browser_posts.mygo:49:8*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
+ /*line browser_posts.mygo:50:14*/		return Ok[[]PostStats, string](stats)
+ /*line browser_posts.mygo:49:8*/	} else {
+ /*line zz_browser_posts.gen.go:66:1*/	}
+ /*line browser_posts.mygo:26:1*/	var __mygo_expr_0 bool
+	if viewer.VoteSettingsLoaded {
+		__mygo_expr_0 = viewer.UpvotesEnabled
+	} else {
+		__mygo_expr_0 = true
+ /*line zz_browser_posts.gen.go:72:1*/	}
+ /*line browser_posts.mygo:26:1*/	up := __mygo_expr_0
+	var __mygo_expr_1 bool
+	if viewer.VoteSettingsLoaded {
+		__mygo_expr_1 = viewer.DownvotesEnabled
+	} else {
+		__mygo_expr_1 = true
+ /*line zz_browser_posts.gen.go:79:1*/	}
  /*line browser_posts.mygo:26:1*/	down := __mygo_expr_1
 	query := self.DB.WithContext(ctx).Raw("SELECT q.*, (q.upvotes - q.downvotes) AS score FROM (SELECT p.id, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=1 AND ?),0) AS upvotes, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=-1 AND ?),0) AS downvotes, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=1 AND ?),0) AS like_count, COALESCE((SELECT CASE WHEN (? AND r.score=1) OR (? AND r.score=-1) THEN r.score ELSE 0 END FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.actor_uri=?),0) AS voted_by_me, COALESCE((SELECT (r.score=1 AND ?) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.actor_uri=? LIMIT 1),false) AS liked_by_me, (SELECT count(*) FROM posts r JOIN site_posts sp ON sp.post_id=r.id AND sp.site_id=? WHERE r.parent_id=p.id AND r.community_id=p.community_id AND r.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=r.id AND cm.community_id=r.community_id AND cm.state IN ('removed','rejected'))) AS reply_count, EXISTS(SELECT 1 FROM saved_posts s WHERE s.site_id=? AND s.account_id=? AND s.post_id=p.id) AS saved_by_me, EXISTS(SELECT 1 FROM post_reads rd WHERE rd.site_id=? AND rd.account_id=? AND rd.post_id=p.id) AS read_by_me, EXISTS(SELECT 1 FROM post_hidden hd WHERE hd.site_id=? AND hd.account_id=? AND hd.post_id=p.id) AS hidden_by_me FROM posts p WHERE p.id IN ?) q", up, down, up, up, down, viewer.Identity.ActorURI, up, viewer.Identity.ActorURI, self.SiteID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, ids).Scan(&stats)
- /*line browser_posts.mygo:50:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line browser_posts.mygo:51:14*/		return Err[[]PostStats, string]("feed unavailable")
- /*line browser_posts.mygo:50:8*/	} else {
- /*line zz_browser_posts.gen.go:66:1*/	}
- /*line browser_posts.mygo:53:5*/	return Ok[[]PostStats, string](stats)
- /*line zz_browser_posts.gen.go:68:1*/}
+ /*line browser_posts.mygo:58:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line browser_posts.mygo:59:14*/		return Err[[]PostStats, string]("feed unavailable")
+ /*line browser_posts.mygo:58:8*/	} else {
+ /*line zz_browser_posts.gen.go:85:1*/	}
+ /*line browser_posts.mygo:61:5*/	return Ok[[]PostStats, string](stats)
+ /*line zz_browser_posts.gen.go:87:1*/}
  /*line browser_posts.mygo:26:1*/func MygoIN17BrowserRepositoryM6Roster(self BrowserRepository, ctx context.Context, id string, viewer BrowserViewer, managers bool, page Page, max int) Result[[]RosterEntry, string] {
- /*line browser_posts.mygo:57:8*/	if !MygoIN4PageM5Valid(page, max) {
- /*line browser_posts.mygo:58:14*/		return Err[[]RosterEntry, string]("invalid page")
- /*line browser_posts.mygo:57:8*/	} else {
- /*line zz_browser_posts.gen.go:73:1*/	}
+ /*line browser_posts.mygo:65:8*/	if !MygoIN4PageM5Valid(page, max) {
+ /*line browser_posts.mygo:66:14*/		return Err[[]RosterEntry, string]("invalid page")
+ /*line browser_posts.mygo:65:8*/	} else {
+ /*line zz_browser_posts.gen.go:92:1*/	}
  /*line browser_posts.mygo:26:1*/	repository := CommunityRepository{DB: self.DB, SiteID: self.SiteID}
 	checked := MygoIN19CommunityRepositoryM5Check(repository, ctx, id, viewer.Identity, false)
- /*line browser_posts.mygo:62:8*/	if MygoIN6ResultM5IsErr[CommunityAccess, string](checked) {
- /*line browser_posts.mygo:63:14*/		return Err[[]RosterEntry, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](checked))
- /*line browser_posts.mygo:62:8*/	} else {
- /*line zz_browser_posts.gen.go:79:1*/	}
+ /*line browser_posts.mygo:70:8*/	if MygoIN6ResultM5IsErr[CommunityAccess, string](checked) {
+ /*line browser_posts.mygo:71:14*/		return Err[[]RosterEntry, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](checked))
+ /*line browser_posts.mygo:70:8*/	} else {
+ /*line zz_browser_posts.gen.go:98:1*/	}
  /*line browser_posts.mygo:26:1*/	access := MygoIN6ResultM6Unwrap[CommunityAccess, string](checked)
- /*line browser_posts.mygo:66:8*/	if !MygoIN15CommunityAccessM7CanRead(access) {
- /*line browser_posts.mygo:67:14*/		return Err[[]RosterEntry, string]("not found")
- /*line browser_posts.mygo:66:8*/	} else {
- /*line zz_browser_posts.gen.go:84:1*/	}
- /*line browser_posts.mygo:69:8*/	if !auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community") {
- /*line browser_posts.mygo:70:14*/		return Err[[]RosterEntry, string]("forbidden")
- /*line browser_posts.mygo:69:8*/	} else {
- /*line zz_browser_posts.gen.go:88:1*/	}
+ /*line browser_posts.mygo:74:8*/	if !MygoIN15CommunityAccessM7CanRead(access) {
+ /*line browser_posts.mygo:75:14*/		return Err[[]RosterEntry, string]("not found")
+ /*line browser_posts.mygo:74:8*/	} else {
+ /*line zz_browser_posts.gen.go:103:1*/	}
+ /*line browser_posts.mygo:77:8*/	if !auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community") {
+ /*line browser_posts.mygo:78:14*/		return Err[[]RosterEntry, string]("forbidden")
+ /*line browser_posts.mygo:77:8*/	} else {
+ /*line zz_browser_posts.gen.go:107:1*/	}
  /*line browser_posts.mygo:26:1*/	var rows []RosterEntry = []RosterEntry{}
 	var __mygo_expr_0 *gorm.DB
 	if managers {
-		__mygo_expr_0 = self.DB.WithContext(ctx).Raw("SELECT actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager FROM (SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL) roster GROUP BY actor_uri ORDER BY actor_uri"+BrowserPageSQL(page), id, id).Scan(&rows)
+ /*line browser_posts.mygo:82:7*/		roster := self.DB.WithContext(ctx).Raw("SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL", id, id)
+ /*line browser_posts.mygo:26:1*/		__mygo_expr_0 = self.DB.WithContext(ctx).Table("(?) AS roster", roster).Select("actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager").Group("actor_uri").Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(&rows)
 	} else {
-		__mygo_expr_0 = self.DB.WithContext(ctx).Raw("SELECT actor_uri,false AS is_creator,false AS is_manager FROM community_members WHERE community_id=? AND revoked_at IS NULL ORDER BY actor_uri"+BrowserPageSQL(page), id).Scan(&rows)
- /*line zz_browser_posts.gen.go:95:1*/	}
+		__mygo_expr_0 = self.DB.WithContext(ctx).Table("community_members").Select("actor_uri,false AS is_creator,false AS is_manager").Where("community_id=? AND revoked_at IS NULL", id).Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(&rows)
+ /*line zz_browser_posts.gen.go:115:1*/	}
  /*line browser_posts.mygo:26:1*/	query := __mygo_expr_0
- /*line browser_posts.mygo:78:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line browser_posts.mygo:79:14*/		return Err[[]RosterEntry, string]("roster unavailable")
- /*line browser_posts.mygo:78:8*/	} else {
- /*line zz_browser_posts.gen.go:100:1*/	}
+ /*line browser_posts.mygo:87:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line browser_posts.mygo:88:14*/		return Err[[]RosterEntry, string]("roster unavailable")
+ /*line browser_posts.mygo:87:8*/	} else {
+ /*line zz_browser_posts.gen.go:120:1*/	}
  /*line browser_posts.mygo:26:1*/	audited := MygoIN19CommunityRepositoryM5Audit(repository, ctx, access, "read-roster", id)
- /*line browser_posts.mygo:82:8*/	if MygoIN6ResultM5IsErr[struct{}, string](audited) {
- /*line browser_posts.mygo:83:14*/		return Err[[]RosterEntry, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audited))
- /*line browser_posts.mygo:82:8*/	} else {
- /*line zz_browser_posts.gen.go:105:1*/	}
- /*line browser_posts.mygo:85:5*/	return Ok[[]RosterEntry, string](rows)
- /*line zz_browser_posts.gen.go:107:1*/}
+ /*line browser_posts.mygo:91:8*/	if MygoIN6ResultM5IsErr[struct{}, string](audited) {
+ /*line browser_posts.mygo:92:14*/		return Err[[]RosterEntry, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audited))
+ /*line browser_posts.mygo:91:8*/	} else {
+ /*line zz_browser_posts.gen.go:125:1*/	}
+ /*line browser_posts.mygo:94:5*/	return Ok[[]RosterEntry, string](rows)
+ /*line zz_browser_posts.gen.go:127:1*/}

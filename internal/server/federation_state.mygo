@@ -10,6 +10,7 @@ import rand "go:crypto/rand"
 struct CommunityStatePolicy
   Read: String `json:"read"`
   Post: String `json:"post"`
+  Follow: String `json:"follow,omitempty"`
 end
 
 struct GroupStateObject
@@ -54,6 +55,12 @@ func ApplyCommunityState(ctx: context.Context, db: Ref[gorm.DB], payload: Slice[
   let applied = storage.ApplyCommunityPolicy(ctx, db, current.ID, state.Object.Policy.Read, state.Object.Policy.Post)
   if applied.IsErr() then
     return Err(applied.UnwrapErr())
+  end
+  if state.Object.Policy.Follow != "" then
+    let follow = storage.SetCommunityFollowRule(ctx, db, current.ID, state.Object.Policy.Follow)
+    if follow.IsErr() then
+      return Err(follow.UnwrapErr())
+    end
   end
   let members = storage.ReplaceReplicaMembers(ctx, db, current.ID, state.Actor, state.Object.Members)
   if members.IsErr() then

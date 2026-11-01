@@ -1,0 +1,176 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func decodeVoteSettings(t: Ref[testing.T], response: Ref[httptest.ResponseRecorder]) -> SiteVoteSettingsOutput
+  let output = SiteVoteSettingsOutput{}
+  if response.Code != 200 || json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
+    t.Fatalf("invalid vote settings response: %d %s", response.Code, response.Body.String())
+  end
+  output
+end
+
+func TestPostgresSiteVoteSettingsHTTP(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, b, "admin-b", "administrator-b-password", false).Unwrap()
+  let _ = storage.AccountRepository{DB: db}.Create(ctx, a, "ordinary", "", "ordinary-password").Unwrap()
+  let handler = Handler(settings, db)
+  let adminCookies = login(handler, a.Origin, "admin", "administrator-password")
+  let adminCSRF = csrfOf(adminCookies)
+  let ordinaryCookies = login(handler, a.Origin, "ordinary", "ordinary-password")
+  let ordinaryCSRF = csrfOf(ordinaryCookies)
+  let anonymous: Slice[Ref[http.Cookie]] = []
+
+  let initial = decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
+  if !initial.UpvotesEnabled || !initial.DownvotesEnabled then
+    t.Fatal("default vote settings were not enabled")
+  end
+  let update = doForum(
+    handler,
+    forumCall{
+      Method: "PUT",
+      Origin: a.Origin,
+      Path: "/api/v1/admin/vote-settings",
+      Payload: "{\"downvotes_enabled\":false}",
+      Cookies: adminCookies,
+      CSRF: adminCSRF,
+      Source: a.Origin,
+    }
+  )
+  let first = decodeVoteSettings(t, update)
+  if !first.UpvotesEnabled || first.DownvotesEnabled then
+    t.Fatal("downvote setting was not disabled")
+  end
+  let siteA = decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
+  let siteB = decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
+  if siteA.DownvotesEnabled || !siteB.DownvotesEnabled || !siteB.UpvotesEnabled then
+    t.Fatal("vote settings were not site scoped")
+  end
+  let partial = decodeVoteSettings(
+    t,
+    doForum(
+      handler,
+      forumCall{
+        Method: "PUT",
+        Origin: a.Origin,
+        Path: "/api/v1/admin/vote-settings",
+        Payload: "{\"upvotes_enabled\":false}",
+        Cookies: adminCookies,
+        CSRF: adminCSRF,
+        Source: a.Origin,
+      }
+    )
+  )
+  if partial.UpvotesEnabled || partial.DownvotesEnabled then
+    t.Fatal("partial update did not preserve the prior downvote value")
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "PUT",
+      Origin: a.Origin,
+      Path: "/api/v1/admin/vote-settings",
+      Payload: "{\"upvotes_enabled\":true}",
+      Cookies: ordinaryCookies,
+      CSRF: ordinaryCSRF,
+      Source: a.Origin,
+    }
+  ).Code != 403 then
+    t.Fatal("ordinary account updated vote settings")
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "PUT",
+      Origin: a.Origin,
+      Path: "/api/v1/admin/vote-settings",
+      Payload: "{}",
+      Cookies: adminCookies,
+      CSRF: adminCSRF,
+      Source: a.Origin,
+    }
+  ).Code != 400 then
+    t.Fatal("empty vote settings update was accepted")
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "PUT",
+      Origin: a.Origin,
+      Path: "/api/v1/admin/vote-settings",
+      Payload: "{\"upvotes_enabled\":\"yes\"}",
+      Cookies: adminCookies,
+      CSRF: adminCSRF,
+      Source: a.Origin,
+    }
+  ).Code != 400 then
+    t.Fatal("non-boolean vote setting was accepted")
+  end
+end
+
+func TestPostgresVoteSettingsHistoricalRestore(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let a = settings.Sites.Get(0).Unwrap()
+  let b = settings.Sites.Get(1).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, a).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, b).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, b, "admin-b", "administrator-b-password", false).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let author = accounts.Create(ctx, a, "author", "", "author-password").Unwrap()
+  let viewer = accounts.Create(ctx, a, "viewer", "", "viewer-password").Unwrap()
+  let authorB = accounts.Create(ctx, b, "author-b", "", "author-b-password").Unwrap()
+  let viewerB = accounts.Create(ctx, b, "viewer-b", "", "viewer-b-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: a.ID}.Create(ctx, a, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let communityB = storage.CommunityRepository{DB: db, SiteID: b.ID}.Create(ctx, b, authorB, "open-b", "Open B", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: a.ID}
+  let postsB = storage.PostRepository{DB: db, SiteID: b.ID}
+  let post = posts.Publish(ctx, a, community.ID, author, false, storage.PublishInput{Title: "Historical", Body: "vote"}).Unwrap()
+  let postB = postsB.Publish(ctx, b, communityB.ID, authorB, false, storage.PublishInput{Title: "Other site", Body: "vote"}).Unwrap()
+  let _ = storage.ReactionRepository{DB: db, SiteID: a.ID}.Vote(ctx, post.ID, viewer, false, -1, "").Unwrap()
+  let _ = storage.ReactionRepository{DB: db, SiteID: b.ID}.Vote(ctx, postB.ID, viewerB, false, -1, "").Unwrap()
+  let handler = Handler(settings, db)
+  let adminCookies = login(handler, a.Origin, "admin", "administrator-password")
+  let adminCSRF = csrfOf(adminCookies)
+  let viewerCookies = login(handler, a.Origin, "viewer", "viewer-password")
+  let update = func(payload: String) -> Ref[httptest.ResponseRecorder]
+    doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: payload, Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin})
+  end
+  let _ = decodeVoteSettings(t, update("{\"downvotes_enabled\":false}"))
+  let disabled = browserPost(t, browserGet(t, handler, a.Origin, "/api/v1/posts/" + post.ID, viewerCookies, 200))
+  if disabled.Downvotes != 0i64 || disabled.VotedByMe != 0i64 || disabled.Permissions.CanDownvote then
+    t.Fatal("disabled downvote remained visible in post projection")
+  end
+  let siteB = decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Cookies: [] as Slice[Ref[http.Cookie]]}))
+  if !siteB.DownvotesEnabled then
+    t.Fatal("site A disabled site B downvotes")
+  end
+  let other = browserPost(t, browserGet(t, handler, b.Origin, "/api/v1/posts/" + postB.ID, login(handler, b.Origin, "viewer-b", "viewer-b-password"), 200))
+  if other.Downvotes != 1i64 || other.VotedByMe != -1i64 then
+    t.Fatal("cross-site historical vote state was not isolated")
+  end
+  let _ = decodeVoteSettings(t, update("{\"downvotes_enabled\":true}"))
+  let restored = browserPost(t, browserGet(t, handler, a.Origin, "/api/v1/posts/" + post.ID, viewerCookies, 200))
+  if restored.Downvotes != 1i64 || restored.VotedByMe != -1i64 || restored.Score != -1i64 then
+    t.Fatal("historical downvote did not return after re-enable")
+  end
+end

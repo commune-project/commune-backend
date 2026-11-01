@@ -16,36 +16,38 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_search.gen.go:16:1*/}
  /*line search.mygo:18:1*/func MygoIN17BrowserRepositoryM16SearchPostsQuery(self BrowserRepository, ctx context.Context, viewer BrowserViewer, query string, page Page) *gorm.DB {
 	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND "+PersonalBlockP+" AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
- /*line search.mygo:21:5*/	return self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\' ORDER BY authored_at DESC,id"+BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query))
- /*line zz_search.gen.go:20:1*/}
+	pattern := SearchPattern(query)
+ /*line search.mygo:22:5*/	return self.DB.WithContext(ctx).Table("(?) AS searchable", readable).Where("(coalesce(title,'') ILIKE ? ESCAPE E'\\\\' OR search_text ILIKE ? ESCAPE E'\\\\')", pattern, pattern).Order("authored_at DESC,id").Limit(page.Limit).Offset(page.Offset)
+ /*line zz_search.gen.go:21:1*/}
  /*line search.mygo:18:1*/func MygoIN17BrowserRepositoryM11SearchPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, query string, page Page, max int) Result[[]PostRecord, string] {
- /*line search.mygo:25:8*/	if !ValidSearchQuery(query) || !MygoIN4PageM5Valid(page, max) {
- /*line search.mygo:26:14*/		return Err[[]PostRecord, string]("invalid page")
- /*line search.mygo:25:8*/	} else {
- /*line zz_search.gen.go:25:1*/	}
+ /*line search.mygo:26:8*/	if !ValidSearchQuery(query) || !MygoIN4PageM5Valid(page, max) {
+ /*line search.mygo:27:14*/		return Err[[]PostRecord, string]("invalid page")
+ /*line search.mygo:26:8*/	} else {
+ /*line zz_search.gen.go:26:1*/	}
  /*line search.mygo:18:1*/	var rows []PostRecord = []PostRecord{}
- /*line search.mygo:29:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM16SearchPostsQuery(self, ctx, viewer, query, page).Scan(&rows))) {
- /*line search.mygo:30:14*/		return Err[[]PostRecord, string]("search unavailable")
- /*line search.mygo:29:8*/	} else {
- /*line zz_search.gen.go:30:1*/	}
- /*line search.mygo:32:5*/	return Ok[[]PostRecord, string](rows)
- /*line zz_search.gen.go:32:1*/}
+ /*line search.mygo:30:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM16SearchPostsQuery(self, ctx, viewer, query, page).Scan(&rows))) {
+ /*line search.mygo:31:14*/		return Err[[]PostRecord, string]("search unavailable")
+ /*line search.mygo:30:8*/	} else {
+ /*line zz_search.gen.go:31:1*/	}
+ /*line search.mygo:33:5*/	return Ok[[]PostRecord, string](rows)
+ /*line zz_search.gen.go:33:1*/}
  /*line search.mygo:18:1*/func MygoIN17BrowserRepositoryM17SearchCommunities(self BrowserRepository, ctx context.Context, viewer BrowserViewer, query string, page Page, max int) Result[[]CommunityView, string] {
- /*line search.mygo:36:8*/	if !ValidSearchQuery(query) || !MygoIN4PageM5Valid(page, max) {
- /*line search.mygo:37:14*/		return Err[[]CommunityView, string]("invalid page")
- /*line search.mygo:36:8*/	} else {
- /*line zz_search.gen.go:37:1*/	}
+ /*line search.mygo:37:8*/	if !ValidSearchQuery(query) || !MygoIN4PageM5Valid(page, max) {
+ /*line search.mygo:38:14*/		return Err[[]CommunityView, string]("invalid page")
+ /*line search.mygo:37:8*/	} else {
+ /*line zz_search.gen.go:38:1*/	}
  /*line search.mygo:18:1*/	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable WHERE host_site_id=@site OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=@site AND p.community_id=readable.id AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))))")
 	var rows []CommunityView = []CommunityView{}
-	result := self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS searchable WHERE name ILIKE ? ESCAPE E'\\\\' OR title ILIKE ? ESCAPE E'\\\\' OR description ILIKE ? ESCAPE E'\\\\' ORDER BY name,id"+BrowserPageSQL(page), readable, SearchPattern(query), SearchPattern(query), SearchPattern(query)).Scan(&rows)
- /*line search.mygo:42:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(result)) {
- /*line search.mygo:43:14*/		return Err[[]CommunityView, string]("search unavailable")
- /*line search.mygo:42:8*/	} else {
- /*line zz_search.gen.go:44:1*/	}
+	pattern := SearchPattern(query)
+	result := self.DB.WithContext(ctx).Table("(?) AS searchable", readable).Where("(name ILIKE ? ESCAPE E'\\\\' OR title ILIKE ? ESCAPE E'\\\\' OR description ILIKE ? ESCAPE E'\\\\')", pattern, pattern, pattern).Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(&rows)
+ /*line search.mygo:44:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(result)) {
+ /*line search.mygo:45:14*/		return Err[[]CommunityView, string]("search unavailable")
+ /*line search.mygo:44:8*/	} else {
+ /*line zz_search.gen.go:46:1*/	}
  /*line search.mygo:18:1*/	audit := MygoIN17BrowserRepositoryM10AuditViews(self, ctx, viewer, rows)
- /*line search.mygo:46:8*/	if MygoIN6ResultM5IsErr[struct{}, string](audit) {
- /*line search.mygo:47:14*/		return Err[[]CommunityView, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audit))
- /*line search.mygo:46:8*/	} else {
- /*line zz_search.gen.go:49:1*/	}
- /*line search.mygo:49:5*/	return Ok[[]CommunityView, string](rows)
- /*line zz_search.gen.go:51:1*/}
+ /*line search.mygo:48:8*/	if MygoIN6ResultM5IsErr[struct{}, string](audit) {
+ /*line search.mygo:49:14*/		return Err[[]CommunityView, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audit))
+ /*line search.mygo:48:8*/	} else {
+ /*line zz_search.gen.go:51:1*/	}
+ /*line search.mygo:51:5*/	return Ok[[]CommunityView, string](rows)
+ /*line zz_search.gen.go:53:1*/}

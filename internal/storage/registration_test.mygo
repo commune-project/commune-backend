@@ -81,8 +81,18 @@ func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
     return
   end
   let accounts = AccountRepository{DB: db}
-  let provisioned = accounts.Create(ctx, site, "existing", "existing@example.com", "existing-account-password").Unwrap()
-  let issued = SessionRepository{DB: db}.Issue(ctx, provisioned, time.Now()).Unwrap()
+  let existing = accounts.Create(ctx, site, "existing", "existing@example.com", "existing-account-password")
+  if existing.IsErr() then
+    t.Fatalf("create pre-registration account: %s", existing.UnwrapErr())
+  end
+  let provisioned = existing.Unwrap()
+  let issued = auth.NewSessionTokens()
+  let issuedAt = time.Now()
+  let sessionRecord = SessionRecord{TokenHash: issued.SessionHash(), SiteID: provisioned.SiteID, AccountID: provisioned.AccountID, CSRFHash: issued.CSRFHash(), CreatedAt: issuedAt, ExpiresAt: issuedAt.Add(24 as time.Duration * time.Hour)}
+  let issuedInsert = db.Table("sessions").Create(Ref.new(sessionRecord))
+  if MutationResult(issuedInsert).IsErr() then
+    t.Fatalf("create pre-registration session fixture failed: %v", issuedInsert.Error)
+  end
   let _ = MigrateGORM(ctx, db).Unwrap()
   let _ = MigrateGORM(ctx, db).Unwrap()
   let _ = CheckGORM(ctx, db).Unwrap()

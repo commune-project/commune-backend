@@ -31,88 +31,122 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line provision_test.mygo:19:5*/		t.Fatal("site provisioning or repetition failed")
  /*line provision_test.mygo:18:6*/	} else {
  /*line zz_provision.gen_test.go:33:1*/	}
- /*line provision_test.mygo:9:1*/	conflict := config.Site{ID: "a", Origin: "https://changed.example", Aliases: []string{}}
-	alias := config.Site{ID: "c", Origin: "https://c.example", Aliases: []string{"alias.example"}}
- /*line provision_test.mygo:23:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, conflict)) || MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, alias)) {
- /*line provision_test.mygo:24:5*/		t.Fatal("site identity conflict accepted")
- /*line provision_test.mygo:23:6*/	} else {
- /*line zz_provision.gen_test.go:39:1*/	}
- /*line provision_test.mygo:9:1*/	count := 0
- /*line provision_test.mygo:27:6*/	var __mygo_expr_4 Result[struct{}, error]
-	__mygo_expr_3 := pool.QueryRow("SELECT count(*) FROM sites WHERE id='c'").Scan(&count)
+ /*line provision_test.mygo:9:1*/	voteRows := 0
+ /*line provision_test.mygo:22:6*/	var __mygo_expr_4 Result[struct{}, error]
+	__mygo_expr_3 := pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE upvotes_enabled AND downvotes_enabled").Scan(&voteRows)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_provision.gen_test.go:47:1*/		}{})
+ /*line zz_provision.gen_test.go:41:1*/		}{})
 	}
- /*line provision_test.mygo:27:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || count != 0 {
- /*line provision_test.mygo:28:5*/		t.Fatal("conflicting site was not rolled back")
- /*line provision_test.mygo:27:6*/	} else {
- /*line zz_provision.gen_test.go:52:1*/	}
- /*line provision_test.mygo:30:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false)) {
- /*line provision_test.mygo:31:5*/		t.Fatal("administrator provisioning failed")
- /*line provision_test.mygo:30:6*/	} else {
- /*line zz_provision.gen_test.go:56:1*/	}
- /*line provision_test.mygo:9:1*/	first := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
-	second := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "b", "alice")))
- /*line provision_test.mygo:35:6*/	if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") {
- /*line provision_test.mygo:36:5*/		t.Fatal("site credentials are not independent")
- /*line provision_test.mygo:35:6*/	} else {
- /*line zz_provision.gen_test.go:62:1*/	}
- /*line provision_test.mygo:38:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) {
- /*line provision_test.mygo:39:5*/		t.Fatal("repeat account provisioning failed")
- /*line provision_test.mygo:38:6*/	} else {
- /*line zz_provision.gen_test.go:66:1*/	}
- /*line provision_test.mygo:41:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "changed-password", true)) {
- /*line provision_test.mygo:42:5*/		t.Fatal("repeat provisioning replaced credentials")
- /*line provision_test.mygo:41:6*/	} else {
- /*line zz_provision.gen_test.go:70:1*/	}
- /*line provision_test.mygo:9:1*/	repeated := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
- /*line provision_test.mygo:45:6*/	if repeated.PasswordHash != first.PasswordHash {
- /*line provision_test.mygo:46:5*/		t.Fatal("repeat changed stored hash")
- /*line provision_test.mygo:45:6*/	} else {
- /*line zz_provision.gen_test.go:75:1*/	}
- /*line provision_test.mygo:48:6*/	var __mygo_expr_6 Result[struct{}, error]
-	__mygo_expr_5 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
+ /*line provision_test.mygo:22:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || voteRows != 2 {
+ /*line provision_test.mygo:23:5*/		t.Fatal("site vote settings defaults were not provisioned")
+ /*line provision_test.mygo:22:6*/	} else {
+ /*line zz_provision.gen_test.go:46:1*/	}
+ /*line provision_test.mygo:25:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Exec("DELETE FROM site_vote_settings WHERE site_id='a'"))) {
+ /*line provision_test.mygo:26:5*/		t.Fatal("cannot create missing vote settings fixture")
+ /*line provision_test.mygo:25:6*/	} else {
+ /*line zz_provision.gen_test.go:50:1*/	}
+ /*line provision_test.mygo:28:6*/	if !SiteVoteUpEnabled(ctx, db, "a") || !SiteVoteDownEnabled(ctx, db, "a") {
+ /*line provision_test.mygo:29:5*/		t.Fatal("missing vote settings did not resolve enabled")
+ /*line provision_test.mygo:28:6*/	} else {
+ /*line zz_provision.gen_test.go:54:1*/	}
+ /*line provision_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
+ /*line provision_test.mygo:32:6*/	var __mygo_expr_6 Result[struct{}, error]
+	__mygo_expr_5 := pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE site_id='a' AND upvotes_enabled AND downvotes_enabled").Scan(&voteRows)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_provision.gen_test.go:82:1*/		}{})
+ /*line zz_provision.gen_test.go:62:1*/		}{})
 	}
- /*line provision_test.mygo:48:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || count != 0 {
- /*line provision_test.mygo:49:5*/		t.Fatal("site provisioning escalated deployment authority")
- /*line provision_test.mygo:48:6*/	} else {
- /*line zz_provision.gen_test.go:87:1*/	}
- /*line provision_test.mygo:51:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true)) {
- /*line provision_test.mygo:52:5*/		t.Fatal("explicit deployment grant failed")
- /*line provision_test.mygo:51:6*/	} else {
- /*line zz_provision.gen_test.go:91:1*/	}
- /*line provision_test.mygo:54:6*/	var __mygo_expr_8 Result[struct{}, error]
-	__mygo_expr_7 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
+ /*line provision_test.mygo:32:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || voteRows != 1 {
+ /*line provision_test.mygo:33:5*/		t.Fatal("repeat provisioning did not restore vote settings defaults")
+ /*line provision_test.mygo:32:6*/	} else {
+ /*line zz_provision.gen_test.go:67:1*/	}
+ /*line provision_test.mygo:9:1*/	conflict := config.Site{ID: "a", Origin: "https://changed.example", Aliases: []string{}}
+	alias := config.Site{ID: "c", Origin: "https://c.example", Aliases: []string{"alias.example"}}
+ /*line provision_test.mygo:37:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, conflict)) || MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, alias)) {
+ /*line provision_test.mygo:38:5*/		t.Fatal("site identity conflict accepted")
+ /*line provision_test.mygo:37:6*/	} else {
+ /*line zz_provision.gen_test.go:73:1*/	}
+ /*line provision_test.mygo:9:1*/	count := 0
+ /*line provision_test.mygo:41:6*/	var __mygo_expr_8 Result[struct{}, error]
+	__mygo_expr_7 := pool.QueryRow("SELECT count(*) FROM sites WHERE id='c'").Scan(&count)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
 	} else {
 		__mygo_expr_8 = Ok[struct{}, error](struct {
- /*line zz_provision.gen_test.go:98:1*/		}{})
+ /*line zz_provision.gen_test.go:81:1*/		}{})
 	}
- /*line provision_test.mygo:54:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || count != 1 {
- /*line provision_test.mygo:55:5*/		t.Fatal("deployment grant was not scoped")
- /*line provision_test.mygo:54:6*/	} else {
- /*line zz_provision.gen_test.go:103:1*/	}
- /*line provision_test.mygo:57:6*/	var __mygo_expr_10 Result[struct{}, error]
-	__mygo_expr_9 := pool.QueryRow("SELECT count(*) FROM audit_events").Scan(&count)
+ /*line provision_test.mygo:41:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || count != 0 {
+ /*line provision_test.mygo:42:5*/		t.Fatal("conflicting site was not rolled back")
+ /*line provision_test.mygo:41:6*/	} else {
+ /*line zz_provision.gen_test.go:86:1*/	}
+ /*line provision_test.mygo:44:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false)) {
+ /*line provision_test.mygo:45:5*/		t.Fatal("administrator provisioning failed")
+ /*line provision_test.mygo:44:6*/	} else {
+ /*line zz_provision.gen_test.go:90:1*/	}
+ /*line provision_test.mygo:9:1*/	first := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
+	second := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "b", "alice")))
+ /*line provision_test.mygo:49:6*/	if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") {
+ /*line provision_test.mygo:50:5*/		t.Fatal("site credentials are not independent")
+ /*line provision_test.mygo:49:6*/	} else {
+ /*line zz_provision.gen_test.go:96:1*/	}
+ /*line provision_test.mygo:52:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) {
+ /*line provision_test.mygo:53:5*/		t.Fatal("repeat account provisioning failed")
+ /*line provision_test.mygo:52:6*/	} else {
+ /*line zz_provision.gen_test.go:100:1*/	}
+ /*line provision_test.mygo:55:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "changed-password", true)) {
+ /*line provision_test.mygo:56:5*/		t.Fatal("repeat provisioning replaced credentials")
+ /*line provision_test.mygo:55:6*/	} else {
+ /*line zz_provision.gen_test.go:104:1*/	}
+ /*line provision_test.mygo:9:1*/	repeated := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
+ /*line provision_test.mygo:59:6*/	if repeated.PasswordHash != first.PasswordHash {
+ /*line provision_test.mygo:60:5*/		t.Fatal("repeat changed stored hash")
+ /*line provision_test.mygo:59:6*/	} else {
+ /*line zz_provision.gen_test.go:109:1*/	}
+ /*line provision_test.mygo:62:6*/	var __mygo_expr_10 Result[struct{}, error]
+	__mygo_expr_9 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
 	} else {
 		__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_provision.gen_test.go:110:1*/		}{})
+ /*line zz_provision.gen_test.go:116:1*/		}{})
 	}
- /*line provision_test.mygo:57:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || count != 3 {
- /*line provision_test.mygo:58:5*/		t.Fatal("role grants not audited once in their own scope")
+ /*line provision_test.mygo:62:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || count != 0 {
+ /*line provision_test.mygo:63:5*/		t.Fatal("site provisioning escalated deployment authority")
+ /*line provision_test.mygo:62:6*/	} else {
+ /*line zz_provision.gen_test.go:121:1*/	}
+ /*line provision_test.mygo:65:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true)) {
+ /*line provision_test.mygo:66:5*/		t.Fatal("explicit deployment grant failed")
+ /*line provision_test.mygo:65:6*/	} else {
+ /*line zz_provision.gen_test.go:125:1*/	}
+ /*line provision_test.mygo:68:6*/	var __mygo_expr_12 Result[struct{}, error]
+	__mygo_expr_11 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
+	if __mygo_expr_11 != nil {
+		__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
+	} else {
+		__mygo_expr_12 = Ok[struct{}, error](struct {
+ /*line zz_provision.gen_test.go:132:1*/		}{})
+	}
+ /*line provision_test.mygo:68:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) || count != 1 {
+ /*line provision_test.mygo:69:5*/		t.Fatal("deployment grant was not scoped")
+ /*line provision_test.mygo:68:6*/	} else {
+ /*line zz_provision.gen_test.go:137:1*/	}
+ /*line provision_test.mygo:71:6*/	var __mygo_expr_14 Result[struct{}, error]
+	__mygo_expr_13 := pool.QueryRow("SELECT count(*) FROM audit_events").Scan(&count)
+	if __mygo_expr_13 != nil {
+		__mygo_expr_14 = Err[struct{}, error](__mygo_expr_13)
+	} else {
+		__mygo_expr_14 = Ok[struct{}, error](struct {
+ /*line zz_provision.gen_test.go:144:1*/		}{})
+	}
+ /*line provision_test.mygo:71:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || count != 3 {
+ /*line provision_test.mygo:72:5*/		t.Fatal("role grants not audited once in their own scope")
 		return
- /*line provision_test.mygo:57:6*/	} else {
- /*line provision_test.mygo:57:3*/		return
- /*line zz_provision.gen_test.go:117:1*/	}
+ /*line provision_test.mygo:71:6*/	} else {
+ /*line provision_test.mygo:71:3*/		return
+ /*line zz_provision.gen_test.go:151:1*/	}
 }

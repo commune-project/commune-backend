@@ -1,0 +1,101 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let private = communities.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let post = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote"}).Unwrap()
+  let hidden = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private"}).Unwrap()
+  let handler = Handler(settings, db)
+  let cookies = login(handler, site.Origin, "bob", "bob-password")
+  let csrf = csrfOf(cookies)
+  let path = "/api/v1/posts/" + post.ID + "/vote"
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies}).Code != 405 then
+    t.Fatal("unsupported vote method was not rejected")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Source: site.Origin}).Code != 401 then
+    t.Fatal("anonymous vote was accepted")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, Source: site.Origin}).Code != 403 then
+    t.Fatal("vote without CSRF was accepted")
+  end
+  let invalid: Slice[String] = ["{}", "{\"score\":null}", "{\"score\":2}", "{\"score\":\"1\"}", "{} trailing"]
+  invalid.Each(func(body: String) -> ()
+    if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: body, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+      t.Fatal("invalid vote body was accepted")
+    end
+  end)
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 404 then
+    t.Fatal("vote on missing target was not 404")
+  end
+  let privateVote = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + hidden.ID + "/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
+  if privateVote.Code != 404 then
+    t.Fatalf("vote on unreadable target returned %d: %s", privateVote.Code, privateVote.Body.String())
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("valid upvote failed")
+  end
+  let likesPath = "/api/v1/posts/" + post.ID + "/likes"
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likesPath, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("legacy like alias failed")
+  end
+  let liked = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID, cookies, 200))
+  if liked.VotedByMe != 1i64 || liked.LikeCount != 1i64 || !liked.LikedByMe then
+    t.Fatal("like and vote paths did not share upvote state")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("vote change to downvote failed")
+  end
+  let downvoted = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID, cookies, 200))
+  if downvoted.VotedByMe != -1i64 || downvoted.LikeCount != 0i64 || downvoted.LikedByMe ||
+    downvoted.Upvotes != 0i64 || downvoted.Downvotes != 1i64 then
+    t.Fatal("vote change did not replace the legacy like state")
+  end
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: likesPath, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("legacy unlike alias failed")
+  end
+  let cleared = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID, cookies, 200))
+  if cleared.VotedByMe != 0i64 || cleared.LikeCount != 0i64 || cleared.Score != 0i64 then
+    t.Fatal("legacy unlike did not clear the vote")
+  end
+  let admin = storage.FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
+  let _ = storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false).Unwrap()
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":0}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("clear was rejected while upvotes were disabled")
+  end
+  let disabledUp = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
+  if disabledUp.Code != 403 || disabledUp.Body.String() != "{\"error\":\"feature_disabled\"}" then
+    t.Fatal("disabled upvote did not return stable feature_disabled")
+  end
+  let _ = storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, false, false, true).Unwrap()
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 403 then
+    t.Fatal("disabled downvote was accepted")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/vote", Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 404 then
+    t.Fatal("disabled setting masked a missing target")
+  end
+  let active = 0i64
+  let _ = storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, bob.ActorURI).Count(Ref.new(active))).Unwrap()
+  if active != 0i64 then
+    t.Fatal("rejected votes left active reaction state")
+  end
+end

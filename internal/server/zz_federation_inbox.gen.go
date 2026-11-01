@@ -23,7 +23,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_inbox.gen.go:23:1*/}
 
  /*line federation_inbox.mygo:23:1*/func KnownActivityKind(kind string) bool {
- /*line federation_inbox.mygo:24:3*/	return kind == "Create" || kind == "Update" || kind == "Delete" || kind == "Like" || kind == "Undo" || kind == "Follow" || kind == "Accept" || kind == "Reject" || kind == "Announce" || kind == "Add" || kind == "Remove"
+ /*line federation_inbox.mygo:24:3*/	return kind == "Create" || kind == "Update" || kind == "Delete" || kind == "Like" || kind == "Dislike" || kind == "Undo" || kind == "Follow" || kind == "Accept" || kind == "Reject" || kind == "Announce" || kind == "Add" || kind == "Remove"
  /*line zz_federation_inbox.gen.go:27:1*/}
  /*line federation_inbox.mygo:27:1*/func InboxHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, ownerURI string) {
 	maxBytes := settings.Runtime.MaxBodyBytes

@@ -85,8 +85,29 @@ import . "github.com/mygo-lang/mygo/prelude"
 	localPost := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, openLocal.ID, alice, false, PublishInput{Title: "L", Body: "Body", ParentID: ""}))
  /*line reactions_test.mygo:67:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localPost.ID, carol, false, "")) {
  /*line reactions_test.mygo:68:5*/		t.Fatal("cross-site account reached a local-only reaction")
-		return
  /*line reactions_test.mygo:67:6*/	} else {
- /*line reactions_test.mygo:67:3*/		return
- /*line zz_reactions.gen_test.go:91:1*/	}
+ /*line zz_reactions.gen_test.go:89:1*/	}
+ /*line reactions_test.mygo:9:1*/	voted := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Votes", Body: "Body", ParentID: ""}))
+	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, 1, ""))
+	score := 0
+	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(&score)))
+ /*line reactions_test.mygo:74:6*/	if score != 1 {
+ /*line reactions_test.mygo:75:5*/		t.Fatal("initial upvote was not stored")
+ /*line reactions_test.mygo:74:6*/	} else {
+ /*line zz_reactions.gen_test.go:97:1*/	}
+ /*line reactions_test.mygo:77:11*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, -1, ""))
+ /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(&score)))
+	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(&count)))
+ /*line reactions_test.mygo:80:6*/	if score != -1 || count != int64(1) {
+ /*line reactions_test.mygo:81:5*/		t.Fatal("vote change did not retain exactly one active row")
+ /*line reactions_test.mygo:80:6*/	} else {
+ /*line zz_reactions.gen_test.go:104:1*/	}
+ /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, 0, ""))
+	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(&count)))
+ /*line reactions_test.mygo:85:6*/	if count != int64(0) {
+ /*line reactions_test.mygo:86:5*/		t.Fatal("vote clear left an active row")
+		return
+ /*line reactions_test.mygo:85:6*/	} else {
+ /*line reactions_test.mygo:85:3*/		return
+ /*line zz_reactions.gen_test.go:112:1*/	}
 }

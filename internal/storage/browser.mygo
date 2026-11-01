@@ -2,7 +2,6 @@ package storage
 
 import context "go:context"
 import sql "go:database/sql"
-import strconv "go:strconv"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 
@@ -42,21 +41,19 @@ struct BrowserAudit
   TargetID: String `gorm:"column:target_id"`
 end
 
-func BrowserPageSQL(page: Page) -> String
-  " LIMIT " + strconv.Itoa(page.Limit) + " OFFSET " + strconv.Itoa(page.Offset)
-end
-
 impl BrowserRepository
   func Viewer(self: BrowserRepository, ctx: context.Context, identity: auth.Identity) -> Result[BrowserViewer, String]
+    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+    let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
     if identity.AccountID <= 0i64 then
-      return Ok(BrowserViewer{})
+      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let verified = QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
     if verified.IsErr() then
       return Err(verified.UnwrapErr())
     end
     if !verified.Unwrap() then
-      return Ok(BrowserViewer{})
+      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let site = SiteRepository{DB: self.DB, SiteID: self.SiteID}
     let blocked = site.IsBlocked(ctx, identity.ActorURI)
@@ -65,8 +62,6 @@ impl BrowserRepository
     if blocked.IsErr() || admin.IsErr() || deployment.IsErr() then
       return Err("policy unavailable")
     end
-    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
-    let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
     Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
   end
 
@@ -119,8 +114,11 @@ impl BrowserRepository
       return Err("invalid page")
     end
     var views: Slice[CommunityView] = []
-    let query = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable WHERE host_site_id=@site OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=@site AND p.community_id=readable.id)) ORDER BY name,id" + BrowserPageSQL(page)).Scan(Ref.new(views))
-    if MutationResult(query).IsErr() then
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable")
+    var query = self.DB.WithContext(ctx).Table("(?) AS c", readable)
+    query = query.Where("host_site_id=? OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=? AND p.community_id=c.id))", self.SiteID, self.SiteID)
+    let scanned = query.Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(views))
+    if MutationResult(scanned).IsErr() then
       return Err("community unavailable")
     end
     let audit = self.AuditViews(ctx, viewer, views)

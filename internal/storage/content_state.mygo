@@ -129,42 +129,36 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int,
-    source: String,
-    order: String
+    source: String
   ) -> Result[Slice[PostRecord], String]
     if !page.Valid(max) then
       return Err("invalid page")
     end
     var records: Slice[PostRecord] = []
-    let base = "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id "
-    let hideFilter = if source == "hidden" then
-      ""
-    else
-      " AND NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id)"
-    end
-    let common = " WHERE p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " +
-      PersonalBlockP +
-      hideFilter +
-      " AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) "
-    let join = if source == "saved" then
-      "JOIN saved_posts s ON s.post_id=p.id AND s.site_id=@site AND s.account_id=@account "
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable")
+    var query = self.DB.WithContext(ctx).Table("posts AS p").Select("p.*")
+    query = query.Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID)
+    query = query.Joins("JOIN (?) AS c ON c.id=p.community_id", readable)
+    if source == "saved" then
+      query = query.Joins("JOIN saved_posts s ON s.post_id=p.id AND s.site_id=? AND s.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("s.created_at DESC")
     else
       if source == "read" then
-        "JOIN post_reads r ON r.post_id=p.id AND r.site_id=@site AND r.account_id=@account "
+        query = query.Joins("JOIN post_reads r ON r.post_id=p.id AND r.site_id=? AND r.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("r.read_at DESC")
       else
         if source == "hidden" then
-          "JOIN post_hidden h2 ON h2.post_id=p.id AND h2.site_id=@site AND h2.account_id=@account "
+          query = query.Joins("JOIN post_hidden h2 ON h2.post_id=p.id AND h2.site_id=? AND h2.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("h2.hidden_at DESC")
         else
-          "JOIN reactions v ON v.post_id=p.id AND v.actor_uri=@actor AND v.undone_at IS NULL AND v.score=1 "
+          query = query.Joins("JOIN reactions v ON v.post_id=p.id AND v.actor_uri=? AND v.undone_at IS NULL AND v.score=1", viewer.Identity.ActorURI).Order("v.created_at DESC")
         end
       end
     end
-    let query = self.CommunitiesQuery(
-      ctx,
-      viewer,
-      base + join + common + "ORDER BY " + order + ",p.id" + BrowserPageSQL(page)
-    ).Scan(Ref.new(records))
-    if MutationResult(query).IsErr() then
+    query = query.Where("p.deleted_at IS NULL AND sp.hidden_at IS NULL")
+    query = query.Where(PersonalBlockSQL("p", false), self.SiteID, viewer.Identity.AccountID)
+    if source != "hidden" then
+      query = query.Where("NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id)", self.SiteID, viewer.Identity.AccountID)
+    end
+    query = query.Where("NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+    if MutationResult(query.Order("p.id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(records))).IsErr() then
       return Err("content state unavailable")
     end
     Ok(records)
@@ -176,7 +170,7 @@ impl BrowserRepository
     page: Page,
     max: Int
   ) -> Result[Slice[PostRecord], String]
-    self.accountPosts(ctx, viewer, page, max, "saved", "s.created_at DESC")
+    self.accountPosts(ctx, viewer, page, max, "saved")
   end
   func ReadPosts(
     self: BrowserRepository,
@@ -185,7 +179,7 @@ impl BrowserRepository
     page: Page,
     max: Int
   ) -> Result[Slice[PostRecord], String]
-    self.accountPosts(ctx, viewer, page, max, "read", "r.read_at DESC")
+    self.accountPosts(ctx, viewer, page, max, "read")
   end
   func HiddenPosts(
     self: BrowserRepository,
@@ -194,7 +188,7 @@ impl BrowserRepository
     page: Page,
     max: Int
   ) -> Result[Slice[PostRecord], String]
-    self.accountPosts(ctx, viewer, page, max, "hidden", "h2.hidden_at DESC")
+    self.accountPosts(ctx, viewer, page, max, "hidden")
   end
   func LikedPosts(
     self: BrowserRepository,
@@ -208,6 +202,6 @@ impl BrowserRepository
       let empty: Slice[PostRecord] = []
       return Ok(empty)
     end
-    self.accountPosts(ctx, viewer, page, max, "liked", "v.created_at DESC")
+    self.accountPosts(ctx, viewer, page, max, "liked")
   end
 end

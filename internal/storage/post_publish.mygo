@@ -65,6 +65,15 @@ impl PostRepository
       if !active.Unwrap() || community.HostSiteID != self.SiteID then
         return Err("forbidden")
       end
+      let now = time.Now().UTC().Truncate(time.Microsecond)
+      let communityBan = ActiveCommunityBan(ctx, tx, community.ID, identity.ActorURI, now)
+      let siteBan = ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, now)
+      if communityBan.IsErr() || siteBan.IsErr() then
+        return Err("moderation unavailable")
+      end
+      if communityBan.Unwrap() || siteBan.Unwrap() then
+        return Err("forbidden")
+      end
       let identifier = rand.Text()
       var parent = sql.NullString{}
       if input.ParentID != "" then
@@ -82,7 +91,6 @@ impl PostRepository
         end
         objectURI = sql.NullString{String: canonical.Unwrap(), Valid: true}
       end
-      let now = time.Now().UTC().Truncate(time.Microsecond)
       let objectType = if input.ParentID == "" then "Page" else "Note" end
       let record = PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ContentFormat: format, SearchText: title + " " + plain.Unwrap(), ParentID: parent, AuthoredAt: now, UpdatedAt: now}
       if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI + "/inbox", identity.ActorURI)).IsErr() then

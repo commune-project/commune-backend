@@ -153,19 +153,30 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication.mygo:138:13*/						http.Error(w, "authentication failed", status)
 						return
  /*line zz_authentication.gen.go:155:1*/					} else {
+ /*line authentication.mygo:132:14*/						banned := storage.ActiveSiteBan(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, string](identity).ActorURI, time.Now())
+ /*line authentication.mygo:141:16*/						if MygoIN6ResultM5IsErr[bool, string](banned) {
+ /*line authentication.mygo:142:15*/							http.Error(w, "authentication unavailable", 503)
+ /*line authentication.mygo:141:16*/							return
+						} else {
+ /*line zz_authentication.gen.go:161:1*/						}
+ /*line authentication.mygo:145:16*/						if MygoIN6ResultM6Unwrap[bool, string](banned) {
+ /*line authentication.mygo:146:15*/							http.Error(w, "authentication failed", 401)
+ /*line authentication.mygo:145:16*/							return
+						} else {
+ /*line zz_authentication.gen.go:166:1*/						}
  /*line authentication.mygo:132:14*/						now := time.Now()
 						issued := storage.MygoIN17SessionRepositoryM5Issue(sessions, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, string](identity), now)
- /*line authentication.mygo:142:16*/						if MygoIN6ResultM5IsErr[auth.SessionTokens, string](issued) {
- /*line authentication.mygo:143:15*/							http.Error(w, "authentication unavailable", 503)
+ /*line authentication.mygo:151:16*/						if MygoIN6ResultM5IsErr[auth.SessionTokens, string](issued) {
+ /*line authentication.mygo:152:15*/							http.Error(w, "authentication unavailable", 503)
 							return
- /*line zz_authentication.gen.go:161:1*/						} else {
- /*line authentication.mygo:145:15*/							MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(auth.MygoIN13SessionTokensM7Cookies(MygoIN6ResultM6Unwrap[auth.SessionTokens, string](issued), now.Add(time.Duration(24)*time.Hour)), func(cookie http.Cookie) {
- /*line authentication.mygo:146:17*/								http.SetCookie(w, &cookie)
+ /*line zz_authentication.gen.go:172:1*/						} else {
+ /*line authentication.mygo:154:15*/							MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(auth.MygoIN13SessionTokensM7Cookies(MygoIN6ResultM6Unwrap[auth.SessionTokens, string](issued), now.Add(time.Duration(24)*time.Hour)), func(cookie http.Cookie) {
+ /*line authentication.mygo:155:17*/								http.SetCookie(w, &cookie)
 								return
- /*line zz_authentication.gen.go:165:1*/							})
- /*line authentication.mygo:148:15*/							WriteIdentity(w, MygoIN6ResultM6Unwrap[auth.Identity, string](identity), db, site, request)
+ /*line zz_authentication.gen.go:176:1*/							})
+ /*line authentication.mygo:157:15*/							WriteIdentity(w, MygoIN6ResultM6Unwrap[auth.Identity, string](identity), db, site, request)
 							return
- /*line zz_authentication.gen.go:168:1*/						}
+ /*line zz_authentication.gen.go:179:1*/						}
 					}
 				}
 			}
@@ -176,49 +187,49 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_1 = "POST"
 		} else {
 			__mygo_expr_1 = "GET"
- /*line zz_authentication.gen.go:179:1*/		}
+ /*line zz_authentication.gen.go:190:1*/		}
  /*line authentication.mygo:119:6*/		method := __mygo_expr_1
- /*line authentication.mygo:160:8*/		if request.Method != method {
- /*line authentication.mygo:161:7*/			w.Header().Set("Allow", method)
- /*line authentication.mygo:162:7*/			http.Error(w, "method not allowed", 405)
+ /*line authentication.mygo:169:8*/		if request.Method != method {
+ /*line authentication.mygo:170:7*/			w.Header().Set("Allow", method)
+ /*line authentication.mygo:171:7*/			http.Error(w, "method not allowed", 405)
 			return
- /*line zz_authentication.gen.go:185:1*/		} else {
- /*line authentication.mygo:160:8*/			token := ReadSession(request)
- /*line authentication.mygo:165:10*/			if MygoIN6ResultM5IsErr[string, string](token) {
- /*line authentication.mygo:166:9*/				http.Error(w, "unauthenticated", 401)
+ /*line zz_authentication.gen.go:196:1*/		} else {
+ /*line authentication.mygo:169:8*/			token := ReadSession(request)
+ /*line authentication.mygo:174:10*/			if MygoIN6ResultM5IsErr[string, string](token) {
+ /*line authentication.mygo:175:9*/				http.Error(w, "unauthenticated", 401)
 				return
- /*line zz_authentication.gen.go:190:1*/			} else {
- /*line authentication.mygo:165:10*/				session := storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())
- /*line authentication.mygo:169:12*/				if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line zz_authentication.gen.go:201:1*/			} else {
+ /*line authentication.mygo:174:10*/				session := storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())
+ /*line authentication.mygo:178:12*/				if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
 					var __mygo_expr_2 int
 					if MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session) == "unauthenticated" {
 						__mygo_expr_2 = 401
 					} else {
 						__mygo_expr_2 = 503
- /*line zz_authentication.gen.go:198:1*/					}
- /*line authentication.mygo:169:12*/					status_1 := __mygo_expr_2
- /*line authentication.mygo:175:11*/					http.Error(w, "authentication failed", status_1)
+ /*line zz_authentication.gen.go:209:1*/					}
+ /*line authentication.mygo:178:12*/					status_1 := __mygo_expr_2
+ /*line authentication.mygo:184:11*/					http.Error(w, "authentication failed", status_1)
 					return
- /*line zz_authentication.gen.go:202:1*/				} else {
- /*line authentication.mygo:177:14*/					if method == "GET" {
- /*line authentication.mygo:178:13*/						WriteIdentity(w, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, db, site, request)
+ /*line zz_authentication.gen.go:213:1*/				} else {
+ /*line authentication.mygo:186:14*/					if method == "GET" {
+ /*line authentication.mygo:187:13*/						WriteIdentity(w, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, db, site, request)
 						return
- /*line zz_authentication.gen.go:206:1*/					} else {
- /*line authentication.mygo:180:16*/						if !SameOrigin(settings, request) || !storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request.Header.Get("X-CSRF-Token")) {
- /*line authentication.mygo:182:15*/							http.Error(w, "CSRF denied", 403)
+ /*line zz_authentication.gen.go:217:1*/					} else {
+ /*line authentication.mygo:189:16*/						if !SameOrigin(settings, request) || !storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request.Header.Get("X-CSRF-Token")) {
+ /*line authentication.mygo:191:15*/							http.Error(w, "CSRF denied", 403)
 							return
- /*line zz_authentication.gen.go:210:1*/						} else {
- /*line authentication.mygo:184:18*/							if MygoIN6ResultM5IsErr[struct{}, string](storage.MygoIN17SessionRepositoryM6Revoke(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())) {
- /*line authentication.mygo:185:17*/								http.Error(w, "logout unavailable", 503)
+ /*line zz_authentication.gen.go:221:1*/						} else {
+ /*line authentication.mygo:193:18*/							if MygoIN6ResultM5IsErr[struct{}, string](storage.MygoIN17SessionRepositoryM6Revoke(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())) {
+ /*line authentication.mygo:194:17*/								http.Error(w, "logout unavailable", 503)
 								return
- /*line zz_authentication.gen.go:214:1*/							} else {
- /*line authentication.mygo:187:17*/								MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(auth.ExpiredCookies(), func(cookie_1 http.Cookie) {
- /*line authentication.mygo:188:19*/									http.SetCookie(w, &cookie_1)
+ /*line zz_authentication.gen.go:225:1*/							} else {
+ /*line authentication.mygo:196:17*/								MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(auth.ExpiredCookies(), func(cookie_1 http.Cookie) {
+ /*line authentication.mygo:197:19*/									http.SetCookie(w, &cookie_1)
 									return
- /*line zz_authentication.gen.go:218:1*/								})
- /*line authentication.mygo:190:17*/								w.WriteHeader(204)
+ /*line zz_authentication.gen.go:229:1*/								})
+ /*line authentication.mygo:199:17*/								w.WriteHeader(204)
 								return
- /*line zz_authentication.gen.go:221:1*/							}
+ /*line zz_authentication.gen.go:232:1*/							}
 						}
 					}
 				}

@@ -67,95 +67,135 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_notifications.gen.go:67:1*/}
  /*line notifications.mygo:52:1*/func QueueModerationNotification(ctx context.Context, tx *gorm.DB, kind string, targetKind string, targetID string, recipientURI string, actorURI string, occurrence string) Result[struct {
 }, string] {
- /*line notifications.mygo:53:6*/	if kind != "report" && kind != "moderation" {
+ /*line notifications.mygo:53:6*/	if kind != "report" && kind != "moderation" || targetID == "" || recipientURI == "" || actorURI == "" {
  /*line notifications.mygo:54:12*/		return Err[struct{}, string]("invalid notification")
  /*line notifications.mygo:53:6*/	} else {
  /*line zz_notifications.gen.go:73:1*/	}
  /*line notifications.mygo:56:3*/	return MutationResult(tx.WithContext(ctx).Exec("INSERT INTO notification_events(kind,occurrence,post_id,target_kind,target_id,actor_uri,recipient_uri) VALUES (?,?,NULL,?,?,?,?) ON CONFLICT DO NOTHING", kind, occurrence, targetKind, targetID, actorURI, recipientURI))
  /*line zz_notifications.gen.go:75:1*/}
- /*line notifications.mygo:62:1*/func ProjectNotifications(ctx context.Context, db *gorm.DB, limit int) Result[struct {
+ /*line notifications.mygo:59:1*/func NotificationModerationTargetSQL() string {
+ /*line notifications.mygo:60:3*/	return "(e.target_kind<>'moderation' OR CASE WHEN e.occurrence LIKE 'ban:site:%' THEN EXISTS (SELECT 1 FROM site_bans sb WHERE sb.site_id=split_part(e.occurrence,':',3) AND sb.actor_uri=e.target_id AND sb.revoked_at IS NULL AND (sb.expires_at IS NULL OR sb.expires_at>now())) WHEN e.occurrence LIKE 'ban:community:%' THEN EXISTS (SELECT 1 FROM community_bans cb JOIN communities cbco ON cbco.id=cb.community_id WHERE cb.community_id=split_part(e.occurrence,':',3) AND cbco.host_site_id=? AND cb.actor_uri=e.target_id AND cb.revoked_at IS NULL AND (cb.expires_at IS NULL OR cb.expires_at>now())) ELSE false END)"
+ /*line zz_notifications.gen.go:78:1*/}
+ /*line notifications.mygo:63:1*/func NotificationReportTargetExistsSQL() string {
+ /*line notifications.mygo:64:3*/	return "(e.target_kind<>'report' OR EXISTS (SELECT 1 FROM reports r WHERE r.site_id=? AND r.id::text=e.target_id AND r.reporter_account_id=n.account_id))"
+ /*line zz_notifications.gen.go:81:1*/}
+ /*line notifications.mygo:67:1*/func NotificationReportPostTargetSQL() string {
+ /*line notifications.mygo:68:3*/	return "(e.target_kind<>'report' OR NOT EXISTS (SELECT 1 FROM reports r WHERE r.site_id=? AND r.id::text=e.target_id AND r.target_kind='post') OR EXISTS (SELECT 1 FROM reports r JOIN posts rp ON rp.id=r.target_id JOIN site_posts rsp ON rsp.post_id=rp.id JOIN (?) AS rc ON rc.id=rp.community_id WHERE r.site_id=? AND r.id::text=e.target_id AND r.reporter_account_id=n.account_id AND rsp.site_id=? AND rp.deleted_at IS NULL AND rsp.hidden_at IS NULL AND commune_notification_eligible(?,rp.id,rp.author_actor_uri) AND " + PersonalBlockSQL("rp", false) + " AND NOT EXISTS (SELECT 1 FROM collection_memberships rcm WHERE rcm.post_id=rp.id AND rcm.community_id=rp.community_id AND rcm.state IN ('removed','rejected'))))"
+ /*line zz_notifications.gen.go:84:1*/}
+ /*line notifications.mygo:71:1*/func NotificationReportCommunityTargetSQL() string {
+ /*line notifications.mygo:72:3*/	return "(e.target_kind<>'report' OR NOT EXISTS (SELECT 1 FROM reports r WHERE r.site_id=? AND r.id::text=e.target_id AND r.target_kind='community') OR EXISTS (SELECT 1 FROM reports r JOIN (?) AS rc ON rc.id=r.target_id WHERE r.site_id=? AND r.id::text=e.target_id AND r.reporter_account_id=n.account_id))"
+ /*line zz_notifications.gen.go:87:1*/}
+ /*line notifications.mygo:75:1*/func NotificationReportPersonTargetSQL() string {
+ /*line notifications.mygo:76:3*/	return "(e.target_kind<>'report' OR NOT EXISTS (SELECT 1 FROM reports r WHERE r.site_id=? AND r.id::text=e.target_id AND r.target_kind='person') OR EXISTS (SELECT 1 FROM reports r JOIN actors ra ON ra.uri=r.target_id WHERE r.site_id=? AND r.id::text=e.target_id AND r.reporter_account_id=n.account_id AND ra.kind='Person'))"
+ /*line zz_notifications.gen.go:90:1*/}
+ /*line notifications.mygo:79:1*/func NotificationCommunityTargetSQL() string {
+ /*line notifications.mygo:80:3*/	return "(e.target_kind<>'community' OR EXISTS (SELECT 1 FROM (?) AS rc WHERE rc.id=e.target_id))"
+ /*line zz_notifications.gen.go:93:1*/}
+ /*line notifications.mygo:83:1*/func NotificationPersonTargetSQL() string {
+ /*line notifications.mygo:84:3*/	return "(e.target_kind<>'person' OR EXISTS (SELECT 1 FROM actors pa WHERE pa.uri=e.target_id AND pa.kind='Person'))"
+ /*line zz_notifications.gen.go:96:1*/}
+ /*line notifications.mygo:90:1*/func ProjectNotifications(ctx context.Context, db *gorm.DB, limit int) Result[struct {
 }, string] {
- /*line notifications.mygo:63:6*/	if limit < 1 || limit > 1000 {
- /*line notifications.mygo:64:12*/		return Err[struct{}, string]("invalid page")
- /*line notifications.mygo:63:6*/	} else {
- /*line zz_notifications.gen.go:81:1*/	}
- /*line notifications.mygo:66:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line notifications.mygo:67:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)"))) {
- /*line notifications.mygo:68:14*/			return Err[struct{}, string]("notifications unavailable")
- /*line notifications.mygo:67:8*/		} else {
- /*line zz_notifications.gen.go:86:1*/		}
- /*line notifications.mygo:66:27*/		var query string = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND (e.target_kind<>'post' OR commune_notification_eligible(a.id,e.post_id,e.actor_uri)) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
- /*line notifications.mygo:71:5*/		return MutationResult(tx.Exec(query, limit))
- /*line zz_notifications.gen.go:89:1*/	})
+ /*line notifications.mygo:91:6*/	if limit < 1 || limit > 1000 {
+ /*line notifications.mygo:92:12*/		return Err[struct{}, string]("invalid page")
+ /*line notifications.mygo:91:6*/	} else {
+ /*line zz_notifications.gen.go:102:1*/	}
+ /*line notifications.mygo:94:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line notifications.mygo:95:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)"))) {
+ /*line notifications.mygo:96:14*/			return Err[struct{}, string]("notifications unavailable")
+ /*line notifications.mygo:95:8*/		} else {
+ /*line zz_notifications.gen.go:107:1*/		}
+ /*line notifications.mygo:94:27*/		var query string = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND (e.target_kind<>'post' OR commune_notification_eligible(a.id,e.post_id,e.actor_uri)) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
+ /*line notifications.mygo:99:5*/		return MutationResult(tx.Exec(query, limit))
+ /*line zz_notifications.gen.go:110:1*/	})
 }
- /*line notifications.mygo:75:1*/func MygoIN17BrowserRepositoryM18NotificationsQuery(self BrowserRepository, ctx context.Context, viewer BrowserViewer, tail string) *gorm.DB {
-	var rows string = "SELECT n.id,e.kind,COALESCE(e.post_id,'') AS post_id,e.target_kind,e.target_id,e.actor_uri,n.created_at,(n.read_at IS NOT NULL) AS read FROM notifications n JOIN notification_events e ON e.id=n.event_id LEFT JOIN posts p ON p.id=e.post_id LEFT JOIN readable c ON c.id=p.community_id WHERE n.site_id=@site AND n.account_id=@account AND @verified AND @identity_site = @site AND e.retired_at IS NULL AND (e.target_kind<>'post' OR (p.id IS NOT NULL AND c.id IS NOT NULL AND " + PersonalBlockP + ")) AND NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND ((b.kind='person' AND b.target=e.actor_uri) OR (b.kind='instance' AND b.target=lower(split_part(split_part(e.actor_uri,'://',2),'/',1))))) AND (e.target_kind<>'post' OR commune_notification_eligible(@account,p.id,e.actor_uri)) AND (e.kind<>'reply' OR NOT EXISTS(SELECT 1 FROM notification_events m WHERE m.post_id=e.post_id AND m.recipient_uri=e.recipient_uri AND m.kind='mention' AND m.retired_at IS NULL AND EXISTS(SELECT 1 FROM post_mentions pm WHERE pm.id=m.occurrence AND pm.active)))"
-	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, rows)
- /*line notifications.mygo:81:5*/	return self.DB.WithContext(ctx).Raw("SELECT * FROM (?) AS eligible "+tail, readable)
- /*line zz_notifications.gen.go:95:1*/}
- /*line notifications.mygo:75:1*/func MygoIN17BrowserRepositoryM13Notifications(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[NotificationPage, string] {
- /*line notifications.mygo:85:8*/	if !MygoIN4PageM5Valid(page, max) {
- /*line notifications.mygo:86:14*/		return Err[NotificationPage, string]("invalid page")
- /*line notifications.mygo:85:8*/	} else {
- /*line zz_notifications.gen.go:100:1*/	}
- /*line notifications.mygo:75:1*/	output := NotificationPage{Items: []NotificationRecord{}, Limit: page.Limit, Offset: page.Offset}
+ /*line notifications.mygo:103:1*/func MygoIN17BrowserRepositoryM18NotificationsQuery(self BrowserRepository, ctx context.Context, viewer BrowserViewer) *gorm.DB {
+	communities := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
+	query := self.DB.WithContext(ctx).Table("notifications n")
+	query = query.Select("n.id,e.kind,COALESCE(e.post_id,'') AS post_id,e.target_kind,e.target_id,e.actor_uri,n.created_at,(n.read_at IS NOT NULL) AS read")
+	query = query.Joins("JOIN notification_events e ON e.id=n.event_id")
+	query = query.Joins("LEFT JOIN posts p ON p.id=e.post_id")
+	query = query.Joins("LEFT JOIN (?) AS c ON c.id=p.community_id", communities)
+	query = query.Where("n.site_id=? AND n.account_id=? AND ? AND ?=? AND e.retired_at IS NULL", self.SiteID, viewer.Identity.AccountID, viewer.Verified, viewer.Identity.SiteID, self.SiteID)
+	query = query.Where("(e.target_kind<>'post' OR (p.id IS NOT NULL AND p.community_id=c.id AND "+PersonalBlockSQL("p", false)+"))", self.SiteID, viewer.Identity.AccountID)
+	query = query.Where(NotificationReportTargetExistsSQL(), self.SiteID)
+	reportCommunities := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
+	query = query.Where(NotificationReportPostTargetSQL(), self.SiteID, reportCommunities, self.SiteID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID)
+	reportCommunityTargets := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
+	query = query.Where(NotificationReportCommunityTargetSQL(), self.SiteID, reportCommunityTargets, self.SiteID)
+	query = query.Where(NotificationReportPersonTargetSQL(), self.SiteID, self.SiteID)
+	query = query.Where(NotificationModerationTargetSQL(), self.SiteID)
+	sideEffectCommunities := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
+	query = query.Where(NotificationCommunityTargetSQL(), sideEffectCommunities)
+	query = query.Where(NotificationPersonTargetSQL())
+	query = query.Where("NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=? AND b.account_id=? AND ((b.kind='person' AND b.target=e.actor_uri) OR (b.kind='instance' AND b.target=lower(split_part(split_part(e.actor_uri,'://',2),'/',1)))))", self.SiteID, viewer.Identity.AccountID)
+	query = query.Where("(e.target_kind<>'post' OR commune_notification_eligible(?,p.id,e.actor_uri))", viewer.Identity.AccountID)
+ /*line notifications.mygo:127:5*/	return query.Where("(e.kind<>'reply' OR NOT EXISTS (SELECT 1 FROM notification_events m WHERE m.post_id=e.post_id AND m.recipient_uri=e.recipient_uri AND m.kind='mention' AND m.retired_at IS NULL AND EXISTS (SELECT 1 FROM post_mentions pm WHERE pm.id=m.occurrence AND pm.active)))")
+ /*line zz_notifications.gen.go:134:1*/}
+ /*line notifications.mygo:103:1*/func MygoIN17BrowserRepositoryM13Notifications(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[NotificationPage, string] {
+ /*line notifications.mygo:131:8*/	if !MygoIN4PageM5Valid(page, max) {
+ /*line notifications.mygo:132:14*/		return Err[NotificationPage, string]("invalid page")
+ /*line notifications.mygo:131:8*/	} else {
+ /*line zz_notifications.gen.go:139:1*/	}
+ /*line notifications.mygo:103:1*/	output := NotificationPage{Items: []NotificationRecord{}, Limit: page.Limit, Offset: page.Offset}
 	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line notifications.mygo:90:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)"))) {
- /*line notifications.mygo:91:16*/			return Err[struct{}, string]("notifications unavailable")
- /*line notifications.mygo:90:10*/		} else {
- /*line zz_notifications.gen.go:106:1*/		}
- /*line notifications.mygo:89:47*/		repository := BrowserRepository{DB: tx, SiteID: self.SiteID}
+ /*line notifications.mygo:136:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)"))) {
+ /*line notifications.mygo:137:16*/			return Err[struct{}, string]("notifications unavailable")
+ /*line notifications.mygo:136:10*/		} else {
+ /*line zz_notifications.gen.go:145:1*/		}
+ /*line notifications.mygo:135:47*/		repository := BrowserRepository{DB: tx, SiteID: self.SiteID}
 		top := NotificationRecord{}
- /*line notifications.mygo:95:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM18NotificationsQuery(repository, ctx, viewer, "ORDER BY created_at DESC,id DESC LIMIT 1").Scan(&top))) {
- /*line notifications.mygo:96:16*/			return Err[struct{}, string]("notifications unavailable")
- /*line notifications.mygo:95:10*/		} else {
- /*line zz_notifications.gen.go:112:1*/		}
- /*line notifications.mygo:98:48*/		var __mygo_expr_0 time.Time
+ /*line notifications.mygo:141:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM18NotificationsQuery(repository, ctx, viewer).Order("created_at DESC,id DESC").Limit(1).Scan(&top))) {
+ /*line notifications.mygo:142:16*/			return Err[struct{}, string]("notifications unavailable")
+ /*line notifications.mygo:141:10*/		} else {
+ /*line zz_notifications.gen.go:151:1*/		}
+ /*line notifications.mygo:144:48*/		var __mygo_expr_0 time.Time
 		if top.ID == int64(0) {
 			__mygo_expr_0 = time.Unix(int64(0), int64(0))
 		} else {
 			__mygo_expr_0 = top.CreatedAt
- /*line zz_notifications.gen.go:118:1*/		}
- /*line notifications.mygo:89:47*/		cursor := NotificationCursor{Time: __mygo_expr_0, ID: top.ID}
+ /*line zz_notifications.gen.go:157:1*/		}
+ /*line notifications.mygo:135:47*/		cursor := NotificationCursor{Time: __mygo_expr_0, ID: top.ID}
 		var rows []NotificationRecord = []NotificationRecord{}
- /*line notifications.mygo:100:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM18NotificationsQuery(repository, ctx, viewer, "ORDER BY created_at DESC,id DESC"+BrowserPageSQL(page)).Scan(&rows))) {
- /*line notifications.mygo:101:16*/			return Err[struct{}, string]("notifications unavailable")
- /*line notifications.mygo:100:10*/		} else {
- /*line zz_notifications.gen.go:124:1*/		}
- /*line notifications.mygo:89:47*/		output = NotificationPage{Items: rows, Limit: page.Limit, Offset: page.Offset, ThroughCursor: FormatNotificationCursor(cursor)}
- /*line notifications.mygo:104:7*/		return Ok[struct{}, string](struct {
- /*line zz_notifications.gen.go:127:1*/		}{})
+ /*line notifications.mygo:146:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM18NotificationsQuery(repository, ctx, viewer).Order("created_at DESC,id DESC").Limit(page.Limit).Offset(page.Offset).Scan(&rows))) {
+ /*line notifications.mygo:147:16*/			return Err[struct{}, string]("notifications unavailable")
+ /*line notifications.mygo:146:10*/		} else {
+ /*line zz_notifications.gen.go:163:1*/		}
+ /*line notifications.mygo:135:47*/		output = NotificationPage{Items: rows, Limit: page.Limit, Offset: page.Offset, ThroughCursor: FormatNotificationCursor(cursor)}
+ /*line notifications.mygo:150:7*/		return Ok[struct{}, string](struct {
+ /*line zz_notifications.gen.go:166:1*/		}{})
 	})
- /*line notifications.mygo:106:8*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line notifications.mygo:107:14*/		return Err[NotificationPage, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line notifications.mygo:106:8*/	} else {
- /*line zz_notifications.gen.go:132:1*/	}
- /*line notifications.mygo:109:5*/	return Ok[NotificationPage, string](output)
- /*line zz_notifications.gen.go:134:1*/}
- /*line notifications.mygo:75:1*/func MygoIN17BrowserRepositoryM23NotificationUnreadCount(self BrowserRepository, ctx context.Context, viewer BrowserViewer) Result[int64, string] {
+ /*line notifications.mygo:152:8*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line notifications.mygo:153:14*/		return Err[NotificationPage, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+ /*line notifications.mygo:152:8*/	} else {
+ /*line zz_notifications.gen.go:171:1*/	}
+ /*line notifications.mygo:155:5*/	return Ok[NotificationPage, string](output)
+ /*line zz_notifications.gen.go:173:1*/}
+ /*line notifications.mygo:103:1*/func MygoIN17BrowserRepositoryM23NotificationUnreadCount(self BrowserRepository, ctx context.Context, viewer BrowserViewer) Result[int64, string] {
 	var count int64 = int64(0)
-	eligible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer, "WHERE NOT read")
- /*line notifications.mygo:115:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(self.DB.WithContext(ctx).Raw("SELECT count(*) FROM (?) AS unread", eligible).Scan(&count))) {
- /*line notifications.mygo:116:14*/		return Err[int64, string]("notifications unavailable")
- /*line notifications.mygo:115:8*/	} else {
- /*line zz_notifications.gen.go:141:1*/	}
- /*line notifications.mygo:118:5*/	return Ok[int64, string](count)
- /*line zz_notifications.gen.go:143:1*/}
- /*line notifications.mygo:75:1*/func MygoIN17BrowserRepositoryM16ReadNotification(self BrowserRepository, ctx context.Context, viewer BrowserViewer, id int64) Result[struct{}, string] {
-	eligible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer, "")
-	result := self.DB.WithContext(ctx).Exec("UPDATE notifications SET read_at=coalesce(read_at,clock_timestamp()) WHERE id=? AND id IN (SELECT id FROM (?) AS visible)", id, eligible)
- /*line notifications.mygo:124:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(result)) {
- /*line notifications.mygo:125:14*/		return Err[struct{}, string]("notifications unavailable")
- /*line notifications.mygo:124:8*/	} else {
- /*line zz_notifications.gen.go:150:1*/	}
- /*line notifications.mygo:127:8*/	if result.RowsAffected != int64(1) {
- /*line notifications.mygo:128:14*/		return Err[struct{}, string]("not found")
- /*line notifications.mygo:127:8*/	} else {
- /*line zz_notifications.gen.go:154:1*/	}
- /*line notifications.mygo:130:5*/	return Ok[struct{}, string](struct {
- /*line zz_notifications.gen.go:156:1*/	}{})
+	visible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer)
+	query := self.DB.WithContext(ctx).Table("(?) AS unread", visible).Where("NOT unread.read").Select("count(*) AS count").Scan(&count)
+ /*line notifications.mygo:162:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line notifications.mygo:163:14*/		return Err[int64, string]("notifications unavailable")
+ /*line notifications.mygo:162:8*/	} else {
+ /*line zz_notifications.gen.go:181:1*/	}
+ /*line notifications.mygo:165:5*/	return Ok[int64, string](count)
+ /*line zz_notifications.gen.go:183:1*/}
+ /*line notifications.mygo:103:1*/func MygoIN17BrowserRepositoryM16ReadNotification(self BrowserRepository, ctx context.Context, viewer BrowserViewer, id int64) Result[struct{}, string] {
+	eligible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer).Select("n.id")
+	result := self.DB.WithContext(ctx).Table("notifications").Where("id=? AND id IN (?)", id, eligible).Update("read_at", gorm.Expr("coalesce(read_at,clock_timestamp())"))
+ /*line notifications.mygo:171:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(result)) {
+ /*line notifications.mygo:172:14*/		return Err[struct{}, string]("notifications unavailable")
+ /*line notifications.mygo:171:8*/	} else {
+ /*line zz_notifications.gen.go:190:1*/	}
+ /*line notifications.mygo:174:8*/	if result.RowsAffected != int64(1) {
+ /*line notifications.mygo:175:14*/		return Err[struct{}, string]("not found")
+ /*line notifications.mygo:174:8*/	} else {
+ /*line zz_notifications.gen.go:194:1*/	}
+ /*line notifications.mygo:177:5*/	return Ok[struct{}, string](struct {
+ /*line zz_notifications.gen.go:196:1*/	}{})
 }
- /*line notifications.mygo:75:1*/func MygoIN17BrowserRepositoryM20ReadAllNotifications(self BrowserRepository, ctx context.Context, viewer BrowserViewer, cursor NotificationCursor) Result[struct{}, string] {
-	eligible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer, "")
- /*line notifications.mygo:135:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("UPDATE notifications SET read_at=coalesce(read_at,clock_timestamp()) WHERE (created_at,id)<=(?,?) AND id IN (SELECT id FROM (?) AS visible)", cursor.Time, cursor.ID, eligible))
- /*line zz_notifications.gen.go:161:1*/}
+ /*line notifications.mygo:103:1*/func MygoIN17BrowserRepositoryM20ReadAllNotifications(self BrowserRepository, ctx context.Context, viewer BrowserViewer, cursor NotificationCursor) Result[struct{}, string] {
+	eligible := MygoIN17BrowserRepositoryM18NotificationsQuery(self, ctx, viewer).Select("n.id")
+ /*line notifications.mygo:182:5*/	return MutationResult(self.DB.WithContext(ctx).Table("notifications").Where("(created_at,id)<=(?,?)", cursor.Time, cursor.ID).Where("id IN (?)", eligible).Update("read_at", gorm.Expr("coalesce(read_at,clock_timestamp())")))
+ /*line zz_notifications.gen.go:201:1*/}

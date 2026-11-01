@@ -120,131 +120,140 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line forum_test.mygo:145:5*/		t.Fatal("topic response leaked markup or the wrong type")
  /*line forum_test.mygo:144:6*/	} else {
  /*line zz_forum.gen_test.go:122:1*/	}
+ /*line forum_test.mygo:42:1*/	emptySaved := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/account/saved?offset=999", Cookies: aliceCookies, Source: ""})
+ /*line forum_test.mygo:157:6*/	if emptySaved.Code != 200 || !strings.Contains(emptySaved.Body.String(), "\"items\":[]") {
+ /*line forum_test.mygo:158:5*/		t.Fatalf("exhausted account page was not an empty success: %s", emptySaved.Body.String())
+ /*line forum_test.mygo:157:6*/	} else {
+ /*line zz_forum.gen_test.go:127:1*/	}
+ /*line forum_test.mygo:160:6*/	if doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/account/saved?limit=not-a-number", Cookies: aliceCookies, Source: ""}).Code != 400 {
+ /*line forum_test.mygo:170:5*/		t.Fatal("malformed account pagination was accepted")
+ /*line forum_test.mygo:160:6*/	} else {
+ /*line zz_forum.gen_test.go:131:1*/	}
  /*line forum_test.mygo:42:1*/	listPath := "/api/v1/communities/" + communityBody.ID + "/topics?limit=1&offset=0"
 	list := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: listPath, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
- /*line forum_test.mygo:160:6*/	if list.Code != 200 {
- /*line forum_test.mygo:161:5*/		t.Fatalf("paginated topic listing failed: %d %s", list.Code, list.Body.String())
- /*line forum_test.mygo:160:6*/	} else {
- /*line zz_forum.gen_test.go:128:1*/	}
- /*line forum_test.mygo:163:6*/	if !strings.Contains(list.Body.String(), "\"limit\":1") {
- /*line forum_test.mygo:164:5*/		t.Fatalf("pagination echo missing: %s", list.Body.String())
- /*line forum_test.mygo:163:6*/	} else {
- /*line zz_forum.gen_test.go:132:1*/	}
- /*line forum_test.mygo:42:1*/	badPage := forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + communityBody.ID + "/topics?limit=0", Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""}
- /*line forum_test.mygo:175:6*/	if doForum(handler, badPage).Code != 400 {
- /*line forum_test.mygo:176:5*/		t.Fatal("out-of-range pagination was not rejected")
- /*line forum_test.mygo:175:6*/	} else {
+ /*line forum_test.mygo:185:6*/	if list.Code != 200 {
+ /*line forum_test.mygo:186:5*/		t.Fatalf("paginated topic listing failed: %d %s", list.Code, list.Body.String())
+ /*line forum_test.mygo:185:6*/	} else {
  /*line zz_forum.gen_test.go:137:1*/	}
+ /*line forum_test.mygo:188:6*/	if !strings.Contains(list.Body.String(), "\"limit\":1") {
+ /*line forum_test.mygo:189:5*/		t.Fatalf("pagination echo missing: %s", list.Body.String())
+ /*line forum_test.mygo:188:6*/	} else {
+ /*line zz_forum.gen_test.go:141:1*/	}
+ /*line forum_test.mygo:42:1*/	badPage := forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + communityBody.ID + "/topics?limit=0", Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""}
+ /*line forum_test.mygo:200:6*/	if doForum(handler, badPage).Code != 400 {
+ /*line forum_test.mygo:201:5*/		t.Fatal("out-of-range pagination was not rejected")
+ /*line forum_test.mygo:200:6*/	} else {
+ /*line zz_forum.gen_test.go:146:1*/	}
  /*line forum_test.mygo:42:1*/	read := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
- /*line forum_test.mygo:190:6*/	if read.Code != 200 {
- /*line forum_test.mygo:191:5*/		t.Fatal("object read failed")
- /*line forum_test.mygo:190:6*/	} else {
- /*line zz_forum.gen_test.go:142:1*/	}
+ /*line forum_test.mygo:215:6*/	if read.Code != 200 {
+ /*line forum_test.mygo:216:5*/		t.Fatal("object read failed")
+ /*line forum_test.mygo:215:6*/	} else {
+ /*line zz_forum.gen_test.go:151:1*/	}
  /*line forum_test.mygo:42:1*/	crossSite := forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "", Cookies: carolCookies, CSRF: "", Source: ""}
- /*line forum_test.mygo:202:6*/	if doForum(handler, crossSite).Code != 404 {
- /*line forum_test.mygo:203:5*/		t.Fatal("another site read an unreceived object or escaped through import")
- /*line forum_test.mygo:202:6*/	} else {
- /*line zz_forum.gen_test.go:147:1*/	}
+ /*line forum_test.mygo:227:6*/	if doForum(handler, crossSite).Code != 404 {
+ /*line forum_test.mygo:228:5*/		t.Fatal("another site read an unreceived object or escaped through import")
+ /*line forum_test.mygo:227:6*/	} else {
+ /*line zz_forum.gen_test.go:156:1*/	}
  /*line forum_test.mygo:42:1*/	carolLike := forumCall{Method: "POST", Origin: b.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: carolCookies, CSRF: carolCSRF, Source: b.Origin}
- /*line forum_test.mygo:214:6*/	if doForum(handler, carolLike).Code != 404 {
- /*line forum_test.mygo:215:5*/		t.Fatal("another site reacted to an unreceived object")
- /*line forum_test.mygo:214:6*/	} else {
- /*line zz_forum.gen_test.go:152:1*/	}
+ /*line forum_test.mygo:239:6*/	if doForum(handler, carolLike).Code != 404 {
+ /*line forum_test.mygo:240:5*/		t.Fatal("another site reacted to an unreceived object")
+ /*line forum_test.mygo:239:6*/	} else {
+ /*line zz_forum.gen_test.go:161:1*/	}
  /*line forum_test.mygo:42:1*/	reply := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/replies", Payload: "{\"body\":\"reply\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
- /*line forum_test.mygo:229:6*/	if reply.Code != 201 {
- /*line forum_test.mygo:230:5*/		t.Fatal("reply creation failed")
- /*line forum_test.mygo:229:6*/	} else {
- /*line zz_forum.gen_test.go:157:1*/	}
+ /*line forum_test.mygo:254:6*/	if reply.Code != 201 {
+ /*line forum_test.mygo:255:5*/		t.Fatal("reply creation failed")
+ /*line forum_test.mygo:254:6*/	} else {
+ /*line zz_forum.gen_test.go:166:1*/	}
  /*line forum_test.mygo:42:1*/	replies := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/replies", Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
- /*line forum_test.mygo:244:6*/	if replies.Code != 200 || !strings.Contains(replies.Body.String(), "\"object_type\":\"Note\"") {
- /*line forum_test.mygo:246:5*/		t.Fatal("reply listing failed")
- /*line forum_test.mygo:244:6*/	} else {
- /*line zz_forum.gen_test.go:162:1*/	}
+ /*line forum_test.mygo:269:6*/	if replies.Code != 200 || !strings.Contains(replies.Body.String(), "\"object_type\":\"Note\"") {
+ /*line forum_test.mygo:271:5*/		t.Fatal("reply listing failed")
+ /*line forum_test.mygo:269:6*/	} else {
+ /*line zz_forum.gen_test.go:171:1*/	}
  /*line forum_test.mygo:42:1*/	edit := doForum(handler, forumCall{Method: "PATCH", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID, Payload: "{\"expected_version\":1,\"title\":\"Hello\",\"body\":\"edited\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
- /*line forum_test.mygo:260:6*/	if edit.Code != 200 || !strings.Contains(edit.Body.String(), "edited") {
- /*line forum_test.mygo:261:5*/		t.Fatal("author edit failed")
- /*line forum_test.mygo:260:6*/	} else {
- /*line zz_forum.gen_test.go:167:1*/	}
+ /*line forum_test.mygo:285:6*/	if edit.Code != 200 || !strings.Contains(edit.Body.String(), "edited") {
+ /*line forum_test.mygo:286:5*/		t.Fatal("author edit failed")
+ /*line forum_test.mygo:285:6*/	} else {
+ /*line zz_forum.gen_test.go:176:1*/	}
  /*line forum_test.mygo:42:1*/	like := forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:272:6*/	if doForum(handler, like).Code != 204 || doForum(handler, like).Code != 204 {
- /*line forum_test.mygo:273:5*/		t.Fatal("like or duplicate like failed")
- /*line forum_test.mygo:272:6*/	} else {
- /*line zz_forum.gen_test.go:172:1*/	}
+ /*line forum_test.mygo:297:6*/	if doForum(handler, like).Code != 204 || doForum(handler, like).Code != 204 {
+ /*line forum_test.mygo:298:5*/		t.Fatal("like or duplicate like failed")
+ /*line forum_test.mygo:297:6*/	} else {
+ /*line zz_forum.gen_test.go:181:1*/	}
  /*line forum_test.mygo:42:1*/	unlike := forumCall{Method: "DELETE", Origin: a.Origin, Path: "/api/v1/posts/" + topicBody.ID + "/likes", Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:284:6*/	if doForum(handler, unlike).Code != 204 {
- /*line forum_test.mygo:285:5*/		t.Fatal("undo like failed")
- /*line forum_test.mygo:284:6*/	} else {
- /*line zz_forum.gen_test.go:177:1*/	}
+ /*line forum_test.mygo:309:6*/	if doForum(handler, unlike).Code != 204 {
+ /*line forum_test.mygo:310:5*/		t.Fatal("undo like failed")
+ /*line forum_test.mygo:309:6*/	} else {
+ /*line zz_forum.gen_test.go:186:1*/	}
  /*line forum_test.mygo:42:1*/	formReq := httptest.NewRequest("POST", a.Origin+"/api/v1/communities", io.Reader(strings.NewReader(create.Payload)))
- /*line forum_test.mygo:292:3*/	formReq.Header.Set("Content-Type", "text/plain")
- /*line forum_test.mygo:293:3*/	formReq.Header.Set("Origin", a.Origin)
- /*line forum_test.mygo:294:3*/	formReq.Header.Set("X-CSRF-Token", aliceCSRF)
- /*line forum_test.mygo:295:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(aliceCookies, func(cookie_2 *http.Cookie) {
- /*line forum_test.mygo:296:5*/		formReq.AddCookie(cookie_2)
+ /*line forum_test.mygo:317:3*/	formReq.Header.Set("Content-Type", "text/plain")
+ /*line forum_test.mygo:318:3*/	formReq.Header.Set("Origin", a.Origin)
+ /*line forum_test.mygo:319:3*/	formReq.Header.Set("X-CSRF-Token", aliceCSRF)
+ /*line forum_test.mygo:320:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(aliceCookies, func(cookie_2 *http.Cookie) {
+ /*line forum_test.mygo:321:5*/		formReq.AddCookie(cookie_2)
 		return
- /*line zz_forum.gen_test.go:185:1*/	})
+ /*line zz_forum.gen_test.go:194:1*/	})
  /*line forum_test.mygo:42:1*/	formRecorder := httptest.NewRecorder()
- /*line forum_test.mygo:299:3*/	handler.ServeHTTP(http.ResponseWriter(formRecorder), formReq)
- /*line forum_test.mygo:300:6*/	if formRecorder.Code != 400 {
- /*line forum_test.mygo:301:5*/		t.Fatal("non-JSON request body was accepted")
+ /*line forum_test.mygo:324:3*/	handler.ServeHTTP(http.ResponseWriter(formRecorder), formReq)
+ /*line forum_test.mygo:325:6*/	if formRecorder.Code != 400 {
+ /*line forum_test.mygo:326:5*/		t.Fatal("non-JSON request body was accepted")
 		return
- /*line forum_test.mygo:300:6*/	} else {
- /*line forum_test.mygo:300:3*/		return
- /*line zz_forum.gen_test.go:193:1*/	}
+ /*line forum_test.mygo:325:6*/	} else {
+ /*line forum_test.mygo:325:3*/		return
+ /*line zz_forum.gen_test.go:202:1*/	}
 }
 
- /*line forum_test.mygo:305:1*/type APICommunity struct {
+ /*line forum_test.mygo:330:1*/type APICommunity struct {
 	ID             string "json:\"id\""
 	Name           string "json:\"name\""
 	FederationMode string "json:\"federation_mode\""
- /*line zz_forum.gen_test.go:200:1*/}
- /*line forum_test.mygo:311:1*/type APIPost struct {
+ /*line zz_forum.gen_test.go:209:1*/}
+ /*line forum_test.mygo:336:1*/type APIPost struct {
 	ID         string "json:\"id\""
 	ObjectType string "json:\"object_type\""
 	Body       string "json:\"body\""
- /*line zz_forum.gen_test.go:205:1*/}
- /*line forum_test.mygo:317:1*/type APIPage struct {
+ /*line zz_forum.gen_test.go:214:1*/}
+ /*line forum_test.mygo:342:1*/type APIPage struct {
 	Items []APIPost "json:\"items\""
- /*line zz_forum.gen_test.go:208:1*/}
+ /*line zz_forum.gen_test.go:217:1*/}
 
- /*line forum_test.mygo:321:1*/func login(handler http.HandlerFunc, origin string, login string, password string) []*http.Cookie {
+ /*line forum_test.mygo:346:1*/func login(handler http.HandlerFunc, origin string, login string, password string) []*http.Cookie {
 	payload := "{\"login\":\"" + login + "\",\"password\":\"" + password + "\"}"
 	call := forumCall{Method: "POST", Origin: origin, Path: "/api/v1/auth/login", Payload: payload, Cookies: []*http.Cookie{}, CSRF: "", Source: origin}
- /*line forum_test.mygo:337:3*/	return doForum(handler, call).Result().Cookies()
- /*line zz_forum.gen_test.go:214:1*/}
- /*line forum_test.mygo:340:1*/func csrfOf(cookies []*http.Cookie) string {
- /*line forum_test.mygo:341:3*/	return MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cookies, func(cookie *http.Cookie) bool {
- /*line forum_test.mygo:342:5*/		return cookie.Name == "__Host-commune_csrf"
- /*line forum_test.mygo:343:12*/	}), 0)).Value
- /*line zz_forum.gen_test.go:219:1*/}
- /*line forum_test.mygo:346:1*/func topicCount(handler http.HandlerFunc, origin string, communityID string, cookies []*http.Cookie) int {
+ /*line forum_test.mygo:362:3*/	return doForum(handler, call).Result().Cookies()
+ /*line zz_forum.gen_test.go:223:1*/}
+ /*line forum_test.mygo:365:1*/func csrfOf(cookies []*http.Cookie) string {
+ /*line forum_test.mygo:366:3*/	return MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cookies, func(cookie *http.Cookie) bool {
+ /*line forum_test.mygo:367:5*/		return cookie.Name == "__Host-commune_csrf"
+ /*line forum_test.mygo:368:12*/	}), 0)).Value
+ /*line zz_forum.gen_test.go:228:1*/}
+ /*line forum_test.mygo:371:1*/func topicCount(handler http.HandlerFunc, origin string, communityID string, cookies []*http.Cookie) int {
 	path := "/api/v1/communities/" + communityID + "/topics"
 	response := doForum(handler, forumCall{Method: "GET", Origin: origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: ""})
- /*line forum_test.mygo:365:6*/	if response.Code != 200 {
- /*line forum_test.mygo:379:30*/		return -1
- /*line forum_test.mygo:365:6*/	} else {
- /*line zz_forum.gen_test.go:226:1*/	}
- /*line forum_test.mygo:346:1*/	page := APIPage{}
- /*line forum_test.mygo:369:11*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line forum_test.mygo:390:6*/	if response.Code != 200 {
+ /*line forum_test.mygo:404:30*/		return -1
+ /*line forum_test.mygo:390:6*/	} else {
+ /*line zz_forum.gen_test.go:235:1*/	}
+ /*line forum_test.mygo:371:1*/	page := APIPage{}
+ /*line forum_test.mygo:394:11*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(response.Body.Bytes(), &page)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_forum.gen_test.go:234:1*/		}{})
+ /*line zz_forum.gen_test.go:243:1*/		}{})
 	}
- /*line forum_test.mygo:346:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_1)
- /*line forum_test.mygo:370:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items)
- /*line zz_forum.gen_test.go:238:1*/}
- /*line forum_test.mygo:373:1*/func TestPostgresForumModerationHTTP(t *testing.T) {
- /*line forum_test.mygo:374:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line forum_test.mygo:371:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_1)
+ /*line forum_test.mygo:395:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items)
+ /*line zz_forum.gen_test.go:247:1*/}
+ /*line forum_test.mygo:398:1*/func TestPostgresForumModerationHTTP(t *testing.T) {
+ /*line forum_test.mygo:399:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_forum.gen_test.go:246:1*/	}
- /*line forum_test.mygo:373:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_forum.gen_test.go:255:1*/	}
+ /*line forum_test.mygo:398:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -262,119 +271,137 @@ import . "github.com/mygo-lang/mygo/prelude"
 	aliceCSRF := csrfOf(aliceCookies)
 	adminCookies := login(handler, a.Origin, "admin", "administrator-password")
 	adminCSRF := csrfOf(adminCookies)
-	createBody := "{\"name\":\"news\",\"title\":\"News\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}"
+	emptyReports := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/reports?state=open&offset=999", Cookies: adminCookies, Source: ""})
+ /*line forum_test.mygo:427:6*/	if emptyReports.Code != 200 || !strings.Contains(emptyReports.Body.String(), "\"items\":[]") {
+ /*line forum_test.mygo:428:5*/		t.Fatalf("exhausted report page was not an empty success: %s", emptyReports.Body.String())
+ /*line forum_test.mygo:427:6*/	} else {
+ /*line zz_forum.gen_test.go:278:1*/	}
+ /*line forum_test.mygo:430:6*/	if doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/reports?limit=oops", Cookies: adminCookies, Source: ""}).Code != 400 {
+ /*line forum_test.mygo:440:5*/		t.Fatal("malformed report pagination was accepted")
+ /*line forum_test.mygo:430:6*/	} else {
+ /*line zz_forum.gen_test.go:282:1*/	}
+ /*line forum_test.mygo:398:1*/	emptyModlog := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/modlog?offset=999", Cookies: adminCookies, Source: ""})
+ /*line forum_test.mygo:452:6*/	if emptyModlog.Code != 200 || !strings.Contains(emptyModlog.Body.String(), "\"items\":[]") {
+ /*line forum_test.mygo:453:5*/		t.Fatalf("exhausted modlog page was not an empty success: %s", emptyModlog.Body.String())
+ /*line forum_test.mygo:452:6*/	} else {
+ /*line zz_forum.gen_test.go:287:1*/	}
+ /*line forum_test.mygo:455:6*/	if doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/modlog?offset=-1", Cookies: adminCookies, Source: ""}).Code != 400 {
+ /*line forum_test.mygo:465:5*/		t.Fatal("malformed modlog pagination was accepted")
+ /*line forum_test.mygo:455:6*/	} else {
+ /*line zz_forum.gen_test.go:291:1*/	}
+ /*line forum_test.mygo:398:1*/	createBody := "{\"name\":\"news\",\"title\":\"News\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}"
 	created := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: createBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
 	community := APICommunity{}
- /*line forum_test.mygo:406:11*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line forum_test.mygo:481:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(created.Body.Bytes(), &community)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_forum.gen_test.go:274:1*/		}{})
+ /*line zz_forum.gen_test.go:301:1*/		}{})
 	}
- /*line forum_test.mygo:373:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
+ /*line forum_test.mygo:398:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
 	topicBody := "{\"title\":\"T\",\"body\":\"B\"}"
 	path := "/api/v1/communities/" + community.ID + "/topics"
 	topic := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: path, Payload: topicBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin})
 	post := APIPost{}
- /*line forum_test.mygo:422:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line forum_test.mygo:497:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(topic.Body.Bytes(), &post)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_forum.gen_test.go:287:1*/		}{})
+ /*line zz_forum.gen_test.go:314:1*/		}{})
 	}
- /*line forum_test.mygo:373:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
+ /*line forum_test.mygo:398:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
 	id := community.ID
 	hidePath := "/api/v1/posts/" + post.ID + "/hide"
 	creatorHide := forumCall{Method: "POST", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:434:6*/	if doForum(handler, creatorHide).Code != 403 {
- /*line forum_test.mygo:435:5*/		t.Fatal("non-administrator hid a post through the API")
- /*line forum_test.mygo:434:6*/	} else {
- /*line zz_forum.gen_test.go:296:1*/	}
- /*line forum_test.mygo:373:1*/	adminHide := forumCall{Method: "POST", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
- /*line forum_test.mygo:446:6*/	if doForum(handler, adminHide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
- /*line forum_test.mygo:448:5*/		t.Fatal("administrator hide did not affect the site listing")
- /*line forum_test.mygo:446:6*/	} else {
- /*line zz_forum.gen_test.go:301:1*/	}
- /*line forum_test.mygo:373:1*/	adminUnhide := forumCall{Method: "DELETE", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
- /*line forum_test.mygo:459:6*/	if doForum(handler, adminUnhide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
- /*line forum_test.mygo:461:5*/		t.Fatal("administrator unhide did not restore the listing")
- /*line forum_test.mygo:459:6*/	} else {
- /*line zz_forum.gen_test.go:306:1*/	}
- /*line forum_test.mygo:373:1*/	policyPath := "/api/v1/communities/" + id + "/policy"
+ /*line forum_test.mygo:509:6*/	if doForum(handler, creatorHide).Code != 403 {
+ /*line forum_test.mygo:510:5*/		t.Fatal("non-administrator hid a post through the API")
+ /*line forum_test.mygo:509:6*/	} else {
+ /*line zz_forum.gen_test.go:323:1*/	}
+ /*line forum_test.mygo:398:1*/	adminHide := forumCall{Method: "POST", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
+ /*line forum_test.mygo:521:6*/	if doForum(handler, adminHide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
+ /*line forum_test.mygo:523:5*/		t.Fatal("administrator hide did not affect the site listing")
+ /*line forum_test.mygo:521:6*/	} else {
+ /*line zz_forum.gen_test.go:328:1*/	}
+ /*line forum_test.mygo:398:1*/	adminUnhide := forumCall{Method: "DELETE", Origin: a.Origin, Path: hidePath, Payload: "", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}
+ /*line forum_test.mygo:534:6*/	if doForum(handler, adminUnhide).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
+ /*line forum_test.mygo:536:5*/		t.Fatal("administrator unhide did not restore the listing")
+ /*line forum_test.mygo:534:6*/	} else {
+ /*line zz_forum.gen_test.go:333:1*/	}
+ /*line forum_test.mygo:398:1*/	policyPath := "/api/v1/communities/" + id + "/policy"
 	policy := forumCall{Method: "PUT", Origin: a.Origin, Path: policyPath, Payload: "{\"read_policy\":\"members\",\"post_policy\":\"members\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:473:6*/	if doForum(handler, policy).Code != 204 {
- /*line forum_test.mygo:474:5*/		t.Fatal("policy update failed")
- /*line forum_test.mygo:473:6*/	} else {
- /*line zz_forum.gen_test.go:312:1*/	}
- /*line forum_test.mygo:373:1*/	communityRead := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + id, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
- /*line forum_test.mygo:488:6*/	if !strings.Contains(communityRead.Body.String(), "\"post_policy\":\"members\"") {
- /*line forum_test.mygo:489:5*/		t.Fatal("policy update was not reflected")
- /*line forum_test.mygo:488:6*/	} else {
- /*line zz_forum.gen_test.go:317:1*/	}
- /*line forum_test.mygo:373:1*/	invalidPolicy := forumCall{Method: "PUT", Origin: a.Origin, Path: policyPath, Payload: "{\"read_policy\":\"members\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:500:6*/	if doForum(handler, invalidPolicy).Code != 400 {
- /*line forum_test.mygo:501:5*/		t.Fatal("invalid policy combination accepted")
- /*line forum_test.mygo:500:6*/	} else {
- /*line zz_forum.gen_test.go:322:1*/	}
- /*line forum_test.mygo:373:1*/	memberPath := "/api/v1/communities/" + id + "/members"
+ /*line forum_test.mygo:548:6*/	if doForum(handler, policy).Code != 204 {
+ /*line forum_test.mygo:549:5*/		t.Fatal("policy update failed")
+ /*line forum_test.mygo:548:6*/	} else {
+ /*line zz_forum.gen_test.go:339:1*/	}
+ /*line forum_test.mygo:398:1*/	communityRead := doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/communities/" + id, Payload: "", Cookies: aliceCookies, CSRF: "", Source: ""})
+ /*line forum_test.mygo:563:6*/	if !strings.Contains(communityRead.Body.String(), "\"post_policy\":\"members\"") {
+ /*line forum_test.mygo:564:5*/		t.Fatal("policy update was not reflected")
+ /*line forum_test.mygo:563:6*/	} else {
+ /*line zz_forum.gen_test.go:344:1*/	}
+ /*line forum_test.mygo:398:1*/	invalidPolicy := forumCall{Method: "PUT", Origin: a.Origin, Path: policyPath, Payload: "{\"read_policy\":\"members\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+ /*line forum_test.mygo:575:6*/	if doForum(handler, invalidPolicy).Code != 400 {
+ /*line forum_test.mygo:576:5*/		t.Fatal("invalid policy combination accepted")
+ /*line forum_test.mygo:575:6*/	} else {
+ /*line zz_forum.gen_test.go:349:1*/	}
+ /*line forum_test.mygo:398:1*/	memberPath := "/api/v1/communities/" + id + "/members"
 	memberBody := "{\"actor\":\"" + carol.ActorURI + "\"}"
 	addMember := forumCall{Method: "POST", Origin: a.Origin, Path: memberPath, Payload: memberBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
 	removeMember := forumCall{Method: "DELETE", Origin: a.Origin, Path: memberPath, Payload: memberBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:523:6*/	if doForum(handler, addMember).Code != 204 || doForum(handler, removeMember).Code != 204 {
- /*line forum_test.mygo:524:5*/		t.Fatal("membership management failed")
- /*line forum_test.mygo:523:6*/	} else {
- /*line zz_forum.gen_test.go:330:1*/	}
- /*line forum_test.mygo:373:1*/	badMember := forumCall{Method: "POST", Origin: a.Origin, Path: memberPath, Payload: "{\"actor\":\"not-a-person\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:535:6*/	if doForum(handler, badMember).Code == 204 {
- /*line forum_test.mygo:536:5*/		t.Fatal("invalid member identity accepted")
- /*line forum_test.mygo:535:6*/	} else {
- /*line zz_forum.gen_test.go:335:1*/	}
- /*line forum_test.mygo:373:1*/	managerPath := "/api/v1/communities/" + id + "/managers"
+ /*line forum_test.mygo:598:6*/	if doForum(handler, addMember).Code != 204 || doForum(handler, removeMember).Code != 204 {
+ /*line forum_test.mygo:599:5*/		t.Fatal("membership management failed")
+ /*line forum_test.mygo:598:6*/	} else {
+ /*line zz_forum.gen_test.go:357:1*/	}
+ /*line forum_test.mygo:398:1*/	badMember := forumCall{Method: "POST", Origin: a.Origin, Path: memberPath, Payload: "{\"actor\":\"not-a-person\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+ /*line forum_test.mygo:610:6*/	if doForum(handler, badMember).Code == 204 {
+ /*line forum_test.mygo:611:5*/		t.Fatal("invalid member identity accepted")
+ /*line forum_test.mygo:610:6*/	} else {
+ /*line zz_forum.gen_test.go:362:1*/	}
+ /*line forum_test.mygo:398:1*/	managerPath := "/api/v1/communities/" + id + "/managers"
 	managerBody := "{\"actor\":\"" + bob.ActorURI + "\"}"
 	addManager := forumCall{Method: "POST", Origin: a.Origin, Path: managerPath, Payload: managerBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
 	removeManager := forumCall{Method: "DELETE", Origin: a.Origin, Path: managerPath, Payload: managerBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:558:6*/	if doForum(handler, addManager).Code != 204 || doForum(handler, removeManager).Code != 204 {
- /*line forum_test.mygo:559:5*/		t.Fatal("manager management failed")
- /*line forum_test.mygo:558:6*/	} else {
- /*line zz_forum.gen_test.go:343:1*/	}
- /*line forum_test.mygo:373:1*/	removalPath := "/api/v1/communities/" + id + "/removals"
+ /*line forum_test.mygo:633:6*/	if doForum(handler, addManager).Code != 204 || doForum(handler, removeManager).Code != 204 {
+ /*line forum_test.mygo:634:5*/		t.Fatal("manager management failed")
+ /*line forum_test.mygo:633:6*/	} else {
+ /*line zz_forum.gen_test.go:370:1*/	}
+ /*line forum_test.mygo:398:1*/	removalPath := "/api/v1/communities/" + id + "/removals"
 	removalBody := "{\"post_id\":\"" + post.ID + "\"}"
 	remove := forumCall{Method: "POST", Origin: a.Origin, Path: removalPath, Payload: removalBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:572:6*/	if doForum(handler, remove).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
- /*line forum_test.mygo:574:5*/		t.Fatal("community removal did not exclude the post")
- /*line forum_test.mygo:572:6*/	} else {
- /*line zz_forum.gen_test.go:350:1*/	}
- /*line forum_test.mygo:373:1*/	restore := forumCall{Method: "DELETE", Origin: a.Origin, Path: removalPath, Payload: removalBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:585:6*/	if doForum(handler, restore).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
- /*line forum_test.mygo:587:5*/		t.Fatal("community restore did not re-include the post")
- /*line forum_test.mygo:585:6*/	} else {
- /*line zz_forum.gen_test.go:355:1*/	}
- /*line forum_test.mygo:373:1*/	submissionPath := "/api/v1/communities/" + id + "/submissions"
+ /*line forum_test.mygo:647:6*/	if doForum(handler, remove).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
+ /*line forum_test.mygo:649:5*/		t.Fatal("community removal did not exclude the post")
+ /*line forum_test.mygo:647:6*/	} else {
+ /*line zz_forum.gen_test.go:377:1*/	}
+ /*line forum_test.mygo:398:1*/	restore := forumCall{Method: "DELETE", Origin: a.Origin, Path: removalPath, Payload: removalBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+ /*line forum_test.mygo:660:6*/	if doForum(handler, restore).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
+ /*line forum_test.mygo:662:5*/		t.Fatal("community restore did not re-include the post")
+ /*line forum_test.mygo:660:6*/	} else {
+ /*line zz_forum.gen_test.go:382:1*/	}
+ /*line forum_test.mygo:398:1*/	submissionPath := "/api/v1/communities/" + id + "/submissions"
 	rejectBody := "{\"post_id\":\"" + post.ID + "\",\"state\":\"rejected\"}"
 	reject := forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: rejectBody, Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:600:6*/	if doForum(handler, reject).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
- /*line forum_test.mygo:602:5*/		t.Fatal("rejected submission was still listed")
- /*line forum_test.mygo:600:6*/	} else {
- /*line zz_forum.gen_test.go:362:1*/	}
- /*line forum_test.mygo:373:1*/	accept := forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"accepted\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:613:6*/	if doForum(handler, accept).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
- /*line forum_test.mygo:615:5*/		t.Fatal("accepted submission was not listed")
- /*line forum_test.mygo:613:6*/	} else {
- /*line zz_forum.gen_test.go:367:1*/	}
- /*line forum_test.mygo:373:1*/	bogus := forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"bogus\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
- /*line forum_test.mygo:626:6*/	if doForum(handler, bogus).Code != 400 {
- /*line forum_test.mygo:627:5*/		t.Fatal("invalid submission state accepted")
- /*line forum_test.mygo:626:6*/	} else {
- /*line zz_forum.gen_test.go:372:1*/	}
- /*line forum_test.mygo:373:1*/	foreignHide := forumCall{Method: "POST", Origin: b.Origin, Path: hidePath, Payload: "", Cookies: login(handler, b.Origin, "carol", "carol-account-password"), CSRF: "", Source: b.Origin}
- /*line forum_test.mygo:638:6*/	if doForum(handler, foreignHide).Code != 403 && doForum(handler, foreignHide).Code != 401 {
- /*line forum_test.mygo:639:5*/		t.Fatal("foreign session changed site moderation")
+ /*line forum_test.mygo:675:6*/	if doForum(handler, reject).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 0 {
+ /*line forum_test.mygo:677:5*/		t.Fatal("rejected submission was still listed")
+ /*line forum_test.mygo:675:6*/	} else {
+ /*line zz_forum.gen_test.go:389:1*/	}
+ /*line forum_test.mygo:398:1*/	accept := forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"accepted\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+ /*line forum_test.mygo:688:6*/	if doForum(handler, accept).Code != 204 || topicCount(handler, a.Origin, id, aliceCookies) != 1 {
+ /*line forum_test.mygo:690:5*/		t.Fatal("accepted submission was not listed")
+ /*line forum_test.mygo:688:6*/	} else {
+ /*line zz_forum.gen_test.go:394:1*/	}
+ /*line forum_test.mygo:398:1*/	bogus := forumCall{Method: "POST", Origin: a.Origin, Path: submissionPath, Payload: "{\"post_id\":\"" + post.ID + "\",\"state\":\"bogus\"}", Cookies: aliceCookies, CSRF: aliceCSRF, Source: a.Origin}
+ /*line forum_test.mygo:701:6*/	if doForum(handler, bogus).Code != 400 {
+ /*line forum_test.mygo:702:5*/		t.Fatal("invalid submission state accepted")
+ /*line forum_test.mygo:701:6*/	} else {
+ /*line zz_forum.gen_test.go:399:1*/	}
+ /*line forum_test.mygo:398:1*/	foreignHide := forumCall{Method: "POST", Origin: b.Origin, Path: hidePath, Payload: "", Cookies: login(handler, b.Origin, "carol", "carol-account-password"), CSRF: "", Source: b.Origin}
+ /*line forum_test.mygo:713:6*/	if doForum(handler, foreignHide).Code != 403 && doForum(handler, foreignHide).Code != 401 {
+ /*line forum_test.mygo:714:5*/		t.Fatal("foreign session changed site moderation")
 		return
- /*line forum_test.mygo:638:6*/	} else {
- /*line forum_test.mygo:638:3*/		return
- /*line zz_forum.gen_test.go:379:1*/	}
+ /*line forum_test.mygo:713:6*/	} else {
+ /*line forum_test.mygo:713:3*/		return
+ /*line zz_forum.gen_test.go:406:1*/	}
 }

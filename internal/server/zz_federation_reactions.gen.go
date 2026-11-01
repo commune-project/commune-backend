@@ -30,8 +30,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_reactions.mygo:19:8*/		} else {
  /*line zz_federation_reactions.gen.go:31:1*/		}
  /*line federation_reactions.mygo:14:6*/		original = MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed)
- /*line federation_reactions.mygo:21:8*/		if original.Type != "Like" {
- /*line federation_reactions.mygo:21:44*/			return Ok[struct{}, string](struct {
+ /*line federation_reactions.mygo:21:8*/		if original.Type != "Like" && original.Type != "Dislike" {
+ /*line federation_reactions.mygo:21:74*/			return Ok[struct{}, string](struct {
  /*line zz_federation_reactions.gen.go:35:1*/			}{})
  /*line federation_reactions.mygo:21:8*/		} else {
  /*line zz_federation_reactions.gen.go:37:1*/		}
@@ -65,19 +65,33 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_reactions.mygo:27:35*/		identity := auth.Identity{ActorURI: activity.Actor}
 		repository := storage.ReactionRepository{DB: tx, SiteID: site.ID}
  /*line federation_reactions.mygo:33:8*/		if activity.Type == "Like" {
- /*line federation_reactions.mygo:33:44*/			return storage.MygoIN18ReactionRepositoryM4Like(repository, ctx, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, identity, true, activity.ID)
+ /*line federation_reactions.mygo:34:10*/			if !storage.SiteVoteUpEnabled(ctx, tx, site.ID) {
+ /*line federation_reactions.mygo:34:67*/				return Ok[struct{}, string](struct {
+ /*line zz_federation_reactions.gen.go:70:1*/				}{})
+ /*line federation_reactions.mygo:34:10*/			} else {
+ /*line zz_federation_reactions.gen.go:72:1*/			}
+ /*line federation_reactions.mygo:35:14*/			return storage.MygoIN18ReactionRepositoryM4Like(repository, ctx, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, identity, true, activity.ID)
  /*line federation_reactions.mygo:33:8*/		} else {
- /*line zz_federation_reactions.gen.go:70:1*/		}
- /*line federation_reactions.mygo:27:35*/		matching := storage.QueryExists(tx.Table("reactions").Where("post_id=? AND actor_uri=? AND reaction_uri=? AND undone_at IS NULL", MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, activity.Actor, original.ID))
- /*line federation_reactions.mygo:35:8*/		if MygoIN6ResultM5IsErr[bool, string](matching) {
- /*line federation_reactions.mygo:35:37*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](matching))
- /*line federation_reactions.mygo:35:8*/		} else {
  /*line zz_federation_reactions.gen.go:75:1*/		}
- /*line federation_reactions.mygo:36:8*/		if !MygoIN6ResultM6Unwrap[bool, string](matching) {
- /*line federation_reactions.mygo:36:39*/			return Ok[struct{}, string](struct {
- /*line zz_federation_reactions.gen.go:78:1*/			}{})
- /*line federation_reactions.mygo:36:8*/		} else {
- /*line zz_federation_reactions.gen.go:80:1*/		}
- /*line federation_reactions.mygo:37:5*/		return storage.MygoIN18ReactionRepositoryM4Undo(repository, ctx, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, identity, true)
- /*line zz_federation_reactions.gen.go:82:1*/	})
+ /*line federation_reactions.mygo:37:8*/		if activity.Type == "Dislike" {
+ /*line federation_reactions.mygo:38:10*/			if !storage.SiteVoteDownEnabled(ctx, tx, site.ID) {
+ /*line federation_reactions.mygo:38:69*/				return Ok[struct{}, string](struct {
+ /*line zz_federation_reactions.gen.go:79:1*/				}{})
+ /*line federation_reactions.mygo:38:10*/			} else {
+ /*line zz_federation_reactions.gen.go:81:1*/			}
+ /*line federation_reactions.mygo:39:14*/			return storage.MygoIN18ReactionRepositoryM4Vote(repository, ctx, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, identity, true, -1, activity.ID)
+ /*line federation_reactions.mygo:37:8*/		} else {
+ /*line zz_federation_reactions.gen.go:84:1*/		}
+ /*line federation_reactions.mygo:27:35*/		matching := storage.QueryExists(tx.Table("reactions").Where("post_id=? AND actor_uri=? AND reaction_uri=? AND undone_at IS NULL", MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, activity.Actor, original.ID))
+ /*line federation_reactions.mygo:42:8*/		if MygoIN6ResultM5IsErr[bool, string](matching) {
+ /*line federation_reactions.mygo:42:37*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](matching))
+ /*line federation_reactions.mygo:42:8*/		} else {
+ /*line zz_federation_reactions.gen.go:89:1*/		}
+ /*line federation_reactions.mygo:43:8*/		if !MygoIN6ResultM6Unwrap[bool, string](matching) {
+ /*line federation_reactions.mygo:43:39*/			return Ok[struct{}, string](struct {
+ /*line zz_federation_reactions.gen.go:92:1*/			}{})
+ /*line federation_reactions.mygo:43:8*/		} else {
+ /*line zz_federation_reactions.gen.go:94:1*/		}
+ /*line federation_reactions.mygo:44:5*/		return storage.MygoIN18ReactionRepositoryM4Undo(repository, ctx, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ID, identity, true)
+ /*line zz_federation_reactions.gen.go:96:1*/	})
 }
