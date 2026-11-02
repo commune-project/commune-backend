@@ -1,0 +1,64 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+func AccountContentRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  if parts.Len() != 4 || parts.Get(2).UnwrapOr("") != "account" then
+    return false
+  end
+  let source = parts.Get(3).UnwrapOr("")
+  if source != "saved" && source != "read" && source != "hidden" && source != "liked" then
+    return false
+  end
+  if request.Method != "GET" then
+    MethodNotAllowed(w, "GET")
+    return true
+  end
+  let session = Authenticated(db, site, request)
+  if session.IsErr() then
+    Fail(w, session.UnwrapErr())
+    return true
+  end
+  let page = PageFromQuery(settings, request)
+  if page.IsErr() then
+    Fail(w, page.UnwrapErr())
+    return true
+  end
+  let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
+  let viewer = repository.Viewer(request.Context(), session.Unwrap().Identity)
+  if viewer.IsErr() then
+    Fail(w, viewer.UnwrapErr())
+    return true
+  end
+  var records: Result[Slice[storage.PostRecord], String] = Err("not found")
+  if source == "saved" then
+    records = repository.SavedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+  else if source == "read" then
+    records = repository.ReadPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+  else if source == "hidden" then
+    records = repository.HiddenPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+  else
+    records = repository.LikedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+  end end end
+  if records.IsErr() then
+    Fail(w, records.UnwrapErr())
+    return true
+  end
+  let outputs = BrowserPosts(request.Context(), repository, viewer.Unwrap(), records.Unwrap())
+  if outputs.IsErr() then
+    Fail(w, outputs.UnwrapErr())
+  else
+    WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+  end
+  true
+end

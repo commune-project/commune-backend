@@ -102,7 +102,7 @@ func BrowserReadRoute(
       Fail(w, views.UnwrapErr())
     else
       let outputs = views.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
-        BrowserCommunityDTO(repository, view, viewer.Unwrap())
+        BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
       end)
       WriteJSON(
         w,
@@ -197,7 +197,7 @@ func BrowserCommunityRead(
   if audit.IsErr() then
     Fail(w, audit.UnwrapErr())
   else
-    WriteJSON(w, 200, BrowserCommunityDTO(repository, view, viewer))
+    WriteJSON(w, 200, BrowserCommunityDTO(request.Context(), repository, view, viewer))
   end
 end
 
@@ -304,31 +304,59 @@ func BrowserTopicRead(
   max: Int
 ) -> ()
   let feed = storage.FeedRepository { DB: repository.DB, SiteID: repository.SiteID }
+  let topicSort = ParseTopicSort(request)
+  if topicSort.IsErr() then
+    Fail(w, topicSort.UnwrapErr())
+    return
+  end
   var records: Result[Slice[storage.PostRecord], String] = Err("not found")
   var readCommunityID: String = ""
   if parts.Get(2).Unwrap() == "topics" then
-    records = repository.Latest(request.Context(), viewer, page, max)
+    records = repository.LatestSorted(request.Context(), viewer, page, max, topicSort.Unwrap())
   else
     let id = parts.Get(3).Unwrap()
     if parts.Get(2).Unwrap() == "communities" then
       readCommunityID = id
-      records = feed.ListTopics(request.Context(), id, viewer.Identity, false, page, max)
+      records = feed.ListTopicsSorted(request.Context(), id, viewer.Identity, false, page, max, topicSort.Unwrap())
     else
+      let threadDepth = ParseThreadDepth(request)
+      if threadDepth.IsErr() then
+        Fail(w, threadDepth.UnwrapErr())
+        return
+      end
+      let threadSort = ParseThreadSort(request)
+      if threadSort.IsErr() then
+        Fail(w, threadSort.UnwrapErr())
+        return
+      end
       let parent = feed.ReadObject(request.Context(), id, viewer.Identity, false)
       if parent.IsErr() then
         Fail(w, parent.UnwrapErr())
         return
       end
       readCommunityID = parent.Unwrap().CommunityID
-      records = feed.ListReplies(
+      let rows = feed.Thread(
         request.Context(),
         parent.Unwrap().CommunityID,
         id,
         viewer.Identity,
         false,
         page,
-        max
+        max,
+        threadDepth.Unwrap(),
+        threadSort.Unwrap()
       )
+      if rows.IsErr() then
+        Fail(w, rows.UnwrapErr())
+        return
+      end
+      let outputs = BrowserThread(request.Context(), repository, viewer, rows.Unwrap(), id, threadSort.Unwrap())
+      if outputs.IsErr() then
+        Fail(w, outputs.UnwrapErr())
+      else
+        WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset})
+      end
+      return
     end
   end
   if records.IsErr() then

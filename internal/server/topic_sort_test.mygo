@@ -1,0 +1,93 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func topicOrderPage(t: Ref[testing.T], handler: http.HandlerFunc, origin: String, path: String) -> PostPage
+  let output = PostPage{}
+  let response = browserGet(t, handler, origin, path, [] as Slice[Ref[http.Cookie]], 200)
+  if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
+    t.Fatalf("invalid topic page: %s", response.Body.String())
+  end
+  output
+end
+
+func TestPostgresTopicSortModes(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let author = accounts.Create(ctx, site, "author", "", "author-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let carol = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
+  let dave = accounts.Create(ctx, site, "dave", "", "dave-password").Unwrap()
+  let erin = accounts.Create(ctx, site, "erin", "", "erin-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let p1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Old", Body: "old"}).Unwrap()
+  let p2 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Middle", Body: "middle"}).Unwrap()
+  let p3 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "New", Body: "new"}).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id=?", p1.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-15T00:00:00Z',updated_at='2026-01-15T00:00:00Z' WHERE id=?", p2.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at=now(),updated_at=now() WHERE id=?", p3.ID)).Unwrap()
+  let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
+  let _ = reactions.Vote(ctx, p1.ID, bob, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, p1.ID, carol, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, p2.ID, bob, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, p2.ID, carol, false, -1, "").Unwrap()
+  let _ = reactions.Vote(ctx, p3.ID, bob, false, 1, "").Unwrap()
+  let handler = Handler(settings, db)
+  let global = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top")
+  if global.Items.Len() != 3 || global.Items.Get(0).Unwrap().ID != p1.ID || global.Items.Get(1).Unwrap().ID != p3.ID || global.Items.Get(2).Unwrap().ID != p2.ID then
+    fatalTopicOrder(t, "global top", global)
+  end
+  let communityTop = topicOrderPage(t, handler, site.Origin, "/api/v1/communities/" + community.ID + "/topics?sort=top")
+  if communityTop.Items.Len() != 3 || communityTop.Items.Get(0).Unwrap().ID != p1.ID then
+    fatalTopicOrder(t, "community top", communityTop)
+  end
+  let newest = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=new")
+  let oldest = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=old")
+  if newest.Items.Get(0).Unwrap().ID != p3.ID || oldest.Items.Get(0).Unwrap().ID != p1.ID then
+    t.Fatal("new or old topic ordering was incorrect")
+  end
+  let controversial = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=controversial")
+  if controversial.Items.Get(0).Unwrap().ID != p2.ID then
+    t.Fatal("controversial ordering did not favour opposing votes")
+  end
+  let hot = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=hot")
+  if hot.Items.Get(0).Unwrap().ID != p3.ID then
+    t.Fatal("hot ordering did not combine recency and score")
+  end
+  let _ = browserGet(t, handler, site.Origin, "/api/v1/topics?sort=random", [] as Slice[Ref[http.Cookie]], 400)
+  let _ = reactions.Vote(ctx, p2.ID, dave, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, p2.ID, erin, false, 1, "").Unwrap()
+  let changed = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top&limit=1")
+  if changed.Items.Len() != 1 || changed.Items.Get(0).Unwrap().ID != p2.ID then
+    t.Fatal("score changes did not affect the next top page")
+  end
+  let admin = storage.FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
+  let _ = storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true).Unwrap()
+  let disabled = topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top")
+  if disabled.Items.Get(0).Unwrap().ID != p2.ID || disabled.Items.Get(0).Unwrap().Score != 3i64 ||
+    disabled.Items.Get(0).Unwrap().Downvotes != 0i64 then
+    t.Fatal("disabled downvotes were not excluded from ordering")
+  end
+end
+
+func fatalTopicOrder(t: Ref[testing.T], label: String, page: PostPage) -> ()
+  var ids = ""
+  page.Items.Each(func(item: PostOutput) -> ()
+    ids = ids + item.ID + ","
+  end)
+  t.Fatalf("%s order was %s", label, ids)
+end

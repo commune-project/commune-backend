@@ -21,7 +21,7 @@ struct ActivityEnvelope
 end
 
 func KnownActivityKind(kind: String) -> Bool
-  kind == "Create" || kind == "Update" || kind == "Delete" || kind == "Like" || kind == "Undo" || kind == "Follow" || kind == "Accept" || kind == "Reject" || kind == "Announce" || kind == "Add" || kind == "Remove"
+  kind == "Create" || kind == "Update" || kind == "Delete" || kind == "Like" || kind == "Dislike" || kind == "Undo" || kind == "Follow" || kind == "Accept" || kind == "Reject" || kind == "Announce" || kind == "Add" || kind == "Remove"
 end
 
 func InboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], ownerURI: String) -> ()

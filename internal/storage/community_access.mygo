@@ -14,6 +14,7 @@ struct CommunityRecord
   FederationMode: String `gorm:"column:federation_mode"`
   ReadPolicy: String `gorm:"column:read_policy"`
   PostPolicy: String `gorm:"column:post_policy"`
+  FollowPolicy: String `gorm:"column:follow_policy"`
   Name: String `gorm:"column:name"`
   Title: String `gorm:"column:title"`
   Description: String `gorm:"column:description"`

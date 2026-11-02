@@ -74,4 +74,19 @@ func TestPostgresSiteHidingAndCommunityRemoval(t: Ref[testing.T]) -> ()
   if communities.SetSubmission(ctx, open.ID, topic.ID, alice, false, "bogus").IsOk() then
     t.Fatal("invalid submission state accepted")
   end
+  let logCount = 0i64
+  let _ = MutationResult(db.Table("moderation_log").Where(
+    "community_id=? AND action IN ('remove-post','restore-post')",
+    open.ID
+  ).Count(Ref.new(logCount))).Unwrap()
+  if logCount != 2i64 then
+    t.Fatal("community post removal and restore were not logged")
+  end
+  let _ = MutationResult(db.Table("moderation_log").Where(
+    "site_id=? AND community_id IS NULL AND action IN ('hide-post','unhide-post')",
+    site.ID
+  ).Count(Ref.new(logCount))).Unwrap()
+  if logCount != 2i64 then
+    t.Fatal("site post hide and unhide were not logged")
+  end
 end

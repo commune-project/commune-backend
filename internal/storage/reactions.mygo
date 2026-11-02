@@ -11,6 +11,29 @@ struct ReactionRepository
   SiteID: String
 end
 
+struct ReactionState
+  Active: Bool
+  Score: Int
+  URI: String
+end
+
+struct ReactionStateRow
+  Score: Int `gorm:"column:score"`
+  URI: sql.NullString `gorm:"column:reaction_uri"`
+end
+
+func CurrentReaction(ctx: context.Context, db: Ref[gorm.DB], postID: String, actorURI: String) -> Result[ReactionState, String]
+  let row = ReactionStateRow{}
+  let query = db.WithContext(ctx).Table("reactions").Select("score,reaction_uri").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", postID, actorURI).Limit(1).Find(Ref.new(row))
+  if MutationResult(query).IsErr() then
+    return Err("reaction unavailable")
+  end
+  if query.RowsAffected == 0i64 then
+    return Ok(ReactionState{})
+  end
+  Ok(ReactionState{Active: true, Score: row.Score, URI: row.URI.String})
+end
+
 impl ReactionRepository
   # Like and Undo require current read access and act only on the issuing
   # actor's own reaction row.
@@ -22,20 +45,49 @@ impl ReactionRepository
     remoteVerified: Bool,
     reactionURI: String
   ) -> Result[(), String]
+    self.Vote(ctx, postID, identity, remoteVerified, 1, reactionURI)
+  end
+
+  # A vote is the same one-row state as a like. Score zero clears the row
+  # without deleting it, so a later re-vote can reuse the same identity.
+  func Vote(
+    self: ReactionRepository,
+    ctx: context.Context,
+    postID: String,
+    identity: auth.Identity,
+    remoteVerified: Bool,
+    score: Int,
+    reactionURI: String
+  ) -> Result[(), String]
+    if score != -1 && score != 0 && score != 1 then
+      return Err("invalid vote")
+    end
+    if score == 0 then
+      return self.Undo(ctx, postID, identity, remoteVerified)
+    end
     self.React(
       ctx,
       postID,
       identity,
       remoteVerified,
       func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+        let up = SiteVoteUpEnabled(ctx, tx, self.SiteID)
+        let down = SiteVoteDownEnabled(ctx, tx, self.SiteID)
+        if score == 1 && !up then
+          return Err("feature_disabled")
+        end
+        if score == -1 && !down then
+          return Err("feature_disabled")
+        end
         if post.FederationMode == "local_only" && reactionURI != "" then
           return Err("invalid reaction")
         end
         MutationResult(tx.Exec(
-          "INSERT INTO reactions(post_id,actor_uri,reaction_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri",
+          "INSERT INTO reactions(post_id,actor_uri,reaction_uri,score) VALUES (?,?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri,score=EXCLUDED.score",
           postID,
           identity.ActorURI,
-          sql.NullString { String: reactionURI, Valid: reactionURI != "" }
+          sql.NullString { String: reactionURI, Valid: reactionURI != "" },
+          score
         ))
       end
     )
@@ -93,12 +145,41 @@ impl ReactionRepository
         if !received.Unwrap() then
           return Err("not found")
         end
-        let community = CommunityRepository{DB: tx, SiteID: self.SiteID}
-        let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
+        let personalBlock = PersonalBlockHidesPost(ctx, tx, self.SiteID, identity.AccountID, postID)
+        if personalBlock.IsErr() then
+          return Err(personalBlock.UnwrapErr())
+        end
+        if personalBlock.Unwrap() then
+          return Err("not found")
+        end
+        let loadedCommunity = LoadCommunityByID(ctx, tx, post.CommunityID)
+        if loadedCommunity.IsErr() || loadedCommunity.Unwrap().IsNone() then
+          return Err("not found")
+        end
+        let community = loadedCommunity.Unwrap().Unwrap()
+        let access = CommunityRepository{DB: tx, SiteID: self.SiteID}.Access(ctx, community, identity, remoteVerified)
         if access.IsErr() then
           return Err(access.UnwrapErr())
         end
-        if !access.Unwrap().CanRead() || !access.Unwrap().Subject.Verified then
+        if !access.Unwrap().CanRead() then
+          return Err("not found")
+        end
+        if !access.Unwrap().Subject.Verified then
+          return Err("forbidden")
+        end
+        let communityBan = ActiveCommunityBan(ctx, tx, post.CommunityID, identity.ActorURI, time.Now())
+        let siteBan = ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, time.Now())
+        if communityBan.IsErr() || siteBan.IsErr() then
+          return Err("moderation unavailable")
+        end
+        if communityBan.Unwrap() || siteBan.Unwrap() then
+          return Err("forbidden")
+        end
+        let blocked = IsInteractionBlocked(ctx, tx, self.SiteID, post.AuthorActorURI, identity.ActorURI)
+        if blocked.IsErr() then
+          return Err(blocked.UnwrapErr())
+        end
+        if blocked.Unwrap() then
           return Err("forbidden")
         end
         work(tx, post)

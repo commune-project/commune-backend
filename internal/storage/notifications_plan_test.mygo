@@ -57,9 +57,9 @@ func TestPostgresNotificationsQueryPlan(t: Ref[testing.T]) -> ()
   let variants: Slice[String] = ["page", "unread-count"]
   variants.Each(func(kind: String) -> ()
     let query = if kind == "page" then
-      browser.NotificationsQuery(ctx, viewer, "ORDER BY created_at DESC,id DESC LIMIT 20")
+      browser.NotificationsQuery(ctx, viewer).Order("created_at DESC,id DESC").Limit(20)
     else
-      f.DB.Raw("SELECT count(*) FROM (?) AS unread", browser.NotificationsQuery(ctx, viewer, "WHERE NOT read"))
+      f.DB.Table("(?) AS unread", browser.NotificationsQuery(ctx, viewer)).Where("NOT unread.read")
     end
     var lines: Slice[NotificationPlanLine] = []
     let result = f.DB.Raw("EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM (?) AS notification_plan", query).Scan(Ref.new(lines))

@@ -1,0 +1,102 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let bob = storage.AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let remoteAuthor = "https://peer.example/users/writer"
+  let remoteGroup = "https://peer.example/communities/news"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now}, remoteAuthor).Unwrap()
+  let handler = Handler(settings, db)
+  let cookies = login(handler, site.Origin, "bob", "bob-password")
+  let csrf = csrfOf(cookies)
+  let path = "/api/v1/communities/remote/follow"
+  let follow = forumCall{Method: "POST", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}
+  if doForum(handler, follow).Code != 204 then
+    t.Fatal("remote community follow failed")
+  end
+  if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "pending" then
+    t.Fatal("approval policy did not create a pending browser follow")
+  end
+  let firstFollow = storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI).Unwrap()
+  let jobs = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(Ref.new(jobs))).Unwrap()
+  if jobs != 1i64 || !storage.CanonicalObjectURI(firstFollow) then
+    t.Fatal("browser follow did not queue one canonical Follow")
+  end
+  if doForum(handler, follow).Code != 204 then
+    t.Fatal("repeat remote follow failed")
+  end
+  let afterRepeat = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(Ref.new(afterRepeat))).Unwrap()
+  if afterRepeat != 1i64 then
+    t.Fatal("repeat follow queued another activity")
+  end
+  let acceptPayload = `{"id":"https://peer.example/activities/accept-1","actor":"` + remoteGroup + `","type":"Accept","object":"` + firstFollow + `"}`
+  let accept = federation.ParseActivity(acceptPayload as Slice[Byte]).Unwrap()
+  let _ = ApplyActivity(ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  let _ = ApplyActivity(ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "accepted" then
+    t.Fatal("Accept did not update the remote follow")
+  end
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("remote unfollow failed")
+  end
+  if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "undone" ||
+    storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI).Unwrap() != firstFollow then
+    t.Fatal("unfollow did not preserve the original activity identity")
+  end
+  let undos = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(Ref.new(undos))).Unwrap()
+  if undos != 1i64 then
+    t.Fatal("remote unfollow did not queue one Undo")
+  end
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("repeat remote unfollow failed")
+  end
+  let repeatedUndos = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(Ref.new(repeatedUndos))).Unwrap()
+  if repeatedUndos != 1i64 then
+    t.Fatal("repeat unfollow queued another Undo")
+  end
+  if doForum(handler, follow).Code != 204 then
+    t.Fatal("re-follow failed")
+  end
+  let secondFollow = storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI).Unwrap()
+  if secondFollow == firstFollow || storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "pending" then
+    t.Fatal("re-follow did not create a new pending request")
+  end
+  let _ = ApplyActivity(ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "pending" then
+    t.Fatal("stale Accept changed a newer follow")
+  end
+  let rejectPayload = `{"id":"https://peer.example/activities/reject-2","actor":"` + remoteGroup + `","type":"Reject","object":"` + secondFollow + `"}`
+  let reject = federation.ParseActivity(rejectPayload as Slice[Byte]).Unwrap()
+  let _ = ApplyActivity(ctx, db, site, reject, rejectPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "rejected" then
+    t.Fatal("Reject did not update the current follow")
+  end
+  let statePayload = `{"id":"https://peer.example/activities/state-follow","actor":"` + remoteGroup + `","type":"Update","object":{"id":"` + remoteGroup + `","type":"Group","commune:policy":{"read":"eligible_users","post":"eligible_users","follow":"open"}}}`
+  let _ = ApplyCommunityState(ctx, db, statePayload as Slice[Byte]).Unwrap()
+  if storage.LoadCommunityFollowRule(ctx, db, "remote").Unwrap() != "open" then
+    t.Fatal("authoritative follow policy was not applied to the replica")
+  end
+end

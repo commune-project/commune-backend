@@ -13,6 +13,66 @@ match the normalized hostname exactly, ignoring port, ASCII case and a terminal
 dot. Subdomains require their own entries. Unblocking and role revocation take
 effect on the next check; these repositories keep no authorization cache.
 
+Personal blocks are a separate, account-scoped view and interaction policy.
+`GET`, `POST`, and `DELETE /api/v1/account/blocks` only affect the authenticated
+caller at the resolved site. The supported kinds are:
+
+- `person`: an exact canonical Actor URI.
+- `community`: a community ID.
+- `instance`: a normalized lower-case hostname without a scheme or path.
+
+Adds and removes are idempotent. Self-blocking, blocking the resolved site's own
+instance, malformed targets, and unknown or unreadable community targets are
+rejected with `400`. Personal block rows are keyed by site, account, kind, and
+target, so another account or another site never inherits them.
+
+Personal blocks filter community discovery, latest and community topic feeds,
+search results, notifications and unread counts, and saved/read/liked account
+listings before pagination. Thread reads omit a blocked reply together with its
+descendants, and visible `child_count` values count only surviving children.
+A direct read of blocked content returns `404` without returning its body,
+author, or count metadata. Blocking does not delete shared posts, reactions, or
+notifications, and another account's view is unchanged.
+
+Replies, votes, and mentions recheck the pair relationship in both directions.
+A blocked actor receives `403` and the rejected mutation creates no post, vote,
+mention row, or notification. A community block can also hide a community and
+its content from account listings, but it does not revoke membership or delete
+the community.
+
+These account-scoped blocks are not the existing site-administrator
+`site_actor_blocks` and `site_domain_blocks`. Administrator blocks protect the
+whole site and are managed through site policy; personal blocks protect one
+account's experience and remain enabled for every site. The HTTP and storage
+acceptance suite covers blocks created before and after content is read, subtree
+inheritance, direct-read non-disclosure, interaction rejection, site isolation,
+and unblock restoration in `account_blocks_test.mygo`,
+`account_blocks_interaction_test.mygo`, and their generated test files.
+
+## Moderation authority
+
+Reports, moderation logs, and bans use separate authority scopes:
+
+- A community manager may review reports and bans scoped to that hosted
+  community.
+- A site administrator may review all reports, bans, and log entries at that
+  site.
+- A deployment superadministrator may review the deployment while still acting
+  on the site resolved by the request.
+
+Ordinary members cannot list reports or moderation logs, resolve reports, or
+change bans. Unauthorized review attempts return `403`; inaccessible or absent
+targets return `404`; a conflicting second report resolution returns `409`.
+Report resolution and every ban/unban write an append-only moderation-log row.
+Site hiding and community removal/restore do the same, while retaining their
+existing audit-event trail.
+
+Community bans prevent topic and reply publication, votes, and mention
+activation in that community. Site bans are checked during login, session
+resolution, and every authenticated mutation. Creating a site ban revokes
+current sessions; removing or expiring it permits a new login without changing
+an independently disabled account. Expired bans are inactive automatically.
+
 `CommunityPolicy` expresses federation, read and post policy as separate
 dimensions. Invalid combinations fail closed.
 
@@ -36,9 +96,9 @@ membership/verification flag is not evidence. The pure policy tests exercise
 all three combinations, local isolation, verified remote members, revoked
 members, anonymous readers, blocked subjects and invalid policy combinations.
 
-These checks are building blocks. Management HTTP APIs and ActivityPub delivery
-have not yet been implemented; passing repository and policy tests does
-not establish end-to-end restricted federation or content non-disclosure.
+These checks are used by the browser and Federation APIs; passing repository and
+policy tests does not by itself establish end-to-end restricted federation or
+content non-disclosure.
 `make test-postgres` additionally verifies site role isolation, actor/domain
 block isolation, audit persistence and immediate role/block revocation using
 real PostgreSQL alongside the existing authentication suite.

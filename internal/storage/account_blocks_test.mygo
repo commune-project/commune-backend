@@ -1,0 +1,270 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresPersonalBlockPredicate(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let viewer = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let community = communities.Create(ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let local = posts.Publish(ctx, site, community.ID, creator, false, PublishInput{Title: "Local", Body: "local"}).Unwrap()
+  let remoteAuthor = "https://remote.example/users/writer"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remoteAuthor)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let incoming = PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now}
+  let remote = posts.Receive(ctx, incoming, remoteAuthor).Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let identity = browser.Viewer(ctx, viewer).Unwrap()
+  let blocks = AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
+
+  if browser.Latest(ctx, identity, Page{Limit: 20}, 50).Unwrap().Len() != 2 then
+    t.Fatal("unblocked posts were filtered")
+  end
+
+  let _ = blocks.Add(ctx, viewer, "person", creator.ActorURI).Unwrap()
+  let personRows = browser.Latest(ctx, identity, Page{Limit: 20}, 50).Unwrap()
+  if personRows.Len() != 1 || personRows.Get(0).Unwrap().ID != remote.ID || personRows.Get(0).Unwrap().ID == local.ID then
+    t.Fatal("person block did not filter only the blocked author")
+  end
+  let _ = blocks.Remove(ctx, viewer, "person", creator.ActorURI).Unwrap()
+
+  let _ = blocks.Add(ctx, viewer, "instance", "remote.example").Unwrap()
+  let instanceRows = browser.Latest(ctx, identity, Page{Limit: 20}, 50).Unwrap()
+  if instanceRows.Len() != 1 || instanceRows.Get(0).Unwrap().ID != local.ID then
+    t.Fatal("instance block did not filter only the blocked instance")
+  end
+  let _ = blocks.Remove(ctx, viewer, "instance", "remote.example").Unwrap()
+
+  let _ = blocks.Add(ctx, viewer, "community", community.ID).Unwrap()
+  if browser.Latest(ctx, identity, Page{Limit: 20}, 50).Unwrap().Len() != 0 then
+    t.Fatal("community block did not filter its posts")
+  end
+end
+
+func TestPostgresAccountBlockRepository(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = config.Site{ID: "a", Origin: "https://a.example"}
+  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, a, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, a, "bob", "", "bob-password").Unwrap()
+  let community = CommunityRepository{DB: db, SiteID: a.ID}.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let blocks = AccountBlockRepository{DB: db, SiteID: a.ID, AccountID: alice.AccountID}
+
+  if blocks.Add(ctx, alice, "person", alice.ActorURI).IsOk() then
+    t.Fatal("self block was accepted")
+  end
+  if blocks.Add(ctx, alice, "person", bob.ActorURI).IsErr() || blocks.Add(ctx, alice, "person", bob.ActorURI).IsErr() then
+    t.Fatal("idempotent person block failed")
+  end
+  let _ = blocks.Add(ctx, alice, "community", community.ID).Unwrap()
+  let _ = blocks.Add(ctx, alice, "instance", "remote.example").Unwrap()
+  let rows = blocks.List(ctx).Unwrap()
+  if rows.Len() != 3 then
+    t.Fatal("list did not contain one row per block target")
+  end
+  if blocks.Remove(ctx, alice, "person", bob.ActorURI).IsErr() || blocks.Remove(ctx, alice, "person", bob.ActorURI).IsErr() then
+    t.Fatal("idempotent person unblock failed")
+  end
+  if blocks.List(ctx).Unwrap().Len() != 2 then
+    t.Fatal("removed block remained listed")
+  end
+  let otherSite = AccountBlockRepository{DB: db, SiteID: b.ID, AccountID: alice.AccountID}
+  if otherSite.Add(ctx, alice, "instance", "elsewhere.example").IsOk() || otherSite.List(ctx).Unwrap().Len() != 0 then
+    t.Fatal("account block repository crossed site scope")
+  end
+end
+
+func TestPostgresPersonalBlocksBeforePaginationAndDetail(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let viewer = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let visibleCommunity = communities.Create(ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users").Unwrap()
+  let hiddenCommunity = communities.Create(ctx, site, alice, "hidden", "Hidden", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let visibleLocal = posts.Publish(ctx, site, visibleCommunity.ID, alice, false, PublishInput{Title: "Visible local", Body: "one"}).Unwrap()
+  let blockedPerson = posts.Publish(ctx, site, visibleCommunity.ID, bob, false, PublishInput{Title: "Blocked person", Body: "two"}).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let blockedInstance = posts.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "three", AuthoredAt: now, UpdatedAt: now}, "https://remote.example/users/writer").Unwrap()
+  let visibleRemote = posts.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "four", AuthoredAt: now, UpdatedAt: now}, "https://good.example/users/writer").Unwrap()
+  let blockedCommunityPost = posts.Publish(ctx, site, hiddenCommunity.ID, alice, false, PublishInput{Title: "Blocked community", Body: "five"}).Unwrap()
+  let stamps: Slice[String] = ["2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z", "2026-01-01T00:00:02Z", "2026-01-01T00:00:03Z", "2026-01-01T00:00:04Z"]
+  let ids: Slice[String] = [visibleLocal.ID, blockedCommunityPost.ID, blockedInstance.ID, blockedPerson.ID, visibleRemote.ID]
+  var index = 0
+  while index < ids.Len()
+    let _ = MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=? WHERE id=?", stamps.Get(index).Unwrap(), stamps.Get(index).Unwrap(), ids.Get(index).Unwrap())).Unwrap()
+    index = index + 1
+  end
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let browserViewer = browser.Viewer(ctx, viewer).Unwrap()
+  let blocks = AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
+  let _ = blocks.Add(ctx, viewer, "person", bob.ActorURI).Unwrap()
+  let _ = blocks.Add(ctx, viewer, "instance", "remote.example").Unwrap()
+  let _ = blocks.Add(ctx, viewer, "community", hiddenCommunity.ID).Unwrap()
+
+  let discovered = browser.ListCommunities(ctx, browserViewer, Page{Limit: 20}, 50).Unwrap()
+  if discovered.Len() != 1 || discovered.Get(0).Unwrap().Record.ID != visibleCommunity.ID then
+    t.Fatal("blocked community was not removed from discovery")
+  end
+  let latest = browser.Latest(ctx, browserViewer, Page{Limit: 2}, 50).Unwrap()
+  if latest.Len() != 2 || latest.Get(0).Unwrap().ID != visibleRemote.ID || latest.Get(1).Unwrap().ID != visibleLocal.ID then
+    t.Fatal("blocked rows consumed latest page slots")
+  end
+  let feed = FeedRepository{DB: db, SiteID: site.ID}
+  let topics = feed.ListTopics(ctx, visibleCommunity.ID, viewer, false, Page{Limit: 20}, 50).Unwrap()
+  if topics.Len() != 2 then
+    t.Fatal("community topic listing leaked blocked authors or instances")
+  end
+  if feed.ReadObject(ctx, blockedPerson.ID, viewer, false).IsOk() ||
+    feed.ReadObject(ctx, blockedInstance.ID, viewer, false).IsOk() ||
+    feed.ReadObject(ctx, blockedCommunityPost.ID, viewer, false).IsOk() then
+    t.Fatal("direct blocked post read leaked content")
+  end
+  if feed.ReadObject(ctx, visibleLocal.ID, viewer, false).IsErr() then
+    t.Fatal("direct read rejected an unblocked post")
+  end
+  let _ = blocks.Add(ctx, viewer, "person", alice.ActorURI).Unwrap()
+  if feed.ReadObject(ctx, visibleLocal.ID, viewer, false).IsOk() then
+    t.Fatal("block created after a successful read did not hide the post")
+  end
+end
+
+func TestPostgresPersonalBlocksBeforeSearchPagination(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let viewer = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let visibleCommunity = communities.Create(ctx, site, alice, "visible", "Needle visible", "federated", "eligible_users", "eligible_users").Unwrap()
+  let blockedCommunity = communities.Create(ctx, site, alice, "blocked", "Needle blocked", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let visibleLocal = posts.Publish(ctx, site, visibleCommunity.ID, alice, false, PublishInput{Title: "Visible local", Body: "needle"}).Unwrap()
+  let _ = posts.Publish(ctx, site, visibleCommunity.ID, bob, false, PublishInput{Title: "Blocked person", Body: "needle"}).Unwrap()
+  let _ = posts.Publish(ctx, site, blockedCommunity.ID, alice, false, PublishInput{Title: "Blocked community", Body: "needle"}).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let _ = posts.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now}, "https://remote.example/users/writer").Unwrap()
+  let visibleRemote = posts.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now}, "https://good.example/users/writer").Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let browserViewer = browser.Viewer(ctx, viewer).Unwrap()
+  let blocks = AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
+  let _ = blocks.Add(ctx, viewer, "person", bob.ActorURI).Unwrap()
+  let _ = blocks.Add(ctx, viewer, "instance", "remote.example").Unwrap()
+  let _ = blocks.Add(ctx, viewer, "community", blockedCommunity.ID).Unwrap()
+  let postsPage = browser.SearchPosts(ctx, browserViewer, "needle", Page{Limit: 2}, 50).Unwrap()
+  if postsPage.Len() != 2 ||
+    (postsPage.Get(0).Unwrap().ID != visibleLocal.ID && postsPage.Get(0).Unwrap().ID != visibleRemote.ID) ||
+    (postsPage.Get(1).Unwrap().ID != visibleLocal.ID && postsPage.Get(1).Unwrap().ID != visibleRemote.ID) then
+    t.Fatal("blocked search rows consumed post page slots")
+  end
+  let communityPage = browser.SearchCommunities(ctx, browserViewer, "Needle", Page{Limit: 1}, 50).Unwrap()
+  if communityPage.Len() != 1 || communityPage.Get(0).Unwrap().Record.ID != visibleCommunity.ID then
+    t.Fatal("blocked community consumed search page slot")
+  end
+end
+
+func TestPostgresPersonalBlocksNotificationsAndAccountLists(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let viewer = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let visibleCommunity = communities.Create(ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users").Unwrap()
+  let blockedCommunity = communities.Create(ctx, site, alice, "blocked", "Blocked", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let visible = posts.Publish(ctx, site, visibleCommunity.ID, alice, false, PublishInput{Title: "Visible", Body: "visible"}).Unwrap()
+  let blockedPerson = posts.Publish(ctx, site, visibleCommunity.ID, bob, false, PublishInput{Title: "Blocked person", Body: "person"}).Unwrap()
+  let blockedCommunityPost = posts.Publish(ctx, site, blockedCommunity.ID, alice, false, PublishInput{Title: "Blocked community", Body: "community"}).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person')")).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let blockedInstance = posts.Receive(ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/account-list", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "instance", AuthoredAt: now, UpdatedAt: now}, "https://remote.example/users/writer").Unwrap()
+  let state = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
+  let reactions = ReactionRepository{DB: db, SiteID: site.ID}
+  let allPosts: Slice[String] = [visible.ID, blockedPerson.ID, blockedCommunityPost.ID, blockedInstance.ID]
+  allPosts.Each(func(id: String) -> ()
+    let _ = state.Save(ctx, id, true).Unwrap()
+    let _ = state.Read(ctx, id).Unwrap()
+    let _ = reactions.Like(ctx, id, viewer, false, "").Unwrap()
+  end)
+  let _ = MutationResult(db.Exec("INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','event-bob',?,?,?),( 'reply','event-remote',?,?,?),( 'reply','event-visible',?,?,?)", blockedPerson.ID, bob.ActorURI, viewer.ActorURI, blockedInstance.ID, "https://remote.example/users/writer", viewer.ActorURI, visible.ID, alice.ActorURI, viewer.ActorURI)).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let browserViewer = browser.Viewer(ctx, viewer).Unwrap()
+  let page = Page{Limit: 20}
+  var diagnosticRows: Slice[NotificationRecord] = []
+  let diagnostic = browser.NotificationsQuery(ctx, browserViewer).Scan(Ref.new(diagnosticRows))
+  if QueryFailed(diagnostic) then
+    t.Fatalf("notification target eligibility SQL failed: %v", diagnostic.Error)
+  end
+  if browser.NotificationUnreadCount(ctx, browserViewer).Unwrap() != 3i64 then
+    t.Fatal("notification fixture was not projected")
+  end
+  let blocks = AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
+  let _ = blocks.Add(ctx, viewer, "person", bob.ActorURI).Unwrap()
+  let _ = blocks.Add(ctx, viewer, "instance", "remote.example").Unwrap()
+  let _ = blocks.Add(ctx, viewer, "community", blockedCommunity.ID).Unwrap()
+  if browser.NotificationUnreadCount(ctx, browserViewer).Unwrap() != 1i64 ||
+    browser.Notifications(ctx, browserViewer, page, 50).Unwrap().Items.Len() != 1 then
+    t.Fatal("blocked notifications remained in list or unread count")
+  end
+  let _ = blocks.Remove(ctx, viewer, "person", bob.ActorURI).Unwrap()
+  let _ = blocks.Remove(ctx, viewer, "instance", "remote.example").Unwrap()
+  if browser.NotificationUnreadCount(ctx, browserViewer).Unwrap() != 1i64 then
+    t.Fatal("unblocking resurrected retired notifications")
+  end
+  let saved = browser.SavedPosts(ctx, browserViewer, page, 50).Unwrap()
+  let read = browser.ReadPosts(ctx, browserViewer, page, 50).Unwrap()
+  let liked = browser.LikedPosts(ctx, browserViewer, page, 50).Unwrap()
+  let allowed: Slice[String] = [visible.ID, blockedPerson.ID, blockedInstance.ID]
+  let complete = func(posts: Slice[PostRecord]) -> Bool
+    let ids = posts.Map(func(post: PostRecord) -> String post.ID end)
+    posts.Len() == allowed.Len() && allowed.Fold(true, func(valid: Bool, id: String) -> Bool
+      valid && ids.Contains(id)
+    end)
+  end
+  if !complete(saved) || !complete(read) || !complete(liked) then
+    let ids = func(posts: Slice[PostRecord]) -> Slice[String]
+      posts.Map(func(post: PostRecord) -> String post.ID end)
+    end
+    t.Fatalf("blocked rows leaked through account content lists saved=%v read=%v liked=%v", ids(saved), ids(read), ids(liked))
+  end
+  let discovery = browser.ListCommunities(ctx, browserViewer, page, 50).Unwrap()
+  if discovery.Len() != 1 || discovery.Get(0).Unwrap().Record.ID != visibleCommunity.ID then
+    t.Fatal("blocked community remained in discovery counts")
+  end
+end

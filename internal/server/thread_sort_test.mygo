@@ -1,0 +1,83 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresThreadSiblingOrdering(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let author = accounts.Create(ctx, site, "author", "", "author-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let carol = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+  let topic = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic"}).Unwrap()
+  let rootLow = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "low", ParentID: topic.ID}).Unwrap()
+  let rootHigh = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "high", ParentID: topic.ID}).Unwrap()
+  let childOld = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "child old", ParentID: rootLow.ID}).Unwrap()
+  let childNew = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "child new", ParentID: rootLow.ID}).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id IN (?,?)", rootLow.ID, childOld.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-02T00:00:00Z',updated_at='2026-01-02T00:00:00Z' WHERE id IN (?,?)", rootHigh.ID, childNew.ID)).Unwrap()
+  let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
+  let _ = reactions.Vote(ctx, rootLow.ID, bob, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, rootHigh.ID, bob, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, rootHigh.ID, carol, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, childNew.ID, bob, false, 1, "").Unwrap()
+  let handler = Handler(settings, db)
+  let topPage = PostPage{}
+  let topResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=top&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let _ = json.Unmarshal(topResponse.Body.Bytes(), Ref.new(topPage)).Unwrap()
+  if topPage.Items.Len() != 2 || topPage.Items.Get(0).Unwrap().ID != rootHigh.ID || topPage.Items.Get(1).Unwrap().ID != rootLow.ID then
+    t.Fatal("root siblings were not vote ordered")
+  end
+  let topChildren = topPage.Items.Get(1).Unwrap().Children
+  if topChildren.Len() != 2 || topChildren.Get(0).Unwrap().ID != childNew.ID || topChildren.Get(1).Unwrap().ID != childOld.ID then
+    t.Fatal("child siblings were not independently vote ordered")
+  end
+  let oldPage = PostPage{}
+  let oldResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=old&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let _ = json.Unmarshal(oldResponse.Body.Bytes(), Ref.new(oldPage)).Unwrap()
+  if oldPage.Items.Get(0).Unwrap().ID != rootLow.ID ||
+    oldPage.Items.Get(0).Unwrap().Children.Get(0).Unwrap().ID != childOld.ID then
+    t.Fatal("old sibling ordering did not preserve ascending authored time")
+  end
+  let newPage = PostPage{}
+  let newResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=new&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let _ = json.Unmarshal(newResponse.Body.Bytes(), Ref.new(newPage)).Unwrap()
+  if newPage.Items.Get(0).Unwrap().ID != rootHigh.ID ||
+    newPage.Items.Get(0).Unwrap().Children.Len() != 0 then
+    t.Fatal("new thread ordering was incorrect")
+  end
+  let _ = reactions.Vote(ctx, rootLow.ID, carol, false, -1, "").Unwrap()
+  let _ = reactions.Vote(ctx, childOld.ID, bob, false, 1, "").Unwrap()
+  let _ = reactions.Vote(ctx, childOld.ID, carol, false, -1, "").Unwrap()
+  let controversialPage = PostPage{}
+  let controversialResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=controversial&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let _ = json.Unmarshal(controversialResponse.Body.Bytes(), Ref.new(controversialPage)).Unwrap()
+  if controversialPage.Items.Get(0).Unwrap().ID != rootLow.ID ||
+    controversialPage.Items.Get(0).Unwrap().Children.Get(0).Unwrap().ID != childOld.ID then
+    t.Fatal("controversial sibling ordering did not favour opposing votes")
+  end
+  let _ = reactions.Undo(ctx, childNew.ID, bob, false).Unwrap()
+  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-03T00:00:00Z',updated_at='2026-01-03T00:00:00Z' WHERE id IN (?,?)", childOld.ID, childNew.ID)).Unwrap()
+  let firstTie = PostPage{}
+  let secondTie = PostPage{}
+  let firstTieResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=top&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let secondTieResponse = browserGet(t, handler, site.Origin, "/api/v1/posts/" + topic.ID + "/replies?sort=top&max_depth=2", [] as Slice[Ref[http.Cookie]], 200)
+  let _ = json.Unmarshal(firstTieResponse.Body.Bytes(), Ref.new(firstTie)).Unwrap()
+  let _ = json.Unmarshal(secondTieResponse.Body.Bytes(), Ref.new(secondTie)).Unwrap()
+  if firstTieResponse.Body.String() != secondTieResponse.Body.String() then
+    t.Fatal("equal thread scores and timestamps were not stably ordered")
+  end
+end

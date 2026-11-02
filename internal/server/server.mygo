@@ -19,6 +19,9 @@ func Handler(settings: config.Config, db: Ref[gorm.DB]) -> http.HandlerFunc
     else
       w.Header().Set("Cache-Control", "no-store")
       w.Header().Set("X-Content-Type-Options", "nosniff")
+      if PasswordResetRoute(settings, db, site.Unwrap(), w, request) then
+        return
+      end
       if RegistrationRoute(settings, db, site.Unwrap(), w, request) then
         return
       end

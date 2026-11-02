@@ -5,9 +5,16 @@ import gorm "go:gorm.io/gorm"
 
 struct PostStats
   ID: String `gorm:"column:id"`
+  Score: Int64 `gorm:"column:score"`
+  Upvotes: Int64 `gorm:"column:upvotes"`
+  Downvotes: Int64 `gorm:"column:downvotes"`
+  VotedByMe: Int64 `gorm:"column:voted_by_me"`
   LikeCount: Int64 `gorm:"column:like_count"`
   LikedByMe: Bool `gorm:"column:liked_by_me"`
   ReplyCount: Int64 `gorm:"column:reply_count"`
+  SavedByMe: Bool `gorm:"column:saved_by_me"`
+  ReadByMe: Bool `gorm:"column:read_by_me"`
+  HiddenByMe: Bool `gorm:"column:hidden_by_me"`
 end
 
 struct RosterEntry
@@ -18,12 +25,20 @@ end
 
 impl BrowserRepository
   func Latest(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[PostRecord], String]
+    self.LatestSorted(ctx, viewer, page, max, "new")
+  end
+
+  func LatestSorted(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int, sort: String) -> Result[Slice[PostRecord], String]
     if !page.Valid(max) then
       return Err("invalid page")
     end
+    let up = if viewer.VoteSettingsLoaded then viewer.UpvotesEnabled else true end
+    let down = if viewer.VoteSettingsLoaded then viewer.DownvotesEnabled else true end
     var records: Slice[PostRecord] = []
-    let query = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id" + BrowserPageSQL(page)).Scan(Ref.new(records))
-    if MutationResult(query).IsErr() then
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockP + " AND NOT EXISTS(SELECT 1 FROM post_hidden h WHERE h.site_id=@site AND h.account_id=@account AND h.post_id=p.id) AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+    var query = self.DB.WithContext(ctx).Table("(?) AS page", readable)
+    query = query.Order(PostSortSQL("page", sort, up, down)).Limit(page.Limit).Offset(page.Offset)
+    if MutationResult(query.Scan(Ref.new(records))).IsErr() then
       return Err("feed unavailable")
     end
     Ok(records)
@@ -34,7 +49,12 @@ impl BrowserRepository
     if ids.Len() == 0 then
       return Ok(stats)
     end
-    let query = self.DB.WithContext(ctx).Raw("SELECT p.id, (SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL) AS like_count, EXISTS(SELECT 1 FROM reactions r WHERE r.post_id=p.id AND r.actor_uri=? AND r.undone_at IS NULL) AS liked_by_me, (SELECT count(*) FROM posts r JOIN site_posts sp ON sp.post_id=r.id AND sp.site_id=? WHERE r.parent_id=p.id AND r.community_id=p.community_id AND r.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=r.id AND cm.community_id=r.community_id AND cm.state IN ('removed','rejected'))) AS reply_count FROM posts p WHERE p.id IN ?", viewer.Identity.ActorURI, self.SiteID, ids).Scan(Ref.new(stats))
+    let up = if viewer.VoteSettingsLoaded then viewer.UpvotesEnabled else true end
+    let down = if viewer.VoteSettingsLoaded then viewer.DownvotesEnabled else true end
+    let query = self.DB.WithContext(ctx).Raw(
+      "SELECT q.*, (q.upvotes - q.downvotes) AS score FROM (SELECT p.id, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=1 AND ?),0) AS upvotes, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=-1 AND ?),0) AS downvotes, COALESCE((SELECT count(*) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.score=1 AND ?),0) AS like_count, COALESCE((SELECT CASE WHEN (? AND r.score=1) OR (? AND r.score=-1) THEN r.score ELSE 0 END FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.actor_uri=?),0) AS voted_by_me, COALESCE((SELECT (r.score=1 AND ?) FROM reactions r WHERE r.post_id=p.id AND r.undone_at IS NULL AND r.actor_uri=? LIMIT 1),false) AS liked_by_me, (SELECT count(*) FROM posts r JOIN site_posts sp ON sp.post_id=r.id AND sp.site_id=? WHERE r.parent_id=p.id AND r.community_id=p.community_id AND r.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=r.id AND cm.community_id=r.community_id AND cm.state IN ('removed','rejected'))) AS reply_count, EXISTS(SELECT 1 FROM saved_posts s WHERE s.site_id=? AND s.account_id=? AND s.post_id=p.id) AS saved_by_me, EXISTS(SELECT 1 FROM post_reads rd WHERE rd.site_id=? AND rd.account_id=? AND rd.post_id=p.id) AS read_by_me, EXISTS(SELECT 1 FROM post_hidden hd WHERE hd.site_id=? AND hd.account_id=? AND hd.post_id=p.id) AS hidden_by_me FROM posts p WHERE p.id IN ?) q",
+      up, down, up, up, down, viewer.Identity.ActorURI, up, viewer.Identity.ActorURI, self.SiteID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, ids
+    ).Scan(Ref.new(stats))
     if MutationResult(query).IsErr() then
       return Err("feed unavailable")
     end
@@ -59,9 +79,10 @@ impl BrowserRepository
     end
     var rows: Slice[RosterEntry] = []
     let query = if managers then
-      self.DB.WithContext(ctx).Raw("SELECT actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager FROM (SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL) roster GROUP BY actor_uri ORDER BY actor_uri" + BrowserPageSQL(page), id, id).Scan(Ref.new(rows))
+      let roster = self.DB.WithContext(ctx).Raw("SELECT creator_actor_uri AS actor_uri,true AS is_creator,false AS is_manager FROM communities WHERE id=? UNION ALL SELECT actor_uri,false,true FROM moderators WHERE community_id=? AND revoked_at IS NULL", id, id)
+      self.DB.WithContext(ctx).Table("(?) AS roster", roster).Select("actor_uri, bool_or(is_creator) AS is_creator, bool_or(is_manager) AS is_manager").Group("actor_uri").Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     else
-      self.DB.WithContext(ctx).Raw("SELECT actor_uri,false AS is_creator,false AS is_manager FROM community_members WHERE community_id=? AND revoked_at IS NULL ORDER BY actor_uri" + BrowserPageSQL(page), id).Scan(Ref.new(rows))
+      self.DB.WithContext(ctx).Table("community_members").Select("actor_uri,false AS is_creator,false AS is_manager").Where("community_id=? AND revoked_at IS NULL", id).Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     end
     if MutationResult(query).IsErr() then
       return Err("roster unavailable")

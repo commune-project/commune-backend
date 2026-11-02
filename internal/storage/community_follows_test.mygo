@@ -1,0 +1,65 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresCommunityFollowPolicies(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let member = accounts.Create(ctx, site, "member", "", "member-password").Unwrap()
+  let outsider = accounts.Create(ctx, site, "outsider", "", "outsider-password").Unwrap()
+  let communities = CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.CreateWithFollow(ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users", "open").Unwrap()
+  let restricted = communities.CreateWithFollow(ctx, site, creator, "members", "Members", "federated", "eligible_users", "eligible_users", "members").Unwrap()
+  let approval = communities.CreateWithFollow(ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval").Unwrap()
+  let disabled = communities.CreateWithFollow(ctx, site, creator, "disabled", "Disabled", "federated", "eligible_users", "eligible_users", "disabled").Unwrap()
+  let _ = communities.SetMember(ctx, restricted.ID, creator, false, member.ActorURI, true).Unwrap()
+  if BrowserFollow(ctx, db, site.ID, open.ID, outsider, true).Unwrap() != "accepted" then
+    t.Fatal("open follow was not accepted")
+  end
+  if BrowserFollow(ctx, db, site.ID, open.ID, outsider, true).Unwrap() != "accepted" then
+    t.Fatal("accepted follow was not idempotent")
+  end
+  if BrowserFollow(ctx, db, site.ID, restricted.ID, outsider, true).UnwrapErr() != "follow_requires_membership" then
+    t.Fatal("members policy allowed a non-member")
+  end
+  if BrowserFollow(ctx, db, site.ID, restricted.ID, member, true).Unwrap() != "accepted" then
+    t.Fatal("members policy rejected a member")
+  end
+  if BrowserFollow(ctx, db, site.ID, approval.ID, outsider, true).Unwrap() != "pending" then
+    t.Fatal("approval policy did not create a pending follow")
+  end
+  let pendingMember = IsCurrentMember(ctx, db, approval.ID, outsider.ActorURI).Unwrap()
+  if pendingMember then
+    t.Fatal("pending follow granted membership")
+  end
+  if BrowserFollow(ctx, db, site.ID, disabled.ID, outsider, true).UnwrapErr() != "feature_disabled" then
+    t.Fatal("disabled follow policy was ignored")
+  end
+  if BrowserFollow(ctx, db, site.ID, open.ID, outsider, false).Unwrap() != "undone" then
+    t.Fatal("unfollow failed")
+  end
+  if BrowserFollow(ctx, db, site.ID, open.ID, outsider, false).Unwrap() != "undone" then
+    t.Fatal("repeat unfollow failed")
+  end
+  let _ = ReviewFollow(ctx, db, site.ID, approval.ID, creator, outsider.ActorURI, true).Unwrap()
+  if CommunityFollowState(ctx, db, approval.ID, outsider.ActorURI).Unwrap() != "accepted" ||
+    !IsCurrentMember(ctx, db, approval.ID, outsider.ActorURI).Unwrap() then
+    t.Fatal("approval did not atomically grant follow and membership")
+  end
+  let second = accounts.Create(ctx, site, "second", "", "second-password").Unwrap()
+  let _ = BrowserFollow(ctx, db, site.ID, approval.ID, second, true).Unwrap()
+  let _ = ReviewFollow(ctx, db, site.ID, approval.ID, creator, second.ActorURI, false).Unwrap()
+  if CommunityFollowState(ctx, db, approval.ID, second.ActorURI).Unwrap() != "rejected" ||
+    IsCurrentMember(ctx, db, approval.ID, second.ActorURI).Unwrap() then
+    t.Fatal("rejection granted membership or retained pending state")
+  end
+end

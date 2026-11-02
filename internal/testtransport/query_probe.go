@@ -32,9 +32,18 @@ func (p *QueryProbe) Count() int64 { return p.count.Load() }
 
 // Explain runs the already-bound read query through PostgreSQL's planner.
 func Explain(query *gorm.DB) ([]string, error) {
+	sql := query.Statement.SQL.String()
+	vars := query.Statement.Vars
+	if sql == "" {
+		var rows []map[string]interface{}
+		preview := query.Session(&gorm.Session{DryRun: true}).Find(&rows)
+		if preview.Error != nil {
+			return nil, preview.Error
+		}
+		sql = preview.Statement.SQL.String()
+		vars = preview.Statement.Vars
+	}
 	var lines []string
-	err := query.Session(&gorm.Session{NewDB: true}).Raw(
-		"EXPLAIN "+query.Statement.SQL.String(), query.Statement.Vars...,
-	).Scan(&lines).Error
+	err := query.Session(&gorm.Session{NewDB: true}).Raw("EXPLAIN "+sql, vars...).Scan(&lines).Error
 	return lines, err
 }

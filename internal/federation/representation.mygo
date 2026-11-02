@@ -38,6 +38,7 @@ struct ActorRepresentation
   Outbox: String `json:"outbox"`
   Followers: String `json:"followers,omitempty"`
   AttributedTo: String `json:"attributedTo,omitempty"`
+  FollowPolicy: String `json:"commune:followPolicy,omitempty"`
   PublicKey: PublicKeyRepresentation `json:"publicKey"`
 end
 
@@ -107,6 +108,7 @@ func GroupRepresentation(
     Outbox: uri + "/outbox",
     Followers: uri + "/followers",
     AttributedTo: uri + "/moderators",
+    FollowPolicy: community.FollowPolicy,
     PublicKey: PublicKeyRepresentation{
       ID: uri + "#main-key",
       Owner: uri,

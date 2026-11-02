@@ -18,6 +18,20 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
   if ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, b).IsErr() then
     t.Fatal("site provisioning or repetition failed")
   end
+  let voteRows = 0
+  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() || voteRows != 2 then
+    t.Fatal("site vote settings defaults were not provisioned")
+  end
+  if MutationResult(db.Exec("DELETE FROM site_vote_settings WHERE site_id='a'")).IsErr() then
+    t.Fatal("cannot create missing vote settings fixture")
+  end
+  if !SiteVoteUpEnabled(ctx, db, "a") || !SiteVoteDownEnabled(ctx, db, "a") then
+    t.Fatal("missing vote settings did not resolve enabled")
+  end
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE site_id='a' AND upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() || voteRows != 1 then
+    t.Fatal("repeat provisioning did not restore vote settings defaults")
+  end
   let conflict = config.Site{ID: "a", Origin: "https://changed.example", Aliases: []}
   let alias = config.Site{ID: "c", Origin: "https://c.example", Aliases: ["alias.example"]}
   if ProvisionSite(ctx, db, conflict).IsOk() || ProvisionSite(ctx, db, alias).IsOk() then

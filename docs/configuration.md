@@ -136,3 +136,13 @@ All loops stop with the server lifetime; database leases coordinate concurrent
 processes. Actor-handle workers perform bounded, site-block-aware WebFinger
 resolution for remote Person authors; browser reads never perform this lookup.
 Cleanup never prefetches remote public media.
+
+Password reset uses the same `registration.outbox_secret`,
+`registration.token_ttl_seconds`, `registration.rate_window_seconds`,
+`registration.ip_limit`, `registration.email_limit`, SMTP settings, and mail
+worker configuration. It is not gated by `registration_enabled`; an existing
+account can request a reset on a site whose public registration is disabled.
+Deployments that serve existing accounts should therefore configure SMTP and
+the outbox key even when registration is off. Reset mail shares the durable mail
+worker loop, uses expiring leases, retains encrypted payloads only while
+retryable, and clears payload bytes on success or terminal failure.

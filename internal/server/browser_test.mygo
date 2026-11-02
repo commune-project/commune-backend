@@ -625,7 +625,7 @@ func TestPostgresBrowserBatchQueries(t: Ref[testing.T]) -> ()
     viewer,
     twenty
   ).Unwrap()
-  if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > 4i64 then
+  if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > 5i64 then
     t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
   end
   t.Logf("post enrichment queries: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())

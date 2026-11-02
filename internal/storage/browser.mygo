@@ -2,7 +2,6 @@ package storage
 
 import context "go:context"
 import sql "go:database/sql"
-import strconv "go:strconv"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 
@@ -16,12 +15,17 @@ struct BrowserViewer
   Verified: Bool
   Blocked: Bool
   Roles: ViewerRoles
+  UpvotesEnabled: Bool
+  DownvotesEnabled: Bool
+  VoteSettingsLoaded: Bool
 end
 
 struct CommunityView
   Record: CommunityRecord `gorm:"embedded"`
   Member: Bool `gorm:"column:member"`
   Manager: Bool `gorm:"column:manager"`
+  FollowState: sql.NullString `gorm:"column:follow_state"`
+  FollowerCount: Int64 `gorm:"column:follower_count"`
 end
 
 struct BrowserRepository
@@ -37,21 +41,19 @@ struct BrowserAudit
   TargetID: String `gorm:"column:target_id"`
 end
 
-func BrowserPageSQL(page: Page) -> String
-  " LIMIT " + strconv.Itoa(page.Limit) + " OFFSET " + strconv.Itoa(page.Offset)
-end
-
 impl BrowserRepository
   func Viewer(self: BrowserRepository, ctx: context.Context, identity: auth.Identity) -> Result[BrowserViewer, String]
+    let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+    let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
     if identity.AccountID <= 0i64 then
-      return Ok(BrowserViewer{})
+      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let verified = QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
     if verified.IsErr() then
       return Err(verified.UnwrapErr())
     end
     if !verified.Unwrap() then
-      return Ok(BrowserViewer{})
+      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let site = SiteRepository{DB: self.DB, SiteID: self.SiteID}
     let blocked = site.IsBlocked(ctx, identity.ActorURI)
@@ -60,13 +62,13 @@ impl BrowserRepository
     if blocked.IsErr() || admin.IsErr() || deployment.IsErr() then
       return Err("policy unavailable")
     end
-    Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}})
+    Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
   end
 
   # Named bindings keep actor/site values out of SQL text. The CTE mirrors
   # CommunityPolicy and CommunityAccess; parity tests cover both paths.
   func CommunitiesQuery(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, tail: String) -> Ref[gorm.DB]
-    let facts: String = "WITH facts AS (SELECT c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS manager FROM communities c), eligible AS (SELECT facts.*, (@verified AND NOT @blocked AND @actor <> '' AND (federation_mode='federated' OR (host_site_id=@identity_site AND @account > 0))) AS eligible, (federation_mode IN ('federated','local_only') AND (federation_mode<>'local_only' OR host_site_id IS NOT NULL) AND read_policy IN ('eligible_users','members') AND post_policy IN ('eligible_users','members') AND (read_policy<>'members' OR post_policy='members')) AS valid FROM facts), access AS (SELECT eligible.*, (NOT @blocked AND valid AND ((federation_mode='federated' AND read_policy='eligible_users') OR (eligible AND (read_policy='eligible_users' OR member)))) AS ordinary_read, (host_site_id=@site AND @verified AND NOT @blocked AND (@deployment OR @admin OR (valid AND eligible AND (creator_actor_uri=@actor OR manager)))) AS managed FROM eligible), readable AS (SELECT * FROM access WHERE ordinary_read OR managed) "
+    let facts: String = "WITH facts AS (SELECT c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=@actor LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count FROM communities c), eligible AS (SELECT facts.*, (@verified AND NOT @blocked AND @actor <> '' AND (federation_mode='federated' OR (host_site_id=@identity_site AND @account > 0))) AS eligible, (federation_mode IN ('federated','local_only') AND (federation_mode<>'local_only' OR host_site_id IS NOT NULL) AND read_policy IN ('eligible_users','members') AND post_policy IN ('eligible_users','members') AND (read_policy<>'members' OR post_policy='members')) AS valid FROM facts), access AS (SELECT eligible.*, (NOT @blocked AND valid AND ((federation_mode='federated' AND read_policy='eligible_users') OR (eligible AND (read_policy='eligible_users' OR member)))) AS ordinary_read, (host_site_id=@site AND @verified AND NOT @blocked AND (@deployment OR @admin OR (valid AND eligible AND (creator_actor_uri=@actor OR manager)))) AS managed FROM eligible), readable AS (SELECT * FROM access WHERE (ordinary_read OR managed) AND NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND b.kind='community' AND b.target=access.id)) "
     self.DB.WithContext(ctx).Raw(facts + tail, sql.Named("actor", viewer.Identity.ActorURI), sql.Named("site", self.SiteID), sql.Named("identity_site", viewer.Identity.SiteID), sql.Named("account", viewer.Identity.AccountID), sql.Named("verified", viewer.Verified), sql.Named("blocked", viewer.Blocked), sql.Named("admin", viewer.Roles.SiteAdministrator), sql.Named("deployment", viewer.Roles.DeploymentSuperadministrator))
   end
 
@@ -81,7 +83,7 @@ impl BrowserRepository
       return Ok(views)
     end
     # Batch IDs are passed as bound values, never SQL fragments.
-    let query = self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager", viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(Ref.new(views))
+    let query = self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=? LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count", viewer.Identity.ActorURI, viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(Ref.new(views))
     if MutationResult(query).IsErr() then
       return Err("community unavailable")
     end
@@ -112,8 +114,11 @@ impl BrowserRepository
       return Err("invalid page")
     end
     var views: Slice[CommunityView] = []
-    let query = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable WHERE host_site_id=@site OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=@site AND p.community_id=readable.id)) ORDER BY name,id" + BrowserPageSQL(page)).Scan(Ref.new(views))
-    if MutationResult(query).IsErr() then
+    let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable")
+    var query = self.DB.WithContext(ctx).Table("(?) AS c", readable)
+    query = query.Where("host_site_id=? OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=? AND p.community_id=c.id))", self.SiteID, self.SiteID)
+    let scanned = query.Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(views))
+    if MutationResult(scanned).IsErr() then
       return Err("community unavailable")
     end
     let audit = self.AuditViews(ctx, viewer, views)

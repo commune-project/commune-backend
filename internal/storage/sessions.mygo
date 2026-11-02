@@ -35,7 +35,7 @@ impl SessionRepository
     let tokens = auth.NewSessionTokens()
     let expires = now.Add(24 as time.Duration * time.Hour)
     # INSERT ... SELECT checks the current account/site and disabled state.
-    let query = self.DB.WithContext(ctx).Exec("INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,created_at,expires_at) SELECT ?,site_id,id,?,?,? FROM accounts WHERE site_id=? AND id=? AND actor_uri=? AND NOT disabled", tokens.SessionHash(), tokens.CSRFHash(), now, expires, identity.SiteID, identity.AccountID, identity.ActorURI)
+    let query = self.DB.WithContext(ctx).Exec("INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,created_at,expires_at) SELECT ?,site_id,id,?,?,? FROM accounts WHERE site_id=? AND id=? AND actor_uri=? AND NOT disabled AND NOT EXISTS (SELECT 1 FROM site_bans b WHERE b.site_id=accounts.site_id AND b.actor_uri=accounts.actor_uri AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>?))", tokens.SessionHash(), tokens.CSRFHash(), now, expires, identity.SiteID, identity.AccountID, identity.ActorURI, now)
     if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
       return Err("session issuance failed")
     end
@@ -55,7 +55,7 @@ impl SessionRepository
       return Err("unauthenticated")
     end
     let account = AccountRecord{}
-    let accountQuery = self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND id = ? AND NOT disabled", siteID, session.AccountID).Limit(1).Find(Ref.new(account))
+    let accountQuery = self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND id = ? AND NOT disabled AND NOT EXISTS (SELECT 1 FROM site_bans b WHERE b.site_id=accounts.site_id AND b.actor_uri=accounts.actor_uri AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>?))", siteID, session.AccountID, now).Limit(1).Find(Ref.new(account))
     if MutationResult(accountQuery).IsErr() then
       return Err("authentication unavailable")
     end
@@ -70,5 +70,9 @@ impl SessionRepository
       return Err("unauthenticated")
     end
     MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND token_hash=? AND revoked_at IS NULL", now, siteID, auth.TokenHash(token)))
+  end
+
+  func RevokeOthers(self: SessionRepository, ctx: context.Context, siteID: String, accountID: Int64, keepHash: Slice[Byte], now: time.Time) -> Result[(), String]
+    MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND token_hash<>? AND revoked_at IS NULL", now, siteID, accountID, keepHash))
   end
 end

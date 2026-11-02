@@ -1,0 +1,82 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresBlockedInteractionsCreateNothing(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let parent = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body"}).Unwrap()
+  let _ = storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: alice.AccountID}.Add(ctx, alice, "person", bob.ActorURI).Unwrap()
+  let handler = Handler(settings, db)
+  let bobCookies = login(handler, site.Origin, "bob", "bob-password")
+  let bobCSRF = csrfOf(bobCookies)
+  let reply = doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/" + parent.ID + "/replies",
+      Payload: "{\"body\":\"blocked reply\"}",
+      Cookies: bobCookies,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+    }
+  )
+  if reply.Code != 403 then
+    t.Fatalf("blocked reply returned %d: %s", reply.Code, reply.Body.String())
+  end
+  let vote = doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/" + parent.ID + "/vote",
+      Payload: "{\"score\":1}",
+      Cookies: bobCookies,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+    }
+  )
+  if vote.Code != 403 then
+    t.Fatalf("blocked vote returned %d: %s", vote.Code, vote.Body.String())
+  end
+  let mention = doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/communities/" + community.ID + "/topics",
+      Payload: "{\"title\":\"Mention\",\"body\":\"hello @alice\",\"content_format\":\"markdown\"}",
+      Cookies: bobCookies,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+    }
+  )
+  if mention.Code != 403 then
+    t.Fatalf("blocked mention returned %d: %s", mention.Code, mention.Body.String())
+  end
+  let posts = 0i64
+  let reactions = 0i64
+  let mentions = 0i64
+  let events = 0i64
+  let _ = storage.MutationResult(db.Table("posts").Count(Ref.new(posts))).Unwrap()
+  let _ = storage.MutationResult(db.Table("reactions").Count(Ref.new(reactions))).Unwrap()
+  let _ = storage.MutationResult(db.Table("post_mentions").Count(Ref.new(mentions))).Unwrap()
+  let _ = storage.MutationResult(db.Table("notification_events").Count(Ref.new(events))).Unwrap()
+  if posts != 1i64 || reactions != 0i64 || mentions != 0i64 || events != 0i64 then
+    t.Fatal("rejected blocked interaction left content, vote, mention, or notification")
+  end
+end

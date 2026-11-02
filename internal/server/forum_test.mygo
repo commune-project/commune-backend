@@ -144,6 +144,31 @@ func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
   if topicBody.Body != "world" || topicBody.ObjectType != "Page" then
     t.Fatal("topic response leaked markup or the wrong type")
   end
+  let emptySaved = doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/account/saved?offset=999",
+      Cookies: aliceCookies,
+      Source: "",
+    }
+  )
+  if emptySaved.Code != 200 || !strings.Contains(emptySaved.Body.String(), "\"items\":[]") then
+    t.Fatalf("exhausted account page was not an empty success: %s", emptySaved.Body.String())
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/account/saved?limit=not-a-number",
+      Cookies: aliceCookies,
+      Source: "",
+    }
+  ).Code != 400 then
+    t.Fatal("malformed account pagination was accepted")
+  end
   let listPath = "/api/v1/communities/" + communityBody.ID + "/topics?limit=1&offset=0"
   let list = doForum(
     handler,
@@ -389,6 +414,56 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
   let aliceCSRF = csrfOf(aliceCookies)
   let adminCookies = login(handler, a.Origin, "admin", "administrator-password")
   let adminCSRF = csrfOf(adminCookies)
+  let emptyReports = doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/reports?state=open&offset=999",
+      Cookies: adminCookies,
+      Source: "",
+    }
+  )
+  if emptyReports.Code != 200 || !strings.Contains(emptyReports.Body.String(), "\"items\":[]") then
+    t.Fatalf("exhausted report page was not an empty success: %s", emptyReports.Body.String())
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/reports?limit=oops",
+      Cookies: adminCookies,
+      Source: "",
+    }
+  ).Code != 400 then
+    t.Fatal("malformed report pagination was accepted")
+  end
+  let emptyModlog = doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/modlog?offset=999",
+      Cookies: adminCookies,
+      Source: "",
+    }
+  )
+  if emptyModlog.Code != 200 || !strings.Contains(emptyModlog.Body.String(), "\"items\":[]") then
+    t.Fatalf("exhausted modlog page was not an empty success: %s", emptyModlog.Body.String())
+  end
+  if doForum(
+    handler,
+    forumCall{
+      Method: "GET",
+      Origin: a.Origin,
+      Path: "/api/v1/modlog?offset=-1",
+      Cookies: adminCookies,
+      Source: "",
+    }
+  ).Code != 400 then
+    t.Fatal("malformed modlog pagination was accepted")
+  end
   let createBody = "{\"name\":\"news\",\"title\":\"News\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}"
   let created = doForum(
     handler,

@@ -1,0 +1,91 @@
+package server
+
+import context "go:context"
+import json "go:encoding/json"
+import rand "go:crypto/rand"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct LocalReactionActivity
+  Context: String `json:"@context"`
+  ID: String `json:"id"`
+  Type: String `json:"type"`
+  Actor: String `json:"actor"`
+  Object: String `json:"object"`
+end
+
+func LocalVoteRecipients(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  post: storage.PostRecord,
+  community: storage.CommunityRecord,
+  actorURI: String
+) -> Result[Slice[String], String]
+  var recipients: Slice[String] = []
+  if community.FederationMode != "federated" then
+    return Ok(recipients)
+  end
+  let query = db.WithContext(ctx).Table("actors AS a").Select("DISTINCT a.uri").Where(
+    "a.local_site_id IS NULL AND a.uri<>? AND (a.uri=? OR a.uri=? OR a.uri IN (SELECT f.actor_uri FROM follows f WHERE f.community_id=? AND f.state='accepted'))",
+    actorURI,
+    post.AuthorActorURI,
+    community.ActorURI.String,
+    community.ID
+  ).Order("a.uri").Scan(Ref.new(recipients))
+  if storage.MutationResult(query).IsErr() then
+    return Err("vote recipients unavailable")
+  end
+  Ok(recipients)
+end
+
+func ApplyLocalVote(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  postID: String,
+  identity: auth.Identity,
+  score: Int
+) -> Result[(), String]
+  if score != -1 && score != 0 && score != 1 then
+    return Err("invalid vote")
+  end
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
+    let previous = storage.CurrentReaction(ctx, tx, postID, identity.ActorURI)
+    if previous.IsErr() then return Err(previous.UnwrapErr()) end
+    let before = previous.Unwrap()
+    if (score == 0 && !before.Active) || (score != 0 && before.Active && before.Score == score) then
+      return repository.Vote(ctx, postID, identity, false, score, before.URI)
+    end
+    let loaded = storage.LoadObjectByID(ctx, tx, postID)
+    if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("not found") end
+    let post = loaded.Unwrap().Unwrap()
+    let communityResult = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
+    if communityResult.IsErr() || communityResult.Unwrap().IsNone() then return Err("not found") end
+    let community = communityResult.Unwrap().Unwrap()
+    let recipients = LocalVoteRecipients(ctx, tx, post, community, identity.ActorURI)
+    if recipients.IsErr() then return Err(recipients.UnwrapErr()) end
+    var activityURI = ""
+    if recipients.Unwrap().Len() > 0 && post.ObjectURI.Valid then
+      activityURI = site.Origin + "/activities/" + rand.Text()
+    end
+    let changed = repository.Vote(ctx, postID, identity, false, score, activityURI)
+    if changed.IsErr() then return Err(changed.UnwrapErr()) end
+    if activityURI == "" then return Ok(()) end
+    let kind = if score == 1 then "Like" else if score == -1 then "Dislike" else "Undo" end end
+    let objectURI = if score == 0 then before.URI else post.ObjectURI.String end
+    if objectURI == "" then return Err("reaction activity unavailable") end
+    let payload = json.Marshal(LocalReactionActivity{Context: activityContext, ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
+    if payload.IsErr() then return Err("reaction activity unavailable") end
+    let key = storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
+    if key.IsErr() then return Err(key.UnwrapErr()) end
+    let stored = storage.InsertActivityPayload(ctx, tx, activityURI, identity.ActorURI, kind, payload.Unwrap(), community.ID)
+    if stored.IsErr() then return Err(stored.UnwrapErr()) end
+    let planned = storage.PlanDelivery(ctx, tx, activityURI, identity.ActorURI, recipients.Unwrap(), community.ID)
+    if planned.IsErr() then return Err(planned.UnwrapErr()) end
+    Ok(())
+  end)
+end

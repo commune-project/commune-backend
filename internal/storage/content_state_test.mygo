@@ -1,0 +1,47 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresContentStateIsolation(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let carol = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
+  let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let post = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "State", Body: "state"}).Unwrap()
+  let bobState = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: bob.AccountID}
+  let carolState = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: carol.AccountID}
+  let _ = bobState.Save(ctx, post.ID, true).Unwrap()
+  let _ = bobState.Save(ctx, post.ID, true).Unwrap()
+  let _ = bobState.Read(ctx, post.ID).Unwrap()
+  let _ = bobState.Read(ctx, post.ID).Unwrap()
+  let _ = bobState.Hide(ctx, post.ID, true).Unwrap()
+  let _ = bobState.Hide(ctx, post.ID, true).Unwrap()
+  let flags = bobState.States(ctx, [post.ID]).Unwrap()
+  if flags.Saved.Len() != 1 || flags.Read.Len() != 1 || flags.Hidden.Len() != 1 then
+    t.Fatal("idempotent content state was not retained once per type")
+  end
+  let isolated = carolState.States(ctx, [post.ID]).Unwrap()
+  if isolated.Saved.Len() != 0 || isolated.Read.Len() != 0 || isolated.Hidden.Len() != 0 then
+    t.Fatal("content state leaked across accounts")
+  end
+  let _ = bobState.Save(ctx, post.ID, false).Unwrap()
+  let _ = bobState.Hide(ctx, post.ID, false).Unwrap()
+  let cleared = bobState.States(ctx, [post.ID]).Unwrap()
+  if cleared.Saved.Len() != 0 || cleared.Read.Len() != 1 || cleared.Hidden.Len() != 0 then
+    t.Fatal("content state clearing affected the wrong state")
+  end
+  let otherSite = ContentStateRepository{DB: db, SiteID: "b", AccountID: bob.AccountID}
+  if otherSite.Save(ctx, post.ID, true).IsOk() then
+    t.Fatal("content state accepted an account from another site")
+  end
+end

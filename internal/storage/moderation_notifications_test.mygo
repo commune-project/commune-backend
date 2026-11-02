@@ -1,0 +1,57 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresModerationNotificationsAndTargetAccess(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let author = accounts.Create(ctx, site, "author", "", "author-password").Unwrap()
+  let reporter = accounts.Create(ctx, site, "reporter", "", "reporter-password").Unwrap()
+  let target = accounts.Create(ctx, site, "target", "", "target-password").Unwrap()
+  let admin = FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
+  let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let posts = PostRepository{DB: db, SiteID: site.ID}
+  let post = posts.Publish(ctx, site, community.ID, author, false, PublishInput{Title: "Moderated", Body: "body"}).Unwrap()
+  let _ = CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "report").Unwrap()
+  let reports = ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0).Unwrap()
+  let _ = ResolveReport(ctx, db, site.ID, admin, reports.Get(0).Unwrap().ID, "resolved", "handled").Unwrap()
+  let expiry = sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true}
+  let _ = BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "ban", expiry).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let _ = ProjectNotifications(ctx, db, 100).Unwrap()
+  let browser = BrowserRepository{DB: db, SiteID: site.ID}
+  let reporterBrowser = browser.Viewer(ctx, reporter).Unwrap()
+  let targetBrowser = browser.Viewer(ctx, target).Unwrap()
+  let reporterPage = browser.Notifications(ctx, reporterBrowser, Page{Limit: 20}, 50).Unwrap()
+  let targetPage = browser.Notifications(ctx, targetBrowser, Page{Limit: 20}, 50).Unwrap()
+  if reporterPage.Items.Len() != 1 || targetPage.Items.Len() != 1 then
+    t.Fatal("report or ban notification was not projected exactly once")
+  end
+  let reportNotification = reporterPage.Items.Get(0).Unwrap()
+  let banNotification = targetPage.Items.Get(0).Unwrap()
+  if reportNotification.TargetKind != "report" || reportNotification.TargetID != reports.Get(0).Unwrap().ID.ToString() ||
+    banNotification.TargetKind != "moderation" || banNotification.TargetID != target.ActorURI then
+    t.Fatal("moderation notification target metadata was incorrect")
+  end
+  let _ = UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI).Unwrap()
+  if browser.NotificationUnreadCount(ctx, targetBrowser).Unwrap() != 0i64 ||
+    browser.Notifications(ctx, targetBrowser, Page{Limit: 20}, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("inactive ban notification remained accessible")
+  end
+  let _ = FeedRepository{DB: db, SiteID: site.ID}.SetHidden(ctx, post.ID, true, admin).Unwrap()
+  if browser.NotificationUnreadCount(ctx, reporterBrowser).Unwrap() != 0i64 ||
+    browser.Notifications(ctx, reporterBrowser, Page{Limit: 20}, 50).Unwrap().Items.Len() != 0 then
+    t.Fatal("inaccessible report target notification remained visible")
+  end
+end

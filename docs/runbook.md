@@ -75,6 +75,23 @@ Run migrations before provisioning or serving. There is no automatic migration
 at startup. A schema checksum mismatch, missing migration, or extra required
 migration makes readiness fail and prevents serving.
 
+The forum-core migrations are forward, additive, and applied in this order:
+
+| Version | Purpose |
+| --- | --- |
+| 015 | reaction scores and `Dislike` activity kind |
+| 016 | password reset tokens, mail jobs, and rate limits |
+| 017 | community follow policy and follower indexes |
+| 018 | account-scoped person/community/instance blocks |
+| 019 | reports, moderation log, community bans, site bans |
+| 020 | saved, read, and personal-hidden post state |
+| 021 | generic notification targets |
+| 022 | per-site vote settings |
+
+Migrate and verify readiness during a quiet period before enabling the new
+executable. The schema can be deployed first; the previous executable ignores
+the additive tables and columns.
+
 ## Access modes
 
 Federation participation and read/post policy are independent dimensions.
@@ -134,6 +151,13 @@ retries and terminal failures emit structured logs containing activity,
 recipient, attempt and reason categories. Activity bodies, credentials and
 private keys are not logged.
 
+Password reset and registration mail share the durable mail-worker loop. Enable
+`participation_workers.enabled` and configure SMTP plus the outbox key before
+serving existing accounts. Reset jobs survive restarts, reclaim expired leases,
+retry transient failures with bounded backoff, and clear encrypted payloads on
+success or terminal failure. Vote/follow federation delivery uses the existing
+delivery worker leases.
+
 `make test-postgres` starts a fresh temporary cluster, applies migrations, runs
 all tests, then stops and removes the cluster. Tests cover repeat migration,
 populated data surviving repository reopen, lease reclaim after simulated
@@ -161,6 +185,13 @@ Migrations in this change are forward-only. Roll back an incompatible release by
 restoring the pre-upgrade backup and deploying the previous binary against its
 matching schema. Reverting only the binary while retaining a newer incompatible
 schema fails readiness; normal startup does not undo migrations automatically.
+
+For the additive forum-core release, rollback can instead disable new routes and
+workers and restore the previous executable while retaining migrations 015–022.
+Preserve the new tables and rows: reactions retain historical votes, follows
+retain accepted/pending state, reports and moderation logs retain audit history,
+and account content state remains account-scoped. Disabling vote directions or
+community follows is a runtime policy, not a migration rollback.
 
 ## Verification checklist
 

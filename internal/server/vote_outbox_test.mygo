@@ -1,0 +1,82 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import sql "go:database/sql"
+import strings "go:strings"
+import time "go:time"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let author = accounts.Create(ctx, site, "author", "", "author-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let remoteAuthor = "https://peer.example/users/writer"
+  let remoteGroup = "https://peer.example/communities/news"
+  let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)).Unwrap()
+  let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','" + remoteGroup + "',?,'federated','eligible_users','eligible_users','remote','Remote')", remoteAuthor)).Unwrap()
+  let now = time.Now().UTC().Truncate(time.Microsecond)
+  let remotePost = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now}, remoteAuthor).Unwrap()
+  let handler = Handler(settings, db)
+  let cookies = login(handler, site.Origin, "bob", "bob-password")
+  let csrf = csrfOf(cookies)
+  let votePath = "/api/v1/posts/" + remotePost.ID + "/vote"
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("local upvote on federated remote post failed")
+  end
+  let likeJobs = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri IN ?", bob.ActorURI, ["https://peer.example/users/writer", "https://peer.example/communities/news"]).Count(Ref.new(likeJobs))).Unwrap()
+  if likeJobs != 2i64 then
+    t.Fatal("upvote did not queue Like for remote eligible recipients")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("idempotent upvote failed")
+  end
+  let repeatedJobs = 0i64
+  let _ = storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=?", bob.ActorURI).Count(Ref.new(repeatedJobs))).Unwrap()
+  if repeatedJobs != 2i64 then
+    t.Fatal("repeating the same vote duplicated outbound jobs")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("downvote change failed")
+  end
+  let reactionURI = ""
+  let _ = storage.MutationResult(db.Raw("SELECT reaction_uri FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", remotePost.ID, bob.ActorURI).Scan(Ref.new(reactionURI))).Unwrap()
+  if reactionURI == "" then
+    t.Fatal("outbound downvote did not store its activity identity")
+  end
+  let kinds: Slice[String] = []
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Order("created_at,uri").Pluck("kind", Ref.new(kinds))).Unwrap()
+  if kinds.Len() != 2 || kinds.Get(0).Unwrap() != "Like" || kinds.Get(1).Unwrap() != "Dislike" then
+    t.Fatal("outbound vote activity kinds were incorrect")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":0}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("vote clear failed")
+  end
+  let undoPayload = ""
+  let _ = storage.MutationResult(db.Raw("SELECT convert_from(p.original_payload,'UTF8') FROM activity_payloads p JOIN activities a ON a.uri=p.activity_uri WHERE a.actor_uri=? AND a.kind='Undo' LIMIT 1", bob.ActorURI).Scan(Ref.new(undoPayload))).Unwrap()
+  if !strings.Contains(undoPayload, reactionURI) then
+    t.Fatal("vote clear did not queue Undo of the active reaction activity")
+  end
+  let localCommunity = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
+  let localPost = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, localCommunity.ID, author, false, storage.PublishInput{Title: "Local", Body: "local"}).Unwrap()
+  let beforeLocal = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Count(Ref.new(beforeLocal))).Unwrap()
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + localPost.ID + "/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+    t.Fatal("local-only vote failed")
+  end
+  let afterLocal = 0i64
+  let _ = storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Count(Ref.new(afterLocal))).Unwrap()
+  if afterLocal != beforeLocal then
+    t.Fatal("local-only vote produced federation activity")
+  end
+end

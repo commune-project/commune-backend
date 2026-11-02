@@ -1,0 +1,119 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import url "go:net/url"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let first = accounts.Create(ctx, site, "first", "", "first-password").Unwrap()
+  let second = accounts.Create(ctx, site, "second", "", "second-password").Unwrap()
+  let third = accounts.Create(ctx, site, "third", "", "third-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let approval = communities.CreateWithFollow(ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval").Unwrap()
+  let handler = Handler(settings, db)
+  let creatorCookies = login(handler, site.Origin, "creator", "creator-password")
+  let creatorCSRF = csrfOf(creatorCookies)
+  let firstCookies = login(handler, site.Origin, "first", "first-password")
+  let firstCSRF = csrfOf(firstCookies)
+  let secondCookies = login(handler, site.Origin, "second", "second-password")
+  let secondCSRF = csrfOf(secondCookies)
+  let thirdCookies = login(handler, site.Origin, "third", "third-password")
+  let thirdCSRF = csrfOf(thirdCookies)
+  let follow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Int
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + id + "/follow", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
+  end
+  if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 then
+    t.Fatal("pending follows failed")
+  end
+  let requestsPath = "/api/v1/communities/" + approval.ID + "/follow-requests"
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: requestsPath, Cookies: firstCookies}).Code != 403 then
+    t.Fatal("ordinary member read pending follow roster")
+  end
+  let roster = FollowRequestPage{}
+  let rosterResponse = browserGet(t, handler, site.Origin, requestsPath + "?limit=1", creatorCookies, 200)
+  let _ = json.Unmarshal(rosterResponse.Body.Bytes(), Ref.new(roster)).Unwrap()
+  if roster.Items.Len() != 1 || roster.Limit != 1 then
+    t.Fatal("pending follow roster was not paginated")
+  end
+  let decisionPath = requestsPath + "/" + url.PathEscape(first.ActorURI)
+  let accept = forumCall{Method: "POST", Origin: site.Origin, Path: decisionPath, Payload: "{\"state\":\"accepted\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
+  if doForum(handler, accept).Code != 204 || doForum(handler, accept).Code != 204 then
+    t.Fatal("follow approval was not idempotent")
+  end
+  if storage.CommunityFollowState(ctx, db, approval.ID, first.ActorURI).Unwrap() != "accepted" ||
+    !storage.IsCurrentMember(ctx, db, approval.ID, first.ActorURI).Unwrap() then
+    t.Fatal("follow approval did not grant membership atomically")
+  end
+  let rejectPath = requestsPath + "/" + url.PathEscape(second.ActorURI)
+  let reject = forumCall{Method: "POST", Origin: site.Origin, Path: rejectPath, Payload: "{\"state\":\"rejected\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
+  if doForum(handler, reject).Code != 204 || doForum(handler, reject).Code != 204 then
+    t.Fatal("follow rejection was not idempotent")
+  end
+  if storage.CommunityFollowState(ctx, db, approval.ID, second.ActorURI).Unwrap() != "rejected" ||
+    storage.IsCurrentMember(ctx, db, approval.ID, second.ActorURI).Unwrap() then
+    t.Fatal("follow rejection created membership")
+  end
+  if follow(approval.ID, thirdCookies, thirdCSRF) != 204 then
+    t.Fatal("third pending follow failed")
+  end
+  let policyPath = "/api/v1/communities/" + approval.ID + "/policy"
+  let policy = forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"disabled\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
+  if doForum(handler, policy).Code != 204 then
+    t.Fatal("policy update with follow policy failed")
+  end
+  let thirdDecision = forumCall{Method: "POST", Origin: site.Origin, Path: requestsPath + "/" + url.PathEscape(third.ActorURI), Payload: "{\"state\":\"accepted\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
+  if doForum(handler, thirdDecision).Code != 204 then
+    t.Fatal("pending follow could not be reviewed after policy change")
+  end
+  if follow(approval.ID, secondCookies, secondCSRF) != 403 then
+    t.Fatal("disabled policy accepted a new follow")
+  end
+  let accepted = CommunityOutput{}
+  let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + approval.ID, firstCookies, 200).Body.Bytes(), Ref.new(accepted)).Unwrap()
+  if accepted.FollowPolicy != "disabled" || accepted.Viewer.FollowState != "accepted" || accepted.FollowerCount != 2i64 then
+    t.Fatal("policy change did not preserve existing follows")
+  end
+  let audits = 0i64
+  let _ = storage.MutationResult(db.Table("audit_events").Where("scope_kind='community' AND scope_id=? AND action='review-follow'", approval.ID).Count(Ref.new(audits))).Unwrap()
+  if audits < 3i64 then
+    t.Fatal("follow review actions were not audited")
+  end
+  if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 then
+    t.Fatal("invalid follow policy was accepted")
+  end
+  if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"open\"}", Cookies: firstCookies, CSRF: firstCSRF, Source: site.Origin}).Code != 403 then
+    t.Fatal("non-manager changed follow policy")
+  end
+  let createdOpen = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omitted\",\"title\":\"Omitted\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
+  let openDTO = CommunityOutput{}
+  if json.Unmarshal(createdOpen.Body.Bytes(), Ref.new(openDTO)).IsErr() || openDTO.FollowPolicy != "open" then
+    t.Fatal("creation did not derive open follow policy")
+  end
+  let createdMembers = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omittedmembers\",\"title\":\"Omitted Members\",\"mode\":\"federated\",\"read_policy\":\"members\",\"post_policy\":\"members\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
+  let membersDTO = CommunityOutput{}
+  if json.Unmarshal(createdMembers.Body.Bytes(), Ref.new(membersDTO)).IsErr() || membersDTO.FollowPolicy != "members" then
+    t.Fatal("creation did not derive members follow policy")
+  end
+  let explicit = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"explicit\",\"title\":\"Explicit\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"approval\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
+  let explicitDTO = CommunityOutput{}
+  if json.Unmarshal(explicit.Body.Bytes(), Ref.new(explicitDTO)).IsErr() || explicitDTO.FollowPolicy != "approval" then
+    t.Fatal("explicit creation follow policy failed")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"invalid\",\"title\":\"Invalid\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 then
+    t.Fatal("invalid creation follow policy was accepted")
+  end
+end

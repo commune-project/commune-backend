@@ -1,0 +1,59 @@
+package storage
+
+import context "go:context"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct SiteVoteSettingsRecord
+  SiteID: String `gorm:"column:site_id"`
+  UpvotesEnabled: Bool `gorm:"column:upvotes_enabled"`
+  DownvotesEnabled: Bool `gorm:"column:downvotes_enabled"`
+end
+
+func SiteVoteUpEnabled(ctx: context.Context, db: Ref[gorm.DB], siteID: String) -> Bool
+  let row = SiteVoteSettingsRecord {}
+  let query = db.WithContext(ctx).Table("site_vote_settings").Where("site_id=?", siteID).Limit(1).Find(Ref.new(row))
+  if MutationResult(query).IsErr() || query.RowsAffected == 0i64 then
+    return true
+  end
+  row.UpvotesEnabled
+end
+
+func SiteVoteDownEnabled(ctx: context.Context, db: Ref[gorm.DB], siteID: String) -> Bool
+  let row = SiteVoteSettingsRecord {}
+  let query = db.WithContext(ctx).Table("site_vote_settings").Where("site_id=?", siteID).Limit(1).Find(Ref.new(row))
+  if MutationResult(query).IsErr() || query.RowsAffected == 0i64 then
+    return true
+  end
+  row.DownvotesEnabled
+end
+
+func UpdateSiteVoteSettings(ctx: context.Context, db: Ref[gorm.DB], siteID: String, identity: auth.Identity, up: Bool, down: Bool, hasUp: Bool, hasDown: Bool) -> Result[(), String]
+  RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let site = SiteRepository{DB: tx, SiteID: siteID}
+    let admin = site.IsAdministrator(ctx, identity)
+    let deployment = site.IsDeploymentAdministrator(ctx, identity)
+    if admin.IsErr() || deployment.IsErr() then
+      return Err("vote settings unavailable")
+    end
+    if !admin.Unwrap() && !deployment.Unwrap() then
+      return Err("forbidden")
+    end
+    if MutationResult(tx.Exec("INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING", siteID)).IsErr() then
+      return Err("vote settings unavailable")
+    end
+    var current = SiteVoteSettingsRecord{}
+    let loaded = tx.Raw("SELECT site_id, upvotes_enabled, downvotes_enabled FROM site_vote_settings WHERE site_id=? FOR UPDATE", siteID).Scan(Ref.new(current))
+    if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
+      return Err("vote settings unavailable")
+    end
+    var nextUp = current.UpvotesEnabled
+    var nextDown = current.DownvotesEnabled
+    if hasUp then nextUp = up end
+    if hasDown then nextDown = down end
+    if MutationResult(tx.Exec("UPDATE site_vote_settings SET upvotes_enabled=?, downvotes_enabled=?, updated_at=now(), updated_by_actor_uri=? WHERE site_id=?", nextUp, nextDown, identity.ActorURI, siteID)).IsErr() then
+      return Err("vote settings unavailable")
+    end
+    MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'set-vote-settings',?)", identity.ActorURI, siteID, siteID))
+  end)
+end

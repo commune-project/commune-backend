@@ -137,6 +137,15 @@ func AuthenticationRoute(
             end
             http.Error(w, "authentication failed", status)
           else
+            let banned = storage.ActiveSiteBan(request.Context(), db, site.ID, identity.Unwrap().ActorURI, time.Now())
+            if banned.IsErr() then
+              http.Error(w, "authentication unavailable", 503)
+              return
+            end
+            if banned.Unwrap() then
+              http.Error(w, "authentication failed", 401)
+              return
+            end
             let now = time.Now()
             let issued = sessions.Issue(request.Context(), identity.Unwrap(), now)
             if issued.IsErr() then

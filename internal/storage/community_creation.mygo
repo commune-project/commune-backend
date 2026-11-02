@@ -11,8 +11,17 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 
 impl CommunityRepository
   func Create(self: CommunityRepository, ctx: context.Context, site: config.Site, identity: auth.Identity, name: String, title: String, mode: String, read: String, post: String) -> Result[CommunityRecord, String]
+    self.CreateWithFollow(ctx, site, identity, name, title, mode, read, post, "")
+  end
+
+  func CreateWithFollow(self: CommunityRepository, ctx: context.Context, site: config.Site, identity: auth.Identity, name: String, title: String, mode: String, read: String, post: String, follow: String) -> Result[CommunityRecord, String]
     let policy = auth.CommunityPolicy{HostSiteID: self.SiteID, FederationMode: mode, ReadPolicy: read, PostPolicy: post}
-    if site.ID != self.SiteID || !identity.BelongsTo(self.SiteID) || !policy.Valid() || !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", name).UnwrapOr(false) || strings.TrimSpace(title) == "" || (title as Slice[Byte]).Len() > 200 then
+    let followPolicy = if follow == "" then
+      if read == "members" then "members" else "open" end
+    else
+      follow
+    end
+    if site.ID != self.SiteID || !identity.BelongsTo(self.SiteID) || !policy.Valid() || (followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled") || !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", name).UnwrapOr(false) || strings.TrimSpace(title) == "" || (title as Slice[Byte]).Len() > 200 then
       return Err("invalid community input")
     end
     let canonical = config.CanonicalURI(site, "communities", name)
@@ -41,8 +50,18 @@ impl CommunityRepository
           return Err("community creation failed")
         end
       end
-      if MutationResult(tx.Table("communities").Create(Ref.new(record))).IsErr() then
+      if MutationResult(tx.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,creator_kind,federation_mode,read_policy,post_policy,name,title,description,policy_version) VALUES (?,?,?,?,'Person',?,?,?,?,?,'',1)", record.ID, record.HostSiteID, record.ActorURI, record.CreatorActorURI, record.FederationMode, record.ReadPolicy, record.PostPolicy, record.Name, record.Title)).IsErr() then
         return Err("community creation failed")
+      end
+      let followColumn = false
+      let columnQuery = tx.Raw("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='communities' AND column_name='follow_policy')").Scan(Ref.new(followColumn))
+      if MutationResult(columnQuery).IsErr() then
+        return Err("community creation failed")
+      end
+      if followColumn then
+        if MutationResult(tx.Exec("UPDATE communities SET follow_policy=? WHERE id=?", followPolicy, record.ID)).IsErr() then
+          return Err("community creation failed")
+        end
       end
       if MutationResult(tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", record.ID, identity.ActorURI, identity.ActorURI)).IsErr() then
         return Err("community creation failed")

@@ -1,0 +1,100 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import http "go:net/http"
+import httptest "go:net/http/httptest"
+import json "go:encoding/json"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresCommunityFollowHTTP(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let accounts = storage.AccountRepository{DB: db}
+  let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
+  let member = accounts.Create(ctx, site, "member", "", "member-password").Unwrap()
+  let _ = accounts.Create(ctx, site, "outsider", "", "outsider-password").Unwrap()
+  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let open = communities.CreateWithFollow(ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users", "open").Unwrap()
+  let restricted = communities.CreateWithFollow(ctx, site, creator, "restricted", "Restricted", "federated", "eligible_users", "eligible_users", "members").Unwrap()
+  let approval = communities.CreateWithFollow(ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval").Unwrap()
+  let disabled = communities.CreateWithFollow(ctx, site, creator, "disabled", "Disabled", "federated", "eligible_users", "eligible_users", "disabled").Unwrap()
+  let private = communities.CreateWithFollow(ctx, site, creator, "private", "Private", "federated", "members", "members", "open").Unwrap()
+  let _ = communities.SetMember(ctx, restricted.ID, creator, false, member.ActorURI, true).Unwrap()
+  let handler = Handler(settings, db)
+  let outsiderCookies = login(handler, site.Origin, "outsider", "outsider-password")
+  let outsiderCSRF = csrfOf(outsiderCookies)
+  let memberCookies = login(handler, site.Origin, "member", "member-password")
+  let memberCSRF = csrfOf(memberCookies)
+  let followPath = func(id: String) -> String
+    "/api/v1/communities/" + id + "/follow"
+  end
+  let follow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Ref[httptest.ResponseRecorder]
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id), Cookies: cookies, CSRF: token, Source: site.Origin})
+  end
+  let unfollow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Ref[httptest.ResponseRecorder]
+    doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id), Cookies: cookies, CSRF: token, Source: site.Origin})
+  end
+  if follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 then
+    t.Fatal("open follow was not idempotent")
+  end
+  let accepted = CommunityOutput{}
+  let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + open.ID, outsiderCookies, 200).Body.Bytes(), Ref.new(accepted)).Unwrap()
+  if !accepted.Viewer.IsFollowing || accepted.Viewer.FollowState != "accepted" || accepted.Viewer.CanFollow ||
+    accepted.FollowerCount != 1i64 || accepted.FollowPolicy != "open" then
+    t.Fatal("accepted follow projection was incorrect")
+  end
+  let anonymous = CommunityOutput{}
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, "/api/v1/communities/" + open.ID, [] as Slice[Ref[http.Cookie]], 200).Body.Bytes(),
+    Ref.new(anonymous)
+  ).Unwrap()
+  if anonymous.Viewer.IsFollowing || anonymous.Viewer.FollowState != "none" ||
+    anonymous.Viewer.CanFollow || anonymous.FollowerCount != 0i64 ||
+    anonymous.FollowPolicy != "open" then
+    t.Fatal("anonymous community follow projection leaked account state or counts")
+  end
+  if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 ||
+    unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 then
+    t.Fatal("unfollow was not idempotent")
+  end
+  if follow(approval.ID, outsiderCookies, outsiderCSRF).Code != 204 then
+    t.Fatal("approval follow failed")
+  end
+  let pending = CommunityOutput{}
+  let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + approval.ID, outsiderCookies, 200).Body.Bytes(), Ref.new(pending)).Unwrap()
+  if pending.Viewer.FollowState != "pending" || pending.Viewer.IsFollowing || pending.Viewer.CanFollow ||
+    pending.FollowerCount != 0i64 then
+    t.Fatal("pending follow projection was incorrect")
+  end
+  let deniedMember = follow(restricted.ID, outsiderCookies, outsiderCSRF)
+  if deniedMember.Code != 403 || deniedMember.Body.String() != "{\"error\":\"follow_requires_membership\"}" then
+    t.Fatal("members follow policy did not reject a non-member")
+  end
+  if follow(restricted.ID, memberCookies, memberCSRF).Code != 204 then
+    t.Fatal("members stay could not follow")
+  end
+  let disabledFollow = follow(disabled.ID, outsiderCookies, outsiderCSRF)
+  if disabledFollow.Code != 403 || disabledFollow.Body.String() != "{\"error\":\"feature_disabled\"}" then
+    t.Fatal("disabled follow policy did not return feature_disabled")
+  end
+  if follow("missing", outsiderCookies, outsiderCSRF).Code != 404 || follow(private.ID, outsiderCookies, outsiderCSRF).Code != 404 then
+    t.Fatal("missing or unreadable follow target did not return 404")
+  end
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, Source: site.Origin}).Code != 403 ||
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 then
+    t.Fatal("follow route accepted missing CSRF or foreign origin")
+  end
+  let _ = follow(open.ID, outsiderCookies, outsiderCSRF)
+  let _ = communities.SetPolicyAll(ctx, open.ID, creator, false, "eligible_users", "eligible_users", "disabled").Unwrap()
+  if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 then
+    t.Fatal("existing follower could not unfollow after disabling new follows")
+  end
+end

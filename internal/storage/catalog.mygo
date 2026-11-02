@@ -34,6 +34,14 @@ func MigrationCatalog() -> Result[Slice[Migration], String]
     "012_private_media_invalidation.sql",
     "013_post_versions.sql",
     "014_actor_handles.sql",
+    "015_votes.sql",
+    "016_password_reset.sql",
+    "017_community_follows.sql",
+    "018_account_blocks.sql",
+    "019_moderation.sql",
+    "020_saved_read_state.sql",
+    "021_notification_targets.sql",
+    "022_site_vote_settings.sql",
   ]
   var migrations: Slice[Migration] = []
   var i = 0

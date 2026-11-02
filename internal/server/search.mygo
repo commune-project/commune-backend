@@ -39,7 +39,7 @@ func SearchRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
       Fail(w, rows.UnwrapErr())
     else
       let outputs = rows.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
-        BrowserCommunityDTO(repository, view, viewer.Unwrap())
+        BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
       end)
       WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
     end

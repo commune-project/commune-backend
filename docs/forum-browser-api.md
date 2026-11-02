@@ -12,7 +12,7 @@ Existing mutation payloads and safe display fields remain supported.
 | `GET /api/v1/topics` | Latest topic page | Current-site received/readable topics |
 | `GET /api/v1/communities/{id}/topics` | Topic page | Community read permission |
 | `GET /api/v1/posts/{id}` | Post | Site reception, visibility and read permission |
-| `GET /api/v1/posts/{id}/replies` | Direct reply page | Same as post read |
+| `GET /api/v1/posts/{id}/replies` | Threaded reply page | Same as post read |
 | `GET /api/v1/communities/{id}/members` | Member roster page | Hosted community management authority |
 | `GET /api/v1/communities/{id}/managers` | Manager roster page | Hosted community management authority |
 | `GET /api/v1/posts/{id}/source` | Stored editor values | Current readable, visible, non-deleted post; author editing authority |
@@ -31,10 +31,12 @@ candidates merely because they share a database. Anonymous discovery contains
 public federated communities only. Authenticated local-only discovery remains
 restricted to eligible site users or applicable audited administration.
 
-Latest topics sort by authored time descending then ID ascending. Community
-topics use the same ordering; direct replies sort by authored time then ID
-ascending. Access filtering occurs before pagination. Topics/replies exclude
-deleted objects, site hides, and removed/rejected community inclusion. Latest
+Latest topics default to `sort=new` (authored time descending, ID ascending).
+Community topics use the same default. Both accept `new`, `old`, `top`, `hot`,
+and `controversial`; score-based modes exclude directions disabled by the
+resolved site. Access filtering occurs before pagination. Topics and replies
+exclude deleted objects, site hides, personal hidden rows, blocked authors,
+communities, or instances, and removed/rejected community inclusion. Latest
 topics require site reception and never trigger import or network discovery.
 
 ## Community representation
@@ -81,14 +83,26 @@ add `author` and these interaction fields:
     "display_name": "Alice"
   },
   "like_count": 3,
+  "score": 2,
+  "upvotes": 3,
+  "downvotes": 1,
+  "voted_by_me": 1,
   "liked_by_me": true,
+  "saved_by_me": false,
+  "read_by_me": true,
+  "hidden_by_me": false,
   "reply_count": 2,
   "permissions": {
     "can_edit": false,
     "can_delete": false,
     "can_like": true,
+    "can_vote": true,
+    "can_upvote": true,
+    "can_downvote": true,
     "can_reply": true,
     "can_hide": false,
+    "can_save": true,
+    "can_hide_for_me": true,
     "can_moderate": false
   }
 }
@@ -102,17 +116,94 @@ when unset. Browser reads use stored data only and never perform a synchronous
 Actor or WebFinger lookup. Remote handles are resolved asynchronously after the
 site first receives content from that author.
 
-Like counts describe the shared object's known active reactions, excluding
-undone likes; they are not complete federation-wide totals. `liked_by_me` uses
-the current actor and is false anonymously. `reply_count` counts visible direct
-replies at this site, excluding nested, unreceived, hidden, deleted, removed,
-and rejected replies. Lists and detail use the same metadata projection.
+`score`, `upvotes`, and `downvotes` describe known active votes at this site and
+are not complete federation-wide totals. `like_count` remains an alias for
+active upvotes. `voted_by_me` is `-1`, `0`, or `1`; personal booleans are false
+anonymously. Directions disabled by site settings are excluded from all
+aggregates, personal vote state, and `can_upvote`/`can_downvote`.
+`reply_count` counts visible direct replies at this site, excluding nested,
+unreceived, hidden, deleted, removed, rejected, and personally blocked replies.
+Lists and detail use the same metadata projection.
 
 `can_hide` represents site/deployment moderation; `can_moderate` represents
 community moderation. Authors can edit/delete only where the current local
 mutation route authorizes them. Tombstones do not offer edit, like or reply.
 Clients can refresh state with GET after existing like/undo mutations (204).
 Permissions are UI hints: every mutation rechecks current authorization and CSRF.
+
+## Threaded replies
+
+`GET /api/v1/posts/{id}/replies` uses one recursive query and one response
+shape. Root `items` remain the direct replies to the addressed post. Every item
+contains recursive `children`, integer `depth` starting at `1`, and integer
+`child_count` for its visible direct children.
+
+```json
+{
+  "items": [
+    {
+      "id": "reply-1",
+      "depth": 1,
+      "child_count": 1,
+      "children": [
+        {
+          "id": "reply-2",
+          "depth": 2,
+          "child_count": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "limit": 20,
+  "offset": 0
+}
+```
+
+`limit` and `offset` paginate only root replies. Descendants are included up to
+`max_depth`, an integer from `1` through `8` with default `6`. Invalid depth,
+sort, or view values return `400`. `view` accepts `tree` or the deprecated
+`flat`; absent, `view=tree`, and `view=flat` all use this same query and shape.
+`view=flat` only forces `max_depth=1`, so root items have empty `children`
+arrays.
+
+Replies default to `sort=old` and accept `new`, `old`, `top`, and
+`controversial`. Each sibling group is sorted independently. Authored time and
+ID are deterministic tie-breakers. A reply filtered out by reception, current
+read permission, deletion, site hiding, personal hiding, personal blocking, or
+community inclusion is omitted together with its descendants. Directly
+requesting an excluded reply returns `404` without returning its body or parent
+chain.
+
+## Account content state
+
+| Method | Path | Success |
+| --- | --- | --- |
+| POST/DELETE | `/api/v1/posts/{id}/save` | 204 |
+| POST | `/api/v1/posts/{id}/read` | 204 |
+| POST/DELETE | `/api/v1/posts/{id}/hide-for-me` | 204 |
+| GET | `/api/v1/account/saved?limit=&offset=` | 200 post page |
+| GET | `/api/v1/account/read?limit=&offset=` | 200 post page |
+| GET | `/api/v1/account/hidden?limit=&offset=` | 200 post page |
+| GET | `/api/v1/account/liked?limit=&offset=` | 200 post page |
+
+Mutations require a current-site session, same-origin validation, and CSRF.
+Set/clear operations are idempotent and affect only the caller's row at the
+resolved site. Saving, reading, or hiding an unreceived, deleted, site-hidden,
+removed, rejected, or unreadable post returns `404` and creates no state.
+
+Feeds omit posts that the caller hid for themselves. Direct post detail may
+still return such a post with `hidden_by_me: true`. `/account/hidden` lists
+those explicit personal hides. `/account/liked` contains only active upvotes,
+not downvotes. All four listings recheck current read access and community
+membership before pagination, so revoked access omits the post without leaking
+its title, body, author, or counts.
+
+The saved list orders by save time descending then post ID. Read and hidden
+lists use their own state time descending then post ID. The liked list uses vote
+time descending then post ID. Exhausted pages remain a successful empty page;
+malformed pagination returns `400`. These states are separate from
+`site_posts.hidden_at`, which remains a site-administrator action.
 
 ## Management rosters
 
