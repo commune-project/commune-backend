@@ -23,7 +23,7 @@ struct ProbePayload
 end
 
 func ProbeRawPayload(payload: String) -> Result[ProbePayload, error]
-  let envelope = ProbeEnvelope {}
+  let envelope = Zero[ProbeEnvelope]()
   switch json.Unmarshal(payload as Slice[Byte], Ref.new(envelope))
     case Err(err) => Err(err)
     case Ok(_) then

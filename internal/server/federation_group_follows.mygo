@@ -129,5 +129,5 @@ func SendFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Sit
 end
 
 func FollowResponderIdentity() -> auth.Identity
-  auth.Identity{}
+  Zero[auth.Identity]()
 end

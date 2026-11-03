@@ -135,7 +135,7 @@ func ImportBackfilledObject(
     object.Published.IsZero() then
     return Ok(2)
   end
-  var parent = sql.NullString{}
+  var parent = Zero[sql.NullString]()
   if object.InReplyTo != "" then
     let parentRecord = storage.LoadObjectByURI(ctx, db, object.InReplyTo)
     if parentRecord.IsErr() then
@@ -162,6 +162,7 @@ func ImportBackfilledObject(
   let metadata = json.Marshal(federation.RichMetadata{Source: object.Source, Attachment: object.Attachment, Tag: object.Tag})
   if metadata.IsErr() then return Err("invalid rich metadata") end
   let incoming = storage.PostRecord {
+    ID: "",
     ObjectURI: sql.NullString { String: object.ID, Valid: true },
     CommunityID: communityID,
     FederationMode: "federated",
@@ -169,11 +170,14 @@ func ImportBackfilledObject(
     ObjectType: object.Type,
     Title: title,
     Body: object.Content,
-    ContentFormat: if object.MediaType == "text/plain" then "legacy" else "html" end,
+    ContentFormat: if object.MediaType == "text/plain" => "legacy" else "html",
+    SearchText: "",
     RichMetadata: metadata.Unwrap() as String,
     ParentID: parent,
     AuthoredAt: object.Published,
     UpdatedAt: updated,
+    Version: 0i64,
+    DeletedAt: Zero[sql.NullTime](),
   }
   let received = storage.PostRepository { DB: db, SiteID: site.ID }.Receive(
     ctx,

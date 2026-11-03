@@ -24,15 +24,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line feed_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
-	other := config.Site{ID: "b", Origin: "https://b.example"}
+	site := testSite("a", "https://a.example")
+	other := testSite("b", "https://b.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-account-password"))
 	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-account-password"))
-	anonymous := auth.Identity{}
+	anonymous := Zero[auth.Identity]()
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	feed := FeedRepository{DB: db, SiteID: site.ID}
@@ -44,54 +44,54 @@ import . "github.com/mygo-lang/mygo/prelude"
 	topic1 := post(posts, ctx, site, open.ID, alice, "T1", "B")
 	post(posts, ctx, site, open.ID, alice, "T2", "B")
 	topic3 := post(posts, ctx, site, open.ID, alice, "T3", "B")
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Body: "R", ParentID: topic1.ID}))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "", Body: "R", ParentID: topic1.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}))
 	hidden := post(posts, ctx, site, memberOnly.ID, alice, "H", "B")
 	localTopic := post(posts, ctx, site, localOnly.ID, alice, "L", "B")
 	first := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, alice, false, Page{Limit: 2, Offset: 0}, 50))
 	second := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, alice, false, Page{Limit: 2, Offset: 2}, 50))
 	overlap := MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(first, 0)).ID == MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(second, 0)).ID
- /*line feed_test.mygo:42:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first) != 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(second) != 1 || overlap {
- /*line feed_test.mygo:43:5*/		t.Fatal("topic pagination repeated or dropped entries")
- /*line feed_test.mygo:42:6*/	} else {
+ /*line feed_test.mygo:84:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first) != 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(second) != 1 || overlap {
+ /*line feed_test.mygo:85:5*/		t.Fatal("topic pagination repeated or dropped entries")
+ /*line feed_test.mygo:84:3*/	} else {
  /*line zz_feed.gen_test.go:56:1*/	}
  /*line feed_test.mygo:12:1*/	zeroPage := MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, alice, false, Page{Limit: 0, Offset: 0}, 50)
 	bigPage := MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, alice, false, Page{Limit: 100, Offset: 0}, 50)
- /*line feed_test.mygo:47:6*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](zeroPage) || MygoIN6ResultM4IsOk[[]PostRecord, string](bigPage) {
- /*line feed_test.mygo:48:5*/		t.Fatal("out-of-range pagination accepted")
- /*line feed_test.mygo:47:6*/	} else {
+ /*line feed_test.mygo:89:3*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](zeroPage) || MygoIN6ResultM4IsOk[[]PostRecord, string](bigPage) {
+ /*line feed_test.mygo:90:5*/		t.Fatal("out-of-range pagination accepted")
+ /*line feed_test.mygo:89:3*/	} else {
  /*line zz_feed.gen_test.go:62:1*/	}
  /*line feed_test.mygo:12:1*/	publicView := MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, anonymous, false, page, 50)
- /*line feed_test.mygo:51:6*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](publicView) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](publicView)) != 3 {
- /*line feed_test.mygo:52:5*/		t.Fatal("public federated topics were not readable")
- /*line feed_test.mygo:51:6*/	} else {
+ /*line feed_test.mygo:93:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](publicView) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](publicView)) != 3 {
+ /*line feed_test.mygo:94:5*/		t.Fatal("public federated topics were not readable")
+ /*line feed_test.mygo:93:3*/	} else {
  /*line zz_feed.gen_test.go:67:1*/	}
  /*line feed_test.mygo:12:1*/	carolView := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, carol, false, page, 50))
- /*line feed_test.mygo:55:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(carolView) != 3 {
- /*line feed_test.mygo:56:5*/		t.Fatal("eligible account could not read public federated topics")
- /*line feed_test.mygo:55:6*/	} else {
+ /*line feed_test.mygo:97:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(carolView) != 3 {
+ /*line feed_test.mygo:98:5*/		t.Fatal("eligible account could not read public federated topics")
+ /*line feed_test.mygo:97:3*/	} else {
  /*line zz_feed.gen_test.go:72:1*/	}
  /*line feed_test.mygo:12:1*/	deniedList := MygoIN14FeedRepositoryM10ListTopics(feed, ctx, memberOnly.ID, bob, false, page, 50)
 	deniedObject := MygoIN14FeedRepositoryM10ReadObject(feed, ctx, hidden.ID, bob, false)
 	deniedCount := MygoIN14FeedRepositoryM5Count(feed, ctx, memberOnly.ID, anonymous, false)
- /*line feed_test.mygo:61:6*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](deniedList) || MygoIN6ResultM4IsOk[PostRecord, string](deniedObject) || MygoIN6ResultM4IsOk[int64, string](deniedCount) {
- /*line feed_test.mygo:62:5*/		t.Fatal("non-member read restricted membership metadata or counts")
- /*line feed_test.mygo:61:6*/	} else {
+ /*line feed_test.mygo:103:3*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](deniedList) || MygoIN6ResultM4IsOk[PostRecord, string](deniedObject) || MygoIN6ResultM4IsOk[int64, string](deniedCount) {
+ /*line feed_test.mygo:104:5*/		t.Fatal("non-member read restricted membership metadata or counts")
+ /*line feed_test.mygo:103:3*/	} else {
  /*line zz_feed.gen_test.go:79:1*/	}
  /*line feed_test.mygo:12:1*/	memberView := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, memberOnly.ID, alice, false, page, 50))
 	memberCount := MygoIN6ResultM6Unwrap[int64, string](MygoIN14FeedRepositoryM5Count(feed, ctx, memberOnly.ID, alice, false))
- /*line feed_test.mygo:66:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(memberView) != 1 || memberCount != int64(1) {
- /*line feed_test.mygo:67:5*/		t.Fatal("member could not read the members-only community")
- /*line feed_test.mygo:66:6*/	} else {
+ /*line feed_test.mygo:108:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(memberView) != 1 || memberCount != int64(1) {
+ /*line feed_test.mygo:109:5*/		t.Fatal("member could not read the members-only community")
+ /*line feed_test.mygo:108:3*/	} else {
  /*line zz_feed.gen_test.go:85:1*/	}
- /*line feed_test.mygo:69:6*/	if MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, hidden.ID, alice, false)).ID != hidden.ID {
- /*line feed_test.mygo:70:5*/		t.Fatal("member object read failed")
- /*line feed_test.mygo:69:6*/	} else {
+ /*line feed_test.mygo:111:3*/	if MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, hidden.ID, alice, false)).ID != hidden.ID {
+ /*line feed_test.mygo:112:5*/		t.Fatal("member object read failed")
+ /*line feed_test.mygo:111:3*/	} else {
  /*line zz_feed.gen_test.go:89:1*/	}
  /*line feed_test.mygo:12:1*/	localList := MygoIN14FeedRepositoryM10ListTopics(feed, ctx, localOnly.ID, carol, false, page, 50)
 	localObject := MygoIN14FeedRepositoryM10ReadObject(feed, ctx, localTopic.ID, anonymous, false)
- /*line feed_test.mygo:74:6*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](localList) || MygoIN6ResultM4IsOk[PostRecord, string](localObject) {
- /*line feed_test.mygo:75:5*/		t.Fatal("local-only content or identity escaped to another caller")
- /*line feed_test.mygo:74:6*/	} else {
+ /*line feed_test.mygo:116:3*/	if MygoIN6ResultM4IsOk[[]PostRecord, string](localList) || MygoIN6ResultM4IsOk[PostRecord, string](localObject) {
+ /*line feed_test.mygo:117:5*/		t.Fatal("local-only content or identity escaped to another caller")
+ /*line feed_test.mygo:116:3*/	} else {
  /*line zz_feed.gen_test.go:95:1*/	}
  /*line feed_test.mygo:12:1*/	unReceived := "https://remote.example/objects/unreceived"
 	author := "https://remote.example/users/dave"
@@ -99,30 +99,30 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/communities/r','Group')", author)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/communities/r',?,'federated','eligible_users','eligible_users','remote','Remote')", author)))
 	uri := sql.NullString{String: unReceived, Valid: true}
-	incoming := PostRecord{ObjectURI: uri, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "remote body", AuthoredAt: now, UpdatedAt: now}
+	incoming := PostRecord{ID: "", ObjectURI: uri, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: sql.NullString{String: "", Valid: false}, Body: "remote body", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
 	receiver := PostRepository{DB: db, SiteID: "b"}
 	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(receiver, ctx, incoming, author))
- /*line feed_test.mygo:86:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, received.ID, alice, false)) {
- /*line feed_test.mygo:87:5*/		t.Fatal("site A exposed an object it had not received")
- /*line feed_test.mygo:86:6*/	} else {
+ /*line feed_test.mygo:151:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, received.ID, alice, false)) {
+ /*line feed_test.mygo:152:5*/		t.Fatal("site A exposed an object it had not received")
+ /*line feed_test.mygo:151:3*/	} else {
  /*line zz_feed.gen_test.go:108:1*/	}
- /*line feed_test.mygo:89:6*/	if MygoIN6ResultM5IsErr[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(otherFeed, ctx, received.ID, carol, false)) {
- /*line feed_test.mygo:90:5*/		t.Fatal("receiving site could not read its own received object")
- /*line feed_test.mygo:89:6*/	} else {
+ /*line feed_test.mygo:154:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(otherFeed, ctx, received.ID, carol, false)) {
+ /*line feed_test.mygo:155:5*/		t.Fatal("receiving site could not read its own received object")
+ /*line feed_test.mygo:154:3*/	} else {
  /*line zz_feed.gen_test.go:112:1*/	}
  /*line feed_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id='a' AND post_id=?", now, topic3.ID)))
 	afterHide := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, open.ID, alice, false, page, 50))
- /*line feed_test.mygo:94:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(afterHide) != 2 {
- /*line feed_test.mygo:95:5*/		t.Fatal("site-hidden post remained in that site's listing")
- /*line feed_test.mygo:94:6*/	} else {
+ /*line feed_test.mygo:163:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(afterHide) != 2 {
+ /*line feed_test.mygo:164:5*/		t.Fatal("site-hidden post remained in that site's listing")
+ /*line feed_test.mygo:163:3*/	} else {
  /*line zz_feed.gen_test.go:118:1*/	}
- /*line feed_test.mygo:97:6*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(otherFeed, ctx, open.ID, carol, false, page, 50)) {
- /*line feed_test.mygo:98:5*/		t.Fatal("hidden state leaked across sites")
+ /*line feed_test.mygo:166:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(otherFeed, ctx, open.ID, carol, false, page, 50)) {
+ /*line feed_test.mygo:167:5*/		t.Fatal("hidden state leaked across sites")
 		return
- /*line feed_test.mygo:97:6*/	} else {
- /*line feed_test.mygo:97:3*/		return
+ /*line feed_test.mygo:166:3*/	} else {
+		return
  /*line zz_feed.gen_test.go:124:1*/	}
 }
- /*line feed_test.mygo:102:1*/func post(posts PostRepository, ctx context.Context, site config.Site, communityID string, author auth.Identity, title string, body string) PostRecord {
- /*line feed_test.mygo:103:3*/	return MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, communityID, author, false, PublishInput{Title: title, Body: body, ParentID: ""}))
+ /*line feed_test.mygo:171:1*/func post(posts PostRepository, ctx context.Context, site config.Site, communityID string, author auth.Identity, title string, body string) PostRecord {
+ /*line feed_test.mygo:180:3*/	return MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, communityID, author, false, PublishInput{Title: title, Body: body, ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}))
  /*line zz_feed.gen_test.go:128:1*/}

@@ -17,49 +17,49 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_account_blocks.gen.go:17:1*/}
 
  /*line account_blocks.mygo:17:1*/func AccountBlockRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line account_blocks.mygo:25:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "account" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "blocks" {
+ /*line account_blocks.mygo:25:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "account" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "blocks" {
  /*line account_blocks.mygo:26:12*/		return false
- /*line account_blocks.mygo:25:6*/	} else {
+ /*line account_blocks.mygo:25:3*/	} else {
  /*line zz_account_blocks.gen.go:23:1*/	}
  /*line account_blocks.mygo:17:1*/	session := Authenticated(db, site, request)
- /*line account_blocks.mygo:29:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line account_blocks.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
  /*line account_blocks.mygo:30:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
  /*line account_blocks.mygo:31:12*/		return true
- /*line account_blocks.mygo:29:6*/	} else {
+ /*line account_blocks.mygo:29:3*/	} else {
  /*line zz_account_blocks.gen.go:29:1*/	}
  /*line account_blocks.mygo:17:1*/	identity := MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity
 	repository := storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
- /*line account_blocks.mygo:35:6*/	if request.Method == "GET" {
+ /*line account_blocks.mygo:35:3*/	if request.Method == "GET" {
 		rows := storage.MygoIN22AccountBlockRepositoryM4List(repository, request.Context())
- /*line account_blocks.mygo:37:8*/		if MygoIN6ResultM5IsErr[[]storage.AccountBlockRecord, string](rows) {
+ /*line account_blocks.mygo:37:5*/		if MygoIN6ResultM5IsErr[[]storage.AccountBlockRecord, string](rows) {
  /*line account_blocks.mygo:38:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.AccountBlockRecord, string](rows))
- /*line account_blocks.mygo:37:8*/		} else {
+ /*line account_blocks.mygo:37:5*/		} else {
  /*line account_blocks.mygo:40:7*/			WriteJSON(w, 200, AccountBlockPage{Items: MygoIN6ResultM6Unwrap[[]storage.AccountBlockRecord, string](rows)})
  /*line zz_account_blocks.gen.go:38:1*/		}
  /*line account_blocks.mygo:42:12*/		return true
- /*line account_blocks.mygo:35:6*/	} else {
+ /*line account_blocks.mygo:35:3*/	} else {
  /*line zz_account_blocks.gen.go:41:1*/	}
- /*line account_blocks.mygo:44:6*/	if request.Method != "POST" && request.Method != "DELETE" {
+ /*line account_blocks.mygo:44:3*/	if request.Method != "POST" && request.Method != "DELETE" {
  /*line account_blocks.mygo:45:5*/		MethodNotAllowed(w, "GET, POST, DELETE")
  /*line account_blocks.mygo:46:12*/		return true
- /*line account_blocks.mygo:44:6*/	} else {
+ /*line account_blocks.mygo:44:3*/	} else {
  /*line zz_account_blocks.gen.go:46:1*/	}
- /*line account_blocks.mygo:48:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line account_blocks.mygo:48:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
  /*line account_blocks.mygo:49:5*/		WriteErrorJSON(w, 403, "CSRF denied")
  /*line account_blocks.mygo:50:12*/		return true
- /*line account_blocks.mygo:48:6*/	} else {
+ /*line account_blocks.mygo:48:3*/	} else {
  /*line zz_account_blocks.gen.go:51:1*/	}
- /*line account_blocks.mygo:17:1*/	input := AccountBlockInput{}
- /*line account_blocks.mygo:53:6*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line account_blocks.mygo:17:1*/	input := Zero[AccountBlockInput]()
+ /*line account_blocks.mygo:53:3*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
  /*line account_blocks.mygo:54:5*/		WriteErrorJSON(w, 400, "invalid block")
  /*line account_blocks.mygo:55:12*/		return true
- /*line account_blocks.mygo:53:6*/	} else {
+ /*line account_blocks.mygo:53:3*/	} else {
  /*line zz_account_blocks.gen.go:57:1*/	}
  /*line account_blocks.mygo:17:1*/	kind := ParseBlockKind(input.Kind)
- /*line account_blocks.mygo:58:6*/	if MygoIN6ResultM5IsErr[string, string](kind) {
+ /*line account_blocks.mygo:58:3*/	if MygoIN6ResultM5IsErr[string, string](kind) {
  /*line account_blocks.mygo:59:5*/		WriteErrorJSON(w, 400, "invalid block")
  /*line account_blocks.mygo:60:12*/		return true
- /*line account_blocks.mygo:58:6*/	} else {
+ /*line account_blocks.mygo:58:3*/	} else {
  /*line zz_account_blocks.gen.go:63:1*/	}
  /*line account_blocks.mygo:17:1*/	var __mygo_expr_0 Result[struct{}, string]
 	if request.Method == "POST" {

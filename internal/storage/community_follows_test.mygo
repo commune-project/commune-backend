@@ -10,7 +10,7 @@ func TestPostgresCommunityFollowPolicies(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let site = testSite("a", "https://a.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let accounts = AccountRepository{DB: db}
   let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()

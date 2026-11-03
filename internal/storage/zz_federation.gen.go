@@ -21,130 +21,130 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation.gen.go:21:1*/}
 
  /*line federation.mygo:21:1*/func GeneratePrivatePEM() Result[string, string] {
- /*line federation.mygo:22:10*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
+ /*line federation.mygo:22:3*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
 	__mygo_expr_2, __mygo_expr_0 := rsa.GenerateKey(rand.Reader, 2048)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*rsa.PrivateKey, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*rsa.PrivateKey, error](__mygo_expr_2)
  /*line zz_federation.gen.go:30:1*/	}
- /*line federation.mygo:22:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line federation.mygo:22:3*/	__mygo_expr_3 := __mygo_expr_1
 	var __mygo_expr_4 Result[string, string]
 	if _, ok := __mygo_expr_3.(Result__Err[*rsa.PrivateKey, error]); ok {
 		__mygo_expr_4 = Err[string, string]("key generation failed")
  /*line zz_federation.gen.go:35:1*/	} else {
- /*line federation.mygo:22:10*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*rsa.PrivateKey, error]); ok {
- /*line federation.mygo:25:7*/			block := pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(__mygo_match___mygo_expr_5.F0)}
- /*line federation.mygo:22:10*/			__mygo_expr_4 = Ok[string, string](string(pem.EncodeToMemory(&block)))
+ /*line federation.mygo:22:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*rsa.PrivateKey, error]); ok {
+ /*line federation.mygo:25:7*/			block := pem.Block{Type: "RSA PRIVATE KEY", Headers: Zero[map[string]string](), Bytes: x509.MarshalPKCS1PrivateKey(__mygo_match___mygo_expr_5.F0)}
+ /*line federation.mygo:22:3*/			__mygo_expr_4 = Ok[string, string](string(pem.EncodeToMemory(&block)))
 		} else {
  /*line zz_federation.gen.go:40:1*/		}
 	}
- /*line federation.mygo:22:10*/	return __mygo_expr_4
+ /*line federation.mygo:22:3*/	return __mygo_expr_4
  /*line zz_federation.gen.go:43:1*/}
- /*line federation.mygo:31:1*/func PublicPEMFromPrivate(privatePEM string) Result[string, string] {
+ /*line federation.mygo:35:1*/func PublicPEMFromPrivate(privatePEM string) Result[string, string] {
 	block, _ := pem.Decode([]byte(privatePEM))
 	isBlockInvalid := block == nil
- /*line federation.mygo:37:6*/	if isBlockInvalid {
- /*line federation.mygo:38:12*/		return Err[string, string]("invalid private key")
- /*line federation.mygo:37:6*/	} else {
+ /*line federation.mygo:41:3*/	if isBlockInvalid {
+ /*line federation.mygo:42:12*/		return Err[string, string]("invalid private key")
+ /*line federation.mygo:41:3*/	} else {
  /*line zz_federation.gen.go:50:1*/	}
- /*line federation.mygo:40:16*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
+ /*line federation.mygo:44:16*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
 	__mygo_expr_2, __mygo_expr_0 := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*rsa.PrivateKey, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*rsa.PrivateKey, error](__mygo_expr_2)
  /*line zz_federation.gen.go:57:1*/	}
- /*line federation.mygo:31:1*/	parsed := __mygo_expr_1
- /*line federation.mygo:41:6*/	if MygoIN6ResultM5IsErr[*rsa.PrivateKey, error](parsed) {
- /*line federation.mygo:42:12*/		return Err[string, string]("invalid private key")
- /*line federation.mygo:41:6*/	} else {
+ /*line federation.mygo:35:1*/	parsed := __mygo_expr_1
+ /*line federation.mygo:45:3*/	if MygoIN6ResultM5IsErr[*rsa.PrivateKey, error](parsed) {
+ /*line federation.mygo:46:12*/		return Err[string, string]("invalid private key")
+ /*line federation.mygo:45:3*/	} else {
  /*line zz_federation.gen.go:62:1*/	}
- /*line federation.mygo:44:17*/	var __mygo_expr_4 Result[[]byte, error]
+ /*line federation.mygo:48:17*/	var __mygo_expr_4 Result[[]byte, error]
 	__mygo_expr_5, __mygo_expr_3 := x509.MarshalPKIXPublicKey(&[]rsa.PublicKey{MygoIN6ResultM6Unwrap[*rsa.PrivateKey, error](parsed).PublicKey}[0])
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
  /*line zz_federation.gen.go:69:1*/	}
- /*line federation.mygo:31:1*/	derived := __mygo_expr_4
- /*line federation.mygo:45:6*/	if MygoIN6ResultM5IsErr[[]byte, error](derived) {
- /*line federation.mygo:46:12*/		return Err[string, string]("invalid public key")
- /*line federation.mygo:45:6*/	} else {
+ /*line federation.mygo:35:1*/	derived := __mygo_expr_4
+ /*line federation.mygo:49:3*/	if MygoIN6ResultM5IsErr[[]byte, error](derived) {
+ /*line federation.mygo:50:12*/		return Err[string, string]("invalid public key")
+ /*line federation.mygo:49:3*/	} else {
  /*line zz_federation.gen.go:74:1*/	}
- /*line federation.mygo:31:1*/	publicBlock := pem.Block{Type: "PUBLIC KEY", Bytes: MygoIN6ResultM6Unwrap[[]byte, error](derived)}
- /*line federation.mygo:49:3*/	return Ok[string, string](string(pem.EncodeToMemory(&publicBlock)))
+ /*line federation.mygo:35:1*/	publicBlock := pem.Block{Type: "PUBLIC KEY", Headers: map[string]string{}, Bytes: MygoIN6ResultM6Unwrap[[]byte, error](derived)}
+ /*line federation.mygo:57:3*/	return Ok[string, string](string(pem.EncodeToMemory(&publicBlock)))
  /*line zz_federation.gen.go:77:1*/}
- /*line federation.mygo:52:1*/func MygoIN11ActorRecordM5Inbox(self ActorRecord) string {
- /*line federation.mygo:54:8*/	if self.InboxURI.Valid {
- /*line federation.mygo:55:14*/		return self.InboxURI.String
- /*line federation.mygo:54:8*/	} else {
+ /*line federation.mygo:60:1*/func MygoIN11ActorRecordM5Inbox(self ActorRecord) string {
+ /*line federation.mygo:62:5*/	if self.InboxURI.Valid {
+ /*line federation.mygo:63:14*/		return self.InboxURI.String
+ /*line federation.mygo:62:5*/	} else {
  /*line zz_federation.gen.go:82:1*/	}
- /*line federation.mygo:57:5*/	return self.URI + "/inbox"
+ /*line federation.mygo:65:5*/	return self.URI + "/inbox"
  /*line zz_federation.gen.go:84:1*/}
- /*line federation.mygo:61:1*/func LoadActor(ctx context.Context, db *gorm.DB, uri string) Result[Option[ActorRecord], string] {
- /*line federation.mygo:66:6*/	if uri == "" {
- /*line federation.mygo:67:12*/		return Err[Option[ActorRecord], string]("invalid actor")
- /*line federation.mygo:66:6*/	} else {
+ /*line federation.mygo:69:1*/func LoadActor(ctx context.Context, db *gorm.DB, uri string) Result[Option[ActorRecord], string] {
+ /*line federation.mygo:74:3*/	if uri == "" {
+ /*line federation.mygo:75:12*/		return Err[Option[ActorRecord], string]("invalid actor")
+ /*line federation.mygo:74:3*/	} else {
  /*line zz_federation.gen.go:89:1*/	}
- /*line federation.mygo:61:1*/	record := ActorRecord{}
+ /*line federation.mygo:69:1*/	record := Zero[ActorRecord]()
 	query := db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(&record)
- /*line federation.mygo:71:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation.mygo:72:12*/		return Err[Option[ActorRecord], string]("actor unavailable")
- /*line federation.mygo:71:6*/	} else {
+ /*line federation.mygo:79:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line federation.mygo:80:12*/		return Err[Option[ActorRecord], string]("actor unavailable")
+ /*line federation.mygo:79:3*/	} else {
  /*line zz_federation.gen.go:95:1*/	}
- /*line federation.mygo:74:6*/	if query.RowsAffected != int64(1) {
- /*line federation.mygo:75:12*/		return Ok[Option[ActorRecord], string](None[ActorRecord]())
- /*line federation.mygo:74:6*/	} else {
+ /*line federation.mygo:82:3*/	if query.RowsAffected != int64(1) {
+ /*line federation.mygo:83:12*/		return Ok[Option[ActorRecord], string](None[ActorRecord]())
+ /*line federation.mygo:82:3*/	} else {
  /*line zz_federation.gen.go:99:1*/	}
- /*line federation.mygo:77:3*/	return Ok[Option[ActorRecord], string](Some[ActorRecord](record))
+ /*line federation.mygo:85:3*/	return Ok[Option[ActorRecord], string](Some[ActorRecord](record))
  /*line zz_federation.gen.go:101:1*/}
- /*line federation.mygo:80:1*/func LoadLocalPerson(ctx context.Context, db *gorm.DB, siteID string, username string) Result[Option[ActorRecord], string] {
-	record := ActorRecord{}
+ /*line federation.mygo:88:1*/func LoadLocalPerson(ctx context.Context, db *gorm.DB, siteID string, username string) Result[Option[ActorRecord], string] {
+	record := Zero[ActorRecord]()
 	query := db.WithContext(ctx).Table("actors AS a").Where("a.local_site_id = ? AND a.kind = 'Person' AND a.uri IN (SELECT actor_uri FROM accounts WHERE site_id = ? AND username = ? AND NOT disabled)", siteID, siteID, username).Limit(1).Find(&record)
- /*line federation.mygo:93:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation.mygo:94:12*/		return Err[Option[ActorRecord], string]("actor unavailable")
- /*line federation.mygo:93:6*/	} else {
+ /*line federation.mygo:101:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line federation.mygo:102:12*/		return Err[Option[ActorRecord], string]("actor unavailable")
+ /*line federation.mygo:101:3*/	} else {
  /*line zz_federation.gen.go:108:1*/	}
- /*line federation.mygo:96:6*/	if query.RowsAffected != int64(1) {
- /*line federation.mygo:97:12*/		return Ok[Option[ActorRecord], string](None[ActorRecord]())
- /*line federation.mygo:96:6*/	} else {
+ /*line federation.mygo:104:3*/	if query.RowsAffected != int64(1) {
+ /*line federation.mygo:105:12*/		return Ok[Option[ActorRecord], string](None[ActorRecord]())
+ /*line federation.mygo:104:3*/	} else {
  /*line zz_federation.gen.go:112:1*/	}
- /*line federation.mygo:99:3*/	return Ok[Option[ActorRecord], string](Some[ActorRecord](record))
+ /*line federation.mygo:107:3*/	return Ok[Option[ActorRecord], string](Some[ActorRecord](record))
  /*line zz_federation.gen.go:114:1*/}
- /*line federation.mygo:102:1*/func EnsureLocalKey(ctx context.Context, db *gorm.DB, actorURI string) Result[string, string] {
+ /*line federation.mygo:110:1*/func EnsureLocalKey(ctx context.Context, db *gorm.DB, actorURI string) Result[string, string] {
 	existing := LoadActor(ctx, db, actorURI)
- /*line federation.mygo:108:6*/	if MygoIN6ResultM5IsErr[Option[ActorRecord], string](existing) {
- /*line federation.mygo:109:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](existing))
- /*line federation.mygo:108:6*/	} else {
+ /*line federation.mygo:116:3*/	if MygoIN6ResultM5IsErr[Option[ActorRecord], string](existing) {
+ /*line federation.mygo:117:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](existing))
+ /*line federation.mygo:116:3*/	} else {
  /*line zz_federation.gen.go:120:1*/	}
- /*line federation.mygo:111:6*/	if MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](existing)) {
- /*line federation.mygo:112:12*/		return Err[string, string]("not found")
- /*line federation.mygo:111:6*/	} else {
+ /*line federation.mygo:119:3*/	if MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](existing)) {
+ /*line federation.mygo:120:12*/		return Err[string, string]("not found")
+ /*line federation.mygo:119:3*/	} else {
  /*line zz_federation.gen.go:124:1*/	}
- /*line federation.mygo:102:1*/	actor := MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](existing))
- /*line federation.mygo:115:6*/	if actor.PublicKeyPEM.Valid && actor.PublicKeyPEM.String != "" {
- /*line federation.mygo:116:12*/		return Ok[string, string](actor.PublicKeyPEM.String)
- /*line federation.mygo:115:6*/	} else {
+ /*line federation.mygo:110:1*/	actor := MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](existing))
+ /*line federation.mygo:123:3*/	if actor.PublicKeyPEM.Valid && actor.PublicKeyPEM.String != "" {
+ /*line federation.mygo:124:12*/		return Ok[string, string](actor.PublicKeyPEM.String)
+ /*line federation.mygo:123:3*/	} else {
  /*line zz_federation.gen.go:129:1*/	}
- /*line federation.mygo:118:6*/	if !actor.LocalSiteID.Valid {
- /*line federation.mygo:119:12*/		return Err[string, string]("not found")
- /*line federation.mygo:118:6*/	} else {
+ /*line federation.mygo:126:3*/	if !actor.LocalSiteID.Valid {
+ /*line federation.mygo:127:12*/		return Err[string, string]("not found")
+ /*line federation.mygo:126:3*/	} else {
  /*line zz_federation.gen.go:133:1*/	}
- /*line federation.mygo:102:1*/	generated := GeneratePrivatePEM()
- /*line federation.mygo:122:6*/	if MygoIN6ResultM5IsErr[string, string](generated) {
- /*line federation.mygo:123:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](generated))
- /*line federation.mygo:122:6*/	} else {
+ /*line federation.mygo:110:1*/	generated := GeneratePrivatePEM()
+ /*line federation.mygo:130:3*/	if MygoIN6ResultM5IsErr[string, string](generated) {
+ /*line federation.mygo:131:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](generated))
+ /*line federation.mygo:130:3*/	} else {
  /*line zz_federation.gen.go:138:1*/	}
- /*line federation.mygo:102:1*/	derived := PublicPEMFromPrivate(MygoIN6ResultM6Unwrap[string, string](generated))
- /*line federation.mygo:126:6*/	if MygoIN6ResultM5IsErr[string, string](derived) {
- /*line federation.mygo:127:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](derived))
- /*line federation.mygo:126:6*/	} else {
+ /*line federation.mygo:110:1*/	derived := PublicPEMFromPrivate(MygoIN6ResultM6Unwrap[string, string](generated))
+ /*line federation.mygo:134:3*/	if MygoIN6ResultM5IsErr[string, string](derived) {
+ /*line federation.mygo:135:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](derived))
+ /*line federation.mygo:134:3*/	} else {
  /*line zz_federation.gen.go:143:1*/	}
- /*line federation.mygo:102:1*/	update := db.WithContext(ctx).Exec("UPDATE actors SET public_key_pem=?, private_key_pem=? WHERE uri=? AND local_site_id IS NOT NULL AND (public_key_pem IS NULL OR public_key_pem='')", MygoIN6ResultM6Unwrap[string, string](derived), MygoIN6ResultM6Unwrap[string, string](generated), actorURI)
- /*line federation.mygo:135:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(update)) {
- /*line federation.mygo:136:12*/		return Err[string, string]("key storage failed")
- /*line federation.mygo:135:6*/	} else {
+ /*line federation.mygo:110:1*/	update := db.WithContext(ctx).Exec("UPDATE actors SET public_key_pem=?, private_key_pem=? WHERE uri=? AND local_site_id IS NOT NULL AND (public_key_pem IS NULL OR public_key_pem='')", MygoIN6ResultM6Unwrap[string, string](derived), MygoIN6ResultM6Unwrap[string, string](generated), actorURI)
+ /*line federation.mygo:143:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(update)) {
+ /*line federation.mygo:144:12*/		return Err[string, string]("key storage failed")
+ /*line federation.mygo:143:3*/	} else {
  /*line zz_federation.gen.go:148:1*/	}
- /*line federation.mygo:138:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](derived))
+ /*line federation.mygo:146:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](derived))
  /*line zz_federation.gen.go:150:1*/}

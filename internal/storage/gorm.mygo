@@ -14,7 +14,9 @@ end
 
 # Opening configures the pool only; readiness must perform a bounded PingContext.
 func OpenPostgres(dsn: String) -> Result[Ref[gorm.DB], String]
-  let settings = gorm.Config { DisableAutomaticPing: true, Logger: logger.Discard }
+  var settings = Zero[gorm.Config]()
+  settings.DisableAutomaticPing = true
+  settings.Logger = logger.Discard
   let dialector = postgres.Open(dsn)
   let opened = gorm.Open(dialector, Ref.new(settings) as gorm.Option)
   switch opened
@@ -57,7 +59,7 @@ func FindAccount(ctx: context.Context, db: Ref[gorm.DB], siteID: String, usernam
   if siteID == "" || username == "" then
     return Err("account lookup requires site and username")
   end
-  let account = AccountRecord {}
+  let account = Zero[AccountRecord]()
   let query = AccountQuery(ctx, db, siteID, username).Limit(1).Find(Ref.new(account))
   let failed = QueryFailed(query)
   if failed then

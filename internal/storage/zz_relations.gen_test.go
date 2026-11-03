@@ -4,7 +4,6 @@ package storage
 
 import "testing"
 import "context"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -18,12 +17,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_relations.gen_test.go:21:1*/	}
+ /*line zz_relations.gen_test.go:20:1*/	}
  /*line relations_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
-	other := config.Site{ID: "b", Origin: "https://b.example"}
+	site := testSite("a", "https://a.example")
+	other := testSite("b", "https://b.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
@@ -37,65 +36,65 @@ import . "github.com/mygo-lang/mygo/prelude"
 	public2 := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open2", "Open2", "federated", "eligible_users", "eligible_users"))
 	locked := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "locked", "Locked", "federated", "members", "members"))
 	localc := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "B", ParentID: ""}))
-	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, PublishInput{Title: "H", Body: "B", ParentID: ""}))
-	localTopic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, localc.ID, alice, false, PublishInput{Title: "L", Body: "B", ParentID: ""}))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, PublishInput{Title: "H", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	localTopic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, localc.ID, alice, false, PublishInput{Title: "L", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
 	imported := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM6Import(importer, ctx, topic.ID, carol, false))
- /*line relations_test.mygo:32:6*/	if imported.ID != topic.ID {
- /*line relations_test.mygo:33:5*/		t.Fatal("explicit import returned another object")
- /*line relations_test.mygo:32:6*/	} else {
- /*line zz_relations.gen_test.go:47:1*/	}
+ /*line relations_test.mygo:113:3*/	if imported.ID != topic.ID {
+ /*line relations_test.mygo:114:5*/		t.Fatal("explicit import returned another object")
+ /*line relations_test.mygo:113:3*/	} else {
+ /*line zz_relations.gen_test.go:46:1*/	}
  /*line relations_test.mygo:9:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("site_id='b' AND post_id=?", topic.ID).Count(&count)))
- /*line relations_test.mygo:37:6*/	if count != int64(1) {
- /*line relations_test.mygo:38:5*/		t.Fatal("explicit import did not record exactly one reception")
- /*line relations_test.mygo:37:6*/	} else {
- /*line zz_relations.gen_test.go:53:1*/	}
+ /*line relations_test.mygo:118:3*/	if count != int64(1) {
+ /*line relations_test.mygo:119:5*/		t.Fatal("explicit import did not record exactly one reception")
+ /*line relations_test.mygo:118:3*/	} else {
+ /*line zz_relations.gen_test.go:52:1*/	}
  /*line relations_test.mygo:9:1*/	readable := MygoIN14FeedRepositoryM10ReadObject(reader, ctx, topic.ID, carol, false)
- /*line relations_test.mygo:41:6*/	if MygoIN6ResultM5IsErr[PostRecord, string](readable) {
- /*line relations_test.mygo:42:5*/		t.Fatal("imported object was not readable at the importing site")
- /*line relations_test.mygo:41:6*/	} else {
- /*line zz_relations.gen_test.go:58:1*/	}
+ /*line relations_test.mygo:122:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](readable) {
+ /*line relations_test.mygo:123:5*/		t.Fatal("imported object was not readable at the importing site")
+ /*line relations_test.mygo:122:3*/	} else {
+ /*line zz_relations.gen_test.go:57:1*/	}
  /*line relations_test.mygo:9:1*/	deniedHidden := MygoIN14PostRepositoryM6Import(importer, ctx, hidden.ID, carol, false)
 	deniedLocal := MygoIN14PostRepositoryM6Import(importer, ctx, localTopic.ID, carol, false)
- /*line relations_test.mygo:46:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](deniedHidden) || MygoIN6ResultM4IsOk[PostRecord, string](deniedLocal) {
- /*line relations_test.mygo:47:5*/		t.Fatal("restricted object was imported by an unauthorized viewer")
- /*line relations_test.mygo:46:6*/	} else {
- /*line zz_relations.gen_test.go:64:1*/	}
+ /*line relations_test.mygo:127:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](deniedHidden) || MygoIN6ResultM4IsOk[PostRecord, string](deniedLocal) {
+ /*line relations_test.mygo:128:5*/		t.Fatal("restricted object was imported by an unauthorized viewer")
+ /*line relations_test.mygo:127:3*/	} else {
+ /*line zz_relations.gen_test.go:63:1*/	}
  /*line relations_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("site_id='b' AND post_id=?", hidden.ID).Count(&count)))
- /*line relations_test.mygo:50:6*/	if count != int64(0) {
- /*line relations_test.mygo:51:5*/		t.Fatal("failed import still recorded a reception")
- /*line relations_test.mygo:50:6*/	} else {
- /*line zz_relations.gen_test.go:69:1*/	}
- /*line relations_test.mygo:53:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN14PostRepositoryM7ShareTo(posts, ctx, topic.ID, public2.ID, alice, false)) {
- /*line relations_test.mygo:54:5*/		t.Fatal("public object could not be shared to another public community")
- /*line relations_test.mygo:53:6*/	} else {
- /*line zz_relations.gen_test.go:73:1*/	}
+ /*line relations_test.mygo:131:3*/	if count != int64(0) {
+ /*line relations_test.mygo:132:5*/		t.Fatal("failed import still recorded a reception")
+ /*line relations_test.mygo:131:3*/	} else {
+ /*line zz_relations.gen_test.go:68:1*/	}
+ /*line relations_test.mygo:134:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN14PostRepositoryM7ShareTo(posts, ctx, topic.ID, public2.ID, alice, false)) {
+ /*line relations_test.mygo:135:5*/		t.Fatal("public object could not be shared to another public community")
+ /*line relations_test.mygo:134:3*/	} else {
+ /*line zz_relations.gen_test.go:72:1*/	}
  /*line relations_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_audiences").Where("post_id=? AND community_id=?", topic.ID, public2.ID).Count(&count)))
- /*line relations_test.mygo:57:6*/	if count != int64(1) {
- /*line relations_test.mygo:58:5*/		t.Fatal("share did not record the target audience")
- /*line relations_test.mygo:57:6*/	} else {
- /*line zz_relations.gen_test.go:78:1*/	}
+ /*line relations_test.mygo:142:3*/	if count != int64(1) {
+ /*line relations_test.mygo:143:5*/		t.Fatal("share did not record the target audience")
+ /*line relations_test.mygo:142:3*/	} else {
+ /*line zz_relations.gen_test.go:77:1*/	}
  /*line relations_test.mygo:9:1*/	toLocked := MygoIN14PostRepositoryM7ShareTo(posts, ctx, topic.ID, locked.ID, alice, false)
 	toLocal := MygoIN14PostRepositoryM7ShareTo(posts, ctx, topic.ID, localc.ID, alice, false)
- /*line relations_test.mygo:62:6*/	if MygoIN6ResultM4IsOk[struct{}, string](toLocked) || MygoIN6ResultM4IsOk[struct{}, string](toLocal) {
- /*line relations_test.mygo:63:5*/		t.Fatal("share widened a restricted boundary")
- /*line relations_test.mygo:62:6*/	} else {
- /*line zz_relations.gen_test.go:84:1*/	}
+ /*line relations_test.mygo:147:3*/	if MygoIN6ResultM4IsOk[struct{}, string](toLocked) || MygoIN6ResultM4IsOk[struct{}, string](toLocal) {
+ /*line relations_test.mygo:148:5*/		t.Fatal("share widened a restricted boundary")
+ /*line relations_test.mygo:147:3*/	} else {
+ /*line zz_relations.gen_test.go:83:1*/	}
  /*line relations_test.mygo:9:1*/	fromLocked := MygoIN14PostRepositoryM7ShareTo(posts, ctx, hidden.ID, public2.ID, alice, false)
- /*line relations_test.mygo:66:6*/	if MygoIN6ResultM4IsOk[struct{}, string](fromLocked) {
- /*line relations_test.mygo:67:5*/		t.Fatal("member-readable object was shared to a public community")
- /*line relations_test.mygo:66:6*/	} else {
- /*line zz_relations.gen_test.go:89:1*/	}
+ /*line relations_test.mygo:151:3*/	if MygoIN6ResultM4IsOk[struct{}, string](fromLocked) {
+ /*line relations_test.mygo:152:5*/		t.Fatal("member-readable object was shared to a public community")
+ /*line relations_test.mygo:151:3*/	} else {
+ /*line zz_relations.gen_test.go:88:1*/	}
  /*line relations_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_audiences").Where("post_id=? AND community_id=?", topic.ID, locked.ID).Count(&count)))
- /*line relations_test.mygo:70:6*/	if count != int64(0) {
- /*line relations_test.mygo:71:5*/		t.Fatal("rejected share persisted an audience row")
- /*line relations_test.mygo:70:6*/	} else {
- /*line zz_relations.gen_test.go:94:1*/	}
- /*line relations_test.mygo:73:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6MoveTo(posts, ctx, topic.ID, alice, false)) {
- /*line relations_test.mygo:74:5*/		t.Fatal("relocation was accepted")
+ /*line relations_test.mygo:159:3*/	if count != int64(0) {
+ /*line relations_test.mygo:160:5*/		t.Fatal("rejected share persisted an audience row")
+ /*line relations_test.mygo:159:3*/	} else {
+ /*line zz_relations.gen_test.go:93:1*/	}
+ /*line relations_test.mygo:162:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6MoveTo(posts, ctx, topic.ID, alice, false)) {
+ /*line relations_test.mygo:163:5*/		t.Fatal("relocation was accepted")
 		return
- /*line relations_test.mygo:73:6*/	} else {
- /*line relations_test.mygo:73:3*/		return
- /*line zz_relations.gen_test.go:100:1*/	}
+ /*line relations_test.mygo:162:3*/	} else {
+		return
+ /*line zz_relations.gen_test.go:99:1*/	}
 }

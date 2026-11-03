@@ -13,8 +13,8 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
   if MigrateGORM(ctx, db).IsErr() then
     t.Fatal("migration failed")
   end
-  let a = config.Site{ID: "a", Origin: "https://a.example", Aliases: ["alias.example"]}
-  let b = config.Site{ID: "b", Origin: "https://b.example", Aliases: []}
+  let a = config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: ["alias.example"]}
+  let b = config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []}
   if ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, b).IsErr() then
     t.Fatal("site provisioning or repetition failed")
   end
@@ -32,8 +32,8 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
   if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE site_id='a' AND upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() || voteRows != 1 then
     t.Fatal("repeat provisioning did not restore vote settings defaults")
   end
-  let conflict = config.Site{ID: "a", Origin: "https://changed.example", Aliases: []}
-  let alias = config.Site{ID: "c", Origin: "https://c.example", Aliases: ["alias.example"]}
+  let conflict = config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://changed.example", Aliases: []}
+  let alias = config.Site{ID: "c", RegistrationEnabled: false, Origin: "https://c.example", Aliases: ["alias.example"]}
   if ProvisionSite(ctx, db, conflict).IsOk() || ProvisionSite(ctx, db, alias).IsOk() then
     t.Fatal("site identity conflict accepted")
   end

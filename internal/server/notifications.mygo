@@ -85,7 +85,7 @@ func NotificationRoute(
       WriteJSON(w, 200, NotificationCountOutput{Count: unread.Unwrap()})
     end
   elsif all then
-    var input = NotificationReadAllInput{}
+    var input = Zero[NotificationReadAllInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())

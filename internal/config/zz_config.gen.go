@@ -67,110 +67,110 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_config.gen.go:68:1*/	}
  /*line config.mygo:61:1*/	addressResult := __mygo_expr_1
- /*line config.mygo:63:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](addressResult) {
+ /*line config.mygo:63:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](addressResult) {
  /*line config.mygo:64:12*/		return Err[struct{}, string]("invalid runtime listen address")
- /*line config.mygo:63:6*/	} else {
+ /*line config.mygo:63:3*/	} else {
  /*line zz_config.gen.go:73:1*/	}
  /*line config.mygo:61:1*/	address := MygoIN6ResultM6Unwrap[*url.URL, error](addressResult)
- /*line config.mygo:67:6*/	if address.Hostname() == "" || address.Port() == "" || address.Path != "" {
+ /*line config.mygo:67:3*/	if address.Hostname() == "" || address.Port() == "" || address.Path != "" {
  /*line config.mygo:68:12*/		return Err[struct{}, string]("runtime listen address requires host and port")
- /*line config.mygo:67:6*/	} else {
+ /*line config.mygo:67:3*/	} else {
  /*line zz_config.gen.go:78:1*/	}
- /*line config.mygo:70:6*/	if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(runtime.Listen)) {
+ /*line config.mygo:70:3*/	if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(runtime.Listen)) {
  /*line config.mygo:71:12*/		return Err[struct{}, string]("invalid runtime listen address")
- /*line config.mygo:70:6*/	} else {
+ /*line config.mygo:70:3*/	} else {
  /*line zz_config.gen.go:82:1*/	}
- /*line config.mygo:73:6*/	if runtime.ReadTimeoutSeconds < 1 || runtime.ReadTimeoutSeconds > 300 || runtime.WriteTimeoutSeconds < 1 || runtime.WriteTimeoutSeconds > 300 || runtime.IdleTimeoutSeconds < 1 || runtime.IdleTimeoutSeconds > 3600 || runtime.ShutdownTimeoutSeconds < 1 || runtime.ShutdownTimeoutSeconds > 300 {
- /*line config.mygo:74:12*/		return Err[struct{}, string]("runtime timeouts are missing or out of range")
- /*line config.mygo:73:6*/	} else {
+ /*line config.mygo:73:3*/	if runtime.ReadTimeoutSeconds < 1 || runtime.ReadTimeoutSeconds > 300 || runtime.WriteTimeoutSeconds < 1 || runtime.WriteTimeoutSeconds > 300 || runtime.IdleTimeoutSeconds < 1 || runtime.IdleTimeoutSeconds > 3600 || runtime.ShutdownTimeoutSeconds < 1 || runtime.ShutdownTimeoutSeconds > 300 {
+ /*line config.mygo:81:12*/		return Err[struct{}, string]("runtime timeouts are missing or out of range")
+ /*line config.mygo:73:3*/	} else {
  /*line zz_config.gen.go:86:1*/	}
- /*line config.mygo:76:6*/	if runtime.MaxBodyBytes < 1024 || runtime.MaxBodyBytes > 16777216 || runtime.MaxPageSize < 1 || runtime.MaxPageSize > 1000 || runtime.Workers < 1 || runtime.Workers > 128 {
- /*line config.mygo:77:12*/		return Err[struct{}, string]("runtime body, page or worker limit is missing or out of range")
- /*line config.mygo:76:6*/	} else {
+ /*line config.mygo:83:3*/	if runtime.MaxBodyBytes < 1024 || runtime.MaxBodyBytes > 16777216 || runtime.MaxPageSize < 1 || runtime.MaxPageSize > 1000 || runtime.Workers < 1 || runtime.Workers > 128 {
+ /*line config.mygo:89:12*/		return Err[struct{}, string]("runtime body, page or worker limit is missing or out of range")
+ /*line config.mygo:83:3*/	} else {
  /*line zz_config.gen.go:90:1*/	}
- /*line config.mygo:79:3*/	return Ok[struct{}, string](struct {
+ /*line config.mygo:91:3*/	return Ok[struct{}, string](struct {
  /*line zz_config.gen.go:92:1*/	}{})
 }
- /*line config.mygo:82:1*/func Validate(input Input) Result[Config, string] {
+ /*line config.mygo:94:1*/func Validate(input Input) Result[Config, string] {
 	settingsResult := ResolveParticipationSecrets(ParticipationDefaults(input))
- /*line config.mygo:84:6*/	if MygoIN6ResultM5IsErr[Input, string](settingsResult) {
- /*line config.mygo:85:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[Input, string](settingsResult))
- /*line config.mygo:84:6*/	} else {
+ /*line config.mygo:96:3*/	if MygoIN6ResultM5IsErr[Input, string](settingsResult) {
+ /*line config.mygo:97:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[Input, string](settingsResult))
+ /*line config.mygo:96:3*/	} else {
  /*line zz_config.gen.go:99:1*/	}
- /*line config.mygo:82:1*/	settings := MygoIN6ResultM6Unwrap[Input, string](settingsResult)
+ /*line config.mygo:94:1*/	settings := MygoIN6ResultM6Unwrap[Input, string](settingsResult)
 	participationResult := ValidateParticipation(settings)
- /*line config.mygo:89:6*/	if MygoIN6ResultM5IsErr[struct{}, string](participationResult) {
- /*line config.mygo:90:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](participationResult))
- /*line config.mygo:89:6*/	} else {
+ /*line config.mygo:101:3*/	if MygoIN6ResultM5IsErr[struct{}, string](participationResult) {
+ /*line config.mygo:102:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](participationResult))
+ /*line config.mygo:101:3*/	} else {
  /*line zz_config.gen.go:105:1*/	}
- /*line config.mygo:92:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(input.Sites) == 0 {
- /*line config.mygo:93:12*/		return Err[Config, string]("at least one site is required")
- /*line config.mygo:92:6*/	} else {
+ /*line config.mygo:104:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(input.Sites) == 0 {
+ /*line config.mygo:105:12*/		return Err[Config, string]("at least one site is required")
+ /*line config.mygo:104:3*/	} else {
  /*line zz_config.gen.go:109:1*/	}
- /*line config.mygo:82:1*/	runtimeResult := ValidateRuntime(input.Runtime)
- /*line config.mygo:96:6*/	if MygoIN6ResultM5IsErr[struct{}, string](runtimeResult) {
- /*line config.mygo:97:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](runtimeResult))
- /*line config.mygo:96:6*/	} else {
+ /*line config.mygo:94:1*/	runtimeResult := ValidateRuntime(input.Runtime)
+ /*line config.mygo:108:3*/	if MygoIN6ResultM5IsErr[struct{}, string](runtimeResult) {
+ /*line config.mygo:109:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](runtimeResult))
+ /*line config.mygo:108:3*/	} else {
  /*line zz_config.gen.go:114:1*/	}
- /*line config.mygo:82:1*/	federationResult := ValidateFederation(input.Federation)
- /*line config.mygo:100:6*/	if MygoIN6ResultM5IsErr[struct{}, string](federationResult) {
- /*line config.mygo:101:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](federationResult))
- /*line config.mygo:100:6*/	} else {
+ /*line config.mygo:94:1*/	federationResult := ValidateFederation(input.Federation)
+ /*line config.mygo:112:3*/	if MygoIN6ResultM5IsErr[struct{}, string](federationResult) {
+ /*line config.mygo:113:12*/		return Err[Config, string](MygoIN6ResultM9UnwrapErr[struct{}, string](federationResult))
+ /*line config.mygo:112:3*/	} else {
  /*line zz_config.gen.go:119:1*/	}
- /*line config.mygo:103:24*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line config.mygo:115:24*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(input.DatabaseURL)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_config.gen.go:126:1*/	}
- /*line config.mygo:82:1*/	databaseResult := __mygo_expr_1
- /*line config.mygo:104:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](databaseResult) {
- /*line config.mygo:105:12*/		return Err[Config, string]("invalid PostgreSQL database URL")
- /*line config.mygo:104:6*/	} else {
+ /*line config.mygo:94:1*/	databaseResult := __mygo_expr_1
+ /*line config.mygo:116:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](databaseResult) {
+ /*line config.mygo:117:12*/		return Err[Config, string]("invalid PostgreSQL database URL")
+ /*line config.mygo:116:3*/	} else {
  /*line zz_config.gen.go:131:1*/	}
- /*line config.mygo:82:1*/	database := MygoIN6ResultM6Unwrap[*url.URL, error](databaseResult)
- /*line config.mygo:108:6*/	if database.Scheme != "postgres" && database.Scheme != "postgresql" || database.Hostname() == "" || database.Path == "" || database.Path == "/" || database.Fragment != "" {
- /*line config.mygo:109:12*/		return Err[Config, string]("database URL must identify a PostgreSQL host and database")
- /*line config.mygo:108:6*/	} else {
+ /*line config.mygo:94:1*/	database := MygoIN6ResultM6Unwrap[*url.URL, error](databaseResult)
+ /*line config.mygo:120:3*/	if database.Scheme != "postgres" && database.Scheme != "postgresql" || database.Hostname() == "" || database.Path == "" || database.Path == "/" || database.Fragment != "" {
+ /*line config.mygo:125:12*/		return Err[Config, string]("database URL must identify a PostgreSQL host and database")
+ /*line config.mygo:120:3*/	} else {
  /*line zz_config.gen.go:136:1*/	}
- /*line config.mygo:111:51*/	var __mygo_expr_4 Result[url.Values, error]
+ /*line config.mygo:127:51*/	var __mygo_expr_4 Result[url.Values, error]
 	__mygo_expr_5, __mygo_expr_3 := url.ParseQuery(database.RawQuery)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[url.Values, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[url.Values, error](__mygo_expr_5)
  /*line zz_config.gen.go:143:1*/	}
- /*line config.mygo:111:6*/	if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(database.Host)) || MygoIN6ResultM5IsErr[url.Values, error](__mygo_expr_4) {
- /*line config.mygo:112:12*/		return Err[Config, string]("invalid PostgreSQL database host, port or query")
- /*line config.mygo:111:6*/	} else {
+ /*line config.mygo:127:3*/	if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(database.Host)) || MygoIN6ResultM5IsErr[url.Values, error](__mygo_expr_4) {
+ /*line config.mygo:128:12*/		return Err[Config, string]("invalid PostgreSQL database host, port or query")
+ /*line config.mygo:127:3*/	} else {
  /*line zz_config.gen.go:147:1*/	}
- /*line config.mygo:82:1*/	var sites []Site = []Site{}
+ /*line config.mygo:94:1*/	var sites []Site = []Site{}
 	var authorities []string = []string{}
 	var ids []string = []string{}
 	i := 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(input.Sites) {
 		site := MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(input.Sites, i))
 		if !ValidDomain(site.ID) || strings.Contains(site.ID, ".") {
- /*line config.mygo:121:14*/			return Err[Config, string]("site id must be a nonempty ASCII identifier")
- /*line config.mygo:82:1*/		} else {
+ /*line config.mygo:137:14*/			return Err[Config, string]("site id must be a nonempty ASCII identifier")
+ /*line config.mygo:94:1*/		} else {
  /*line zz_config.gen.go:157:1*/		}
- /*line config.mygo:82:1*/		j := 0
+ /*line config.mygo:94:1*/		j := 0
 		for j < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) {
 			existingID := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(ids, j))
 			if existingID == site.ID {
- /*line config.mygo:127:16*/				return Err[Config, string]("duplicate site id: " + site.ID)
- /*line config.mygo:82:1*/			} else {
+ /*line config.mygo:143:16*/				return Err[Config, string]("duplicate site id: " + site.ID)
+ /*line config.mygo:94:1*/			} else {
  /*line zz_config.gen.go:164:1*/			}
- /*line config.mygo:82:1*/			j = j + 1
+ /*line config.mygo:94:1*/			j = j + 1
  /*line zz_config.gen.go:166:1*/		}
- /*line config.mygo:82:1*/		ids = MygoIN5SliceM6Append(ids, site.ID)
+ /*line config.mygo:94:1*/		ids = MygoIN5SliceM6Append(ids, site.ID)
 		originResult := NormalizeOrigin(site.Origin)
 		if MygoIN6ResultM5IsErr[string, string](originResult) {
- /*line config.mygo:134:14*/			return Err[Config, string]("site " + site.ID + ": " + MygoIN6ResultM9UnwrapErr[string, string](originResult))
- /*line config.mygo:82:1*/		} else {
+ /*line config.mygo:150:14*/			return Err[Config, string]("site " + site.ID + ": " + MygoIN6ResultM9UnwrapErr[string, string](originResult))
+ /*line config.mygo:94:1*/		} else {
  /*line zz_config.gen.go:172:1*/		}
- /*line config.mygo:82:1*/		origin := MygoIN6ResultM6Unwrap[string, string](originResult)
+ /*line config.mygo:94:1*/		origin := MygoIN6ResultM6Unwrap[string, string](originResult)
 		canonical := strings.TrimPrefix(origin, "https://")
 		var aliases []string = []string{}
 		var names []string = []string{canonical}
@@ -178,89 +178,89 @@ import . "github.com/mygo-lang/mygo/prelude"
 		for j < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(site.Aliases) {
 			aliasResult := NormalizeAuthority(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(site.Aliases, j)))
 			if MygoIN6ResultM5IsErr[string, string](aliasResult) {
- /*line config.mygo:144:16*/				return Err[Config, string]("site " + site.ID + ": " + MygoIN6ResultM9UnwrapErr[string, string](aliasResult))
- /*line config.mygo:82:1*/			} else {
+ /*line config.mygo:160:16*/				return Err[Config, string]("site " + site.ID + ": " + MygoIN6ResultM9UnwrapErr[string, string](aliasResult))
+ /*line config.mygo:94:1*/			} else {
  /*line zz_config.gen.go:183:1*/			}
- /*line config.mygo:82:1*/			value := MygoIN6ResultM6Unwrap[string, string](aliasResult)
+ /*line config.mygo:94:1*/			value := MygoIN6ResultM6Unwrap[string, string](aliasResult)
 			names = MygoIN5SliceM6Append(names, value)
 			aliases = MygoIN5SliceM6Append(aliases, value)
 			j = j + 1
  /*line zz_config.gen.go:188:1*/		}
- /*line config.mygo:82:1*/		j = 0
+ /*line config.mygo:94:1*/		j = 0
 		for j < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(names) {
 			k := 0
 			for k < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(authorities) {
 				existingAuthority := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(authorities, k))
 				requestedAuthority := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, j))
 				if existingAuthority == requestedAuthority {
- /*line config.mygo:158:18*/					return Err[Config, string]("duplicate normalized routing domain: " + requestedAuthority)
- /*line config.mygo:82:1*/				} else {
+ /*line config.mygo:174:18*/					return Err[Config, string]("duplicate normalized routing domain: " + requestedAuthority)
+ /*line config.mygo:94:1*/				} else {
  /*line zz_config.gen.go:198:1*/				}
- /*line config.mygo:82:1*/				k = k + 1
+ /*line config.mygo:94:1*/				k = k + 1
  /*line zz_config.gen.go:200:1*/			}
- /*line config.mygo:82:1*/			authorities = MygoIN5SliceM6Append(authorities, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, j)))
+ /*line config.mygo:94:1*/			authorities = MygoIN5SliceM6Append(authorities, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, j)))
 			j = j + 1
  /*line zz_config.gen.go:203:1*/		}
- /*line config.mygo:82:1*/		sites = MygoIN5SliceM6Append(sites, Site{ID: site.ID, Origin: origin, Aliases: aliases, RegistrationEnabled: site.RegistrationEnabled})
+ /*line config.mygo:94:1*/		sites = MygoIN5SliceM6Append(sites, Site{ID: site.ID, Origin: origin, Aliases: aliases, RegistrationEnabled: site.RegistrationEnabled})
 		i = i + 1
  /*line zz_config.gen.go:206:1*/	}
- /*line config.mygo:82:1*/	var proxies []netip.Prefix = []netip.Prefix{}
+ /*line config.mygo:94:1*/	var proxies []netip.Prefix = []netip.Prefix{}
 	i = 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(input.TrustedProxies) {
- /*line config.mygo:171:24*/		var __mygo_expr_7 Result[netip.Prefix, error]
+ /*line config.mygo:192:24*/		var __mygo_expr_7 Result[netip.Prefix, error]
 		__mygo_expr_8, __mygo_expr_6 := netip.ParsePrefix(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(input.TrustedProxies, i)))
 		if __mygo_expr_6 != nil {
 			__mygo_expr_7 = Err[netip.Prefix, error](__mygo_expr_6)
 		} else {
 			__mygo_expr_7 = Ok[netip.Prefix, error](__mygo_expr_8)
  /*line zz_config.gen.go:216:1*/		}
- /*line config.mygo:82:1*/		prefixResult := __mygo_expr_7
+ /*line config.mygo:94:1*/		prefixResult := __mygo_expr_7
 		if MygoIN6ResultM5IsErr[netip.Prefix, error](prefixResult) {
- /*line config.mygo:173:14*/			return Err[Config, string]("trusted proxy must be an IP CIDR prefix")
- /*line config.mygo:82:1*/		} else {
+ /*line config.mygo:194:14*/			return Err[Config, string]("trusted proxy must be an IP CIDR prefix")
+ /*line config.mygo:94:1*/		} else {
  /*line zz_config.gen.go:221:1*/		}
- /*line config.mygo:82:1*/		proxies = MygoIN5SliceM6Append(proxies, MygoIN6ResultM6Unwrap[netip.Prefix, error](prefixResult).Masked())
+ /*line config.mygo:94:1*/		proxies = MygoIN5SliceM6Append(proxies, MygoIN6ResultM6Unwrap[netip.Prefix, error](prefixResult).Masked())
 		i = i + 1
  /*line zz_config.gen.go:224:1*/	}
- /*line config.mygo:178:3*/	return Ok[Config, string](Config{Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation, Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers})
+ /*line config.mygo:199:3*/	return Ok[Config, string](Config{Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation, Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers})
  /*line zz_config.gen.go:226:1*/}
- /*line config.mygo:181:1*/func ValidateFederation(federation Federation) Result[struct {
+ /*line config.mygo:213:1*/func ValidateFederation(federation Federation) Result[struct {
 }, string] {
- /*line config.mygo:182:6*/	if federation.FetchTimeoutSeconds < 1 || federation.FetchTimeoutSeconds > 60 {
- /*line config.mygo:183:12*/		return Err[struct{}, string]("federation fetch timeout is missing or out of range")
- /*line config.mygo:182:6*/	} else {
+ /*line config.mygo:214:3*/	if federation.FetchTimeoutSeconds < 1 || federation.FetchTimeoutSeconds > 60 {
+ /*line config.mygo:215:12*/		return Err[struct{}, string]("federation fetch timeout is missing or out of range")
+ /*line config.mygo:214:3*/	} else {
  /*line zz_config.gen.go:232:1*/	}
- /*line config.mygo:185:6*/	if federation.MaxFetchBytes < 1024 || federation.MaxFetchBytes > 16777216 {
- /*line config.mygo:186:12*/		return Err[struct{}, string]("federation fetch byte limit is missing or out of range")
- /*line config.mygo:185:6*/	} else {
+ /*line config.mygo:217:3*/	if federation.MaxFetchBytes < 1024 || federation.MaxFetchBytes > 16777216 {
+ /*line config.mygo:218:12*/		return Err[struct{}, string]("federation fetch byte limit is missing or out of range")
+ /*line config.mygo:217:3*/	} else {
  /*line zz_config.gen.go:236:1*/	}
- /*line config.mygo:188:6*/	if federation.MaxRedirects < 0 || federation.MaxRedirects > 10 {
- /*line config.mygo:189:12*/		return Err[struct{}, string]("federation redirect limit is out of range")
- /*line config.mygo:188:6*/	} else {
+ /*line config.mygo:220:3*/	if federation.MaxRedirects < 0 || federation.MaxRedirects > 10 {
+ /*line config.mygo:221:12*/		return Err[struct{}, string]("federation redirect limit is out of range")
+ /*line config.mygo:220:3*/	} else {
  /*line zz_config.gen.go:240:1*/	}
- /*line config.mygo:191:6*/	if federation.ClockSkewSeconds < 60 || federation.ClockSkewSeconds > 3600 {
- /*line config.mygo:192:12*/		return Err[struct{}, string]("federation clock skew window is missing or out of range")
- /*line config.mygo:191:6*/	} else {
+ /*line config.mygo:223:3*/	if federation.ClockSkewSeconds < 60 || federation.ClockSkewSeconds > 3600 {
+ /*line config.mygo:224:12*/		return Err[struct{}, string]("federation clock skew window is missing or out of range")
+ /*line config.mygo:223:3*/	} else {
  /*line zz_config.gen.go:244:1*/	}
- /*line config.mygo:194:3*/	return Ok[struct{}, string](struct {
+ /*line config.mygo:226:3*/	return Ok[struct{}, string](struct {
  /*line zz_config.gen.go:246:1*/	}{})
 }
- /*line config.mygo:197:1*/func Load(path string) Result[Config, string] {
- /*line config.mygo:198:10*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line config.mygo:229:1*/func Load(path string) Result[Config, string] {
+ /*line config.mygo:230:3*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := os.ReadFile(path)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_config.gen.go:255:1*/	}
- /*line config.mygo:198:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line config.mygo:230:3*/	__mygo_expr_3 := __mygo_expr_1
 	var __mygo_expr_4 Result[Config, string]
 	if _, ok := __mygo_expr_3.(Result__Err[[]byte, error]); ok {
 		__mygo_expr_4 = Err[Config, string]("cannot read configuration file")
  /*line zz_config.gen.go:260:1*/	} else {
- /*line config.mygo:198:10*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
- /*line config.mygo:201:7*/			input := Input{}
- /*line config.mygo:202:14*/			var __mygo_expr_7 Result[struct{}, error]
+ /*line config.mygo:230:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
+ /*line config.mygo:233:7*/			input := Zero[Input]()
+ /*line config.mygo:234:7*/			var __mygo_expr_7 Result[struct{}, error]
 			__mygo_expr_6 := json.Unmarshal(__mygo_match___mygo_expr_5.F0, &input)
 			if __mygo_expr_6 != nil {
 				__mygo_expr_7 = Err[struct{}, error](__mygo_expr_6)
@@ -268,7 +268,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 				__mygo_expr_7 = Ok[struct{}, error](struct {
  /*line zz_config.gen.go:269:1*/				}{})
 			}
- /*line config.mygo:202:14*/			__mygo_expr_8 := __mygo_expr_7
+ /*line config.mygo:234:7*/			__mygo_expr_8 := __mygo_expr_7
 			var __mygo_expr_9 Result[Config, string]
 			if _, ok := __mygo_expr_8.(Result__Err[struct{}, error]); ok {
 				__mygo_expr_9 = Err[Config, string]("invalid configuration JSON")
@@ -278,9 +278,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 				} else {
  /*line zz_config.gen.go:279:1*/				}
 			}
- /*line config.mygo:198:10*/			__mygo_expr_4 = __mygo_expr_9
+ /*line config.mygo:230:3*/			__mygo_expr_4 = __mygo_expr_9
 		} else {
  /*line zz_config.gen.go:283:1*/		}
 	}
- /*line config.mygo:198:10*/	return __mygo_expr_4
+ /*line config.mygo:230:3*/	return __mygo_expr_4
  /*line zz_config.gen.go:286:1*/}

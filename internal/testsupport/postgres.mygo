@@ -10,7 +10,9 @@ import postgres "go:gorm.io/driver/postgres"
 import logger "go:gorm.io/gorm/logger"
 
 func OpenTestPool(dsn: String) -> Ref[sql.DB]
-  let settings = gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard}
+  var settings = Zero[gorm.Config]()
+  settings.DisableAutomaticPing = true
+  settings.Logger = logger.Discard
   gorm.Open(postgres.Open(dsn), Ref.new(settings) as gorm.Option).Unwrap().DB().Unwrap()
 end
 

@@ -35,11 +35,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_worker.gen_test.go:35:1*/		}
  /*line worker_test.mygo:24:14*/		body := __mygo_expr_1
 		verified := federation.VerifyRequest(publicKey, "POST", request.URL.Path, request.Host, request.Header.Get("Date"), request.Header.Get("Digest"), request.Header.Get("Signature"), time.Now().UTC(), int64(3600))
- /*line worker_test.mygo:37:8*/		if MygoIN6ResultM5IsErr[[]byte, error](body) || MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) || request.Header.Get("Digest") != federation.BodyDigest(MygoIN6ResultM6Unwrap[[]byte, error](body)) {
+ /*line worker_test.mygo:37:5*/		if MygoIN6ResultM5IsErr[[]byte, error](body) || MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) || request.Header.Get("Digest") != federation.BodyDigest(MygoIN6ResultM6Unwrap[[]byte, error](body)) {
 			verdict = "rejected"
  /*line worker_test.mygo:41:7*/			w.WriteHeader(401)
 			return
- /*line worker_test.mygo:37:8*/		} else {
+ /*line worker_test.mygo:37:5*/		} else {
 			verdict = "accepted"
  /*line worker_test.mygo:44:7*/			w.WriteHeader(202)
 			return
@@ -47,9 +47,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line worker_test.mygo:19:1*/	server := httptest.NewServer(http.HandlerFunc(peer))
 	status := MygoIN6ResultM6Unwrap[int, string](Post(server.URL+"/inbox", actorURI, privateKey, []byte("{\"type\":\"Create\"}")))
- /*line worker_test.mygo:54:6*/	if status != 202 || verdict != "accepted" {
+ /*line worker_test.mygo:54:3*/	if status != 202 || verdict != "accepted" {
  /*line worker_test.mygo:55:5*/		t.Fatalf("outbound delivery was not correctly signed: %d %s", status, verdict)
- /*line worker_test.mygo:54:6*/	} else {
+ /*line worker_test.mygo:54:3*/	} else {
  /*line zz_worker.gen_test.go:53:1*/	}
  /*line worker_test.mygo:57:3*/	server.Close()
 	return
@@ -68,7 +68,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	logs := bytes.Buffer{}
 	previousLogger := slog.Default()
- /*line worker_test.mygo:67:3*/	slog.SetDefault(slog.New(slog.NewJSONHandler(io.Writer(&logs), &[]slog.HandlerOptions{slog.HandlerOptions{}}[0])))
+ /*line worker_test.mygo:67:3*/	slog.SetDefault(slog.New(slog.NewJSONHandler(io.Writer(&logs), &[]slog.HandlerOptions{Zero[slog.HandlerOptions]()}[0])))
  /*line worker_test.mygo:68:3*/	t.Cleanup(func() {
  /*line worker_test.mygo:69:5*/		slog.SetDefault(previousLogger)
 		return
@@ -89,9 +89,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_worker.gen_test.go:89:1*/	})
  /*line worker_test.mygo:60:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
- /*line worker_test.mygo:108:6*/	if MygoIN6ResultM4IsOk[struct{}, string](rolledBack) || count != int64(0) {
+ /*line worker_test.mygo:108:3*/	if MygoIN6ResultM4IsOk[struct{}, string](rolledBack) || count != int64(0) {
  /*line worker_test.mygo:109:5*/		t.Fatal("a rolled-back mutation scheduled delivery")
- /*line worker_test.mygo:108:6*/	} else {
+ /*line worker_test.mygo:108:3*/	} else {
  /*line zz_worker.gen_test.go:95:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[int64, string](storage.EnqueueDelivery(ctx, db, activityURI, alice.ActorURI, "https://peer.example/users/dave", "https://peer.example/inbox", ""))
 	MygoIN6ResultM6Unwrap[int64, string](storage.EnqueueDelivery(ctx, db, activityURI, alice.ActorURI, "https://other.example/users/eve", "https://other.example/inbox", ""))
@@ -100,9 +100,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line worker_test.mygo:131:5*/		return Ok[int, string](202)
  /*line zz_worker.gen_test.go:101:1*/	}
  /*line worker_test.mygo:60:1*/	settle := func(target_1 string, actorURI_1 string, privateKey_1 string, body_1 []byte) Result[int, string] {
- /*line worker_test.mygo:134:8*/		if target_1 == "https://peer.example/inbox" {
+ /*line worker_test.mygo:134:5*/		if target_1 == "https://peer.example/inbox" {
  /*line worker_test.mygo:135:14*/			return Err[int, string]("unreachable")
- /*line worker_test.mygo:134:8*/		} else {
+ /*line worker_test.mygo:134:5*/		} else {
  /*line zz_worker.gen_test.go:106:1*/		}
  /*line worker_test.mygo:137:5*/		return Ok[int, string](202)
  /*line zz_worker.gen_test.go:108:1*/	}
@@ -110,68 +110,68 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line worker_test.mygo:140:5*/		return Err[int, string]("unreachable")
  /*line zz_worker.gen_test.go:111:1*/	}
  /*line worker_test.mygo:60:1*/	first := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, limits, settle))
- /*line worker_test.mygo:143:6*/	if first.Retried != 1 || first.Delivered != 1 {
+ /*line worker_test.mygo:143:3*/	if first.Retried != 1 || first.Delivered != 1 {
  /*line worker_test.mygo:144:5*/		t.Fatalf("an unavailable peer blocked or mis-reported the other: %d/%d", first.Retried, first.Delivered)
- /*line worker_test.mygo:143:6*/	} else {
+ /*line worker_test.mygo:143:3*/	} else {
  /*line zz_worker.gen_test.go:116:1*/	}
  /*line worker_test.mygo:60:1*/	logText := logs.String()
- /*line worker_test.mygo:151:6*/	if !strings.Contains(logText, "delivery retry scheduled") || !strings.Contains(logText, activityURI) || strings.Contains(logText, "do-not-log") {
+ /*line worker_test.mygo:151:3*/	if !strings.Contains(logText, "delivery retry scheduled") || !strings.Contains(logText, activityURI) || strings.Contains(logText, "do-not-log") {
  /*line worker_test.mygo:152:5*/		t.Fatal("delivery retry logging was missing or disclosed the activity body")
- /*line worker_test.mygo:151:6*/	} else {
+ /*line worker_test.mygo:151:3*/	} else {
  /*line zz_worker.gen_test.go:121:1*/	}
  /*line worker_test.mygo:60:1*/	leases := MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](storage.ClaimDeliveryJobs(ctx, db, 5, int64(60)))
- /*line worker_test.mygo:155:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(leases) != 0 {
+ /*line worker_test.mygo:155:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(leases) != 0 {
  /*line worker_test.mygo:156:5*/		t.Fatal("a backoff-scheduled job was claimed before it became available")
- /*line worker_test.mygo:155:6*/	} else {
+ /*line worker_test.mygo:155:3*/	} else {
  /*line zz_worker.gen_test.go:126:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state='pending' AND error_code='unreachable'").Count(&count)))
- /*line worker_test.mygo:159:6*/	if count != int64(1) {
+ /*line worker_test.mygo:159:3*/	if count != int64(1) {
  /*line worker_test.mygo:160:5*/		t.Fatal("the retried delivery did not keep its failure reason")
- /*line worker_test.mygo:159:6*/	} else {
+ /*line worker_test.mygo:159:3*/	} else {
  /*line zz_worker.gen_test.go:131:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET available_at = now() - interval '1 minute', state='leased', lease_token='lease', lease_until = now() + interval '1 minute' WHERE state='pending'")))
 	live := storage.ClaimDeliveryJobs(ctx, db, 5, int64(60))
- /*line worker_test.mygo:164:6*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, string](live) {
+ /*line worker_test.mygo:164:3*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, string](live) {
  /*line worker_test.mygo:165:5*/		t.Fatalf("live-lease claim failed: %s", MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, string](live))
- /*line worker_test.mygo:164:6*/	} else {
+ /*line worker_test.mygo:164:3*/	} else {
  /*line zz_worker.gen_test.go:137:1*/	}
- /*line worker_test.mygo:167:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](live)) != 0 {
+ /*line worker_test.mygo:167:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](live)) != 0 {
  /*line worker_test.mygo:168:5*/		t.Fatal("a live delivery lease was claimed twice")
- /*line worker_test.mygo:167:6*/	} else {
+ /*line worker_test.mygo:167:3*/	} else {
  /*line zz_worker.gen_test.go:141:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
 	resumed := storage.ClaimDeliveryJobs(ctx, db, 5, int64(60))
- /*line worker_test.mygo:172:6*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, string](resumed) {
+ /*line worker_test.mygo:172:3*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, string](resumed) {
  /*line worker_test.mygo:173:5*/		t.Fatalf("lease reclaim failed: %s", MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, string](resumed))
- /*line worker_test.mygo:172:6*/	} else {
+ /*line worker_test.mygo:172:3*/	} else {
  /*line zz_worker.gen_test.go:147:1*/	}
- /*line worker_test.mygo:175:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](resumed)) != 1 {
+ /*line worker_test.mygo:175:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](resumed)) != 1 {
  /*line worker_test.mygo:176:5*/		t.Fatal("an expired delivery lease was not reclaimed after restart")
- /*line worker_test.mygo:175:6*/	} else {
+ /*line worker_test.mygo:175:3*/	} else {
  /*line zz_worker.gen_test.go:151:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](resumed)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET available_at = now() - interval '1 minute', state='pending', lease_token=NULL, lease_until=NULL, attempts = 0 WHERE error_code = 'unreachable'")))
 	retried := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, limits, deliver))
- /*line worker_test.mygo:181:6*/	if retried.Delivered != 1 {
+ /*line worker_test.mygo:181:3*/	if retried.Delivered != 1 {
  /*line worker_test.mygo:182:5*/		t.Fatalf("the recovered delivery was not completed: %d", retried.Delivered)
- /*line worker_test.mygo:181:6*/	} else {
+ /*line worker_test.mygo:181:3*/	} else {
  /*line zz_worker.gen_test.go:158:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state='delivered'").Count(&count)))
- /*line worker_test.mygo:185:6*/	if count != int64(2) {
+ /*line worker_test.mygo:185:3*/	if count != int64(2) {
  /*line worker_test.mygo:186:5*/		t.Fatal("successful deliveries were not recorded")
- /*line worker_test.mygo:185:6*/	} else {
+ /*line worker_test.mygo:185:3*/	} else {
  /*line zz_worker.gen_test.go:163:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET state='pending', attempts=2, available_at = now() - interval '1 minute', lease_token=NULL, lease_until=NULL")))
 	exhausted := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, limits, down))
- /*line worker_test.mygo:190:6*/	if exhausted.Failed != 2 || exhausted.Retried != 0 {
+ /*line worker_test.mygo:190:3*/	if exhausted.Failed != 2 || exhausted.Retried != 0 {
  /*line worker_test.mygo:191:5*/		t.Fatalf("exhausted attempts were not failed: %d/%d", exhausted.Failed, exhausted.Retried)
- /*line worker_test.mygo:190:6*/	} else {
+ /*line worker_test.mygo:190:3*/	} else {
  /*line zz_worker.gen_test.go:169:1*/	}
  /*line worker_test.mygo:60:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state='failed' AND error_code IS NOT NULL").Count(&count)))
- /*line worker_test.mygo:194:6*/	if count != int64(2) {
+ /*line worker_test.mygo:194:3*/	if count != int64(2) {
  /*line worker_test.mygo:195:5*/		t.Fatal("permanent failures were not reported")
 		return
- /*line worker_test.mygo:194:6*/	} else {
- /*line worker_test.mygo:194:3*/		return
+ /*line worker_test.mygo:194:3*/	} else {
+		return
  /*line zz_worker.gen_test.go:176:1*/	}
 }

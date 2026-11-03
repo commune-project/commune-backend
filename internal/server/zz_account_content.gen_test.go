@@ -15,9 +15,9 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line account_content_test.mygo:12:1*/func accountPostPage(t *testing.T, handler http.HandlerFunc, site config.Site, path string, cookies []*http.Cookie) PostPage {
-	output := PostPage{}
+	output := Zero[PostPage]()
 	response := browserGet(t, handler, site.Origin, path, cookies, 200)
- /*line account_content_test.mygo:15:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line account_content_test.mygo:21:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(response.Body.Bytes(), &output)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -25,21 +25,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_account_content.gen_test.go:26:1*/		}{})
 	}
- /*line account_content_test.mygo:15:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line account_content_test.mygo:16:5*/		t.Fatalf("invalid account page: %s", response.Body.String())
- /*line account_content_test.mygo:15:6*/	} else {
+ /*line account_content_test.mygo:21:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line account_content_test.mygo:22:5*/		t.Fatalf("invalid account page: %s", response.Body.String())
+ /*line account_content_test.mygo:21:3*/	} else {
  /*line zz_account_content.gen_test.go:31:1*/	}
- /*line account_content_test.mygo:18:3*/	return output
+ /*line account_content_test.mygo:24:3*/	return output
  /*line zz_account_content.gen_test.go:33:1*/}
- /*line account_content_test.mygo:21:1*/func TestPostgresAccountContentHTTP(t *testing.T) {
- /*line account_content_test.mygo:22:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line account_content_test.mygo:27:1*/func TestPostgresAccountContentHTTP(t *testing.T) {
+ /*line account_content_test.mygo:28:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_account_content.gen_test.go:41:1*/	}
- /*line account_content_test.mygo:21:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line account_content_test.mygo:27:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -55,10 +55,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	bobBooks := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "bob"))))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, private.ID, alice, false, bobBooks.ActorURI, true))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	visible := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Visible state", Body: "visible state"}))
-	hidden := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Hidden state", Body: "hidden state"}))
-	deleted := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Deleted state", Body: "deleted state"}))
-	privatePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private state", Body: "private state"}))
+	visible := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Visible state", Body: "visible state", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	hidden := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Hidden state", Body: "hidden state", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	deleted := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Deleted state", Body: "deleted state", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	privatePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private state", Body: "private state", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, hidden.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(posts, ctx, deleted.ID, alice, false))
 	handler := Handler(settings, db)
@@ -67,137 +67,137 @@ import . "github.com/mygo-lang/mygo/prelude"
 	carol := login(handler, site.Origin, "carol", "carol-password")
 	carolCSRF := csrfOf(carol)
 	savePath := "/api/v1/posts/" + visible.ID + "/save"
-	save := forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
- /*line account_content_test.mygo:52:6*/	if doForum(handler, save).Code != 204 || doForum(handler, save).Code != 204 {
- /*line account_content_test.mygo:53:5*/		t.Fatal("save was not idempotent")
- /*line account_content_test.mygo:52:6*/	} else {
+	save := forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Payload: "", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
+ /*line account_content_test.mygo:147:3*/	if doForum(handler, save).Code != 204 || doForum(handler, save).Code != 204 {
+ /*line account_content_test.mygo:148:5*/		t.Fatal("save was not idempotent")
+ /*line account_content_test.mygo:147:3*/	} else {
  /*line zz_account_content.gen_test.go:74:1*/	}
- /*line account_content_test.mygo:21:1*/	privateSave := "/api/v1/posts/" + privatePost.ID + "/save"
- /*line account_content_test.mygo:56:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
- /*line account_content_test.mygo:57:5*/		t.Fatal("member could not save private post")
- /*line account_content_test.mygo:56:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	privateSave := "/api/v1/posts/" + privatePost.ID + "/save"
+ /*line account_content_test.mygo:151:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Payload: "", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
+ /*line account_content_test.mygo:164:5*/		t.Fatal("member could not save private post")
+ /*line account_content_test.mygo:151:3*/	} else {
  /*line zz_account_content.gen_test.go:79:1*/	}
- /*line account_content_test.mygo:21:1*/	readPath := "/api/v1/posts/" + visible.ID + "/read"
-	read := forumCall{Method: "POST", Origin: site.Origin, Path: readPath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
- /*line account_content_test.mygo:61:6*/	if doForum(handler, read).Code != 204 || doForum(handler, read).Code != 204 {
- /*line account_content_test.mygo:62:5*/		t.Fatal("read state was not idempotent")
- /*line account_content_test.mygo:61:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	readPath := "/api/v1/posts/" + visible.ID + "/read"
+	read := forumCall{Method: "POST", Origin: site.Origin, Path: readPath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}
+ /*line account_content_test.mygo:176:3*/	if doForum(handler, read).Code != 204 || doForum(handler, read).Code != 204 {
+ /*line account_content_test.mygo:177:5*/		t.Fatal("read state was not idempotent")
+ /*line account_content_test.mygo:176:3*/	} else {
  /*line zz_account_content.gen_test.go:85:1*/	}
- /*line account_content_test.mygo:21:1*/	hidePath := "/api/v1/posts/" + visible.ID + "/hide-for-me"
-	hide := forumCall{Method: "POST", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
- /*line account_content_test.mygo:66:6*/	if doForum(handler, hide).Code != 204 || doForum(handler, hide).Code != 204 {
- /*line account_content_test.mygo:67:5*/		t.Fatal("personal hide was not idempotent")
- /*line account_content_test.mygo:66:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	hidePath := "/api/v1/posts/" + visible.ID + "/hide-for-me"
+	hide := forumCall{Method: "POST", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}
+ /*line account_content_test.mygo:189:3*/	if doForum(handler, hide).Code != 204 || doForum(handler, hide).Code != 204 {
+ /*line account_content_test.mygo:190:5*/		t.Fatal("personal hide was not idempotent")
+ /*line account_content_test.mygo:189:3*/	} else {
  /*line zz_account_content.gen_test.go:91:1*/	}
- /*line account_content_test.mygo:21:1*/	siteHidden := false
+ /*line account_content_test.mygo:27:1*/	siteHidden := false
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT hidden_at IS NOT NULL FROM site_posts WHERE site_id=? AND post_id=?", site.ID, visible.ID).Scan(&siteHidden)))
- /*line account_content_test.mygo:71:6*/	if siteHidden {
- /*line account_content_test.mygo:72:5*/		t.Fatal("personal hide changed site-administrator visibility")
- /*line account_content_test.mygo:71:6*/	} else {
+ /*line account_content_test.mygo:198:3*/	if siteHidden {
+ /*line account_content_test.mygo:199:5*/		t.Fatal("personal hide changed site-administrator visibility")
+ /*line account_content_test.mygo:198:3*/	} else {
  /*line zz_account_content.gen_test.go:97:1*/	}
- /*line account_content_test.mygo:21:1*/	hiddenSave := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + hidden.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin})
- /*line account_content_test.mygo:75:6*/	if hiddenSave.Code != 404 {
- /*line account_content_test.mygo:76:5*/		t.Fatalf("site-hidden save returned %d: %s", hiddenSave.Code, hiddenSave.Body.String())
- /*line account_content_test.mygo:75:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	hiddenSave := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + hidden.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""})
+ /*line account_content_test.mygo:213:3*/	if hiddenSave.Code != 404 {
+ /*line account_content_test.mygo:214:5*/		t.Fatalf("site-hidden save returned %d: %s", hiddenSave.Code, hiddenSave.Body.String())
+ /*line account_content_test.mygo:213:3*/	} else {
  /*line zz_account_content.gen_test.go:102:1*/	}
- /*line account_content_test.mygo:21:1*/	deletedSave := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + deleted.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin})
- /*line account_content_test.mygo:79:6*/	if deletedSave.Code != 404 {
- /*line account_content_test.mygo:80:5*/		t.Fatalf("deleted save returned %d: %s", deletedSave.Code, deletedSave.Body.String())
- /*line account_content_test.mygo:79:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	deletedSave := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + deleted.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""})
+ /*line account_content_test.mygo:228:3*/	if deletedSave.Code != 404 {
+ /*line account_content_test.mygo:229:5*/		t.Fatalf("deleted save returned %d: %s", deletedSave.Code, deletedSave.Body.String())
+ /*line account_content_test.mygo:228:3*/	} else {
  /*line zz_account_content.gen_test.go:107:1*/	}
- /*line account_content_test.mygo:82:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 404 {
- /*line account_content_test.mygo:83:5*/		t.Fatal("missing save target was accepted")
- /*line account_content_test.mygo:82:6*/	} else {
+ /*line account_content_test.mygo:231:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}).Code != 404 {
+ /*line account_content_test.mygo:243:5*/		t.Fatal("missing save target was accepted")
+ /*line account_content_test.mygo:231:3*/	} else {
  /*line zz_account_content.gen_test.go:111:1*/	}
- /*line account_content_test.mygo:85:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Cookies: carol, CSRF: carolCSRF, Source: site.Origin}).Code != 404 {
- /*line account_content_test.mygo:86:5*/		t.Fatal("outsider saved private post")
- /*line account_content_test.mygo:85:6*/	} else {
+ /*line account_content_test.mygo:245:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Cookies: carol, CSRF: carolCSRF, Source: site.Origin, Payload: ""}).Code != 404 {
+ /*line account_content_test.mygo:257:5*/		t.Fatal("outsider saved private post")
+ /*line account_content_test.mygo:245:3*/	} else {
  /*line zz_account_content.gen_test.go:115:1*/	}
- /*line account_content_test.mygo:88:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Cookies: bob, Source: site.Origin}).Code != 403 {
- /*line account_content_test.mygo:89:5*/		t.Fatal("save without CSRF was accepted")
- /*line account_content_test.mygo:88:6*/	} else {
+ /*line account_content_test.mygo:259:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Cookies: bob, Source: site.Origin, Payload: "", CSRF: ""}).Code != 403 {
+ /*line account_content_test.mygo:271:5*/		t.Fatal("save without CSRF was accepted")
+ /*line account_content_test.mygo:259:3*/	} else {
  /*line zz_account_content.gen_test.go:119:1*/	}
- /*line account_content_test.mygo:21:1*/	detail := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+visible.ID, bob, 200))
- /*line account_content_test.mygo:93:6*/	if !detail.SavedByMe || !detail.ReadByMe || !detail.HiddenByMe || !detail.Permissions.CanSave || !detail.Permissions.CanHideForMe {
- /*line account_content_test.mygo:95:5*/		t.Fatal("post detail did not expose current personal state")
- /*line account_content_test.mygo:93:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	detail := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+visible.ID, bob, 200))
+ /*line account_content_test.mygo:277:3*/	if !detail.SavedByMe || !detail.ReadByMe || !detail.HiddenByMe || !detail.Permissions.CanSave || !detail.Permissions.CanHideForMe {
+ /*line account_content_test.mygo:282:5*/		t.Fatal("post detail did not expose current personal state")
+ /*line account_content_test.mygo:277:3*/	} else {
  /*line zz_account_content.gen_test.go:124:1*/	}
- /*line account_content_test.mygo:21:1*/	var anonymous []*http.Cookie = []*http.Cookie{}
+ /*line account_content_test.mygo:27:1*/	var anonymous []*http.Cookie = []*http.Cookie{}
 	public := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+visible.ID, anonymous, 200))
- /*line account_content_test.mygo:99:6*/	if public.SavedByMe || public.ReadByMe || public.HiddenByMe || public.Permissions.CanSave || public.Permissions.CanHideForMe {
- /*line account_content_test.mygo:101:5*/		t.Fatal("anonymous detail leaked personal state")
- /*line account_content_test.mygo:99:6*/	} else {
+ /*line account_content_test.mygo:289:3*/	if public.SavedByMe || public.ReadByMe || public.HiddenByMe || public.Permissions.CanSave || public.Permissions.CanHideForMe {
+ /*line account_content_test.mygo:294:5*/		t.Fatal("anonymous detail leaked personal state")
+ /*line account_content_test.mygo:289:3*/	} else {
  /*line zz_account_content.gen_test.go:130:1*/	}
- /*line account_content_test.mygo:21:1*/	latest := accountPostPage(t, handler, site, "/api/v1/topics", bob)
- /*line account_content_test.mygo:104:6*/	if MygoIN5SliceM3Any(latest.Items, func(item PostOutput) bool {
- /*line account_content_test.mygo:104:54*/		return item.ID == visible.ID
- /*line account_content_test.mygo:104:6*/	}) {
- /*line account_content_test.mygo:105:5*/		t.Fatal("personally hidden post remained in latest feed")
- /*line account_content_test.mygo:104:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	latest := accountPostPage(t, handler, site, "/api/v1/topics", bob)
+ /*line account_content_test.mygo:297:3*/	if MygoIN5SliceM3Any(latest.Items, func(item PostOutput) bool {
+ /*line account_content_test.mygo:297:54*/		return item.ID == visible.ID
+ /*line account_content_test.mygo:297:3*/	}) {
+ /*line account_content_test.mygo:298:5*/		t.Fatal("personally hidden post remained in latest feed")
+ /*line account_content_test.mygo:297:3*/	} else {
  /*line zz_account_content.gen_test.go:137:1*/	}
- /*line account_content_test.mygo:21:1*/	communityTopics := accountPostPage(t, handler, site, "/api/v1/communities/"+open.ID+"/topics", bob)
- /*line account_content_test.mygo:108:6*/	if MygoIN5SliceM3Any(communityTopics.Items, func(item_1 PostOutput) bool {
- /*line account_content_test.mygo:108:63*/		return item_1.ID == visible.ID
- /*line account_content_test.mygo:108:6*/	}) {
- /*line account_content_test.mygo:109:5*/		t.Fatal("personally hidden post remained in community feed")
- /*line account_content_test.mygo:108:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	communityTopics := accountPostPage(t, handler, site, "/api/v1/communities/"+open.ID+"/topics", bob)
+ /*line account_content_test.mygo:307:3*/	if MygoIN5SliceM3Any(communityTopics.Items, func(item_1 PostOutput) bool {
+ /*line account_content_test.mygo:307:63*/		return item_1.ID == visible.ID
+ /*line account_content_test.mygo:307:3*/	}) {
+ /*line account_content_test.mygo:308:5*/		t.Fatal("personally hidden post remained in community feed")
+ /*line account_content_test.mygo:307:3*/	} else {
  /*line zz_account_content.gen_test.go:144:1*/	}
- /*line account_content_test.mygo:21:1*/	search := accountPostPage(t, handler, site, "/api/v1/search?kind=posts&q=Visible", bob)
- /*line account_content_test.mygo:112:6*/	if MygoIN5SliceM3Any(search.Items, func(item_2 PostOutput) bool {
- /*line account_content_test.mygo:112:54*/		return item_2.ID == visible.ID
- /*line account_content_test.mygo:112:6*/	}) {
- /*line account_content_test.mygo:113:5*/		t.Fatal("personally hidden post remained in search")
- /*line account_content_test.mygo:112:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	search := accountPostPage(t, handler, site, "/api/v1/search?kind=posts&q=Visible", bob)
+ /*line account_content_test.mygo:311:3*/	if MygoIN5SliceM3Any(search.Items, func(item_2 PostOutput) bool {
+ /*line account_content_test.mygo:311:54*/		return item_2.ID == visible.ID
+ /*line account_content_test.mygo:311:3*/	}) {
+ /*line account_content_test.mygo:312:5*/		t.Fatal("personally hidden post remained in search")
+ /*line account_content_test.mygo:311:3*/	} else {
  /*line zz_account_content.gen_test.go:151:1*/	}
- /*line account_content_test.mygo:21:1*/	saved := accountPostPage(t, handler, site, "/api/v1/account/saved", bob)
- /*line account_content_test.mygo:116:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(saved.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(saved.Items, 0)).ID != privatePost.ID {
- /*line account_content_test.mygo:117:5*/		t.Fatal("saved list did not omit personally hidden post")
- /*line account_content_test.mygo:116:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	saved := accountPostPage(t, handler, site, "/api/v1/account/saved", bob)
+ /*line account_content_test.mygo:315:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(saved.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(saved.Items, 0)).ID != privatePost.ID {
+ /*line account_content_test.mygo:316:5*/		t.Fatal("saved list did not omit personally hidden post")
+ /*line account_content_test.mygo:315:3*/	} else {
  /*line zz_account_content.gen_test.go:156:1*/	}
- /*line account_content_test.mygo:119:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/read", bob).Items) != 0 {
- /*line account_content_test.mygo:120:5*/		t.Fatal("read list did not omit personally hidden post")
- /*line account_content_test.mygo:119:6*/	} else {
+ /*line account_content_test.mygo:318:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/read", bob).Items) != 0 {
+ /*line account_content_test.mygo:319:5*/		t.Fatal("read list did not omit personally hidden post")
+ /*line account_content_test.mygo:318:3*/	} else {
  /*line zz_account_content.gen_test.go:160:1*/	}
- /*line account_content_test.mygo:21:1*/	hiddenList := accountPostPage(t, handler, site, "/api/v1/account/hidden", bob)
- /*line account_content_test.mygo:123:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hiddenList.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(hiddenList.Items, 0)).ID != visible.ID {
- /*line account_content_test.mygo:124:5*/		t.Fatal("hidden list omitted the current personal hide")
- /*line account_content_test.mygo:123:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	hiddenList := accountPostPage(t, handler, site, "/api/v1/account/hidden", bob)
+ /*line account_content_test.mygo:322:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hiddenList.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(hiddenList.Items, 0)).ID != visible.ID {
+ /*line account_content_test.mygo:323:5*/		t.Fatal("hidden list omitted the current personal hide")
+ /*line account_content_test.mygo:322:3*/	} else {
  /*line zz_account_content.gen_test.go:165:1*/	}
- /*line account_content_test.mygo:21:1*/	likePath := "/api/v1/posts/" + visible.ID + "/likes"
- /*line account_content_test.mygo:127:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
- /*line account_content_test.mygo:128:5*/		t.Fatal("liking hidden-for-me post failed")
- /*line account_content_test.mygo:127:6*/	} else {
+ /*line account_content_test.mygo:27:1*/	likePath := "/api/v1/posts/" + visible.ID + "/likes"
+ /*line account_content_test.mygo:326:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}).Code != 204 {
+ /*line account_content_test.mygo:338:5*/		t.Fatal("liking hidden-for-me post failed")
+ /*line account_content_test.mygo:326:3*/	} else {
  /*line zz_account_content.gen_test.go:170:1*/	}
- /*line account_content_test.mygo:130:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 0 {
- /*line account_content_test.mygo:131:5*/		t.Fatal("liked list did not omit personally hidden post")
- /*line account_content_test.mygo:130:6*/	} else {
+ /*line account_content_test.mygo:340:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 0 {
+ /*line account_content_test.mygo:341:5*/		t.Fatal("liked list did not omit personally hidden post")
+ /*line account_content_test.mygo:340:3*/	} else {
  /*line zz_account_content.gen_test.go:174:1*/	}
- /*line account_content_test.mygo:133:6*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
- /*line account_content_test.mygo:134:5*/		t.Fatal("personal unhide failed")
- /*line account_content_test.mygo:133:6*/	} else {
+ /*line account_content_test.mygo:343:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}).Code != 204 {
+ /*line account_content_test.mygo:355:5*/		t.Fatal("personal unhide failed")
+ /*line account_content_test.mygo:343:3*/	} else {
  /*line zz_account_content.gen_test.go:178:1*/	}
- /*line account_content_test.mygo:136:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/read", bob).Items) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/saved", bob).Items) != 2 {
- /*line account_content_test.mygo:139:5*/		t.Fatal("account lists did not restore after unhide")
- /*line account_content_test.mygo:136:6*/	} else {
+ /*line account_content_test.mygo:357:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/read", bob).Items) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/saved", bob).Items) != 2 {
+ /*line account_content_test.mygo:360:5*/		t.Fatal("account lists did not restore after unhide")
+ /*line account_content_test.mygo:357:3*/	} else {
  /*line zz_account_content.gen_test.go:182:1*/	}
- /*line account_content_test.mygo:141:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + visible.ID + "/vote", Payload: "{\"score\":-1}", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
- /*line account_content_test.mygo:142:5*/		t.Fatal("changing liked post to downvote failed")
- /*line account_content_test.mygo:141:6*/	} else {
+ /*line account_content_test.mygo:362:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + visible.ID + "/vote", Payload: "{\"score\":-1}", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
+ /*line account_content_test.mygo:374:5*/		t.Fatal("changing liked post to downvote failed")
+ /*line account_content_test.mygo:362:3*/	} else {
  /*line zz_account_content.gen_test.go:186:1*/	}
- /*line account_content_test.mygo:144:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 0 {
- /*line account_content_test.mygo:145:5*/		t.Fatal("liked list included a downvote")
- /*line account_content_test.mygo:144:6*/	} else {
+ /*line account_content_test.mygo:376:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items) != 0 {
+ /*line account_content_test.mygo:377:5*/		t.Fatal("liked list included a downvote")
+ /*line account_content_test.mygo:376:3*/	} else {
  /*line zz_account_content.gen_test.go:190:1*/	}
- /*line account_content_test.mygo:21:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, private.ID, alice, false, bobBooks.ActorURI, false))
+ /*line account_content_test.mygo:27:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, private.ID, alice, false, bobBooks.ActorURI, false))
 	revoked := accountPostPage(t, handler, site, "/api/v1/account/saved", bob)
- /*line account_content_test.mygo:149:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(revoked.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(revoked.Items, 0)).ID != visible.ID {
- /*line account_content_test.mygo:150:5*/		t.Fatal("saved list exposed post after membership revocation")
- /*line account_content_test.mygo:149:6*/	} else {
+ /*line account_content_test.mygo:381:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(revoked.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(revoked.Items, 0)).ID != visible.ID {
+ /*line account_content_test.mygo:382:5*/		t.Fatal("saved list exposed post after membership revocation")
+ /*line account_content_test.mygo:381:3*/	} else {
  /*line zz_account_content.gen_test.go:196:1*/	}
- /*line account_content_test.mygo:152:6*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: savePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 {
- /*line account_content_test.mygo:153:5*/		t.Fatal("unsave failed")
+ /*line account_content_test.mygo:384:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: savePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin, Payload: ""}).Code != 204 {
+ /*line account_content_test.mygo:396:5*/		t.Fatal("unsave failed")
 		return
- /*line account_content_test.mygo:152:6*/	} else {
- /*line account_content_test.mygo:152:3*/		return
+ /*line account_content_test.mygo:384:3*/	} else {
+		return
  /*line zz_account_content.gen_test.go:202:1*/	}
 }

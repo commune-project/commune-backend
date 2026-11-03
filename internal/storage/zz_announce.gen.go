@@ -11,9 +11,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 }, string] {
 	checksum := PayloadChecksum(payload)
 	community := sql.NullString{String: communityID, Valid: communityID != ""}
- /*line announce.mygo:18:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.WithContext(ctx).Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,?,?)", uri, actorURI, kind, community))) {
+ /*line announce.mygo:18:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.WithContext(ctx).Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,?,?)", uri, actorURI, kind, community))) {
  /*line announce.mygo:25:12*/		return Err[struct{}, string]("activity storage failed")
- /*line announce.mygo:18:6*/	} else {
+ /*line announce.mygo:18:3*/	} else {
  /*line zz_announce.gen.go:17:1*/	}
  /*line announce.mygo:27:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", uri, payload, checksum))
  /*line zz_announce.gen.go:19:1*/}

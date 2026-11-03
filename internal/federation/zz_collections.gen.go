@@ -34,9 +34,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_collections.gen.go:34:1*/}
 
  /*line collections.mygo:35:1*/func PageParam(raw string) int {
- /*line collections.mygo:36:6*/	if raw == "" || raw == "true" {
+ /*line collections.mygo:36:3*/	if raw == "" || raw == "true" {
  /*line collections.mygo:37:12*/		return 1
- /*line collections.mygo:36:6*/	} else {
+ /*line collections.mygo:36:3*/	} else {
  /*line zz_collections.gen.go:40:1*/	}
  /*line collections.mygo:39:16*/	var __mygo_expr_1 Result[int, error]
 	__mygo_expr_2, __mygo_expr_0 := strconv.Atoi(raw)
@@ -46,13 +46,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[int, error](__mygo_expr_2)
  /*line zz_collections.gen.go:47:1*/	}
  /*line collections.mygo:35:1*/	parsed := __mygo_expr_1
- /*line collections.mygo:40:6*/	if MygoIN6ResultM5IsErr[int, error](parsed) {
+ /*line collections.mygo:40:3*/	if MygoIN6ResultM5IsErr[int, error](parsed) {
  /*line collections.mygo:41:12*/		return 1
- /*line collections.mygo:40:6*/	} else {
+ /*line collections.mygo:40:3*/	} else {
  /*line zz_collections.gen.go:52:1*/	}
- /*line collections.mygo:43:6*/	if MygoIN6ResultM6Unwrap[int, error](parsed) < 1 {
+ /*line collections.mygo:43:3*/	if MygoIN6ResultM6Unwrap[int, error](parsed) < 1 {
  /*line collections.mygo:44:12*/		return 1
- /*line collections.mygo:43:6*/	} else {
+ /*line collections.mygo:43:3*/	} else {
  /*line zz_collections.gen.go:56:1*/	}
  /*line collections.mygo:46:3*/	return MygoIN6ResultM6Unwrap[int, error](parsed)
  /*line zz_collections.gen.go:58:1*/}
@@ -61,7 +61,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_collections.gen.go:61:1*/}
  /*line collections.mygo:53:1*/func BuildCollection(collectionID string, totalItems int64, hasContent bool) OrderedCollection {
 	first := ""
- /*line collections.mygo:55:6*/	if hasContent && totalItems > int64(0) {
+ /*line collections.mygo:55:3*/	if hasContent && totalItems > int64(0) {
 		first = PageLink(collectionID, 1)
 	} else {
  /*line zz_collections.gen.go:67:1*/	}
@@ -71,16 +71,16 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line collections.mygo:62:3*/	return int64(page)*int64(pageSize) < totalItems
  /*line zz_collections.gen.go:72:1*/}
  /*line collections.mygo:65:1*/func NextLink(collectionID string, page int, pageSize int, totalItems int64) string {
- /*line collections.mygo:66:6*/	if !HasNextPage(page, pageSize, totalItems) {
+ /*line collections.mygo:66:3*/	if !HasNextPage(page, pageSize, totalItems) {
  /*line collections.mygo:67:12*/		return ""
- /*line collections.mygo:66:6*/	} else {
+ /*line collections.mygo:66:3*/	} else {
  /*line zz_collections.gen.go:77:1*/	}
  /*line collections.mygo:69:3*/	return PageLink(collectionID, page+1)
  /*line zz_collections.gen.go:79:1*/}
  /*line collections.mygo:72:1*/func PrevLink(collectionID string, page int) string {
- /*line collections.mygo:73:6*/	if page <= 1 {
+ /*line collections.mygo:73:3*/	if page <= 1 {
  /*line collections.mygo:74:12*/		return ""
- /*line collections.mygo:73:6*/	} else {
+ /*line collections.mygo:73:3*/	} else {
  /*line zz_collections.gen.go:84:1*/	}
  /*line collections.mygo:76:3*/	return PageLink(collectionID, page-1)
  /*line zz_collections.gen.go:86:1*/}

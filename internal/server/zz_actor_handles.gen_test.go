@@ -27,65 +27,65 @@ import . "github.com/mygo-lang/mygo/prelude"
 	preferred := "bob"
 	name := "Bob"
 	fetcher := func(ctx context.Context, uri string, accept string, limits federation.FetchLimits) Result[federation.FetchResult, string] {
- /*line actor_handles_test.mygo:25:8*/		if strings.Contains(uri, "/.well-known/webfinger?") {
- /*line actor_handles_test.mygo:26:10*/			if !strings.Contains(accept, "application/jrd+json") || !strings.Contains(uri, "acct%3Abob%40peer.example") {
- /*line actor_handles_test.mygo:27:9*/				t.Fatal("WebFinger Accept or resource escaping was wrong")
- /*line actor_handles_test.mygo:26:10*/			} else {
+ /*line actor_handles_test.mygo:25:5*/		if strings.Contains(uri, "/.well-known/webfinger?") {
+ /*line actor_handles_test.mygo:26:7*/			if !strings.Contains(accept, "application/jrd+json") || !strings.Contains(uri, "acct%3Abob%40peer.example") {
+ /*line actor_handles_test.mygo:28:9*/				t.Fatal("WebFinger Accept or resource escaping was wrong")
+ /*line actor_handles_test.mygo:26:7*/			} else {
  /*line zz_actor_handles.gen_test.go:34:1*/			}
- /*line actor_handles_test.mygo:29:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: []byte("{\"subject\":\"" + subject + "\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + selfHref + "\"}]}")})
- /*line actor_handles_test.mygo:25:8*/		} else {
+ /*line actor_handles_test.mygo:30:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", FinalURL: uri, Body: []byte("{\"subject\":\"" + subject + "\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + selfHref + "\"}]}")})
+ /*line actor_handles_test.mygo:25:5*/		} else {
  /*line zz_actor_handles.gen_test.go:37:1*/		}
- /*line actor_handles_test.mygo:31:8*/		if !strings.Contains(accept, "application/activity+json") {
- /*line actor_handles_test.mygo:32:7*/			t.Fatal("Actor document Accept was wrong")
- /*line actor_handles_test.mygo:31:8*/		} else {
+ /*line actor_handles_test.mygo:41:5*/		if !strings.Contains(accept, "application/activity+json") {
+ /*line actor_handles_test.mygo:42:7*/			t.Fatal("Actor document Accept was wrong")
+ /*line actor_handles_test.mygo:41:5*/		} else {
  /*line zz_actor_handles.gen_test.go:41:1*/		}
- /*line actor_handles_test.mygo:34:5*/		return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: []byte("{\"id\":\"" + actorID + "\",\"type\":\"" + actorType + "\",\"preferredUsername\":\"" + preferred + "\",\"name\":\"" + name + "\",\"inbox\":\"https://peer.example/inbox\"}")})
+ /*line actor_handles_test.mygo:44:5*/		return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", FinalURL: uri, Body: []byte("{\"id\":\"" + actorID + "\",\"type\":\"" + actorType + "\",\"preferredUsername\":\"" + preferred + "\",\"name\":\"" + name + "\",\"inbox\":\"https://peer.example/inbox\"}")})
  /*line zz_actor_handles.gen_test.go:43:1*/	}
  /*line actor_handles_test.mygo:15:1*/	resolved := MygoIN6ResultM6Unwrap[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher))
- /*line actor_handles_test.mygo:37:6*/	if resolved.Acct != "bob@peer.example" || resolved.DisplayName != "Bob" {
- /*line actor_handles_test.mygo:38:5*/		t.Fatal("verified handle or display name was wrong")
- /*line actor_handles_test.mygo:37:6*/	} else {
+ /*line actor_handles_test.mygo:60:3*/	if resolved.Acct != "bob@peer.example" || resolved.DisplayName != "Bob" {
+ /*line actor_handles_test.mygo:61:5*/		t.Fatal("verified handle or display name was wrong")
+ /*line actor_handles_test.mygo:60:3*/	} else {
  /*line zz_actor_handles.gen_test.go:48:1*/	}
  /*line actor_handles_test.mygo:15:1*/	subject = "acct:bob@custom.example"
- /*line actor_handles_test.mygo:41:6*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
- /*line actor_handles_test.mygo:42:5*/		t.Fatal("custom-domain subject was guessed from the Actor authority")
- /*line actor_handles_test.mygo:41:6*/	} else {
+ /*line actor_handles_test.mygo:64:3*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
+ /*line actor_handles_test.mygo:65:5*/		t.Fatal("custom-domain subject was guessed from the Actor authority")
+ /*line actor_handles_test.mygo:64:3*/	} else {
  /*line zz_actor_handles.gen_test.go:53:1*/	}
  /*line actor_handles_test.mygo:15:1*/	subject = "acct:bob@peer.example"
 	selfHref = "https://other.example/users/bob"
- /*line actor_handles_test.mygo:46:6*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
- /*line actor_handles_test.mygo:47:5*/		t.Fatal("mismatched self link was accepted")
- /*line actor_handles_test.mygo:46:6*/	} else {
+ /*line actor_handles_test.mygo:69:3*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
+ /*line actor_handles_test.mygo:70:5*/		t.Fatal("mismatched self link was accepted")
+ /*line actor_handles_test.mygo:69:3*/	} else {
  /*line zz_actor_handles.gen_test.go:59:1*/	}
  /*line actor_handles_test.mygo:15:1*/	selfHref = actorURI
 	actorID = "https://other.example/users/bob"
- /*line actor_handles_test.mygo:51:6*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
- /*line actor_handles_test.mygo:52:5*/		t.Fatal("mismatched Actor id was accepted")
- /*line actor_handles_test.mygo:51:6*/	} else {
+ /*line actor_handles_test.mygo:74:3*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
+ /*line actor_handles_test.mygo:75:5*/		t.Fatal("mismatched Actor id was accepted")
+ /*line actor_handles_test.mygo:74:3*/	} else {
  /*line zz_actor_handles.gen_test.go:65:1*/	}
  /*line actor_handles_test.mygo:15:1*/	actorID = actorURI
 	actorType = "Group"
- /*line actor_handles_test.mygo:56:6*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
- /*line actor_handles_test.mygo:57:5*/		t.Fatal("Group Actor document was accepted")
- /*line actor_handles_test.mygo:56:6*/	} else {
+ /*line actor_handles_test.mygo:79:3*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
+ /*line actor_handles_test.mygo:80:5*/		t.Fatal("Group Actor document was accepted")
+ /*line actor_handles_test.mygo:79:3*/	} else {
  /*line zz_actor_handles.gen_test.go:71:1*/	}
  /*line actor_handles_test.mygo:15:1*/	actorType = "Person"
 	preferred = ""
- /*line actor_handles_test.mygo:61:6*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
- /*line actor_handles_test.mygo:62:5*/		t.Fatal("empty preferredUsername was accepted")
- /*line actor_handles_test.mygo:61:6*/	} else {
+ /*line actor_handles_test.mygo:84:3*/	if MygoIN6ResultM4IsOk[ResolvedActorHandle, string](ResolveActorHandleWith(context.Background(), settings, actorURI, fetcher)) {
+ /*line actor_handles_test.mygo:85:5*/		t.Fatal("empty preferredUsername was accepted")
+ /*line actor_handles_test.mygo:84:3*/	} else {
  /*line zz_actor_handles.gen_test.go:77:1*/	}
- /*line actor_handles_test.mygo:64:3*/	return
+ /*line actor_handles_test.mygo:87:3*/	return
  /*line zz_actor_handles.gen_test.go:79:1*/}
- /*line actor_handles_test.mygo:67:1*/func TestPostgresActorHandleWorkerAndBrowserProjection(t *testing.T) {
- /*line actor_handles_test.mygo:68:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line actor_handles_test.mygo:90:1*/func TestPostgresActorHandleWorkerAndBrowserProjection(t *testing.T) {
+ /*line actor_handles_test.mygo:91:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_actor_handles.gen_test.go:87:1*/	}
- /*line actor_handles_test.mygo:67:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line actor_handles_test.mygo:90:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -93,83 +93,87 @@ import . "github.com/mygo-lang/mygo/prelude"
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.SaveProfile(ctx, db, alice, storage.ProfileRecord{ActorURI: alice.ActorURI, DisplayName: "Alice", UpdatedAt: time.Now()}))
+	aliceProfile := Zero[storage.ProfileRecord]()
+	aliceProfile.ActorURI = alice.ActorURI
+	aliceProfile.DisplayName = "Alice"
+	aliceProfile.UpdatedAt = time.Now()
+	MygoIN6ResultM6Unwrap[struct{}, string](storage.SaveProfile(ctx, db, alice, aliceProfile))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	local := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Local", Body: "local body"}))
+	local := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Local", Body: "local body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	remote := "https://peer.example/users/bob"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.EnsureRemoteActor(ctx, db, remote, "Person"))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	incoming := storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/1", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remote, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote body", AuthoredAt: now, UpdatedAt: now}
+	incoming := storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/1", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remote, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote body", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
 	received := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote))
 	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote))
 	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(repository, ctx, alice))
 	before := MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, repository, viewer, []storage.PostRecord{local, received}))
 	localBefore := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(before, func(post PostOutput) bool {
- /*line actor_handles_test.mygo:91:66*/		return post.ID == local.ID
- /*line actor_handles_test.mygo:91:95*/	}), 0))
- /*line actor_handles_test.mygo:67:1*/	remoteBefore := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(before, func(post_1 PostOutput) bool {
- /*line actor_handles_test.mygo:92:67*/		return post_1.ID == received.ID
- /*line actor_handles_test.mygo:92:99*/	}), 0))
- /*line actor_handles_test.mygo:93:6*/	if localBefore.Author.Acct != "alice@forum-a.example" || localBefore.Author.DisplayName != "Alice" {
- /*line actor_handles_test.mygo:94:5*/		t.Fatal("local author handle or display name was wrong")
- /*line actor_handles_test.mygo:93:6*/	} else {
- /*line zz_actor_handles.gen_test.go:119:1*/	}
- /*line actor_handles_test.mygo:96:6*/	if remoteBefore.Author.Acct != "" || remoteBefore.Author.DisplayName != "" {
- /*line actor_handles_test.mygo:97:5*/		t.Fatal("unresolved remote author was guessed")
- /*line actor_handles_test.mygo:96:6*/	} else {
+ /*line actor_handles_test.mygo:169:66*/		return post.ID == local.ID
+ /*line actor_handles_test.mygo:169:95*/	}), 0))
+ /*line actor_handles_test.mygo:90:1*/	remoteBefore := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(before, func(post_1 PostOutput) bool {
+ /*line actor_handles_test.mygo:170:67*/		return post_1.ID == received.ID
+ /*line actor_handles_test.mygo:170:99*/	}), 0))
+ /*line actor_handles_test.mygo:171:3*/	if localBefore.Author.Acct != "alice@forum-a.example" || localBefore.Author.DisplayName != "Alice" {
+ /*line actor_handles_test.mygo:173:5*/		t.Fatal("local author handle or display name was wrong")
+ /*line actor_handles_test.mygo:171:3*/	} else {
  /*line zz_actor_handles.gen_test.go:123:1*/	}
- /*line actor_handles_test.mygo:67:1*/	var queued int64 = int64(0)
+ /*line actor_handles_test.mygo:175:3*/	if remoteBefore.Author.Acct != "" || remoteBefore.Author.DisplayName != "" {
+ /*line actor_handles_test.mygo:176:5*/		t.Fatal("unresolved remote author was guessed")
+ /*line actor_handles_test.mygo:175:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:127:1*/	}
+ /*line actor_handles_test.mygo:90:1*/	var queued int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, remote).Count(&queued)))
- /*line actor_handles_test.mygo:101:6*/	if queued != int64(1) {
- /*line actor_handles_test.mygo:102:5*/		t.Fatal("remote reception did not enqueue exactly one resolution job")
- /*line actor_handles_test.mygo:101:6*/	} else {
- /*line zz_actor_handles.gen_test.go:129:1*/	}
- /*line actor_handles_test.mygo:67:1*/	fetches := 0
+ /*line actor_handles_test.mygo:184:3*/	if queued != int64(1) {
+ /*line actor_handles_test.mygo:185:5*/		t.Fatal("remote reception did not enqueue exactly one resolution job")
+ /*line actor_handles_test.mygo:184:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:133:1*/	}
+ /*line actor_handles_test.mygo:90:1*/	fetches := 0
 	fetcher := func(ctx_1 context.Context, uri string, accept string, limits federation.FetchLimits) Result[federation.FetchResult, string] {
- /*line actor_handles_test.mygo:106:17*/		fetches = fetches + 1
- /*line actor_handles_test.mygo:108:8*/		if strings.Contains(uri, "/.well-known/webfinger?") {
- /*line actor_handles_test.mygo:109:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: []byte("{\"subject\":\"acct:bob@peer.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + remote + "\"}]}")})
- /*line actor_handles_test.mygo:108:8*/		} else {
- /*line zz_actor_handles.gen_test.go:136:1*/		}
- /*line actor_handles_test.mygo:111:5*/		return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: []byte("{\"id\":\"" + remote + "\",\"type\":\"Person\",\"preferredUsername\":\"bob\",\"name\":\"Bob\",\"inbox\":\"https://peer.example/inbox\"}")})
- /*line zz_actor_handles.gen_test.go:138:1*/	}
- /*line actor_handles_test.mygo:67:1*/	outcome := MygoIN6ResultM6Unwrap[ActorHandleOutcome, string](RunActorHandleBatchWith(ctx, settings, db, fetcher))
- /*line actor_handles_test.mygo:114:6*/	if outcome.Resolved != 1 || fetches != 2 {
- /*line actor_handles_test.mygo:115:5*/		t.Fatal("actor handle worker did not resolve the queued author")
- /*line actor_handles_test.mygo:114:6*/	} else {
- /*line zz_actor_handles.gen_test.go:143:1*/	}
- /*line actor_handles_test.mygo:67:1*/	after := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, repository, viewer, []storage.PostRecord{received})), 0))
- /*line actor_handles_test.mygo:118:6*/	if fetches != 2 || after.Author.Acct != "bob@peer.example" || after.Author.DisplayName != "Bob" {
- /*line actor_handles_test.mygo:119:5*/		t.Fatal("browser projection fetched remotely or did not use the resolved handle")
- /*line actor_handles_test.mygo:118:6*/	} else {
- /*line zz_actor_handles.gen_test.go:148:1*/	}
- /*line actor_handles_test.mygo:67:1*/	handler := Handler(settings, db)
+ /*line actor_handles_test.mygo:188:17*/		fetches = fetches + 1
+ /*line actor_handles_test.mygo:190:5*/		if strings.Contains(uri, "/.well-known/webfinger?") {
+ /*line actor_handles_test.mygo:191:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", FinalURL: uri, Body: []byte("{\"subject\":\"acct:bob@peer.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + remote + "\"}]}")})
+ /*line actor_handles_test.mygo:190:5*/		} else {
+ /*line zz_actor_handles.gen_test.go:140:1*/		}
+ /*line actor_handles_test.mygo:200:5*/		return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", FinalURL: uri, Body: []byte("{\"id\":\"" + remote + "\",\"type\":\"Person\",\"preferredUsername\":\"bob\",\"name\":\"Bob\",\"inbox\":\"https://peer.example/inbox\"}")})
+ /*line zz_actor_handles.gen_test.go:142:1*/	}
+ /*line actor_handles_test.mygo:90:1*/	outcome := MygoIN6ResultM6Unwrap[ActorHandleOutcome, string](RunActorHandleBatchWith(ctx, settings, db, fetcher))
+ /*line actor_handles_test.mygo:210:3*/	if outcome.Resolved != 1 || fetches != 2 {
+ /*line actor_handles_test.mygo:211:5*/		t.Fatal("actor handle worker did not resolve the queued author")
+ /*line actor_handles_test.mygo:210:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:147:1*/	}
+ /*line actor_handles_test.mygo:90:1*/	after := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, repository, viewer, []storage.PostRecord{received})), 0))
+ /*line actor_handles_test.mygo:214:3*/	if fetches != 2 || after.Author.Acct != "bob@peer.example" || after.Author.DisplayName != "Bob" {
+ /*line actor_handles_test.mygo:217:5*/		t.Fatal("browser projection fetched remotely or did not use the resolved handle")
+ /*line actor_handles_test.mygo:214:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:152:1*/	}
+ /*line actor_handles_test.mygo:90:1*/	handler := Handler(settings, db)
 	var noCookies []*http.Cookie = []*http.Cookie{}
 	localHTTP := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+local.ID, noCookies, 200))
 	remoteHTTP := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+received.ID, noCookies, 200))
- /*line actor_handles_test.mygo:126:6*/	if localHTTP.Author.Acct != "alice@forum-a.example" || localHTTP.Author.DisplayName != "Alice" || remoteHTTP.Author.Acct != "bob@peer.example" || remoteHTTP.Author.DisplayName != "Bob" {
- /*line actor_handles_test.mygo:127:5*/		t.Fatal("HTTP post responses did not expose the author projection")
- /*line actor_handles_test.mygo:126:6*/	} else {
- /*line zz_actor_handles.gen_test.go:156:1*/	}
- /*line actor_handles_test.mygo:129:6*/	if fetches != 2 {
- /*line actor_handles_test.mygo:130:5*/		t.Fatal("browser reads triggered remote handle resolution")
+ /*line actor_handles_test.mygo:229:3*/	if localHTTP.Author.Acct != "alice@forum-a.example" || localHTTP.Author.DisplayName != "Alice" || remoteHTTP.Author.Acct != "bob@peer.example" || remoteHTTP.Author.DisplayName != "Bob" {
+ /*line actor_handles_test.mygo:233:5*/		t.Fatal("HTTP post responses did not expose the author projection")
+ /*line actor_handles_test.mygo:229:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:160:1*/	}
+ /*line actor_handles_test.mygo:235:3*/	if fetches != 2 {
+ /*line actor_handles_test.mygo:236:5*/		t.Fatal("browser reads triggered remote handle resolution")
 		return
- /*line actor_handles_test.mygo:129:6*/	} else {
- /*line actor_handles_test.mygo:129:3*/		return
- /*line zz_actor_handles.gen_test.go:162:1*/	}
+ /*line actor_handles_test.mygo:235:3*/	} else {
+		return
+ /*line zz_actor_handles.gen_test.go:166:1*/	}
 }
- /*line actor_handles_test.mygo:134:1*/func TestPostgresActorHandleWorkerOutcomes(t *testing.T) {
- /*line actor_handles_test.mygo:135:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line actor_handles_test.mygo:240:1*/func TestPostgresActorHandleWorkerOutcomes(t *testing.T) {
+ /*line actor_handles_test.mygo:241:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_actor_handles.gen_test.go:171:1*/	}
- /*line actor_handles_test.mygo:134:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_actor_handles.gen_test.go:175:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -188,48 +192,48 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, blocked)))
 	calls := 0
 	fetcher := func(ctx_1 context.Context, uri string, accept string, limits federation.FetchLimits) Result[federation.FetchResult, string] {
- /*line actor_handles_test.mygo:154:17*/		calls = calls + 1
- /*line actor_handles_test.mygo:156:8*/		if strings.Contains(uri, "good") {
- /*line actor_handles_test.mygo:157:10*/			if strings.Contains(uri, "/.well-known/webfinger?") {
- /*line actor_handles_test.mygo:158:16*/				return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: []byte("{\"subject\":\"acct:good@peer.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + good + "\"}]}")})
- /*line actor_handles_test.mygo:157:10*/			} else {
- /*line zz_actor_handles.gen_test.go:196:1*/			}
- /*line actor_handles_test.mygo:160:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: []byte("{\"id\":\"" + good + "\",\"type\":\"Person\",\"preferredUsername\":\"good\",\"name\":\"Good\",\"inbox\":\"https://peer.example/inbox\"}")})
- /*line actor_handles_test.mygo:156:8*/		} else {
- /*line zz_actor_handles.gen_test.go:199:1*/		}
- /*line actor_handles_test.mygo:162:5*/		return Err[federation.FetchResult, string]("unreachable")
- /*line zz_actor_handles.gen_test.go:201:1*/	}
- /*line actor_handles_test.mygo:134:1*/	first := MygoIN6ResultM6Unwrap[ActorHandleOutcome, string](RunActorHandleBatchWith(ctx, settings, db, fetcher))
- /*line actor_handles_test.mygo:165:6*/	if first.Resolved != 1 || first.Retried != 1 || first.Suppressed != 1 || calls != 3 {
- /*line actor_handles_test.mygo:166:5*/		t.Fatal("worker did not isolate success, retry, and block outcomes")
- /*line actor_handles_test.mygo:165:6*/	} else {
- /*line zz_actor_handles.gen_test.go:206:1*/	}
- /*line actor_handles_test.mygo:134:1*/	goodActor := storage.ActorRecord{}
+ /*line actor_handles_test.mygo:263:17*/		calls = calls + 1
+ /*line actor_handles_test.mygo:265:5*/		if strings.Contains(uri, "good") {
+ /*line actor_handles_test.mygo:266:7*/			if strings.Contains(uri, "/.well-known/webfinger?") {
+ /*line actor_handles_test.mygo:267:16*/				return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: []byte("{\"subject\":\"acct:good@peer.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"" + good + "\"}]}"), FinalURL: uri})
+ /*line actor_handles_test.mygo:266:7*/			} else {
+ /*line zz_actor_handles.gen_test.go:200:1*/			}
+ /*line actor_handles_test.mygo:276:14*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: []byte("{\"id\":\"" + good + "\",\"type\":\"Person\",\"preferredUsername\":\"good\",\"name\":\"Good\",\"inbox\":\"https://peer.example/inbox\"}"), FinalURL: uri})
+ /*line actor_handles_test.mygo:265:5*/		} else {
+ /*line zz_actor_handles.gen_test.go:203:1*/		}
+ /*line actor_handles_test.mygo:285:5*/		return Err[federation.FetchResult, string]("unreachable")
+ /*line zz_actor_handles.gen_test.go:205:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	first := MygoIN6ResultM6Unwrap[ActorHandleOutcome, string](RunActorHandleBatchWith(ctx, settings, db, fetcher))
+ /*line actor_handles_test.mygo:288:3*/	if first.Resolved != 1 || first.Retried != 1 || first.Suppressed != 1 || calls != 3 {
+ /*line actor_handles_test.mygo:289:5*/		t.Fatal("worker did not isolate success, retry, and block outcomes")
+ /*line actor_handles_test.mygo:288:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:210:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	goodActor := Zero[storage.ActorRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actors").Where("uri=?", good).Take(&goodActor)))
-	badActor := storage.ActorRecord{}
+	badActor := Zero[storage.ActorRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actors").Where("uri=?", bad).Take(&badActor)))
- /*line actor_handles_test.mygo:172:6*/	if goodActor.Acct != "good@peer.example" || badActor.Acct != "" {
- /*line actor_handles_test.mygo:173:5*/		t.Fatal("worker wrote a handle for the failed actor or missed the good actor")
- /*line actor_handles_test.mygo:172:6*/	} else {
- /*line zz_actor_handles.gen_test.go:214:1*/	}
- /*line actor_handles_test.mygo:134:1*/	blockedJob := storage.ActorHandleJobRecord{}
+ /*line actor_handles_test.mygo:295:3*/	if goodActor.Acct != "good@peer.example" || badActor.Acct != "" {
+ /*line actor_handles_test.mygo:296:5*/		t.Fatal("worker wrote a handle for the failed actor or missed the good actor")
+ /*line actor_handles_test.mygo:295:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:218:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	blockedJob := Zero[storage.ActorHandleJobRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, blocked).Take(&blockedJob)))
- /*line actor_handles_test.mygo:177:6*/	if blockedJob.State != "suppressed" {
- /*line actor_handles_test.mygo:178:5*/		t.Fatal("blocked actor job was not suppressed")
- /*line actor_handles_test.mygo:177:6*/	} else {
- /*line zz_actor_handles.gen_test.go:220:1*/	}
- /*line actor_handles_test.mygo:134:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE actor_handle_jobs SET attempts=?,available_at=now() - interval '1 minute' WHERE site_id=? AND actor_uri=?", int64(settings.ParticipationWorkers.MaxAttempts), site.ID, bad)))
+ /*line actor_handles_test.mygo:304:3*/	if blockedJob.State != "suppressed" {
+ /*line actor_handles_test.mygo:305:5*/		t.Fatal("blocked actor job was not suppressed")
+ /*line actor_handles_test.mygo:304:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:224:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE actor_handle_jobs SET attempts=?,available_at=now() - interval '1 minute' WHERE site_id=? AND actor_uri=?", int64(settings.ParticipationWorkers.MaxAttempts), site.ID, bad)))
 	exhausted := MygoIN6ResultM6Unwrap[ActorHandleOutcome, string](RunActorHandleBatchWith(ctx, settings, db, fetcher))
- /*line actor_handles_test.mygo:183:6*/	if exhausted.Failed != 1 {
- /*line actor_handles_test.mygo:184:5*/		t.Fatal("exhausted actor handle job did not fail")
- /*line actor_handles_test.mygo:183:6*/	} else {
- /*line zz_actor_handles.gen_test.go:226:1*/	}
- /*line actor_handles_test.mygo:134:1*/	badJob := storage.ActorHandleJobRecord{}
+ /*line actor_handles_test.mygo:314:3*/	if exhausted.Failed != 1 {
+ /*line actor_handles_test.mygo:315:5*/		t.Fatal("exhausted actor handle job did not fail")
+ /*line actor_handles_test.mygo:314:3*/	} else {
+ /*line zz_actor_handles.gen_test.go:230:1*/	}
+ /*line actor_handles_test.mygo:240:1*/	badJob := Zero[storage.ActorHandleJobRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", site.ID, bad).Take(&badJob)))
- /*line actor_handles_test.mygo:188:6*/	if badJob.State != "failed" || !badJob.ErrorCode.Valid {
- /*line actor_handles_test.mygo:189:5*/		t.Fatal("failed actor handle job did not retain its terminal reason")
+ /*line actor_handles_test.mygo:323:3*/	if badJob.State != "failed" || !badJob.ErrorCode.Valid {
+ /*line actor_handles_test.mygo:324:5*/		t.Fatal("failed actor handle job did not retain its terminal reason")
 		return
- /*line actor_handles_test.mygo:188:6*/	} else {
- /*line actor_handles_test.mygo:188:3*/		return
- /*line zz_actor_handles.gen_test.go:234:1*/	}
+ /*line actor_handles_test.mygo:323:3*/	} else {
+		return
+ /*line zz_actor_handles.gen_test.go:238:1*/	}
 }

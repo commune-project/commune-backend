@@ -12,7 +12,7 @@ func TestPostgresModerationNotificationsAndTargetAccess(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let site = testSite("a", "https://a.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
   let accounts = AccountRepository{DB: db}
@@ -22,7 +22,7 @@ func TestPostgresModerationNotificationsAndTargetAccess(t: Ref[testing.T]) -> ()
   let admin = FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
   let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let posts = PostRepository{DB: db, SiteID: site.ID}
-  let post = posts.Publish(ctx, site, community.ID, author, false, PublishInput{Title: "Moderated", Body: "body"}).Unwrap()
+  let post = posts.Publish(ctx, site, community.ID, author, false, testPublishInput("Moderated", "body")).Unwrap()
   let _ = CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "report").Unwrap()
   let reports = ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0).Unwrap()
   let _ = ResolveReport(ctx, db, site.ID, admin, reports.Get(0).Unwrap().ID, "resolved", "handled").Unwrap()
@@ -33,8 +33,8 @@ func TestPostgresModerationNotificationsAndTargetAccess(t: Ref[testing.T]) -> ()
   let browser = BrowserRepository{DB: db, SiteID: site.ID}
   let reporterBrowser = browser.Viewer(ctx, reporter).Unwrap()
   let targetBrowser = browser.Viewer(ctx, target).Unwrap()
-  let reporterPage = browser.Notifications(ctx, reporterBrowser, Page{Limit: 20}, 50).Unwrap()
-  let targetPage = browser.Notifications(ctx, targetBrowser, Page{Limit: 20}, 50).Unwrap()
+  let reporterPage = browser.Notifications(ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50).Unwrap()
+  let targetPage = browser.Notifications(ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50).Unwrap()
   if reporterPage.Items.Len() != 1 || targetPage.Items.Len() != 1 then
     t.Fatal("report or ban notification was not projected exactly once")
   end
@@ -46,12 +46,12 @@ func TestPostgresModerationNotificationsAndTargetAccess(t: Ref[testing.T]) -> ()
   end
   let _ = UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI).Unwrap()
   if browser.NotificationUnreadCount(ctx, targetBrowser).Unwrap() != 0i64 ||
-    browser.Notifications(ctx, targetBrowser, Page{Limit: 20}, 50).Unwrap().Items.Len() != 0 then
+    browser.Notifications(ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50).Unwrap().Items.Len() != 0 then
     t.Fatal("inactive ban notification remained accessible")
   end
   let _ = FeedRepository{DB: db, SiteID: site.ID}.SetHidden(ctx, post.ID, true, admin).Unwrap()
   if browser.NotificationUnreadCount(ctx, reporterBrowser).Unwrap() != 0i64 ||
-    browser.Notifications(ctx, reporterBrowser, Page{Limit: 20}, 50).Unwrap().Items.Len() != 0 then
+    browser.Notifications(ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50).Unwrap().Items.Len() != 0 then
     t.Fatal("inaccessible report target notification remained visible")
   end
 end

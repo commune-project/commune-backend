@@ -25,7 +25,7 @@ func TestPostgresFederationMediaActorAuthorization(t: Ref[testing.T]) -> ()
   t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
   let repository = storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
   let uploaded = repository.Upload(ctx, alice, "post", "note.txt", "text/plain", strings.NewReader("private file") as io.Reader).Unwrap()
-  let post = PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Private", Body: "[file](/api/v1/media/" + uploaded.ID + ")", ContentFormat: "markdown", AttachmentIDs: [uploaded.ID]}).Unwrap()
+  let post = PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Private", Body: "[file](/api/v1/media/", ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: [uploaded.ID], Mentions: []}).Unwrap()
   let binding: String = ""
   let _ = storage.MutationResult(db.Raw("SELECT id FROM media_bindings WHERE post_id=? AND active", post.ID).Scan(Ref.new(binding))).Unwrap()
   let key = storage.GeneratePrivatePEM().Unwrap()
@@ -39,14 +39,14 @@ func TestPostgresFederationMediaActorAuthorization(t: Ref[testing.T]) -> ()
   let handler = Handler(settings, db)
   let path = "/federation-media/" + binding
   let date = time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05 GMT")
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path}).Code != 404 then t.Fatal("unsigned request read private attachment") end
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: [], CSRF: "", Source: ""}).Code != 404 then t.Fatal("unsigned request read private attachment") end
   let allowed = signedGet(handler, site.Origin, path, member, key, date)
   if allowed.Code != 200 || allowed.Body.String() != "private file" then t.Fatalf("authorized Actor denied attachment: %d %s", allowed.Code, allowed.Body.String()) end
   if signedGet(handler, site.Origin, path, outsider, key, date).Code != 404 || signedGet(handler, site.Origin, path, instance, key, date).Code != 404 then t.Fatal("non-member or server-only signature read private media") end
   let activityID: String = ""
   let _ = storage.MutationResult(db.Raw("SELECT uri FROM activities WHERE actor_uri=? AND kind='Create'", alice.ActorURI).Scan(Ref.new(activityID))).Unwrap()
   let activityPath = strings.TrimPrefix(activityID, site.Origin)
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: activityPath}).Code != 404 || signedGet(handler, site.Origin, activityPath, member, key, date).Code != 200 then t.Fatal("private canonical activity lacks Actor authorization") end
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: activityPath, Payload: "", Cookies: [], CSRF: "", Source: ""}).Code != 404 || signedGet(handler, site.Origin, activityPath, member, key, date).Code != 200 then t.Fatal("private canonical activity lacks Actor authorization") end
   let _ = storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", member)).Unwrap()
   if signedGet(handler, site.Origin, path, member, key, date).Code != 404 then t.Fatal("revoked member retained origin media access") end
 end

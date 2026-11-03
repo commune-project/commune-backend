@@ -72,7 +72,7 @@ impl MediaRepository
     if candidates.IsErr() then
       return Err(candidates.UnwrapErr())
     end
-    var page = MediaReconcilePage{Next: after, Done: candidates.Unwrap().Len() < max}
+    var page = MediaReconcilePage{Examined: 0, Deleted: 0, Next: after, Done: candidates.Unwrap().Len() < max}
     var index: Int = 0
     while index < candidates.Unwrap().Len()
       let row = candidates.Unwrap().Get(index).Unwrap()

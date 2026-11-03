@@ -18,30 +18,30 @@ import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line browser_test.mygo:16:1*/func browserGet(t *testing.T, handler http.HandlerFunc, origin string, path string, cookies []*http.Cookie, status int) *httptest.ResponseRecorder {
-	result := doForum(handler, forumCall{Method: "GET", Origin: origin, Path: path, Cookies: cookies})
- /*line browser_test.mygo:33:6*/	if result.Code != status || result.Header().Get("Cache-Control") != "no-store" {
- /*line browser_test.mygo:34:5*/		t.Fatalf("GET %s: expected %d, got %d %s", path, status, result.Code, result.Body.String())
- /*line browser_test.mygo:33:6*/	} else {
+	result := doForum(handler, forumCall{Method: "GET", Origin: origin, Path: path, Cookies: cookies, Payload: "", CSRF: "", Source: ""})
+ /*line browser_test.mygo:36:3*/	if result.Code != status || result.Header().Get("Cache-Control") != "no-store" {
+ /*line browser_test.mygo:37:5*/		t.Fatalf("GET %s: expected %d, got %d %s", path, status, result.Code, result.Body.String())
+ /*line browser_test.mygo:36:3*/	} else {
  /*line zz_browser.gen_test.go:25:1*/	}
- /*line browser_test.mygo:36:3*/	return result
+ /*line browser_test.mygo:39:3*/	return result
  /*line zz_browser.gen_test.go:27:1*/}
- /*line browser_test.mygo:39:1*/func TestBrowserUnavailableAuthentication(t *testing.T) {
- /*line browser_test.mygo:40:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
+ /*line browser_test.mygo:42:1*/func TestBrowserUnavailableAuthentication(t *testing.T) {
+ /*line browser_test.mygo:43:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.New()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*transport.Fixture, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*transport.Fixture, error](__mygo_expr_2)
  /*line zz_browser.gen_test.go:35:1*/	}
- /*line browser_test.mygo:39:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
- /*line browser_test.mygo:41:12*/	var __mygo_expr_4 Result[*gorm.DB, error]
+ /*line browser_test.mygo:42:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
+ /*line browser_test.mygo:44:12*/	var __mygo_expr_4 Result[*gorm.DB, error]
 	__mygo_expr_5, __mygo_expr_3 := transport.ORM(fixture.DB)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*gorm.DB, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*gorm.DB, error](__mygo_expr_5)
  /*line zz_browser.gen_test.go:43:1*/	}
- /*line browser_test.mygo:39:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_4)
+ /*line browser_test.mygo:42:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_4)
 	fixture.Mock.ExpectClose()
 	fixture.DB.Close()
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -50,14 +50,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 	tokens := auth.NewSessionTokens()
 	cookies := auth.MygoIN13SessionTokensM7Cookies(tokens, time.Now().Add(time.Hour))
 	cookieRefs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(cookies, func(cookie http.Cookie) *http.Cookie {
- /*line browser_test.mygo:50:5*/		return &cookie
+ /*line browser_test.mygo:53:5*/		return &cookie
  /*line zz_browser.gen_test.go:54:1*/	})
- /*line browser_test.mygo:39:1*/	var paths []string = []string{"/api/v1/communities", "/api/v1/topics", "/api/v1/posts/missing", "/api/v1/posts/missing/source", "/api/v1/communities/missing/members"}
- /*line browser_test.mygo:59:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(paths, func(path string) {
- /*line browser_test.mygo:60:5*/		browserGet(t, handler, site.Origin, path, cookieRefs, 503)
- /*line browser_test.mygo:61:5*/		return
+ /*line browser_test.mygo:42:1*/	var paths []string = []string{"/api/v1/communities", "/api/v1/topics", "/api/v1/posts/missing", "/api/v1/posts/missing/source", "/api/v1/communities/missing/members"}
+ /*line browser_test.mygo:62:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(paths, func(path string) {
+ /*line browser_test.mygo:63:5*/		browserGet(t, handler, site.Origin, path, cookieRefs, 503)
+ /*line browser_test.mygo:64:5*/		return
  /*line zz_browser.gen_test.go:59:1*/	})
- /*line browser_test.mygo:63:3*/	var __mygo_expr_7 Result[struct{}, error]
+ /*line browser_test.mygo:66:3*/	var __mygo_expr_7 Result[struct{}, error]
 	__mygo_expr_6 := fixture.Mock.ExpectationsWereMet()
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[struct{}, error](__mygo_expr_6)
@@ -65,12 +65,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:66:1*/		}{})
 	}
- /*line browser_test.mygo:63:3*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_7)
- /*line browser_test.mygo:64:3*/	return
+ /*line browser_test.mygo:66:3*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_7)
+ /*line browser_test.mygo:67:3*/	return
  /*line zz_browser.gen_test.go:70:1*/}
- /*line browser_test.mygo:67:1*/func browserPost(t *testing.T, response *httptest.ResponseRecorder) PostOutput {
-	output := PostOutput{}
- /*line browser_test.mygo:69:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line browser_test.mygo:70:1*/func browserPost(t *testing.T, response *httptest.ResponseRecorder) PostOutput {
+	output := Zero[PostOutput]()
+ /*line browser_test.mygo:72:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(response.Body.Bytes(), &output)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -78,21 +78,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:79:1*/		}{})
 	}
- /*line browser_test.mygo:69:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line browser_test.mygo:70:5*/		t.Fatalf("invalid post: %s", response.Body.String())
- /*line browser_test.mygo:69:6*/	} else {
+ /*line browser_test.mygo:72:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line browser_test.mygo:73:5*/		t.Fatalf("invalid post: %s", response.Body.String())
+ /*line browser_test.mygo:72:3*/	} else {
  /*line zz_browser.gen_test.go:84:1*/	}
- /*line browser_test.mygo:72:3*/	return output
+ /*line browser_test.mygo:75:3*/	return output
  /*line zz_browser.gen_test.go:86:1*/}
- /*line browser_test.mygo:75:1*/func TestPostgresBrowserDiscoveryAndSource(t *testing.T) {
- /*line browser_test.mygo:76:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line browser_test.mygo:78:1*/func TestPostgresBrowserDiscoveryAndSource(t *testing.T) {
+ /*line browser_test.mygo:79:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_browser.gen_test.go:94:1*/	}
- /*line browser_test.mygo:75:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line browser_test.mygo:78:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -114,17 +114,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 	foreignPosts := storage.PostRepository{DB: db, SiteID: b.ID}
 	raw := "<p>hello &amp; world</p>"
 	title := "<b>Title &amp;</b>"
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: title, Body: raw}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, private.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "secret"}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(foreignPosts, ctx, b, foreign.ID, carol, false, storage.PublishInput{Title: "Foreign", Body: "foreign"}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: title, Body: raw, ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, private.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "secret", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(foreignPosts, ctx, b, foreign.ID, carol, false, storage.PublishInput{Title: "Foreign", Body: "foreign", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	aliceCookies := login(handler, a.Origin, "alice", "alice-account-password")
 	bobCookies := login(handler, a.Origin, "bob", "bob-account-password")
 	carolCookies := login(handler, b.Origin, "carol", "carol-account-password")
 	var anonymous []*http.Cookie = []*http.Cookie{}
 	listed := browserGet(t, handler, a.Origin, "/api/v1/communities?limit=1", anonymous, 200)
-	page := CommunityPage{}
- /*line browser_test.mygo:174:11*/	var __mygo_expr_4 Result[struct{}, error]
+	page := Zero[CommunityPage]()
+ /*line browser_test.mygo:192:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(listed.Body.Bytes(), &page)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
@@ -132,14 +132,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:133:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line browser_test.mygo:175:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 1 || MygoIN6OptionM6Unwrap[CommunityOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ID != open.ID || MygoIN6OptionM6Unwrap[CommunityOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).Permissions.CanPost {
- /*line browser_test.mygo:178:5*/		t.Fatal("discovery did not filter before pagination")
- /*line browser_test.mygo:175:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
+ /*line browser_test.mygo:193:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 1 || MygoIN6OptionM6Unwrap[CommunityOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ID != open.ID || MygoIN6OptionM6Unwrap[CommunityOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).Permissions.CanPost {
+ /*line browser_test.mygo:196:5*/		t.Fatal("discovery did not filter before pagination")
+ /*line browser_test.mygo:193:3*/	} else {
  /*line zz_browser.gen_test.go:139:1*/	}
- /*line browser_test.mygo:75:1*/	localRead := browserGet(t, handler, a.Origin, "/api/v1/communities/"+local.ID, bobCookies, 200)
-	localDTO := CommunityOutput{}
- /*line browser_test.mygo:189:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line browser_test.mygo:78:1*/	localRead := browserGet(t, handler, a.Origin, "/api/v1/communities/"+local.ID, bobCookies, 200)
+	localDTO := Zero[CommunityOutput]()
+ /*line browser_test.mygo:207:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(localRead.Body.Bytes(), &localDTO)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
@@ -147,17 +147,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:148:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line browser_test.mygo:190:6*/	if localDTO.Viewer.IsMember || localDTO.Permissions.CanPost || localDTO.Permissions.CanManage {
- /*line browser_test.mygo:191:5*/		t.Fatal("ordinary reader received member or management permissions")
- /*line browser_test.mygo:190:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
+ /*line browser_test.mygo:208:3*/	if localDTO.Viewer.IsMember || localDTO.Permissions.CanPost || localDTO.Permissions.CanManage {
+ /*line browser_test.mygo:209:5*/		t.Fatal("ordinary reader received member or management permissions")
+ /*line browser_test.mygo:208:3*/	} else {
  /*line zz_browser.gen_test.go:154:1*/	}
- /*line browser_test.mygo:75:1*/	browserGet(t, handler, a.Origin, "/api/v1/communities/"+private.ID, bobCookies, 404)
+ /*line browser_test.mygo:78:1*/	browserGet(t, handler, a.Origin, "/api/v1/communities/"+private.ID, bobCookies, 404)
 	browserGet(t, handler, a.Origin, "/api/v1/communities/"+local.ID, anonymous, 404)
 	browserGet(t, handler, a.Origin, "/api/v1/communities/"+foreign.ID, aliceCookies, 404)
 	latest := browserGet(t, handler, a.Origin, "/api/v1/topics?limit=1", anonymous, 200)
-	topics := PostPage{}
- /*line browser_test.mygo:198:11*/	var __mygo_expr_8 Result[struct{}, error]
+	topics := Zero[PostPage]()
+ /*line browser_test.mygo:216:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(latest.Body.Bytes(), &topics)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
@@ -165,27 +165,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_8 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:166:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line browser_test.mygo:199:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topics.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topics.Items, 0)).ID != post.ID {
- /*line browser_test.mygo:200:5*/		t.Fatal("latest feed exposed restricted or foreign topics")
- /*line browser_test.mygo:199:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
+ /*line browser_test.mygo:217:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topics.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topics.Items, 0)).ID != post.ID {
+ /*line browser_test.mygo:218:5*/		t.Fatal("latest feed exposed restricted or foreign topics")
+ /*line browser_test.mygo:217:3*/	} else {
  /*line zz_browser.gen_test.go:172:1*/	}
- /*line browser_test.mygo:75:1*/	browserGet(t, handler, a.Origin, "/api/v1/topics?limit=0", anonymous, 400)
+ /*line browser_test.mygo:78:1*/	browserGet(t, handler, a.Origin, "/api/v1/topics?limit=0", anonymous, 400)
 	browserGet(t, handler, a.Origin, "/api/v1/topics?offset=-1", anonymous, 400)
 	empty := browserGet(t, handler, a.Origin, "/api/v1/communities?offset=999", anonymous, 200)
- /*line browser_test.mygo:205:6*/	if !strings.Contains(empty.Body.String(), "\"items\":[]") {
- /*line browser_test.mygo:206:5*/		t.Fatal("empty page was not an array")
- /*line browser_test.mygo:205:6*/	} else {
+ /*line browser_test.mygo:223:3*/	if !strings.Contains(empty.Body.String(), "\"items\":[]") {
+ /*line browser_test.mygo:224:5*/		t.Fatal("empty page was not an array")
+ /*line browser_test.mygo:223:3*/	} else {
  /*line zz_browser.gen_test.go:179:1*/	}
- /*line browser_test.mygo:75:1*/	path := "/api/v1/posts/" + post.ID
+ /*line browser_test.mygo:78:1*/	path := "/api/v1/posts/" + post.ID
 	display := browserPost(t, browserGet(t, handler, a.Origin, path, aliceCookies, 200))
- /*line browser_test.mygo:210:6*/	if display.Body == raw || display.Title == title || !display.Permissions.CanEdit {
- /*line browser_test.mygo:211:5*/		t.Fatal("display/source boundary or author permissions failed")
- /*line browser_test.mygo:210:6*/	} else {
+ /*line browser_test.mygo:228:3*/	if display.Body == raw || display.Title == title || !display.Permissions.CanEdit {
+ /*line browser_test.mygo:229:5*/		t.Fatal("display/source boundary or author permissions failed")
+ /*line browser_test.mygo:228:3*/	} else {
  /*line zz_browser.gen_test.go:185:1*/	}
- /*line browser_test.mygo:75:1*/	source := PostSource{}
+ /*line browser_test.mygo:78:1*/	source := Zero[PostSource]()
 	sourceRead := browserGet(t, handler, a.Origin, path+"/source", aliceCookies, 200)
- /*line browser_test.mygo:215:11*/	var __mygo_expr_10 Result[struct{}, error]
+ /*line browser_test.mygo:233:11*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(sourceRead.Body.Bytes(), &source)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
@@ -193,26 +193,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:194:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
- /*line browser_test.mygo:216:6*/	if source.Body != raw || source.Title != title || source.ID != post.ID || !source.UpdatedAt.Equal(post.UpdatedAt) {
- /*line browser_test.mygo:220:5*/		t.Fatal("source did not preserve stored title/body")
- /*line browser_test.mygo:216:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
+ /*line browser_test.mygo:234:3*/	if source.Body != raw || source.Title != title || source.ID != post.ID || !source.UpdatedAt.Equal(post.UpdatedAt) {
+ /*line browser_test.mygo:238:5*/		t.Fatal("source did not preserve stored title/body")
+ /*line browser_test.mygo:234:3*/	} else {
  /*line zz_browser.gen_test.go:200:1*/	}
- /*line browser_test.mygo:222:17*/	var __mygo_expr_12 Result[[]byte, error]
-	__mygo_expr_13, __mygo_expr_11 := json.Marshal(EditPostInput{ExpectedVersion: source.Version, Title: source.Title, Body: source.Body})
+ /*line browser_test.mygo:240:17*/	var __mygo_expr_12 Result[[]byte, error]
+	__mygo_expr_13, __mygo_expr_11 := json.Marshal(EditPostInput{ExpectedVersion: source.Version, Title: source.Title, Body: source.Body, ContentFormat: "", AttachmentIDs: []string{}})
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[[]byte, error](__mygo_expr_11)
 	} else {
 		__mygo_expr_12 = Ok[[]byte, error](__mygo_expr_13)
  /*line zz_browser.gen_test.go:207:1*/	}
- /*line browser_test.mygo:75:1*/	payload := MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_12)
+ /*line browser_test.mygo:78:1*/	payload := MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_12)
 	edited := doForum(handler, forumCall{Method: "PATCH", Origin: a.Origin, Path: path, Payload: string(payload), Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
- /*line browser_test.mygo:239:6*/	if edited.Code != 200 || !browserPost(t, edited).Permissions.CanEdit {
- /*line browser_test.mygo:240:5*/		t.Fatalf("source round trip failed: %s", edited.Body.String())
- /*line browser_test.mygo:239:6*/	} else {
+ /*line browser_test.mygo:259:3*/	if edited.Code != 200 || !browserPost(t, edited).Permissions.CanEdit {
+ /*line browser_test.mygo:260:5*/		t.Fatalf("source round trip failed: %s", edited.Body.String())
+ /*line browser_test.mygo:259:3*/	} else {
  /*line zz_browser.gen_test.go:213:1*/	}
- /*line browser_test.mygo:75:1*/	again := PostSource{}
- /*line browser_test.mygo:243:11*/	var __mygo_expr_15 Result[struct{}, error]
+ /*line browser_test.mygo:78:1*/	again := Zero[PostSource]()
+ /*line browser_test.mygo:263:11*/	var __mygo_expr_15 Result[struct{}, error]
 	__mygo_expr_14 := json.Unmarshal(browserGet(t, handler, a.Origin, path+"/source", aliceCookies, 200).Body.Bytes(), &again)
 	if __mygo_expr_14 != nil {
 		__mygo_expr_15 = Err[struct{}, error](__mygo_expr_14)
@@ -220,32 +220,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_15 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:221:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_15)
- /*line browser_test.mygo:247:6*/	if again.Title != title || again.Body != raw {
- /*line browser_test.mygo:248:5*/		t.Fatal("unchanged edit lost source")
- /*line browser_test.mygo:247:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_15)
+ /*line browser_test.mygo:267:3*/	if again.Title != title || again.Body != raw {
+ /*line browser_test.mygo:268:5*/		t.Fatal("unchanged edit lost source")
+ /*line browser_test.mygo:267:3*/	} else {
  /*line zz_browser.gen_test.go:227:1*/	}
- /*line browser_test.mygo:75:1*/	browserGet(t, handler, a.Origin, path+"/source", anonymous, 401)
+ /*line browser_test.mygo:78:1*/	browserGet(t, handler, a.Origin, path+"/source", anonymous, 401)
 	browserGet(t, handler, a.Origin, path+"/source", bobCookies, 403)
 	browserGet(t, handler, b.Origin, path+"/source", carolCookies, 404)
 	browserGet(t, handler, b.Origin, path+"/source", aliceCookies, 401)
-	imported := doForum(handler, forumCall{Method: "POST", Origin: b.Origin, Path: path + "/import", Cookies: carolCookies, CSRF: csrfOf(carolCookies), Source: b.Origin})
- /*line browser_test.mygo:265:6*/	if imported.Code != 201 || browserPost(t, imported).Permissions.CanEdit {
- /*line browser_test.mygo:266:5*/		t.Fatalf("import response was incomplete: %s", imported.Body.String())
- /*line browser_test.mygo:265:6*/	} else {
+	imported := doForum(handler, forumCall{Method: "POST", Origin: b.Origin, Path: path + "/import", Cookies: carolCookies, CSRF: csrfOf(carolCookies), Source: b.Origin, Payload: ""})
+ /*line browser_test.mygo:286:3*/	if imported.Code != 201 || browserPost(t, imported).Permissions.CanEdit {
+ /*line browser_test.mygo:287:5*/		t.Fatalf("import response was incomplete: %s", imported.Body.String())
+ /*line browser_test.mygo:286:3*/	} else {
  /*line zz_browser.gen_test.go:236:1*/	}
- /*line browser_test.mygo:75:1*/	topicCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities/" + open.ID + "/topics", Payload: "{\"title\":\"Created\",\"body\":\"Body\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
- /*line browser_test.mygo:280:6*/	if topicCreated.Code != 201 || !browserPost(t, topicCreated).Permissions.CanReply {
- /*line browser_test.mygo:281:5*/		t.Fatalf("topic creation metadata failed: %s", topicCreated.Body.String())
- /*line browser_test.mygo:280:6*/	} else {
+ /*line browser_test.mygo:78:1*/	topicCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities/" + open.ID + "/topics", Payload: "{\"title\":\"Created\",\"body\":\"Body\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
+ /*line browser_test.mygo:301:3*/	if topicCreated.Code != 201 || !browserPost(t, topicCreated).Permissions.CanReply {
+ /*line browser_test.mygo:302:5*/		t.Fatalf("topic creation metadata failed: %s", topicCreated.Body.String())
+ /*line browser_test.mygo:301:3*/	} else {
  /*line zz_browser.gen_test.go:241:1*/	}
- /*line browser_test.mygo:75:1*/	replyCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: path + "/replies", Payload: "{\"body\":\"Reply\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
- /*line browser_test.mygo:295:6*/	if replyCreated.Code != 201 || !browserPost(t, replyCreated).Permissions.CanEdit {
- /*line browser_test.mygo:296:5*/		t.Fatalf("reply creation metadata failed: %s", replyCreated.Body.String())
- /*line browser_test.mygo:295:6*/	} else {
+ /*line browser_test.mygo:78:1*/	replyCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: path + "/replies", Payload: "{\"body\":\"Reply\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
+ /*line browser_test.mygo:316:3*/	if replyCreated.Code != 201 || !browserPost(t, replyCreated).Permissions.CanEdit {
+ /*line browser_test.mygo:317:5*/		t.Fatalf("reply creation metadata failed: %s", replyCreated.Body.String())
+ /*line browser_test.mygo:316:3*/	} else {
  /*line zz_browser.gen_test.go:246:1*/	}
- /*line browser_test.mygo:75:1*/	replyPage := PostPage{}
- /*line browser_test.mygo:299:11*/	var __mygo_expr_17 Result[struct{}, error]
+ /*line browser_test.mygo:78:1*/	replyPage := Zero[PostPage]()
+ /*line browser_test.mygo:320:11*/	var __mygo_expr_17 Result[struct{}, error]
 	__mygo_expr_16 := json.Unmarshal(browserGet(t, handler, a.Origin, path+"/replies", aliceCookies, 200).Body.Bytes(), &replyPage)
 	if __mygo_expr_16 != nil {
 		__mygo_expr_17 = Err[struct{}, error](__mygo_expr_16)
@@ -253,14 +253,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_17 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:254:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_17)
- /*line browser_test.mygo:303:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(replyPage.Items) != 1 || !MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(replyPage.Items, 0)).Permissions.CanEdit {
- /*line browser_test.mygo:304:5*/		t.Fatal("reply list metadata failed")
- /*line browser_test.mygo:303:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_17)
+ /*line browser_test.mygo:324:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(replyPage.Items) != 1 || !MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(replyPage.Items, 0)).Permissions.CanEdit {
+ /*line browser_test.mygo:325:5*/		t.Fatal("reply list metadata failed")
+ /*line browser_test.mygo:324:3*/	} else {
  /*line zz_browser.gen_test.go:260:1*/	}
- /*line browser_test.mygo:75:1*/	communityCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"created\",\"title\":\"Created\",\"mode\":\"local_only\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
-	createdDTO := CommunityOutput{}
- /*line browser_test.mygo:319:11*/	var __mygo_expr_19 Result[struct{}, error]
+ /*line browser_test.mygo:78:1*/	communityCreated := doForum(handler, forumCall{Method: "POST", Origin: a.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"created\",\"title\":\"Created\",\"mode\":\"local_only\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: aliceCookies, CSRF: csrfOf(aliceCookies), Source: a.Origin})
+	createdDTO := Zero[CommunityOutput]()
+ /*line browser_test.mygo:340:11*/	var __mygo_expr_19 Result[struct{}, error]
 	__mygo_expr_18 := json.Unmarshal(communityCreated.Body.Bytes(), &createdDTO)
 	if __mygo_expr_18 != nil {
 		__mygo_expr_19 = Err[struct{}, error](__mygo_expr_18)
@@ -268,32 +268,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_19 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:269:1*/		}{})
 	}
- /*line browser_test.mygo:75:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_19)
- /*line browser_test.mygo:320:6*/	if communityCreated.Code != 201 || !createdDTO.Viewer.IsCreator || !createdDTO.Permissions.CanManage {
- /*line browser_test.mygo:323:5*/		t.Fatal("community creation metadata failed")
- /*line browser_test.mygo:320:6*/	} else {
+ /*line browser_test.mygo:78:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_19)
+ /*line browser_test.mygo:341:3*/	if communityCreated.Code != 201 || !createdDTO.Viewer.IsCreator || !createdDTO.Permissions.CanManage {
+ /*line browser_test.mygo:344:5*/		t.Fatal("community creation metadata failed")
+ /*line browser_test.mygo:341:3*/	} else {
  /*line zz_browser.gen_test.go:275:1*/	}
- /*line browser_test.mygo:75:1*/	var methods []string = []string{"/api/v1/topics", path + "/source", "/api/v1/communities/" + open.ID + "/members"}
- /*line browser_test.mygo:330:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(methods, func(methodPath string) {
- /*line browser_test.mygo:330:16*/		denied := doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: methodPath})
- /*line browser_test.mygo:339:8*/		if denied.Code != 405 || denied.Header().Get("Allow") == "" {
- /*line browser_test.mygo:340:7*/			t.Fatal("unsupported method was not rejected")
+ /*line browser_test.mygo:78:1*/	var methods []string = []string{"/api/v1/topics", path + "/source", "/api/v1/communities/" + open.ID + "/members"}
+ /*line browser_test.mygo:351:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(methods, func(methodPath string) {
+ /*line browser_test.mygo:351:16*/		denied := doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: methodPath, Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""})
+ /*line browser_test.mygo:364:5*/		if denied.Code != 405 || denied.Header().Get("Allow") == "" {
+ /*line browser_test.mygo:365:7*/			t.Fatal("unsupported method was not rejected")
 			return
- /*line browser_test.mygo:339:8*/		} else {
- /*line browser_test.mygo:339:5*/			return
+ /*line browser_test.mygo:364:5*/		} else {
+			return
  /*line zz_browser.gen_test.go:284:1*/		}
 	})
- /*line browser_test.mygo:330:3*/	return
+ /*line browser_test.mygo:351:3*/	return
  /*line zz_browser.gen_test.go:287:1*/}
- /*line browser_test.mygo:345:1*/func TestPostgresBrowserInteractionsAndRosters(t *testing.T) {
- /*line browser_test.mygo:346:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line browser_test.mygo:370:1*/func TestPostgresBrowserInteractionsAndRosters(t *testing.T) {
+ /*line browser_test.mygo:371:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_browser.gen_test.go:295:1*/	}
- /*line browser_test.mygo:345:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line browser_test.mygo:370:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -306,10 +306,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "body"}))
-	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "reply", ParentID: post.ID}))
-	hidden := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "hidden", ParentID: post.ID}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "nested", ParentID: reply.ID}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "reply", ParentID: post.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	hidden := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "hidden", ParentID: post.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, storage.PublishInput{Body: "nested", ParentID: reply.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, hidden.ID)))
 	handler := Handler(settings, db)
 	aliceCookies := login(handler, site.Origin, "alice", "alice-account-password")
@@ -320,35 +320,35 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Like(reaction, ctx, post.ID, bob, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Like(reaction, ctx, post.ID, bob, false, ""))
 	output := browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
- /*line browser_test.mygo:426:6*/	if output.LikeCount != int64(1) || !output.LikedByMe || output.ReplyCount != int64(1) || output.Permissions.CanEdit || !output.Permissions.CanLike {
- /*line browser_test.mygo:431:5*/		t.Fatal("interaction metadata did not match current state")
- /*line browser_test.mygo:426:6*/	} else {
+ /*line browser_test.mygo:471:3*/	if output.LikeCount != int64(1) || !output.LikedByMe || output.ReplyCount != int64(1) || output.Permissions.CanEdit || !output.Permissions.CanLike {
+ /*line browser_test.mygo:476:5*/		t.Fatal("interaction metadata did not match current state")
+ /*line browser_test.mygo:471:3*/	} else {
  /*line zz_browser.gen_test.go:326:1*/	}
- /*line browser_test.mygo:345:1*/	var anon []*http.Cookie = []*http.Cookie{}
+ /*line browser_test.mygo:370:1*/	var anon []*http.Cookie = []*http.Cookie{}
 	anonymous := browserPost(t, browserGet(t, handler, site.Origin, path, anon, 200))
- /*line browser_test.mygo:435:6*/	if anonymous.LikedByMe || anonymous.Permissions.CanLike || anonymous.Permissions.CanReply {
- /*line browser_test.mygo:436:5*/		t.Fatal("anonymous viewer received authenticated state")
- /*line browser_test.mygo:435:6*/	} else {
+ /*line browser_test.mygo:480:3*/	if anonymous.LikedByMe || anonymous.Permissions.CanLike || anonymous.Permissions.CanReply {
+ /*line browser_test.mygo:481:5*/		t.Fatal("anonymous viewer received authenticated state")
+ /*line browser_test.mygo:480:3*/	} else {
  /*line zz_browser.gen_test.go:332:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Undo(reaction, ctx, post.ID, bob, false))
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Undo(reaction, ctx, post.ID, bob, false))
 	undone := browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
- /*line browser_test.mygo:440:6*/	if undone.LikeCount != int64(0) || undone.LikedByMe {
- /*line browser_test.mygo:441:5*/		t.Fatal("undo did not refresh state")
- /*line browser_test.mygo:440:6*/	} else {
+ /*line browser_test.mygo:485:3*/	if undone.LikeCount != int64(0) || undone.LikedByMe {
+ /*line browser_test.mygo:486:5*/		t.Fatal("undo did not refresh state")
+ /*line browser_test.mygo:485:3*/	} else {
  /*line zz_browser.gen_test.go:338:1*/	}
- /*line browser_test.mygo:345:1*/	memberPath := "/api/v1/communities/" + open.ID + "/members"
+ /*line browser_test.mygo:370:1*/	memberPath := "/api/v1/communities/" + open.ID + "/members"
 	managerPath := "/api/v1/communities/" + open.ID + "/managers"
 	browserGet(t, handler, site.Origin, memberPath, anon, 401)
 	browserGet(t, handler, site.Origin, memberPath, bobCookies, 403)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, open.ID, alice, false, bob.ActorURI, true))
 	members := browserGet(t, handler, site.Origin, memberPath, aliceCookies, 200)
- /*line browser_test.mygo:449:6*/	if !strings.Contains(members.Body.String(), bob.ActorURI) || strings.Contains(members.Body.String(), "password") {
- /*line browser_test.mygo:451:5*/		t.Fatal("member roster was missing or disclosed account fields")
- /*line browser_test.mygo:449:6*/	} else {
+ /*line browser_test.mygo:494:3*/	if !strings.Contains(members.Body.String(), bob.ActorURI) || strings.Contains(members.Body.String(), "password") {
+ /*line browser_test.mygo:496:5*/		t.Fatal("member roster was missing or disclosed account fields")
+ /*line browser_test.mygo:494:3*/	} else {
  /*line zz_browser.gen_test.go:348:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, bob.ActorURI, true))
-	roster := RosterPage{}
- /*line browser_test.mygo:455:11*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, bob.ActorURI, true))
+	roster := Zero[RosterPage]()
+ /*line browser_test.mygo:500:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, managerPath, bobCookies, 200).Body.Bytes(), &roster)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
@@ -356,21 +356,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:357:1*/		}{})
 	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line browser_test.mygo:459:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(roster.Items) != 2 {
- /*line browser_test.mygo:460:5*/		t.Fatal("creator/manager roster was incomplete")
- /*line browser_test.mygo:459:6*/	} else {
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
+ /*line browser_test.mygo:504:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(roster.Items) != 2 {
+ /*line browser_test.mygo:505:5*/		t.Fatal("creator/manager roster was incomplete")
+ /*line browser_test.mygo:504:3*/	} else {
  /*line zz_browser.gen_test.go:363:1*/	}
- /*line browser_test.mygo:345:1*/	creatorRows := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(roster.Items, func(row storage.RosterEntry) bool {
- /*line browser_test.mygo:463:5*/		return row.ActorURI == alice.ActorURI && row.IsCreator && !row.IsManager
+ /*line browser_test.mygo:370:1*/	creatorRows := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(roster.Items, func(row storage.RosterEntry) bool {
+ /*line browser_test.mygo:508:5*/		return row.ActorURI == alice.ActorURI && row.IsCreator && !row.IsManager
  /*line zz_browser.gen_test.go:366:1*/	})
- /*line browser_test.mygo:465:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(creatorRows) != 1 {
- /*line browser_test.mygo:466:5*/		t.Fatal("creator-only roster flags were incorrect")
- /*line browser_test.mygo:465:6*/	} else {
+ /*line browser_test.mygo:510:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(creatorRows) != 1 {
+ /*line browser_test.mygo:511:5*/		t.Fatal("creator-only roster flags were incorrect")
+ /*line browser_test.mygo:510:3*/	} else {
  /*line zz_browser.gen_test.go:370:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, alice.ActorURI, true))
-	dedup := RosterPage{}
- /*line browser_test.mygo:470:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, alice.ActorURI, true))
+	dedup := Zero[RosterPage]()
+ /*line browser_test.mygo:515:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, managerPath, aliceCookies, 200).Body.Bytes(), &dedup)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
@@ -378,17 +378,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:379:1*/		}{})
 	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line browser_test.mygo:474:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(dedup.Items) != 2 {
- /*line browser_test.mygo:475:5*/		t.Fatal("creator was duplicated")
- /*line browser_test.mygo:474:6*/	} else {
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
+ /*line browser_test.mygo:519:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(dedup.Items) != 2 {
+ /*line browser_test.mygo:520:5*/		t.Fatal("creator was duplicated")
+ /*line browser_test.mygo:519:3*/	} else {
  /*line zz_browser.gen_test.go:385:1*/	}
- /*line browser_test.mygo:477:6*/	if !MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dedup.Items, 0)).IsCreator || !MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dedup.Items, 0)).IsManager {
- /*line browser_test.mygo:478:5*/		t.Fatal("creator plus manager assignment flags were lost")
- /*line browser_test.mygo:477:6*/	} else {
+ /*line browser_test.mygo:522:3*/	if !MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dedup.Items, 0)).IsCreator || !MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dedup.Items, 0)).IsManager {
+ /*line browser_test.mygo:523:5*/		t.Fatal("creator plus manager assignment flags were lost")
+ /*line browser_test.mygo:522:3*/	} else {
  /*line zz_browser.gen_test.go:389:1*/	}
- /*line browser_test.mygo:345:1*/	paged := RosterPage{}
- /*line browser_test.mygo:481:11*/	var __mygo_expr_8 Result[struct{}, error]
+ /*line browser_test.mygo:370:1*/	paged := Zero[RosterPage]()
+ /*line browser_test.mygo:526:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(browserGet(t, handler, site.Origin, managerPath+"?limit=1&offset=1", aliceCookies, 200).Body.Bytes(), &paged)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
@@ -396,27 +396,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_8 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:397:1*/		}{})
 	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line browser_test.mygo:485:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(paged.Items) != 1 || MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 0)).ActorURI != bob.ActorURI {
- /*line browser_test.mygo:486:5*/		t.Fatal("roster pagination/order was incorrect")
- /*line browser_test.mygo:485:6*/	} else {
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
+ /*line browser_test.mygo:530:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(paged.Items) != 1 || MygoIN6OptionM6Unwrap[storage.RosterEntry](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 0)).ActorURI != bob.ActorURI {
+ /*line browser_test.mygo:531:5*/		t.Fatal("roster pagination/order was incorrect")
+ /*line browser_test.mygo:530:3*/	} else {
  /*line zz_browser.gen_test.go:403:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, bob.ActorURI, false))
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10SetManager(communities, ctx, open.ID, alice, false, bob.ActorURI, false))
 	browserGet(t, handler, site.Origin, managerPath, bobCookies, 403)
 	browserGet(t, handler, site.Origin, path+"/source", adminCookies, 403)
-	csrfDenied := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: memberPath, Payload: "{\"actor\":\"" + bob.ActorURI + "\"}", Cookies: aliceCookies, Source: site.Origin})
- /*line browser_test.mygo:502:6*/	if csrfDenied.Code != 403 {
- /*line browser_test.mygo:503:5*/		t.Fatal("roster GET bypassed mutation CSRF")
- /*line browser_test.mygo:502:6*/	} else {
+	csrfDenied := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: memberPath, Payload: "{\"actor\":\"" + bob.ActorURI + "\"}", Cookies: aliceCookies, Source: site.Origin, CSRF: ""})
+ /*line browser_test.mygo:548:3*/	if csrfDenied.Code != 403 {
+ /*line browser_test.mygo:549:5*/		t.Fatal("roster GET bypassed mutation CSRF")
+ /*line browser_test.mygo:548:3*/	} else {
  /*line zz_browser.gen_test.go:411:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, open.ID, alice, false, bob.ActorURI, false))
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, open.ID, alice, false, bob.ActorURI, false))
 	revokedMembers := browserGet(t, handler, site.Origin, memberPath, aliceCookies, 200)
- /*line browser_test.mygo:507:6*/	if strings.Contains(revokedMembers.Body.String(), bob.ActorURI) {
- /*line browser_test.mygo:508:5*/		t.Fatal("revoked member remained in roster")
- /*line browser_test.mygo:507:6*/	} else {
+ /*line browser_test.mygo:553:3*/	if strings.Contains(revokedMembers.Body.String(), bob.ActorURI) {
+ /*line browser_test.mygo:554:5*/		t.Fatal("revoked member remained in roster")
+ /*line browser_test.mygo:553:3*/	} else {
  /*line zz_browser.gen_test.go:417:1*/	}
- /*line browser_test.mygo:345:1*/	replySource := PostSource{}
- /*line browser_test.mygo:511:11*/	var __mygo_expr_10 Result[struct{}, error]
+ /*line browser_test.mygo:370:1*/	replySource := Zero[PostSource]()
+ /*line browser_test.mygo:557:11*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/posts/"+reply.ID+"/source", bobCookies, 200).Body.Bytes(), &replySource)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
@@ -424,18 +424,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:425:1*/		}{})
 	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
- /*line browser_test.mygo:515:6*/	if replySource.Title != "" || replySource.Body != "reply" {
- /*line browser_test.mygo:516:5*/		t.Fatal("reply source contract failed")
- /*line browser_test.mygo:515:6*/	} else {
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
+ /*line browser_test.mygo:561:3*/	if replySource.Title != "" || replySource.Body != "reply" {
+ /*line browser_test.mygo:562:5*/		t.Fatal("reply source contract failed")
+ /*line browser_test.mygo:561:3*/	} else {
  /*line zz_browser.gen_test.go:431:1*/	}
- /*line browser_test.mygo:345:1*/	browserGet(t, handler, site.Origin, "/api/v1/posts/"+hidden.ID+"/source", bobCookies, 404)
+ /*line browser_test.mygo:370:1*/	browserGet(t, handler, site.Origin, "/api/v1/posts/"+hidden.ID+"/source", bobCookies, 404)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetPolicy(communities, ctx, open.ID, alice, false, "members", "members"))
 	browserGet(t, handler, site.Origin, path, bobCookies, 404)
 	browserGet(t, handler, site.Origin, "/api/v1/posts/"+reply.ID+"/source", bobCookies, 404)
-	adminCommunity := CommunityOutput{}
+	adminCommunity := Zero[CommunityOutput]()
 	communityPath := "/api/v1/communities/" + open.ID
- /*line browser_test.mygo:538:11*/	var __mygo_expr_12 Result[struct{}, error]
+ /*line browser_test.mygo:584:11*/	var __mygo_expr_12 Result[struct{}, error]
 	__mygo_expr_11 := json.Unmarshal(browserGet(t, handler, site.Origin, communityPath, adminCookies, 200).Body.Bytes(), &adminCommunity)
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
@@ -443,56 +443,56 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_12 = Ok[struct{}, error](struct {
  /*line zz_browser.gen_test.go:444:1*/		}{})
 	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_12)
- /*line browser_test.mygo:542:6*/	if adminCommunity.Viewer.IsMember || !adminCommunity.Permissions.CanManage || adminCommunity.Permissions.CanPost {
- /*line browser_test.mygo:545:5*/		t.Fatal("administrative override incorrectly granted membership/posting")
- /*line browser_test.mygo:542:6*/	} else {
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_12)
+ /*line browser_test.mygo:588:3*/	if adminCommunity.Viewer.IsMember || !adminCommunity.Permissions.CanManage || adminCommunity.Permissions.CanPost {
+ /*line browser_test.mygo:591:5*/		t.Fatal("administrative override incorrectly granted membership/posting")
+ /*line browser_test.mygo:588:3*/	} else {
  /*line zz_browser.gen_test.go:450:1*/	}
- /*line browser_test.mygo:345:1*/	beforeAudit := int64(0)
+ /*line browser_test.mygo:370:1*/	beforeAudit := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("audit_events").Where("acting_actor_uri<>? AND action='read-community'", alice.ActorURI).Count(&beforeAudit)))
 	browserGet(t, handler, site.Origin, "/api/v1/topics", adminCookies, 200)
 	browserGet(t, handler, site.Origin, communityPath+"/topics?offset=999", adminCookies, 200)
 	afterAudit := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("audit_events").Where("acting_actor_uri<>? AND action='read-community'", alice.ActorURI).Count(&afterAudit)))
- /*line browser_test.mygo:559:6*/	if afterAudit < beforeAudit+int64(2) {
- /*line browser_test.mygo:560:5*/		t.Fatal("administrative aggregate read was not audited")
- /*line browser_test.mygo:559:6*/	} else {
+ /*line browser_test.mygo:605:3*/	if afterAudit < beforeAudit+int64(2) {
+ /*line browser_test.mygo:606:5*/		t.Fatal("administrative aggregate read was not audited")
+ /*line browser_test.mygo:605:3*/	} else {
  /*line zz_browser.gen_test.go:460:1*/	}
- /*line browser_test.mygo:345:1*/	browserGet(t, handler, site.Origin, memberPath, bobCookies, 404)
+ /*line browser_test.mygo:370:1*/	browserGet(t, handler, site.Origin, memberPath, bobCookies, 404)
 	session := browserGet(t, handler, site.Origin, "/api/v1/auth/session", adminCookies, 200)
- /*line browser_test.mygo:564:6*/	if !strings.Contains(session.Body.String(), "\"site_administrator\":true") {
- /*line browser_test.mygo:565:5*/		t.Fatal("session omitted current role")
- /*line browser_test.mygo:564:6*/	} else {
+ /*line browser_test.mygo:610:3*/	if !strings.Contains(session.Body.String(), "\"site_administrator\":true") {
+ /*line browser_test.mygo:611:5*/		t.Fatal("session omitted current role")
+ /*line browser_test.mygo:610:3*/	} else {
  /*line zz_browser.gen_test.go:466:1*/	}
- /*line browser_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id=?", site.ID)))
+ /*line browser_test.mygo:370:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id=?", site.ID)))
 	revoked := browserGet(t, handler, site.Origin, "/api/v1/auth/session", adminCookies, 200)
- /*line browser_test.mygo:569:6*/	if !strings.Contains(revoked.Body.String(), "\"site_administrator\":false") {
- /*line browser_test.mygo:570:5*/		t.Fatal("session cached revoked role")
- /*line browser_test.mygo:569:6*/	} else {
+ /*line browser_test.mygo:615:3*/	if !strings.Contains(revoked.Body.String(), "\"site_administrator\":false") {
+ /*line browser_test.mygo:616:5*/		t.Fatal("session cached revoked role")
+ /*line browser_test.mygo:615:3*/	} else {
  /*line zz_browser.gen_test.go:472:1*/	}
- /*line browser_test.mygo:345:1*/	browserGet(t, handler, site.Origin, communityPath, adminCookies, 404)
+ /*line browser_test.mygo:370:1*/	browserGet(t, handler, site.Origin, communityPath, adminCookies, 404)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(posts, ctx, post.ID, alice, false))
 	browserGet(t, handler, site.Origin, path+"/source", aliceCookies, 404)
 	tombstone := browserPost(t, browserGet(t, handler, site.Origin, path, aliceCookies, 200))
- /*line browser_test.mygo:576:6*/	if tombstone.Body != "" || tombstone.Permissions.CanEdit || tombstone.Permissions.CanLike || tombstone.Permissions.CanReply {
- /*line browser_test.mygo:580:5*/		t.Fatal("tombstone retained unavailable content/actions")
+ /*line browser_test.mygo:622:3*/	if tombstone.Body != "" || tombstone.Permissions.CanEdit || tombstone.Permissions.CanLike || tombstone.Permissions.CanReply {
+ /*line browser_test.mygo:626:5*/		t.Fatal("tombstone retained unavailable content/actions")
 		return
- /*line browser_test.mygo:576:6*/	} else {
- /*line browser_test.mygo:576:3*/		return
+ /*line browser_test.mygo:622:3*/	} else {
+		return
  /*line zz_browser.gen_test.go:482:1*/	}
 }
- /*line browser_test.mygo:584:1*/func TestPostgresBrowserBatchQueries(t *testing.T) {
- /*line browser_test.mygo:585:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line browser_test.mygo:630:1*/func TestPostgresBrowserBatchQueries(t *testing.T) {
+ /*line browser_test.mygo:631:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_browser.gen_test.go:491:1*/	}
- /*line browser_test.mygo:584:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line browser_test.mygo:630:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
+	site := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
@@ -500,32 +500,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts", site.ID)))
 	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, alice))
-	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM6Latest(browser, ctx, viewer, storage.Page{Limit: 1}, 50))
-	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM6Latest(browser, ctx, viewer, storage.Page{Limit: 20}, 50))
+	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM6Latest(browser, ctx, viewer, storage.Page{Limit: 1, Offset: 0}, 50))
+	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM6Latest(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50))
 	probeOne := transport.NewQueryProbe(db)
 	probeTwenty := transport.NewQueryProbe(db)
 	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
 	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
- /*line browser_test.mygo:628:6*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(5) {
- /*line browser_test.mygo:629:5*/		t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
- /*line browser_test.mygo:628:6*/	} else {
+ /*line browser_test.mygo:674:3*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(5) {
+ /*line browser_test.mygo:675:5*/		t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+ /*line browser_test.mygo:674:3*/	} else {
  /*line zz_browser.gen_test.go:512:1*/	}
- /*line browser_test.mygo:631:3*/	t.Logf("post enrichment queries: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
- /*line browser_test.mygo:584:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ANALYZE posts")))
+ /*line browser_test.mygo:677:3*/	t.Logf("post enrichment queries: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+ /*line browser_test.mygo:630:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ANALYZE posts")))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ANALYZE site_posts")))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ANALYZE communities")))
- /*line browser_test.mygo:635:14*/	var __mygo_expr_4 Result[[]string, error]
+ /*line browser_test.mygo:681:14*/	var __mygo_expr_4 Result[[]string, error]
 	__mygo_expr_5, __mygo_expr_3 := transport.Explain(storage.MygoIN17BrowserRepositoryM16CommunitiesQuery(browser, ctx, viewer, "SELECT p.* FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=@site JOIN readable c ON c.id=p.community_id WHERE p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) ORDER BY p.authored_at DESC,p.id LIMIT 20"))
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]string, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[[]string, error](__mygo_expr_5)
  /*line zz_browser.gen_test.go:523:1*/	}
- /*line browser_test.mygo:584:1*/	plan := MygoIN6ResultM6Unwrap[[]string, error](__mygo_expr_4)
- /*line browser_test.mygo:640:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(plan) == 0 {
- /*line browser_test.mygo:641:5*/		t.Fatal("PostgreSQL returned no query plan")
- /*line browser_test.mygo:640:6*/	} else {
+ /*line browser_test.mygo:630:1*/	plan := MygoIN6ResultM6Unwrap[[]string, error](__mygo_expr_4)
+ /*line browser_test.mygo:686:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(plan) == 0 {
+ /*line browser_test.mygo:687:5*/		t.Fatal("PostgreSQL returned no query plan")
+ /*line browser_test.mygo:686:3*/	} else {
  /*line zz_browser.gen_test.go:528:1*/	}
- /*line browser_test.mygo:643:3*/	t.Logf("1000-post latest plan:\n%s", strings.Join(plan, "\n"))
+ /*line browser_test.mygo:689:3*/	t.Logf("1000-post latest plan:\n%s", strings.Join(plan, "\n"))
 	return
  /*line zz_browser.gen_test.go:531:1*/}

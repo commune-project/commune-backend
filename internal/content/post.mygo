@@ -121,7 +121,7 @@ func RewritePostMedia(
             parts.Len() > 2 ||
             (parts.Len() == 2 && parts.Get(1).Unwrap() != "preview") then
             invalid = true
-            return html.Attribute{Key: attr.Key, Val: ""}
+            return html.Attribute{ Namespace: "", Key: attr.Key, Val: "" }
           end
           let item = matched.Get(0).Unwrap()
           let raster = item.MediaType == "image/png" ||
@@ -130,9 +130,10 @@ func RewritePostMedia(
             item.MediaType == "image/webp"
           if token.Data == "img" && !raster then
             invalid = true
-            return html.Attribute{Key: attr.Key, Val: ""}
+            return html.Attribute { Namespace: "", Key: attr.Key, Val: "" }
           end
-          html.Attribute{
+          html.Attribute {
+            Namespace: "",
             Key: attr.Key,
             Val: "/api/v1/media/" +
               item.BindingID +

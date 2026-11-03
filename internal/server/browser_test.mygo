@@ -28,6 +28,9 @@ func browserGet(
       Origin: origin,
       Path: path,
       Cookies: cookies,
+      Payload: "",
+      CSRF: "",
+      Source: "",
     }
   )
   if result.Code != status || result.Header().Get("Cache-Control") != "no-store" then
@@ -65,7 +68,7 @@ func TestBrowserUnavailableAuthentication(t: Ref[testing.T]) -> ()
 end
 
 func browserPost(t: Ref[testing.T], response: Ref[httptest.ResponseRecorder]) -> PostOutput
-  let output = PostOutput{}
+  let output = Zero[PostOutput]()
   if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
     t.Fatalf("invalid post: %s", response.Body.String())
   end
@@ -140,6 +143,11 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Title: title,
       Body: raw,
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let _ = posts.Publish(
@@ -151,6 +159,11 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Title: "Secret",
       Body: "secret",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let _ = foreignPosts.Publish(
@@ -162,6 +175,11 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Title: "Foreign",
       Body: "foreign",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let handler = Handler(settings, db)
@@ -170,7 +188,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
   let carolCookies = login(handler, b.Origin, "carol", "carol-account-password")
   let anonymous: Slice[Ref[http.Cookie]] = []
   let listed = browserGet(t, handler, a.Origin, "/api/v1/communities?limit=1", anonymous, 200)
-  let page = CommunityPage {}
+  let page = Zero[CommunityPage]()
   let _ = json.Unmarshal(listed.Body.Bytes(), Ref.new(page)).Unwrap()
   if page.Items.Len() != 1 ||
     page.Items.Get(0).Unwrap().ID != open.ID ||
@@ -185,7 +203,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     bobCookies,
     200
   )
-  let localDTO = CommunityOutput {}
+  let localDTO = Zero[CommunityOutput]()
   let _ = json.Unmarshal(localRead.Body.Bytes(), Ref.new(localDTO)).Unwrap()
   if localDTO.Viewer.IsMember || localDTO.Permissions.CanPost || localDTO.Permissions.CanManage then
     t.Fatal("ordinary reader received member or management permissions")
@@ -194,7 +212,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
   let _ = browserGet(t, handler, a.Origin, "/api/v1/communities/" + local.ID, anonymous, 404)
   let _ = browserGet(t, handler, a.Origin, "/api/v1/communities/" + foreign.ID, aliceCookies, 404)
   let latest = browserGet(t, handler, a.Origin, "/api/v1/topics?limit=1", anonymous, 200)
-  let topics = PostPage {}
+  let topics = Zero[PostPage]()
   let _ = json.Unmarshal(latest.Body.Bytes(), Ref.new(topics)).Unwrap()
   if topics.Items.Len() != 1 || topics.Items.Get(0).Unwrap().ID != post.ID then
     t.Fatal("latest feed exposed restricted or foreign topics")
@@ -210,7 +228,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
   if display.Body == raw || display.Title == title || !display.Permissions.CanEdit then
     t.Fatal("display/source boundary or author permissions failed")
   end
-  let source = PostSource {}
+  let source = Zero[PostSource]()
   let sourceRead = browserGet(t, handler, a.Origin, path + "/source", aliceCookies, 200)
   let _ = json.Unmarshal(sourceRead.Body.Bytes(), Ref.new(source)).Unwrap()
   if source.Body != raw ||
@@ -223,6 +241,8 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
     ExpectedVersion: source.Version,
     Title: source.Title,
     Body: source.Body,
+    ContentFormat: "",
+    AttachmentIDs: [],
   }).Unwrap()
   let edited = doForum(
     handler,
@@ -239,7 +259,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
   if edited.Code != 200 || !browserPost(t, edited).Permissions.CanEdit then
     t.Fatalf("source round trip failed: %s", edited.Body.String())
   end
-  let again = PostSource {}
+  let again = Zero[PostSource]()
   let _ = json.Unmarshal(
     browserGet(t, handler, a.Origin, path + "/source", aliceCookies, 200).Body.Bytes(),
     Ref.new(again)
@@ -260,6 +280,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
       Cookies: carolCookies,
       CSRF: csrfOf(carolCookies),
       Source: b.Origin,
+      Payload: "",
     }
   )
   if imported.Code != 201 || browserPost(t, imported).Permissions.CanEdit then
@@ -295,7 +316,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
   if replyCreated.Code != 201 || !browserPost(t, replyCreated).Permissions.CanEdit then
     t.Fatalf("reply creation metadata failed: %s", replyCreated.Body.String())
   end
-  let replyPage = PostPage{}
+  let replyPage = Zero[PostPage]()
   let _ = json.Unmarshal(
     browserGet(t, handler, a.Origin, path + "/replies", aliceCookies, 200).Body.Bytes(),
     Ref.new(replyPage)
@@ -315,7 +336,7 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
       Source: a.Origin,
     }
   )
-  let createdDTO = CommunityOutput {}
+  let createdDTO = Zero[CommunityOutput]()
   let _ = json.Unmarshal(communityCreated.Body.Bytes(), Ref.new(createdDTO)).Unwrap()
   if communityCreated.Code != 201 ||
     !createdDTO.Viewer.IsCreator ||
@@ -334,6 +355,10 @@ func TestPostgresBrowserDiscoveryAndSource(t: Ref[testing.T]) -> ()
         Method: "PUT",
         Origin: a.Origin,
         Path: methodPath,
+        Payload: "",
+        Cookies: [],
+        CSRF: "",
+        Source: "",
       }
     )
     if denied.Code != 405 || denied.Header().Get("Allow") == "" then
@@ -374,6 +399,11 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Title: "Topic",
       Body: "body",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let reply = posts.Publish(
@@ -385,6 +415,11 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Body: "reply",
       ParentID: post.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let hidden = posts.Publish(
@@ -396,6 +431,11 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Body: "hidden",
       ParentID: post.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let _ = posts.Publish(
@@ -407,6 +447,11 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     storage.PublishInput {
       Body: "nested",
       ParentID: reply.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let _ = storage.MutationResult(db.Exec(
@@ -451,7 +496,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     t.Fatal("member roster was missing or disclosed account fields")
   end
   let _ = communities.SetManager(ctx, open.ID, alice, false, bob.ActorURI, true).Unwrap()
-  let roster = RosterPage {}
+  let roster = Zero[RosterPage]()
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, managerPath, bobCookies, 200).Body.Bytes(),
     Ref.new(roster)
@@ -466,7 +511,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     t.Fatal("creator-only roster flags were incorrect")
   end
   let _ = communities.SetManager(ctx, open.ID, alice, false, alice.ActorURI, true).Unwrap()
-  let dedup = RosterPage {}
+  let dedup = Zero[RosterPage]()
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, managerPath, aliceCookies, 200).Body.Bytes(),
     Ref.new(dedup)
@@ -477,7 +522,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
   if !dedup.Items.Get(0).Unwrap().IsCreator || !dedup.Items.Get(0).Unwrap().IsManager then
     t.Fatal("creator plus manager assignment flags were lost")
   end
-  let paged = RosterPage {}
+  let paged = Zero[RosterPage]()
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, managerPath + "?limit=1&offset=1", aliceCookies, 200).Body.Bytes(),
     Ref.new(paged)
@@ -497,6 +542,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
       Payload: `{"actor":"` + bob.ActorURI + `"}`,
       Cookies: aliceCookies,
       Source: site.Origin,
+      CSRF: "",
     }
   )
   if csrfDenied.Code != 403 then
@@ -507,7 +553,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
   if strings.Contains(revokedMembers.Body.String(), bob.ActorURI) then
     t.Fatal("revoked member remained in roster")
   end
-  let replySource = PostSource{}
+  let replySource = Zero[PostSource]()
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, "/api/v1/posts/" + reply.ID + "/source", bobCookies, 200).Body.Bytes(),
     Ref.new(replySource)
@@ -533,7 +579,7 @@ func TestPostgresBrowserInteractionsAndRosters(t: Ref[testing.T]) -> ()
     bobCookies,
     404
   )
-  let adminCommunity = CommunityOutput {}
+  let adminCommunity = Zero[CommunityOutput]()
   let communityPath = "/api/v1/communities/" + open.ID
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, communityPath, adminCookies, 200).Body.Bytes(),
@@ -585,7 +631,7 @@ func TestPostgresBrowserBatchQueries(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site { ID: "a", Origin: "https://a.example" }
+  let site = config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
@@ -609,8 +655,8 @@ func TestPostgresBrowserBatchQueries(t: Ref[testing.T]) -> ()
   )).Unwrap()
   let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = browser.Viewer(ctx, alice).Unwrap()
-  let one = browser.Latest(ctx, viewer, storage.Page{Limit: 1}, 50).Unwrap()
-  let twenty = browser.Latest(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap()
+  let one = browser.Latest(ctx, viewer, storage.Page{Limit: 1, Offset: 0}, 50).Unwrap()
+  let twenty = browser.Latest(ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50).Unwrap()
   let probeOne = transport.NewQueryProbe(db)
   let probeTwenty = transport.NewQueryProbe(db)
   let _ = BrowserPosts(

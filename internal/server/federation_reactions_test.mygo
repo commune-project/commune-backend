@@ -16,11 +16,11 @@ func TestPostgresRemoteReactionReplayOccurrences(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "reactions", Origin: "https://reactions.example"}
+  let site = config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: []}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body"}).Unwrap()
+  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let actor = "https://remote.example/users/bob"
   let _ = storage.EnsureRemoteActor(ctx, db, actor, "Person").Unwrap()
   let receive = func(kind: String, id: String, target: String) -> ()
@@ -34,12 +34,12 @@ func TestPostgresRemoteReactionReplayOccurrences(t: Ref[testing.T]) -> ()
   let first = "https://remote.example/activities/like-1"
   let second = "https://remote.example/activities/like-2"
   receive("Like", first, post.ObjectURI.String)
-  let original = browser.Notifications(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap().Items.Get(0).Unwrap().ID
+  let original = browser.Notifications(ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50).Unwrap().Items.Get(0).Unwrap().ID
   receive("Undo", "https://remote.example/activities/undo-1", first)
   receive("Like", first, post.ObjectURI.String)
   if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 0i64 then t.Fatal("replayed old Like resurrected retired notification") end
   receive("Like", second, post.ObjectURI.String)
-  let repeated = browser.Notifications(ctx, viewer, storage.Page{Limit: 20}, 50).Unwrap().Items
+  let repeated = browser.Notifications(ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50).Unwrap().Items
   if repeated.Len() != 1 || repeated.Get(0).Unwrap().ID == original then t.Fatal("new remote re-like lost occurrence identity") end
   receive("Undo", "https://remote.example/activities/stale-undo", first)
   if browser.NotificationUnreadCount(ctx, viewer).Unwrap() != 1i64 then t.Fatal("old Undo retired a newer Like") end
@@ -49,12 +49,12 @@ func TestPostgresRemoteDislikeAndUndo(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "dislikes", Origin: "https://dislikes.example"}
+  let site = config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: []}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "votes", "Votes", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body"}).Unwrap()
+  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let actor = "https://remote.example/users/bob"
   let _ = storage.EnsureRemoteActor(ctx, db, actor, "Person").Unwrap()
   let apply = func(kind: String, id: String, target: String) -> Result[Bool, String]
@@ -67,7 +67,7 @@ func TestPostgresRemoteDislikeAndUndo(t: Ref[testing.T]) -> ()
   end
   let dislikeURI = "https://remote.example/activities/dislike-1"
   let _ = apply("Dislike", dislikeURI, post.ObjectURI.String).Unwrap()
-  let reaction = ReactionTestRow{}
+  let reaction = Zero[ReactionTestRow]()
   let loaded = db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Find(Ref.new(reaction))
   if storage.QueryFailed(loaded) || loaded.RowsAffected != 1i64 || reaction.Score != -1 then
     t.Fatal("remote Dislike was not stored as one downvote")

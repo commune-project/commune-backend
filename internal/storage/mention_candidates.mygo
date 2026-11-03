@@ -1,0 +1,149 @@
+package storage
+
+import context "go:context"
+import sql "go:database/sql"
+import strings "go:strings"
+import utf8 "go:unicode/utf8"
+import gorm "go:gorm.io/gorm"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+
+struct MentionCandidateRecord
+  ActorURI: String `gorm:"column:actor_uri"`
+  Acct: String `gorm:"column:acct"`
+  DisplayName: String `gorm:"column:display_name"`
+  Avatar: String `gorm:"column:avatar"`
+end
+
+struct MentionCandidateRepository
+  DB: Ref[gorm.DB]
+  SiteID: String
+end
+
+func ValidMentionCandidateQuery(query: String) -> Bool
+  let trimmed = strings.TrimSpace(query)
+  let count = utf8.RuneCountInString(trimmed)
+  count >= 2 && count <= 64 && utf8.ValidString(trimmed) && !strings.ContainsRune(trimmed, 0 as Rune)
+end
+
+func ValidMentionCandidateLimit(limit: Int) -> Bool
+  limit >= 1 && limit <= 20
+end
+
+# The candidate projection intentionally treats the shared actor cache as the
+# deployment's known-actor set. It reads public handles only, never content or
+# membership, and performs no federation lookup.
+let mentionCandidateSQL = """
+WITH candidates AS (
+  SELECT a.actor_uri AS actor_uri,
+         a.username || '@' || split_part(s.canonical_origin, '://', 2) AS acct,
+         COALESCE(NULLIF(p.display_name, ''), a.username) AS display_name,
+         COALESCE(p.avatar_url, '') AS avatar,
+         1 AS source_rank
+  FROM accounts a
+  JOIN actors ac ON ac.uri = a.actor_uri AND ac.kind = 'Person'
+  JOIN sites s ON s.id = a.site_id
+  LEFT JOIN profiles p ON p.actor_uri = a.actor_uri
+  WHERE a.site_id = @site
+    AND NOT a.disabled
+    AND a.actor_uri <> @viewer
+  UNION ALL
+  SELECT ac.uri,
+         ac.acct,
+         COALESCE(p.display_name, ''),
+         COALESCE(p.avatar_url, ''),
+         2
+  FROM actors ac
+  LEFT JOIN profiles p ON p.actor_uri = ac.uri
+  WHERE ac.kind = 'Person'
+    AND ac.acct <> ''
+    AND (ac.local_site_id IS NULL OR ac.local_site_id <> @site)
+    AND ac.uri <> @viewer
+    AND NOT EXISTS (
+      SELECT 1 FROM accounts disabled_account
+      WHERE disabled_account.actor_uri = ac.uri AND disabled_account.disabled
+    )
+  UNION ALL
+  SELECT ac.uri,
+         a.username || '@' || split_part(s.canonical_origin, '://', 2),
+         COALESCE(NULLIF(p.display_name, ''), a.username),
+         COALESCE(p.avatar_url, ''),
+         3
+  FROM actors ac
+  JOIN accounts a ON a.actor_uri = ac.uri AND NOT a.disabled
+  JOIN sites s ON s.id = ac.local_site_id
+  LEFT JOIN profiles p ON p.actor_uri = ac.uri
+  WHERE ac.kind = 'Person'
+    AND ac.local_site_id IS NOT NULL
+    AND ac.local_site_id <> @site
+    AND ac.acct = ''
+    AND ac.uri <> @viewer
+), visible AS (
+  SELECT DISTINCT ON (actor_uri)
+         actor_uri, acct, display_name, avatar, source_rank
+  FROM candidates
+  WHERE (strpos(lower(acct), lower(@query)) > 0
+      OR strpos(lower(display_name), lower(@query)) > 0)
+    AND NOT EXISTS (
+      SELECT 1 FROM site_actor_blocks b
+      WHERE b.site_id = @site AND b.actor_uri = candidates.actor_uri
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM site_domain_blocks d
+      WHERE d.site_id = @site
+        AND d.domain = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1))
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM site_bans b
+      WHERE b.site_id = @site
+        AND b.actor_uri = candidates.actor_uri
+        AND b.revoked_at IS NULL
+        AND (b.expires_at IS NULL OR b.expires_at > now())
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM account_blocks b
+      WHERE b.site_id = @site
+        AND b.account_id = @account
+        AND (
+          (b.kind = 'person' AND b.target = candidates.actor_uri)
+          OR (b.kind = 'instance' AND b.target = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1)))
+        )
+    )
+  ORDER BY actor_uri, source_rank
+)
+SELECT actor_uri, acct, display_name, avatar
+FROM visible
+ORDER BY
+  (strpos(lower(acct), lower(@query)) = 1
+    OR strpos(lower(display_name), lower(@query)) = 1) DESC,
+  lower(acct),
+  actor_uri
+LIMIT @limit
+"""
+
+impl MentionCandidateRepository
+  func Search(self: MentionCandidateRepository, ctx: context.Context, viewer: auth.Identity, query: String, limit: Int) -> Result[Slice[MentionCandidateRecord], String]
+    let trimmed = strings.TrimSpace(query)
+    if self.SiteID == "" || viewer.AccountID <= 0i64 || viewer.ActorURI == "" then
+      return Err("invalid mention candidate viewer")
+    end
+    if !ValidMentionCandidateQuery(trimmed) then
+      return Err("invalid mention query")
+    end
+    if !ValidMentionCandidateLimit(limit) then
+      return Err("invalid mention limit")
+    end
+    var rows: Slice[MentionCandidateRecord] = []
+    let result = self.DB.WithContext(ctx).Raw(
+      mentionCandidateSQL,
+      sql.Named("site", self.SiteID),
+      sql.Named("viewer", viewer.ActorURI),
+      sql.Named("account", viewer.AccountID),
+      sql.Named("query", trimmed),
+      sql.Named("limit", limit)
+    ).Scan(Ref.new(rows))
+    if MutationResult(result).IsErr() then
+      return Err("mention candidates unavailable")
+    end
+    Ok(rows)
+  end
+end

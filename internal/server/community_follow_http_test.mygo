@@ -37,21 +37,21 @@ func TestPostgresCommunityFollowHTTP(t: Ref[testing.T]) -> ()
     "/api/v1/communities/" + id + "/follow"
   end
   let follow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Ref[httptest.ResponseRecorder]
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id), Cookies: cookies, CSRF: token, Source: site.Origin})
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id), Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin})
   end
   let unfollow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Ref[httptest.ResponseRecorder]
-    doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id), Cookies: cookies, CSRF: token, Source: site.Origin})
+    doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id), Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin})
   end
   if follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 then
     t.Fatal("open follow was not idempotent")
   end
-  let accepted = CommunityOutput{}
+  let accepted = Zero[CommunityOutput]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + open.ID, outsiderCookies, 200).Body.Bytes(), Ref.new(accepted)).Unwrap()
   if !accepted.Viewer.IsFollowing || accepted.Viewer.FollowState != "accepted" || accepted.Viewer.CanFollow ||
     accepted.FollowerCount != 1i64 || accepted.FollowPolicy != "open" then
     t.Fatal("accepted follow projection was incorrect")
   end
-  let anonymous = CommunityOutput{}
+  let anonymous = Zero[CommunityOutput]()
   let _ = json.Unmarshal(
     browserGet(t, handler, site.Origin, "/api/v1/communities/" + open.ID, [] as Slice[Ref[http.Cookie]], 200).Body.Bytes(),
     Ref.new(anonymous)
@@ -68,7 +68,7 @@ func TestPostgresCommunityFollowHTTP(t: Ref[testing.T]) -> ()
   if follow(approval.ID, outsiderCookies, outsiderCSRF).Code != 204 then
     t.Fatal("approval follow failed")
   end
-  let pending = CommunityOutput{}
+  let pending = Zero[CommunityOutput]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + approval.ID, outsiderCookies, 200).Body.Bytes(), Ref.new(pending)).Unwrap()
   if pending.Viewer.FollowState != "pending" || pending.Viewer.IsFollowing || pending.Viewer.CanFollow ||
     pending.FollowerCount != 0i64 then
@@ -88,8 +88,8 @@ func TestPostgresCommunityFollowHTTP(t: Ref[testing.T]) -> ()
   if follow("missing", outsiderCookies, outsiderCSRF).Code != 404 || follow(private.ID, outsiderCookies, outsiderCSRF).Code != 404 then
     t.Fatal("missing or unreadable follow target did not return 404")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, Source: site.Origin}).Code != 403 ||
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: "", Source: site.Origin}).Code != 403 ||
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 then
     t.Fatal("follow route accepted missing CSRF or foreign origin")
   end
   let _ = follow(open.ID, outsiderCookies, outsiderCSRF)

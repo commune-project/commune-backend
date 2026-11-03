@@ -10,8 +10,8 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
-  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let site = testSite("a", "https://a.example")
+  let other = testSite("b", "https://b.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let _ = ProvisionSite(ctx, db, other).Unwrap()
   let accounts = AccountRepository{DB: db}
@@ -20,7 +20,14 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
   let communities = CommunityRepository{DB: db, SiteID: site.ID}
   let posts = PostRepository{DB: db, SiteID: site.ID}
   let reactions = ReactionRepository{DB: db, SiteID: site.ID}
-  let modes: Slice[Slice[String]] = [["eligible_users", "eligible_users"], ["members", "members"], ["eligible_users", "members"]]
+  let modes: Slice[Slice[String]] = [
+    ["eligible_users", "eligible_users"],
+    ["members", "members"],
+    [
+      "eligible_users",
+      "members",
+    ],
+  ]
   var index = 0
   modes.Each(func(mode: Slice[String]) -> ()
     let read = mode.Get(0).Unwrap()
@@ -29,19 +36,64 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
     if community.ActorURI.Valid || community.FederationMode != "local_only" then
       t.Fatal("local-only community allocated a federated actor")
     end
-    let topic = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
+    let topic = posts.Publish(
+      ctx,
+      site,
+      community.ID,
+      alice,
+      false,
+      PublishInput{
+        Title: "Topic",
+        Body: "Body",
+        ParentID: "",
+        Mentions: [],
+        AttachmentIDs: [],
+        ContentFormat: "",
+        ContextURI: "",
+      }
+    ).Unwrap()
     if topic.ObjectURI.Valid then
       t.Fatal("local-only topic produced a canonical object URI")
     end
     let canRead = read == "eligible_users"
     let canWrite = post == "eligible_users"
     if canWrite then
-      let reply = posts.Publish(ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}).Unwrap()
+      let reply = posts.Publish(
+        ctx,
+        site,
+        community.ID,
+        bob,
+        false,
+        PublishInput {
+          Body: "Reply",
+          ParentID: topic.ID,
+          Mentions: [],
+          AttachmentIDs: [],
+          ContentFormat: "",
+          ContextURI: "",
+          Title: "",
+        }
+      ).Unwrap()
       if reply.ObjectURI.Valid then
         t.Fatal("local-only reply produced a canonical object URI")
       end
     else
-      if posts.Publish(ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}).IsOk() then
+      if posts.Publish(
+        ctx,
+        site,
+        community.ID,
+        bob,
+        false,
+        PublishInput {
+          Body: "Reply",
+          ParentID: topic.ID,
+          Mentions: [],
+          AttachmentIDs: [],
+          ContentFormat: "",
+          ContextURI: "",
+          Title: "",
+        }
+      ).IsOk() then
         t.Fatal("non-member published to a member-writer local community")
       end
     end
@@ -49,11 +101,20 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
       let _ = reactions.Like(ctx, topic.ID, bob, false, "").Unwrap()
       let _ = reactions.Undo(ctx, topic.ID, bob, false).Unwrap()
     else
-      if reactions.Like(ctx, topic.ID, bob, false, "").IsOk() || reactions.Undo(ctx, topic.ID, bob, false).IsOk() then
+      if reactions.Like(ctx, topic.ID, bob, false, "").IsOk() ||
+        reactions.Undo(ctx, topic.ID, bob, false).IsOk() then
         t.Fatal("non-member reacted in a members-only local community")
       end
     end
-    let _ = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).Unwrap()
+    let _ = posts.Edit(
+      ctx,
+      topic.ID,
+      alice,
+      false,
+      "Topic",
+      "Edited",
+      LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version
+    ).Unwrap()
     let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
     let _ = communities.SetPolicy(ctx, community.ID, alice, false, read, post).Unwrap()
     index = index + 1

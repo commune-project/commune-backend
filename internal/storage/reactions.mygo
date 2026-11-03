@@ -22,16 +22,25 @@ struct ReactionStateRow
   URI: sql.NullString `gorm:"column:reaction_uri"`
 end
 
-func CurrentReaction(ctx: context.Context, db: Ref[gorm.DB], postID: String, actorURI: String) -> Result[ReactionState, String]
-  let row = ReactionStateRow{}
-  let query = db.WithContext(ctx).Table("reactions").Select("score,reaction_uri").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", postID, actorURI).Limit(1).Find(Ref.new(row))
+func CurrentReaction(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  postID: String,
+  actorURI: String
+) -> Result[ReactionState, String]
+  let row = Zero[ReactionStateRow]()
+  let query = db.WithContext(ctx).Table("reactions").Select("score,reaction_uri").Where(
+    "post_id=? AND actor_uri=? AND undone_at IS NULL",
+    postID,
+    actorURI
+  ).Limit(1).Find(Ref.new(row))
   if MutationResult(query).IsErr() then
     return Err("reaction unavailable")
   end
   if query.RowsAffected == 0i64 then
-    return Ok(ReactionState{})
+    return Ok(ReactionState { Active: false, Score: 0, URI: "" })
   end
-  Ok(ReactionState{Active: true, Score: row.Score, URI: row.URI.String})
+  Ok(ReactionState { Active: true, Score: row.Score, URI: row.URI.String })
 end
 
 impl ReactionRepository

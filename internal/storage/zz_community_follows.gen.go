@@ -11,31 +11,31 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line community_follows.mygo:11:1*/func SetCommunityFollow(ctx context.Context, db *gorm.DB, communityID string, actorURI string, followURI string, state string) Result[struct {
 }, string] {
- /*line community_follows.mygo:12:6*/	if communityID == "" || actorURI == "" || followURI == "" {
+ /*line community_follows.mygo:12:3*/	if communityID == "" || actorURI == "" || followURI == "" {
  /*line community_follows.mygo:13:12*/		return Err[struct{}, string]("invalid follow")
- /*line community_follows.mygo:12:6*/	} else {
+ /*line community_follows.mygo:12:3*/	} else {
  /*line zz_community_follows.gen.go:17:1*/	}
- /*line community_follows.mygo:15:6*/	if state != "pending" && state != "accepted" && state != "rejected" && state != "undone" {
+ /*line community_follows.mygo:15:3*/	if state != "pending" && state != "accepted" && state != "rejected" && state != "undone" {
  /*line community_follows.mygo:16:12*/		return Err[struct{}, string]("invalid follow state")
- /*line community_follows.mygo:15:6*/	} else {
+ /*line community_follows.mygo:15:3*/	} else {
  /*line zz_community_follows.gen.go:21:1*/	}
  /*line community_follows.mygo:18:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET state=EXCLUDED.state, follow_uri=CASE WHEN EXCLUDED.state='undone' THEN follows.follow_uri ELSE EXCLUDED.follow_uri END, updated_at=now()", communityID, actorURI, followURI, state))
  /*line zz_community_follows.gen.go:23:1*/}
  /*line community_follows.mygo:21:1*/func CommunityFollowState(ctx context.Context, db *gorm.DB, communityID string, actorURI string) Result[string, string] {
 	state := ""
 	query := db.WithContext(ctx).Raw("SELECT state FROM follows WHERE community_id = ? AND actor_uri = ?", communityID, actorURI).Scan(&state)
- /*line community_follows.mygo:24:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line community_follows.mygo:24:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
  /*line community_follows.mygo:25:12*/		return Err[string, string]("not subscribed")
- /*line community_follows.mygo:24:6*/	} else {
+ /*line community_follows.mygo:24:3*/	} else {
  /*line zz_community_follows.gen.go:30:1*/	}
  /*line community_follows.mygo:27:3*/	return Ok[string, string](state)
  /*line zz_community_follows.gen.go:32:1*/}
  /*line community_follows.mygo:30:1*/func CommunityFollowURI(ctx context.Context, db *gorm.DB, communityID string, actorURI string) Result[string, string] {
 	uri := ""
 	query := db.WithContext(ctx).Raw("SELECT follow_uri FROM follows WHERE community_id = ? AND actor_uri = ?", communityID, actorURI).Scan(&uri)
- /*line community_follows.mygo:33:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line community_follows.mygo:33:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
  /*line community_follows.mygo:34:12*/		return Err[string, string]("not subscribed")
- /*line community_follows.mygo:33:6*/	} else {
+ /*line community_follows.mygo:33:3*/	} else {
  /*line zz_community_follows.gen.go:39:1*/	}
  /*line community_follows.mygo:36:3*/	return Ok[string, string](uri)
  /*line zz_community_follows.gen.go:41:1*/}
@@ -50,68 +50,68 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follows.gen.go:50:1*/}
  /*line community_follows.mygo:48:1*/func BrowserFollowWithURI(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, follow bool, activityURI string) Result[string, string] {
 	community := MygoIN19CommunityRepositoryM4Open(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, false)
- /*line community_follows.mygo:50:6*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](community) {
+ /*line community_follows.mygo:50:3*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](community) {
  /*line community_follows.mygo:51:12*/		return Err[string, string]("not found")
- /*line community_follows.mygo:50:6*/	} else {
+ /*line community_follows.mygo:50:3*/	} else {
  /*line zz_community_follows.gen.go:56:1*/	}
  /*line community_follows.mygo:48:1*/	access := MygoIN19CommunityRepositoryM6Access(CommunityRepository{DB: db, SiteID: siteID}, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](community), identity, false)
- /*line community_follows.mygo:54:6*/	if MygoIN6ResultM5IsErr[CommunityAccess, string](access) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
+ /*line community_follows.mygo:54:3*/	if MygoIN6ResultM5IsErr[CommunityAccess, string](access) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
  /*line community_follows.mygo:55:12*/		return Err[string, string]("not found")
- /*line community_follows.mygo:54:6*/	} else {
+ /*line community_follows.mygo:54:3*/	} else {
  /*line zz_community_follows.gen.go:61:1*/	}
- /*line community_follows.mygo:57:6*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Community.HostSiteID != siteID {
+ /*line community_follows.mygo:57:3*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Community.HostSiteID != siteID {
 		received := QueryExists(db.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", siteID).Where("p.community_id=?", communityID))
 		if MygoIN6ResultM5IsErr[bool, string](received) || !MygoIN6ResultM6Unwrap[bool, string](received) {
  /*line community_follows.mygo:63:14*/			return Err[string, string]("not found")
- /*line community_follows.mygo:57:6*/		} else {
+ /*line community_follows.mygo:57:3*/		} else {
  /*line zz_community_follows.gen.go:67:1*/		}
- /*line community_follows.mygo:57:6*/	} else {
+ /*line community_follows.mygo:57:3*/	} else {
  /*line zz_community_follows.gen.go:69:1*/	}
  /*line community_follows.mygo:48:1*/	site := SiteRepository{DB: db, SiteID: siteID}
 	blocked := MygoIN14SiteRepositoryM9IsBlocked(site, ctx, identity.ActorURI)
- /*line community_follows.mygo:68:6*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
+ /*line community_follows.mygo:68:3*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
  /*line community_follows.mygo:69:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line community_follows.mygo:68:6*/	} else {
+ /*line community_follows.mygo:68:3*/	} else {
  /*line zz_community_follows.gen.go:75:1*/	}
- /*line community_follows.mygo:71:6*/	if MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line community_follows.mygo:71:3*/	if MygoIN6ResultM6Unwrap[bool, string](blocked) {
  /*line community_follows.mygo:72:12*/		return Err[string, string]("forbidden")
- /*line community_follows.mygo:71:6*/	} else {
+ /*line community_follows.mygo:71:3*/	} else {
  /*line zz_community_follows.gen.go:79:1*/	}
  /*line community_follows.mygo:48:1*/	member := QueryExists(db.WithContext(ctx).Table("community_members").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, identity.ActorURI))
 	manager := QueryExists(db.WithContext(ctx).Table("moderators").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, identity.ActorURI))
- /*line community_follows.mygo:76:6*/	if MygoIN6ResultM5IsErr[bool, string](member) || MygoIN6ResultM5IsErr[bool, string](manager) {
+ /*line community_follows.mygo:76:3*/	if MygoIN6ResultM5IsErr[bool, string](member) || MygoIN6ResultM5IsErr[bool, string](manager) {
  /*line community_follows.mygo:77:12*/		return Err[string, string]("follow unavailable")
- /*line community_follows.mygo:76:6*/	} else {
+ /*line community_follows.mygo:76:3*/	} else {
  /*line zz_community_follows.gen.go:85:1*/	}
- /*line community_follows.mygo:79:6*/	if !follow {
+ /*line community_follows.mygo:79:3*/	if !follow {
 		var __mygo_expr_0 string
 		if activityURI != "" {
 			__mygo_expr_0 = activityURI
 		} else {
 			__mygo_expr_0 = "urn:commune:undo:" + rand.Text()
  /*line zz_community_follows.gen.go:92:1*/		}
- /*line community_follows.mygo:79:6*/		undoURI := __mygo_expr_0
+ /*line community_follows.mygo:79:3*/		undoURI := __mygo_expr_0
 		undone := SetCommunityFollow(ctx, db, communityID, identity.ActorURI, undoURI, "undone")
- /*line community_follows.mygo:82:8*/		if MygoIN6ResultM5IsErr[struct{}, string](undone) {
+ /*line community_follows.mygo:82:5*/		if MygoIN6ResultM5IsErr[struct{}, string](undone) {
  /*line community_follows.mygo:83:14*/			return Err[string, string](MygoIN6ResultM9UnwrapErr[struct{}, string](undone))
- /*line community_follows.mygo:82:8*/		} else {
+ /*line community_follows.mygo:82:5*/		} else {
  /*line zz_community_follows.gen.go:98:1*/		}
  /*line community_follows.mygo:85:12*/		return Ok[string, string]("undone")
- /*line community_follows.mygo:79:6*/	} else {
+ /*line community_follows.mygo:79:3*/	} else {
  /*line zz_community_follows.gen.go:101:1*/	}
  /*line community_follows.mygo:48:1*/	policyResult := LoadCommunityFollowRule(ctx, db, communityID)
- /*line community_follows.mygo:88:6*/	if MygoIN6ResultM5IsErr[string, string](policyResult) {
+ /*line community_follows.mygo:88:3*/	if MygoIN6ResultM5IsErr[string, string](policyResult) {
  /*line community_follows.mygo:89:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](policyResult))
- /*line community_follows.mygo:88:6*/	} else {
+ /*line community_follows.mygo:88:3*/	} else {
  /*line zz_community_follows.gen.go:106:1*/	}
  /*line community_follows.mygo:48:1*/	policy := MygoIN6ResultM6Unwrap[string, string](policyResult)
- /*line community_follows.mygo:92:6*/	if policy == "disabled" {
+ /*line community_follows.mygo:92:3*/	if policy == "disabled" {
  /*line community_follows.mygo:93:12*/		return Err[string, string]("feature_disabled")
- /*line community_follows.mygo:92:6*/	} else {
+ /*line community_follows.mygo:92:3*/	} else {
  /*line zz_community_follows.gen.go:111:1*/	}
- /*line community_follows.mygo:95:6*/	if policy == "members" && !MygoIN6ResultM6Unwrap[bool, string](member) && !MygoIN6ResultM6Unwrap[bool, string](manager) {
+ /*line community_follows.mygo:95:3*/	if policy == "members" && !MygoIN6ResultM6Unwrap[bool, string](member) && !MygoIN6ResultM6Unwrap[bool, string](manager) {
  /*line community_follows.mygo:96:12*/		return Err[string, string]("follow_requires_membership")
- /*line community_follows.mygo:95:6*/	} else {
+ /*line community_follows.mygo:95:3*/	} else {
  /*line zz_community_follows.gen.go:115:1*/	}
  /*line community_follows.mygo:48:1*/	var __mygo_expr_1 string
 	if policy == "approval" && !MygoIN6ResultM6Unwrap[bool, string](member) && !MygoIN6ResultM6Unwrap[bool, string](manager) {
@@ -128,27 +128,27 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follows.gen.go:128:1*/	}
  /*line community_follows.mygo:48:1*/	followURI := __mygo_expr_2
 	saved := SetCommunityFollow(ctx, db, communityID, identity.ActorURI, followURI, state)
- /*line community_follows.mygo:101:6*/	if MygoIN6ResultM5IsErr[struct{}, string](saved) {
+ /*line community_follows.mygo:101:3*/	if MygoIN6ResultM5IsErr[struct{}, string](saved) {
  /*line community_follows.mygo:102:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[struct{}, string](saved))
- /*line community_follows.mygo:101:6*/	} else {
+ /*line community_follows.mygo:101:3*/	} else {
  /*line zz_community_follows.gen.go:134:1*/	}
  /*line community_follows.mygo:104:3*/	return Ok[string, string](state)
  /*line zz_community_follows.gen.go:136:1*/}
  /*line community_follows.mygo:107:1*/func PendingFollows(ctx context.Context, db *gorm.DB, communityID string, limit int, offset int) Result[[]FollowRequestRecord, string] {
 	var rows []FollowRequestRecord = []FollowRequestRecord{}
 	query := db.WithContext(ctx).Raw("SELECT actor_uri, updated_at FROM follows WHERE community_id=? AND state='pending' ORDER BY updated_at,actor_uri LIMIT ? OFFSET ?", communityID, limit, offset).Scan(&rows)
- /*line community_follows.mygo:110:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line community_follows.mygo:110:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line community_follows.mygo:111:12*/		return Err[[]FollowRequestRecord, string]("follow requests unavailable")
- /*line community_follows.mygo:110:6*/	} else {
+ /*line community_follows.mygo:110:3*/	} else {
  /*line zz_community_follows.gen.go:143:1*/	}
  /*line community_follows.mygo:113:3*/	return Ok[[]FollowRequestRecord, string](rows)
  /*line zz_community_follows.gen.go:145:1*/}
  /*line community_follows.mygo:116:1*/func ReviewFollow(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, actorURI string, accept bool) Result[struct {
 }, string] {
 	changed := ReviewFollowChanged(ctx, db, siteID, communityID, identity, actorURI, accept)
- /*line community_follows.mygo:118:6*/	if MygoIN6ResultM5IsErr[bool, string](changed) {
+ /*line community_follows.mygo:118:3*/	if MygoIN6ResultM5IsErr[bool, string](changed) {
  /*line community_follows.mygo:119:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](changed))
- /*line community_follows.mygo:118:6*/	} else {
+ /*line community_follows.mygo:118:3*/	} else {
  /*line zz_community_follows.gen.go:152:1*/	}
  /*line community_follows.mygo:121:3*/	return Ok[struct{}, string](struct {
  /*line zz_community_follows.gen.go:154:1*/	}{})
@@ -158,9 +158,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	reviewed := MygoIN19CommunityRepositoryM6Manage(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false, "review-follow", actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
  /*line community_follows.mygo:126:131*/		state := ""
 		found := tx.WithContext(ctx).Raw("SELECT state FROM follows WHERE community_id=? AND actor_uri=? FOR UPDATE", communityID, actorURI).Scan(&state)
- /*line community_follows.mygo:129:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) || found.RowsAffected != int64(1) {
+ /*line community_follows.mygo:129:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) || found.RowsAffected != int64(1) {
  /*line community_follows.mygo:130:14*/			return Err[struct{}, string]("not found")
- /*line community_follows.mygo:129:8*/		} else {
+ /*line community_follows.mygo:129:5*/		} else {
  /*line zz_community_follows.gen.go:164:1*/		}
  /*line community_follows.mygo:126:131*/		var __mygo_expr_0 string
 		if accept {
@@ -169,42 +169,42 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_0 = "rejected"
  /*line zz_community_follows.gen.go:170:1*/		}
  /*line community_follows.mygo:126:131*/		desired := __mygo_expr_0
- /*line community_follows.mygo:133:8*/		if state == desired {
+ /*line community_follows.mygo:133:5*/		if state == desired {
  /*line community_follows.mygo:134:14*/			return Ok[struct{}, string](struct {
  /*line zz_community_follows.gen.go:174:1*/			}{})
- /*line community_follows.mygo:133:8*/		} else {
+ /*line community_follows.mygo:133:5*/		} else {
  /*line zz_community_follows.gen.go:176:1*/		}
- /*line community_follows.mygo:136:8*/		if state != "pending" {
+ /*line community_follows.mygo:136:5*/		if state != "pending" {
  /*line community_follows.mygo:137:14*/			return Err[struct{}, string]("follow conflict")
- /*line community_follows.mygo:136:8*/		} else {
+ /*line community_follows.mygo:136:5*/		} else {
  /*line zz_community_follows.gen.go:180:1*/		}
- /*line community_follows.mygo:139:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE follows SET state=?,updated_at=now() WHERE community_id=? AND actor_uri=?", desired, communityID, actorURI))) {
+ /*line community_follows.mygo:139:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE follows SET state=?,updated_at=now() WHERE community_id=? AND actor_uri=?", desired, communityID, actorURI))) {
  /*line community_follows.mygo:140:14*/			return Err[struct{}, string]("follow review failed")
- /*line community_follows.mygo:139:8*/		} else {
+ /*line community_follows.mygo:139:5*/		} else {
  /*line zz_community_follows.gen.go:184:1*/		}
  /*line community_follows.mygo:126:131*/		changed = true
- /*line community_follows.mygo:143:8*/		if accept {
+ /*line community_follows.mygo:143:5*/		if accept {
 			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by,approved_at=now(),revoked_at=NULL", communityID, actorURI, identity.ActorURI))) {
  /*line community_follows.mygo:145:16*/				return Err[struct{}, string]("follow review failed")
- /*line community_follows.mygo:143:8*/			} else {
+ /*line community_follows.mygo:143:5*/			} else {
  /*line zz_community_follows.gen.go:190:1*/			}
- /*line community_follows.mygo:143:8*/		} else {
+ /*line community_follows.mygo:143:5*/		} else {
  /*line zz_community_follows.gen.go:192:1*/		}
  /*line community_follows.mygo:148:5*/		return Ok[struct{}, string](struct {
  /*line zz_community_follows.gen.go:194:1*/		}{})
 	})
- /*line community_follows.mygo:150:6*/	if MygoIN6ResultM5IsErr[struct{}, string](reviewed) {
+ /*line community_follows.mygo:150:3*/	if MygoIN6ResultM5IsErr[struct{}, string](reviewed) {
  /*line community_follows.mygo:151:12*/		return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](reviewed))
- /*line community_follows.mygo:150:6*/	} else {
+ /*line community_follows.mygo:150:3*/	} else {
  /*line zz_community_follows.gen.go:199:1*/	}
  /*line community_follows.mygo:153:3*/	return Ok[bool, string](changed)
  /*line zz_community_follows.gen.go:201:1*/}
  /*line community_follows.mygo:158:1*/func CommunityManagers(ctx context.Context, db *gorm.DB, communityID string) Result[[]string, string] {
 	var managers []string = []string{}
 	query := db.WithContext(ctx).Raw("SELECT creator_actor_uri AS actor_uri FROM communities WHERE id = ? UNION SELECT actor_uri FROM moderators WHERE community_id = ? AND revoked_at IS NULL ORDER BY 1", communityID, communityID).Scan(&managers)
- /*line community_follows.mygo:161:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line community_follows.mygo:161:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line community_follows.mygo:162:12*/		return Err[[]string, string]("manager list unavailable")
- /*line community_follows.mygo:161:6*/	} else {
+ /*line community_follows.mygo:161:3*/	} else {
  /*line zz_community_follows.gen.go:208:1*/	}
  /*line community_follows.mygo:164:3*/	return Ok[[]string, string](managers)
  /*line zz_community_follows.gen.go:210:1*/}

@@ -28,7 +28,7 @@ func ApplyRemoteReaction(ctx: context.Context, db: Ref[gorm.DB], site: config.Si
     let claimed = tx.Exec("INSERT INTO applied_reaction_activities(activity_uri) VALUES (?) ON CONFLICT DO NOTHING", activity.ID)
     if storage.QueryFailed(claimed) then return Err("reaction receipt unavailable") end
     if claimed.RowsAffected == 0i64 then return Ok(()) end
-    let identity = auth.Identity{ActorURI: activity.Actor}
+    let identity = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: activity.Actor, Username: ""}
     let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
     if activity.Type == "Like" then
       if !storage.SiteVoteUpEnabled(ctx, tx, site.ID) then return Ok(()) end

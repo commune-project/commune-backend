@@ -10,7 +10,6 @@ import "strings"
 import "io"
 import "os"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
@@ -24,10 +23,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_media_cache.gen_test.go:27:1*/	}
+ /*line zz_media_cache.gen_test.go:26:1*/	}
  /*line media_cache_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "cache", Origin: "https://cache.example"}
+	site := testSite("cache", "https://cache.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password-long"))
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password-long"))
@@ -35,184 +34,184 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: site.ID}, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "Private", AuthoredAt: now, UpdatedAt: now}, author))
+	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: site.ID}, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Body: "Private", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", Title: sql.NullString{String: "", Valid: false}, ID: ""}, author))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?),('remote',?,?)", alice.ActorURI, author, bob.ActorURI, author)))
 	settings := MediaTestSettings(t)
 	mediaFS := MygoIN6ResultM6Unwrap[MediaFiles, string](OpenMediaFiles(settings))
- /*line media_cache_test.mygo:32:3*/	t.Cleanup(func() {
- /*line media_cache_test.mygo:32:13*/		mediaFS.Root.Close()
+ /*line media_cache_test.mygo:68:3*/	t.Cleanup(func() {
+ /*line media_cache_test.mygo:68:13*/		mediaFS.Root.Close()
 		return
- /*line zz_media_cache.gen_test.go:45:1*/	})
+ /*line zz_media_cache.gen_test.go:44:1*/	})
  /*line media_cache_test.mygo:16:1*/	repo := MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
-	cache := PrivateMediaCache{}
+	cache := PrivateMediaCache{ErrorState: "", LeaseUntil: Zero[time.Time](), LeaseToken: "", SizeBytes: int64(0), ExpiresAt: Zero[sql.NullTime](), FetchedAt: Zero[sql.NullTime](), State: "", Generation: "", AccessScope: "", OriginVersion: "", OriginURI: "", PostID: "", SiteID: "", ID: ""}
 	MygoIN6ResultM6Unwrap[struct{}, string](RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line media_cache_test.mygo:35:35*/		cache = MygoIN6ResultM6Unwrap[PrivateMediaCache, string](RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/one", "v1"))
- /*line media_cache_test.mygo:37:5*/		return Ok[struct{}, string](struct {
- /*line zz_media_cache.gen_test.go:51:1*/		}{})
+ /*line media_cache_test.mygo:74:5*/		cache = MygoIN6ResultM6Unwrap[PrivateMediaCache, string](RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/one", "v1"))
+ /*line media_cache_test.mygo:76:7*/		return Ok[struct{}, string](struct {
+ /*line zz_media_cache.gen_test.go:50:1*/		}{})
 	}))
  /*line media_cache_test.mygo:16:1*/	var fetches int = 0
 	fetch := func(fetchCtx context.Context, actor auth.Identity, row PrivateMediaCache) Result[io.ReadCloser, string] {
- /*line media_cache_test.mygo:41:8*/		if actor.ActorURI != alice.ActorURI && actor.ActorURI != bob.ActorURI {
- /*line media_cache_test.mygo:41:80*/			t.Fatal("fetch lost requesting actor")
- /*line media_cache_test.mygo:41:8*/		} else {
- /*line zz_media_cache.gen_test.go:58:1*/		}
- /*line media_cache_test.mygo:40:15*/		fetches = fetches + 1
- /*line media_cache_test.mygo:43:5*/		return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader("private bytes"))))
- /*line zz_media_cache.gen_test.go:61:1*/	}
+ /*line media_cache_test.mygo:81:5*/		if actor.ActorURI != alice.ActorURI && actor.ActorURI != bob.ActorURI {
+ /*line media_cache_test.mygo:82:7*/			t.Fatal("fetch lost requesting actor")
+ /*line media_cache_test.mygo:81:5*/		} else {
+ /*line zz_media_cache.gen_test.go:57:1*/		}
+ /*line media_cache_test.mygo:80:15*/		fetches = fetches + 1
+ /*line media_cache_test.mygo:85:5*/		return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader("private bytes"))))
+ /*line zz_media_cache.gen_test.go:60:1*/	}
  /*line media_cache_test.mygo:16:1*/	transfer := func(row_1 PrivateMediaCache, file *os.File) Result[struct{}, string] {
- /*line media_cache_test.mygo:46:8*/		var __mygo_expr_4 Result[[]byte, error]
+ /*line media_cache_test.mygo:88:8*/		var __mygo_expr_4 Result[[]byte, error]
 		__mygo_expr_5, __mygo_expr_3 := io.ReadAll(io.Reader(file))
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
- /*line zz_media_cache.gen_test.go:69:1*/		}
- /*line media_cache_test.mygo:46:8*/		if string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_4)) != "private bytes" {
- /*line media_cache_test.mygo:46:81*/			t.Fatal("cache bytes changed")
- /*line media_cache_test.mygo:46:8*/		} else {
- /*line zz_media_cache.gen_test.go:73:1*/		}
- /*line media_cache_test.mygo:47:5*/		return Ok[struct{}, string](struct {
- /*line zz_media_cache.gen_test.go:75:1*/		}{})
+ /*line zz_media_cache.gen_test.go:68:1*/		}
+ /*line media_cache_test.mygo:88:5*/		if string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_4)) != "private bytes" {
+ /*line media_cache_test.mygo:89:7*/			t.Fatal("cache bytes changed")
+ /*line media_cache_test.mygo:88:5*/		} else {
+ /*line zz_media_cache.gen_test.go:72:1*/		}
+ /*line media_cache_test.mygo:91:5*/		return Ok[struct{}, string](struct {
+ /*line zz_media_cache.gen_test.go:74:1*/		}{})
 	}
- /*line media_cache_test.mygo:49:6*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
- /*line media_cache_test.mygo:49:74*/		t.Fatal("missing cache hit")
- /*line media_cache_test.mygo:49:6*/	} else {
- /*line zz_media_cache.gen_test.go:80:1*/	}
+ /*line media_cache_test.mygo:93:3*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
+ /*line media_cache_test.mygo:94:5*/		t.Fatal("missing cache hit")
+ /*line media_cache_test.mygo:93:3*/	} else {
+ /*line zz_media_cache.gen_test.go:79:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, alice, cache.ID, fetch))
- /*line media_cache_test.mygo:51:6*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
- /*line media_cache_test.mygo:51:75*/		t.Fatal("successful fetch not readable")
- /*line media_cache_test.mygo:51:6*/	} else {
- /*line zz_media_cache.gen_test.go:85:1*/	}
+ /*line media_cache_test.mygo:97:3*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
+ /*line media_cache_test.mygo:98:5*/		t.Fatal("successful fetch not readable")
+ /*line media_cache_test.mygo:97:3*/	} else {
+ /*line zz_media_cache.gen_test.go:84:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, func(row_2 PrivateMediaCache, file_1 *os.File) Result[struct{}, string] {
- /*line media_cache_test.mygo:52:55*/		future := time.Now().Add(time.Duration(settings.PrivateCacheRetentionSeconds+1) * time.Second)
- /*line media_cache_test.mygo:54:8*/		if MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, future, 100)) != 0 {
- /*line media_cache_test.mygo:54:70*/			t.Fatal("cleaner unlinked active transfer")
- /*line media_cache_test.mygo:54:8*/		} else {
- /*line zz_media_cache.gen_test.go:91:1*/		}
- /*line media_cache_test.mygo:55:5*/		return Ok[struct{}, string](struct {
- /*line zz_media_cache.gen_test.go:93:1*/		}{})
+ /*line media_cache_test.mygo:104:5*/		future := time.Now().Add(time.Duration(settings.PrivateCacheRetentionSeconds+1) * time.Second)
+ /*line media_cache_test.mygo:106:7*/		if MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, future, 100)) != 0 {
+ /*line media_cache_test.mygo:107:9*/			t.Fatal("cleaner unlinked active transfer")
+ /*line media_cache_test.mygo:106:7*/		} else {
+ /*line zz_media_cache.gen_test.go:90:1*/		}
+ /*line media_cache_test.mygo:109:7*/		return Ok[struct{}, string](struct {
+ /*line zz_media_cache.gen_test.go:92:1*/		}{})
 	}))
- /*line media_cache_test.mygo:16:1*/	first := PrivateMediaCache{}
+ /*line media_cache_test.mygo:16:1*/	first := PrivateMediaCache{ErrorState: "", LeaseUntil: Zero[time.Time](), LeaseToken: "", SizeBytes: int64(0), ExpiresAt: Zero[sql.NullTime](), FetchedAt: Zero[sql.NullTime](), State: "", Generation: "", AccessScope: "", OriginVersion: "", OriginURI: "", PostID: "", SiteID: "", ID: ""}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("media_private_cache").Where("id=?", cache.ID).Find(&first)))
 	MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, bob, cache.ID, transfer))
-	after := PrivateMediaCache{}
+	after := PrivateMediaCache{ID: "", SiteID: "", PostID: "", OriginURI: "", OriginVersion: "", AccessScope: "", Generation: "", State: "", FetchedAt: Zero[sql.NullTime](), ExpiresAt: Zero[sql.NullTime](), SizeBytes: int64(0), LeaseToken: "", LeaseUntil: Zero[time.Time](), ErrorState: ""}
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("media_private_cache").Where("id=?", cache.ID).Find(&after)))
- /*line media_cache_test.mygo:62:6*/	if first.ExpiresAt != after.ExpiresAt {
- /*line media_cache_test.mygo:62:46*/		t.Fatal("cache read renewed expiry")
- /*line media_cache_test.mygo:62:6*/	} else {
- /*line zz_media_cache.gen_test.go:103:1*/	}
+ /*line media_cache_test.mygo:117:3*/	if first.ExpiresAt != after.ExpiresAt {
+ /*line media_cache_test.mygo:118:5*/		t.Fatal("cache read renewed expiry")
+ /*line media_cache_test.mygo:117:3*/	} else {
+ /*line zz_media_cache.gen_test.go:102:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE media_private_cache SET expires_at=? WHERE id=?", now.Add(time.Duration(0)-time.Hour), cache.ID)))
- /*line media_cache_test.mygo:64:6*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
- /*line media_cache_test.mygo:64:74*/		t.Fatal("expired bytes served before cleanup")
- /*line media_cache_test.mygo:64:6*/	} else {
- /*line zz_media_cache.gen_test.go:108:1*/	}
- /*line media_cache_test.mygo:65:6*/	if MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, time.Now(), 100)) != 1 {
- /*line media_cache_test.mygo:65:72*/		t.Fatal("cache not cleaned")
- /*line media_cache_test.mygo:65:6*/	} else {
- /*line zz_media_cache.gen_test.go:112:1*/	}
- /*line media_cache_test.mygo:66:6*/	if !MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("media_private_cache").Where("id=?", cache.ID))) {
- /*line media_cache_test.mygo:66:90*/		t.Fatal("cache metadata deleted")
- /*line media_cache_test.mygo:66:6*/	} else {
- /*line zz_media_cache.gen_test.go:116:1*/	}
- /*line media_cache_test.mygo:67:6*/	var __mygo_expr_4 Result[os.FileInfo, error]
-	__mygo_expr_5, __mygo_expr_3 := mediaFS.Root.Lstat("private-cache/" + first.Generation)
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[os.FileInfo, error](__mygo_expr_3)
+ /*line media_cache_test.mygo:125:3*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, alice, cache.ID, transfer)) {
+ /*line media_cache_test.mygo:126:5*/		t.Fatal("expired bytes served before cleanup")
+ /*line media_cache_test.mygo:125:3*/	} else {
+ /*line zz_media_cache.gen_test.go:107:1*/	}
+ /*line media_cache_test.mygo:128:3*/	if MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, time.Now(), 100)) != 1 {
+ /*line media_cache_test.mygo:129:5*/		t.Fatal("cache not cleaned")
+ /*line media_cache_test.mygo:128:3*/	} else {
+ /*line zz_media_cache.gen_test.go:111:1*/	}
+ /*line media_cache_test.mygo:131:3*/	if !MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("media_private_cache").Where("id=?", cache.ID))) {
+ /*line media_cache_test.mygo:132:5*/		t.Fatal("cache metadata deleted")
+ /*line media_cache_test.mygo:131:3*/	} else {
+ /*line zz_media_cache.gen_test.go:115:1*/	}
+ /*line media_cache_test.mygo:134:6*/	var __mygo_expr_7 Result[os.FileInfo, error]
+	__mygo_expr_8, __mygo_expr_6 := mediaFS.Root.Lstat("private-cache/" + first.Generation)
+	if __mygo_expr_6 != nil {
+		__mygo_expr_7 = Err[os.FileInfo, error](__mygo_expr_6)
 	} else {
-		__mygo_expr_4 = Ok[os.FileInfo, error](__mygo_expr_5)
- /*line zz_media_cache.gen_test.go:123:1*/	}
- /*line media_cache_test.mygo:67:6*/	if MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_4) {
- /*line media_cache_test.mygo:67:74*/		t.Fatal("expired cache file retained")
- /*line media_cache_test.mygo:67:6*/	} else {
- /*line zz_media_cache.gen_test.go:127:1*/	}
+		__mygo_expr_7 = Ok[os.FileInfo, error](__mygo_expr_8)
+ /*line zz_media_cache.gen_test.go:122:1*/	}
+ /*line media_cache_test.mygo:134:3*/	if MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_7) {
+ /*line media_cache_test.mygo:135:5*/		t.Fatal("expired cache file retained")
+ /*line media_cache_test.mygo:134:3*/	} else {
+ /*line zz_media_cache.gen_test.go:126:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE community_members SET revoked_at=? WHERE community_id='remote' AND actor_uri=?", time.Now(), alice.ActorURI)))
- /*line media_cache_test.mygo:69:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, alice, cache.ID, fetch)) || fetches != 1 {
- /*line media_cache_test.mygo:69:86*/		t.Fatal("revoked member triggered refetch")
- /*line media_cache_test.mygo:69:6*/	} else {
- /*line zz_media_cache.gen_test.go:132:1*/	}
+ /*line media_cache_test.mygo:142:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, alice, cache.ID, fetch)) || fetches != 1 {
+ /*line media_cache_test.mygo:143:5*/		t.Fatal("revoked member triggered refetch")
+ /*line media_cache_test.mygo:142:3*/	} else {
+ /*line zz_media_cache.gen_test.go:131:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, cache.ID, fetch))
- /*line media_cache_test.mygo:71:6*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, bob, cache.ID, transfer)) || fetches != 2 {
- /*line media_cache_test.mygo:71:89*/		t.Fatal("other member lost valid access")
- /*line media_cache_test.mygo:71:6*/	} else {
- /*line zz_media_cache.gen_test.go:137:1*/	}
+ /*line media_cache_test.mygo:146:3*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, bob, cache.ID, transfer)) || fetches != 2 {
+ /*line media_cache_test.mygo:147:5*/		t.Fatal("other member lost valid access")
+ /*line media_cache_test.mygo:146:3*/	} else {
+ /*line zz_media_cache.gen_test.go:136:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](RunTransaction(ctx, db, func(tx_1 *gorm.DB) Result[struct{}, string] {
- /*line media_cache_test.mygo:73:5*/		return MygoIN15MediaRepositoryM22InvalidatePrivateCache(repo, ctx, tx_1, post.ID, "")
- /*line zz_media_cache.gen_test.go:140:1*/	}))
- /*line media_cache_test.mygo:75:6*/	if MygoIN6ResultM4IsOk[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, bob, cache.ID, transfer)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, cache.ID, fetch)) {
- /*line media_cache_test.mygo:75:130*/		t.Fatal("removed attachment refetched")
- /*line media_cache_test.mygo:75:6*/	} else {
- /*line zz_media_cache.gen_test.go:144:1*/	}
+ /*line media_cache_test.mygo:153:7*/		return MygoIN15MediaRepositoryM22InvalidatePrivateCache(repo, ctx, tx_1, post.ID, "")
+ /*line zz_media_cache.gen_test.go:139:1*/	}))
+ /*line media_cache_test.mygo:156:3*/	if MygoIN6ResultM4IsOk[bool, string](MygoIN15MediaRepositoryM16ReadPrivateCache(repo, ctx, bob, cache.ID, transfer)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, cache.ID, fetch)) {
+ /*line media_cache_test.mygo:158:5*/		t.Fatal("removed attachment refetched")
+ /*line media_cache_test.mygo:156:3*/	} else {
+ /*line zz_media_cache.gen_test.go:143:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, time.Now(), 100))
- /*line media_cache_test.mygo:77:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, cache.ID, fetch)) {
- /*line media_cache_test.mygo:77:68*/		t.Fatal("cleaner restored invalid attachment")
- /*line media_cache_test.mygo:77:6*/	} else {
- /*line zz_media_cache.gen_test.go:149:1*/	}
+ /*line media_cache_test.mygo:161:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, cache.ID, fetch)) {
+ /*line media_cache_test.mygo:162:5*/		t.Fatal("cleaner restored invalid attachment")
+ /*line media_cache_test.mygo:161:3*/	} else {
+ /*line zz_media_cache.gen_test.go:148:1*/	}
  /*line media_cache_test.mygo:16:1*/	imageCache := MygoIN6ResultM6Unwrap[PrivateMediaCache, string](RegisterPrivateMedia(ctx, db, site.ID, post.ID, "https://remote.example/media/image", "image-v1"))
 	imageFetch := func(fetchCtx_1 context.Context, actor_1 auth.Identity, row_3 PrivateMediaCache) Result[io.ReadCloser, string] {
- /*line media_cache_test.mygo:80:5*/		return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader(string(MediaTestPNG(2, 2))))))
- /*line zz_media_cache.gen_test.go:153:1*/	}
+ /*line media_cache_test.mygo:173:5*/		return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader(string(MediaTestPNG(2, 2))))))
+ /*line zz_media_cache.gen_test.go:152:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN15MediaRepositoryM17FetchPrivateCache(repo, ctx, bob, imageCache.ID, imageFetch))
-	imageRow := PrivateMediaCache{}
+	imageRow := Zero[PrivateMediaCache]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("media_private_cache").Where("id=?", imageCache.ID).Find(&imageRow)))
 	preview := MygoIN6ResultM6Unwrap[*os.File, string](MygoIN10MediaFilesM4Open(mediaFS, "previews", imageRow.Generation))
- /*line media_cache_test.mygo:86:22*/	var __mygo_expr_7 Result[[]byte, error]
-	__mygo_expr_8, __mygo_expr_6 := io.ReadAll(io.Reader(preview))
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
-	} else {
-		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
- /*line zz_media_cache.gen_test.go:164:1*/	}
- /*line media_cache_test.mygo:16:1*/	previewBytes := MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_7)
- /*line media_cache_test.mygo:87:11*/	var __mygo_expr_10 Result[struct{}, error]
-	__mygo_expr_9 := preview.Close()
+ /*line media_cache_test.mygo:179:22*/	var __mygo_expr_10 Result[[]byte, error]
+	__mygo_expr_11, __mygo_expr_9 := io.ReadAll(io.Reader(preview))
 	if __mygo_expr_9 != nil {
-		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
+		__mygo_expr_10 = Err[[]byte, error](__mygo_expr_9)
 	} else {
-		__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_media_cache.gen_test.go:172:1*/		}{})
+		__mygo_expr_10 = Ok[[]byte, error](__mygo_expr_11)
+ /*line zz_media_cache.gen_test.go:163:1*/	}
+ /*line media_cache_test.mygo:16:1*/	previewBytes := MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_10)
+ /*line media_cache_test.mygo:180:11*/	var __mygo_expr_13 Result[struct{}, error]
+	__mygo_expr_12 := preview.Close()
+	if __mygo_expr_12 != nil {
+		__mygo_expr_13 = Err[struct{}, error](__mygo_expr_12)
+	} else {
+		__mygo_expr_13 = Ok[struct{}, error](struct {
+ /*line zz_media_cache.gen_test.go:171:1*/		}{})
 	}
- /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
- /*line media_cache_test.mygo:88:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(previewBytes) < 8 || MygoIN6OptionM6Unwrap[byte](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(previewBytes, 0)) != byte(137) {
- /*line media_cache_test.mygo:88:83*/		t.Fatal("private image lacks a validated PNG preview")
- /*line media_cache_test.mygo:88:6*/	} else {
- /*line zz_media_cache.gen_test.go:178:1*/	}
+ /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_13)
+ /*line media_cache_test.mygo:181:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(previewBytes) < 8 || MygoIN6OptionM6Unwrap[byte](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(previewBytes, 0)) != byte(137) {
+ /*line media_cache_test.mygo:182:5*/		t.Fatal("private image lacks a validated PNG preview")
+ /*line media_cache_test.mygo:181:3*/	} else {
+ /*line zz_media_cache.gen_test.go:177:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE media_private_cache SET expires_at=now()-interval '1 second' WHERE id=?", imageCache.ID)))
 	MygoIN6ResultM6Unwrap[int, string](MygoIN15MediaRepositoryM19CleanupPrivateCache(repo, ctx, time.Now(), 10))
- /*line media_cache_test.mygo:91:6*/	var __mygo_expr_12 Result[os.FileInfo, error]
-	__mygo_expr_13, __mygo_expr_11 := mediaFS.Root.Lstat("previews/" + imageRow.Generation)
-	if __mygo_expr_11 != nil {
-		__mygo_expr_12 = Err[os.FileInfo, error](__mygo_expr_11)
-	} else {
-		__mygo_expr_12 = Ok[os.FileInfo, error](__mygo_expr_13)
- /*line zz_media_cache.gen_test.go:187:1*/	}
- /*line media_cache_test.mygo:91:70*/	var __mygo_expr_15 Result[os.FileInfo, error]
-	__mygo_expr_16, __mygo_expr_14 := mediaFS.Root.Lstat("private-cache/" + imageRow.Generation)
+ /*line media_cache_test.mygo:189:6*/	var __mygo_expr_15 Result[os.FileInfo, error]
+	__mygo_expr_16, __mygo_expr_14 := mediaFS.Root.Lstat("previews/" + imageRow.Generation)
 	if __mygo_expr_14 != nil {
 		__mygo_expr_15 = Err[os.FileInfo, error](__mygo_expr_14)
 	} else {
 		__mygo_expr_15 = Ok[os.FileInfo, error](__mygo_expr_16)
- /*line zz_media_cache.gen_test.go:194:1*/	}
- /*line media_cache_test.mygo:91:6*/	if MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_12) || MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_15) {
- /*line media_cache_test.mygo:91:141*/		t.Fatal("private preview outlived its cache generation")
- /*line media_cache_test.mygo:91:6*/	} else {
- /*line zz_media_cache.gen_test.go:198:1*/	}
+ /*line zz_media_cache.gen_test.go:186:1*/	}
+ /*line media_cache_test.mygo:190:5*/	var __mygo_expr_18 Result[os.FileInfo, error]
+	__mygo_expr_19, __mygo_expr_17 := mediaFS.Root.Lstat("private-cache/" + imageRow.Generation)
+	if __mygo_expr_17 != nil {
+		__mygo_expr_18 = Err[os.FileInfo, error](__mygo_expr_17)
+	} else {
+		__mygo_expr_18 = Ok[os.FileInfo, error](__mygo_expr_19)
+ /*line zz_media_cache.gen_test.go:193:1*/	}
+ /*line media_cache_test.mygo:189:3*/	if MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_15) || MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_18) {
+ /*line media_cache_test.mygo:191:5*/		t.Fatal("private preview outlived its cache generation")
+ /*line media_cache_test.mygo:189:3*/	} else {
+ /*line zz_media_cache.gen_test.go:197:1*/	}
  /*line media_cache_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE communities SET read_policy='eligible_users',post_policy='eligible_users' WHERE id='remote'")))
- /*line media_cache_test.mygo:93:6*/	if MygoIN6ResultM4IsOk[struct{}, string](RunTransaction(ctx, db, func(tx_2 *gorm.DB) Result[struct{}, string] {
- /*line media_cache_test.mygo:93:30*/		registered := RegisterPrivateMedia(ctx, tx_2, site.ID, post.ID, "https://remote.example/media/public", "v1")
- /*line media_cache_test.mygo:95:8*/		if MygoIN6ResultM5IsErr[PrivateMediaCache, string](registered) {
- /*line media_cache_test.mygo:95:39*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[PrivateMediaCache, string](registered))
- /*line media_cache_test.mygo:95:8*/		} else {
- /*line zz_media_cache.gen_test.go:205:1*/		}
- /*line media_cache_test.mygo:96:5*/		return Ok[struct{}, string](struct {
- /*line zz_media_cache.gen_test.go:207:1*/		}{})
- /*line media_cache_test.mygo:93:6*/	})) {
- /*line media_cache_test.mygo:97:20*/		t.Fatal("public remote media accepted into cache")
- /*line media_cache_test.mygo:93:6*/	} else {
- /*line zz_media_cache.gen_test.go:211:1*/	}
- /*line media_cache_test.mygo:98:6*/	if fetches != 2 {
- /*line media_cache_test.mygo:98:24*/		t.Fatal("public or revoked media fetched")
+ /*line media_cache_test.mygo:194:3*/	if MygoIN6ResultM4IsOk[struct{}, string](RunTransaction(ctx, db, func(tx_2 *gorm.DB) Result[struct{}, string] {
+ /*line media_cache_test.mygo:197:5*/		registered := RegisterPrivateMedia(ctx, tx_2, site.ID, post.ID, "https://remote.example/media/public", "v1")
+ /*line media_cache_test.mygo:199:7*/		if MygoIN6ResultM5IsErr[PrivateMediaCache, string](registered) {
+ /*line media_cache_test.mygo:200:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[PrivateMediaCache, string](registered))
+ /*line media_cache_test.mygo:199:7*/		} else {
+ /*line zz_media_cache.gen_test.go:204:1*/		}
+ /*line media_cache_test.mygo:202:7*/		return Ok[struct{}, string](struct {
+ /*line zz_media_cache.gen_test.go:206:1*/		}{})
+ /*line media_cache_test.mygo:194:3*/	})) {
+ /*line media_cache_test.mygo:205:5*/		t.Fatal("public remote media accepted into cache")
+ /*line media_cache_test.mygo:194:3*/	} else {
+ /*line zz_media_cache.gen_test.go:210:1*/	}
+ /*line media_cache_test.mygo:207:3*/	if fetches != 2 {
+ /*line media_cache_test.mygo:208:5*/		t.Fatal("public or revoked media fetched")
 		return
- /*line media_cache_test.mygo:98:6*/	} else {
- /*line media_cache_test.mygo:98:3*/		return
- /*line zz_media_cache.gen_test.go:217:1*/	}
+ /*line media_cache_test.mygo:207:3*/	} else {
+		return
+ /*line zz_media_cache.gen_test.go:216:1*/	}
 }

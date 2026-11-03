@@ -52,40 +52,93 @@ func ApplyLocalVote(
   if score != -1 && score != 0 && score != 1 then
     return Err("invalid vote")
   end
-  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
-    let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
-    let previous = storage.CurrentReaction(ctx, tx, postID, identity.ActorURI)
-    if previous.IsErr() then return Err(previous.UnwrapErr()) end
-    let before = previous.Unwrap()
-    if (score == 0 && !before.Active) || (score != 0 && before.Active && before.Score == score) then
-      return repository.Vote(ctx, postID, identity, false, score, before.URI)
+  storage.RunTransaction(
+    ctx,
+    db,
+    func(tx: Ref[gorm.DB]) -> Result[(), String]
+      let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
+      let previous = storage.CurrentReaction(ctx, tx, postID, identity.ActorURI)
+      if previous.IsErr() then
+        return Err(previous.UnwrapErr())
+      end
+      let before = previous.Unwrap()
+      if (score == 0 && !before.Active) ||
+        (score != 0 && before.Active && before.Score == score) then
+        return repository.Vote(ctx, postID, identity, false, score, before.URI)
+      end
+      let loaded = storage.LoadObjectByID(ctx, tx, postID)
+      if loaded.IsErr() || loaded.Unwrap().IsNone() then
+        return Err("not found")
+      end
+      let post = loaded.Unwrap().Unwrap()
+      let communityResult = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
+      if communityResult.IsErr() || communityResult.Unwrap().IsNone() then
+        return Err("not found")
+      end
+      let community = communityResult.Unwrap().Unwrap()
+      let recipients = LocalVoteRecipients(ctx, tx, post, community, identity.ActorURI)
+      if recipients.IsErr() then
+        return Err(recipients.UnwrapErr())
+      end
+      var activityURI = ""
+      if recipients.Unwrap().Len() > 0 && post.ObjectURI.Valid then
+        activityURI = site.Origin + "/activities/" + rand.Text()
+      end
+      let changed = repository.Vote(ctx, postID, identity, false, score, activityURI)
+      if changed.IsErr() then
+        return Err(changed.UnwrapErr())
+      end
+      if activityURI == "" then
+        return Ok(())
+      end
+      let kind = if score == 1 then
+        "Like"
+      else
+        if score == -1 then
+          "Dislike"
+        else
+          "Undo"
+        end
+      end
+      let objectURI = if score == 0 then
+        before.URI
+      else
+        post.ObjectURI.String
+      end
+      if objectURI == "" then
+        return Err("reaction activity unavailable")
+      end
+      let payload = json.Marshal(LocalReactionActivity{
+        Context: activityContext,
+        ID: activityURI,
+        Type: kind,
+        Actor: identity.ActorURI,
+        Object: objectURI,
+      })
+      if payload.IsErr() then
+        return Err("reaction activity unavailable")
+      end
+      let key = storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
+      if key.IsErr() then
+        return Err(key.UnwrapErr())
+      end
+      let stored = storage.InsertActivityPayload(
+        ctx,
+        tx,
+        activityURI,
+        identity.ActorURI,
+        kind,
+        payload.Unwrap(),
+        community.ID
+      )
+      if stored.IsErr() then
+        return Err(stored.UnwrapErr())
+      end
+      let planned = storage.PlanDelivery(ctx, tx, activityURI, identity.ActorURI, recipients.Unwrap(), community.ID)
+      if planned.IsErr() then
+        return Err(planned.UnwrapErr())
+      end
+      Ok(())
     end
-    let loaded = storage.LoadObjectByID(ctx, tx, postID)
-    if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("not found") end
-    let post = loaded.Unwrap().Unwrap()
-    let communityResult = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
-    if communityResult.IsErr() || communityResult.Unwrap().IsNone() then return Err("not found") end
-    let community = communityResult.Unwrap().Unwrap()
-    let recipients = LocalVoteRecipients(ctx, tx, post, community, identity.ActorURI)
-    if recipients.IsErr() then return Err(recipients.UnwrapErr()) end
-    var activityURI = ""
-    if recipients.Unwrap().Len() > 0 && post.ObjectURI.Valid then
-      activityURI = site.Origin + "/activities/" + rand.Text()
-    end
-    let changed = repository.Vote(ctx, postID, identity, false, score, activityURI)
-    if changed.IsErr() then return Err(changed.UnwrapErr()) end
-    if activityURI == "" then return Ok(()) end
-    let kind = if score == 1 then "Like" else if score == -1 then "Dislike" else "Undo" end end
-    let objectURI = if score == 0 then before.URI else post.ObjectURI.String end
-    if objectURI == "" then return Err("reaction activity unavailable") end
-    let payload = json.Marshal(LocalReactionActivity{Context: activityContext, ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
-    if payload.IsErr() then return Err("reaction activity unavailable") end
-    let key = storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
-    if key.IsErr() then return Err(key.UnwrapErr()) end
-    let stored = storage.InsertActivityPayload(ctx, tx, activityURI, identity.ActorURI, kind, payload.Unwrap(), community.ID)
-    if stored.IsErr() then return Err(stored.UnwrapErr()) end
-    let planned = storage.PlanDelivery(ctx, tx, activityURI, identity.ActorURI, recipients.Unwrap(), community.ID)
-    if planned.IsErr() then return Err(planned.UnwrapErr()) end
-    Ok(())
-  end)
+  )
 end

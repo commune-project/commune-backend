@@ -20,42 +20,42 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line moderation.mygo:14:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
  /*line moderation.mygo:14:34*/		site := SiteRepository{DB: tx, SiteID: self.SiteID}
 		allowed := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
- /*line moderation.mygo:17:10*/		if MygoIN6ResultM5IsErr[bool, string](allowed) {
+ /*line moderation.mygo:17:7*/		if MygoIN6ResultM5IsErr[bool, string](allowed) {
  /*line moderation.mygo:18:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](allowed))
- /*line moderation.mygo:17:10*/		} else {
+ /*line moderation.mygo:17:7*/		} else {
  /*line zz_moderation.gen.go:26:1*/		}
  /*line moderation.mygo:14:34*/		deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line moderation.mygo:21:10*/		if MygoIN6ResultM5IsErr[bool, string](deployment) {
+ /*line moderation.mygo:21:7*/		if MygoIN6ResultM5IsErr[bool, string](deployment) {
  /*line moderation.mygo:22:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](deployment))
- /*line moderation.mygo:21:10*/		} else {
+ /*line moderation.mygo:21:7*/		} else {
  /*line zz_moderation.gen.go:31:1*/		}
- /*line moderation.mygo:24:10*/		if !MygoIN6ResultM6Unwrap[bool, string](allowed) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
+ /*line moderation.mygo:24:7*/		if !MygoIN6ResultM6Unwrap[bool, string](allowed) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
  /*line moderation.mygo:25:16*/			return Err[struct{}, string]("forbidden")
- /*line moderation.mygo:24:10*/		} else {
+ /*line moderation.mygo:24:7*/		} else {
  /*line zz_moderation.gen.go:35:1*/		}
  /*line moderation.mygo:14:34*/		received := QueryExists(tx.Table("site_posts").Where("site_id=? AND post_id=?", self.SiteID, postID))
- /*line moderation.mygo:28:10*/		if MygoIN6ResultM5IsErr[bool, string](received) {
+ /*line moderation.mygo:28:7*/		if MygoIN6ResultM5IsErr[bool, string](received) {
  /*line moderation.mygo:29:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](received))
- /*line moderation.mygo:28:10*/		} else {
+ /*line moderation.mygo:28:7*/		} else {
  /*line zz_moderation.gen.go:40:1*/		}
- /*line moderation.mygo:31:10*/		if !MygoIN6ResultM6Unwrap[bool, string](received) {
+ /*line moderation.mygo:31:7*/		if !MygoIN6ResultM6Unwrap[bool, string](received) {
  /*line moderation.mygo:32:16*/			return Err[struct{}, string]("not found")
- /*line moderation.mygo:31:10*/		} else {
+ /*line moderation.mygo:31:7*/		} else {
  /*line zz_moderation.gen.go:44:1*/		}
  /*line moderation.mygo:14:34*/		var __mygo_expr_1 sql.NullTime
 		if hidden {
 			__mygo_expr_1 = sql.NullTime{Time: time.Now().UTC().Truncate(time.Microsecond), Valid: true}
 		} else {
-			__mygo_expr_1 = sql.NullTime{}
+			__mygo_expr_1 = Zero[sql.NullTime]()
  /*line zz_moderation.gen.go:50:1*/		}
  /*line moderation.mygo:14:34*/		stamp := __mygo_expr_1
- /*line moderation.mygo:35:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id=? AND post_id=?", stamp, self.SiteID, postID))) {
+ /*line moderation.mygo:35:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id=? AND post_id=?", stamp, self.SiteID, postID))) {
  /*line moderation.mygo:36:16*/			return Err[struct{}, string]("moderation failed")
- /*line moderation.mygo:35:10*/		} else {
+ /*line moderation.mygo:35:7*/		} else {
  /*line zz_moderation.gen.go:55:1*/		}
- /*line moderation.mygo:38:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, postID))) {
+ /*line moderation.mygo:38:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, postID))) {
  /*line moderation.mygo:39:16*/			return Err[struct{}, string]("moderation failed")
- /*line moderation.mygo:38:10*/		} else {
+ /*line moderation.mygo:38:7*/		} else {
  /*line zz_moderation.gen.go:59:1*/		}
  /*line moderation.mygo:41:7*/		return WriteModerationLog(ctx, tx, self.SiteID, "", identity, action, "post", postID, "")
  /*line zz_moderation.gen.go:61:1*/	})
@@ -70,13 +70,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line moderation.mygo:46:1*/	action := __mygo_expr_0
  /*line moderation.mygo:51:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, communityID, identity, remoteVerified, action, postID, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
  /*line moderation.mygo:51:77*/		belongs := QueryExists(tx.Table("posts").Where("id=? AND community_id=?", postID, communityID))
- /*line moderation.mygo:53:10*/		if MygoIN6ResultM5IsErr[bool, string](belongs) {
+ /*line moderation.mygo:53:7*/		if MygoIN6ResultM5IsErr[bool, string](belongs) {
  /*line moderation.mygo:54:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](belongs))
- /*line moderation.mygo:53:10*/		} else {
+ /*line moderation.mygo:53:7*/		} else {
  /*line zz_moderation.gen.go:76:1*/		}
- /*line moderation.mygo:56:10*/		if !MygoIN6ResultM6Unwrap[bool, string](belongs) {
+ /*line moderation.mygo:56:7*/		if !MygoIN6ResultM6Unwrap[bool, string](belongs) {
  /*line moderation.mygo:57:16*/			return Err[struct{}, string]("not found")
- /*line moderation.mygo:56:10*/		} else {
+ /*line moderation.mygo:56:7*/		} else {
  /*line zz_moderation.gen.go:80:1*/		}
  /*line moderation.mygo:51:77*/		var __mygo_expr_1 string
 		if remove {
@@ -92,27 +92,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_2 = community.CreatorActorURI
  /*line zz_moderation.gen.go:93:1*/		}
  /*line moderation.mygo:51:77*/		authority := __mygo_expr_2
- /*line moderation.mygo:61:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, communityID, state))) {
+ /*line moderation.mygo:61:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,?) ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state=EXCLUDED.state,authority_actor_uri=EXCLUDED.authority_actor_uri,updated_at=now()", postID, communityID, authority, communityID, state))) {
  /*line moderation.mygo:62:16*/			return Err[struct{}, string]("moderation failed")
- /*line moderation.mygo:61:10*/		} else {
+ /*line moderation.mygo:61:7*/		} else {
  /*line zz_moderation.gen.go:98:1*/		}
  /*line moderation.mygo:64:7*/		return WriteModerationLog(ctx, tx, self.SiteID, communityID, identity, action, "post", postID, "")
  /*line zz_moderation.gen.go:100:1*/	})
 }
  /*line moderation.mygo:46:1*/func MygoIN19CommunityRepositoryM13SetSubmission(self CommunityRepository, ctx context.Context, communityID string, postID string, identity auth.Identity, remoteVerified bool, state string) Result[struct{}, string] {
- /*line moderation.mygo:71:8*/	if state != "pending" && state != "accepted" && state != "rejected" {
+ /*line moderation.mygo:71:5*/	if state != "pending" && state != "accepted" && state != "rejected" {
  /*line moderation.mygo:72:14*/		return Err[struct{}, string]("invalid state")
- /*line moderation.mygo:71:8*/	} else {
+ /*line moderation.mygo:71:5*/	} else {
  /*line zz_moderation.gen.go:106:1*/	}
  /*line moderation.mygo:74:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, communityID, identity, remoteVerified, "set-submission", postID, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
  /*line moderation.mygo:74:87*/		author := QueryExists(tx.Table("posts").Where("id=? AND community_id=?", postID, communityID))
- /*line moderation.mygo:76:10*/		if MygoIN6ResultM5IsErr[bool, string](author) {
+ /*line moderation.mygo:76:7*/		if MygoIN6ResultM5IsErr[bool, string](author) {
  /*line moderation.mygo:77:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](author))
- /*line moderation.mygo:76:10*/		} else {
+ /*line moderation.mygo:76:7*/		} else {
  /*line zz_moderation.gen.go:112:1*/		}
- /*line moderation.mygo:79:10*/		if !MygoIN6ResultM6Unwrap[bool, string](author) {
+ /*line moderation.mygo:79:7*/		if !MygoIN6ResultM6Unwrap[bool, string](author) {
  /*line moderation.mygo:80:16*/			return Err[struct{}, string]("not found")
- /*line moderation.mygo:79:10*/		} else {
+ /*line moderation.mygo:79:7*/		} else {
  /*line zz_moderation.gen.go:116:1*/		}
  /*line moderation.mygo:74:87*/		var __mygo_expr_0 string
 		if community.ActorURI.Valid {

@@ -9,7 +9,7 @@ end
 
 # The authority of a remote context collection, when the document states one.
 func ContextAuthorityURI(payload: Slice[Byte]) -> String
-  let view = ContextAuthorityView{}
+  let view = Zero[ContextAuthorityView]()
   if json.Unmarshal(payload, Ref.new(view)).IsErr() then
     return ""
   end

@@ -7,19 +7,19 @@ import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_object.mygo:6:1*/func LoadObjectByURI(ctx context.Context, db *gorm.DB, uri string) Result[Option[PostRecord], string] {
- /*line federation_object.mygo:7:6*/	if uri == "" {
+ /*line federation_object.mygo:7:3*/	if uri == "" {
  /*line federation_object.mygo:8:12*/		return Err[Option[PostRecord], string]("invalid object")
- /*line federation_object.mygo:7:6*/	} else {
+ /*line federation_object.mygo:7:3*/	} else {
  /*line zz_federation_object.gen.go:13:1*/	}
- /*line federation_object.mygo:6:1*/	record := PostRecord{}
+ /*line federation_object.mygo:6:1*/	record := Zero[PostRecord]()
 	query := db.WithContext(ctx).Table("posts").Where("object_uri = ?", uri).Limit(1).Find(&record)
- /*line federation_object.mygo:12:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line federation_object.mygo:12:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line federation_object.mygo:13:12*/		return Err[Option[PostRecord], string]("object unavailable")
- /*line federation_object.mygo:12:6*/	} else {
+ /*line federation_object.mygo:12:3*/	} else {
  /*line zz_federation_object.gen.go:19:1*/	}
- /*line federation_object.mygo:15:6*/	if query.RowsAffected != int64(1) {
+ /*line federation_object.mygo:15:3*/	if query.RowsAffected != int64(1) {
  /*line federation_object.mygo:16:12*/		return Ok[Option[PostRecord], string](None[PostRecord]())
- /*line federation_object.mygo:15:6*/	} else {
+ /*line federation_object.mygo:15:3*/	} else {
  /*line zz_federation_object.gen.go:23:1*/	}
  /*line federation_object.mygo:18:3*/	return Ok[Option[PostRecord], string](Some[PostRecord](record))
  /*line zz_federation_object.gen.go:25:1*/}

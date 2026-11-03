@@ -15,87 +15,87 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line forum_schema_test.mygo:12:1*/func TestPostgresForumSchema(t *testing.T) {
 	db := postgresFixture(t)
- /*line forum_schema_test.mygo:14:6*/	if MygoIN6ResultM5IsErr[struct{}, string](Migrate(context.Background(), db)) {
+ /*line forum_schema_test.mygo:14:3*/	if MygoIN6ResultM5IsErr[struct{}, string](Migrate(context.Background(), db)) {
  /*line forum_schema_test.mygo:15:5*/		t.Fatal("forum migration failed")
- /*line forum_schema_test.mygo:14:6*/	} else {
+ /*line forum_schema_test.mygo:14:3*/	} else {
  /*line zz_forum_schema.gen_test.go:21:1*/	}
  /*line forum_schema_test.mygo:12:1*/	seeds := []string{"INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'),('b','https://b.example')", "INSERT INTO actors(uri,local_site_id,kind,private_key_pem) VALUES ('alice','a','Person','key'),('bob','b','Person','key'),('group','a','Group','key')", "INSERT INTO actors(uri,kind) VALUES ('remote','Person')", "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','alice','alice','hash'),('b','bob','bob','hash')", "INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('private','a','alice','local_only','eligible_users','eligible_users','private','Private')", "INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('public','a','group','remote','federated','eligible_users','members','public','Public')", "INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('private','alice','alice'),('public','remote','alice')", "INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES ('private','alice','alice'),('public','remote','alice')", "INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES ('public','bob','follow1','pending')", "INSERT INTO posts(id,community_id,federation_mode,author_actor_uri,object_type,body,authored_at,updated_at) VALUES ('local','private','local_only','alice','Page','one',now(),now())", "INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,body,authored_at,updated_at) VALUES ('shared','https://remote.example/o/1','public','federated','remote','Page','one',now(),now()),('other','https://remote.example/o/2','public','federated','remote','Page','one',now(),now())", "INSERT INTO site_posts(site_id,post_id) VALUES ('a','local'),('a','shared'),('b','shared')", "INSERT INTO discussion_contexts(id,community_id,topic_id,authority_actor_uri,resolution_state) VALUES ('internal','private','local','alice','unresolved')", "INSERT INTO discussion_contexts(id,context_uri,community_id,topic_id,authority_actor_uri,collection_uri,resolution_state) VALUES ('context','https://a.example/contexts/1','public','shared','group','https://a.example/contexts/1','collection')", "INSERT INTO post_contexts(post_id,context_id) VALUES ('local','internal'),('shared','context')", "INSERT INTO post_audiences(post_id,community_id) VALUES ('local','private'),('shared','public')", "INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES ('local','private','alice','local_authority','internal','accepted'),('shared','public','group','signed_activity','activity','accepted')", "INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES ('shared','context','group','canonical_collection','context','accepted')", "INSERT INTO reactions(post_id,actor_uri) VALUES ('local','alice'),('shared','remote')", "INSERT INTO activities(uri,actor_uri,kind,community_id,post_id) VALUES ('activity','remote','Create','public','shared')", "INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES ('activity',convert_to('{}','UTF8'),decode(repeat('aa',32),'hex'))", "INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES ('activity','a','alice'),('activity','b','bob')", "INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('activity','group','remote','https://remote.example/inbox','public')"}
  /*line forum_schema_test.mygo:42:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(seeds, func(query string) {
- /*line forum_schema_test.mygo:43:12*/		var __mygo_expr_1 Result[sql.Result, error]
+ /*line forum_schema_test.mygo:43:5*/		var __mygo_expr_1 Result[sql.Result, error]
 		__mygo_expr_2, __mygo_expr_0 := db.Exec(query)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
  /*line zz_forum_schema.gen_test.go:30:1*/		}
- /*line forum_schema_test.mygo:43:12*/		__mygo_expr_3 := __mygo_expr_1
+ /*line forum_schema_test.mygo:43:5*/		__mygo_expr_3 := __mygo_expr_1
 		if _, ok := __mygo_expr_3.(Result__Ok[sql.Result, error]); ok {
  /*line zz_forum_schema.gen_test.go:33:1*/		} else {
- /*line forum_schema_test.mygo:43:12*/			if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[sql.Result, error]); ok {
- /*line forum_schema_test.mygo:45:26*/				t.Fatalf("valid schema fixture failed: %s", __mygo_match___mygo_expr_4.F0.Error())
- /*line forum_schema_test.mygo:43:12*/			} else {
+ /*line forum_schema_test.mygo:43:5*/			if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[sql.Result, error]); ok {
+ /*line forum_schema_test.mygo:45:28*/				t.Fatalf("valid schema fixture failed: %s", __mygo_match___mygo_expr_4.F0.Error())
+ /*line forum_schema_test.mygo:43:5*/			} else {
  /*line zz_forum_schema.gen_test.go:37:1*/			}
 		}
- /*line forum_schema_test.mygo:43:12*/		return
+ /*line forum_schema_test.mygo:43:5*/		return
  /*line zz_forum_schema.gen_test.go:40:1*/	})
  /*line forum_schema_test.mygo:12:1*/	cases := []ConstraintCase{ConstraintCase{SQL: "INSERT INTO community_members VALUES ('private','bob','alice',now(),NULL)", Reason: "local community assignment"}, ConstraintCase{SQL: "INSERT INTO moderators VALUES ('private','remote','alice',now(),NULL)", Reason: "local community assignment"}, ConstraintCase{SQL: "UPDATE communities SET creator_actor_uri='remote' WHERE id='private'", Reason: "local community creator"}, ConstraintCase{SQL: "UPDATE communities SET federation_mode='federated',actor_uri='group' WHERE id='private'", Reason: "immutable"}, ConstraintCase{SQL: "INSERT INTO site_posts(site_id,post_id) VALUES ('b','local')", Reason: "local post cannot be received"}, ConstraintCase{SQL: "INSERT INTO post_audiences(post_id,community_id) VALUES ('local','public')", Reason: "restricted boundary"}, ConstraintCase{SQL: "INSERT INTO post_contexts(post_id,context_id) VALUES ('local','context')", Reason: "restricted boundary"}, ConstraintCase{SQL: "UPDATE discussion_contexts SET context_uri='https://a.example/private' WHERE id='internal'", Reason: "local discussion"}, ConstraintCase{SQL: "INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES ('private','alice','private-follow','pending')", Reason: "local community assignment"}, ConstraintCase{SQL: "INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES ('leak','alice','Create','private')", Reason: "local community cannot"}, ConstraintCase{SQL: "INSERT INTO activities(uri,actor_uri,kind,post_id) VALUES ('leak','alice','Create','local')", Reason: "local post cannot"}, ConstraintCase{SQL: "INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('activity','alice','remote','https://remote.example/inbox','private')", Reason: "local community cannot"}, ConstraintCase{SQL: "INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES ('activity','b','alice')", Reason: "receipt recipient"}, ConstraintCase{SQL: "UPDATE collection_memberships SET authority_actor_uri='remote' WHERE post_id='shared' AND community_id='public'", Reason: "inclusion authority"}, ConstraintCase{SQL: "UPDATE activities SET actor_uri='alice' WHERE uri='activity'", Reason: "immutable"}, ConstraintCase{SQL: "UPDATE activity_payloads SET original_payload=convert_to('changed','UTF8') WHERE activity_uri='activity'", Reason: "immutable"}, ConstraintCase{SQL: "UPDATE posts SET author_actor_uri='alice' WHERE id='shared'", Reason: "immutable"}}
- /*line forum_schema_test.mygo:67:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test ConstraintCase) {
- /*line forum_schema_test.mygo:68:12*/		var __mygo_expr_1 Result[sql.Result, error]
-		__mygo_expr_2, __mygo_expr_0 := db.Exec(test.SQL)
-		if __mygo_expr_0 != nil {
-			__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
+ /*line forum_schema_test.mygo:118:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test ConstraintCase) {
+ /*line forum_schema_test.mygo:119:5*/		var __mygo_expr_6 Result[sql.Result, error]
+		__mygo_expr_7, __mygo_expr_5 := db.Exec(test.SQL)
+		if __mygo_expr_5 != nil {
+			__mygo_expr_6 = Err[sql.Result, error](__mygo_expr_5)
 		} else {
-			__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
+			__mygo_expr_6 = Ok[sql.Result, error](__mygo_expr_7)
  /*line zz_forum_schema.gen_test.go:49:1*/		}
- /*line forum_schema_test.mygo:68:12*/		__mygo_expr_3 := __mygo_expr_1
-		if _, ok := __mygo_expr_3.(Result__Ok[sql.Result, error]); ok {
+ /*line forum_schema_test.mygo:119:5*/		__mygo_expr_8 := __mygo_expr_6
+		if _, ok := __mygo_expr_8.(Result__Ok[sql.Result, error]); ok {
 			t.Fatalf("invalid schema mutation accepted: %s", test.Reason)
  /*line zz_forum_schema.gen_test.go:53:1*/		} else {
- /*line forum_schema_test.mygo:68:12*/			if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[sql.Result, error]); ok {
- /*line forum_schema_test.mygo:71:11*/				if !strings.Contains(__mygo_match___mygo_expr_4.F0.Error(), test.Reason) {
- /*line forum_schema_test.mygo:72:9*/					t.Fatalf("unexpected rejection: %s", __mygo_match___mygo_expr_4.F0.Error())
- /*line forum_schema_test.mygo:68:12*/				} else {
+ /*line forum_schema_test.mygo:119:5*/			if __mygo_match___mygo_expr_9, ok := __mygo_expr_8.(Result__Err[sql.Result, error]); ok {
+ /*line forum_schema_test.mygo:122:13*/				if !strings.Contains(__mygo_match___mygo_expr_9.F0.Error(), test.Reason) {
+ /*line forum_schema_test.mygo:123:11*/					t.Fatalf("unexpected rejection: %s", __mygo_match___mygo_expr_9.F0.Error())
+ /*line forum_schema_test.mygo:119:5*/				} else {
  /*line zz_forum_schema.gen_test.go:58:1*/				}
- /*line forum_schema_test.mygo:68:12*/			} else {
+ /*line forum_schema_test.mygo:119:5*/			} else {
  /*line zz_forum_schema.gen_test.go:60:1*/			}
 		}
- /*line forum_schema_test.mygo:68:12*/		return
+ /*line forum_schema_test.mygo:119:5*/		return
  /*line zz_forum_schema.gen_test.go:63:1*/	})
- /*line forum_schema_test.mygo:76:6*/	var __mygo_expr_1 Result[sql.Result, error]
-	__mygo_expr_2, __mygo_expr_0 := db.Exec("UPDATE posts SET body='',deleted_at=now() WHERE id='shared'")
-	if __mygo_expr_0 != nil {
-		__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
+ /*line forum_schema_test.mygo:128:6*/	var __mygo_expr_11 Result[sql.Result, error]
+	__mygo_expr_12, __mygo_expr_10 := db.Exec("UPDATE posts SET body='',deleted_at=now() WHERE id='shared'")
+	if __mygo_expr_10 != nil {
+		__mygo_expr_11 = Err[sql.Result, error](__mygo_expr_10)
 	} else {
-		__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
+		__mygo_expr_11 = Ok[sql.Result, error](__mygo_expr_12)
  /*line zz_forum_schema.gen_test.go:70:1*/	}
- /*line forum_schema_test.mygo:76:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_1) {
- /*line forum_schema_test.mygo:77:5*/		t.Fatal("author tombstone rejected")
- /*line forum_schema_test.mygo:76:6*/	} else {
+ /*line forum_schema_test.mygo:128:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_11) {
+ /*line forum_schema_test.mygo:129:5*/		t.Fatal("author tombstone rejected")
+ /*line forum_schema_test.mygo:128:3*/	} else {
  /*line zz_forum_schema.gen_test.go:74:1*/	}
- /*line forum_schema_test.mygo:79:6*/	var __mygo_expr_4 Result[sql.Result, error]
-	__mygo_expr_5, __mygo_expr_3 := db.Exec("UPDATE posts SET body='resurrected',deleted_at=NULL WHERE id='shared'")
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[sql.Result, error](__mygo_expr_3)
+ /*line forum_schema_test.mygo:131:6*/	var __mygo_expr_14 Result[sql.Result, error]
+	__mygo_expr_15, __mygo_expr_13 := db.Exec("UPDATE posts SET body='resurrected',deleted_at=NULL WHERE id='shared'")
+	if __mygo_expr_13 != nil {
+		__mygo_expr_14 = Err[sql.Result, error](__mygo_expr_13)
 	} else {
-		__mygo_expr_4 = Ok[sql.Result, error](__mygo_expr_5)
+		__mygo_expr_14 = Ok[sql.Result, error](__mygo_expr_15)
  /*line zz_forum_schema.gen_test.go:81:1*/	}
- /*line forum_schema_test.mygo:79:6*/	if MygoIN6ResultM4IsOk[sql.Result, error](__mygo_expr_4) {
- /*line forum_schema_test.mygo:80:5*/		t.Fatal("tombstone resurrected")
- /*line forum_schema_test.mygo:79:6*/	} else {
+ /*line forum_schema_test.mygo:131:3*/	if MygoIN6ResultM4IsOk[sql.Result, error](__mygo_expr_14) {
+ /*line forum_schema_test.mygo:132:5*/		t.Fatal("tombstone resurrected")
+ /*line forum_schema_test.mygo:131:3*/	} else {
  /*line zz_forum_schema.gen_test.go:85:1*/	}
  /*line forum_schema_test.mygo:12:1*/	count := 0
- /*line forum_schema_test.mygo:83:6*/	var __mygo_expr_7 Result[struct{}, error]
-	__mygo_expr_6 := db.QueryRow("SELECT count(*) FROM posts WHERE body='one'").Scan(&count)
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[struct{}, error](__mygo_expr_6)
+ /*line forum_schema_test.mygo:135:6*/	var __mygo_expr_17 Result[struct{}, error]
+	__mygo_expr_16 := db.QueryRow("SELECT count(*) FROM posts WHERE body='one'").Scan(&count)
+	if __mygo_expr_16 != nil {
+		__mygo_expr_17 = Err[struct{}, error](__mygo_expr_16)
 	} else {
-		__mygo_expr_7 = Ok[struct{}, error](struct {
+		__mygo_expr_17 = Ok[struct{}, error](struct {
  /*line zz_forum_schema.gen_test.go:93:1*/		}{})
 	}
- /*line forum_schema_test.mygo:83:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_7) || count != 2 {
- /*line forum_schema_test.mygo:84:5*/		t.Fatal("content or object identity was deduplicated incorrectly")
+ /*line forum_schema_test.mygo:135:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_17) || count != 2 {
+ /*line forum_schema_test.mygo:137:5*/		t.Fatal("content or object identity was deduplicated incorrectly")
 		return
- /*line forum_schema_test.mygo:83:6*/	} else {
- /*line forum_schema_test.mygo:83:3*/		return
+ /*line forum_schema_test.mygo:135:3*/	} else {
+		return
  /*line zz_forum_schema.gen_test.go:100:1*/	}
 }

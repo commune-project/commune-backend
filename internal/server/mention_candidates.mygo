@@ -1,0 +1,77 @@
+package server
+
+import http "go:net/http"
+import strconv "go:strconv"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+
+struct MentionCandidateOutput
+  ActorURI: String `json:"actor_uri"`
+  Acct: String `json:"acct"`
+  DisplayName: String `json:"display_name"`
+  Avatar: String `json:"avatar"`
+end
+
+struct MentionCandidatePage
+  Items: Slice[MentionCandidateOutput] `json:"items"`
+end
+
+func MentionCandidatesRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
+  if parts.Len() != 4 ||
+    parts.Get(2).UnwrapOr("") != "mentions" ||
+    parts.Get(3).UnwrapOr("") != "candidates" then
+    return false
+  end
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("Referrer-Policy", "no-referrer")
+  if request.Method != "GET" then
+    MethodNotAllowed(w, "GET")
+    return true
+  end
+  let identity = BrowserIdentity(db, site, request, true)
+  if identity.IsErr() then
+    Fail(w, identity.UnwrapErr())
+    return true
+  end
+  let query = strings.TrimSpace(request.URL.Query().Get("q"))
+  if !storage.ValidMentionCandidateQuery(query) then
+    WriteErrorJSON(w, 400, "invalid mention query")
+    return true
+  end
+  var limit: Int = 8
+  let rawLimit = request.URL.Query().Get("limit")
+  if rawLimit != "" then
+    let parsed = strconv.Atoi(rawLimit)
+    if parsed.IsErr() || !storage.ValidMentionCandidateLimit(parsed.Unwrap()) then
+      WriteErrorJSON(w, 400, "invalid limit")
+      return true
+    end
+    limit = parsed.Unwrap()
+  end
+  let repository = storage.MentionCandidateRepository{DB: db, SiteID: site.ID}
+  let rows = repository.Search(request.Context(), identity.Unwrap(), query, limit)
+  if rows.IsErr() then
+    Fail(w, rows.UnwrapErr())
+    return true
+  end
+  var outputs: Slice[MentionCandidateOutput] = []
+  rows.Unwrap().Each(func(row: storage.MentionCandidateRecord) -> ()
+    outputs = outputs.Append(MentionCandidateOutput{
+      ActorURI: row.ActorURI,
+      Acct: row.Acct,
+      DisplayName: row.DisplayName,
+      Avatar: row.Avatar,
+    })
+  end)
+  WriteJSON(w, 200, MentionCandidatePage{Items: outputs})
+  true
+end

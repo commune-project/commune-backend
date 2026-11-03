@@ -11,16 +11,16 @@ import "golang.org/x/net/html"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line rich.mygo:11:1*/func RenderRich(source string, format string) Result[string, string] {
- /*line rich.mygo:12:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
+ /*line rich.mygo:12:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
  /*line rich.mygo:13:12*/		return Err[string, string]("content exceeds 1 MiB")
- /*line rich.mygo:12:6*/	} else {
+ /*line rich.mygo:12:3*/	} else {
  /*line zz_rich.gen.go:17:1*/	}
- /*line rich.mygo:15:6*/	if format == "legacy" || format == "text" {
+ /*line rich.mygo:15:3*/	if format == "legacy" || format == "text" {
  /*line rich.mygo:16:12*/		return Ok[string, string](RenderText(source))
- /*line rich.mygo:15:6*/	} else {
+ /*line rich.mygo:15:3*/	} else {
  /*line zz_rich.gen.go:21:1*/	}
  /*line rich.mygo:11:1*/	rendered := source
- /*line rich.mygo:19:6*/	if format == "markdown" {
+ /*line rich.mygo:19:3*/	if format == "markdown" {
 		output := bytes.Buffer{}
  /*line rich.mygo:22:8*/		var __mygo_expr_1 Result[struct{}, error]
 		__mygo_expr_0 := goldmark.New().Convert([]byte(source), io.Writer(&output))
@@ -30,26 +30,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_rich.gen.go:31:1*/			}{})
 		}
- /*line rich.mygo:22:8*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line rich.mygo:22:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line rich.mygo:23:14*/			return Err[string, string]("Markdown rendering failed")
- /*line rich.mygo:22:8*/		} else {
+ /*line rich.mygo:22:5*/		} else {
  /*line zz_rich.gen.go:36:1*/		}
- /*line rich.mygo:19:6*/		rendered = output.String()
+ /*line rich.mygo:19:3*/		rendered = output.String()
 	} else {
 		if format != "html" {
  /*line rich.mygo:28:14*/			return Err[string, string]("unsupported content format")
- /*line rich.mygo:19:6*/		} else {
+ /*line rich.mygo:19:3*/		} else {
  /*line zz_rich.gen.go:42:1*/		}
 	}
  /*line rich.mygo:31:3*/	return Ok[string, string](SanitizeRichHTML(rendered))
  /*line zz_rich.gen.go:45:1*/}
  /*line rich.mygo:37:1*/func PlainRichText(source string, format string) Result[string, string] {
- /*line rich.mygo:38:10*/	__mygo_expr_0 := RenderRich(source, format)
+ /*line rich.mygo:38:3*/	__mygo_expr_0 := RenderRich(source, format)
 	var __mygo_expr_1 Result[string, string]
 	if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
 		__mygo_expr_1 = Err[string, string](__mygo_match___mygo_expr_3.F0)
  /*line zz_rich.gen.go:51:1*/	} else {
- /*line rich.mygo:38:10*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
+ /*line rich.mygo:38:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
  /*line rich.mygo:41:7*/			tokenizer := html.NewTokenizer(strings.NewReader(__mygo_match___mygo_expr_2.F0))
 			output := strings.Builder{}
 			done := false
@@ -64,11 +64,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_rich.gen.go:64:1*/					} else {
  /*line rich.mygo:53:16*/						if token.Data == "img" {
  /*line rich.mygo:54:15*/							MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(token.Attr, func(attr html.Attribute) {
- /*line rich.mygo:55:20*/								if attr.Key == "alt" {
+ /*line rich.mygo:55:17*/								if attr.Key == "alt" {
 									output.WriteString(" " + attr.Val + " ")
 									return
 								} else {
- /*line rich.mygo:55:17*/									return
+									return
  /*line zz_rich.gen.go:72:1*/								}
 							})
  /*line rich.mygo:41:7*/						} else {
@@ -80,11 +80,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 					}
 				}
 			}
- /*line rich.mygo:38:10*/			__mygo_expr_1 = Ok[string, string](strings.Join(strings.Fields(output.String()), " "))
+ /*line rich.mygo:38:3*/			__mygo_expr_1 = Ok[string, string](strings.Join(strings.Fields(output.String()), " "))
 		} else {
  /*line zz_rich.gen.go:85:1*/		}
 	}
- /*line rich.mygo:38:10*/	return __mygo_expr_1
+ /*line rich.mygo:38:3*/	return __mygo_expr_1
  /*line zz_rich.gen.go:88:1*/}
  /*line rich.mygo:74:1*/func SanitizeRichHTML(source string) string {
 	policy := bluemonday.NewPolicy()
@@ -107,10 +107,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_rich.gen.go:107:1*/		} else {
  /*line rich.mygo:74:1*/			token := tokenizer.Token()
  /*line rich.mygo:96:10*/			if (kind == html.StartTagToken || kind == html.SelfClosingTagToken) && token.Data == "img" {
-				token.Attr = MygoIN5SliceM6Append(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(token.Attr, func(attr html.Attribute) bool {
+ /*line rich.mygo:96:7*/				token.Attr = MygoIN5SliceM6Append(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(token.Attr, func(attr html.Attribute) bool {
  /*line rich.mygo:98:11*/					return attr.Key != "referrerpolicy"
- /*line rich.mygo:99:21*/				}), html.Attribute{Key: "referrerpolicy", Val: "no-referrer"})
- /*line rich.mygo:96:10*/			} else {
+ /*line rich.mygo:99:21*/				}), html.Attribute{Namespace: "", Key: "referrerpolicy", Val: "no-referrer"})
+ /*line rich.mygo:96:7*/			} else {
  /*line zz_rich.gen.go:114:1*/			}
  /*line rich.mygo:74:1*/			output.WriteString(token.String())
  /*line zz_rich.gen.go:116:1*/		}

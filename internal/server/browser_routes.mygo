@@ -26,7 +26,7 @@ func BrowserIdentity(
   let session = Authenticated(db, site, request)
   if session.IsErr() then
     if !required && session.UnwrapErr() == "unauthenticated" then
-      return Ok(auth.Identity{})
+      return Ok(Zero[auth.Identity]())
     end
     return Err(session.UnwrapErr())
   end
@@ -213,7 +213,7 @@ func BrowserPostRead(
     BrowserPostDisplay(repository, viewer, w, request, id)
     return
   end
-  var output = PostSource {}
+  var output = Zero[PostSource]()
   let result = storage.RunTransaction(
     request.Context(),
     repository.DB,

@@ -19,27 +19,181 @@ func TestPostgresUnifiedThreadModel(t: Ref[testing.T]) -> ()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let author = storage.AccountRepository{DB: db}.Create(ctx, site, "author", "", "author-password").Unwrap()
   let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
-  let community = communities.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let community = communities.Create(
+    ctx,
+    site,
+    author,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let topic = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic"}).Unwrap()
-  let emptyTopic = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Empty", Body: "empty"}).Unwrap()
-  let root1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "root one", ParentID: topic.ID}).Unwrap()
-  let child1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "child one", ParentID: root1.ID}).Unwrap()
-  let grandchild1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "grandchild", ParentID: child1.ID}).Unwrap()
-  let root2 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "root two", ParentID: topic.ID}).Unwrap()
-  let child2 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "child two", ParentID: root2.ID}).Unwrap()
-  let root3 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "root three", ParentID: topic.ID}).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-01T00:00:00Z',updated_at='2026-02-01T00:00:00Z' WHERE id=?", root1.ID)).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-02T00:00:00Z',updated_at='2026-02-02T00:00:00Z' WHERE id=?", child1.ID)).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-03T00:00:00Z',updated_at='2026-02-03T00:00:00Z' WHERE id=?", grandchild1.ID)).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-04T00:00:00Z',updated_at='2026-02-04T00:00:00Z' WHERE id=?", root2.ID)).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-05T00:00:00Z',updated_at='2026-02-05T00:00:00Z' WHERE id=?", child2.ID)).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-06T00:00:00Z',updated_at='2026-02-06T00:00:00Z' WHERE id=?", root3.ID)).Unwrap()
+  let topic = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "Topic",
+      Body: "topic",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let emptyTopic = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "Empty",
+      Body: "empty",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let root1 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "root one",
+      ParentID: topic.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let child1 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "child one",
+      ParentID: root1.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let grandchild1 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "grandchild",
+      ParentID: child1.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let root2 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "root two",
+      ParentID: topic.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let child2 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "child two",
+      ParentID: root2.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let root3 = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput {
+      Title: "",
+      Body: "root three",
+      ParentID: topic.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-01T00:00:00Z',updated_at='2026-02-01T00:00:00Z' WHERE id=?",
+    root1.ID
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-02T00:00:00Z',updated_at='2026-02-02T00:00:00Z' WHERE id=?",
+    child1.ID
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-03T00:00:00Z',updated_at='2026-02-03T00:00:00Z' WHERE id=?",
+    grandchild1.ID
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-04T00:00:00Z',updated_at='2026-02-04T00:00:00Z' WHERE id=?",
+    root2.ID
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-05T00:00:00Z',updated_at='2026-02-05T00:00:00Z' WHERE id=?",
+    child2.ID
+  )).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE posts SET authored_at='2026-02-06T00:00:00Z',updated_at='2026-02-06T00:00:00Z' WHERE id=?",
+    root3.ID
+  )).Unwrap()
   let handler = Handler(settings, db)
   let anonymous: Slice[Ref[http.Cookie]] = []
   let path = "/api/v1/posts/" + topic.ID + "/replies"
-  let full = PostPage{}
-  let fullResponse = browserGet(t, handler, site.Origin, path + "?sort=old&max_depth=3", anonymous, 200)
+  var full = Zero[PostPage]()
+  let fullResponse = browserGet(
+    t,
+    handler,
+    site.Origin,
+    path + "?sort=old&max_depth=3",
+    anonymous,
+    200
+  )
   let _ = json.Unmarshal(fullResponse.Body.Bytes(), Ref.new(full)).Unwrap()
   if full.Items.Len() != 3 || full.Items.Get(0).Unwrap().ID != root1.ID then
     t.Fatal("root replies or default old ordering were incorrect")
@@ -49,69 +203,184 @@ func TestPostgresUnifiedThreadModel(t: Ref[testing.T]) -> ()
     t.Fatal("root depth or child count was incorrect")
   end
   let firstChild = firstRoot.Children.Get(0).Unwrap()
-  if firstChild.ID != child1.ID || firstChild.Depth != 2 || firstChild.ChildCount != 1 ||
+  if firstChild.ID != child1.ID ||
+    firstChild.Depth != 2 ||
+    firstChild.ChildCount != 1 ||
     firstChild.Children.Get(0).Unwrap().ID != grandchild1.ID ||
     firstChild.Children.Get(0).Unwrap().Depth != 3 then
     t.Fatal("recursive children or depths were incorrect")
   end
   let paged = topicOrderPageForReplies(t, handler, site.Origin, path + "?limit=2&offset=1&sort=old")
-  if paged.Items.Len() != 2 || paged.Items.Get(0).Unwrap().ID != root2.ID || paged.Items.Get(1).Unwrap().ID != root3.ID then
+  if paged.Items.Len() != 2 ||
+    paged.Items.Get(0).Unwrap().ID != root2.ID ||
+    paged.Items.Get(1).Unwrap().ID != root3.ID then
     t.Fatal("root-only pagination repeated or promoted descendants")
   end
-  let shallow = PostPage{}
+  var shallow = Zero[PostPage]()
   let shallowResponse = browserGet(t, handler, site.Origin, path + "?max_depth=1", anonymous, 200)
   let _ = json.Unmarshal(shallowResponse.Body.Bytes(), Ref.new(shallow)).Unwrap()
-  if shallow.Items.Get(0).Unwrap().Children.Len() != 0 || shallow.Items.Get(0).Unwrap().ChildCount != 0 then
+  if shallow.Items.Get(0).Unwrap().Children.Len() != 0 ||
+    shallow.Items.Get(0).Unwrap().ChildCount != 0 then
     t.Fatal("max_depth=1 returned descendants")
   end
-  let flat = PostPage{}
+  var flat = Zero[PostPage]()
   let flatResponse = browserGet(t, handler, site.Origin, path + "?view=flat", anonymous, 200)
   let _ = json.Unmarshal(flatResponse.Body.Bytes(), Ref.new(flat)).Unwrap()
   if flatResponse.Body.String() != shallowResponse.Body.String() then
     t.Fatal("view=flat was not equivalent to max_depth=1")
   end
-  let empty = topicOrderPageForReplies(t, handler, site.Origin, "/api/v1/posts/" + emptyTopic.ID + "/replies")
+  let empty = topicOrderPageForReplies(
+    t,
+    handler,
+    site.Origin,
+    "/api/v1/posts/" + emptyTopic.ID + "/replies"
+  )
   if empty.Items.Len() != 0 then
     t.Fatal("empty thread returned items")
   end
   let _ = browserGet(t, handler, site.Origin, path + "?max_depth=8", anonymous, 200)
-  let invalid: Slice[String] = ["?max_depth=0", "?max_depth=9", "?max_depth=no", "?view=wide", "?sort=hot"]
+  let invalid: Slice[String] = [
+    "?max_depth=0",
+    "?max_depth=9",
+    "?max_depth=no",
+    "?view=wide",
+    "?sort=hot",
+  ]
   invalid.Each(func(query: String) -> ()
     let _ = browserGet(t, handler, site.Origin, path + query, anonymous, 400)
   end)
-  if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: path}).Code != 405 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "PUT",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "",
+      Cookies: [],
+      CSRF: "",
+      Source: "",
+    }
+  ).Code != 405 then
     t.Fatal("unsupported reply method was not rejected")
   end
-
-  let _ = storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, root2.ID)).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?",
+    site.ID,
+    root2.ID
+  )).Unwrap()
   let _ = communities.RemovePost(ctx, community.ID, root3.ID, author, false, true).Unwrap()
   let _ = posts.Delete(ctx, root1.ID, author, false).Unwrap()
-  let deletedParent = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "deleted parent", ParentID: topic.ID}).Unwrap()
-  let deletedChild = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "deleted child", ParentID: deletedParent.ID}).Unwrap()
+  let deletedParent = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "",
+      Body: "deleted parent",
+      ParentID: topic.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let deletedChild = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "",
+      Body: "deleted child",
+      ParentID: deletedParent.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
   let _ = posts.Delete(ctx, deletedParent.ID, author, false).Unwrap()
-  let unreceivedParent = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "unreceived parent", ParentID: topic.ID}).Unwrap()
-  let unreceivedChild = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Body: "unreceived child", ParentID: unreceivedParent.ID}).Unwrap()
-  let _ = storage.MutationResult(db.Exec("DELETE FROM site_posts WHERE site_id=? AND post_id=?", site.ID, unreceivedParent.ID)).Unwrap()
+  let unreceivedParent = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "",
+      Body: "unreceived parent",
+      ParentID: topic.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let unreceivedChild = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    author,
+    false,
+    storage.PublishInput{
+      Title: "",
+      Body: "unreceived child",
+      ParentID: unreceivedParent.ID,
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "DELETE FROM site_posts WHERE site_id=? AND post_id=?",
+    site.ID,
+    unreceivedParent.ID
+  )).Unwrap()
   let excludedResponse = browserGet(t, handler, site.Origin, path + "?max_depth=3", anonymous, 200)
-  let excluded = PostPage{}
+  var excluded = Zero[PostPage]()
   let _ = json.Unmarshal(excludedResponse.Body.Bytes(), Ref.new(excluded)).Unwrap()
   if excluded.Items.Len() != 0 then
     t.Fatal("excluded roots were promoted into the thread")
   end
-  let excludedIDs: Slice[String] = [root1.ID, root2.ID, root3.ID, deletedParent.ID, unreceivedParent.ID, child1.ID, child2.ID, grandchild1.ID, deletedChild.ID, unreceivedChild.ID]
+  let excludedIDs: Slice[String] = [
+    root1.ID,
+    root2.ID,
+    root3.ID,
+    deletedParent.ID,
+    unreceivedParent.ID,
+    child1.ID,
+    child2.ID,
+    grandchild1.ID,
+    deletedChild.ID,
+    unreceivedChild.ID,
+  ]
   excludedIDs.Each(func(id: String) -> ()
     if strings.Contains(excludedResponse.Body.String(), id) then
       t.Fatal("excluded thread identity leaked")
     end
   end)
-  let directExcluded: Slice[String] = [child2.ID, deletedChild.ID, unreceivedChild.ID, grandchild1.ID]
+  let directExcluded: Slice[String] = [
+    child2.ID,
+    deletedChild.ID,
+    unreceivedChild.ID,
+    grandchild1.ID,
+  ]
   directExcluded.Each(func(id: String) -> ()
     let _ = browserGet(t, handler, site.Origin, "/api/v1/posts/" + id, anonymous, 404)
   end)
 end
 
-func topicOrderPageForReplies(t: Ref[testing.T], handler: http.HandlerFunc, origin: String, path: String) -> PostPage
-  let output = PostPage {}
+func topicOrderPageForReplies(
+  t: Ref[testing.T],
+  handler: http.HandlerFunc,
+  origin: String,
+  path: String
+) -> PostPage
+  var output = Zero[PostPage]()
   let response = browserGet(t, handler, origin, path, [] as Slice[Ref[http.Cookie]], 200)
   if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
     t.Fatalf("invalid thread page: %s", response.Body.String())

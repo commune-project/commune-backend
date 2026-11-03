@@ -101,22 +101,34 @@ impl ContentStateRepository
     var read: Slice[String] = []
     var hidden: Slice[String] = []
     if ids.Len() == 0 then
-      return Ok(ContentStateFlags{})
+      return Ok(ContentStateFlags{Saved: [], Read: [], Hidden: []})
     end
     var rows: Slice[ContentStateRow] = []
     let query = self.DB.WithContext(ctx).Raw(
       "SELECT post_id, bool_or(source='saved') AS saved, bool_or(source='read') AS read, bool_or(source='hidden') AS hidden FROM (SELECT post_id,'saved' AS source FROM saved_posts WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'read' FROM post_reads WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'hidden' FROM post_hidden WHERE site_id=? AND account_id=? AND post_id IN ?) states GROUP BY post_id",
-      self.SiteID, self.AccountID, ids,
-      self.SiteID, self.AccountID, ids,
-      self.SiteID, self.AccountID, ids
+      self.SiteID,
+      self.AccountID,
+      ids,
+      self.SiteID,
+      self.AccountID,
+      ids,
+      self.SiteID,
+      self.AccountID,
+      ids
     ).Scan(Ref.new(rows))
     if MutationResult(query).IsErr() then
       return Err("content state unavailable")
     end
     rows.Each(func(row: ContentStateRow) -> ()
-      if row.Saved then saved = saved.Append(row.PostID) end
-      if row.Read then read = read.Append(row.PostID) end
-      if row.Hidden then hidden = hidden.Append(row.PostID) end
+      if row.Saved then
+        saved = saved.Append(row.PostID)
+      end
+      if row.Read then
+        read = read.Append(row.PostID)
+      end
+      if row.Hidden then
+        hidden = hidden.Append(row.PostID)
+      end
     end)
     Ok(ContentStateFlags{Saved: saved, Read: read, Hidden: hidden})
   end
@@ -140,22 +152,41 @@ impl BrowserRepository
     query = query.Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID)
     query = query.Joins("JOIN (?) AS c ON c.id=p.community_id", readable)
     if source == "saved" then
-      query = query.Joins("JOIN saved_posts s ON s.post_id=p.id AND s.site_id=? AND s.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("s.created_at DESC")
+      query = query.Joins(
+        "JOIN saved_posts s ON s.post_id=p.id AND s.site_id=? AND s.account_id=?",
+        self.SiteID,
+        viewer.Identity.AccountID
+      ).Order("s.created_at DESC")
     else
       if source == "read" then
-        query = query.Joins("JOIN post_reads r ON r.post_id=p.id AND r.site_id=? AND r.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("r.read_at DESC")
+        query = query.Joins(
+          "JOIN post_reads r ON r.post_id=p.id AND r.site_id=? AND r.account_id=?",
+          self.SiteID,
+          viewer.Identity.AccountID
+        ).Order("r.read_at DESC")
       else
         if source == "hidden" then
-          query = query.Joins("JOIN post_hidden h2 ON h2.post_id=p.id AND h2.site_id=? AND h2.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("h2.hidden_at DESC")
+          query = query.Joins(
+            "JOIN post_hidden h2 ON h2.post_id=p.id AND h2.site_id=? AND h2.account_id=?",
+            self.SiteID,
+            viewer.Identity.AccountID
+          ).Order("h2.hidden_at DESC")
         else
-          query = query.Joins("JOIN reactions v ON v.post_id=p.id AND v.actor_uri=? AND v.undone_at IS NULL AND v.score=1", viewer.Identity.ActorURI).Order("v.created_at DESC")
+          query = query.Joins(
+            "JOIN reactions v ON v.post_id=p.id AND v.actor_uri=? AND v.undone_at IS NULL AND v.score=1",
+            viewer.Identity.ActorURI
+          ).Order("v.created_at DESC")
         end
       end
     end
     query = query.Where("p.deleted_at IS NULL AND sp.hidden_at IS NULL")
     query = query.Where(PersonalBlockSQL("p", false), self.SiteID, viewer.Identity.AccountID)
     if source != "hidden" then
-      query = query.Where("NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id)", self.SiteID, viewer.Identity.AccountID)
+      query = query.Where(
+        "NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id)",
+        self.SiteID,
+        viewer.Identity.AccountID
+      )
     end
     query = query.Where("NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
     if MutationResult(query.Order("p.id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(records))).IsErr() then

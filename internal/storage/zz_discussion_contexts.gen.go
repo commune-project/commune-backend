@@ -19,48 +19,48 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_discussion_contexts.gen.go:19:1*/}
 
  /*line discussion_contexts.mygo:18:1*/func LoadDiscussionContext(ctx context.Context, db *gorm.DB, id string) Result[Option[DiscussionContextRecord], string] {
-	record := DiscussionContextRecord{}
+	record := Zero[DiscussionContextRecord]()
 	query := db.WithContext(ctx).Table("discussion_contexts").Where("id = ?", id).Limit(1).Find(&record)
- /*line discussion_contexts.mygo:25:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line discussion_contexts.mygo:25:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line discussion_contexts.mygo:26:12*/		return Err[Option[DiscussionContextRecord], string]("context unavailable")
- /*line discussion_contexts.mygo:25:6*/	} else {
+ /*line discussion_contexts.mygo:25:3*/	} else {
  /*line zz_discussion_contexts.gen.go:27:1*/	}
- /*line discussion_contexts.mygo:28:6*/	if query.RowsAffected != int64(1) {
+ /*line discussion_contexts.mygo:28:3*/	if query.RowsAffected != int64(1) {
  /*line discussion_contexts.mygo:29:12*/		return Ok[Option[DiscussionContextRecord], string](None[DiscussionContextRecord]())
- /*line discussion_contexts.mygo:28:6*/	} else {
+ /*line discussion_contexts.mygo:28:3*/	} else {
  /*line zz_discussion_contexts.gen.go:31:1*/	}
  /*line discussion_contexts.mygo:31:3*/	return Ok[Option[DiscussionContextRecord], string](Some[DiscussionContextRecord](record))
  /*line zz_discussion_contexts.gen.go:33:1*/}
  /*line discussion_contexts.mygo:36:1*/func CreateDiscussionContext(ctx context.Context, db *gorm.DB, community CommunityRecord, topicID string, origin string) Result[DiscussionContextRecord, string] {
 	id := rand.Text()
-	contextURI := sql.NullString{}
-	collectionURI := sql.NullString{}
-	authority := sql.NullString{}
- /*line discussion_contexts.mygo:47:6*/	if community.FederationMode == "federated" && community.ActorURI.Valid {
+	contextURI := Zero[sql.NullString]()
+	collectionURI := Zero[sql.NullString]()
+	authority := Zero[sql.NullString]()
+ /*line discussion_contexts.mygo:47:3*/	if community.FederationMode == "federated" && community.ActorURI.Valid {
 		contextURI = sql.NullString{String: origin + "/contexts/" + id, Valid: true}
 		collectionURI = sql.NullString{String: origin + "/contexts/" + id + "/collection", Valid: true}
 		authority = sql.NullString{String: community.ActorURI.String, Valid: true}
 	} else {
  /*line zz_discussion_contexts.gen.go:44:1*/	}
  /*line discussion_contexts.mygo:36:1*/	record := DiscussionContextRecord{ID: id, ContextURI: contextURI, CommunityID: sql.NullString{String: community.ID, Valid: true}, TopicID: sql.NullString{String: topicID, Valid: true}, AuthorityActorURI: authority, CollectionURI: collectionURI, ResolutionState: "unresolved"}
- /*line discussion_contexts.mygo:70:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.WithContext(ctx).Table("discussion_contexts").Create(&record))) {
+ /*line discussion_contexts.mygo:70:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.WithContext(ctx).Table("discussion_contexts").Create(&record))) {
  /*line discussion_contexts.mygo:71:12*/		return Err[DiscussionContextRecord, string]("context creation failed")
- /*line discussion_contexts.mygo:70:6*/	} else {
+ /*line discussion_contexts.mygo:70:3*/	} else {
  /*line zz_discussion_contexts.gen.go:49:1*/	}
  /*line discussion_contexts.mygo:73:3*/	return Ok[DiscussionContextRecord, string](record)
  /*line zz_discussion_contexts.gen.go:51:1*/}
  /*line discussion_contexts.mygo:76:1*/func AttachPostToContext(ctx context.Context, db *gorm.DB, postID string, contextID string) Result[struct {
 }, string] {
  /*line discussion_contexts.mygo:82:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line discussion_contexts.mygo:86:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING", postID, contextID))) {
+ /*line discussion_contexts.mygo:86:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING", postID, contextID))) {
  /*line discussion_contexts.mygo:91:16*/			return Err[struct{}, string]("context attachment failed")
- /*line discussion_contexts.mygo:86:10*/		} else {
+ /*line discussion_contexts.mygo:86:7*/		} else {
  /*line zz_discussion_contexts.gen.go:58:1*/		}
  /*line discussion_contexts.mygo:85:5*/		authority := ContextAuthority(ctx, tx, contextID)
- /*line discussion_contexts.mygo:94:10*/		if MygoIN6ResultM5IsErr[string, string](authority) || MygoIN6ResultM6Unwrap[string, string](authority) == "" {
+ /*line discussion_contexts.mygo:94:7*/		if MygoIN6ResultM5IsErr[string, string](authority) || MygoIN6ResultM6Unwrap[string, string](authority) == "" {
  /*line discussion_contexts.mygo:95:16*/			return Ok[struct{}, string](struct {
  /*line zz_discussion_contexts.gen.go:62:1*/			}{})
- /*line discussion_contexts.mygo:94:10*/		} else {
+ /*line discussion_contexts.mygo:94:7*/		} else {
  /*line zz_discussion_contexts.gen.go:64:1*/		}
  /*line discussion_contexts.mygo:97:7*/		return MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'local_authority',?,'accepted') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO UPDATE SET state='accepted', authority_actor_uri=EXCLUDED.authority_actor_uri, updated_at=now()", postID, contextID, MygoIN6ResultM6Unwrap[string, string](authority), contextID))
  /*line zz_discussion_contexts.gen.go:66:1*/	})
@@ -73,42 +73,42 @@ import . "github.com/mygo-lang/mygo/prelude"
 }
  /*line discussion_contexts.mygo:126:1*/func AttachDeclaredPostContextTx(ctx context.Context, tx *gorm.DB, postID string, contextID string) Result[struct {
 }, string] {
- /*line discussion_contexts.mygo:132:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING", postID, contextID))) {
+ /*line discussion_contexts.mygo:132:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING", postID, contextID))) {
  /*line discussion_contexts.mygo:137:12*/		return Err[struct{}, string]("context attachment failed")
- /*line discussion_contexts.mygo:132:6*/	} else {
+ /*line discussion_contexts.mygo:132:3*/	} else {
  /*line zz_discussion_contexts.gen.go:79:1*/	}
  /*line discussion_contexts.mygo:126:1*/	authority := ContextAuthority(ctx, tx, contextID)
- /*line discussion_contexts.mygo:140:6*/	if MygoIN6ResultM5IsErr[string, string](authority) || MygoIN6ResultM6Unwrap[string, string](authority) == "" {
+ /*line discussion_contexts.mygo:140:3*/	if MygoIN6ResultM5IsErr[string, string](authority) || MygoIN6ResultM6Unwrap[string, string](authority) == "" {
  /*line discussion_contexts.mygo:141:12*/		return Ok[struct{}, string](struct {
  /*line zz_discussion_contexts.gen.go:83:1*/		}{})
- /*line discussion_contexts.mygo:140:6*/	} else {
+ /*line discussion_contexts.mygo:140:3*/	} else {
  /*line zz_discussion_contexts.gen.go:85:1*/	}
  /*line discussion_contexts.mygo:143:3*/	return MutationResult(tx.Exec("INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'pending') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO NOTHING", postID, contextID, MygoIN6ResultM6Unwrap[string, string](authority), contextID))
  /*line zz_discussion_contexts.gen.go:87:1*/}
  /*line discussion_contexts.mygo:152:1*/func ContextAuthority(ctx context.Context, db *gorm.DB, contextID string) Result[string, string] {
 	authority := ""
 	query := db.WithContext(ctx).Raw("SELECT coalesce(authority_actor_uri,'') FROM discussion_contexts WHERE id = ?", contextID).Scan(&authority)
- /*line discussion_contexts.mygo:162:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line discussion_contexts.mygo:162:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line discussion_contexts.mygo:163:12*/		return Err[string, string]("context unavailable")
- /*line discussion_contexts.mygo:162:6*/	} else {
+ /*line discussion_contexts.mygo:162:3*/	} else {
  /*line zz_discussion_contexts.gen.go:94:1*/	}
  /*line discussion_contexts.mygo:165:3*/	return Ok[string, string](authority)
  /*line zz_discussion_contexts.gen.go:96:1*/}
  /*line discussion_contexts.mygo:168:1*/func CountContextPosts(ctx context.Context, db *gorm.DB, contextID string) Result[int64, string] {
 	var count int64 = int64(0)
 	query := db.WithContext(ctx).Table("collection_memberships AS cm").Joins("JOIN posts AS p ON p.id = cm.post_id").Where("cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL", contextID).Count(&count)
- /*line discussion_contexts.mygo:178:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line discussion_contexts.mygo:178:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line discussion_contexts.mygo:179:12*/		return Err[int64, string]("context unavailable")
- /*line discussion_contexts.mygo:178:6*/	} else {
+ /*line discussion_contexts.mygo:178:3*/	} else {
  /*line zz_discussion_contexts.gen.go:103:1*/	}
  /*line discussion_contexts.mygo:181:3*/	return Ok[int64, string](count)
  /*line zz_discussion_contexts.gen.go:105:1*/}
  /*line discussion_contexts.mygo:184:1*/func ListContextPosts(ctx context.Context, db *gorm.DB, contextID string, limit int, offset int) Result[[]PostRecord, string] {
 	var records []PostRecord = []PostRecord{}
 	query := db.WithContext(ctx).Table("collection_memberships AS cm").Select("p.*").Joins("JOIN posts AS p ON p.id = cm.post_id").Where("cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL", contextID).Order("p.authored_at, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line discussion_contexts.mygo:196:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line discussion_contexts.mygo:196:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line discussion_contexts.mygo:197:12*/		return Err[[]PostRecord, string]("context unavailable")
- /*line discussion_contexts.mygo:196:6*/	} else {
+ /*line discussion_contexts.mygo:196:3*/	} else {
  /*line zz_discussion_contexts.gen.go:112:1*/	}
  /*line discussion_contexts.mygo:199:3*/	return Ok[[]PostRecord, string](records)
  /*line zz_discussion_contexts.gen.go:114:1*/}

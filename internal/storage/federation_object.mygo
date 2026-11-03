@@ -7,7 +7,7 @@ func LoadObjectByURI(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Res
   if uri == "" then
     return Err("invalid object")
   end
-  let record = PostRecord{}
+  let record = Zero[PostRecord]()
   let query = db.WithContext(ctx).Table("posts").Where("object_uri = ?", uri).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
     return Err("object unavailable")

@@ -22,19 +22,19 @@ func TestPostgresModerationNotificationsHTTP(t: Ref[testing.T]) -> ()
   let _ = accounts.Create(ctx, site, "reporter", "", "reporter-password").Unwrap()
   let target = accounts.Create(ctx, site, "target", "", "target-password").Unwrap()
   let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body"}).Unwrap()
+  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let handler = Handler(settings, db)
   let reporterCookies = login(handler, site.Origin, "reporter", "reporter-password")
   let reporterCSRF = csrfOf(reporterCookies)
   let targetCookies = login(handler, site.Origin, "target", "target-password")
   let adminCookies = login(handler, site.Origin, "admin", "administrator-password")
   let adminCSRF = csrfOf(adminCookies)
-  let created = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: `{"target_kind":"post","target_id":"` + post.ID + `","community_id":"` + community.ID + `","reason":"spam"}`, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin})
+  let created = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: `{"target_kind":"post","target_id":"`, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin})
   if created.Code != 201 then t.Fatal("report creation failed") end
-  let reports = ReportPage{}
+  var reports = Zero[ReportPage]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/reports?state=open", adminCookies, 200).Body.Bytes(), Ref.new(reports)).Unwrap()
   let reportID = reports.Items.Get(0).Unwrap().ID
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports/" + reportID.ToString() + "/resolve", Payload: `{"state":"resolved","note":"ok"}`, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports/", Payload: `{"state":"resolved","note":"ok"}`, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 then
     t.Fatal("report resolution failed")
   end
   let banPath = "/api/v1/communities/" + community.ID + "/bans"
@@ -44,13 +44,13 @@ func TestPostgresModerationNotificationsHTTP(t: Ref[testing.T]) -> ()
   end
   let _ = storage.ProjectNotifications(ctx, db, 100).Unwrap()
   let _ = storage.ProjectNotifications(ctx, db, 100).Unwrap()
-  let reporterPage = storage.NotificationPage{}
+  var reporterPage = Zero[storage.NotificationPage]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", reporterCookies, 200).Body.Bytes(), Ref.new(reporterPage)).Unwrap()
   if reporterPage.Items.Len() != 1 || reporterPage.Items.Get(0).Unwrap().TargetKind != "report" ||
     reporterPage.Items.Get(0).Unwrap().TargetID != reportID.ToString() then
     t.Fatal("report notification target metadata was incorrect")
   end
-  let targetPage = storage.NotificationPage{}
+  var targetPage = Zero[storage.NotificationPage]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", targetCookies, 200).Body.Bytes(), Ref.new(targetPage)).Unwrap()
   if targetPage.Items.Len() != 1 || targetPage.Items.Get(0).Unwrap().TargetKind != "moderation" ||
     targetPage.Items.Get(0).Unwrap().TargetID != target.ActorURI then
@@ -59,15 +59,15 @@ func TestPostgresModerationNotificationsHTTP(t: Ref[testing.T]) -> ()
   if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 then
     t.Fatal("community unban failed")
   end
-  let unread = NotificationCountOutput{}
+  var unread = Zero[NotificationCountOutput]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications/unread-count", targetCookies, 200).Body.Bytes(), Ref.new(unread)).Unwrap()
-  let unbannedPage = storage.NotificationPage{}
+  var unbannedPage = Zero[storage.NotificationPage]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", targetCookies, 200).Body.Bytes(), Ref.new(unbannedPage)).Unwrap()
   if unread.Count != 0i64 || unbannedPage.Items.Len() != 0 then
     t.Fatal("inactive ban notification count was not zero")
   end
   let _ = storage.FeedRepository{DB: db, SiteID: site.ID}.SetHidden(ctx, post.ID, true, storage.FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()).Unwrap()
-  let hiddenReport = storage.NotificationPage{}
+  var hiddenReport = Zero[storage.NotificationPage]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", reporterCookies, 200).Body.Bytes(), Ref.new(hiddenReport)).Unwrap()
   if hiddenReport.Items.Len() != 0 then
     t.Fatal("inaccessible report target notification remained visible")

@@ -28,7 +28,7 @@ end
 # JSON-LD `@context` keyword. Every reference is declared-only (`Verified`
 # false); a resolution failure never rejects the containing activity.
 func ParseContexts(payload: Slice[Byte]) -> Result[ContextParseResult, String]
-  let holder = ContextHolder{}
+  let holder = Zero[ContextHolder]()
   if json.Unmarshal(payload, Ref.new(holder)).IsErr() then
     return Err("invalid activity")
   end
@@ -59,7 +59,7 @@ func DecodeContextValue(raw: Slice[Byte]) -> Slice[ContextReference]
     end)
     return references
   end
-  let descriptor = ContextDescriptor{}
+  let descriptor = Zero[ContextDescriptor]()
   if json.Unmarshal(raw, Ref.new(descriptor)).IsErr() then
     return references
   end

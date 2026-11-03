@@ -79,6 +79,10 @@ func TestPostgresFederationDiscovery(t: Ref[testing.T]) -> ()
       Title: "Hello",
       Body: "Body",
       ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let privateTopic = posts.Publish(
@@ -91,6 +95,10 @@ func TestPostgresFederationDiscovery(t: Ref[testing.T]) -> ()
       Title: "Private",
       Body: "Body",
       ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let localTopic = posts.Publish(
@@ -103,6 +111,10 @@ func TestPostgresFederationDiscovery(t: Ref[testing.T]) -> ()
       Title: "Local",
       Body: "Body",
       ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   let handler = Handler(settings, db)

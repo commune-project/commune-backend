@@ -11,7 +11,7 @@ import png "go:image/png"
 import config "github.com/commune-project/commune-backend/internal/config"
 
 func MediaTestSettings(t: Ref[testing.T]) -> config.Media
-  let input = config.ParticipationDefaults(config.Input{})
+  let input = config.ParticipationDefaults(Zero[config.Input]())
   var settings = input.Media
   settings.Enabled = true
   settings.Root = t.TempDir()

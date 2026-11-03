@@ -40,7 +40,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line tokens.mygo:36:5*/	return TokenHash(self.CSRF)
  /*line zz_tokens.gen.go:41:1*/}
  /*line tokens.mygo:30:1*/func MygoIN13SessionTokensM7Cookies(self SessionTokens, expires time.Time) []http.Cookie {
- /*line tokens.mygo:40:5*/	return []http.Cookie{http.Cookie{Name: "__Host-commune_session", Value: self.Session, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400}, http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Path: "/", Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400}}
+ /*line tokens.mygo:40:5*/	return []http.Cookie{http.Cookie{Name: "__Host-commune_session", Value: self.Session, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}, http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}}
  /*line zz_tokens.gen.go:44:1*/}
  /*line tokens.mygo:47:1*/func VerifyCSRF(expected []byte, supplied string) bool {
  /*line tokens.mygo:48:3*/	return ValidToken(supplied) && subtle.ConstantTimeCompare(expected, TokenHash(supplied)) == 1

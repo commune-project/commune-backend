@@ -64,7 +64,7 @@ func TestPostgresDeliveryLeases(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()
   let logs = bytes.Buffer{}
   let previousLogger = slog.Default()
-  slog.SetDefault(slog.New(slog.NewJSONHandler(Ref.new(logs) as io.Writer, Ref.new(slog.HandlerOptions{}))))
+  slog.SetDefault(slog.New(slog.NewJSONHandler(Ref.new(logs) as io.Writer, Ref.new(Zero[slog.HandlerOptions]()))))
   t.Cleanup(func() -> ()
     slog.SetDefault(previousLogger)
   end)

@@ -16,9 +16,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_verification.gen.go:17:1*/	}
  /*line verification.mygo:9:1*/	block := __mygo_expr_1
- /*line verification.mygo:11:6*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
+ /*line verification.mygo:11:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
  /*line verification.mygo:12:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:11:6*/	} else {
+ /*line verification.mygo:11:3*/	} else {
  /*line zz_verification.gen.go:22:1*/	}
  /*line verification.mygo:14:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
 	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
@@ -28,9 +28,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
  /*line zz_verification.gen.go:29:1*/	}
  /*line verification.mygo:9:1*/	aead := __mygo_expr_4
- /*line verification.mygo:15:6*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
+ /*line verification.mygo:15:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
  /*line verification.mygo:16:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:15:6*/	} else {
+ /*line verification.mygo:15:3*/	} else {
  /*line zz_verification.gen.go:34:1*/	}
  /*line verification.mygo:9:1*/	nonce := []byte(rand.Text())
  /*line verification.mygo:19:6*/	var __mygo_expr_7 Result[int, error]
@@ -40,9 +40,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	} else {
 		__mygo_expr_7 = Ok[int, error](__mygo_expr_8)
  /*line zz_verification.gen.go:42:1*/	}
- /*line verification.mygo:19:6*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
+ /*line verification.mygo:19:3*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
  /*line verification.mygo:20:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:19:6*/	} else {
+ /*line verification.mygo:19:3*/	} else {
  /*line zz_verification.gen.go:46:1*/	}
  /*line verification.mygo:9:1*/	prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize())
  /*line verification.mygo:23:3*/	return Ok[[]byte, string](MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Seal(prefix, prefix, []byte(message), []byte("commune-verification-v1")))
@@ -56,9 +56,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_verification.gen.go:57:1*/	}
  /*line verification.mygo:26:1*/	block := __mygo_expr_1
- /*line verification.mygo:28:6*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
+ /*line verification.mygo:28:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
  /*line verification.mygo:29:12*/		return Err[string, string]("verification encryption unavailable")
- /*line verification.mygo:28:6*/	} else {
+ /*line verification.mygo:28:3*/	} else {
  /*line zz_verification.gen.go:62:1*/	}
  /*line verification.mygo:31:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
 	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
@@ -68,9 +68,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
  /*line zz_verification.gen.go:69:1*/	}
  /*line verification.mygo:26:1*/	aead := __mygo_expr_4
- /*line verification.mygo:32:6*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
+ /*line verification.mygo:32:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
  /*line verification.mygo:33:12*/		return Err[string, string]("invalid verification payload")
- /*line verification.mygo:32:6*/	} else {
+ /*line verification.mygo:32:3*/	} else {
  /*line zz_verification.gen.go:74:1*/	}
  /*line verification.mygo:26:1*/	size := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize()
  /*line verification.mygo:36:16*/	var __mygo_expr_7 Result[[]byte, error]
@@ -81,9 +81,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
  /*line zz_verification.gen.go:82:1*/	}
  /*line verification.mygo:26:1*/	opened := __mygo_expr_7
- /*line verification.mygo:37:6*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
+ /*line verification.mygo:37:3*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
  /*line verification.mygo:38:12*/		return Err[string, string]("invalid verification payload")
- /*line verification.mygo:37:6*/	} else {
+ /*line verification.mygo:37:3*/	} else {
  /*line zz_verification.gen.go:87:1*/	}
  /*line verification.mygo:40:3*/	return Ok[string, string](string(MygoIN6ResultM6Unwrap[[]byte, error](opened)))
  /*line zz_verification.gen.go:89:1*/}

@@ -114,7 +114,7 @@ func TestParticipationLoadAndSecretEnvironment(t: Ref[testing.T]) -> ()
   let envName: String = "COMMUNE_CONFIG_TEST_OUTBOX_KEY"
   t.Setenv(envName, key)
   var input = validInput()
-  input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+  input.Sites = [Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []}]
   input.Registration.OutboxSecretEnv = envName
   input.Registration.IPLimit = 7
   input.Registration.EmailLimit = 2
@@ -529,14 +529,14 @@ func TestParticipationEnabledValidation(t: Ref[testing.T]) -> ()
         let nul: Slice[Byte] = [0 as Byte]
         input.Media.Root = "/tmp/" + (nul as String)
       case "missing root" => input.Media.Enabled = true
-      case "missing secret" => input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+      case "missing secret" => input.Sites = [Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []}]
       case "short secret" => input.Registration.OutboxSecret = "c2VjcmV0"
       case "bad secret" => input.Registration.OutboxSecret = "secret"
       case "missing smtp" =>
-        input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+        input.Sites = [Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []}]
         input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
       case "bad sender" =>
-        input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+        input.Sites = [Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []}]
         input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
         input.SMTP.Host = "smtp.example"
         input.SMTP.From = "secret"
@@ -561,7 +561,7 @@ func TestParticipationEnabledValidation(t: Ref[testing.T]) -> ()
     ()
   end)
   var input = validInput()
-  input.Sites = [Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}]
+  input.Sites = [Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []}]
   input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
   input.SMTP.Host = "smtp.example"
   input.SMTP.From = "Commune <noreply@example.com>"

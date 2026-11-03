@@ -17,6 +17,7 @@ func ParticipationRoute(
   parts: Slice[String]
 ) -> Bool
   if SearchRoute(settings, db, site, w, request, parts) ||
+    MentionCandidatesRoute(settings, db, site, w, request, parts) ||
     NotificationRoute(settings, db, site, w, request, parts) ||
     ProfilesRoute(settings, db, site, w, request, parts) ||
     SiteVoteRoute(settings, db, site, w, request, parts) ||

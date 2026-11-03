@@ -70,10 +70,22 @@ func ValidateRuntime(runtime: Runtime) -> Result[(), String]
   if NormalizeAuthority(runtime.Listen).IsErr() then
     return Err("invalid runtime listen address")
   end
-  if runtime.ReadTimeoutSeconds < 1 || runtime.ReadTimeoutSeconds > 300 || runtime.WriteTimeoutSeconds < 1 || runtime.WriteTimeoutSeconds > 300 || runtime.IdleTimeoutSeconds < 1 || runtime.IdleTimeoutSeconds > 3600 || runtime.ShutdownTimeoutSeconds < 1 || runtime.ShutdownTimeoutSeconds > 300 then
+  if runtime.ReadTimeoutSeconds < 1 ||
+    runtime.ReadTimeoutSeconds > 300 ||
+    runtime.WriteTimeoutSeconds < 1 ||
+    runtime.WriteTimeoutSeconds > 300 ||
+    runtime.IdleTimeoutSeconds < 1 ||
+    runtime.IdleTimeoutSeconds > 3600 ||
+    runtime.ShutdownTimeoutSeconds < 1 ||
+    runtime.ShutdownTimeoutSeconds > 300 then
     return Err("runtime timeouts are missing or out of range")
   end
-  if runtime.MaxBodyBytes < 1024 || runtime.MaxBodyBytes > 16777216 || runtime.MaxPageSize < 1 || runtime.MaxPageSize > 1000 || runtime.Workers < 1 || runtime.Workers > 128 then
+  if runtime.MaxBodyBytes < 1024 ||
+    runtime.MaxBodyBytes > 16777216 ||
+    runtime.MaxPageSize < 1 ||
+    runtime.MaxPageSize > 1000 ||
+    runtime.Workers < 1 ||
+    runtime.Workers > 128 then
     return Err("runtime body, page or worker limit is missing or out of range")
   end
   Ok(())
@@ -105,7 +117,11 @@ func Validate(input: Input) -> Result[Config, String]
     return Err("invalid PostgreSQL database URL")
   end
   let database = databaseResult.Unwrap()
-  if (database.Scheme != "postgres" && database.Scheme != "postgresql") || database.Hostname() == "" || database.Path == "" || database.Path == "/" || database.Fragment != "" then
+  if (database.Scheme != "postgres" && database.Scheme != "postgresql") ||
+    database.Hostname() == "" ||
+    database.Path == "" ||
+    database.Path == "/" ||
+    database.Fragment != "" then
     return Err("database URL must identify a PostgreSQL host and database")
   end
   if NormalizeAuthority(database.Host).IsErr() || url.ParseQuery(database.RawQuery).IsErr() then
@@ -162,7 +178,12 @@ func Validate(input: Input) -> Result[Config, String]
       authorities = authorities.Append(names.Get(j).Unwrap())
       j = j + 1
     end
-    sites = sites.Append(Site { ID: site.ID, Origin: origin, Aliases: aliases, RegistrationEnabled: site.RegistrationEnabled })
+    sites = sites.Append(Site {
+      ID: site.ID,
+      Origin: origin,
+      Aliases: aliases,
+      RegistrationEnabled: site.RegistrationEnabled,
+    })
     i = i + 1
   end
   var proxies: Slice[netip.Prefix] = []
@@ -175,7 +196,18 @@ func Validate(input: Input) -> Result[Config, String]
     proxies = proxies.Append(prefixResult.Unwrap().Masked())
     i = i + 1
   end
-  Ok(Config { Sites: sites, DatabaseURL: input.DatabaseURL, TrustedProxies: proxies, Runtime: input.Runtime, Federation: input.Federation, Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers })
+  Ok(Config {
+    Sites: sites,
+    DatabaseURL: input.DatabaseURL,
+    TrustedProxies: proxies,
+    Runtime: input.Runtime,
+    Federation: input.Federation,
+    Registration: settings.Registration,
+    SMTP: settings.SMTP,
+    Media: settings.Media,
+    Rendering: settings.Rendering,
+    ParticipationWorkers: settings.ParticipationWorkers,
+  })
 end
 
 func ValidateFederation(federation: Federation) -> Result[(), String]
@@ -198,7 +230,7 @@ func Load(path: String) -> Result[Config, String]
   switch os.ReadFile(path)
     case Err(_) => Err("cannot read configuration file")
     case Ok(bytes) then
-      let input = Input {}
+      let input = Zero[Input]()
       switch json.Unmarshal(bytes, Ref.new(input))
         case Err(_) => Err("invalid configuration JSON")
         case Ok(_) => Validate(input)

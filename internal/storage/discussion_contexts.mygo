@@ -20,7 +20,7 @@ func LoadDiscussionContext(
   db: Ref[gorm.DB],
   id: String
 ) -> Result[Option[DiscussionContextRecord], String]
-  let record = DiscussionContextRecord{}
+  let record = Zero[DiscussionContextRecord]()
   let query = db.WithContext(ctx).Table("discussion_contexts").Where("id = ?", id).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
     return Err("context unavailable")
@@ -41,9 +41,9 @@ func CreateDiscussionContext(
   origin: String
 ) -> Result[DiscussionContextRecord, String]
   let id = rand.Text()
-  var contextURI = sql.NullString {}
-  var collectionURI = sql.NullString {}
-  var authority = sql.NullString {}
+  var contextURI = Zero[sql.NullString]()
+  var collectionURI = Zero[sql.NullString]()
+  var authority = Zero[sql.NullString]()
   if community.FederationMode == "federated" && community.ActorURI.Valid then
     contextURI = sql.NullString { String: origin + "/contexts/" + id, Valid: true }
     collectionURI = sql.NullString {

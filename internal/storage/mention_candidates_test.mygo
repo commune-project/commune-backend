@@ -1,0 +1,137 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import config "github.com/commune-project/commune-backend/internal/config"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func mentionCandidateFor(rows: Slice[MentionCandidateRecord], actorURI: String) -> Option[MentionCandidateRecord]
+  rows.Filter(func(row: MentionCandidateRecord) -> Bool
+    row.ActorURI == actorURI
+  end).Get(0)
+end
+
+func TestPostgresMentionCandidates(t: Ref[testing.T]) -> ()
+  if ValidMentionCandidateQuery("a") ||
+    ValidMentionCandidateQuery(strings.Repeat("a", 65)) ||
+    !ValidMentionCandidateQuery(" ab ") ||
+    !ValidMentionCandidateQuery("中文") ||
+    ValidMentionCandidateLimit(0) ||
+    ValidMentionCandidateLimit(21) ||
+    !ValidMentionCandidateLimit(8) then
+    t.Fatal("mention candidate bounds failed")
+  end
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = testSite("a", "https://a.example")
+  let other = testSite("b", "https://b.example")
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let _ = ProvisionSite(ctx, db, other).Unwrap()
+  let accounts = AccountRepository{DB: db}
+  let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let alicia = accounts.Create(ctx, site, "alicia", "", "alicia-password").Unwrap()
+  let rainbow = accounts.Create(ctx, site, "rainbow", "", "rainbow-password").Unwrap()
+  let dave = accounts.Create(ctx, site, "dave", "", "dave-password").Unwrap()
+  let carol = accounts.Create(ctx, other, "carol", "", "carol-password").Unwrap()
+  let _ = MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", dave.AccountID)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", bob.ActorURI, "Bobby", "https://a.example/avatar/bob.png")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", rainbow.ActorURI, "O'Brien Rainbow 100%Real")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", carol.ActorURI, "Bonnie", "https://b.example/avatar/carol.png")).Unwrap()
+  let remyURI = "https://remote.example/users/remy"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remyURI, "https://remote.example/inbox", "remy@remote.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES ('https://remote.example/users/ghost','Person','https://remote.example/inbox','')")).Unwrap()
+  let targetURI = "https://blocked.example/users/target"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", targetURI, "https://blocked.example/inbox", "target@blocked.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)).Unwrap()
+  let blockedURI = "https://remote.example/users/blocked"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", blockedURI, "https://remote.example/inbox", "blocked@remote.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, blockedURI)).Unwrap()
+  let bannedURI = "https://remote.example/users/banned"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", bannedURI, "https://remote.example/inbox", "banned@remote.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason) VALUES (?,?,?,?)", site.ID, bannedURI, alice.ActorURI, "test ban")).Unwrap()
+  let personalURI = "https://remote.example/users/personal"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", personalURI, "https://remote.example/inbox", "personal@remote.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,'person',?)", site.ID, alice.AccountID, personalURI)).Unwrap()
+  let tieA = "https://tie-a.example/users/tie"
+  let tieZ = "https://tie-z.example/users/tie"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieA, "https://tie-a.example/inbox", "Tie@tie.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieZ, "https://tie-z.example/inbox", "tie@tie.example")).Unwrap()
+  let repository = MentionCandidateRepository{DB: db, SiteID: site.ID}
+  if repository.Search(ctx, alice, "a", 8).IsOk() ||
+    repository.Search(ctx, alice, "ab", 0).IsOk() ||
+    repository.Search(ctx, alice, "ab", 21).IsOk() then
+    t.Fatal("storage accepted invalid mention candidate input")
+  end
+  let aliciaRows = repository.Search(ctx, alice, "alici", 8).Unwrap()
+  if aliciaRows.Len() != 1 || aliciaRows.Get(0).Unwrap().ActorURI != alicia.ActorURI || aliciaRows.Get(0).Unwrap().Acct != "alicia@a.example" || aliciaRows.Get(0).Unwrap().DisplayName != "alicia" || aliciaRows.Get(0).Unwrap().Avatar != "" then
+    t.Fatal("local account fallback projection failed")
+  end
+  let bobRows = repository.Search(ctx, alice, "bobby", 8).Unwrap()
+  let bobCandidate = mentionCandidateFor(bobRows, bob.ActorURI).Unwrap()
+  if bobCandidate.Acct != "bob@a.example" || bobCandidate.DisplayName != "Bobby" || bobCandidate.Avatar != "https://a.example/avatar/bob.png" then
+    t.Fatal("local profile projection failed")
+  end
+  let remRows = repository.Search(ctx, alice, "rem", 8).Unwrap()
+  let remCandidate = mentionCandidateFor(remRows, remyURI).Unwrap()
+  if remCandidate.Acct != "remy@remote.example" || remCandidate.DisplayName != "Remy" || remCandidate.Avatar != "https://remote.example/avatar/remy.png" then
+    t.Fatal("stored remote projection failed")
+  end
+  let carolRows = repository.Search(ctx, alice, "carol", 8).Unwrap()
+  let carolCandidate = mentionCandidateFor(carolRows, carol.ActorURI).Unwrap()
+  if carolCandidate.Acct != "carol@b.example" || carolCandidate.DisplayName != "Bonnie" then
+    t.Fatal("colocated site handle projection failed")
+  end
+  let prefixRows = repository.Search(ctx, alice, "bo", 8).Unwrap()
+  if prefixRows.Len() != 3 || prefixRows.Get(0).Unwrap().ActorURI != bob.ActorURI || prefixRows.Get(1).Unwrap().ActorURI != carol.ActorURI || prefixRows.Get(2).Unwrap().ActorURI != rainbow.ActorURI then
+    t.Fatal("prefix ranking or deterministic ordering failed")
+  end
+  let limited = repository.Search(ctx, alice, "bo", 1).Unwrap()
+  if limited.Len() != 1 || limited.Get(0).Unwrap().ActorURI != bob.ActorURI then
+    t.Fatal("candidate limit was not applied after ordering")
+  end
+  let ties = repository.Search(ctx, alice, "tie", 8).Unwrap()
+  if ties.Len() != 2 || ties.Get(0).Unwrap().ActorURI != tieA || ties.Get(1).Unwrap().ActorURI != tieZ then
+    t.Fatal("case-insensitive handle tie did not fall back to Actor URI")
+  end
+  let percentRows = repository.Search(ctx, alice, "%r", 8).Unwrap()
+  if percentRows.Len() != 1 || percentRows.Get(0).Unwrap().ActorURI != rainbow.ActorURI then
+    t.Fatal("percent was treated as a wildcard")
+  end
+  if repository.Search(ctx, alice, "b_b", 8).Unwrap().Len() != 0 then
+    t.Fatal("underscore was treated as a wildcard")
+  end
+  let quoteRows = repository.Search(ctx, alice, "O'", 8).Unwrap()
+  if quoteRows.Len() != 1 || quoteRows.Get(0).Unwrap().ActorURI != rainbow.ActorURI then
+    t.Fatal("quote was not treated literally")
+  end
+  if repository.Search(ctx, alice, "alice", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "dave", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "ghost", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "target@", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "blocked@remote", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "banned@remote", 8).Unwrap().Len() != 0 ||
+    repository.Search(ctx, alice, "personal@remote", 8).Unwrap().Len() != 0 then
+    t.Fatal("self, disabled, missing-handle, blocked, banned, or personally blocked candidate leaked")
+  end
+  var jobsBefore: Int64 = 0i64
+  let _ = MutationResult(db.Table("actor_handle_jobs").Count(Ref.new(jobsBefore))).Unwrap()
+  var notificationsBefore: Int64 = 0i64
+  let _ = MutationResult(db.Table("notification_events").Count(Ref.new(notificationsBefore))).Unwrap()
+  var deliveriesBefore: Int64 = 0i64
+  let _ = MutationResult(db.Table("delivery_jobs").Count(Ref.new(deliveriesBefore))).Unwrap()
+  let _ = repository.Search(ctx, alice, "bo", 8).Unwrap()
+  var jobsAfter: Int64 = 0i64
+  let _ = MutationResult(db.Table("actor_handle_jobs").Count(Ref.new(jobsAfter))).Unwrap()
+  var notificationsAfter: Int64 = 0i64
+  let _ = MutationResult(db.Table("notification_events").Count(Ref.new(notificationsAfter))).Unwrap()
+  var deliveriesAfter: Int64 = 0i64
+  let _ = MutationResult(db.Table("delivery_jobs").Count(Ref.new(deliveriesAfter))).Unwrap()
+  if jobsAfter != jobsBefore || notificationsAfter != notificationsBefore || deliveriesAfter != deliveriesBefore then
+    t.Fatal("candidate lookup wrote federation or notification state")
+  end
+end

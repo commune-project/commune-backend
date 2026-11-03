@@ -7,7 +7,6 @@ import "context"
 import "strings"
 import "database/sql"
 import "time"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -21,11 +20,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_reports.gen_test.go:24:1*/	}
+ /*line zz_reports.gen_test.go:23:1*/	}
  /*line reports_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
+	site := testSite("a", "https://a.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := AccountRepository{DB: db}
@@ -36,76 +35,76 @@ import . "github.com/mygo-lang/mygo/prelude"
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, PublishInput{Title: "Reported", Body: "body"}))
- /*line reports_test.mygo:28:6*/	if MygoIN6ResultM6Unwrap[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "  spam  ")) != true || MygoIN6ResultM6Unwrap[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "duplicate")) {
- /*line reports_test.mygo:30:5*/		t.Fatal("open report deduplication failed")
- /*line reports_test.mygo:28:6*/	} else {
- /*line zz_reports.gen_test.go:43:1*/	}
- /*line reports_test.mygo:32:6*/	if MygoIN6ResultM4IsOk[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, strings.Repeat("中", 1001))) {
- /*line reports_test.mygo:33:5*/		t.Fatal("overlong report reason was accepted")
- /*line reports_test.mygo:32:6*/	} else {
- /*line zz_reports.gen_test.go:47:1*/	}
+	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, testPublishInput("Reported", "body")))
+ /*line reports_test.mygo:44:3*/	if MygoIN6ResultM6Unwrap[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "  spam  ")) != true || MygoIN6ResultM6Unwrap[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "duplicate")) {
+ /*line reports_test.mygo:47:5*/		t.Fatal("open report deduplication failed")
+ /*line reports_test.mygo:44:3*/	} else {
+ /*line zz_reports.gen_test.go:42:1*/	}
+ /*line reports_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, strings.Repeat("中", 1001))) {
+ /*line reports_test.mygo:59:5*/		t.Fatal("overlong report reason was accepted")
+ /*line reports_test.mygo:49:3*/	} else {
+ /*line zz_reports.gen_test.go:46:1*/	}
  /*line reports_test.mygo:12:1*/	reports := MygoIN6ResultM6Unwrap[[]ReportRecord, string](ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0))
- /*line reports_test.mygo:36:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reports) != 1 || MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).Reason != "spam" {
- /*line reports_test.mygo:37:5*/		t.Fatal("report listing was missing or unnormalized")
- /*line reports_test.mygo:36:6*/	} else {
- /*line zz_reports.gen_test.go:52:1*/	}
+ /*line reports_test.mygo:62:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reports) != 1 || MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).Reason != "spam" {
+ /*line reports_test.mygo:63:5*/		t.Fatal("report listing was missing or unnormalized")
+ /*line reports_test.mygo:62:3*/	} else {
+ /*line zz_reports.gen_test.go:51:1*/	}
  /*line reports_test.mygo:12:1*/	reportID := MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).ID
 	MygoIN6ResultM6Unwrap[struct{}, string](ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled"))
 	MygoIN6ResultM6Unwrap[struct{}, string](ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled"))
- /*line reports_test.mygo:42:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](ResolveReport(ctx, db, site.ID, admin, reportID, "rejected", "changed")) != "report conflict" {
- /*line reports_test.mygo:43:5*/		t.Fatal("conflicting report resolution was not a conflict")
- /*line reports_test.mygo:42:6*/	} else {
- /*line zz_reports.gen_test.go:59:1*/	}
+ /*line reports_test.mygo:68:3*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](ResolveReport(ctx, db, site.ID, admin, reportID, "rejected", "changed")) != "report conflict" {
+ /*line reports_test.mygo:70:5*/		t.Fatal("conflicting report resolution was not a conflict")
+ /*line reports_test.mygo:68:3*/	} else {
+ /*line zz_reports.gen_test.go:58:1*/	}
  /*line reports_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "community ban", sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true}))
- /*line reports_test.mygo:46:6*/	if !MygoIN6ResultM6Unwrap[bool, string](ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now())) {
- /*line reports_test.mygo:47:5*/		t.Fatal("community ban was not active")
- /*line reports_test.mygo:46:6*/	} else {
- /*line zz_reports.gen_test.go:64:1*/	}
- /*line reports_test.mygo:49:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, PublishInput{Title: "Blocked", Body: "blocked"})) {
- /*line reports_test.mygo:50:5*/		t.Fatal("community-banned actor published")
- /*line reports_test.mygo:49:6*/	} else {
- /*line zz_reports.gen_test.go:68:1*/	}
- /*line reports_test.mygo:52:6*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](UnbanCommunity(ctx, db, site.ID, community.ID, admin, "https://missing.example/users/none")) != "not found" {
- /*line reports_test.mygo:53:5*/		t.Fatal("unban of absent community ban was accepted")
- /*line reports_test.mygo:52:6*/	} else {
- /*line zz_reports.gen_test.go:72:1*/	}
+ /*line reports_test.mygo:85:3*/	if !MygoIN6ResultM6Unwrap[bool, string](ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now())) {
+ /*line reports_test.mygo:86:5*/		t.Fatal("community ban was not active")
+ /*line reports_test.mygo:85:3*/	} else {
+ /*line zz_reports.gen_test.go:63:1*/	}
+ /*line reports_test.mygo:88:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, testPublishInput("Blocked", "blocked"))) {
+ /*line reports_test.mygo:89:5*/		t.Fatal("community-banned actor published")
+ /*line reports_test.mygo:88:3*/	} else {
+ /*line zz_reports.gen_test.go:67:1*/	}
+ /*line reports_test.mygo:91:3*/	if MygoIN6ResultM9UnwrapErr[struct{}, string](UnbanCommunity(ctx, db, site.ID, community.ID, admin, "https://missing.example/users/none")) != "not found" {
+ /*line reports_test.mygo:93:5*/		t.Fatal("unban of absent community ban was accepted")
+ /*line reports_test.mygo:91:3*/	} else {
+ /*line zz_reports.gen_test.go:71:1*/	}
  /*line reports_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI))
- /*line reports_test.mygo:56:6*/	if MygoIN6ResultM5IsErr[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, PublishInput{Title: "Allowed", Body: "allowed"})) {
- /*line reports_test.mygo:57:5*/		t.Fatal("community unban did not restore posting")
- /*line reports_test.mygo:56:6*/	} else {
- /*line zz_reports.gen_test.go:77:1*/	}
- /*line reports_test.mygo:59:11*/	MygoIN6ResultM6Unwrap[struct{}, string](BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "expired", sql.NullTime{Time: time.Now().Add(time.Duration(-1) * time.Hour), Valid: true}))
- /*line reports_test.mygo:60:6*/	if MygoIN6ResultM6Unwrap[bool, string](ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now())) {
- /*line reports_test.mygo:61:5*/		t.Fatal("expired community ban remained active")
- /*line reports_test.mygo:60:6*/	} else {
- /*line zz_reports.gen_test.go:82:1*/	}
+ /*line reports_test.mygo:96:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, testPublishInput("Allowed", "allowed"))) {
+ /*line reports_test.mygo:97:5*/		t.Fatal("community unban did not restore posting")
+ /*line reports_test.mygo:96:3*/	} else {
+ /*line zz_reports.gen_test.go:76:1*/	}
+ /*line reports_test.mygo:99:11*/	MygoIN6ResultM6Unwrap[struct{}, string](BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "expired", sql.NullTime{Time: time.Now().Add(time.Duration(-1) * time.Hour), Valid: true}))
+ /*line reports_test.mygo:112:3*/	if MygoIN6ResultM6Unwrap[bool, string](ActiveCommunityBan(ctx, db, community.ID, target.ActorURI, time.Now())) {
+ /*line reports_test.mygo:113:5*/		t.Fatal("expired community ban remained active")
+ /*line reports_test.mygo:112:3*/	} else {
+ /*line zz_reports.gen_test.go:81:1*/	}
  /*line reports_test.mygo:12:1*/	session := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, target, time.Now()))
-	MygoIN6ResultM6Unwrap[struct{}, string](BanSite(ctx, db, site.ID, admin, target.ActorURI, "site ban", sql.NullTime{}))
- /*line reports_test.mygo:65:6*/	if !MygoIN6ResultM6Unwrap[bool, string](ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now())) || MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, session.Session, time.Now())) {
- /*line reports_test.mygo:67:5*/		t.Fatal("site ban was not active or did not revoke sessions")
- /*line reports_test.mygo:65:6*/	} else {
- /*line zz_reports.gen_test.go:88:1*/	}
- /*line reports_test.mygo:12:1*/	targetRecord := AccountRecord{}
+	MygoIN6ResultM6Unwrap[struct{}, string](BanSite(ctx, db, site.ID, admin, target.ActorURI, "site ban", Zero[sql.NullTime]()))
+ /*line reports_test.mygo:117:3*/	if !MygoIN6ResultM6Unwrap[bool, string](ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now())) || MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, session.Session, time.Now())) {
+ /*line reports_test.mygo:119:5*/		t.Fatal("site ban was not active or did not revoke sessions")
+ /*line reports_test.mygo:117:3*/	} else {
+ /*line zz_reports.gen_test.go:87:1*/	}
+ /*line reports_test.mygo:12:1*/	targetRecord := Zero[AccountRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("accounts").Where("site_id=? AND id=?", site.ID, target.AccountID).Find(&targetRecord)))
- /*line reports_test.mygo:71:6*/	if targetRecord.Disabled {
- /*line reports_test.mygo:72:5*/		t.Fatal("site ban overwrote independent account disabled state")
- /*line reports_test.mygo:71:6*/	} else {
- /*line zz_reports.gen_test.go:94:1*/	}
+ /*line reports_test.mygo:123:3*/	if targetRecord.Disabled {
+ /*line reports_test.mygo:124:5*/		t.Fatal("site ban overwrote independent account disabled state")
+ /*line reports_test.mygo:123:3*/	} else {
+ /*line zz_reports.gen_test.go:93:1*/	}
  /*line reports_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](UnbanSite(ctx, db, site.ID, admin, target.ActorURI))
- /*line reports_test.mygo:75:6*/	if MygoIN6ResultM6Unwrap[bool, string](ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now())) {
- /*line reports_test.mygo:76:5*/		t.Fatal("site unban did not revoke the ban")
- /*line reports_test.mygo:75:6*/	} else {
- /*line zz_reports.gen_test.go:99:1*/	}
+ /*line reports_test.mygo:127:3*/	if MygoIN6ResultM6Unwrap[bool, string](ActiveSiteBan(ctx, db, site.ID, target.ActorURI, time.Now())) {
+ /*line reports_test.mygo:128:5*/		t.Fatal("site unban did not revoke the ban")
+ /*line reports_test.mygo:127:3*/	} else {
+ /*line zz_reports.gen_test.go:98:1*/	}
  /*line reports_test.mygo:12:1*/	logs := MygoIN6ResultM6Unwrap[[]ModerationLogRecord, string](ModerationLog(ctx, db, site.ID, admin, "", 100, 0))
- /*line reports_test.mygo:79:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(logs) < 5 {
- /*line reports_test.mygo:80:5*/		t.Fatal("moderation actions were not logged")
- /*line reports_test.mygo:79:6*/	} else {
- /*line zz_reports.gen_test.go:104:1*/	}
- /*line reports_test.mygo:82:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("UPDATE moderation_log SET reason='changed'"))) || MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("DELETE FROM moderation_log"))) {
- /*line reports_test.mygo:84:5*/		t.Fatal("moderation log was mutable")
+ /*line reports_test.mygo:131:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(logs) < 5 {
+ /*line reports_test.mygo:132:5*/		t.Fatal("moderation actions were not logged")
+ /*line reports_test.mygo:131:3*/	} else {
+ /*line zz_reports.gen_test.go:103:1*/	}
+ /*line reports_test.mygo:134:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("UPDATE moderation_log SET reason='changed'"))) || MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("DELETE FROM moderation_log"))) {
+ /*line reports_test.mygo:136:5*/		t.Fatal("moderation log was mutable")
 		return
- /*line reports_test.mygo:82:6*/	} else {
- /*line reports_test.mygo:82:3*/		return
- /*line zz_reports.gen_test.go:110:1*/	}
+ /*line reports_test.mygo:134:3*/	} else {
+		return
+ /*line zz_reports.gen_test.go:109:1*/	}
 }

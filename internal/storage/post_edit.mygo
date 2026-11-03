@@ -193,7 +193,7 @@ impl PostRepository
     remoteVerified: Bool,
     work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]
   ) -> Result[PostRecord, String]
-    var stored = PostRecord {}
+    var stored = Zero[PostRecord]()
     let result = RunTransaction(
       ctx,
       self.DB,
@@ -240,7 +240,7 @@ impl PostRepository
 end
 
 func loadPostForUpdate(tx: Ref[gorm.DB], id: String) -> Result[PostRecord, String]
-  let record = PostRecord {}
+  let record = Zero[PostRecord]()
   let found = tx.Raw("SELECT * FROM posts WHERE id=? FOR UPDATE", id).Scan(Ref.new(record))
   if MutationResult(found).IsErr() then
     return Err("post unavailable")

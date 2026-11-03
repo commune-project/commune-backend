@@ -124,7 +124,7 @@ func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
   if community.Code != 201 then
     t.Fatal("community creation failed")
   end
-  let communityBody = APICommunity{}
+  var communityBody = Zero[APICommunity]()
   let _ = json.Unmarshal(community.Body.Bytes(), Ref.new(communityBody)).Unwrap()
   let topicCall = forumCall{
     Method: "POST",
@@ -139,7 +139,7 @@ func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
   if topic.Code != 201 then
     t.Fatal("topic creation failed")
   end
-  let topicBody = APIPost{}
+  let topicBody = Zero[APIPost]()
   let _ = json.Unmarshal(topic.Body.Bytes(), Ref.new(topicBody)).Unwrap()
   if topicBody.Body != "world" || topicBody.ObjectType != "Page" then
     t.Fatal("topic response leaked markup or the wrong type")
@@ -152,6 +152,8 @@ func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
       Path: "/api/v1/account/saved?offset=999",
       Cookies: aliceCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   )
   if emptySaved.Code != 200 || !strings.Contains(emptySaved.Body.String(), "\"items\":[]") then
@@ -165,6 +167,8 @@ func TestPostgresForumHTTPContract(t: Ref[testing.T]) -> ()
       Path: "/api/v1/account/saved?limit=not-a-number",
       Cookies: aliceCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   ).Code != 400 then
     t.Fatal("malformed account pagination was accepted")
@@ -390,7 +394,7 @@ func topicCount(
   if response.Code != 200 then
     return -1
   end
-  let page = APIPage{}
+  var page = Zero[APIPage]()
   let _ = json.Unmarshal(response.Body.Bytes(), Ref.new(page)).Unwrap()
   page.Items.Len()
 end
@@ -422,6 +426,8 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Path: "/api/v1/reports?state=open&offset=999",
       Cookies: adminCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   )
   if emptyReports.Code != 200 || !strings.Contains(emptyReports.Body.String(), "\"items\":[]") then
@@ -435,6 +441,8 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Path: "/api/v1/reports?limit=oops",
       Cookies: adminCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   ).Code != 400 then
     t.Fatal("malformed report pagination was accepted")
@@ -447,6 +455,8 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Path: "/api/v1/modlog?offset=999",
       Cookies: adminCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   )
   if emptyModlog.Code != 200 || !strings.Contains(emptyModlog.Body.String(), "\"items\":[]") then
@@ -460,6 +470,8 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Path: "/api/v1/modlog?offset=-1",
       Cookies: adminCookies,
       Source: "",
+      Payload: "",
+      CSRF: "",
     }
   ).Code != 400 then
     t.Fatal("malformed modlog pagination was accepted")
@@ -477,7 +489,7 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Source: a.Origin,
     }
   )
-  let community = APICommunity{}
+  var community = Zero[APICommunity]()
   let _ = json.Unmarshal(created.Body.Bytes(), Ref.new(community)).Unwrap()
   let topicBody = "{\"title\":\"T\",\"body\":\"B\"}"
   let path = "/api/v1/communities/" + community.ID + "/topics"
@@ -493,7 +505,7 @@ func TestPostgresForumModerationHTTP(t: Ref[testing.T]) -> ()
       Source: a.Origin,
     }
   )
-  let post = APIPost{}
+  let post = Zero[APIPost]()
   let _ = json.Unmarshal(topic.Body.Bytes(), Ref.new(post)).Unwrap()
   let id = community.ID
   let hidePath = "/api/v1/posts/" + post.ID + "/hide"

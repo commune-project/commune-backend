@@ -10,7 +10,10 @@ import testsupport "github.com/commune-project/commune-backend/internal/testsupp
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func TestSearchValidation(t: Ref[testing.T]) -> ()
-  if ValidSearchQuery("") || ValidSearchQuery("  ") || ValidSearchQuery(strings.Repeat("中", 201)) || !ValidSearchQuery(strings.Repeat("中", 200)) then
+  if ValidSearchQuery("") ||
+    ValidSearchQuery("  ") ||
+    ValidSearchQuery(strings.Repeat("中", 201)) ||
+    !ValidSearchQuery(strings.Repeat("中", 200)) then
     t.Fatal("search bounds failed")
   end
   if SearchPattern("%_\\'") != "%\\%\\_\\\\'%" then
@@ -21,16 +24,27 @@ end
 func TestSearchQueryUsesGormPagination(t: Ref[testing.T]) -> ()
   let fixture = mockFixture(t)
   let db = transport.ORM(fixture.DB).Unwrap()
-  let repository = BrowserRepository{DB: db, SiteID: "a"}
-  let query = repository.SearchPostsQuery(context.Background(), BrowserViewer{}, "literal", Page{Limit: 7, Offset: 3})
+  let repository = BrowserRepository { DB: db, SiteID: "a" }
+  let query = repository.SearchPostsQuery(
+    context.Background(),
+    Zero[BrowserViewer](),
+    "literal",
+    Page{
+      Limit: 7,
+      Offset: 3,
+    }
+  )
   var rows: Slice[PostRecord] = []
-  let preview = query.Session(Ref.new(gorm.Session{DryRun: true}))
+  var session = Zero[gorm.Session]()
+  session.DryRun = true
+  let preview = query.Session(Ref.new(session))
   let built = preview.Find(Ref.new(rows))
   if QueryFailed(built) then
     t.Fatalf("search query builder failed dry run: %v", built.Error)
   end
   let sql = built.Statement.SQL.String()
-  if !strings.Contains(sql, "ILIKE") || strings.Contains(sql, "@site") ||
+  if !strings.Contains(sql, "ILIKE") ||
+    strings.Contains(sql, "@site") ||
     strings.Contains(sql, "@account") ||
     !strings.Contains(sql, "ORDER BY authored_at DESC,id LIMIT") ||
     !strings.Contains(sql, "OFFSET") then
@@ -45,20 +59,62 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
   # Main owns the production migration and renderer maintenance. Keep this
   # repository contract test runnable before that parallel work is integrated.
   let _ = MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let site = testSite("a", "https://a.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let communities = CommunityRepository{DB: db, SiteID: site.ID}
-  let open = communities.Create(ctx, site, alice, "public", "中文社区", "federated", "eligible_users", "eligible_users").Unwrap()
-  let private = communities.Create(ctx, site, alice, "private", "中文私密", "federated", "members", "members").Unwrap()
+  let open = communities.Create(
+    ctx,
+    site,
+    alice,
+    "public",
+    "中文社区",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let private = communities.Create(
+    ctx,
+    site,
+    alice,
+    "private",
+    "中文私密",
+    "federated",
+    "members",
+    "members"
+  ).Unwrap()
   let posts = PostRepository{DB: db, SiteID: site.ID}
-  let first = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "First", Body: "<b>中文</b>"}).Unwrap()
-  let second = posts.Publish(ctx, site, open.ID, alice, false, PublishInput{Title: "Second", Body: "[中文](https://hidden.example)"}).Unwrap()
-  let secret = posts.Publish(ctx, site, private.ID, alice, false, PublishInput{Title: "secret", Body: "中文"}).Unwrap()
-  let _ = MutationResult(db.Exec("UPDATE posts SET search_text=?, authored_at='2026-01-01'", "中文 AbC %_\\' literal")).Unwrap()
+  let first = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    testPublishInput("First", "<b>中文</b>")
+  ).Unwrap()
+  let second = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    testPublishInput("Second", "[中文](https://hidden.example)")
+  ).Unwrap()
+  let secret = posts.Publish(
+    ctx,
+    site,
+    private.ID,
+    alice,
+    false,
+    testPublishInput("secret", "中文")
+  ).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "UPDATE posts SET search_text=?, authored_at='2026-01-01'",
+    "中文 AbC %_\\' literal"
+  )).Unwrap()
   let browser = BrowserRepository{DB: db, SiteID: site.ID}
-  let viewer = browser.Viewer(ctx, auth.Identity{}).Unwrap()
-  let allResult = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50)
+  let viewer = browser.Viewer(ctx, Zero[auth.Identity]()).Unwrap()
+  let allResult = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
   if allResult.IsErr() then
     t.Fatalf("initial search failed: %s", allResult.UnwrapErr())
   end
@@ -73,7 +129,7 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
   end
   let queries: Slice[String] = ["abc", "%_\\'", "中文"]
   queries.Each(func(query: String) -> ()
-    let result = browser.SearchPosts(ctx, viewer, query, Page{Limit: 20}, 50)
+    let result = browser.SearchPosts(ctx, viewer, query, Page{Limit: 20, Offset: 0}, 50)
     if result.IsErr() then
       t.Fatalf("search %q failed: %s", query, result.UnwrapErr())
     end
@@ -81,57 +137,113 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
       t.Fatal("literal case insensitive Chinese search failed")
     end
   end)
-  let hiddenSource = browser.SearchPosts(ctx, viewer, "hidden.example", Page{Limit: 20}, 50)
-  let markupSource = browser.SearchPosts(ctx, viewer, "<b>", Page{Limit: 20}, 50)
-  if hiddenSource.IsErr() || markupSource.IsErr() ||
-    hiddenSource.Unwrap().Len() != 0 || markupSource.Unwrap().Len() != 0 then
+  let hiddenSource = browser.SearchPosts(
+    ctx,
+    viewer,
+    "hidden.example",
+    Page{Limit: 20, Offset: 0},
+    50
+  )
+  let markupSource = browser.SearchPosts(ctx, viewer, "<b>", Page{Limit: 20, Offset: 0}, 50)
+  if hiddenSource.IsErr() ||
+    markupSource.IsErr() ||
+    hiddenSource.Unwrap().Len() != 0 ||
+    markupSource.Unwrap().Len() != 0 then
     t.Fatal("search read markup/source instead of normalized text")
   end
-  let communitySearch = browser.SearchCommunities(ctx, viewer, "中文", Page{Limit: 20}, 50)
+  let communitySearch = browser.SearchCommunities(
+    ctx,
+    viewer,
+    "中文",
+    Page{Limit: 20, Offset: 0},
+    50
+  )
   if communitySearch.IsErr() || communitySearch.Unwrap().Len() != 1 then
     t.Fatal("community read filtering failed")
   end
-  let blockedSearch = browser.SearchPosts(ctx, BrowserViewer{Blocked: true}, "中文", Page{Limit: 20}, 50)
-  let unreceivedSearch = BrowserRepository{DB: db, SiteID: "unreceived"}.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50)
-  if blockedSearch.IsErr() || unreceivedSearch.IsErr() ||
-    blockedSearch.Unwrap().Len() != 0 || unreceivedSearch.Unwrap().Len() != 0 then
+  let blockedSearch = browser.SearchPosts(
+    ctx,
+    BrowserViewer{Identity: Zero[auth.Identity](), Verified: false, Blocked: true, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: false, DownvotesEnabled: false, VoteSettingsLoaded: false},
+    "中文",
+    Page{
+      Limit: 20,
+      Offset: 0,
+    },
+    50
+  )
+  let unreceivedSearch = BrowserRepository{DB: db, SiteID: "unreceived"}.SearchPosts(
+    ctx,
+    viewer,
+    "中文",
+    Page{
+      Limit: 20,
+      Offset: 0,
+    },
+    50
+  )
+  if blockedSearch.IsErr() ||
+    unreceivedSearch.IsErr() ||
+    blockedSearch.Unwrap().Len() != 0 ||
+    unreceivedSearch.Unwrap().Len() != 0 then
     t.Fatal("blocked viewer or absent site reception leaked results")
   end
   let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", first.ID)).Unwrap()
   let _ = communities.SetSubmission(ctx, open.ID, second.ID, alice, false, "rejected").Unwrap()
-  let filtered = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20}, 50)
+  let filtered = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
   if filtered.IsErr() || filtered.Unwrap().Len() != 0 then
     t.Fatal("hidden/rejected posts leaked")
   end
   let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", first.ID)).Unwrap()
   let _ = MutationResult(db.Exec("UPDATE posts SET search_text='updated' WHERE id=?", first.ID)).Unwrap()
-  let updatedSearch = browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20}, 50)
+  let updatedSearch = browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20, Offset: 0}, 50)
   if updatedSearch.IsErr() || updatedSearch.Unwrap().Len() != 1 then
     t.Fatal("updated search text missing")
   end
   let _ = posts.Delete(ctx, first.ID, alice, false).Unwrap()
-  let tombstoneSearch = browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20}, 50)
+  let tombstoneSearch = browser.SearchPosts(ctx, viewer, "updated", Page{Limit: 20, Offset: 0}, 50)
   if tombstoneSearch.IsErr() || tombstoneSearch.Unwrap().Len() != 0 then
     t.Fatal("tombstone leaked")
   end
-  let _ = MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", open.ID, alice.ActorURI)).Unwrap()
-  let _ = MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts ON CONFLICT DO NOTHING", site.ID)).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n",
+    open.ID,
+    alice.ActorURI
+  )).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts ON CONFLICT DO NOTHING",
+    site.ID
+  )).Unwrap()
   let _ = MutationResult(db.Exec("ANALYZE posts")).Unwrap()
   let _ = MutationResult(db.Exec("ANALYZE site_posts")).Unwrap()
   let _ = MutationResult(db.Exec("ANALYZE communities")).Unwrap()
-  let planResult = transport.Explain(browser.SearchPostsQuery(ctx, viewer, "中文", Page{Limit: 20}))
+  let planResult = transport.Explain(browser.SearchPostsQuery(
+    ctx,
+    viewer,
+    "中文",
+    Page{
+      Limit: 20,
+      Offset: 0,
+    }
+  ))
   if planResult.IsErr() then
     t.Fatalf("search explain failed: %s", planResult.UnwrapErr())
   end
   let plan = planResult.Unwrap()
   t.Logf("1000-post literal search plan:\n%s", strings.Join(plan, "\n"))
   let _ = ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
-  let admin = browser.Viewer(ctx, FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()).Unwrap()
-  let adminSearch = browser.SearchCommunities(ctx, admin, "私密", Page{Limit: 20}, 50)
+  let admin = browser.Viewer(
+    ctx,
+    FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
+  ).Unwrap()
+  let adminSearch = browser.SearchCommunities(ctx, admin, "私密", Page{Limit: 20, Offset: 0}, 50)
   if adminSearch.IsErr() then
     t.Fatalf("administrator search failed: %s", adminSearch.UnwrapErr())
   end
-  if !QueryExists(db.Table("audit_events").Where("acting_actor_uri=? AND action='read-community' AND target_id=?", admin.Identity.ActorURI, private.ID)).Unwrap() then
+  if !QueryExists(db.Table("audit_events").Where(
+    "acting_actor_uri=? AND action='read-community' AND target_id=?",
+    admin.Identity.ActorURI,
+    private.ID
+  )).Unwrap() then
     t.Fatal("administrative search was not audited")
   end
   let _ = MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", secret.ID)).Unwrap()

@@ -11,89 +11,89 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line relations.mygo:8:3*/	return community.FederationMode == "local_only" || community.ReadPolicy == "members"
  /*line zz_relations.gen.go:12:1*/}
  /*line relations.mygo:11:1*/func MygoIN14PostRepositoryM6Import(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[PostRecord, string] {
-	stored := PostRecord{}
+	stored := Zero[PostRecord]()
 	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line relations.mygo:16:47*/		loaded := loadPostForUpdate(tx, id)
- /*line relations.mygo:18:10*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line relations.mygo:19:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:18:10*/		} else {
+ /*line relations.mygo:25:7*/		loaded := loadPostForUpdate(tx, id)
+ /*line relations.mygo:27:9*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
+ /*line relations.mygo:28:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:27:9*/		} else {
  /*line zz_relations.gen.go:20:1*/		}
- /*line relations.mygo:16:47*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
+ /*line relations.mygo:25:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
 		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		opened := MygoIN19CommunityRepositoryM4Open(community, ctx, post.CommunityID, false)
- /*line relations.mygo:24:10*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](opened) {
- /*line relations.mygo:25:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:24:10*/		} else {
+ /*line relations.mygo:33:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](opened) {
+ /*line relations.mygo:34:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:33:9*/		} else {
  /*line zz_relations.gen.go:27:1*/		}
- /*line relations.mygo:16:47*/		access := MygoIN19CommunityRepositoryM6Access(community, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](opened), identity, remoteVerified)
- /*line relations.mygo:28:10*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line relations.mygo:29:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:28:10*/		} else {
+ /*line relations.mygo:25:7*/		access := MygoIN19CommunityRepositoryM6Access(community, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](opened), identity, remoteVerified)
+ /*line relations.mygo:37:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
+ /*line relations.mygo:38:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:37:9*/		} else {
  /*line zz_relations.gen.go:32:1*/		}
- /*line relations.mygo:31:10*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line relations.mygo:32:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:31:10*/		} else {
+ /*line relations.mygo:40:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
+ /*line relations.mygo:41:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:40:9*/		} else {
  /*line zz_relations.gen.go:36:1*/		}
- /*line relations.mygo:34:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, post.ID))) {
- /*line relations.mygo:35:16*/			return Err[struct{}, string]("import failed")
- /*line relations.mygo:34:10*/		} else {
+ /*line relations.mygo:43:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, post.ID))) {
+ /*line relations.mygo:48:18*/			return Err[struct{}, string]("import failed")
+ /*line relations.mygo:43:9*/		} else {
  /*line zz_relations.gen.go:40:1*/		}
- /*line relations.mygo:37:10*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", post.ID).Find(&stored))) {
- /*line relations.mygo:38:16*/			return Err[struct{}, string]("import failed")
- /*line relations.mygo:37:10*/		} else {
+ /*line relations.mygo:50:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", post.ID).Find(&stored))) {
+ /*line relations.mygo:51:18*/			return Err[struct{}, string]("import failed")
+ /*line relations.mygo:50:9*/		} else {
  /*line zz_relations.gen.go:44:1*/		}
- /*line relations.mygo:40:7*/		return Ok[struct{}, string](struct {
+ /*line relations.mygo:53:9*/		return Ok[struct{}, string](struct {
  /*line zz_relations.gen.go:46:1*/		}{})
 	})
- /*line relations.mygo:42:8*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line relations.mygo:43:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line relations.mygo:42:8*/	} else {
+ /*line relations.mygo:56:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line relations.mygo:57:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+ /*line relations.mygo:56:5*/	} else {
  /*line zz_relations.gen.go:51:1*/	}
- /*line relations.mygo:45:5*/	return Ok[PostRecord, string](stored)
+ /*line relations.mygo:59:5*/	return Ok[PostRecord, string](stored)
  /*line zz_relations.gen.go:53:1*/}
  /*line relations.mygo:11:1*/func MygoIN14PostRepositoryM7ShareTo(self PostRepository, ctx context.Context, id string, targetCommunityID string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
- /*line relations.mygo:51:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line relations.mygo:51:34*/		loaded := loadPostForUpdate(tx, id)
- /*line relations.mygo:53:10*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line relations.mygo:54:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:53:10*/		} else {
+ /*line relations.mygo:72:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line relations.mygo:75:7*/		loaded := loadPostForUpdate(tx, id)
+ /*line relations.mygo:77:9*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
+ /*line relations.mygo:78:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:77:9*/		} else {
  /*line zz_relations.gen.go:60:1*/		}
- /*line relations.mygo:51:34*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
+ /*line relations.mygo:75:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
 		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		sourceResult := MygoIN19CommunityRepositoryM4Open(community, ctx, post.CommunityID, false)
 		targetResult := MygoIN19CommunityRepositoryM4Open(community, ctx, targetCommunityID, false)
- /*line relations.mygo:60:10*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](sourceResult) || MygoIN6ResultM5IsErr[CommunityRecord, string](targetResult) {
- /*line relations.mygo:61:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:60:10*/		} else {
+ /*line relations.mygo:84:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](sourceResult) || MygoIN6ResultM5IsErr[CommunityRecord, string](targetResult) {
+ /*line relations.mygo:85:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:84:9*/		} else {
  /*line zz_relations.gen.go:68:1*/		}
- /*line relations.mygo:51:34*/		source := MygoIN6ResultM6Unwrap[CommunityRecord, string](sourceResult)
+ /*line relations.mygo:75:7*/		source := MygoIN6ResultM6Unwrap[CommunityRecord, string](sourceResult)
 		target := MygoIN6ResultM6Unwrap[CommunityRecord, string](targetResult)
 		access := MygoIN19CommunityRepositoryM6Access(community, ctx, source, identity, remoteVerified)
- /*line relations.mygo:66:10*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line relations.mygo:67:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:66:10*/		} else {
+ /*line relations.mygo:90:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
+ /*line relations.mygo:91:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:90:9*/		} else {
  /*line zz_relations.gen.go:75:1*/		}
- /*line relations.mygo:51:34*/		targetAccess := MygoIN19CommunityRepositoryM6Access(community, ctx, target, identity, remoteVerified)
- /*line relations.mygo:70:10*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](targetAccess) {
- /*line relations.mygo:71:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:70:10*/		} else {
+ /*line relations.mygo:75:7*/		targetAccess := MygoIN19CommunityRepositoryM6Access(community, ctx, target, identity, remoteVerified)
+ /*line relations.mygo:94:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](targetAccess) {
+ /*line relations.mygo:95:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:94:9*/		} else {
  /*line zz_relations.gen.go:80:1*/		}
- /*line relations.mygo:73:10*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](targetAccess)) {
- /*line relations.mygo:74:16*/			return Err[struct{}, string]("not found")
- /*line relations.mygo:73:10*/		} else {
+ /*line relations.mygo:97:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](targetAccess)) {
+ /*line relations.mygo:98:18*/			return Err[struct{}, string]("not found")
+ /*line relations.mygo:97:9*/		} else {
  /*line zz_relations.gen.go:84:1*/		}
- /*line relations.mygo:76:10*/		if restrictedBoundary(source) || restrictedBoundary(target) {
- /*line relations.mygo:77:16*/			return Err[struct{}, string]("forbidden")
- /*line relations.mygo:76:10*/		} else {
+ /*line relations.mygo:100:9*/		if restrictedBoundary(source) || restrictedBoundary(target) {
+ /*line relations.mygo:101:18*/			return Err[struct{}, string]("forbidden")
+ /*line relations.mygo:100:9*/		} else {
  /*line zz_relations.gen.go:88:1*/		}
- /*line relations.mygo:79:7*/		return MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?) ON CONFLICT DO NOTHING", post.ID, target.ID))
+ /*line relations.mygo:103:9*/		return MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?) ON CONFLICT DO NOTHING", post.ID, target.ID))
  /*line zz_relations.gen.go:90:1*/	})
 }
  /*line relations.mygo:11:1*/func MygoIN14PostRepositoryM6MoveTo(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
 	loaded := loadPostForUpdate(self.DB.WithContext(ctx), id)
- /*line relations.mygo:85:8*/	if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line relations.mygo:86:14*/		return Err[struct{}, string]("not found")
- /*line relations.mygo:85:8*/	} else {
+ /*line relations.mygo:119:5*/	if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
+ /*line relations.mygo:120:14*/		return Err[struct{}, string]("not found")
+ /*line relations.mygo:119:5*/	} else {
  /*line zz_relations.gen.go:97:1*/	}
- /*line relations.mygo:88:5*/	return Err[struct{}, string]("relocation is not supported")
+ /*line relations.mygo:122:5*/	return Err[struct{}, string]("relocation is not supported")
  /*line zz_relations.gen.go:99:1*/}

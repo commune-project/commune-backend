@@ -53,7 +53,7 @@ impl PostRepository
     if incoming.AuthoredAt.IsZero() || incoming.UpdatedAt.Before(incoming.AuthoredAt) || (incoming.ObjectType != "Page" && incoming.ObjectType != "Note") || (incoming.DeletedAt.Valid && incoming.Body != "") then
       return Err("invalid object")
     end
-    var stored = PostRecord{}
+    var stored = Zero[PostRecord]()
     let format = if incoming.ContentFormat == "" then "legacy" else incoming.ContentFormat end
     let normalized = content.PlainRichText(incoming.Body, format)
     if normalized.IsErr() then
@@ -67,7 +67,7 @@ impl PostRepository
       if MutationResult(inserted).IsErr() then
         return Err("object storage failed")
       end
-      let current = PostRecord{}
+      let current = Zero[PostRecord]()
       let loaded = tx.Raw("SELECT * FROM posts WHERE object_uri=? FOR UPDATE", incoming.ObjectURI.String).Scan(Ref.new(current))
       if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
         return Err("object storage failed")

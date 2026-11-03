@@ -10,13 +10,19 @@ import transport "go:github.com/commune-project/commune-backend/internal/testtra
 func TestPostgresActorHandleMigrationDefault(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let pool = testsupport.Postgres(t)
-  let first = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
+  let first = pool.BeginTx(
+    ctx,
+    Ref.new(sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
+  ).Unwrap()
   let _ = ApplyTransaction(ctx, first, MigrationCatalog().Unwrap().Take(13)).Unwrap()
   let _ = first.Commit().Unwrap()
   let db = transport.ORM(pool).Unwrap()
   let legacy = "https://old.example/users/legacy"
   let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", legacy)).Unwrap()
-  let second = pool.BeginTx(ctx, Ref.new(sql.TxOptions{})).Unwrap()
+  let second = pool.BeginTx(
+    ctx,
+    Ref.new(sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
+  ).Unwrap()
   let _ = ApplyTransaction(ctx, second, MigrationCatalog().Unwrap()).Unwrap()
   let _ = second.Commit().Unwrap()
   let acct = ""
@@ -35,17 +41,23 @@ func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let a = config.Site{ID: "a", Origin: "https://a.example"}
-  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let a = testSite("a", "https://a.example")
+  let b = testSite("b", "https://b.example")
   let _ = ProvisionSite(ctx, db, a).Unwrap()
   let _ = ProvisionSite(ctx, db, b).Unwrap()
-  let alice = AccountRepository{DB: db}.Create(ctx, a, "alice", "", "alice-password").Unwrap()
+  let alice = AccountRepository { DB: db }.Create(ctx, a, "alice", "", "alice-password").Unwrap()
   let remote = "https://peer.example/users/bob"
   let group = "https://peer.example/groups/news"
   let handled = "https://peer.example/users/already"
-  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),(?,'Group')", remote, group)).Unwrap()
-  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')", handled)).Unwrap()
-
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO actors(uri,kind) VALUES (?,'Person'),(?,'Group')",
+    remote,
+    group
+  )).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')",
+    handled
+  )).Unwrap()
   if QueueActorHandleResolution(ctx, db, a.ID, remote).Unwrap() != 1i64 then
     t.Fatal("remote person did not enqueue")
   end
@@ -64,13 +76,15 @@ func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
   if QueueActorHandleResolution(ctx, db, b.ID, remote).Unwrap() != 1i64 then
     t.Fatal("second site did not receive its own job")
   end
-
   let claimed = ClaimActorHandleJobs(ctx, db, 10, 60i64).Unwrap()
   if claimed.Len() != 2 then
     t.Fatal("site-scoped jobs were not both claimed")
   end
   claimed.Each(func(job: ActorHandleJobRecord) -> ()
-    if job.State != "leased" || job.Attempts != 1i64 || !job.LeaseToken.Valid || !job.LeaseUntil.Valid then
+    if job.State != "leased" ||
+      job.Attempts != 1i64 ||
+      !job.LeaseToken.Valid ||
+      !job.LeaseUntil.Valid then
       t.Fatal("claimed job state or lease was incomplete")
     end
   end)
@@ -82,37 +96,85 @@ func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
   if reclaimed.Len() != 2 || reclaimed.Get(0).Unwrap().Attempts != 2i64 then
     t.Fatal("expired leases were not reclaimed")
   end
-
   let retried = reclaimed.Filter(func(job: ActorHandleJobRecord) -> Bool job.SiteID == a.ID end).Get(0).Unwrap()
   let failed = reclaimed.Filter(func(job: ActorHandleJobRecord) -> Bool job.SiteID == b.ID end).Get(0).Unwrap()
   let _ = MarkActorHandleRetry(ctx, db, retried.SiteID, retried.ActorURI, "temporary", 60i64).Unwrap()
   let _ = MarkActorHandleFailed(ctx, db, failed.SiteID, failed.ActorURI, "permanent").Unwrap()
-  let retryState = ActorHandleJobRecord{}
-  let _ = MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", a.ID, remote).Take(Ref.new(retryState))).Unwrap()
-  let failedState = ActorHandleJobRecord{}
-  let _ = MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", b.ID, remote).Take(Ref.new(failedState))).Unwrap()
-  if retryState.State != "pending" || !retryState.ErrorCode.Valid || failedState.State != "failed" || !failedState.ErrorCode.Valid then
+  let retryState = ActorHandleJobRecord{
+    ErrorCode: sql.NullString{String: "", Valid: false},
+    LeaseUntil: Zero[sql.NullTime](),
+    LeaseToken: sql.NullString{
+      String: "",
+      Valid: false,
+    },
+    AvailableAt: Zero[time.Time](),
+    Attempts: 0i64,
+    State: "",
+    ActorURI: "",
+    SiteID: "",
+  }
+  let _ = MutationResult(db.Table("actor_handle_jobs").Where(
+    "site_id=? AND actor_uri=?",
+    a.ID,
+    remote
+  ).Take(Ref.new(retryState))).Unwrap()
+  let failedState = ActorHandleJobRecord {
+    ErrorCode: sql.NullString{String: "", Valid: false},
+    LeaseUntil: Zero[sql.NullTime](),
+    LeaseToken: sql.NullString {
+      String: "",
+      Valid: false,
+    },
+    AvailableAt: Zero[time.Time](),
+    Attempts: 0i64,
+    State: "",
+    ActorURI: "",
+    SiteID: "",
+  }
+  let _ = MutationResult(db.Table("actor_handle_jobs").Where(
+    "site_id=? AND actor_uri=?",
+    b.ID,
+    remote
+  ).Take(Ref.new(failedState))).Unwrap()
+  if retryState.State != "pending" ||
+    !retryState.ErrorCode.Valid ||
+    failedState.State != "failed" ||
+    !failedState.ErrorCode.Valid then
     t.Fatal("retry or terminal failure state was not recorded")
   end
-
   if !SaveVerifiedActorHandle(ctx, db, remote, "bob@peer.example").Unwrap() then
     t.Fatal("verified handle was not stored")
   end
   if SaveVerifiedActorHandle(ctx, db, remote, "other@peer.example").Unwrap() then
     t.Fatal("stored handle was overwritten")
   end
-  let stored = ActorRecord{}
+  let stored = ActorRecord {
+    Acct: "",
+    PublicKeyPEM: sql.NullString { String: "", Valid: false },
+    InboxURI: sql.NullString {
+      String: "",
+      Valid: false,
+    },
+    Kind: "",
+    LocalSiteID: sql.NullString {
+      String: "",
+      Valid: false,
+    },
+    URI: "",
+  }
   let _ = MutationResult(db.Table("actors").Where("uri=?", remote).Take(Ref.new(stored))).Unwrap()
   if stored.Acct != "bob@peer.example" then
     t.Fatal("verified handle was lost or overwritten")
   end
-
   let _ = BootstrapRemoteDisplayName(ctx, db, remote, "Bob").Unwrap()
   let bootstrapped = LoadProfile(ctx, db, remote).Unwrap()
   if bootstrapped.DisplayName != "Bob" then
     t.Fatal("blank remote display name was not bootstrapped")
   end
-  let _ = MutationResult(db.Exec("UPDATE profiles SET display_name='Authoritative', updated_at=now() WHERE actor_uri=?", remote)).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "UPDATE profiles SET display_name='Authoritative', updated_at=now() WHERE actor_uri=?",
+    remote
+  )).Unwrap()
   let _ = BootstrapRemoteDisplayName(ctx, db, remote, "Bootstrap").Unwrap()
   let authoritative = LoadProfile(ctx, db, remote).Unwrap()
   if authoritative.DisplayName != "Authoritative" then

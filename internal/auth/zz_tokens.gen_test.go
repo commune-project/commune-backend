@@ -10,32 +10,32 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line tokens_test.mygo:7:1*/func TestSessionTokens(t *testing.T) {
 	first := NewSessionTokens()
 	second := NewSessionTokens()
- /*line tokens_test.mygo:10:6*/	if !ValidToken(first.Session) || !ValidToken(first.CSRF) || first.Session == first.CSRF || first.Session == second.Session {
+ /*line tokens_test.mygo:10:3*/	if !ValidToken(first.Session) || !ValidToken(first.CSRF) || first.Session == first.CSRF || first.Session == second.Session {
  /*line tokens_test.mygo:11:5*/		t.Fatal("session tokens are invalid or repeated")
- /*line tokens_test.mygo:10:6*/	} else {
+ /*line tokens_test.mygo:10:3*/	} else {
  /*line zz_tokens.gen_test.go:16:1*/	}
- /*line tokens_test.mygo:13:6*/	if !VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), first.CSRF) || VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), second.CSRF) || VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), "") {
+ /*line tokens_test.mygo:13:3*/	if !VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), first.CSRF) || VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), second.CSRF) || VerifyCSRF(MygoIN13SessionTokensM8CSRFHash(first), "") {
  /*line tokens_test.mygo:14:5*/		t.Fatal("CSRF token validation failed")
- /*line tokens_test.mygo:13:6*/	} else {
+ /*line tokens_test.mygo:13:3*/	} else {
  /*line zz_tokens.gen_test.go:20:1*/	}
  /*line tokens_test.mygo:16:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN13SessionTokensM7Cookies(first, time.Now().Add(time.Hour)), func(cookie http.Cookie) {
- /*line tokens_test.mygo:17:8*/		if cookie.Domain != "" || cookie.Path != "/" || !cookie.Secure || cookie.SameSite != http.SameSiteStrictMode || cookie.MaxAge != 86400 {
+ /*line tokens_test.mygo:17:5*/		if cookie.Domain != "" || cookie.Path != "/" || !cookie.Secure || cookie.SameSite != http.SameSiteStrictMode || cookie.MaxAge != 86400 {
  /*line tokens_test.mygo:18:7*/			t.Fatal("cookie is not secure and host-only")
- /*line tokens_test.mygo:17:8*/		} else {
+ /*line tokens_test.mygo:17:5*/		} else {
  /*line zz_tokens.gen_test.go:25:1*/		}
- /*line tokens_test.mygo:20:8*/		if cookie.Name == "__Host-commune_session" && !cookie.HttpOnly {
+ /*line tokens_test.mygo:20:5*/		if cookie.Name == "__Host-commune_session" && !cookie.HttpOnly {
  /*line tokens_test.mygo:21:7*/			t.Fatal("session cookie is script-readable")
 			return
- /*line tokens_test.mygo:20:8*/		} else {
- /*line tokens_test.mygo:20:5*/			return
+ /*line tokens_test.mygo:20:5*/		} else {
+			return
  /*line zz_tokens.gen_test.go:31:1*/		}
 	})
  /*line tokens_test.mygo:24:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(ExpiredCookies(), func(cookie_1 http.Cookie) {
  /*line tokens_test.mygo:25:8*/		if cookie_1.MaxAge != -1 {
  /*line tokens_test.mygo:26:7*/			t.Fatal("logout cookie does not expire")
 			return
- /*line tokens_test.mygo:25:8*/		} else {
- /*line tokens_test.mygo:25:5*/			return
+ /*line tokens_test.mygo:25:5*/		} else {
+			return
  /*line zz_tokens.gen_test.go:39:1*/		}
 	})
  /*line tokens_test.mygo:24:3*/	return

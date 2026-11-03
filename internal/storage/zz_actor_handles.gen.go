@@ -27,83 +27,83 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_actor_handles.gen.go:27:1*/}
 
  /*line actor_handles.mygo:28:1*/func QueueActorHandleResolution(ctx context.Context, tx *gorm.DB, siteID string, actorURI string) Result[int64, string] {
- /*line actor_handles.mygo:29:6*/	if siteID == "" || actorURI == "" {
- /*line actor_handles.mygo:30:12*/		return Err[int64, string]("invalid actor handle job")
- /*line actor_handles.mygo:29:6*/	} else {
+ /*line actor_handles.mygo:34:3*/	if siteID == "" || actorURI == "" {
+ /*line actor_handles.mygo:35:12*/		return Err[int64, string]("invalid actor handle job")
+ /*line actor_handles.mygo:34:3*/	} else {
  /*line zz_actor_handles.gen.go:33:1*/	}
- /*line actor_handles.mygo:28:1*/	actor := ActorHandleStateRecord{}
+ /*line actor_handles.mygo:28:1*/	actor := Zero[ActorHandleStateRecord]()
 	loaded := tx.WithContext(ctx).Raw("SELECT local_site_id,kind,acct FROM actors WHERE uri=?", actorURI).Scan(&actor)
- /*line actor_handles.mygo:34:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) {
- /*line actor_handles.mygo:35:12*/		return Err[int64, string]("actor handle enqueue failed")
- /*line actor_handles.mygo:34:6*/	} else {
+ /*line actor_handles.mygo:42:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) {
+ /*line actor_handles.mygo:43:12*/		return Err[int64, string]("actor handle enqueue failed")
+ /*line actor_handles.mygo:42:3*/	} else {
  /*line zz_actor_handles.gen.go:39:1*/	}
- /*line actor_handles.mygo:37:6*/	if loaded.RowsAffected != int64(1) || actor.LocalSiteID.Valid || actor.Kind != "Person" || actor.Acct != "" {
- /*line actor_handles.mygo:38:12*/		return Ok[int64, string](int64(0))
- /*line actor_handles.mygo:37:6*/	} else {
+ /*line actor_handles.mygo:45:3*/	if loaded.RowsAffected != int64(1) || actor.LocalSiteID.Valid || actor.Kind != "Person" || actor.Acct != "" {
+ /*line actor_handles.mygo:49:12*/		return Ok[int64, string](int64(0))
+ /*line actor_handles.mygo:45:3*/	} else {
  /*line zz_actor_handles.gen.go:43:1*/	}
  /*line actor_handles.mygo:28:1*/	inserted := tx.WithContext(ctx).Exec("INSERT INTO actor_handle_jobs(site_id,actor_uri) VALUES (?,?) ON CONFLICT (site_id,actor_uri) DO NOTHING", siteID, actorURI)
- /*line actor_handles.mygo:41:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line actor_handles.mygo:42:12*/		return Err[int64, string]("actor handle enqueue failed")
- /*line actor_handles.mygo:41:6*/	} else {
+ /*line actor_handles.mygo:56:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
+ /*line actor_handles.mygo:57:12*/		return Err[int64, string]("actor handle enqueue failed")
+ /*line actor_handles.mygo:56:3*/	} else {
  /*line zz_actor_handles.gen.go:48:1*/	}
- /*line actor_handles.mygo:44:3*/	return Ok[int64, string](inserted.RowsAffected)
+ /*line actor_handles.mygo:59:3*/	return Ok[int64, string](inserted.RowsAffected)
  /*line zz_actor_handles.gen.go:50:1*/}
- /*line actor_handles.mygo:48:1*/func ClaimActorHandleJobs(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]ActorHandleJobRecord, string] {
+ /*line actor_handles.mygo:63:1*/func ClaimActorHandleJobs(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]ActorHandleJobRecord, string] {
 	var claimed []ActorHandleJobRecord = []ActorHandleJobRecord{}
 	token := rand.Text()
 	until := time.Now().UTC().Add(time.Duration(leaseSeconds) * time.Second)
 	query := db.WithContext(ctx).Raw("UPDATE actor_handle_jobs SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1 WHERE (site_id,actor_uri) IN (SELECT site_id,actor_uri FROM actor_handle_jobs WHERE state IN ('pending','leased') AND available_at<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY available_at,site_id,actor_uri LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING site_id,actor_uri,state,attempts,available_at,lease_token,lease_until,error_code", token, until, limit).Scan(&claimed)
- /*line actor_handles.mygo:53:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line actor_handles.mygo:54:12*/		return Err[[]ActorHandleJobRecord, string]("actor handle claim failed")
- /*line actor_handles.mygo:53:6*/	} else {
+ /*line actor_handles.mygo:78:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line actor_handles.mygo:79:12*/		return Err[[]ActorHandleJobRecord, string]("actor handle claim failed")
+ /*line actor_handles.mygo:78:3*/	} else {
  /*line zz_actor_handles.gen.go:59:1*/	}
- /*line actor_handles.mygo:56:3*/	return Ok[[]ActorHandleJobRecord, string](claimed)
+ /*line actor_handles.mygo:81:3*/	return Ok[[]ActorHandleJobRecord, string](claimed)
  /*line zz_actor_handles.gen.go:61:1*/}
- /*line actor_handles.mygo:59:1*/func MarkActorHandleDone(ctx context.Context, db *gorm.DB, siteID string, actorURI string) Result[struct {
+ /*line actor_handles.mygo:84:1*/func MarkActorHandleDone(ctx context.Context, db *gorm.DB, siteID string, actorURI string) Result[struct {
 }, string] {
- /*line actor_handles.mygo:60:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='done',lease_token=NULL,lease_until=NULL,error_code=NULL WHERE site_id=? AND actor_uri=?", siteID, actorURI))
+ /*line actor_handles.mygo:90:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='done',lease_token=NULL,lease_until=NULL,error_code=NULL WHERE site_id=? AND actor_uri=?", siteID, actorURI))
  /*line zz_actor_handles.gen.go:65:1*/}
- /*line actor_handles.mygo:63:1*/func MarkActorHandleRetry(ctx context.Context, db *gorm.DB, siteID string, actorURI string, errorCode string, backoffSeconds int64) Result[struct {
+ /*line actor_handles.mygo:97:1*/func MarkActorHandleRetry(ctx context.Context, db *gorm.DB, siteID string, actorURI string, errorCode string, backoffSeconds int64) Result[struct {
 }, string] {
- /*line actor_handles.mygo:64:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='pending',lease_token=NULL,lease_until=NULL,error_code=?,available_at=now() + (? * interval '1 second') WHERE site_id=? AND actor_uri=?", errorCode, backoffSeconds, siteID, actorURI))
+ /*line actor_handles.mygo:105:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='pending',lease_token=NULL,lease_until=NULL,error_code=?,available_at=now() + (? * interval '1 second') WHERE site_id=? AND actor_uri=?", errorCode, backoffSeconds, siteID, actorURI))
  /*line zz_actor_handles.gen.go:69:1*/}
- /*line actor_handles.mygo:67:1*/func MarkActorHandleFailed(ctx context.Context, db *gorm.DB, siteID string, actorURI string, errorCode string) Result[struct {
+ /*line actor_handles.mygo:114:1*/func MarkActorHandleFailed(ctx context.Context, db *gorm.DB, siteID string, actorURI string, errorCode string) Result[struct {
 }, string] {
- /*line actor_handles.mygo:68:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='failed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", errorCode, siteID, actorURI))
+ /*line actor_handles.mygo:121:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='failed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", errorCode, siteID, actorURI))
  /*line zz_actor_handles.gen.go:73:1*/}
- /*line actor_handles.mygo:71:1*/func SuppressActorHandle(ctx context.Context, db *gorm.DB, siteID string, actorURI string, reason string) Result[struct {
+ /*line actor_handles.mygo:129:1*/func SuppressActorHandle(ctx context.Context, db *gorm.DB, siteID string, actorURI string, reason string) Result[struct {
 }, string] {
- /*line actor_handles.mygo:72:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='suppressed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", reason, siteID, actorURI))
+ /*line actor_handles.mygo:136:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE actor_handle_jobs SET state='suppressed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?", reason, siteID, actorURI))
  /*line zz_actor_handles.gen.go:77:1*/}
- /*line actor_handles.mygo:75:1*/func SaveVerifiedActorHandle(ctx context.Context, db *gorm.DB, actorURI string, acct string) Result[bool, string] {
- /*line actor_handles.mygo:76:6*/	if acct == "" || strings.HasPrefix(acct, "@") || !strings.Contains(acct, "@") {
- /*line actor_handles.mygo:77:12*/		return Err[bool, string]("invalid actor handle")
- /*line actor_handles.mygo:76:6*/	} else {
+ /*line actor_handles.mygo:144:1*/func SaveVerifiedActorHandle(ctx context.Context, db *gorm.DB, actorURI string, acct string) Result[bool, string] {
+ /*line actor_handles.mygo:150:3*/	if acct == "" || strings.HasPrefix(acct, "@") || !strings.Contains(acct, "@") {
+ /*line actor_handles.mygo:151:12*/		return Err[bool, string]("invalid actor handle")
+ /*line actor_handles.mygo:150:3*/	} else {
  /*line zz_actor_handles.gen.go:82:1*/	}
- /*line actor_handles.mygo:75:1*/	updated := db.WithContext(ctx).Exec("UPDATE actors SET acct=? WHERE uri=? AND acct=''", acct, actorURI)
- /*line actor_handles.mygo:80:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(updated)) {
- /*line actor_handles.mygo:81:12*/		return Err[bool, string]("actor handle storage failed")
- /*line actor_handles.mygo:80:6*/	} else {
+ /*line actor_handles.mygo:144:1*/	updated := db.WithContext(ctx).Exec("UPDATE actors SET acct=? WHERE uri=? AND acct=''", acct, actorURI)
+ /*line actor_handles.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(updated)) {
+ /*line actor_handles.mygo:159:12*/		return Err[bool, string]("actor handle storage failed")
+ /*line actor_handles.mygo:158:3*/	} else {
  /*line zz_actor_handles.gen.go:87:1*/	}
- /*line actor_handles.mygo:83:3*/	return Ok[bool, string](updated.RowsAffected == int64(1))
+ /*line actor_handles.mygo:161:3*/	return Ok[bool, string](updated.RowsAffected == int64(1))
  /*line zz_actor_handles.gen.go:89:1*/}
- /*line actor_handles.mygo:87:1*/func BootstrapRemoteDisplayName(ctx context.Context, db *gorm.DB, actorURI string, displayName string) Result[struct {
+ /*line actor_handles.mygo:165:1*/func BootstrapRemoteDisplayName(ctx context.Context, db *gorm.DB, actorURI string, displayName string) Result[struct {
 }, string] {
- /*line actor_handles.mygo:88:6*/	if displayName == "" {
- /*line actor_handles.mygo:89:12*/		return Ok[struct{}, string](struct {
+ /*line actor_handles.mygo:171:3*/	if displayName == "" {
+ /*line actor_handles.mygo:172:12*/		return Ok[struct{}, string](struct {
  /*line zz_actor_handles.gen.go:94:1*/		}{})
- /*line actor_handles.mygo:88:6*/	} else {
+ /*line actor_handles.mygo:171:3*/	} else {
  /*line zz_actor_handles.gen.go:96:1*/	}
- /*line actor_handles.mygo:87:1*/	actor := ActorHandleStateRecord{}
+ /*line actor_handles.mygo:165:1*/	actor := Zero[ActorHandleStateRecord]()
 	loaded := db.WithContext(ctx).Raw("SELECT local_site_id,kind,acct FROM actors WHERE uri=?", actorURI).Scan(&actor)
- /*line actor_handles.mygo:93:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) {
- /*line actor_handles.mygo:94:12*/		return Err[struct{}, string]("profile bootstrap failed")
- /*line actor_handles.mygo:93:6*/	} else {
+ /*line actor_handles.mygo:179:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) {
+ /*line actor_handles.mygo:180:12*/		return Err[struct{}, string]("profile bootstrap failed")
+ /*line actor_handles.mygo:179:3*/	} else {
  /*line zz_actor_handles.gen.go:102:1*/	}
- /*line actor_handles.mygo:96:6*/	if loaded.RowsAffected != int64(1) || actor.LocalSiteID.Valid || actor.Kind != "Person" {
- /*line actor_handles.mygo:97:12*/		return Ok[struct{}, string](struct {
+ /*line actor_handles.mygo:182:3*/	if loaded.RowsAffected != int64(1) || actor.LocalSiteID.Valid || actor.Kind != "Person" {
+ /*line actor_handles.mygo:183:12*/		return Ok[struct{}, string](struct {
  /*line zz_actor_handles.gen.go:105:1*/		}{})
- /*line actor_handles.mygo:96:6*/	} else {
+ /*line actor_handles.mygo:182:3*/	} else {
  /*line zz_actor_handles.gen.go:107:1*/	}
- /*line actor_handles.mygo:99:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,to_timestamp(0)) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name WHERE profiles.display_name=''", actorURI, displayName))
+ /*line actor_handles.mygo:185:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,to_timestamp(0)) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name WHERE profiles.display_name=''", actorURI, displayName))
  /*line zz_actor_handles.gen.go:109:1*/}

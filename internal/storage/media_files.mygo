@@ -157,7 +157,7 @@ impl MediaFiles
       return Err("invalid image")
     end
     if !raster then
-      return Ok(MediaInspected{Type: mime, Size: size})
+      return Ok(MediaInspected{Type: mime, Size: size, PreviewSize: 0i64})
     end
     if size > settings.MaxImageBytes as Int64 then
       return Err("media too large")

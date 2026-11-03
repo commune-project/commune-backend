@@ -18,7 +18,7 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "media", Origin: "https://media.example"}
+  let site = testSite("media", "https://media.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let accounts = AccountRepository{DB: db}
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
@@ -34,12 +34,12 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
     end
     Ok(())
   end
-  if repo.Read(ctx, bob, upload.ID, false, transfer).IsOk() || repo.Read(ctx, auth.Identity{}, upload.ID, false, transfer).IsOk() then
+  if repo.Read(ctx, bob, upload.ID, false, transfer).IsOk() || repo.Read(ctx, Zero[auth.Identity](), upload.ID, false, transfer).IsOk() then
     t.Fatal("unbound upload leaked")
   end
   let _ = repo.Read(ctx, alice, upload.ID, false, transfer).Unwrap()
   let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
-  let published = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body"})
+  let published = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, testPublishInput("Topic", "Body"))
   if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr()) end
   let post = published.Unwrap()
   let ids: Slice[String] = [upload.ID]
@@ -61,13 +61,13 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
     t.Fatal("raw upload or private non-member access succeeded")
   end
   let _ = repo.Read(ctx, alice, bindingID, false, transfer).Unwrap()
-  let remote = auth.Identity{ActorURI: "https://remote.example/users/reader"}
+  let remote = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "https://remote.example/users/reader", Username: ""}
   let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remote.ActorURI)).Unwrap()
   if repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).IsOk() then t.Fatal("signed non-member read protected attachment") end
   let _ = MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", community.ID, remote.ActorURI, alice.ActorURI)).Unwrap()
   let _ = repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).Unwrap()
   let _ = MutationResult(db.Exec("UPDATE community_members SET revoked_at=? WHERE community_id=? AND actor_uri=?", time.Now(), community.ID, remote.ActorURI)).Unwrap()
-  if repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).IsOk() || repo.ReadVerifiedActor(ctx, auth.Identity{ActorURI: "https://remote.example/actor"}, bindingID, false, transfer).IsOk() then t.Fatal("revoked Actor or server identity read protected attachment") end
+  if repo.ReadVerifiedActor(ctx, remote, bindingID, false, transfer).IsOk() || repo.ReadVerifiedActor(ctx, auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "https://remote.example/actor", Username: ""}, bindingID, false, transfer).IsOk() then t.Fatal("revoked Actor or server identity read protected attachment") end
   let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE post_id=? AND site_id=?", time.Now(), post.ID, site.ID)).Unwrap()
   if repo.Read(ctx, alice, bindingID, false, transfer).IsOk() then t.Fatal("hidden attachment readable") end
   let _ = MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=? AND site_id=?", post.ID, site.ID)).Unwrap()
@@ -130,7 +130,7 @@ func TestPostgresMediaAvatarReplacement(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "avatar", Origin: "https://avatar.example"}
+  let site = testSite("avatar", "https://avatar.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password-long").Unwrap()
   let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password-long").Unwrap()
@@ -147,13 +147,13 @@ func TestPostgresMediaAvatarReplacement(t: Ref[testing.T]) -> ()
   var url: String = ""
   let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
     url = repo.BindAvatarTx(ctx, tx, alice, upload.ID).Unwrap()
-    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
   end).Unwrap()
   let noop = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), String] Ok(()) end
-  let _ = repo.Read(ctx, auth.Identity{}, strings.TrimPrefix(url, "/api/v1/media/"), true, noop).Unwrap()
+  let _ = repo.Read(ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop).Unwrap()
   let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
     let _ = repo.BindAvatarTx(ctx, tx, alice, "").Unwrap()
-    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, UpdatedAt: time.Now()})
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
   end).Unwrap()
-  if repo.Read(ctx, auth.Identity{}, strings.TrimPrefix(url, "/api/v1/media/"), true, noop).IsOk() then t.Fatal("removed avatar public") end
+  if repo.Read(ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop).IsOk() then t.Fatal("removed avatar public") end
 end

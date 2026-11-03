@@ -34,16 +34,16 @@ func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
   let thirdCookies = login(handler, site.Origin, "third", "third-password")
   let thirdCSRF = csrfOf(thirdCookies)
   let follow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Int
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + id + "/follow", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
   end
   if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 then
     t.Fatal("pending follows failed")
   end
   let requestsPath = "/api/v1/communities/" + approval.ID + "/follow-requests"
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: requestsPath, Cookies: firstCookies}).Code != 403 then
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: requestsPath, Payload: "", Cookies: firstCookies, CSRF: "", Source: ""}).Code != 403 then
     t.Fatal("ordinary member read pending follow roster")
   end
-  let roster = FollowRequestPage{}
+  let roster = Zero[FollowRequestPage]()
   let rosterResponse = browserGet(t, handler, site.Origin, requestsPath + "?limit=1", creatorCookies, 200)
   let _ = json.Unmarshal(rosterResponse.Body.Bytes(), Ref.new(roster)).Unwrap()
   if roster.Items.Len() != 1 || roster.Limit != 1 then
@@ -82,7 +82,7 @@ func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
   if follow(approval.ID, secondCookies, secondCSRF) != 403 then
     t.Fatal("disabled policy accepted a new follow")
   end
-  let accepted = CommunityOutput{}
+  let accepted = Zero[CommunityOutput]()
   let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/" + approval.ID, firstCookies, 200).Body.Bytes(), Ref.new(accepted)).Unwrap()
   if accepted.FollowPolicy != "disabled" || accepted.Viewer.FollowState != "accepted" || accepted.FollowerCount != 2i64 then
     t.Fatal("policy change did not preserve existing follows")
@@ -99,17 +99,17 @@ func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
     t.Fatal("non-manager changed follow policy")
   end
   let createdOpen = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omitted\",\"title\":\"Omitted\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-  let openDTO = CommunityOutput{}
+  let openDTO = Zero[CommunityOutput]()
   if json.Unmarshal(createdOpen.Body.Bytes(), Ref.new(openDTO)).IsErr() || openDTO.FollowPolicy != "open" then
     t.Fatal("creation did not derive open follow policy")
   end
   let createdMembers = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omittedmembers\",\"title\":\"Omitted Members\",\"mode\":\"federated\",\"read_policy\":\"members\",\"post_policy\":\"members\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-  let membersDTO = CommunityOutput{}
+  let membersDTO = Zero[CommunityOutput]()
   if json.Unmarshal(createdMembers.Body.Bytes(), Ref.new(membersDTO)).IsErr() || membersDTO.FollowPolicy != "members" then
     t.Fatal("creation did not derive members follow policy")
   end
   let explicit = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"explicit\",\"title\":\"Explicit\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"approval\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-  let explicitDTO = CommunityOutput{}
+  let explicitDTO = Zero[CommunityOutput]()
   if json.Unmarshal(explicit.Body.Bytes(), Ref.new(explicitDTO)).IsErr() || explicitDTO.FollowPolicy != "approval" then
     t.Fatal("explicit creation follow policy failed")
   end

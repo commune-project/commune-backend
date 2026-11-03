@@ -49,7 +49,11 @@ func TestHealthRoutingAndReadiness(t: Ref[testing.T]) -> ()
   let _ = fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows(["exists"]).AddRow(true as driver.Value))
   let rows = sqlmock.NewRows(["version", "name", "checksum"])
   storage.MigrationCatalog().Unwrap().Each(func(migration: storage.Migration) -> ()
-    let _ = rows.AddRow(migration.Version as driver.Value, migration.Name as driver.Value, migration.Checksum as driver.Value)
+    let _ = rows.AddRow(
+      migration.Version as driver.Value,
+      migration.Name as driver.Value,
+      migration.Checksum as driver.Value
+    )
   end)
   let _ = fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
   request("GET", origin + "/health/ready", 204)

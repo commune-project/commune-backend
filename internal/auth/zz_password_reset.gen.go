@@ -16,9 +16,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_password_reset.gen.go:17:1*/	}
  /*line password_reset.mygo:7:1*/	block := __mygo_expr_1
- /*line password_reset.mygo:9:6*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
+ /*line password_reset.mygo:9:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
  /*line password_reset.mygo:10:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:9:6*/	} else {
+ /*line password_reset.mygo:9:3*/	} else {
  /*line zz_password_reset.gen.go:22:1*/	}
  /*line password_reset.mygo:12:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
 	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
@@ -28,9 +28,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
  /*line zz_password_reset.gen.go:29:1*/	}
  /*line password_reset.mygo:7:1*/	aead := __mygo_expr_4
- /*line password_reset.mygo:13:6*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
+ /*line password_reset.mygo:13:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
  /*line password_reset.mygo:14:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:13:6*/	} else {
+ /*line password_reset.mygo:13:3*/	} else {
  /*line zz_password_reset.gen.go:34:1*/	}
  /*line password_reset.mygo:7:1*/	nonce := []byte(rand.Text())
  /*line password_reset.mygo:17:6*/	var __mygo_expr_7 Result[int, error]
@@ -40,9 +40,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	} else {
 		__mygo_expr_7 = Ok[int, error](__mygo_expr_8)
  /*line zz_password_reset.gen.go:42:1*/	}
- /*line password_reset.mygo:17:6*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
+ /*line password_reset.mygo:17:3*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
  /*line password_reset.mygo:18:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:17:6*/	} else {
+ /*line password_reset.mygo:17:3*/	} else {
  /*line zz_password_reset.gen.go:46:1*/	}
  /*line password_reset.mygo:7:1*/	prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize())
  /*line password_reset.mygo:21:3*/	return Ok[[]byte, string](MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Seal(prefix, prefix, []byte(message), []byte("commune-password-reset-v1")))
@@ -56,9 +56,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_password_reset.gen.go:57:1*/	}
  /*line password_reset.mygo:24:1*/	block := __mygo_expr_1
- /*line password_reset.mygo:26:6*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
+ /*line password_reset.mygo:26:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
  /*line password_reset.mygo:27:12*/		return Err[string, string]("reset encryption unavailable")
- /*line password_reset.mygo:26:6*/	} else {
+ /*line password_reset.mygo:26:3*/	} else {
  /*line zz_password_reset.gen.go:62:1*/	}
  /*line password_reset.mygo:29:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
 	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
@@ -68,9 +68,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
  /*line zz_password_reset.gen.go:69:1*/	}
  /*line password_reset.mygo:24:1*/	aead := __mygo_expr_4
- /*line password_reset.mygo:30:6*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
+ /*line password_reset.mygo:30:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
  /*line password_reset.mygo:31:12*/		return Err[string, string]("invalid reset payload")
- /*line password_reset.mygo:30:6*/	} else {
+ /*line password_reset.mygo:30:3*/	} else {
  /*line zz_password_reset.gen.go:74:1*/	}
  /*line password_reset.mygo:24:1*/	size := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize()
  /*line password_reset.mygo:34:16*/	var __mygo_expr_7 Result[[]byte, error]
@@ -81,9 +81,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
  /*line zz_password_reset.gen.go:82:1*/	}
  /*line password_reset.mygo:24:1*/	opened := __mygo_expr_7
- /*line password_reset.mygo:35:6*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
+ /*line password_reset.mygo:35:3*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
  /*line password_reset.mygo:36:12*/		return Err[string, string]("invalid reset payload")
- /*line password_reset.mygo:35:6*/	} else {
+ /*line password_reset.mygo:35:3*/	} else {
  /*line zz_password_reset.gen.go:87:1*/	}
  /*line password_reset.mygo:38:3*/	return Ok[string, string](string(MygoIN6ResultM6Unwrap[[]byte, error](opened)))
  /*line zz_password_reset.gen.go:89:1*/}

@@ -20,9 +20,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[netip.AddrPort, error](__mygo_expr_2)
  /*line zz_routing.gen.go:21:1*/	}
  /*line routing.mygo:12:1*/	addressResult := __mygo_expr_1
- /*line routing.mygo:14:6*/	if MygoIN6ResultM5IsErr[netip.AddrPort, error](addressResult) {
+ /*line routing.mygo:14:3*/	if MygoIN6ResultM5IsErr[netip.AddrPort, error](addressResult) {
  /*line routing.mygo:15:12*/		return false
- /*line routing.mygo:14:6*/	} else {
+ /*line routing.mygo:14:3*/	} else {
  /*line zz_routing.gen.go:26:1*/	}
  /*line routing.mygo:12:1*/	address := MygoIN6ResultM6Unwrap[netip.AddrPort, error](addressResult).Addr().Unmap()
  /*line routing.mygo:18:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(config.TrustedProxies, false, func(found bool, prefix netip.Prefix) bool {
@@ -31,24 +31,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 }
  /*line routing.mygo:23:1*/func ResolveSite(config Config, requestHost string, remoteAddress string, forwardedHost string) Result[Site, string] {
 	host := requestHost
- /*line routing.mygo:25:6*/	if forwardedHost != "" && TrustedProxy(config, remoteAddress) {
- /*line routing.mygo:26:8*/		if strings.Contains(forwardedHost, ",") {
+ /*line routing.mygo:25:3*/	if forwardedHost != "" && TrustedProxy(config, remoteAddress) {
+ /*line routing.mygo:26:5*/		if strings.Contains(forwardedHost, ",") {
  /*line routing.mygo:27:14*/			return Err[Site, string]("forwarded host must contain exactly one authority")
- /*line routing.mygo:26:8*/		} else {
+ /*line routing.mygo:26:5*/		} else {
  /*line zz_routing.gen.go:38:1*/		}
- /*line routing.mygo:25:6*/		host = forwardedHost
+ /*line routing.mygo:25:3*/		host = forwardedHost
 	} else {
  /*line zz_routing.gen.go:41:1*/	}
  /*line routing.mygo:23:1*/	authorityResult := NormalizeAuthority(host)
- /*line routing.mygo:32:6*/	if MygoIN6ResultM5IsErr[string, string](authorityResult) {
+ /*line routing.mygo:32:3*/	if MygoIN6ResultM5IsErr[string, string](authorityResult) {
  /*line routing.mygo:33:12*/		return Err[Site, string]("unknown site")
- /*line routing.mygo:32:6*/	} else {
+ /*line routing.mygo:32:3*/	} else {
  /*line zz_routing.gen.go:46:1*/	}
  /*line routing.mygo:23:1*/	authority := MygoIN6ResultM6Unwrap[string, string](authorityResult)
 	matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(config.Sites, func(site Site) bool {
  /*line routing.mygo:37:5*/		return strings.TrimPrefix(site.Origin, "https://") == authority || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(site.Aliases, authority, MygoIT2EqFN6StringGN6StringEM6Equals)
  /*line zz_routing.gen.go:50:1*/	})
- /*line routing.mygo:39:10*/	__mygo_expr_0 := MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)
+ /*line routing.mygo:39:3*/	__mygo_expr_0 := MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)
 	var __mygo_expr_1 Result[Site, string]
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Option__Some[Site]); ok {
 		__mygo_expr_1 = Ok[Site, string](__mygo_match___mygo_expr_2.F0)
@@ -58,21 +58,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_routing.gen.go:59:1*/		}
 	}
- /*line routing.mygo:39:10*/	return __mygo_expr_1
+ /*line routing.mygo:39:3*/	return __mygo_expr_1
  /*line zz_routing.gen.go:62:1*/}
  /*line routing.mygo:45:1*/func CanonicalURI(site Site, collection string, identifier string) Result[string, string] {
- /*line routing.mygo:46:6*/	if collection != "users" && collection != "communities" && collection != "objects" && collection != "activities" && collection != "contexts" {
+ /*line routing.mygo:46:3*/	if collection != "users" && collection != "communities" && collection != "objects" && collection != "activities" && collection != "contexts" {
  /*line routing.mygo:47:12*/		return Err[string, string]("unknown canonical resource collection")
- /*line routing.mygo:46:6*/	} else {
+ /*line routing.mygo:46:3*/	} else {
  /*line zz_routing.gen.go:67:1*/	}
- /*line routing.mygo:49:6*/	if identifier == "" || identifier == "." || identifier == ".." || strings.ContainsAny(identifier, "/\\\r\n") {
+ /*line routing.mygo:49:3*/	if identifier == "" || identifier == "." || identifier == ".." || strings.ContainsAny(identifier, "/\\\r\n") {
  /*line routing.mygo:50:12*/		return Err[string, string]("invalid canonical resource identifier")
- /*line routing.mygo:49:6*/	} else {
+ /*line routing.mygo:49:3*/	} else {
  /*line zz_routing.gen.go:71:1*/	}
  /*line routing.mygo:45:1*/	originResult := NormalizeOrigin(site.Origin)
- /*line routing.mygo:53:6*/	if MygoIN6ResultM5IsErr[string, string](originResult) {
+ /*line routing.mygo:53:3*/	if MygoIN6ResultM5IsErr[string, string](originResult) {
  /*line routing.mygo:54:12*/		return Err[string, string]("invalid site origin")
- /*line routing.mygo:53:6*/	} else {
+ /*line routing.mygo:53:3*/	} else {
  /*line zz_routing.gen.go:76:1*/	}
  /*line routing.mygo:56:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](originResult) + "/" + collection + "/" + url.PathEscape(identifier))
  /*line zz_routing.gen.go:78:1*/}

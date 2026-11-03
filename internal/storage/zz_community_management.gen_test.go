@@ -6,7 +6,6 @@ import "testing"
 import "context"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -19,12 +18,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_community_management.gen_test.go:22:1*/	}
+ /*line zz_community_management.gen_test.go:21:1*/	}
  /*line community_management_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	a := config.Site{ID: "a", Origin: "https://a.example"}
-	b := config.Site{ID: "b", Origin: "https://b.example"}
+	a := testSite("a", "https://a.example")
+	b := testSite("b", "https://b.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false))
@@ -42,102 +41,102 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('other','b',?,'local_only','members','members','other','Other')", foreign.ActorURI)))
 	creatorAccess := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", creator, false))
 	MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM4Read(repository, ctx, "local", creator, false))
- /*line community_management_test.mygo:34:6*/	if MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM4Read(repository, ctx, "local", member, false)) || MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM4Read(repository, ctx, "local", auth.Identity{}, false)) {
+ /*line community_management_test.mygo:34:3*/	if MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM4Read(repository, ctx, "local", member, false)) || MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM4Read(repository, ctx, "local", Zero[auth.Identity](), false)) {
  /*line community_management_test.mygo:35:5*/		t.Fatal("restricted metadata leaked to anonymous or non-member readers")
- /*line community_management_test.mygo:34:6*/	} else {
- /*line zz_community_management.gen_test.go:48:1*/	}
- /*line community_management_test.mygo:37:6*/	if creatorAccess.Authority.Scope != "community" || !MygoIN15CommunityAccessM7CanRead(creatorAccess) || MygoIN15CommunityAccessM7CanPost(creatorAccess) || auth.MygoIN19ManagementAuthorityM6Allows(creatorAccess.Authority, "assign-site-role") || auth.MygoIN19ManagementAuthorityM6Allows(creatorAccess.Authority, "assign-deployment-role") {
+ /*line community_management_test.mygo:34:3*/	} else {
+ /*line zz_community_management.gen_test.go:47:1*/	}
+ /*line community_management_test.mygo:37:3*/	if creatorAccess.Authority.Scope != "community" || !MygoIN15CommunityAccessM7CanRead(creatorAccess) || MygoIN15CommunityAccessM7CanPost(creatorAccess) || auth.MygoIN19ManagementAuthorityM6Allows(creatorAccess.Authority, "assign-site-role") || auth.MygoIN19ManagementAuthorityM6Allows(creatorAccess.Authority, "assign-deployment-role") {
  /*line community_management_test.mygo:38:5*/		t.Fatal("creator management scope leaked into ordinary membership or higher roles")
- /*line community_management_test.mygo:37:6*/	} else {
- /*line zz_community_management.gen_test.go:52:1*/	}
- /*line community_management_test.mygo:40:6*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", admin, false)).Authority.Scope != "site" || MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", superadmin, false)).Authority.Scope != "deployment" {
+ /*line community_management_test.mygo:37:3*/	} else {
+ /*line zz_community_management.gen_test.go:51:1*/	}
+ /*line community_management_test.mygo:40:3*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", admin, false)).Authority.Scope != "site" || MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", superadmin, false)).Authority.Scope != "deployment" {
  /*line community_management_test.mygo:41:5*/		t.Fatal("site and deployment authorities were not distinguished")
- /*line community_management_test.mygo:40:6*/	} else {
- /*line zz_community_management.gen_test.go:56:1*/	}
- /*line community_management_test.mygo:43:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(other, ctx, "other", admin, false, "eligible_users", "eligible_users")) || MygoIN6ResultM4IsOk[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "other", admin, false)) {
+ /*line community_management_test.mygo:40:3*/	} else {
+ /*line zz_community_management.gen_test.go:55:1*/	}
+ /*line community_management_test.mygo:43:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(other, ctx, "other", admin, false, "eligible_users", "eligible_users")) || MygoIN6ResultM4IsOk[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "other", admin, false)) {
  /*line community_management_test.mygo:44:5*/		t.Fatal("site administrator crossed tenant boundary")
- /*line community_management_test.mygo:43:6*/	} else {
- /*line zz_community_management.gen_test.go:60:1*/	}
+ /*line community_management_test.mygo:43:3*/	} else {
+ /*line zz_community_management.gen_test.go:59:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(other, ctx, "other", superadmin, false, "eligible_users", "members"))
- /*line community_management_test.mygo:47:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "local", creator, false, foreign.ActorURI, true)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "local", creator, false, foreign.ActorURI, true)) {
+ /*line community_management_test.mygo:47:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "local", creator, false, foreign.ActorURI, true)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "local", creator, false, foreign.ActorURI, true)) {
  /*line community_management_test.mygo:48:5*/		t.Fatal("local assignments crossed site boundary")
- /*line community_management_test.mygo:47:6*/	} else {
- /*line zz_community_management.gen_test.go:65:1*/	}
+ /*line community_management_test.mygo:47:3*/	} else {
+ /*line zz_community_management.gen_test.go:64:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "local", creator, false, member.ActorURI, true))
 	sessions := SessionRepository{DB: db}
 	now := time.Now()
 	tokens := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(sessions, ctx, member, now))
 	approved := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", member, false))
- /*line community_management_test.mygo:55:6*/	if !MygoIN15CommunityAccessM7CanRead(approved) || !MygoIN15CommunityAccessM7CanPost(approved) || !MygoIN15CommunityAccessM11CanEditBody(approved, member.ActorURI) || MygoIN15CommunityAccessM11CanEditBody(approved, creator.ActorURI) {
+ /*line community_management_test.mygo:55:3*/	if !MygoIN15CommunityAccessM7CanRead(approved) || !MygoIN15CommunityAccessM7CanPost(approved) || !MygoIN15CommunityAccessM11CanEditBody(approved, member.ActorURI) || MygoIN15CommunityAccessM11CanEditBody(approved, creator.ActorURI) {
  /*line community_management_test.mygo:56:5*/		t.Fatal("approved member or author ownership check failed")
- /*line community_management_test.mygo:55:6*/	} else {
- /*line zz_community_management.gen_test.go:74:1*/	}
+ /*line community_management_test.mygo:55:3*/	} else {
+ /*line zz_community_management.gen_test.go:73:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "local", creator, false, member.ActorURI, false))
 	retained := MygoIN6ResultM6Unwrap[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now))
 	removed := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", retained.Identity, false))
- /*line community_management_test.mygo:61:6*/	if MygoIN15CommunityAccessM7CanRead(removed) || MygoIN15CommunityAccessM7CanPost(removed) || MygoIN15CommunityAccessM11CanEditBody(removed, member.ActorURI) {
+ /*line community_management_test.mygo:61:3*/	if MygoIN15CommunityAccessM7CanRead(removed) || MygoIN15CommunityAccessM7CanPost(removed) || MygoIN15CommunityAccessM11CanEditBody(removed, member.ActorURI) {
  /*line community_management_test.mygo:62:5*/		t.Fatal("valid session or historical authorship bypassed revoked membership")
- /*line community_management_test.mygo:61:6*/	} else {
- /*line zz_community_management.gen_test.go:81:1*/	}
+ /*line community_management_test.mygo:61:3*/	} else {
+ /*line zz_community_management.gen_test.go:80:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "local", creator, false, manager.ActorURI, true))
 	managed := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", manager, false))
- /*line community_management_test.mygo:66:6*/	if !MygoIN15CommunityAccessM7CanRead(managed) || managed.Authority.Scope != "community" || MygoIN15CommunityAccessM11CanEditBody(managed, member.ActorURI) || auth.MygoIN19ManagementAuthorityM6Allows(managed.Authority, "assign-site-role") {
+ /*line community_management_test.mygo:66:3*/	if !MygoIN15CommunityAccessM7CanRead(managed) || managed.Authority.Scope != "community" || MygoIN15CommunityAccessM11CanEditBody(managed, member.ActorURI) || auth.MygoIN19ManagementAuthorityM6Allows(managed.Authority, "assign-site-role") {
  /*line community_management_test.mygo:67:5*/		t.Fatal("manager authority escalated or rewrote another author")
- /*line community_management_test.mygo:66:6*/	} else {
- /*line zz_community_management.gen_test.go:87:1*/	}
+ /*line community_management_test.mygo:66:3*/	} else {
+ /*line zz_community_management.gen_test.go:86:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", manager, false, "eligible_users", "eligible_users"))
 	publicLocal := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", member, false))
- /*line community_management_test.mygo:71:6*/	if !MygoIN15CommunityAccessM7CanRead(publicLocal) || !MygoIN15CommunityAccessM7CanPost(publicLocal) || publicLocal.Community.PolicyVersion != int64(2) {
+ /*line community_management_test.mygo:71:3*/	if !MygoIN15CommunityAccessM7CanRead(publicLocal) || !MygoIN15CommunityAccessM7CanPost(publicLocal) || publicLocal.Community.PolicyVersion != int64(2) {
  /*line community_management_test.mygo:72:5*/		t.Fatal("policy update did not affect current access")
- /*line community_management_test.mygo:71:6*/	} else {
- /*line zz_community_management.gen_test.go:93:1*/	}
+ /*line community_management_test.mygo:71:3*/	} else {
+ /*line zz_community_management.gen_test.go:92:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", manager, false, "eligible_users", "members"))
- /*line community_management_test.mygo:75:6*/	if MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", member, false))) {
+ /*line community_management_test.mygo:75:3*/	if MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", member, false))) {
  /*line community_management_test.mygo:76:5*/		t.Fatal("tightened posting policy required logout")
- /*line community_management_test.mygo:75:6*/	} else {
- /*line zz_community_management.gen_test.go:98:1*/	}
+ /*line community_management_test.mygo:75:3*/	} else {
+ /*line zz_community_management.gen_test.go:97:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", creator, false, "members", "members"))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "local", creator, false, manager.ActorURI, false))
- /*line community_management_test.mygo:80:6*/	if MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", manager, false))) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", manager, false, "eligible_users", "eligible_users")) {
+ /*line community_management_test.mygo:80:3*/	if MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "local", manager, false))) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", manager, false, "eligible_users", "eligible_users")) {
  /*line community_management_test.mygo:81:5*/		t.Fatal("revoked manager retained read or management authority")
- /*line community_management_test.mygo:80:6*/	} else {
- /*line zz_community_management.gen_test.go:104:1*/	}
+ /*line community_management_test.mygo:80:3*/	} else {
+ /*line zz_community_management.gen_test.go:103:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/creator','Person'),('https://remote.example/moderator','Person')")))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/communities/fedi','a','Group')")))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('fedi','a','https://a.example/communities/fedi','https://remote.example/creator','federated','members','members','fedi','Federated')")))
-	remoteCreator := auth.Identity{ActorURI: "https://remote.example/creator"}
-	remoteManager := auth.Identity{ActorURI: "https://remote.example/moderator"}
- /*line community_management_test.mygo:88:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "fedi", remoteCreator, false, "eligible_users", "members")) {
+	remoteCreator := auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "https://remote.example/creator", Username: ""}
+	remoteManager := auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "https://remote.example/moderator", Username: ""}
+ /*line community_management_test.mygo:88:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "fedi", remoteCreator, false, "eligible_users", "members")) {
  /*line community_management_test.mygo:89:5*/		t.Fatal("unverified actor claim granted management")
- /*line community_management_test.mygo:88:6*/	} else {
- /*line zz_community_management.gen_test.go:113:1*/	}
+ /*line community_management_test.mygo:88:3*/	} else {
+ /*line zz_community_management.gen_test.go:112:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "fedi", remoteCreator, true, remoteManager.ActorURI, true))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "fedi", remoteManager, true, member.ActorURI, true))
- /*line community_management_test.mygo:93:6*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "fedi", remoteManager, true)).Authority.Scope != "community" || MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "fedi", remoteManager, true)), member.ActorURI) {
+ /*line community_management_test.mygo:93:3*/	if MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "fedi", remoteManager, true)).Authority.Scope != "community" || MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, "fedi", remoteManager, true)), member.ActorURI) {
  /*line community_management_test.mygo:94:5*/		t.Fatal("remote manager scope or author ownership failed")
- /*line community_management_test.mygo:93:6*/	} else {
- /*line zz_community_management.gen_test.go:119:1*/	}
+ /*line community_management_test.mygo:93:3*/	} else {
+ /*line zz_community_management.gen_test.go:118:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, "fedi", remoteCreator, true, remoteManager.ActorURI, false))
- /*line community_management_test.mygo:97:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "fedi", remoteManager, true, member.ActorURI, false)) {
+ /*line community_management_test.mygo:97:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, "fedi", remoteManager, true, member.ActorURI, false)) {
  /*line community_management_test.mygo:98:5*/		t.Fatal("revoked remote manager retained authority")
- /*line community_management_test.mygo:97:6*/	} else {
- /*line zz_community_management.gen_test.go:124:1*/	}
+ /*line community_management_test.mygo:97:3*/	} else {
+ /*line zz_community_management.gen_test.go:123:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", creator.AccountID)))
- /*line community_management_test.mygo:101:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", creator, false, "eligible_users", "eligible_users")) {
+ /*line community_management_test.mygo:101:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(repository, ctx, "local", creator, false, "eligible_users", "eligible_users")) {
  /*line community_management_test.mygo:102:5*/		t.Fatal("disabled creator retained management authority")
- /*line community_management_test.mygo:101:6*/	} else {
- /*line zz_community_management.gen_test.go:129:1*/	}
+ /*line community_management_test.mygo:101:3*/	} else {
+ /*line zz_community_management.gen_test.go:128:1*/	}
  /*line community_management_test.mygo:11:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("audit_events").Where("scope_kind='deployment' AND acting_actor_uri=? AND target_id='other'", superadmin.ActorURI).Count(&count)))
- /*line community_management_test.mygo:106:6*/	if count != int64(1) {
+ /*line community_management_test.mygo:106:3*/	if count != int64(1) {
  /*line community_management_test.mygo:107:5*/		t.Fatal("cross-site deployment management was not audited")
- /*line community_management_test.mygo:106:6*/	} else {
- /*line zz_community_management.gen_test.go:135:1*/	}
+ /*line community_management_test.mygo:106:3*/	} else {
+ /*line zz_community_management.gen_test.go:134:1*/	}
  /*line community_management_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("activities").Count(&count)))
- /*line community_management_test.mygo:110:6*/	if count != int64(0) {
+ /*line community_management_test.mygo:110:3*/	if count != int64(0) {
  /*line community_management_test.mygo:111:5*/		t.Fatal("local management unexpectedly emitted protocol activities")
 		return
- /*line community_management_test.mygo:110:6*/	} else {
- /*line community_management_test.mygo:110:3*/		return
- /*line zz_community_management.gen_test.go:142:1*/	}
+ /*line community_management_test.mygo:110:3*/	} else {
+		return
+ /*line zz_community_management.gen_test.go:141:1*/	}
 }

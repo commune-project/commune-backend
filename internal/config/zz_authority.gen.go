@@ -10,26 +10,26 @@ import "regexp"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line authority.mygo:9:1*/func ValidDomain(host string) bool {
- /*line authority.mygo:10:6*/	if MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(host) == 0 || MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(host) > 253 {
+ /*line authority.mygo:10:3*/	if MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(host) == 0 || MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(host) > 253 {
  /*line authority.mygo:11:12*/		return false
- /*line authority.mygo:10:6*/	} else {
+ /*line authority.mygo:10:3*/	} else {
  /*line zz_authority.gen.go:16:1*/	}
  /*line authority.mygo:9:1*/	labels := strings.Split(host, ".")
 	i := 0
  /*line authority.mygo:15:9*/	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(labels) {
- /*line authority.mygo:16:24*/		var __mygo_expr_1 Result[bool, error]
+ /*line authority.mygo:16:17*/		var __mygo_expr_1 Result[bool, error]
 		__mygo_expr_2, __mygo_expr_0 := regexp.MatchString("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(labels, i)))
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[bool, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[bool, error](__mygo_expr_2)
  /*line zz_authority.gen.go:26:1*/		}
- /*line authority.mygo:16:24*/		__mygo_expr_3 := __mygo_expr_1
+ /*line authority.mygo:16:17*/		__mygo_expr_3 := __mygo_expr_1
 		var __mygo_expr_4 bool
 		if _, ok := __mygo_expr_3.(Result__Err[bool, error]); ok {
 			__mygo_expr_4 = false
  /*line zz_authority.gen.go:31:1*/		} else {
- /*line authority.mygo:16:24*/			if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[bool, error]); ok {
+ /*line authority.mygo:16:17*/			if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[bool, error]); ok {
 				__mygo_expr_4 = __mygo_match___mygo_expr_5.F0
 			} else {
  /*line zz_authority.gen.go:35:1*/			}
@@ -44,23 +44,23 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authority.mygo:25:3*/	return true
  /*line zz_authority.gen.go:45:1*/}
  /*line authority.mygo:28:1*/func NormalizeAuthority(authority string) Result[string, string] {
- /*line authority.mygo:29:6*/	if authority == "" || strings.ContainsAny(authority, "/\\?#@% \t\r\n") {
+ /*line authority.mygo:29:3*/	if authority == "" || strings.ContainsAny(authority, "/\\?#@% \t\r\n") {
  /*line authority.mygo:30:12*/		return Err[string, string]("invalid routing authority")
- /*line authority.mygo:29:6*/	} else {
+ /*line authority.mygo:29:3*/	} else {
  /*line zz_authority.gen.go:50:1*/	}
- /*line authority.mygo:32:10*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line authority.mygo:32:3*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse("https://" + authority)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_authority.gen.go:57:1*/	}
- /*line authority.mygo:32:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line authority.mygo:32:3*/	__mygo_expr_3 := __mygo_expr_1
 	var __mygo_expr_4 Result[string, string]
 	if _, ok := __mygo_expr_3.(Result__Err[*url.URL, error]); ok {
 		__mygo_expr_4 = Err[string, string]("invalid routing authority")
  /*line zz_authority.gen.go:62:1*/	} else {
- /*line authority.mygo:32:10*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*url.URL, error]); ok {
+ /*line authority.mygo:32:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*url.URL, error]); ok {
  /*line authority.mygo:35:7*/			host := strings.ToLower(strings.TrimSuffix(__mygo_match___mygo_expr_5.F0.Hostname(), "."))
  /*line authority.mygo:36:27*/			var __mygo_expr_7 Result[netip.Addr, error]
 			__mygo_expr_8, __mygo_expr_6 := netip.ParseAddr(host)
@@ -70,29 +70,29 @@ import . "github.com/mygo-lang/mygo/prelude"
 				__mygo_expr_7 = Ok[netip.Addr, error](__mygo_expr_8)
  /*line zz_authority.gen.go:71:1*/			}
  /*line authority.mygo:35:7*/			addressResult := __mygo_expr_7
- /*line authority.mygo:37:10*/			if MygoIN6ResultM4IsOk[netip.Addr, error](addressResult) {
+ /*line authority.mygo:37:7*/			if MygoIN6ResultM4IsOk[netip.Addr, error](addressResult) {
 				address := MygoIN6ResultM6Unwrap[netip.Addr, error](addressResult)
 				host = address.String()
 				if address.Is6() {
- /*line authority.mygo:41:14*/					if !strings.HasPrefix(authority, "[") {
+ /*line authority.mygo:41:11*/					if !strings.HasPrefix(authority, "[") {
  /*line authority.mygo:42:20*/						return Err[string, string]("IPv6 routing authority must use brackets")
- /*line authority.mygo:41:14*/					} else {
+ /*line authority.mygo:41:11*/					} else {
  /*line zz_authority.gen.go:80:1*/					}
- /*line authority.mygo:37:10*/					host = "[" + host + "]"
+ /*line authority.mygo:37:7*/					host = "[" + host + "]"
 				} else {
  /*line zz_authority.gen.go:83:1*/				}
- /*line authority.mygo:37:10*/			} else {
+ /*line authority.mygo:37:7*/			} else {
  /*line zz_authority.gen.go:85:1*/			}
- /*line authority.mygo:47:10*/			if MygoIN6ResultM5IsErr[netip.Addr, error](addressResult) && !ValidDomain(host) {
+ /*line authority.mygo:47:7*/			if MygoIN6ResultM5IsErr[netip.Addr, error](addressResult) && !ValidDomain(host) {
  /*line authority.mygo:48:16*/				return Err[string, string]("invalid routing hostname; use ASCII IDNA form")
- /*line authority.mygo:47:10*/			} else {
+ /*line authority.mygo:47:7*/			} else {
  /*line zz_authority.gen.go:89:1*/			}
  /*line authority.mygo:35:7*/			port := __mygo_match___mygo_expr_5.F0.Port()
- /*line authority.mygo:51:10*/			if strings.HasSuffix(authority, ":") {
+ /*line authority.mygo:51:7*/			if strings.HasSuffix(authority, ":") {
  /*line authority.mygo:52:16*/				return Err[string, string]("empty routing port")
- /*line authority.mygo:51:10*/			} else {
+ /*line authority.mygo:51:7*/			} else {
  /*line zz_authority.gen.go:94:1*/			}
- /*line authority.mygo:54:10*/			if port != "" {
+ /*line authority.mygo:54:7*/			if port != "" {
  /*line authority.mygo:55:28*/				var __mygo_expr_10 Result[int, error]
 				__mygo_expr_11, __mygo_expr_9 := strconv.Atoi(port)
 				if __mygo_expr_9 != nil {
@@ -100,70 +100,70 @@ import . "github.com/mygo-lang/mygo/prelude"
 				} else {
 					__mygo_expr_10 = Ok[int, error](__mygo_expr_11)
  /*line zz_authority.gen.go:102:1*/				}
- /*line authority.mygo:54:10*/				numberResult := __mygo_expr_10
- /*line authority.mygo:56:12*/				if MygoIN6ResultM5IsErr[int, error](numberResult) {
+ /*line authority.mygo:54:7*/				numberResult := __mygo_expr_10
+ /*line authority.mygo:56:9*/				if MygoIN6ResultM5IsErr[int, error](numberResult) {
  /*line authority.mygo:57:18*/					return Err[string, string]("invalid routing port")
- /*line authority.mygo:56:12*/				} else {
+ /*line authority.mygo:56:9*/				} else {
  /*line zz_authority.gen.go:107:1*/				}
- /*line authority.mygo:54:10*/				number := MygoIN6ResultM6Unwrap[int, error](numberResult)
- /*line authority.mygo:60:12*/				if number < 1 || number > 65535 {
+ /*line authority.mygo:54:7*/				number := MygoIN6ResultM6Unwrap[int, error](numberResult)
+ /*line authority.mygo:60:9*/				if number < 1 || number > 65535 {
  /*line authority.mygo:61:18*/					return Err[string, string]("routing port is out of range")
- /*line authority.mygo:60:12*/				} else {
+ /*line authority.mygo:60:9*/				} else {
  /*line zz_authority.gen.go:112:1*/				}
- /*line authority.mygo:54:10*/				if number != 443 {
+ /*line authority.mygo:54:7*/				if number != 443 {
 					host = host + ":" + MygoIT8ToStringFN3IntGN3IntEM8ToString(number)
 				} else {
  /*line zz_authority.gen.go:116:1*/				}
- /*line authority.mygo:54:10*/			} else {
+ /*line authority.mygo:54:7*/			} else {
  /*line zz_authority.gen.go:118:1*/			}
- /*line authority.mygo:32:10*/			__mygo_expr_4 = Ok[string, string](host)
+ /*line authority.mygo:32:3*/			__mygo_expr_4 = Ok[string, string](host)
 		} else {
  /*line zz_authority.gen.go:121:1*/		}
 	}
- /*line authority.mygo:32:10*/	return __mygo_expr_4
+ /*line authority.mygo:32:3*/	return __mygo_expr_4
  /*line zz_authority.gen.go:124:1*/}
  /*line authority.mygo:72:1*/func NormalizeOrigin(origin string) Result[string, string] {
- /*line authority.mygo:73:6*/	if strings.ContainsAny(origin, "\\?# \t\r\n") {
+ /*line authority.mygo:73:3*/	if strings.ContainsAny(origin, "\\?# \t\r\n") {
  /*line authority.mygo:74:12*/		return Err[string, string]("canonical origin must be an HTTPS origin without query or fragment")
- /*line authority.mygo:73:6*/	} else {
+ /*line authority.mygo:73:3*/	} else {
  /*line zz_authority.gen.go:129:1*/	}
- /*line authority.mygo:76:10*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line authority.mygo:76:3*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(origin)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_authority.gen.go:136:1*/	}
- /*line authority.mygo:76:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line authority.mygo:76:3*/	__mygo_expr_3 := __mygo_expr_1
 	var __mygo_expr_4 Result[string, string]
 	if _, ok := __mygo_expr_3.(Result__Err[*url.URL, error]); ok {
 		__mygo_expr_4 = Err[string, string]("invalid canonical origin")
  /*line zz_authority.gen.go:141:1*/	} else {
- /*line authority.mygo:76:10*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*url.URL, error]); ok {
+ /*line authority.mygo:76:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[*url.URL, error]); ok {
  /*line authority.mygo:79:10*/			if __mygo_match___mygo_expr_5.F0.Scheme != "https" || __mygo_match___mygo_expr_5.F0.Path != "" && __mygo_match___mygo_expr_5.F0.Path != "/" {
  /*line authority.mygo:80:16*/				return Err[string, string]("canonical origin must use HTTPS without a path")
- /*line authority.mygo:79:10*/			} else {
+ /*line authority.mygo:79:7*/			} else {
  /*line zz_authority.gen.go:146:1*/			}
- /*line authority.mygo:82:14*/			__mygo_expr_6 := NormalizeAuthority(__mygo_match___mygo_expr_5.F0.Host)
+ /*line authority.mygo:82:7*/			__mygo_expr_6 := NormalizeAuthority(__mygo_match___mygo_expr_5.F0.Host)
 			var __mygo_expr_7 Result[string, string]
-			if __mygo_match___mygo_expr_9, ok := __mygo_expr_6.(Result__Err[string, string]); ok {
-				__mygo_expr_7 = Err[string, string](__mygo_match___mygo_expr_9.F0)
+			if __mygo_match___mygo_expr_10, ok := __mygo_expr_6.(Result__Err[string, string]); ok {
+				__mygo_expr_7 = Err[string, string](__mygo_match___mygo_expr_10.F0)
  /*line zz_authority.gen.go:151:1*/			} else {
- /*line authority.mygo:82:14*/				if __mygo_match___mygo_expr_8, ok := __mygo_expr_6.(Result__Ok[string, string]); ok {
+ /*line authority.mygo:82:7*/				if __mygo_match___mygo_expr_8, ok := __mygo_expr_6.(Result__Ok[string, string]); ok {
  /*line authority.mygo:85:11*/					hasCredentials := __mygo_match___mygo_expr_5.F0.User != nil
- /*line authority.mygo:86:14*/					var __mygo_expr_9 Result[string, string]
-					if hasCredentials {
-						__mygo_expr_9 = Err[string, string]("canonical origin cannot contain credentials")
+ /*line authority.mygo:86:11*/					var __mygo_expr_9 Result[string, string]
+ /*line authority.mygo:86:14*/					if hasCredentials {
+ /*line authority.mygo:86:11*/						__mygo_expr_9 = Err[string, string]("canonical origin cannot contain credentials")
  /*line zz_authority.gen.go:157:1*/					} else {
- /*line authority.mygo:86:14*/						__mygo_expr_9 = Ok[string, string]("https://" + __mygo_match___mygo_expr_8.F0)
+ /*line authority.mygo:86:11*/						__mygo_expr_9 = Ok[string, string]("https://" + __mygo_match___mygo_expr_8.F0)
  /*line zz_authority.gen.go:159:1*/					}
- /*line authority.mygo:82:14*/					__mygo_expr_7 = __mygo_expr_9
+ /*line authority.mygo:82:7*/					__mygo_expr_7 = __mygo_expr_9
 				} else {
  /*line zz_authority.gen.go:162:1*/				}
 			}
- /*line authority.mygo:76:10*/			__mygo_expr_4 = __mygo_expr_7
+ /*line authority.mygo:76:3*/			__mygo_expr_4 = __mygo_expr_7
 		} else {
  /*line zz_authority.gen.go:166:1*/		}
 	}
- /*line authority.mygo:76:10*/	return __mygo_expr_4
+ /*line authority.mygo:76:3*/	return __mygo_expr_4
  /*line zz_authority.gen.go:169:1*/}

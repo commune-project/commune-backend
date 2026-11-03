@@ -30,7 +30,9 @@ func SiteVoteRoute(
 ) -> Bool
   let resource = parts.Get(2).UnwrapOr("")
   let admin = resource == "admin"
-  if (resource != "site" && !admin) || parts.Len() != 4 || parts.Get(3).UnwrapOr("") != "vote-settings" then
+  if (resource != "site" && !admin) ||
+    parts.Len() != 4 ||
+    parts.Get(3).UnwrapOr("") != "vote-settings" then
     return false
   end
   w.Header().Set("Cache-Control", "no-store")
@@ -53,7 +55,7 @@ func SiteVoteRoute(
     Fail(w, actor.UnwrapErr())
     return true
   end
-  let patch = SiteVoteSettingsPatch{}
+  var patch = Zero[SiteVoteSettingsPatch]()
   if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(patch)).IsErr() then
     WriteErrorJSON(w, 400, "invalid vote settings")
     return true
@@ -74,7 +76,16 @@ func SiteVoteRoute(
     WriteErrorJSON(w, 400, "invalid vote settings")
     return true
   end
-  let updated = storage.UpdateSiteVoteSettings(request.Context(), db, site.ID, actor.Unwrap(), up, down, hasUp, hasDown)
+  let updated = storage.UpdateSiteVoteSettings(
+    request.Context(),
+    db,
+    site.ID,
+    actor.Unwrap(),
+    up,
+    down,
+    hasUp,
+    hasDown
+  )
   if updated.IsErr() then
     Fail(w, updated.UnwrapErr())
   else

@@ -49,7 +49,7 @@ end
 # source is retained only as metadata. Display always interprets content using
 # its declared media type; optional source cannot smuggle executable Markdown.
 func ParseRichObject(payload: Slice[Byte]) -> Result[RichObject, String]
-  let object = RichObject{}
+  let object = Zero[RichObject]()
   if HasDuplicateKeys(payload) || json.Unmarshal(payload, Ref.new(object)).IsErr() then
     return Err("invalid rich object")
   end

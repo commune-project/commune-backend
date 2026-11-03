@@ -4,21 +4,88 @@ import testing "go:testing"
 import json "go:encoding/json"
 import strings "go:strings"
 import time "go:time"
+import sql "go:database/sql"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import config "github.com/commune-project/commune-backend/internal/config"
 
 func TestPersonProfileSerialization(t: Ref[testing.T]) -> ()
-  let person = PersonRepresentation(config.Site{}, storage.ActorRecord{URI: "https://a.example/users/alice"}, "alice", "public-key")
-  let update = json.Marshal(ProfileUpdate{ID: "https://a.example/activities/profile", Type: "Update", Actor: person.ID, Object: person}).Unwrap()
+  let person = PersonRepresentation(
+    Zero[config.Site](),
+    storage.ActorRecord {
+      URI: "https://a.example/users/alice",
+      LocalSiteID: Zero[sql.NullString](),
+      Kind: "Person",
+      InboxURI: Zero[sql.NullString](),
+      PublicKeyPEM: Zero[sql.NullString](),
+      Acct: "",
+    },
+    "alice",
+    "public-key"
+  )
+  let update = json.Marshal(ProfileUpdate {
+    Context: "",
+    ID: "https://a.example/activities/profile",
+    Type: "Update",
+    Actor: person.ID,
+    Object: person,
+    To: [],
+    CC: [],
+  }).Unwrap()
   if !CreateAuthorMatches(ParseActivity(update).Unwrap()) || person.AttributedTo != "" then
     t.Fatal("Person representation falsely attributes profile to a moderators collection")
   end
-  let actor = WithProfile(ActorRepresentation{ID: "https://a.example/users/alice", Type: "Person"}, storage.ProfileRecord{DisplayName: "Alice", BiographyHTML: "<p>hello</p>", AvatarURL: "https://a.example/api/v1/media/avatar", UpdatedAt: time.Now()})
+  let actor = WithProfile(
+    ActorRepresentation {
+      Context: "",
+      ID: "https://a.example/users/alice",
+      Type: "Person",
+      PreferredUsername: "",
+      Name: "",
+      Summary: "",
+      Icon: Zero[ProfileIcon](),
+      Updated: Zero[time.Time](),
+      Inbox: "",
+      Outbox: "",
+      Followers: "",
+      AttributedTo: "",
+      FollowPolicy: "",
+      PublicKey: Zero[PublicKeyRepresentation](),
+    },
+    storage.ProfileRecord{
+      ActorURI: "",
+      Username: "",
+      DisplayName: "Alice",
+      Biography: "",
+      BiographyHTML: "<p>hello</p>",
+      AvatarURL: "https://a.example/api/v1/media/avatar",
+      AvatarBindingID: "",
+      UpdatedAt: time.Now(),
+    }
+  )
   let encoded = json.Marshal(actor).Unwrap() as String
-  if !strings.Contains(encoded, `"icon":{"type":"Image","url":"https://a.example/api/v1/media/avatar"}`) || !strings.Contains(encoded, `"name":"Alice"`) then
+  if !strings.Contains(
+    encoded,
+    `"icon":{"type":"Image","url":"https://a.example/api/v1/media/avatar"}`
+  ) ||
+    !strings.Contains(encoded, `"name":"Alice"`) then
     t.Fatalf("profile metadata missing: %s", encoded)
   end
-  let withoutAvatar = json.Marshal(ActorRepresentation{Type: "Person"}).Unwrap() as String
+  let withoutAvatar = json.Marshal(ActorRepresentation{
+    Context: "",
+    ID: "",
+    Type: "Person",
+    PreferredUsername: "",
+    Name: "",
+    Summary: "",
+    Icon: Zero[ProfileIcon](),
+    Updated: Zero[time.Time](),
+    Inbox: "",
+    Outbox: "",
+    Followers: "",
+    AttributedTo: "",
+    FollowPolicy: "",
+    PublicKey: Zero[PublicKeyRepresentation](),
+  }).Unwrap() as String
   if strings.Contains(withoutAvatar, `"icon"`) then
     t.Fatalf("empty icon must be absent: %s", withoutAvatar)
   end
@@ -29,7 +96,12 @@ func TestPersonUpdateAuthorityAndFreshness(t: Ref[testing.T]) -> ()
   if PersonUpdateObject(valid as Slice[Byte]).IsErr() then
     t.Fatal("valid Person update rejected")
   end
-  let forged = strings.Replace(valid, `"id":"https://remote.example/users/a"`, `"id":"https://other.example/users/b"`, 1)
+  let forged = strings.Replace(
+    valid,
+    `"id":"https://remote.example/users/a"`,
+    `"id":"https://other.example/users/b"`,
+    1
+  )
   if PersonUpdateObject(forged as Slice[Byte]).IsOk() then
     t.Fatal("foreign Actor identity accepted")
   end

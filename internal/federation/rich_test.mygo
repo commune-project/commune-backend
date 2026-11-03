@@ -1,19 +1,40 @@
 package federation
 
 import testing "go:testing"
+import sql "go:database/sql"
+import time "go:time"
 import strings "go:strings"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 
 func TestRichObjectRepresentation(t: Ref[testing.T]) -> ()
-  let post = storage.PostRecord{Body: "**中文** [link](https://example.org)", ContentFormat: "markdown"}
-  let output = BuildObjectRepresentation(post, storage.CommunityRecord{ReadPolicy: "eligible_users"})
-  if output.MediaType != "text/html" || !strings.Contains(output.Content, "<strong>中文</strong>") || output.Source.Content != post.Body || output.Source.MediaType != "text/markdown" then
+  let post = richTestPost("**中文** [link](https://example.org)", "markdown")
+  let output = BuildObjectRepresentation(
+    post,
+    richTestCommunity("eligible_users")
+  )
+  if output.MediaType != "text/html" ||
+    !strings.Contains(output.Content, "<strong>中文</strong>") ||
+    output.Source.Content != post.Body ||
+    output.Source.MediaType != "text/markdown" then
     t.Fatal("rich output lost rendered HTML or source")
   end
-  let remote = BuildObjectRepresentation(storage.PostRecord{Body: "<p>safe</p><script>alert(1)</script>", ContentFormat: "html"}, storage.CommunityRecord{})
-  if strings.Contains(remote.Content, "<script") || !strings.Contains(remote.Content, "<p>safe</p>") || remote.Source.Content != "" then
+  let remote = BuildObjectRepresentation(
+    richTestPost("<p>safe</p><script>alert(1)</script>", "html"),
+    richTestCommunity("eligible_users")
+  )
+  if strings.Contains(remote.Content, "<script") ||
+    !strings.Contains(remote.Content, "<p>safe</p>") ||
+    remote.Source.Content != "" then
     t.Fatal("remote HTML was reinterpreted or unsafe")
   end
+end
+
+func richTestPost(body: String, format: String) -> storage.PostRecord
+  storage.PostRecord{ID: "", ObjectURI: Zero[sql.NullString](), CommunityID: "", FederationMode: "", AuthorActorURI: "", ObjectType: "Page", Title: Zero[sql.NullString](), Body: body, ContentFormat: format, SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: Zero[time.Time](), UpdatedAt: Zero[time.Time](), Version: 0i64, DeletedAt: Zero[sql.NullTime]()}
+end
+
+func richTestCommunity(readPolicy: String) -> storage.CommunityRecord
+  storage.CommunityRecord{ID: "", HostSiteID: "", ActorURI: Zero[sql.NullString](), CreatorActorURI: "", FederationMode: "federated", ReadPolicy: readPolicy, PostPolicy: "eligible_users", FollowPolicy: "open", Name: "", Title: "", Description: "", PolicyVersion: 1i64}
 end
 
 func TestParseRichObjectBoundaries(t: Ref[testing.T]) -> ()

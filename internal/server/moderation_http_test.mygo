@@ -24,8 +24,8 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
   let community = communities.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let private = communities.Create(ctx, site, author, "private", "Private", "federated", "members", "members").Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let post = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body"}).Unwrap()
-  let privatePost = posts.Publish(ctx, site, private.ID, author, false, storage.PublishInput{Title: "Private", Body: "private"}).Unwrap()
+  let post = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let privatePost = posts.Publish(ctx, site, private.ID, author, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let handler = Handler(settings, db)
   let authorCookies = login(handler, site.Origin, "author", "author-password")
   let authorCSRF = csrfOf(authorCookies)
@@ -36,10 +36,10 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
   let adminCookies = login(handler, site.Origin, "admin", "administrator-password")
   let adminCSRF = csrfOf(adminCookies)
   let reportPayload = `{"target_kind":"post","target_id":"` + post.ID + `","community_id":"` + community.ID + `","reason":"spam"}`
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Source: site.Origin}).Code != 401 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: [], CSRF: "", Source: site.Origin}).Code != 401 then
     t.Fatal("anonymous report was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, Source: site.Origin}).Code != 403 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: "", Source: site.Origin}).Code != 403 then
     t.Fatal("report without CSRF was accepted")
   end
   if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: `{"target_kind":"post","target_id":"missing","reason":"spam"}`, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 404 then
@@ -59,10 +59,10 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
   if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 200 then
     t.Fatal("duplicate open report was not idempotent")
   end
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/reports", Cookies: reporterCookies}).Code != 403 then
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/reports", Payload: "", Cookies: reporterCookies, CSRF: "", Source: ""}).Code != 403 then
     t.Fatal("ordinary reader listed reports")
   end
-  let reports = ReportPage{}
+  let reports = Zero[ReportPage]()
   let reportsResponse = browserGet(t, handler, site.Origin, "/api/v1/reports?state=open&community_id=" + community.ID, authorCookies, 200)
   let _ = json.Unmarshal(reportsResponse.Body.Bytes(), Ref.new(reports)).Unwrap()
   if reports.Items.Len() != 1 then
@@ -77,7 +77,7 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
   if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: resolvePath, Payload: `{"state":"rejected","note":"changed"}`, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 409 then
     t.Fatal("conflicting report resolution did not return 409")
   end
-  let modlog = ModlogPage{}
+  let modlog = Zero[ModlogPage]()
   let modlogResponse = browserGet(t, handler, site.Origin, "/api/v1/modlog?community_id=" + community.ID, authorCookies, 200)
   let _ = json.Unmarshal(modlogResponse.Body.Bytes(), Ref.new(modlog)).Unwrap()
   if modlog.Items.Len() == 0 || modlog.Items.Get(0).Unwrap().Action != "resolve-report" then
@@ -89,11 +89,11 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
     doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 then
     t.Fatal("community ban was not idempotent")
   end
-  let bannedPost = posts.Publish(ctx, site, community.ID, target, false, storage.PublishInput{Title: "Banned", Body: "banned"})
+  let bannedPost = posts.Publish(ctx, site, community.ID, target, false, storage.PublishInput{Title: "Banned", Body: "banned", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []})
   if bannedPost.IsOk() then
     t.Fatal("community-banned account could publish")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID + "/vote", Payload: `{"score":1}`, Cookies: targetCookies, CSRF: targetCSRF, Source: site.Origin}).Code != 403 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: `{"score":1}`, Cookies: targetCookies, CSRF: targetCSRF, Source: site.Origin}).Code != 403 then
     t.Fatal("community-banned account could vote")
   end
   if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 then
@@ -107,12 +107,12 @@ func TestPostgresModerationHTTPAcceptance(t: Ref[testing.T]) -> ()
   if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 then
     t.Fatal("site administrator ban failed")
   end
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/auth/session", Cookies: targetCookies}).Code != 401 ||
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Source: site.Origin, Path: "/api/v1/auth/login", Payload: `{"login":"target","password":"target-password"}`}).Code != 401 then
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: targetCookies, CSRF: "", Source: ""}).Code != 401 ||
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/auth/login", Payload: `{"login":"target","password":"target-password"}`, Cookies: [], CSRF: "", Source: site.Origin}).Code != 401 then
     t.Fatal("site ban did not revoke session or block login")
   end
   if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 ||
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Source: site.Origin, Path: "/api/v1/auth/login", Payload: `{"login":"target","password":"target-password"}`}).Code != 200 then
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/auth/login", Payload: `{"login":"target","password":"target-password"}`, Cookies: [], CSRF: "", Source: site.Origin}).Code != 200 then
     t.Fatal("site unban did not restore login")
   end
 end

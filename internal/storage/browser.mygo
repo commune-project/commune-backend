@@ -46,14 +46,14 @@ impl BrowserRepository
     let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
     let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
     if identity.AccountID <= 0i64 then
-      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
+      return Ok(BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let verified = QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
     if verified.IsErr() then
       return Err(verified.UnwrapErr())
     end
     if !verified.Unwrap() then
-      return Ok(BrowserViewer{UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
+      return Ok(BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
     end
     let site = SiteRepository{DB: self.DB, SiteID: self.SiteID}
     let blocked = site.IsBlocked(ctx, identity.ActorURI)

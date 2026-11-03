@@ -13,7 +13,7 @@ func TestPostgresRichActivityReception(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "rich", Origin: "https://rich.example"}
+  let site = config.Site{ID: "rich", RegistrationEnabled: false, Origin: "https://rich.example", Aliases: []}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let creator = storage.AccountRepository{DB: db}.Create(ctx, site, "creator", "", "creator-password").Unwrap()
   let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, creator, "rich", "Rich", "federated", "eligible_users", "eligible_users").Unwrap()

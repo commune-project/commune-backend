@@ -14,7 +14,7 @@ func InsertActivityPayload(
   communityID: String
 ) -> Result[(), String]
   let checksum = PayloadChecksum(payload)
-  let community = sql.NullString{String: communityID, Valid: communityID != ""}
+  let community = sql.NullString { String: communityID, Valid: communityID != "" }
   if MutationResult(db.WithContext(ctx).Exec(
     "INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,?,?)",
     uri,

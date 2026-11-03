@@ -32,7 +32,7 @@ func ReceiveRichAnnounce(
   if community.Unwrap().IsNone() then
     return Ok(())
   end
-  let envelope = RichActivityObject{}
+  var envelope = Zero[RichActivityObject]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
     return Err("invalid announce")
   end
@@ -94,7 +94,7 @@ func ReceiveRichActivity(
   payload: Slice[Byte],
   communityID: String
 ) -> Result[(), String]
-  let envelope = RichActivityObject{}
+  var envelope = Zero[RichActivityObject]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
     return Err("invalid activity")
   end
@@ -137,7 +137,8 @@ func ReceiveRichActivity(
   let publicAudience = object.To.Contains("https://www.w3.org/ns/activitystreams#Public") ||
     object.CC.Contains("https://www.w3.org/ns/activitystreams#Public")
   if community.Unwrap().Unwrap().ReadPolicy != "members" &&
-    object.To.Len() + object.CC.Len() > 0 && !publicAudience then
+    object.To.Len() + object.CC.Len() > 0 &&
+    !publicAudience then
     return Err("restricted audience expansion")
   end
   if community.Unwrap().Unwrap().ReadPolicy == "members" &&
@@ -145,7 +146,7 @@ func ReceiveRichActivity(
       object.CC.Contains("https://www.w3.org/ns/activitystreams#Public")) then
     return Err("restricted audience expansion")
   end
-  var parent = sql.NullString{}
+  var parent = Zero[sql.NullString]()
   if object.InReplyTo != "" then
     let loaded = storage.LoadObjectByURI(ctx, db, object.InReplyTo)
     if loaded.IsErr() || loaded.Unwrap().IsNone() then
@@ -165,6 +166,7 @@ func ReceiveRichActivity(
     return Err("invalid rich metadata")
   end
   let incoming = storage.PostRecord{
+    ID: "",
     ObjectURI: sql.NullString{String: object.ID, Valid: true},
     CommunityID: communityID,
     FederationMode: "federated",
@@ -177,6 +179,7 @@ func ReceiveRichActivity(
     else
       "html"
     end,
+    SearchText: "",
     RichMetadata: metadata.Unwrap() as String,
     ParentID: parent,
     AuthoredAt: object.Published,
@@ -185,6 +188,8 @@ func ReceiveRichActivity(
     else
       object.Updated
     end,
+    Version: 0i64,
+    DeletedAt: Zero[sql.NullTime](),
   }
   storage.RunTransaction(
     ctx,
@@ -262,7 +267,17 @@ func ApplyRichMutation(
       if storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID)).IsErr() then
         return Err("media unavailable")
       end
-      let invalidated = storage.MediaRepository{DB: tx, SiteID: site.ID}.InvalidatePrivateCache(ctx, tx, post.ID, "")
+      let invalidated = storage.MediaRepository{
+        DB: tx,
+        SiteID: site.ID,
+        Files: Zero[storage.MediaFiles](),
+        Settings: Zero[config.Media](),
+      }.InvalidatePrivateCache(
+        ctx,
+        tx,
+        post.ID,
+        ""
+      )
       if invalidated.IsErr() then
         return invalidated
       end

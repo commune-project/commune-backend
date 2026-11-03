@@ -12,8 +12,8 @@ func TestPostgresCommunityAuthorityAndRevocation(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let a = config.Site{ID: "a", Origin: "https://a.example"}
-  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let a = testSite("a", "https://a.example")
+  let b = testSite("b", "https://b.example")
   let _ = ProvisionSite(ctx, db, a).Unwrap()
   let _ = ProvisionSite(ctx, db, b).Unwrap()
   let _ = ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false).Unwrap()
@@ -31,7 +31,7 @@ func TestPostgresCommunityAuthorityAndRevocation(t: Ref[testing.T]) -> ()
   let _ = MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('other','b',?,'local_only','members','members','other','Other')", foreign.ActorURI)).Unwrap()
   let creatorAccess = repository.Check(ctx, "local", creator, false).Unwrap()
   let _ = repository.Read(ctx, "local", creator, false).Unwrap()
-  if repository.Read(ctx, "local", member, false).IsOk() || repository.Read(ctx, "local", auth.Identity{}, false).IsOk() then
+  if repository.Read(ctx, "local", member, false).IsOk() || repository.Read(ctx, "local", Zero[auth.Identity](), false).IsOk() then
     t.Fatal("restricted metadata leaked to anonymous or non-member readers")
   end
   if creatorAccess.Authority.Scope != "community" || !creatorAccess.CanRead() || creatorAccess.CanPost() || creatorAccess.Authority.Allows("assign-site-role") || creatorAccess.Authority.Allows("assign-deployment-role") then
@@ -83,8 +83,8 @@ func TestPostgresCommunityAuthorityAndRevocation(t: Ref[testing.T]) -> ()
   let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/creator','Person'),('https://remote.example/moderator','Person')")).Unwrap()
   let _ = MutationResult(db.Exec("INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/communities/fedi','a','Group')")).Unwrap()
   let _ = MutationResult(db.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('fedi','a','https://a.example/communities/fedi','https://remote.example/creator','federated','members','members','fedi','Federated')")).Unwrap()
-  let remoteCreator = auth.Identity{ActorURI: "https://remote.example/creator"}
-  let remoteManager = auth.Identity{ActorURI: "https://remote.example/moderator"}
+  let remoteCreator = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "https://remote.example/creator", Username: ""}
+  let remoteManager = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "https://remote.example/moderator", Username: ""}
   if repository.SetPolicy(ctx, "fedi", remoteCreator, false, "eligible_users", "members").IsOk() then
     t.Fatal("unverified actor claim granted management")
   end

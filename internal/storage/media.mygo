@@ -44,26 +44,52 @@ struct MediaRepository
 end
 
 func MediaBindingURL(id: String) -> String
-  if id == "" then "" else "/api/v1/media/" + id end
+  if id == "" then
+    ""
+  else
+    "/api/v1/media/" + id
+  end
 end
 
-func BindPostMedia(ctx: context.Context, tx: Ref[gorm.DB], siteID: String, identity: auth.Identity, postID: String, ids: Slice[String]) -> Result[Slice[String], String]
-  MediaRepository{DB: tx, SiteID: siteID}.BindPostTx(ctx, tx, identity, postID, ids)
+func BindPostMedia(
+  ctx: context.Context,
+  tx: Ref[gorm.DB],
+  siteID: String,
+  identity: auth.Identity,
+  postID: String,
+  ids: Slice[String]
+) -> Result[Slice[String], String]
+  MediaRepository {
+    DB: tx,
+    SiteID: siteID,
+    Files: Zero[MediaFiles](),
+    Settings: Zero[config.Media](),
+  }.BindPostTx(ctx, tx, identity, postID, ids)
 end
 
 impl MediaRepository
-  func Owner(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity) -> Result[(), String]
+  func Owner(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    identity: auth.Identity
+  ) -> Result[(), String]
     if identity.SiteID != self.SiteID || identity.AccountID <= 0i64 then
       return Err("forbidden")
     end
-    let active = QueryExists(tx.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, self.SiteID, identity.ActorURI))
+    let active = QueryExists(tx.WithContext(ctx).Table("accounts").Where(
+      "id=? AND site_id=? AND actor_uri=? AND NOT disabled",
+      identity.AccountID,
+      self.SiteID,
+      identity.ActorURI
+    ))
     if active.IsErr() then
       return Err("media unavailable")
     end
     if !active.Unwrap() then
       return Err("forbidden")
     end
-    let blocked = SiteRepository{DB: tx, SiteID: self.SiteID}.IsBlocked(ctx, identity.ActorURI)
+    let blocked = SiteRepository { DB: tx, SiteID: self.SiteID }.IsBlocked(ctx, identity.ActorURI)
     if blocked.IsErr() then
       return Err("media unavailable")
     end
@@ -75,48 +101,99 @@ impl MediaRepository
 
   # Reserve the maximum original plus maximum PNG preview before reading any
   # bytes. All reservations for a site serialize on its durable site row.
-  func Reserve(self: MediaRepository, ctx: context.Context, identity: auth.Identity, purpose: String, name: String) -> Result[MediaUpload, String]
+  func Reserve(
+    self: MediaRepository,
+    ctx: context.Context,
+    identity: auth.Identity,
+    purpose: String,
+    name: String
+  ) -> Result[MediaUpload, String]
     if !self.Settings.Enabled || (purpose != "post" && purpose != "avatar") then
       return Err("invalid media purpose")
     end
-    let maxOriginal = if purpose == "avatar" then self.Settings.MaxImageBytes else self.Settings.MaxFileBytes end
-    let previewBudget = self.Settings.PreviewDimension as Int64 * self.Settings.PreviewDimension as Int64 * 5i64 + 65536i64
+    let maxOriginal = if purpose == "avatar" then
+      self.Settings.MaxImageBytes
+    else
+      self.Settings.MaxFileBytes
+    end
+    let previewBudget = self.Settings.PreviewDimension as Int64 * self.Settings.PreviewDimension as Int64 * 5i64 +
+      65536i64
     let reserve = maxOriginal as Int64 + previewBudget
     let now = time.Now().UTC()
-    let row = MediaUpload{ID: rand.Text(), SiteID: self.SiteID, OwnerAccountID: identity.AccountID, Purpose: purpose, State: "uploading", ReservedBytes: reserve, OriginalName: MediaSafeName(name), CreatedAt: now, ExpiresAt: now.Add(self.Settings.TemporaryRetentionSeconds as time.Duration * time.Second), LeaseToken: rand.Text(), LeaseUntil: now.Add(10 as time.Duration * time.Minute)}
-    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let site: String = ""
-      let locked = tx.WithContext(ctx).Raw("SELECT id FROM sites WHERE id=? FOR UPDATE", self.SiteID).Scan(Ref.new(site))
-      if QueryFailed(locked) || locked.RowsAffected != 1i64 then
-        return Err("media unavailable")
+    let row = MediaUpload {
+      ID: rand.Text(),
+      SiteID: self.SiteID,
+      OwnerAccountID: identity.AccountID,
+      Purpose: purpose,
+      State: "uploading",
+      ReservedBytes: reserve,
+      SizeBytes: 0i64,
+      PreviewBytes: 0i64,
+      MediaType: "",
+      OriginalName: MediaSafeName(name),
+      CreatedAt: now,
+      ExpiresAt: now.Add(self.Settings.TemporaryRetentionSeconds as time.Duration * time.Second),
+      LeaseToken: rand.Text(),
+      LeaseUntil: now.Add(10 as time.Duration * time.Minute),
+    }
+    let result = RunTransaction(
+      ctx,
+      self.DB,
+      func(tx: Ref[gorm.DB]) -> Result[(), String]
+        let site: String = ""
+        let locked = tx.WithContext(ctx).Raw("SELECT id FROM sites WHERE id=? FOR UPDATE", self.SiteID).Scan(Ref.new(site))
+        if QueryFailed(locked) || locked.RowsAffected != 1i64 then
+          return Err("media unavailable")
+        end
+        let owner = self.Owner(ctx, tx, identity)
+        if owner.IsErr() then
+          return owner
+        end
+        let siteBytes: Int64 = 0i64
+        let accountBytes: Int64 = 0i64
+        if QueryFailed(tx.Raw(
+          "SELECT COALESCE((SELECT sum(reserved_bytes) FROM media_uploads WHERE site_id=?),0)+COALESCE((SELECT sum(size_bytes) FROM media_private_cache WHERE site_id=?),0)",
+          self.SiteID,
+          self.SiteID
+        ).Scan(Ref.new(siteBytes))) ||
+          QueryFailed(tx.Raw(
+            "SELECT COALESCE(sum(reserved_bytes),0) FROM media_uploads WHERE site_id=? AND owner_account_id=?",
+            self.SiteID,
+            identity.AccountID
+          ).Scan(Ref.new(accountBytes))) then
+          return Err("media unavailable")
+        end
+        if reserve > self.Settings.SiteQuotaBytes as Int64 - siteBytes ||
+          reserve > self.Settings.AccountQuotaBytes as Int64 - accountBytes then
+          return Err("media quota exceeded")
+        end
+        MutationResult(tx.Table("media_uploads").Create(Ref.new(row)))
       end
-      let owner = self.Owner(ctx, tx, identity)
-      if owner.IsErr() then
-        return owner
-      end
-      let siteBytes: Int64 = 0i64
-      let accountBytes: Int64 = 0i64
-      if QueryFailed(tx.Raw("SELECT COALESCE((SELECT sum(reserved_bytes) FROM media_uploads WHERE site_id=?),0)+COALESCE((SELECT sum(size_bytes) FROM media_private_cache WHERE site_id=?),0)", self.SiteID, self.SiteID).Scan(Ref.new(siteBytes))) || QueryFailed(tx.Raw("SELECT COALESCE(sum(reserved_bytes),0) FROM media_uploads WHERE site_id=? AND owner_account_id=?", self.SiteID, identity.AccountID).Scan(Ref.new(accountBytes))) then
-        return Err("media unavailable")
-      end
-      if reserve > self.Settings.SiteQuotaBytes as Int64 - siteBytes || reserve > self.Settings.AccountQuotaBytes as Int64 - accountBytes then
-        return Err("media quota exceeded")
-      end
-      MutationResult(tx.Table("media_uploads").Create(Ref.new(row)))
-    end)
+    )
     if result.IsErr() then
       return Err(result.UnwrapErr())
     end
     Ok(row)
   end
-
-  func Upload(self: MediaRepository, ctx: context.Context, identity: auth.Identity, purpose: String, name: String, declared: String, reader: io.Reader) -> Result[MediaUpload, String]
+  func Upload(
+    self: MediaRepository,
+    ctx: context.Context,
+    identity: auth.Identity,
+    purpose: String,
+    name: String,
+    declared: String,
+    reader: io.Reader
+  ) -> Result[MediaUpload, String]
     let reserved = self.Reserve(ctx, identity, purpose, name)
     if reserved.IsErr() then
       return Err(reserved.UnwrapErr())
     end
     var row = reserved.Unwrap()
-    let limit = if purpose == "avatar" then self.Settings.MaxImageBytes else self.Settings.MaxFileBytes end
+    let limit = if purpose == "avatar" then
+      self.Settings.MaxImageBytes
+    else
+      self.Settings.MaxFileBytes
+    end
     let copied = self.Files.Stream(ctx, row.ID, reader, limit as Int64)
     if copied.IsErr() then
       let _ = self.Abort(row)
@@ -136,11 +213,22 @@ impl MediaRepository
       let _ = self.Abort(row)
       return Err("upload canceled")
     end
-    if info.Size + info.PreviewSize > row.ReservedBytes || self.Files.Publish(row.ID, "local").IsErr() then
+    if info.Size + info.PreviewSize > row.ReservedBytes ||
+      self.Files.Publish(row.ID, "local").IsErr() then
       let _ = self.Abort(row)
       return Err("media unavailable")
     end
-    let finalized = self.DB.WithContext(ctx).Exec("UPDATE media_uploads SET state='ready',size_bytes=?,preview_bytes=?,media_type=?,reserved_bytes=?,lease_token='',lease_until=? WHERE id=? AND state='uploading' AND lease_token=? AND lease_until>?", info.Size, info.PreviewSize, info.Type, info.Size + info.PreviewSize, time.Now(), row.ID, row.LeaseToken, time.Now())
+    let finalized = self.DB.WithContext(ctx).Exec(
+      "UPDATE media_uploads SET state='ready',size_bytes=?,preview_bytes=?,media_type=?,reserved_bytes=?,lease_token='',lease_until=? WHERE id=? AND state='uploading' AND lease_token=? AND lease_until>?",
+      info.Size,
+      info.PreviewSize,
+      info.Type,
+      info.Size + info.PreviewSize,
+      time.Now(),
+      row.ID,
+      row.LeaseToken,
+      time.Now()
+    )
     if QueryFailed(finalized) || finalized.RowsAffected != 1i64 then
       let _ = self.Abort(row)
       return Err("media unavailable")
@@ -157,14 +245,23 @@ impl MediaRepository
   # unlink retains the durable reservation for the retrying cleaner.
   func Abort(self: MediaRepository, row: MediaUpload) -> Result[(), String]
     let ctx = context.Background()
-    let marked = self.DB.WithContext(ctx).Exec("UPDATE media_uploads SET state='deleting',lease_until=? WHERE id=? AND state='uploading' AND lease_token=?", time.Now(), row.ID, row.LeaseToken)
+    let marked = self.DB.WithContext(ctx).Exec(
+      "UPDATE media_uploads SET state='deleting',lease_until=? WHERE id=? AND state='uploading' AND lease_token=?",
+      time.Now(),
+      row.ID,
+      row.LeaseToken
+    )
     if QueryFailed(marked) || marked.RowsAffected != 1i64 then
       return Err("media unavailable")
     end
     self.DeleteFiles(ctx, self.DB, row.ID)
   end
-
-  func DeleteFiles(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], id: String) -> Result[(), String]
+  func DeleteFiles(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    id: String
+  ) -> Result[(), String]
     let temporary = self.Files.Remove("temporary", id)
     let preview = self.Files.Remove("previews", id)
     let source = self.Files.Remove("local", id)
@@ -174,24 +271,43 @@ impl MediaRepository
     if MutationResult(tx.WithContext(ctx).Exec("DELETE FROM media_bindings WHERE upload_id=? AND NOT active", id)).IsErr() then
       return Err("media unavailable")
     end
-    MutationResult(tx.WithContext(ctx).Exec("DELETE FROM media_uploads WHERE id=? AND state='deleting' AND NOT EXISTS(SELECT 1 FROM media_bindings WHERE upload_id=? AND active)", id, id))
+    MutationResult(tx.WithContext(ctx).Exec(
+      "DELETE FROM media_uploads WHERE id=? AND state='deleting' AND NOT EXISTS(SELECT 1 FROM media_bindings WHERE upload_id=? AND active)",
+      id,
+      id
+    ))
   end
 
   # Caller owns tx. Lock the account first so concurrent profile replacements
   # serialize even when no previous avatar exists. Empty ID removes the avatar.
-  func BindAvatarTx(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, uploadID: String) -> Result[String, String]
+  func BindAvatarTx(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    identity: auth.Identity,
+    uploadID: String
+  ) -> Result[String, String]
     let owner = self.Owner(ctx, tx, identity)
     if owner.IsErr() then
       return Err(owner.UnwrapErr())
     end
-    let account = AccountRecord{}
-    let locked = tx.WithContext(ctx).Raw("SELECT * FROM accounts WHERE id=? AND site_id=? AND NOT disabled FOR UPDATE", identity.AccountID, self.SiteID).Scan(Ref.new(account))
+    let account = Zero[AccountRecord]()
+    let locked = tx.WithContext(ctx).Raw(
+      "SELECT * FROM accounts WHERE id=? AND site_id=? AND NOT disabled FOR UPDATE",
+      identity.AccountID,
+      self.SiteID
+    ).Scan(Ref.new(account))
     if QueryFailed(locked) || locked.RowsAffected != 1i64 then
       return Err("forbidden")
     end
     if uploadID != "" then
-      let existing = MediaBinding{}
-      let found = tx.Table("media_bindings").Where("upload_id=? AND site_id=? AND owner_account_id=? AND purpose='avatar' AND active", uploadID, self.SiteID, identity.AccountID).Find(Ref.new(existing))
+      var existing = Zero[MediaBinding]()
+      let found = tx.Table("media_bindings").Where(
+        "upload_id=? AND site_id=? AND owner_account_id=? AND purpose='avatar' AND active",
+        uploadID,
+        self.SiteID,
+        identity.AccountID
+      ).Find(Ref.new(existing))
       if QueryFailed(found) then
         return Err("media unavailable")
       end
@@ -199,7 +315,11 @@ impl MediaRepository
         return Ok(MediaBindingURL(existing.ID))
       end
     end
-    if MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE site_id=? AND owner_account_id=? AND purpose='avatar' AND active", self.SiteID, identity.AccountID)).IsErr() then
+    if MutationResult(tx.Exec(
+      "UPDATE media_bindings SET active=false WHERE site_id=? AND owner_account_id=? AND purpose='avatar' AND active",
+      self.SiteID,
+      identity.AccountID
+    )).IsErr() then
       return Err("media unavailable")
     end
     if uploadID == "" then
@@ -207,8 +327,14 @@ impl MediaRepository
     end
     self.BindTx(ctx, tx, identity, uploadID, "avatar", "")
   end
-
-  func BindPostTx(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, postID: String, uploadIDs: Slice[String]) -> Result[Slice[String], String]
+  func BindPostTx(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    identity: auth.Identity,
+    postID: String,
+    uploadIDs: Slice[String]
+  ) -> Result[Slice[String], String]
     let owner = self.Owner(ctx, tx, identity)
     if owner.IsErr() then
       return Err(owner.UnwrapErr())
@@ -221,7 +347,12 @@ impl MediaRepository
     if readable.IsErr() then
       return Err(readable.UnwrapErr())
     end
-    let checked = CommunityRepository{DB: tx, SiteID: self.SiteID}.CheckAuthorship(ctx, post.Unwrap().CommunityID, identity, false)
+    let checked = CommunityRepository{DB: tx, SiteID: self.SiteID}.CheckAuthorship(
+      ctx,
+      post.Unwrap().CommunityID,
+      identity,
+      false
+    )
     if checked.IsErr() then
       return Err(checked.UnwrapErr())
     end
@@ -245,32 +376,58 @@ impl MediaRepository
     # Replacement is atomic with the parent post mutation. Old bindings never
     # authorize subsequent requests, but the immutable source is not reused.
     let retired = if uploadIDs.Len() == 0 then
-      tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND site_id=? AND active", postID, self.SiteID)
+      tx.Exec(
+        "UPDATE media_bindings SET active=false WHERE post_id=? AND site_id=? AND active",
+        postID,
+        self.SiteID
+      )
     else
-      tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND site_id=? AND active AND upload_id NOT IN ?", postID, self.SiteID, uploadIDs)
+      tx.Exec(
+        "UPDATE media_bindings SET active=false WHERE post_id=? AND site_id=? AND active AND upload_id NOT IN ?",
+        postID,
+        self.SiteID,
+        uploadIDs
+      )
     end
     if MutationResult(retired).IsErr() then
       return Err("media unavailable")
     end
     Ok(urls)
   end
-
-  func BindTx(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, uploadID: String, purpose: String, postID: String) -> Result[String, String]
-    let upload = MediaUpload{}
-    let loaded = tx.WithContext(ctx).Raw("SELECT * FROM media_uploads WHERE id=? AND site_id=? AND owner_account_id=? AND purpose=? AND state='ready' FOR UPDATE", uploadID, self.SiteID, identity.AccountID, purpose).Scan(Ref.new(upload))
+  func BindTx(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    identity: auth.Identity,
+    uploadID: String,
+    purpose: String,
+    postID: String
+  ) -> Result[String, String]
+    let upload = Zero[MediaUpload]()
+    let loaded = tx.WithContext(ctx).Raw(
+      "SELECT * FROM media_uploads WHERE id=? AND site_id=? AND owner_account_id=? AND purpose=? AND state='ready' FOR UPDATE",
+      uploadID,
+      self.SiteID,
+      identity.AccountID,
+      purpose
+    ).Scan(Ref.new(upload))
     if QueryFailed(loaded) then
       return Err("media unavailable")
     end
     if loaded.RowsAffected != 1i64 then
       return Err("not found")
     end
-    let existing = MediaBinding{}
+    var existing = Zero[MediaBinding]()
     let found = tx.Table("media_bindings").Where("upload_id=?", uploadID).Find(Ref.new(existing))
     if QueryFailed(found) then
       return Err("media unavailable")
     end
     if found.RowsAffected != 0i64 then
-      if existing.Active && existing.SiteID == self.SiteID && existing.Purpose == purpose && existing.PostID == postID && existing.OwnerAccountID == identity.AccountID then
+      if existing.Active &&
+        existing.SiteID == self.SiteID &&
+        existing.Purpose == purpose &&
+        existing.PostID == postID &&
+        existing.OwnerAccountID == identity.AccountID then
         return Ok(MediaBindingURL(existing.ID))
       end
       return Err("media binding conflict")
@@ -279,7 +436,15 @@ impl MediaRepository
       return Err("not found")
     end
     let id = rand.Text()
-    let inserted = tx.Exec("INSERT INTO media_bindings(id,upload_id,site_id,owner_account_id,purpose,post_id) VALUES (?,?,?,?,?,NULLIF(?,''))", id, uploadID, self.SiteID, identity.AccountID, purpose, postID)
+    let inserted = tx.Exec(
+      "INSERT INTO media_bindings(id,upload_id,site_id,owner_account_id,purpose,post_id) VALUES (?,?,?,?,?,NULLIF(?,''))",
+      id,
+      uploadID,
+      self.SiteID,
+      identity.AccountID,
+      purpose,
+      postID
+    )
     if QueryFailed(inserted) then
       return Err("media binding conflict")
     end
@@ -288,81 +453,119 @@ impl MediaRepository
 
   # Callback runs with a shared upload lock until the transfer completes, so
   # cleanup cannot unlink files under an in-flight original/preview/HEAD read.
-  func Read(self: MediaRepository, ctx: context.Context, identity: auth.Identity, id: String, preview: Bool, work: func(MediaUpload, Ref[os.File]) -> Result[(), String]) -> Result[(), String]
+  func Read(
+    self: MediaRepository,
+    ctx: context.Context,
+    identity: auth.Identity,
+    id: String,
+    preview: Bool,
+    work: func(MediaUpload, Ref[os.File]) -> Result[(), String]
+  ) -> Result[(), String]
     if !MediaFileID(id) then
       return Err("not found")
     end
-    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let binding = MediaBinding{}
-      let found = tx.Raw("SELECT * FROM media_bindings WHERE id=? AND active FOR SHARE", id).Scan(Ref.new(binding))
-      if QueryFailed(found) then
-        return Err("media unavailable")
-      end
-      var uploadID: String = id
-      if found.RowsAffected == 1i64 then
-        uploadID = binding.UploadID
-        if binding.Purpose == "post" then
-          # Shared sources can be visible at several receiving sites, but the
-          # binding still belongs to its original site and author.
-          let read = self.AllowPost(ctx, tx, identity, binding.PostID)
-          if read.IsErr() then
-            return read
+    RunTransaction(
+      ctx,
+      self.DB,
+      func(tx: Ref[gorm.DB]) -> Result[(), String]
+        var binding = Zero[MediaBinding]()
+        let found = tx.Raw("SELECT * FROM media_bindings WHERE id=? AND active FOR SHARE", id).Scan(Ref.new(binding))
+        if QueryFailed(found) then
+          return Err("media unavailable")
+        end
+        var uploadID: String = id
+        if found.RowsAffected == 1i64 then
+          uploadID = binding.UploadID
+          if binding.Purpose == "post" then
+            # Shared sources can be visible at several receiving sites, but the
+            # binding still belongs to its original site and author.
+            let read = self.AllowPost(ctx, tx, identity, binding.PostID)
+            if read.IsErr() then
+              return read
+            end
+          else
+            let current = QueryExists(tx.Table("profiles AS p").Joins("JOIN accounts a ON a.actor_uri=p.actor_uri").Where(
+              "p.avatar_binding_id=? AND a.site_id=? AND a.id=? AND NOT a.disabled",
+              binding.ID,
+              binding.SiteID,
+              binding.OwnerAccountID
+            ))
+            if current.IsErr() then
+              return Err("media unavailable")
+            end
+            if !current.Unwrap() then
+              return Err("not found")
+            end
           end
-        else
-          let current = QueryExists(tx.Table("profiles AS p").Joins("JOIN accounts a ON a.actor_uri=p.actor_uri").Where("p.avatar_binding_id=? AND a.site_id=? AND a.id=? AND NOT a.disabled", binding.ID, binding.SiteID, binding.OwnerAccountID))
-          if current.IsErr() then
+        end
+        let upload = Zero[MediaUpload]()
+        let loaded = tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", uploadID).Scan(Ref.new(upload))
+        if QueryFailed(loaded) then
+          return Err("media unavailable")
+        end
+        if loaded.RowsAffected != 1i64 then
+          return Err("not found")
+        end
+        if found.RowsAffected == 0i64 then
+          let bound = QueryExists(tx.Table("media_bindings").Where("upload_id=?", id))
+          if bound.IsErr() then
             return Err("media unavailable")
           end
-          if !current.Unwrap() then
+          if bound.Unwrap() ||
+            upload.SiteID != self.SiteID ||
+            upload.OwnerAccountID != identity.AccountID ||
+            !upload.ExpiresAt.After(time.Now()) then
+            return Err("not found")
+          end
+          let owner = self.Owner(ctx, tx, identity)
+          if owner.IsErr() then
             return Err("not found")
           end
         end
-      end
-      let upload = MediaUpload{}
-      let loaded = tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", uploadID).Scan(Ref.new(upload))
-      if QueryFailed(loaded) then
-        return Err("media unavailable")
-      end
-      if loaded.RowsAffected != 1i64 then
-        return Err("not found")
-      end
-      if found.RowsAffected == 0i64 then
-        let bound = QueryExists(tx.Table("media_bindings").Where("upload_id=?", id))
-        if bound.IsErr() then
-          return Err("media unavailable")
-        end
-        if bound.Unwrap() || upload.SiteID != self.SiteID || upload.OwnerAccountID != identity.AccountID || !upload.ExpiresAt.After(time.Now()) then
+        if preview && upload.PreviewBytes == 0i64 then
           return Err("not found")
         end
-        let owner = self.Owner(ctx, tx, identity)
-        if owner.IsErr() then
-          return Err("not found")
+        let file = self.Files.Open(
+          if preview then
+            "previews"
+          else
+            "local"
+          end,
+          upload.ID
+        )
+        if file.IsErr() then
+          return Err(file.UnwrapErr())
         end
+        let opened = file.Unwrap()
+        go[()] { code: "defer {opened}.Close()"; in opened = opened }
+        work(upload, opened)
       end
-      if preview && upload.PreviewBytes == 0i64 then
-        return Err("not found")
-      end
-      let file = self.Files.Open(if preview then "previews" else "local" end, upload.ID)
-      if file.IsErr() then
-        return Err(file.UnwrapErr())
-      end
-      let opened = file.Unwrap()
-      go[()] { code: "defer {opened}.Close()"; in opened = opened }
-      work(upload, opened)
-    end)
+    )
   end
-
-  func AllowPost(self: MediaRepository, ctx: context.Context, tx: Ref[gorm.DB], identity: auth.Identity, postID: String) -> Result[(), String]
+  func AllowPost(
+    self: MediaRepository,
+    ctx: context.Context,
+    tx: Ref[gorm.DB],
+    identity: auth.Identity,
+    postID: String
+  ) -> Result[(), String]
     let browser = BrowserRepository{DB: tx, SiteID: self.SiteID}
     let viewer = browser.Viewer(ctx, identity)
     if viewer.IsErr() then
       return Err("media unavailable")
     end
-    if identity.AccountID > 0i64 && (!viewer.Unwrap().Verified || identity.SiteID != self.SiteID) then
+    if identity.AccountID > 0i64 &&
+      (!viewer.Unwrap().Verified || identity.SiteID != self.SiteID) then
       return Err("not found")
     end
     let records: Slice[PostRecord] = []
-    let read = tx.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", postID).Find(Ref.new(records))
+    let read = tx.WithContext(ctx).Table("posts AS p").Joins(
+      "JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?",
+      self.SiteID
+    ).Where(
+      "p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))",
+      postID
+    ).Find(Ref.new(records))
     if QueryFailed(read) then
       return Err("media unavailable")
     end
@@ -374,7 +577,8 @@ impl MediaRepository
     if views.IsErr() then
       return Err("media unavailable")
     end
-    if views.Unwrap().Len() != 1 || !browser.Access(views.Unwrap().Get(0).Unwrap(), viewer.Unwrap()).CanRead() then
+    if views.Unwrap().Len() != 1 ||
+      !browser.Access(views.Unwrap().Get(0).Unwrap(), viewer.Unwrap()).CanRead() then
       return Err("not found")
     end
     browser.AuditViews(ctx, viewer.Unwrap(), views.Unwrap())
@@ -382,28 +586,42 @@ impl MediaRepository
 
   # SKIP LOCKED and durable deleting state provide worker exclusion and failed
   # unlink retries. The row lock coordinates with transfers and binding changes.
-  func Cleanup(self: MediaRepository, ctx: context.Context, now: time.Time, max: Int) -> Result[Int, String]
+  func Cleanup(
+    self: MediaRepository,
+    ctx: context.Context,
+    now: time.Time,
+    max: Int
+  ) -> Result[Int, String]
     if max < 1 || max > 1000 then
       return Err("invalid cleanup limit")
     end
     var count: Int = 0
     while count < max
       var found: Bool = false
-      let cleaned = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-        let row = MediaUpload{}
-        let selected = tx.Raw("SELECT u.* FROM media_uploads u WHERE u.site_id=? AND NOT EXISTS(SELECT 1 FROM media_bindings b WHERE b.upload_id=u.id AND b.active) AND ((u.state='uploading' AND u.lease_until<=?) OR (u.state='ready' AND u.expires_at<=?) OR u.state='deleting') ORDER BY u.created_at,u.id LIMIT 1 FOR UPDATE OF u SKIP LOCKED", self.SiteID, now, now).Scan(Ref.new(row))
-        if QueryFailed(selected) then
-          return Err("media unavailable")
+      let cleaned = RunTransaction(
+        ctx,
+        self.DB,
+        func(tx: Ref[gorm.DB]) -> Result[(), String]
+          let row = Zero[MediaUpload]()
+          let selected = tx.Raw(
+            "SELECT u.* FROM media_uploads u WHERE u.site_id=? AND NOT EXISTS(SELECT 1 FROM media_bindings b WHERE b.upload_id=u.id AND b.active) AND ((u.state='uploading' AND u.lease_until<=?) OR (u.state='ready' AND u.expires_at<=?) OR u.state='deleting') ORDER BY u.created_at,u.id LIMIT 1 FOR UPDATE OF u SKIP LOCKED",
+            self.SiteID,
+            now,
+            now
+          ).Scan(Ref.new(row))
+          if QueryFailed(selected) then
+            return Err("media unavailable")
+          end
+          if selected.RowsAffected == 0i64 then
+            return Ok(())
+          end
+          found = true
+          if MutationResult(tx.Exec("UPDATE media_uploads SET state='deleting',lease_until=? WHERE id=?", now, row.ID)).IsErr() then
+            return Err("media unavailable")
+          end
+          self.DeleteFiles(ctx, tx, row.ID)
         end
-        if selected.RowsAffected == 0i64 then
-          return Ok(())
-        end
-        found = true
-        if MutationResult(tx.Exec("UPDATE media_uploads SET state='deleting',lease_until=? WHERE id=?", now, row.ID)).IsErr() then
-          return Err("media unavailable")
-        end
-        self.DeleteFiles(ctx, tx, row.ID)
-      end)
+      )
       if cleaned.IsErr() then
         return Err(cleaned.UnwrapErr())
       end

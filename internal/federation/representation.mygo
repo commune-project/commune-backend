@@ -81,9 +81,15 @@ func PersonRepresentation(
     ID: uri,
     Type: "Person",
     PreferredUsername: username,
+    Name: "",
+    Summary: "",
+    Icon: Zero[ProfileIcon](),
+    Updated: Zero[time.Time](),
     Inbox: actor.Inbox(),
     Outbox: uri + "/outbox",
     Followers: uri + "/followers",
+    AttributedTo: "",
+    FollowPolicy: "",
     PublicKey: PublicKeyRepresentation{
       ID: uri + "#main-key",
       Owner: uri,
@@ -104,6 +110,9 @@ func GroupRepresentation(
     Type: "Group",
     PreferredUsername: community.Name,
     Name: community.Title,
+    Summary: "",
+    Icon: Zero[ProfileIcon](),
+    Updated: Zero[time.Time](),
     Inbox: actor.Inbox(),
     Outbox: uri + "/outbox",
     Followers: uri + "/followers",
@@ -138,7 +147,11 @@ func BuildObjectRepresentationWithContext(
   else
     to = [audience]
   end
-  let format = if record.ContentFormat == "" then "legacy" else record.ContentFormat end
+  let format = if record.ContentFormat == "" then
+    "legacy"
+  else
+    record.ContentFormat
+  end
   let rendered = content.RenderRich(record.Body, format)
   ObjectRepresentation{
     Context: activityStreamsContext,
@@ -149,7 +162,16 @@ func BuildObjectRepresentationWithContext(
     Name: content.RenderText(record.Title.String),
     Content: rendered.UnwrapOr(""),
     MediaType: "text/html",
-    Source: if format == "markdown" then RichSource{Content: record.Body, MediaType: "text/markdown"} else RichSource{} end,
+    Source: if format == "markdown" then
+      RichSource {
+        Content: record.Body,
+        MediaType: "text/markdown",
+      }
+    else
+      Zero[RichSource]()
+    end,
+    Attachment: [],
+    Tag: [],
     InReplyTo: record.ParentID.String,
     Published: record.AuthoredAt,
     Updated: record.UpdatedAt,

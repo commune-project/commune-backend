@@ -4,7 +4,6 @@ package storage
 
 import "testing"
 import "context"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -18,12 +17,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_reactions.gen_test.go:21:1*/	}
+ /*line zz_reactions.gen_test.go:20:1*/	}
  /*line reactions_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
-	other := config.Site{ID: "b", Origin: "https://b.example"}
+	site := testSite("a", "https://a.example")
+	other := testSite("b", "https://b.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
@@ -34,80 +33,80 @@ import . "github.com/mygo-lang/mygo/prelude"
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	reactions := ReactionRepository{DB: db, SiteID: site.ID}
 	open := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, alice, false, "https://a.example/activities/like-1"))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, alice, false, "https://a.example/activities/like-1"))
 	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(&count)))
- /*line reactions_test.mygo:30:6*/	if count != int64(1) {
- /*line reactions_test.mygo:31:5*/		t.Fatal("duplicate like created a second reaction")
- /*line reactions_test.mygo:30:6*/	} else {
- /*line zz_reactions.gen_test.go:45:1*/	}
+ /*line reactions_test.mygo:54:3*/	if count != int64(1) {
+ /*line reactions_test.mygo:55:5*/		t.Fatal("duplicate like created a second reaction")
+ /*line reactions_test.mygo:54:3*/	} else {
+ /*line zz_reactions.gen_test.go:44:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, bob, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, topic.ID, alice, false))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(&count)))
- /*line reactions_test.mygo:36:6*/	if count != int64(1) {
- /*line reactions_test.mygo:37:5*/		t.Fatal("undo affected another actor's reaction")
- /*line reactions_test.mygo:36:6*/	} else {
- /*line zz_reactions.gen_test.go:52:1*/	}
+ /*line reactions_test.mygo:60:3*/	if count != int64(1) {
+ /*line reactions_test.mygo:61:5*/		t.Fatal("undo affected another actor's reaction")
+ /*line reactions_test.mygo:60:3*/	} else {
+ /*line zz_reactions.gen_test.go:51:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NOT NULL", topic.ID, alice.ActorURI).Count(&count)))
- /*line reactions_test.mygo:40:6*/	if count != int64(1) {
- /*line reactions_test.mygo:41:5*/		t.Fatal("undo did not remove the issuing actor's reaction")
- /*line reactions_test.mygo:40:6*/	} else {
- /*line zz_reactions.gen_test.go:57:1*/	}
+ /*line reactions_test.mygo:68:3*/	if count != int64(1) {
+ /*line reactions_test.mygo:69:5*/		t.Fatal("undo did not remove the issuing actor's reaction")
+ /*line reactions_test.mygo:68:3*/	} else {
+ /*line zz_reactions.gen_test.go:56:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, alice, false, "https://a.example/activities/like-2"))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(&count)))
- /*line reactions_test.mygo:45:6*/	if count != int64(2) {
- /*line reactions_test.mygo:46:5*/		t.Fatal("re-like after undo did not restore the reaction")
- /*line reactions_test.mygo:45:6*/	} else {
- /*line zz_reactions.gen_test.go:63:1*/	}
+ /*line reactions_test.mygo:73:3*/	if count != int64(2) {
+ /*line reactions_test.mygo:74:5*/		t.Fatal("re-like after undo did not restore the reaction")
+ /*line reactions_test.mygo:73:3*/	} else {
+ /*line zz_reactions.gen_test.go:62:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, carol, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND undone_at IS NULL", topic.ID).Count(&count)))
- /*line reactions_test.mygo:50:6*/	if count != int64(3) {
- /*line reactions_test.mygo:51:5*/		t.Fatal("verified account of another colocated site could not react to public federated content")
- /*line reactions_test.mygo:50:6*/	} else {
- /*line zz_reactions.gen_test.go:69:1*/	}
+ /*line reactions_test.mygo:78:3*/	if count != int64(3) {
+ /*line reactions_test.mygo:79:5*/		t.Fatal("verified account of another colocated site could not react to public federated content")
+ /*line reactions_test.mygo:78:3*/	} else {
+ /*line zz_reactions.gen_test.go:68:1*/	}
  /*line reactions_test.mygo:9:1*/	member := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "locked", "Locked", "federated", "members", "members"))
-	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, member.ID, alice, false, PublishInput{Title: "Hidden", Body: "Body", ParentID: ""}))
- /*line reactions_test.mygo:55:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, hidden.ID, bob, false, "")) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, hidden.ID, bob, false)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, hidden.ID, carol, false, "")) {
- /*line reactions_test.mygo:56:5*/		t.Fatal("non-member reacted to a member-only post")
- /*line reactions_test.mygo:55:6*/	} else {
- /*line zz_reactions.gen_test.go:75:1*/	}
+	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, member.ID, alice, false, PublishInput{Title: "Hidden", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+ /*line reactions_test.mygo:107:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, hidden.ID, bob, false, "")) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, hidden.ID, bob, false)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, hidden.ID, carol, false, "")) {
+ /*line reactions_test.mygo:110:5*/		t.Fatal("non-member reacted to a member-only post")
+ /*line reactions_test.mygo:107:3*/	} else {
+ /*line zz_reactions.gen_test.go:74:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, hidden.ID, alice, false, "https://a.example/activities/like-3"))
 	localMember := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "localmember", "LocalMember", "local_only", "members", "members"))
-	localHidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, localMember.ID, alice, false, PublishInput{Title: "LH", Body: "Body", ParentID: ""}))
- /*line reactions_test.mygo:61:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localHidden.ID, alice, false, "https://a.example/activities/like-4")) {
- /*line reactions_test.mygo:62:5*/		t.Fatal("local reaction carried a federation URI")
- /*line reactions_test.mygo:61:6*/	} else {
- /*line zz_reactions.gen_test.go:82:1*/	}
+	localHidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, localMember.ID, alice, false, PublishInput{Title: "LH", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+ /*line reactions_test.mygo:139:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localHidden.ID, alice, false, "https://a.example/activities/like-4")) {
+ /*line reactions_test.mygo:140:5*/		t.Fatal("local reaction carried a federation URI")
+ /*line reactions_test.mygo:139:3*/	} else {
+ /*line zz_reactions.gen_test.go:81:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localHidden.ID, alice, false, ""))
 	openLocal := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "openlocal", "Local", "local_only", "eligible_users", "eligible_users"))
-	localPost := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, openLocal.ID, alice, false, PublishInput{Title: "L", Body: "Body", ParentID: ""}))
- /*line reactions_test.mygo:67:6*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localPost.ID, carol, false, "")) {
- /*line reactions_test.mygo:68:5*/		t.Fatal("cross-site account reached a local-only reaction")
- /*line reactions_test.mygo:67:6*/	} else {
- /*line zz_reactions.gen_test.go:89:1*/	}
- /*line reactions_test.mygo:9:1*/	voted := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Votes", Body: "Body", ParentID: ""}))
+	localPost := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, openLocal.ID, alice, false, PublishInput{Title: "L", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+ /*line reactions_test.mygo:169:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, localPost.ID, carol, false, "")) {
+ /*line reactions_test.mygo:170:5*/		t.Fatal("cross-site account reached a local-only reaction")
+ /*line reactions_test.mygo:169:3*/	} else {
+ /*line zz_reactions.gen_test.go:88:1*/	}
+ /*line reactions_test.mygo:9:1*/	voted := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Votes", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, 1, ""))
 	score := 0
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(&score)))
- /*line reactions_test.mygo:74:6*/	if score != 1 {
- /*line reactions_test.mygo:75:5*/		t.Fatal("initial upvote was not stored")
- /*line reactions_test.mygo:74:6*/	} else {
- /*line zz_reactions.gen_test.go:97:1*/	}
- /*line reactions_test.mygo:77:11*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, -1, ""))
+ /*line reactions_test.mygo:195:3*/	if score != 1 {
+ /*line reactions_test.mygo:196:5*/		t.Fatal("initial upvote was not stored")
+ /*line reactions_test.mygo:195:3*/	} else {
+ /*line zz_reactions.gen_test.go:96:1*/	}
+ /*line reactions_test.mygo:198:11*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, -1, ""))
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT score FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Scan(&score)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(&count)))
- /*line reactions_test.mygo:80:6*/	if score != -1 || count != int64(1) {
- /*line reactions_test.mygo:81:5*/		t.Fatal("vote change did not retain exactly one active row")
- /*line reactions_test.mygo:80:6*/	} else {
- /*line zz_reactions.gen_test.go:104:1*/	}
+ /*line reactions_test.mygo:209:6*/	if score != -1 || count != int64(1) {
+ /*line reactions_test.mygo:210:5*/		t.Fatal("vote change did not retain exactly one active row")
+ /*line reactions_test.mygo:209:3*/	} else {
+ /*line zz_reactions.gen_test.go:103:1*/	}
  /*line reactions_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Vote(reactions, ctx, voted.ID, bob, false, 0, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", voted.ID, bob.ActorURI).Count(&count)))
- /*line reactions_test.mygo:85:6*/	if count != int64(0) {
- /*line reactions_test.mygo:86:5*/		t.Fatal("vote clear left an active row")
+ /*line reactions_test.mygo:218:3*/	if count != int64(0) {
+ /*line reactions_test.mygo:219:5*/		t.Fatal("vote clear left an active row")
 		return
- /*line reactions_test.mygo:85:6*/	} else {
- /*line reactions_test.mygo:85:3*/		return
- /*line zz_reactions.gen_test.go:112:1*/	}
+ /*line reactions_test.mygo:218:3*/	} else {
+		return
+ /*line zz_reactions.gen_test.go:111:1*/	}
 }

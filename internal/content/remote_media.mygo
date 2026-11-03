@@ -14,9 +14,13 @@ func RewritePrivateMedia(rendered: String, references: Slice[RemoteMediaReferenc
   RewriteMediaReferences(rendered, references, true)
 end
 
-func RewriteMediaReferences(rendered: String, references: Slice[RemoteMediaReference], restrictImages: Bool) -> String
+func RewriteMediaReferences(
+  rendered: String,
+  references: Slice[RemoteMediaReference],
+  restrictImages: Bool
+) -> String
   let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
-  let output = strings.Builder{}
+  let output = strings.Builder {}
   var done = false
   while !done
     let kind = tokenizer.Next()
@@ -26,10 +30,22 @@ func RewriteMediaReferences(rendered: String, references: Slice[RemoteMediaRefer
       var token = tokenizer.Token()
       if kind == html.StartTagToken || kind == html.SelfClosingTagToken then
         token.Attr = token.Attr.Map(func(attr: html.Attribute) -> html.Attribute
-          if attr.Key != "src" && attr.Key != "href" then return attr end
-          let matches = references.Filter(func(item: RemoteMediaReference) -> Bool item.Origin == attr.Val end)
-          if matches.Len() == 1 then return html.Attribute{Key: attr.Key, Val: matches.Get(0).Unwrap().URL} end
-          if restrictImages && token.Data == "img" && attr.Key == "src" then return html.Attribute{Key: "src", Val: ""} end
+          if attr.Key != "src" && attr.Key != "href" then
+            return attr
+          end
+          let matches = references.Filter(func(item: RemoteMediaReference) -> Bool
+            item.Origin == attr.Val
+          end)
+          if matches.Len() == 1 then
+            return html.Attribute { Namespace: "", Key: attr.Key, Val: matches.Get(0).Unwrap().URL }
+          end
+          if restrictImages && token.Data == "img" && attr.Key == "src" then
+            return html.Attribute{
+              Namespace: "",
+              Key: "src",
+              Val: "",
+            }
+          end
           attr
         end)
       end

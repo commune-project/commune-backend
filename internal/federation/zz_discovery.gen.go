@@ -44,20 +44,20 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_discovery.gen.go:44:1*/}
 
  /*line discovery.mygo:32:1*/func ParseWebFingerResource(resource string) Result[Account, string] {
- /*line discovery.mygo:33:6*/	if !strings.HasPrefix(resource, "acct:") {
+ /*line discovery.mygo:33:3*/	if !strings.HasPrefix(resource, "acct:") {
  /*line discovery.mygo:34:12*/		return Err[Account, string]("invalid resource")
- /*line discovery.mygo:33:6*/	} else {
+ /*line discovery.mygo:33:3*/	} else {
  /*line zz_discovery.gen.go:50:1*/	}
  /*line discovery.mygo:32:1*/	parts := strings.Split(strings.TrimPrefix(resource, "acct:"), "@")
- /*line discovery.mygo:37:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 2 {
+ /*line discovery.mygo:37:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 2 {
  /*line discovery.mygo:38:12*/		return Err[Account, string]("invalid resource")
- /*line discovery.mygo:37:6*/	} else {
+ /*line discovery.mygo:37:3*/	} else {
  /*line zz_discovery.gen.go:55:1*/	}
  /*line discovery.mygo:32:1*/	username := strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)))
 	host := strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line discovery.mygo:42:6*/	if username == "" || host == "" || strings.ContainsAny(username, "/\\ \t") {
+ /*line discovery.mygo:42:3*/	if username == "" || host == "" || strings.ContainsAny(username, "/\\ \t") {
  /*line discovery.mygo:43:12*/		return Err[Account, string]("invalid resource")
- /*line discovery.mygo:42:6*/	} else {
+ /*line discovery.mygo:42:3*/	} else {
  /*line zz_discovery.gen.go:61:1*/	}
  /*line discovery.mygo:45:3*/	return Ok[Account, string](Account{Username: username, Host: host})
  /*line zz_discovery.gen.go:63:1*/}
@@ -69,103 +69,103 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_discovery.gen.go:69:1*/}
  /*line discovery.mygo:57:1*/func BuildWebFinger(site config.Site, account Account, actorURI string) Result[WebFingerDocument, string] {
 	authority := strings.TrimPrefix(site.Origin, "https://")
- /*line discovery.mygo:59:6*/	if account.Host != authority || actorURI == "" {
+ /*line discovery.mygo:59:3*/	if account.Host != authority || actorURI == "" {
  /*line discovery.mygo:60:12*/		return Err[WebFingerDocument, string]("not found")
- /*line discovery.mygo:59:6*/	} else {
+ /*line discovery.mygo:59:3*/	} else {
  /*line zz_discovery.gen.go:75:1*/	}
  /*line discovery.mygo:62:3*/	return Ok[WebFingerDocument, string](WebFingerDocument{Subject: "acct:" + account.Username + "@" + authority, Links: []WebFingerLink{WebFingerLink{Rel: "self", Type: activityJSON, Href: actorURI}}})
  /*line zz_discovery.gen.go:77:1*/}
  /*line discovery.mygo:65:1*/func ResolvePerson(ctx context.Context, db *gorm.DB, site config.Site, username string) Result[ActorRepresentation, string] {
 	found := storage.LoadLocalPerson(ctx, db, site.ID, username)
- /*line discovery.mygo:67:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](found) {
+ /*line discovery.mygo:67:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](found) {
  /*line discovery.mygo:68:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:67:6*/	} else {
+ /*line discovery.mygo:67:3*/	} else {
  /*line zz_discovery.gen.go:83:1*/	}
- /*line discovery.mygo:70:6*/	if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](found)) {
+ /*line discovery.mygo:70:3*/	if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](found)) {
  /*line discovery.mygo:71:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:70:6*/	} else {
+ /*line discovery.mygo:70:3*/	} else {
  /*line zz_discovery.gen.go:87:1*/	}
  /*line discovery.mygo:65:1*/	actor := MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](found))
- /*line discovery.mygo:74:6*/	if !strings.HasPrefix(actor.URI, site.Origin+"/") {
+ /*line discovery.mygo:74:3*/	if !strings.HasPrefix(actor.URI, site.Origin+"/") {
  /*line discovery.mygo:75:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:74:6*/	} else {
+ /*line discovery.mygo:74:3*/	} else {
  /*line zz_discovery.gen.go:92:1*/	}
  /*line discovery.mygo:65:1*/	key := storage.EnsureLocalKey(ctx, db, actor.URI)
- /*line discovery.mygo:78:6*/	if MygoIN6ResultM5IsErr[string, string](key) {
+ /*line discovery.mygo:78:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
  /*line discovery.mygo:79:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:78:6*/	} else {
+ /*line discovery.mygo:78:3*/	} else {
  /*line zz_discovery.gen.go:97:1*/	}
  /*line discovery.mygo:65:1*/	profile := storage.LoadProfile(ctx, db, actor.URI)
- /*line discovery.mygo:82:6*/	if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](profile) {
+ /*line discovery.mygo:82:3*/	if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](profile) {
  /*line discovery.mygo:83:12*/		return Err[ActorRepresentation, string]("profile unavailable")
- /*line discovery.mygo:82:6*/	} else {
+ /*line discovery.mygo:82:3*/	} else {
  /*line zz_discovery.gen.go:102:1*/	}
  /*line discovery.mygo:85:3*/	return Ok[ActorRepresentation, string](WithProfile(PersonRepresentation(site, actor, username, MygoIN6ResultM6Unwrap[string, string](key)), MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](profile)))
  /*line zz_discovery.gen.go:104:1*/}
  /*line discovery.mygo:88:1*/func ResolveGroup(ctx context.Context, db *gorm.DB, site config.Site, name string) Result[ActorRepresentation, string] {
 	found := storage.LoadCommunityByName(ctx, db, site.ID, name)
- /*line discovery.mygo:90:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) {
+ /*line discovery.mygo:90:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) {
  /*line discovery.mygo:91:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:90:6*/	} else {
+ /*line discovery.mygo:90:3*/	} else {
  /*line zz_discovery.gen.go:110:1*/	}
- /*line discovery.mygo:93:6*/	if MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) {
+ /*line discovery.mygo:93:3*/	if MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) {
  /*line discovery.mygo:94:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:93:6*/	} else {
+ /*line discovery.mygo:93:3*/	} else {
  /*line zz_discovery.gen.go:114:1*/	}
  /*line discovery.mygo:88:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
- /*line discovery.mygo:97:6*/	if !FederatedCommunity(community) {
+ /*line discovery.mygo:97:3*/	if !FederatedCommunity(community) {
  /*line discovery.mygo:98:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:97:6*/	} else {
+ /*line discovery.mygo:97:3*/	} else {
  /*line zz_discovery.gen.go:119:1*/	}
- /*line discovery.mygo:100:6*/	if !strings.HasPrefix(community.ActorURI.String, site.Origin+"/") {
+ /*line discovery.mygo:100:3*/	if !strings.HasPrefix(community.ActorURI.String, site.Origin+"/") {
  /*line discovery.mygo:101:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:100:6*/	} else {
+ /*line discovery.mygo:100:3*/	} else {
  /*line zz_discovery.gen.go:123:1*/	}
  /*line discovery.mygo:88:1*/	actor := storage.LoadActor(ctx, db, community.ActorURI.String)
- /*line discovery.mygo:104:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line discovery.mygo:104:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
  /*line discovery.mygo:105:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:104:6*/	} else {
+ /*line discovery.mygo:104:3*/	} else {
  /*line zz_discovery.gen.go:128:1*/	}
  /*line discovery.mygo:88:1*/	key := storage.EnsureLocalKey(ctx, db, community.ActorURI.String)
- /*line discovery.mygo:108:6*/	if MygoIN6ResultM5IsErr[string, string](key) {
+ /*line discovery.mygo:108:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
  /*line discovery.mygo:109:12*/		return Err[ActorRepresentation, string]("not found")
- /*line discovery.mygo:108:6*/	} else {
+ /*line discovery.mygo:108:3*/	} else {
  /*line zz_discovery.gen.go:133:1*/	}
  /*line discovery.mygo:111:3*/	return Ok[ActorRepresentation, string](GroupRepresentation(community, MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)), MygoIN6ResultM6Unwrap[string, string](key)))
  /*line zz_discovery.gen.go:135:1*/}
  /*line discovery.mygo:117:1*/func ResolveObject(ctx context.Context, db *gorm.DB, site config.Site, id string) Result[Option[ResolvedObject], string] {
 	found := storage.LoadObjectByID(ctx, db, id)
- /*line discovery.mygo:119:6*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) {
+ /*line discovery.mygo:119:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) {
  /*line discovery.mygo:120:12*/		return Err[Option[ResolvedObject], string]("not found")
- /*line discovery.mygo:119:6*/	} else {
+ /*line discovery.mygo:119:3*/	} else {
  /*line zz_discovery.gen.go:141:1*/	}
- /*line discovery.mygo:122:6*/	if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
+ /*line discovery.mygo:122:3*/	if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
  /*line discovery.mygo:123:12*/		return Ok[Option[ResolvedObject], string](None[ResolvedObject]())
- /*line discovery.mygo:122:6*/	} else {
+ /*line discovery.mygo:122:3*/	} else {
  /*line zz_discovery.gen.go:145:1*/	}
  /*line discovery.mygo:117:1*/	post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found))
- /*line discovery.mygo:126:6*/	if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin+"/") {
+ /*line discovery.mygo:126:3*/	if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin+"/") {
  /*line discovery.mygo:127:12*/		return Ok[Option[ResolvedObject], string](None[ResolvedObject]())
- /*line discovery.mygo:126:6*/	} else {
+ /*line discovery.mygo:126:3*/	} else {
  /*line zz_discovery.gen.go:150:1*/	}
  /*line discovery.mygo:117:1*/	communityFound := storage.LoadCommunityByID(ctx, db, post.CommunityID)
- /*line discovery.mygo:130:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](communityFound) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](communityFound)) {
+ /*line discovery.mygo:130:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](communityFound) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](communityFound)) {
  /*line discovery.mygo:131:12*/		return Ok[Option[ResolvedObject], string](None[ResolvedObject]())
- /*line discovery.mygo:130:6*/	} else {
+ /*line discovery.mygo:130:3*/	} else {
  /*line zz_discovery.gen.go:155:1*/	}
  /*line discovery.mygo:117:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](communityFound))
- /*line discovery.mygo:134:6*/	if !FederatedCommunity(community) || community.ReadPolicy != "eligible_users" {
+ /*line discovery.mygo:134:3*/	if !FederatedCommunity(community) || community.ReadPolicy != "eligible_users" {
  /*line discovery.mygo:135:12*/		return Ok[Option[ResolvedObject], string](None[ResolvedObject]())
- /*line discovery.mygo:134:6*/	} else {
+ /*line discovery.mygo:134:3*/	} else {
  /*line zz_discovery.gen.go:160:1*/	}
  /*line discovery.mygo:137:3*/	return Ok[Option[ResolvedObject], string](Some[ResolvedObject](ResolvedObject{Post: post, Community: community, Tombstone: post.DeletedAt.Valid}))
  /*line zz_discovery.gen.go:162:1*/}
  /*line discovery.mygo:140:1*/func ResolveActivity(ctx context.Context, db *gorm.DB, site config.Site, id string) Result[[]byte, string] {
 	uri := site.Origin + "/activities/" + id
 	found := storage.LoadActivityPayload(ctx, db, uri)
- /*line discovery.mygo:143:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](found) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](found)) {
+ /*line discovery.mygo:143:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](found) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](found)) {
  /*line discovery.mygo:144:12*/		return Err[[]byte, string]("not found")
- /*line discovery.mygo:143:6*/	} else {
+ /*line discovery.mygo:143:3*/	} else {
  /*line zz_discovery.gen.go:169:1*/	}
  /*line discovery.mygo:146:3*/	return Ok[[]byte, string](MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](found)).Payload)
  /*line zz_discovery.gen.go:171:1*/}

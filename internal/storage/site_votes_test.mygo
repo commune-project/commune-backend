@@ -10,14 +10,13 @@ func TestPostgresSiteVoteSettingsIsolationAndAudit(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let a = config.Site{ID: "a", Origin: "https://a.example"}
-  let b = config.Site{ID: "b", Origin: "https://b.example"}
+  let a = testSite("a", "https://a.example")
+  let b = testSite("b", "https://b.example")
   let _ = ProvisionSite(ctx, db, a).Unwrap()
   let _ = ProvisionSite(ctx, db, b).Unwrap()
   let _ = ProvisionAdministrator(ctx, db, a, "admin-a", "admin-a-password", false).Unwrap()
   let admin = FindAccount(ctx, db, a.ID, "admin-a").Unwrap().Unwrap().Identity()
   let ordinary = AccountRepository{DB: db}.Create(ctx, a, "ordinary", "", "ordinary-password").Unwrap()
-
   if !SiteVoteUpEnabled(ctx, db, a.ID) || !SiteVoteDownEnabled(ctx, db, a.ID) then
     t.Fatal("site vote settings did not default enabled")
   end
@@ -28,14 +27,20 @@ func TestPostgresSiteVoteSettingsIsolationAndAudit(t: Ref[testing.T]) -> ()
   if !SiteVoteUpEnabled(ctx, db, b.ID) || !SiteVoteDownEnabled(ctx, db, b.ID) then
     t.Fatal("site A vote settings leaked into site B")
   end
-  if UpdateSiteVoteSettings(ctx, db, a.ID, admin, false, true, true, false).IsErr() || SiteVoteUpEnabled(ctx, db, a.ID) || SiteVoteDownEnabled(ctx, db, a.ID) then
+  if UpdateSiteVoteSettings(ctx, db, a.ID, admin, false, true, true, false).IsErr() ||
+    SiteVoteUpEnabled(ctx, db, a.ID) ||
+    SiteVoteDownEnabled(ctx, db, a.ID) then
     t.Fatal("second partial update did not preserve the existing direction")
   end
   if UpdateSiteVoteSettings(ctx, db, a.ID, ordinary, true, true, true, true).IsOk() then
     t.Fatal("ordinary account changed site vote settings")
   end
   let audits = 0i64
-  if MutationResult(db.Table("audit_events").Where("scope_kind='site' AND scope_id=? AND action='set-vote-settings'", a.ID).Count(Ref.new(audits))).IsErr() || audits != 2i64 then
+  if MutationResult(db.Table("audit_events").Where(
+    "scope_kind='site' AND scope_id=? AND action='set-vote-settings'",
+    a.ID
+  ).Count(Ref.new(audits))).IsErr() ||
+    audits != 2i64 then
     t.Fatal("vote setting updates were not audited exactly once")
   end
 end

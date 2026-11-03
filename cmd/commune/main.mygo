@@ -25,14 +25,20 @@ func RunCommand(args: Slice[String]) -> Result[(), String]
     let _ = fmt.Println("configuration valid; sites:", settings.Sites.Len())
     return Ok(())
   end
-  if command != "migrate" && command != "provision-sites" && command != "provision-admin" && command != "provision-account" && command != "serve" then
+  if command != "migrate" &&
+    command != "provision-sites" &&
+    command != "provision-admin" &&
+    command != "provision-account" &&
+    command != "serve" then
     return Err("unknown command or invalid arguments")
   end
   let provisioning = command == "provision-admin" || command == "provision-account"
   if (!provisioning && args.Len() != 3) || (provisioning && args.Len() != 5 && args.Len() != 6) then
     return Err("invalid command arguments")
   end
-  if command == "provision-admin" && args.Len() == 6 && args.Get(5).Unwrap() != "--deployment-superadministrator" then
+  if command == "provision-admin" &&
+    args.Len() == 6 &&
+    args.Get(5).Unwrap() != "--deployment-superadministrator" then
     return Err("unknown provisioning option")
   end
   let opened = storage.OpenPostgres(settings.DatabaseURL)
@@ -44,9 +50,13 @@ func RunCommand(args: Slice[String]) -> Result[(), String]
   go[()] { code: "defer {pool}.Close()"; in pool = pool }
   let ctx = context.Background()
   if command == "serve" then
-    let options = slog.HandlerOptions{}
+    let options = Zero[slog.HandlerOptions]()
     slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout as io.Writer, Ref.new(options))))
-    let (lifetime, stop) = signal.NotifyContext(ctx, syscall.SIGINT as os.Signal, syscall.SIGTERM as os.Signal)
+    let (lifetime, stop) = signal.NotifyContext(
+      ctx,
+      syscall.SIGINT as os.Signal,
+      syscall.SIGTERM as os.Signal
+    )
     go[()] { code: "defer {stop}()"; in stop = stop }
     return server.Serve(lifetime, settings, db)
   end
@@ -57,12 +67,15 @@ func RunCommand(args: Slice[String]) -> Result[(), String]
     return Err("schema is incompatible; run explicit migration")
   end
   if command == "provision-sites" then
-    return settings.Sites.Fold(Ok[(), String](()), func(previous: Result[(), String], site: config.Site) -> Result[(), String]
-      if previous.IsErr() then
-        return previous
+    return settings.Sites.Fold(
+      Ok[(), String](()),
+      func(previous: Result[(), String], site: config.Site) -> Result[(), String]
+        if previous.IsErr() then
+          return previous
+        end
+        storage.ProvisionSite(ctx, db, site)
       end
-      storage.ProvisionSite(ctx, db, site)
-    end)
+    )
   end
   let sites = settings.Sites.Filter(func(site: config.Site) -> Bool
     site.ID == args.Get(3).Unwrap()
@@ -71,16 +84,33 @@ func RunCommand(args: Slice[String]) -> Result[(), String]
     return Err("provisioning site is not configured")
   end
   if command == "provision-account" then
-    let email = if args.Len() == 6 then args.Get(5).Unwrap() else "" end
+    let email = if args.Len() == 6 then
+      args.Get(5).Unwrap()
+    else
+      ""
+    end
     let repository = storage.AccountRepository{DB: db}
-    let created = repository.Create(ctx, sites.Get(0).Unwrap(), args.Get(4).Unwrap(), email, os.Getenv("COMMUNE_ACCOUNT_PASSWORD"))
+    let created = repository.Create(
+      ctx,
+      sites.Get(0).Unwrap(),
+      args.Get(4).Unwrap(),
+      email,
+      os.Getenv("COMMUNE_ACCOUNT_PASSWORD")
+    )
     switch created
       case Err(reason) => Err(reason)
       case Ok(_) => Ok(())
     end
   else
-  let password = os.Getenv("COMMUNE_ADMIN_PASSWORD")
-  storage.ProvisionAdministrator(ctx, db, sites.Get(0).Unwrap(), args.Get(4).Unwrap(), password, args.Len() == 6)
+    let password = os.Getenv("COMMUNE_ADMIN_PASSWORD")
+    storage.ProvisionAdministrator(
+      ctx,
+      db,
+      sites.Get(0).Unwrap(),
+      args.Get(4).Unwrap(),
+      password,
+      args.Len() == 6
+    )
   end
 end
 

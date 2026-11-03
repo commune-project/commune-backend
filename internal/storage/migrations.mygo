@@ -106,7 +106,7 @@ func Migrate(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
   if catalog.IsErr() then
     return Err(catalog.UnwrapErr())
   end
-  let options = sql.TxOptions {}
+  let options = sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}
   let begin = db.BeginTx(ctx, Ref.new(options))
   if begin.IsErr() then
     return Err("cannot begin migration transaction")

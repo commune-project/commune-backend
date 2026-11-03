@@ -10,8 +10,8 @@ func TestPostgresCommunityCreation(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
-  let other = config.Site{ID: "b", Origin: "https://b.example"}
+  let site = testSite("a", "https://a.example")
+  let other = testSite("b", "https://b.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let _ = ProvisionSite(ctx, db, other).Unwrap()
   let accounts = AccountRepository{DB: db}
@@ -39,7 +39,7 @@ func TestPostgresCommunityCreation(t: Ref[testing.T]) -> ()
   if repository.Create(ctx, site, foreign, "foreign", "Community", "local_only", "eligible_users", "eligible_users").IsOk() || repository.Create(ctx, site, creator, "invalid", "Community", "local_only", "members", "eligible_users").IsOk() then
     t.Fatal("cross-site creation or invalid policy accepted")
   end
-  let forged = config.Site{ID: "a", Origin: "https://forged.example"}
+  let forged = testSite("a", "https://forged.example")
   if repository.Create(ctx, forged, creator, "forged", "Community", "federated", "eligible_users", "eligible_users").IsOk() then
     t.Fatal("community actor used an unconfigured origin")
   end
@@ -52,7 +52,7 @@ func TestPostgresCommunityCreation(t: Ref[testing.T]) -> ()
   if count != 6i64 then
     t.Fatal("creation failure did not roll back community state")
   end
-  let localRow = CommunityRecord{}
+  let localRow = Zero[CommunityRecord]()
   let _ = MutationResult(db.Table("communities").Where("federation_mode='local_only'").Limit(1).Find(Ref.new(localRow))).Unwrap()
   if MutationResult(db.Exec("UPDATE communities SET federation_mode='federated', actor_uri=? WHERE id=?", "https://a.example/communities/converted", localRow.ID)).IsOk() then
     t.Fatal("local-only community was converted to federated")

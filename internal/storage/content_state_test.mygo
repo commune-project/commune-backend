@@ -10,14 +10,14 @@ func TestPostgresContentStateIsolation(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let site = testSite("a", "https://a.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let accounts = AccountRepository{DB: db}
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
   let carol = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
   let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "State", Body: "state"}).Unwrap()
+  let post = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, testPublishInput("State", "state")).Unwrap()
   let bobState = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: bob.AccountID}
   let carolState = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: carol.AccountID}
   let _ = bobState.Save(ctx, post.ID, true).Unwrap()

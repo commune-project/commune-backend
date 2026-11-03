@@ -33,7 +33,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_authority.gen.go:33:1*/}
 
  /*line authority.mygo:36:1*/func ParseActivity(payload []byte) Result[ParsedActivity, string] {
-	view := ActivityView{}
+	view := Zero[ActivityView]()
  /*line authority.mygo:38:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &view)
 	if __mygo_expr_0 != nil {
@@ -42,13 +42,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_authority.gen.go:43:1*/		}{})
 	}
- /*line authority.mygo:38:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line authority.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line authority.mygo:39:12*/		return Err[ParsedActivity, string]("invalid activity")
- /*line authority.mygo:38:6*/	} else {
+ /*line authority.mygo:38:3*/	} else {
  /*line zz_authority.gen.go:48:1*/	}
- /*line authority.mygo:41:6*/	if view.ID == "" || view.Actor == "" || view.Type == "" {
+ /*line authority.mygo:41:3*/	if view.ID == "" || view.Actor == "" || view.Type == "" {
  /*line authority.mygo:42:12*/		return Err[ParsedActivity, string]("invalid activity")
- /*line authority.mygo:41:6*/	} else {
+ /*line authority.mygo:41:3*/	} else {
  /*line zz_authority.gen.go:52:1*/	}
  /*line authority.mygo:36:1*/	objectURI := ""
 	var embedded Option[EmbeddedActivity] = None[EmbeddedActivity]()
@@ -61,10 +61,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[struct{}, error](struct {
  /*line zz_authority.gen.go:62:1*/		}{})
 	}
- /*line authority.mygo:47:6*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
+ /*line authority.mygo:47:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
 		objectURI = asString
 	} else {
-		nested := EmbeddedActivity{}
+		nested := Zero[EmbeddedActivity]()
  /*line authority.mygo:51:8*/		var __mygo_expr_5 Result[struct{}, error]
 		__mygo_expr_4 := json.Unmarshal([]byte(view.Object), &nested)
 		if __mygo_expr_4 != nil {
@@ -73,7 +73,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_5 = Ok[struct{}, error](struct {
  /*line zz_authority.gen.go:74:1*/			}{})
 		}
- /*line authority.mygo:47:6*/		if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && nested.ID != "" {
+ /*line authority.mygo:47:3*/		if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && nested.ID != "" {
 			embedded = Some[EmbeddedActivity](nested)
 			objectURI = nested.ID
 		} else {
@@ -82,28 +82,28 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authority.mygo:56:3*/	return Ok[ParsedActivity, string](ParsedActivity{ID: view.ID, Actor: view.Actor, Type: view.Type, Target: view.Target, ObjectURI: objectURI, Embedded: embedded})
  /*line zz_authority.gen.go:83:1*/}
  /*line authority.mygo:59:1*/func TrustedBySameSigner(activity ParsedActivity) bool {
- /*line authority.mygo:60:6*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:60:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
  /*line authority.mygo:61:12*/		return true
- /*line authority.mygo:60:6*/	} else {
+ /*line authority.mygo:60:3*/	} else {
  /*line zz_authority.gen.go:88:1*/	}
  /*line authority.mygo:63:3*/	return MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).Actor == activity.Actor
  /*line zz_authority.gen.go:90:1*/}
  /*line authority.mygo:68:1*/func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits FetchLimits, payload []byte, signer ForwardSigner) Result[struct {
 }, string] {
- /*line authority.mygo:69:6*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:69:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
  /*line authority.mygo:70:12*/		return Ok[struct{}, string](struct {
  /*line zz_authority.gen.go:95:1*/		}{})
- /*line authority.mygo:69:6*/	} else {
+ /*line authority.mygo:69:3*/	} else {
  /*line zz_authority.gen.go:97:1*/	}
  /*line authority.mygo:68:1*/	inner := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded)
- /*line authority.mygo:73:6*/	if inner.Actor == "" || inner.Actor == activity.Actor {
+ /*line authority.mygo:73:3*/	if inner.Actor == "" || inner.Actor == activity.Actor {
  /*line authority.mygo:74:12*/		return Ok[struct{}, string](struct {
  /*line zz_authority.gen.go:101:1*/		}{})
- /*line authority.mygo:73:6*/	} else {
+ /*line authority.mygo:73:3*/	} else {
  /*line zz_authority.gen.go:103:1*/	}
- /*line authority.mygo:76:6*/	if inner.ID == "" {
+ /*line authority.mygo:76:3*/	if inner.ID == "" {
  /*line authority.mygo:77:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:76:6*/	} else {
+ /*line authority.mygo:76:3*/	} else {
  /*line zz_authority.gen.go:107:1*/	}
  /*line authority.mygo:68:1*/	var __mygo_expr_0 Result[[]byte, string]
 	if signer.ActorURI != "" {
@@ -114,21 +114,21 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_authority.gen.go:114:1*/		})
 	}
  /*line authority.mygo:68:1*/	canonical := __mygo_expr_0
- /*line authority.mygo:84:6*/	if MygoIN6ResultM5IsErr[[]byte, string](canonical) {
+ /*line authority.mygo:84:3*/	if MygoIN6ResultM5IsErr[[]byte, string](canonical) {
  /*line authority.mygo:85:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:84:6*/	} else {
+ /*line authority.mygo:84:3*/	} else {
  /*line zz_authority.gen.go:120:1*/	}
  /*line authority.mygo:68:1*/	parsed := ParseActivity(MygoIN6ResultM6Unwrap[[]byte, string](canonical))
- /*line authority.mygo:88:6*/	if MygoIN6ResultM5IsErr[ParsedActivity, string](parsed) {
+ /*line authority.mygo:88:3*/	if MygoIN6ResultM5IsErr[ParsedActivity, string](parsed) {
  /*line authority.mygo:89:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:88:6*/	} else {
+ /*line authority.mygo:88:3*/	} else {
  /*line zz_authority.gen.go:125:1*/	}
  /*line authority.mygo:68:1*/	copy := MygoIN6ResultM6Unwrap[ParsedActivity, string](parsed)
- /*line authority.mygo:92:6*/	if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type {
+ /*line authority.mygo:92:3*/	if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type {
  /*line authority.mygo:93:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:92:6*/	} else {
+ /*line authority.mygo:92:3*/	} else {
  /*line zz_authority.gen.go:130:1*/	}
- /*line authority.mygo:68:1*/	envelope := ActivityView{}
+ /*line authority.mygo:68:1*/	envelope := Zero[ActivityView]()
  /*line authority.mygo:96:6*/	var __mygo_expr_2 Result[struct{}, error]
 	__mygo_expr_1 := json.Unmarshal(payload, &envelope)
 	if __mygo_expr_1 != nil {
@@ -137,9 +137,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_2 = Ok[struct{}, error](struct {
  /*line zz_authority.gen.go:138:1*/		}{})
 	}
- /*line authority.mygo:96:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
+ /*line authority.mygo:96:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
  /*line authority.mygo:96:69*/		return Err[struct{}, string]("invalid forwarded activity")
- /*line authority.mygo:96:6*/	} else {
+ /*line authority.mygo:96:3*/	} else {
  /*line zz_authority.gen.go:143:1*/	}
  /*line authority.mygo:97:19*/	var __mygo_expr_4 Result[[]byte, error]
 	__mygo_expr_5, __mygo_expr_3 := json.Marshal(envelope.Object)
@@ -157,7 +157,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
  /*line zz_authority.gen.go:158:1*/	}
  /*line authority.mygo:68:1*/	authoritative := __mygo_expr_7
-	document := ActivityView{}
+	document := Zero[ActivityView]()
  /*line authority.mygo:100:6*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal([]byte(envelope.Object), &document)
 	if __mygo_expr_9 != nil {
@@ -166,28 +166,28 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[struct{}, error](struct {
  /*line zz_authority.gen.go:167:1*/		}{})
 	}
- /*line authority.mygo:100:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
+ /*line authority.mygo:100:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
  /*line authority.mygo:100:92*/		return Err[struct{}, string]("invalid forwarded activity")
- /*line authority.mygo:100:6*/	} else {
+ /*line authority.mygo:100:3*/	} else {
  /*line zz_authority.gen.go:172:1*/	}
  /*line authority.mygo:101:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.Object)) > 0 && (MygoIN6ResultM5IsErr[[]byte, error](forwarded) || MygoIN6ResultM5IsErr[[]byte, error](authoritative) || string(MygoIN6ResultM6Unwrap[[]byte, error](forwarded)) != string(MygoIN6ResultM6Unwrap[[]byte, error](authoritative))) {
  /*line authority.mygo:102:12*/		return Err[struct{}, string]("modified forwarded activity")
- /*line authority.mygo:101:6*/	} else {
+ /*line authority.mygo:101:3*/	} else {
  /*line zz_authority.gen.go:176:1*/	}
  /*line authority.mygo:104:3*/	return Ok[struct{}, string](struct {
  /*line zz_authority.gen.go:178:1*/	}{})
 }
  /*line authority.mygo:109:1*/func AuthorObjectMutable(kind string, actorURI string, storedAuthorURI string) bool {
- /*line authority.mygo:110:6*/	if kind != "Update" && kind != "Delete" {
+ /*line authority.mygo:110:3*/	if kind != "Update" && kind != "Delete" {
  /*line authority.mygo:111:12*/		return true
- /*line authority.mygo:110:6*/	} else {
+ /*line authority.mygo:110:3*/	} else {
  /*line zz_authority.gen.go:184:1*/	}
  /*line authority.mygo:113:3*/	return storedAuthorURI != "" && storedAuthorURI == actorURI
  /*line zz_authority.gen.go:186:1*/}
  /*line authority.mygo:116:1*/func CreateAuthorMatches(activity ParsedActivity) bool {
- /*line authority.mygo:117:6*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:117:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
  /*line authority.mygo:118:12*/		return true
- /*line authority.mygo:117:6*/	} else {
+ /*line authority.mygo:117:3*/	} else {
  /*line zz_authority.gen.go:191:1*/	}
  /*line authority.mygo:116:1*/	attributed := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).AttributedTo
  /*line authority.mygo:121:3*/	return attributed == "" || attributed == activity.Actor

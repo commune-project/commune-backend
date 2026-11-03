@@ -46,7 +46,7 @@ func FetchSignedResource(ctx: context.Context, raw: String, actor: String, key: 
   go[()] { code: "defer {cancel}()"; in cancel = cancel }
   let original = url.Parse(raw)
   if original.IsErr() then return Err("invalid destination") end
-  let client = http.Client{}
+  let client = Zero[http.Client]()
   DisableRedirects(Ref.new(client))
   MediaTransport(Ref.new(client), limits.AllowPrivate)
   var current = raw

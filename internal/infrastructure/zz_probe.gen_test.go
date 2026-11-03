@@ -20,11 +20,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line probe_test.mygo:14:1*/	recorder := httptest.NewRecorder()
 	body := io.Reader(strings.NewReader(""))
  /*line probe_test.mygo:19:3*/	mux.ServeHTTP(http.ResponseWriter(recorder), httptest.NewRequest("GET", "/probe", body))
- /*line probe_test.mygo:20:6*/	if recorder.Code != 200 || recorder.Header().Get("Content-Type") != "application/json" {
+ /*line probe_test.mygo:20:3*/	if recorder.Code != 200 || recorder.Header().Get("Content-Type") != "application/json" {
  /*line probe_test.mygo:21:5*/		t.Fatal("incorrect HTTP response")
- /*line probe_test.mygo:20:6*/	} else {
+ /*line probe_test.mygo:20:3*/	} else {
  /*line zz_probe.gen_test.go:26:1*/	}
- /*line probe_test.mygo:14:1*/	message := ProbeMessage{}
+ /*line probe_test.mygo:14:1*/	message := Zero[ProbeMessage]()
  /*line probe_test.mygo:24:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(recorder.Body.Bytes(), &message)
 	if __mygo_expr_0 != nil {
@@ -33,25 +33,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_probe.gen_test.go:34:1*/		}{})
 	}
- /*line probe_test.mygo:24:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || message.Status != "ok" {
+ /*line probe_test.mygo:24:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || message.Status != "ok" {
  /*line probe_test.mygo:25:5*/		t.Fatal("invalid response DTO")
 		return
- /*line probe_test.mygo:24:6*/	} else {
- /*line probe_test.mygo:24:3*/		return
+ /*line probe_test.mygo:24:3*/	} else {
+		return
  /*line zz_probe.gen_test.go:41:1*/	}
 }
  /*line probe_test.mygo:29:1*/func TestRawPayload(t *testing.T) {
 	input := "{\n  \"object\": {\"id\":\"https://peer.example/o/1\",\"extension\":{\"proof\": [1,2]}}\n}"
- /*line probe_test.mygo:33:10*/	__mygo_expr_0 := ProbeRawPayload(input)
-	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[ProbePayload, error]); ok {
- /*line probe_test.mygo:34:24*/		t.Fatal(__mygo_match___mygo_expr_2.F0)
+ /*line probe_test.mygo:33:3*/	__mygo_expr_0 := ProbeRawPayload(input)
+	if __mygo_match___mygo_expr_6, ok := __mygo_expr_0.(Result__Err[ProbePayload, error]); ok {
+ /*line probe_test.mygo:34:24*/		t.Fatal(__mygo_match___mygo_expr_6.F0)
  /*line zz_probe.gen_test.go:48:1*/	} else {
- /*line probe_test.mygo:33:10*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[ProbePayload, error]); ok {
- /*line probe_test.mygo:55:10*/			if __mygo_match___mygo_expr_1.F0.Original != input {
+ /*line probe_test.mygo:33:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[ProbePayload, error]); ok {
+ /*line probe_test.mygo:55:3*/			if __mygo_match___mygo_expr_1.F0.Original != input {
  /*line probe_test.mygo:37:7*/				t.Fatal("original payload bytes changed")
- /*line probe_test.mygo:36:8*/			} else {
+ /*line probe_test.mygo:36:5*/			} else {
  /*line zz_probe.gen_test.go:53:1*/			}
- /*line probe_test.mygo:33:10*/			originalBuffer := bytes.NewBuffer([]byte{})
+ /*line probe_test.mygo:33:3*/			originalBuffer := bytes.NewBuffer([]byte{})
 			encodedBuffer := bytes.NewBuffer([]byte{})
  /*line probe_test.mygo:42:8*/			var __mygo_expr_3 Result[struct{}, error]
 			__mygo_expr_2 := json.Compact(originalBuffer, []byte(input))
@@ -69,38 +69,38 @@ import . "github.com/mygo-lang/mygo/prelude"
 				__mygo_expr_5 = Ok[struct{}, error](struct {
  /*line zz_probe.gen_test.go:70:1*/				}{})
 			}
- /*line probe_test.mygo:42:8*/			if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
+ /*line probe_test.mygo:42:5*/			if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
  /*line probe_test.mygo:43:7*/				t.Fatal("invalid encoded JSON")
- /*line probe_test.mygo:42:8*/			} else {
+ /*line probe_test.mygo:42:5*/			} else {
  /*line zz_probe.gen_test.go:75:1*/			}
- /*line probe_test.mygo:33:10*/			if originalBuffer.String() != encodedBuffer.String() {
+ /*line probe_test.mygo:33:3*/			if originalBuffer.String() != encodedBuffer.String() {
  /*line probe_test.mygo:46:7*/				t.Fatal("raw nested fields lost")
- /*line probe_test.mygo:33:10*/			} else {
+ /*line probe_test.mygo:33:3*/			} else {
  /*line zz_probe.gen_test.go:79:1*/			}
- /*line probe_test.mygo:33:10*/		} else {
+ /*line probe_test.mygo:33:3*/		} else {
  /*line zz_probe.gen_test.go:81:1*/		}
 	}
- /*line probe_test.mygo:49:6*/	if MygoIN6ResultM4IsOk[ProbePayload, error](ProbeRawPayload("{")) {
+ /*line probe_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[ProbePayload, error](ProbeRawPayload("{")) {
  /*line probe_test.mygo:50:5*/		t.Fatal("invalid JSON accepted")
 		return
- /*line probe_test.mygo:49:6*/	} else {
- /*line probe_test.mygo:49:3*/		return
+ /*line probe_test.mygo:49:3*/	} else {
+		return
  /*line zz_probe.gen_test.go:88:1*/	}
 }
  /*line probe_test.mygo:54:1*/func TestCryptographicFFI(t *testing.T) {
- /*line probe_test.mygo:55:10*/	__mygo_expr_0 := ProbeSignature("signed request body")
+ /*line probe_test.mygo:55:3*/	__mygo_expr_0 := ProbeSignature("signed request body")
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[bool, error]); ok {
  /*line probe_test.mygo:56:24*/		t.Fatal(__mygo_match___mygo_expr_2.F0)
  /*line zz_probe.gen_test.go:94:1*/	} else {
- /*line probe_test.mygo:55:10*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[bool, error]); ok {
+ /*line probe_test.mygo:55:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[bool, error]); ok {
 			if !__mygo_match___mygo_expr_1.F0 {
  /*line probe_test.mygo:59:7*/				t.Fatal("RSA signing, verification or tamper rejection failed")
- /*line probe_test.mygo:55:10*/			} else {
+ /*line probe_test.mygo:55:3*/			} else {
  /*line zz_probe.gen_test.go:99:1*/			}
- /*line probe_test.mygo:55:10*/		} else {
+ /*line probe_test.mygo:55:3*/		} else {
  /*line zz_probe.gen_test.go:101:1*/		}
 	}
- /*line probe_test.mygo:55:10*/	return
+ /*line probe_test.mygo:55:3*/	return
  /*line zz_probe.gen_test.go:104:1*/}
  /*line probe_test.mygo:64:1*/func TestSQLScanAndTransaction(t *testing.T) {
 	failures := []string{"", "begin", "scan", "commit"}
@@ -123,23 +123,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 					__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_probe.gen_test.go:124:1*/					}{})
 				}
- /*line probe_test.mygo:70:12*/				if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line probe_test.mygo:70:9*/				if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
  /*line probe_test.mygo:71:11*/					t_1.Error("SQL expectations were not met")
- /*line probe_test.mygo:70:12*/				} else {
+ /*line probe_test.mygo:70:9*/				} else {
  /*line zz_probe.gen_test.go:129:1*/				}
  /*line probe_test.mygo:69:17*/				fixture.DB.Close()
 				return
  /*line zz_probe.gen_test.go:132:1*/			})
- /*line probe_test.mygo:75:10*/			if failure == "begin" {
+ /*line probe_test.mygo:75:7*/			if failure == "begin" {
 				fixture.Mock.ExpectBegin().WillReturnError(transport.Failure)
 			} else {
 				fixture.Mock.ExpectBegin()
 				rows := sqlmock.NewRows([]string{"value"}).AddRow(driver.Value("commune-probe"))
- /*line probe_test.mygo:80:12*/				if failure == "scan" {
+ /*line probe_test.mygo:80:9*/				if failure == "scan" {
 					rows.RowError(0, transport.Failure)
 				} else {
  /*line zz_probe.gen_test.go:141:1*/				}
- /*line probe_test.mygo:75:10*/				fixture.Mock.ExpectQuery("SELECT 'commune-probe'").WillReturnRows(rows)
+ /*line probe_test.mygo:75:7*/				fixture.Mock.ExpectQuery("SELECT 'commune-probe'").WillReturnRows(rows)
 				if failure == "scan" {
 					fixture.Mock.ExpectRollback()
 				} else {
@@ -153,13 +153,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line probe_test.mygo:67:33*/			result := ProbeTransaction(fixture.DB)
  /*line probe_test.mygo:95:10*/			if MygoIN6ResultM4IsOk[string, error](result) != (failure == "") {
  /*line probe_test.mygo:96:9*/				t_1.Fatal("SQL failure propagation failed")
- /*line probe_test.mygo:95:10*/			} else {
+ /*line probe_test.mygo:95:7*/			} else {
  /*line zz_probe.gen_test.go:157:1*/			}
- /*line probe_test.mygo:98:10*/			if MygoIN6ResultM4IsOk[string, error](result) && MygoIN6ResultM6Unwrap[string, error](result) != "commune-probe" {
+ /*line probe_test.mygo:98:7*/			if MygoIN6ResultM4IsOk[string, error](result) && MygoIN6ResultM6Unwrap[string, error](result) != "commune-probe" {
  /*line probe_test.mygo:99:9*/				t_1.Fatal("scan value changed")
 				return
- /*line probe_test.mygo:98:10*/			} else {
- /*line probe_test.mygo:98:7*/				return
+ /*line probe_test.mygo:98:7*/			} else {
+				return
  /*line zz_probe.gen_test.go:163:1*/			}
 		})
  /*line probe_test.mygo:102:5*/		return

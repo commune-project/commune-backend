@@ -42,29 +42,29 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
 	recipients := []string{peerA, peerB, otherC, carol.ActorURI}
 	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, string](storage.PlanDelivery(ctx, db, activityURI, alice.ActorURI, recipients, ""))
- /*line destination_test.mygo:33:6*/	if planned.Receipts != int64(1) || planned.Jobs != int64(3) {
+ /*line destination_test.mygo:33:3*/	if planned.Receipts != int64(1) || planned.Jobs != int64(3) {
  /*line destination_test.mygo:34:5*/		t.Fatalf("planning mis-split colocated and remote recipients: %d/%d", planned.Receipts, planned.Jobs)
- /*line destination_test.mygo:33:6*/	} else {
+ /*line destination_test.mygo:33:3*/	} else {
  /*line zz_destination.gen_test.go:48:1*/	}
  /*line destination_test.mygo:10:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
- /*line destination_test.mygo:38:6*/	if count != int64(0) {
+ /*line destination_test.mygo:38:3*/	if count != int64(0) {
  /*line destination_test.mygo:39:5*/		t.Fatal("a colocated recipient received an outbound job instead of a local receipt")
- /*line destination_test.mygo:38:6*/	} else {
+ /*line destination_test.mygo:38:3*/	} else {
  /*line zz_destination.gen_test.go:54:1*/	}
  /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
- /*line destination_test.mygo:42:6*/	if count != int64(1) {
+ /*line destination_test.mygo:42:3*/	if count != int64(1) {
  /*line destination_test.mygo:43:5*/		t.Fatal("a colocated recipient did not receive a local receipt")
- /*line destination_test.mygo:42:6*/	} else {
+ /*line destination_test.mygo:42:3*/	} else {
  /*line zz_destination.gen_test.go:59:1*/	}
  /*line destination_test.mygo:10:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](storage.ClaimDeliveryJobs(ctx, db, 10, int64(60)))
- /*line destination_test.mygo:46:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 3 {
+ /*line destination_test.mygo:46:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 3 {
  /*line destination_test.mygo:47:5*/		t.Fatalf("expected three remote jobs, got %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed))
- /*line destination_test.mygo:46:6*/	} else {
+ /*line destination_test.mygo:46:3*/	} else {
  /*line zz_destination.gen_test.go:64:1*/	}
- /*line destination_test.mygo:49:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(GroupJobs(claimed)) != 2 {
+ /*line destination_test.mygo:49:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(GroupJobs(claimed)) != 2 {
  /*line destination_test.mygo:50:5*/		t.Fatal("jobs sharing a destination were not collapsed into one transmission")
- /*line destination_test.mygo:49:6*/	} else {
+ /*line destination_test.mygo:49:3*/	} else {
  /*line zz_destination.gen_test.go:68:1*/	}
  /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
 	calls := 0
@@ -73,19 +73,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line destination_test.mygo:56:5*/		return Ok[int, string](202)
  /*line zz_destination.gen_test.go:74:1*/	}
  /*line destination_test.mygo:10:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, Limits{BatchSize: 10, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
- /*line destination_test.mygo:59:6*/	if calls != 2 {
+ /*line destination_test.mygo:59:3*/	if calls != 2 {
  /*line destination_test.mygo:60:5*/		t.Fatalf("shared-inbox delivery was transmitted %d times instead of once per destination", calls)
- /*line destination_test.mygo:59:6*/	} else {
+ /*line destination_test.mygo:59:3*/	} else {
  /*line zz_destination.gen_test.go:79:1*/	}
- /*line destination_test.mygo:62:6*/	if outcome.Delivered != 3 {
+ /*line destination_test.mygo:62:3*/	if outcome.Delivered != 3 {
  /*line destination_test.mygo:63:5*/		t.Fatalf("all recipients of a shared inbox were not marked delivered: %d", outcome.Delivered)
- /*line destination_test.mygo:62:6*/	} else {
+ /*line destination_test.mygo:62:3*/	} else {
  /*line zz_destination.gen_test.go:83:1*/	}
  /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'delivered'").Count(&count)))
- /*line destination_test.mygo:66:6*/	if count != int64(3) {
+ /*line destination_test.mygo:66:3*/	if count != int64(3) {
  /*line destination_test.mygo:67:5*/		t.Fatal("shared-inbox deduplication lost a recipient's delivery state")
 		return
- /*line destination_test.mygo:66:6*/	} else {
- /*line destination_test.mygo:66:3*/		return
+ /*line destination_test.mygo:66:3*/	} else {
+		return
  /*line zz_destination.gen_test.go:90:1*/	}
 }

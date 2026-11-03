@@ -21,15 +21,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_provision.gen_test.go:21:1*/	}
  /*line provision_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
- /*line provision_test.mygo:13:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MigrateGORM(ctx, db)) {
+ /*line provision_test.mygo:13:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MigrateGORM(ctx, db)) {
  /*line provision_test.mygo:14:5*/		t.Fatal("migration failed")
- /*line provision_test.mygo:13:6*/	} else {
+ /*line provision_test.mygo:13:3*/	} else {
  /*line zz_provision.gen_test.go:27:1*/	}
- /*line provision_test.mygo:9:1*/	a := config.Site{ID: "a", Origin: "https://a.example", Aliases: []string{"alias.example"}}
-	b := config.Site{ID: "b", Origin: "https://b.example", Aliases: []string{}}
- /*line provision_test.mygo:18:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, b)) {
+ /*line provision_test.mygo:9:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{"alias.example"}}
+	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}}
+ /*line provision_test.mygo:18:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, b)) {
  /*line provision_test.mygo:19:5*/		t.Fatal("site provisioning or repetition failed")
- /*line provision_test.mygo:18:6*/	} else {
+ /*line provision_test.mygo:18:3*/	} else {
  /*line zz_provision.gen_test.go:33:1*/	}
  /*line provision_test.mygo:9:1*/	voteRows := 0
  /*line provision_test.mygo:22:6*/	var __mygo_expr_4 Result[struct{}, error]
@@ -40,17 +40,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:41:1*/		}{})
 	}
- /*line provision_test.mygo:22:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || voteRows != 2 {
+ /*line provision_test.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || voteRows != 2 {
  /*line provision_test.mygo:23:5*/		t.Fatal("site vote settings defaults were not provisioned")
- /*line provision_test.mygo:22:6*/	} else {
+ /*line provision_test.mygo:22:3*/	} else {
  /*line zz_provision.gen_test.go:46:1*/	}
- /*line provision_test.mygo:25:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Exec("DELETE FROM site_vote_settings WHERE site_id='a'"))) {
+ /*line provision_test.mygo:25:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Exec("DELETE FROM site_vote_settings WHERE site_id='a'"))) {
  /*line provision_test.mygo:26:5*/		t.Fatal("cannot create missing vote settings fixture")
- /*line provision_test.mygo:25:6*/	} else {
+ /*line provision_test.mygo:25:3*/	} else {
  /*line zz_provision.gen_test.go:50:1*/	}
- /*line provision_test.mygo:28:6*/	if !SiteVoteUpEnabled(ctx, db, "a") || !SiteVoteDownEnabled(ctx, db, "a") {
+ /*line provision_test.mygo:28:3*/	if !SiteVoteUpEnabled(ctx, db, "a") || !SiteVoteDownEnabled(ctx, db, "a") {
  /*line provision_test.mygo:29:5*/		t.Fatal("missing vote settings did not resolve enabled")
- /*line provision_test.mygo:28:6*/	} else {
+ /*line provision_test.mygo:28:3*/	} else {
  /*line zz_provision.gen_test.go:54:1*/	}
  /*line provision_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
  /*line provision_test.mygo:32:6*/	var __mygo_expr_6 Result[struct{}, error]
@@ -61,15 +61,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:62:1*/		}{})
 	}
- /*line provision_test.mygo:32:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || voteRows != 1 {
+ /*line provision_test.mygo:32:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || voteRows != 1 {
  /*line provision_test.mygo:33:5*/		t.Fatal("repeat provisioning did not restore vote settings defaults")
- /*line provision_test.mygo:32:6*/	} else {
+ /*line provision_test.mygo:32:3*/	} else {
  /*line zz_provision.gen_test.go:67:1*/	}
- /*line provision_test.mygo:9:1*/	conflict := config.Site{ID: "a", Origin: "https://changed.example", Aliases: []string{}}
-	alias := config.Site{ID: "c", Origin: "https://c.example", Aliases: []string{"alias.example"}}
- /*line provision_test.mygo:37:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, conflict)) || MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, alias)) {
+ /*line provision_test.mygo:9:1*/	conflict := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://changed.example", Aliases: []string{}}
+	alias := config.Site{ID: "c", RegistrationEnabled: false, Origin: "https://c.example", Aliases: []string{"alias.example"}}
+ /*line provision_test.mygo:37:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, conflict)) || MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, alias)) {
  /*line provision_test.mygo:38:5*/		t.Fatal("site identity conflict accepted")
- /*line provision_test.mygo:37:6*/	} else {
+ /*line provision_test.mygo:37:3*/	} else {
  /*line zz_provision.gen_test.go:73:1*/	}
  /*line provision_test.mygo:9:1*/	count := 0
  /*line provision_test.mygo:41:6*/	var __mygo_expr_8 Result[struct{}, error]
@@ -80,32 +80,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_8 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:81:1*/		}{})
 	}
- /*line provision_test.mygo:41:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || count != 0 {
+ /*line provision_test.mygo:41:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || count != 0 {
  /*line provision_test.mygo:42:5*/		t.Fatal("conflicting site was not rolled back")
- /*line provision_test.mygo:41:6*/	} else {
+ /*line provision_test.mygo:41:3*/	} else {
  /*line zz_provision.gen_test.go:86:1*/	}
- /*line provision_test.mygo:44:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false)) {
+ /*line provision_test.mygo:44:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false)) {
  /*line provision_test.mygo:45:5*/		t.Fatal("administrator provisioning failed")
- /*line provision_test.mygo:44:6*/	} else {
+ /*line provision_test.mygo:44:3*/	} else {
  /*line zz_provision.gen_test.go:90:1*/	}
  /*line provision_test.mygo:9:1*/	first := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
 	second := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "b", "alice")))
- /*line provision_test.mygo:49:6*/	if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") {
+ /*line provision_test.mygo:49:3*/	if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") {
  /*line provision_test.mygo:50:5*/		t.Fatal("site credentials are not independent")
- /*line provision_test.mygo:49:6*/	} else {
+ /*line provision_test.mygo:49:3*/	} else {
  /*line zz_provision.gen_test.go:96:1*/	}
- /*line provision_test.mygo:52:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) {
+ /*line provision_test.mygo:52:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false)) {
  /*line provision_test.mygo:53:5*/		t.Fatal("repeat account provisioning failed")
- /*line provision_test.mygo:52:6*/	} else {
+ /*line provision_test.mygo:52:3*/	} else {
  /*line zz_provision.gen_test.go:100:1*/	}
- /*line provision_test.mygo:55:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "changed-password", true)) {
+ /*line provision_test.mygo:55:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "changed-password", true)) {
  /*line provision_test.mygo:56:5*/		t.Fatal("repeat provisioning replaced credentials")
- /*line provision_test.mygo:55:6*/	} else {
+ /*line provision_test.mygo:55:3*/	} else {
  /*line zz_provision.gen_test.go:104:1*/	}
  /*line provision_test.mygo:9:1*/	repeated := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, "a", "alice")))
- /*line provision_test.mygo:59:6*/	if repeated.PasswordHash != first.PasswordHash {
+ /*line provision_test.mygo:59:3*/	if repeated.PasswordHash != first.PasswordHash {
  /*line provision_test.mygo:60:5*/		t.Fatal("repeat changed stored hash")
- /*line provision_test.mygo:59:6*/	} else {
+ /*line provision_test.mygo:59:3*/	} else {
  /*line zz_provision.gen_test.go:109:1*/	}
  /*line provision_test.mygo:62:6*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
@@ -115,13 +115,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:116:1*/		}{})
 	}
- /*line provision_test.mygo:62:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || count != 0 {
+ /*line provision_test.mygo:62:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || count != 0 {
  /*line provision_test.mygo:63:5*/		t.Fatal("site provisioning escalated deployment authority")
- /*line provision_test.mygo:62:6*/	} else {
+ /*line provision_test.mygo:62:3*/	} else {
  /*line zz_provision.gen_test.go:121:1*/	}
- /*line provision_test.mygo:65:6*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true)) {
+ /*line provision_test.mygo:65:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true)) {
  /*line provision_test.mygo:66:5*/		t.Fatal("explicit deployment grant failed")
- /*line provision_test.mygo:65:6*/	} else {
+ /*line provision_test.mygo:65:3*/	} else {
  /*line zz_provision.gen_test.go:125:1*/	}
  /*line provision_test.mygo:68:6*/	var __mygo_expr_12 Result[struct{}, error]
 	__mygo_expr_11 := pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(&count)
@@ -131,9 +131,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_12 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:132:1*/		}{})
 	}
- /*line provision_test.mygo:68:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) || count != 1 {
+ /*line provision_test.mygo:68:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) || count != 1 {
  /*line provision_test.mygo:69:5*/		t.Fatal("deployment grant was not scoped")
- /*line provision_test.mygo:68:6*/	} else {
+ /*line provision_test.mygo:68:3*/	} else {
  /*line zz_provision.gen_test.go:137:1*/	}
  /*line provision_test.mygo:71:6*/	var __mygo_expr_14 Result[struct{}, error]
 	__mygo_expr_13 := pool.QueryRow("SELECT count(*) FROM audit_events").Scan(&count)
@@ -143,10 +143,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_14 = Ok[struct{}, error](struct {
  /*line zz_provision.gen_test.go:144:1*/		}{})
 	}
- /*line provision_test.mygo:71:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || count != 3 {
+ /*line provision_test.mygo:71:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || count != 3 {
  /*line provision_test.mygo:72:5*/		t.Fatal("role grants not audited once in their own scope")
 		return
- /*line provision_test.mygo:71:6*/	} else {
- /*line provision_test.mygo:71:3*/		return
+ /*line provision_test.mygo:71:3*/	} else {
+		return
  /*line zz_provision.gen_test.go:151:1*/	}
 }

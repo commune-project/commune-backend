@@ -43,7 +43,7 @@ func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.S
     end
   end
   let repository = storage.CommunityRepository{DB: db, SiteID: site.ID}
-  let identity = auth.Identity{ActorURI: activity.Actor}
+  let identity = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: activity.Actor, Username: ""}
   let access = repository.Access(ctx, community, identity, true)
   if access.IsErr() then
     return Err(access.UnwrapErr())
@@ -52,7 +52,7 @@ func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.S
     return Ok(())
   end
   var role = "member"
-  let extension = GroupRoleExtension{}
+  let extension = Zero[GroupRoleExtension]()
   if json.Unmarshal(payload, Ref.new(extension)).IsOk() && extension.Role != "" then
     role = extension.Role
   end

@@ -13,38 +13,38 @@ import . "github.com/mygo-lang/mygo/prelude"
 	candidate := MygoIN6OptionM6Unwrap[MentionCandidate](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(candidates, 0))
 	var mentions []RichMention = []RichMention{RichMention{ActorURI: "https://a.example/users/alice", Start: candidate.Start, End: candidate.End}}
 	rendered := MygoIN6ResultM6Unwrap[string, string](RenderPostRich(source, "markdown", mentions, "https://a.example", media, true))
- /*line post_test.mygo:13:6*/	if !strings.Contains(rendered, "src=\"/api/v1/media/binding/preview\"") || !strings.Contains(rendered, "href=\"/api/v1/media/binding\"") || !strings.Contains(rendered, "<code>![code](/api/v1/media/upload)</code>") || strings.Count(rendered, "href=\"https://a.example/users/alice\"") != 2 {
+ /*line post_test.mygo:13:3*/	if !strings.Contains(rendered, "src=\"/api/v1/media/binding/preview\"") || !strings.Contains(rendered, "href=\"/api/v1/media/binding\"") || !strings.Contains(rendered, "<code>![code](/api/v1/media/upload)</code>") || strings.Count(rendered, "href=\"https://a.example/users/alice\"") != 2 {
  /*line post_test.mygo:14:5*/		t.Fatalf("source references were not rewritten structurally: %s", rendered)
- /*line post_test.mygo:13:6*/	} else {
+ /*line post_test.mygo:13:3*/	} else {
  /*line zz_post.gen_test.go:19:1*/	}
  /*line post_test.mygo:16:3*/	AssertRichSafe(t, rendered)
- /*line post_test.mygo:17:6*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/media/foreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
+ /*line post_test.mygo:17:3*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/media/foreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
  /*line post_test.mygo:18:5*/		t.Fatal("foreign upload reference accepted")
- /*line post_test.mygo:17:6*/	} else {
+ /*line post_test.mygo:17:3*/	} else {
  /*line zz_post.gen_test.go:24:1*/	}
- /*line post_test.mygo:20:6*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](https://a.example/api/v1/media/%66oreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
+ /*line post_test.mygo:20:3*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](https://a.example/api/v1/media/%66oreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
  /*line post_test.mygo:21:5*/		t.Fatal("encoded absolute foreign upload accepted")
- /*line post_test.mygo:20:6*/	} else {
+ /*line post_test.mygo:20:3*/	} else {
  /*line zz_post.gen_test.go:28:1*/	}
- /*line post_test.mygo:23:6*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/posts/../media/foreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
+ /*line post_test.mygo:23:3*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/posts/../media/foreign)", "markdown", []RichMention{}, "https://a.example", media, true)) {
  /*line post_test.mygo:24:5*/		t.Fatal("dot-segment foreign upload accepted")
- /*line post_test.mygo:23:6*/	} else {
+ /*line post_test.mygo:23:3*/	} else {
  /*line zz_post.gen_test.go:32:1*/	}
  /*line post_test.mygo:6:1*/	var file []RichMedia = []RichMedia{RichMedia{UploadID: "svg", BindingID: "download", MediaType: "image/svg+xml"}}
- /*line post_test.mygo:27:6*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/media/svg)", "markdown", []RichMention{}, "https://a.example", file, true)) {
+ /*line post_test.mygo:27:3*/	if MygoIN6ResultM4IsOk[string, string](RenderPostRich("![x](/api/v1/media/svg)", "markdown", []RichMention{}, "https://a.example", file, true)) {
  /*line post_test.mygo:28:5*/		t.Fatal("active document accepted as raster image")
- /*line post_test.mygo:27:6*/	} else {
+ /*line post_test.mygo:27:3*/	} else {
  /*line zz_post.gen_test.go:37:1*/	}
  /*line post_test.mygo:6:1*/	removed := MygoIN6ResultM6Unwrap[string, string](RenderPostRich("![x](/api/v1/media/foreign)", "markdown", []RichMention{}, "https://a.example", []RichMedia{}, false))
- /*line post_test.mygo:31:6*/	if strings.Contains(removed, "/api/v1/media/foreign") {
+ /*line post_test.mygo:31:3*/	if strings.Contains(removed, "/api/v1/media/foreign") {
  /*line post_test.mygo:32:5*/		t.Fatal("stale/unbound upload reference leaked to display")
- /*line post_test.mygo:31:6*/	} else {
+ /*line post_test.mygo:31:3*/	} else {
  /*line zz_post.gen_test.go:42:1*/	}
  /*line post_test.mygo:6:1*/	external := "![x](https://remote.example/public.png)"
- /*line post_test.mygo:35:6*/	if !strings.Contains(MygoIN6ResultM6Unwrap[string, string](RenderPostRich(external, "markdown", []RichMention{}, "https://a.example", []RichMedia{}, true)), "https://remote.example/public.png") {
+ /*line post_test.mygo:35:3*/	if !strings.Contains(MygoIN6ResultM6Unwrap[string, string](RenderPostRich(external, "markdown", []RichMention{}, "https://a.example", []RichMedia{}, true)), "https://remote.example/public.png") {
  /*line post_test.mygo:36:5*/		t.Fatal("external image was proxied or discarded")
 		return
- /*line post_test.mygo:35:6*/	} else {
- /*line post_test.mygo:35:3*/		return
+ /*line post_test.mygo:35:3*/	} else {
+		return
  /*line zz_post.gen_test.go:49:1*/	}
 }

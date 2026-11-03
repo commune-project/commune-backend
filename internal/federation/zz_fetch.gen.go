@@ -34,19 +34,19 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[netip.Addr, error](__mygo_expr_2)
  /*line zz_fetch.gen.go:35:1*/	}
  /*line fetch.mygo:28:1*/	parsed := __mygo_expr_1
- /*line fetch.mygo:30:6*/	if MygoIN6ResultM5IsErr[netip.Addr, error](parsed) {
+ /*line fetch.mygo:30:3*/	if MygoIN6ResultM5IsErr[netip.Addr, error](parsed) {
  /*line fetch.mygo:31:12*/		return true
- /*line fetch.mygo:30:6*/	} else {
+ /*line fetch.mygo:30:3*/	} else {
  /*line zz_fetch.gen.go:40:1*/	}
  /*line fetch.mygo:28:1*/	address := MygoIN6ResultM6Unwrap[netip.Addr, error](parsed).Unmap()
  /*line fetch.mygo:34:3*/	return address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() || address.IsLinkLocalMulticast() || address.IsMulticast() || address.IsUnspecified()
  /*line zz_fetch.gen.go:43:1*/}
  /*line fetch.mygo:37:1*/func CheckHost(host string, allowPrivate bool) Result[struct {
 }, string] {
- /*line fetch.mygo:38:6*/	if allowPrivate {
+ /*line fetch.mygo:38:3*/	if allowPrivate {
  /*line fetch.mygo:39:12*/		return Ok[struct{}, string](struct {
  /*line zz_fetch.gen.go:48:1*/		}{})
- /*line fetch.mygo:38:6*/	} else {
+ /*line fetch.mygo:38:3*/	} else {
  /*line zz_fetch.gen.go:50:1*/	}
  /*line fetch.mygo:41:17*/	var __mygo_expr_1 Result[netip.Addr, error]
 	__mygo_expr_2, __mygo_expr_0 := netip.ParseAddr(host)
@@ -56,14 +56,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[netip.Addr, error](__mygo_expr_2)
  /*line zz_fetch.gen.go:57:1*/	}
  /*line fetch.mygo:37:1*/	literal := __mygo_expr_1
- /*line fetch.mygo:42:6*/	if MygoIN6ResultM4IsOk[netip.Addr, error](literal) {
- /*line fetch.mygo:43:8*/		if BlockedIP(MygoIN6ResultM6Unwrap[netip.Addr, error](literal).String()) {
+ /*line fetch.mygo:42:3*/	if MygoIN6ResultM4IsOk[netip.Addr, error](literal) {
+ /*line fetch.mygo:43:5*/		if BlockedIP(MygoIN6ResultM6Unwrap[netip.Addr, error](literal).String()) {
  /*line fetch.mygo:44:14*/			return Err[struct{}, string]("blocked destination")
- /*line fetch.mygo:43:8*/		} else {
+ /*line fetch.mygo:43:5*/		} else {
  /*line zz_fetch.gen.go:63:1*/		}
  /*line fetch.mygo:46:12*/		return Ok[struct{}, string](struct {
  /*line zz_fetch.gen.go:65:1*/		}{})
- /*line fetch.mygo:42:6*/	} else {
+ /*line fetch.mygo:42:3*/	} else {
  /*line zz_fetch.gen.go:67:1*/	}
  /*line fetch.mygo:48:18*/	var __mygo_expr_4 Result[[]string, error]
 	__mygo_expr_5, __mygo_expr_3 := net.LookupHost(host)
@@ -73,21 +73,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[[]string, error](__mygo_expr_5)
  /*line zz_fetch.gen.go:74:1*/	}
  /*line fetch.mygo:37:1*/	resolved := __mygo_expr_4
- /*line fetch.mygo:49:6*/	if MygoIN6ResultM5IsErr[[]string, error](resolved) {
+ /*line fetch.mygo:49:3*/	if MygoIN6ResultM5IsErr[[]string, error](resolved) {
  /*line fetch.mygo:50:12*/		return Err[struct{}, string]("unresolvable destination")
- /*line fetch.mygo:49:6*/	} else {
+ /*line fetch.mygo:49:3*/	} else {
  /*line zz_fetch.gen.go:79:1*/	}
  /*line fetch.mygo:37:1*/	addresses := MygoIN6ResultM6Unwrap[[]string, error](resolved)
- /*line fetch.mygo:53:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(addresses) == 0 {
+ /*line fetch.mygo:53:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(addresses) == 0 {
  /*line fetch.mygo:54:12*/		return Err[struct{}, string]("unresolvable destination")
- /*line fetch.mygo:53:6*/	} else {
+ /*line fetch.mygo:53:3*/	} else {
  /*line zz_fetch.gen.go:84:1*/	}
  /*line fetch.mygo:37:1*/	blocked := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(addresses, false, func(found bool, address string) bool {
  /*line fetch.mygo:57:5*/		return found || BlockedIP(address)
  /*line zz_fetch.gen.go:87:1*/	})
- /*line fetch.mygo:59:6*/	if blocked {
+ /*line fetch.mygo:59:3*/	if blocked {
  /*line fetch.mygo:60:12*/		return Err[struct{}, string]("blocked destination")
- /*line fetch.mygo:59:6*/	} else {
+ /*line fetch.mygo:59:3*/	} else {
  /*line zz_fetch.gen.go:91:1*/	}
  /*line fetch.mygo:62:3*/	return Ok[struct{}, string](struct {
  /*line zz_fetch.gen.go:93:1*/	}{})
@@ -102,18 +102,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_fetch.gen.go:103:1*/	}
  /*line fetch.mygo:65:1*/	parsed := __mygo_expr_1
- /*line fetch.mygo:67:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
+ /*line fetch.mygo:67:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
  /*line fetch.mygo:68:12*/		return Err[struct{}, string]("invalid destination")
- /*line fetch.mygo:67:6*/	} else {
+ /*line fetch.mygo:67:3*/	} else {
  /*line zz_fetch.gen.go:108:1*/	}
  /*line fetch.mygo:65:1*/	target := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
  /*line fetch.mygo:71:6*/	if target.Scheme != "https" && !(allowPrivate && target.Scheme == "http") {
  /*line fetch.mygo:72:12*/		return Err[struct{}, string]("destination must use https")
- /*line fetch.mygo:71:6*/	} else {
+ /*line fetch.mygo:71:3*/	} else {
  /*line zz_fetch.gen.go:113:1*/	}
- /*line fetch.mygo:74:6*/	if target.Hostname() == "" {
+ /*line fetch.mygo:74:3*/	if target.Hostname() == "" {
  /*line fetch.mygo:75:12*/		return Err[struct{}, string]("invalid destination")
- /*line fetch.mygo:74:6*/	} else {
+ /*line fetch.mygo:74:3*/	} else {
  /*line zz_fetch.gen.go:117:1*/	}
  /*line fetch.mygo:77:3*/	return CheckHost(target.Hostname(), allowPrivate)
  /*line zz_fetch.gen.go:119:1*/}
@@ -136,7 +136,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line fetch.mygo:105:3*/	return FetchBoundedWithAccept(ctx, raw, limits, activityJSON)
  /*line zz_fetch.gen.go:137:1*/}
  /*line fetch.mygo:108:1*/func FetchBoundedWithAccept(ctx context.Context, raw string, limits FetchLimits, accept string) Result[FetchResult, string] {
-	client := http.Client{}
+	client := Zero[http.Client]()
  /*line fetch.mygo:110:3*/	DisableRedirects(&client)
  /*line fetch.mygo:108:1*/	current := raw
 	hops := 0
@@ -180,9 +180,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 			location := res.Header.Get("Location")
 			res.Body.Close()
 			next := ResolveLocation(res, location)
- /*line fetch.mygo:136:10*/			if MygoIN6ResultM5IsErr[string, string](next) {
+ /*line fetch.mygo:136:7*/			if MygoIN6ResultM5IsErr[string, string](next) {
  /*line fetch.mygo:137:16*/				return Err[FetchResult, string](MygoIN6ResultM9UnwrapErr[string, string](next))
- /*line fetch.mygo:136:10*/			} else {
+ /*line fetch.mygo:136:7*/			} else {
  /*line zz_fetch.gen.go:186:1*/			}
  /*line fetch.mygo:108:1*/			current = MygoIN6ResultM6Unwrap[string, string](next)
 			hops = hops + 1
@@ -197,13 +197,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_fetch.gen.go:197:1*/			}
  /*line fetch.mygo:108:1*/			data := __mygo_expr_7
 			res.Body.Close()
- /*line fetch.mygo:145:10*/			if MygoIN6ResultM5IsErr[[]byte, error](data) {
+ /*line fetch.mygo:145:7*/			if MygoIN6ResultM5IsErr[[]byte, error](data) {
  /*line fetch.mygo:146:16*/				return Err[FetchResult, string]("fetch failed")
- /*line fetch.mygo:145:10*/			} else {
+ /*line fetch.mygo:145:7*/			} else {
  /*line zz_fetch.gen.go:203:1*/			}
- /*line fetch.mygo:148:10*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](data)) > limits.MaxBytes {
+ /*line fetch.mygo:148:7*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](data)) > limits.MaxBytes {
  /*line fetch.mygo:149:16*/				return Err[FetchResult, string]("response too large")
- /*line fetch.mygo:148:10*/			} else {
+ /*line fetch.mygo:148:7*/			} else {
  /*line zz_fetch.gen.go:207:1*/			}
  /*line fetch.mygo:108:1*/			status = res.StatusCode
 			payload = MygoIN6ResultM6Unwrap[[]byte, error](data)
@@ -211,16 +211,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 			settled = true
  /*line zz_fetch.gen.go:212:1*/		}
 	}
- /*line fetch.mygo:157:6*/	if !settled {
+ /*line fetch.mygo:157:3*/	if !settled {
  /*line fetch.mygo:158:12*/		return Err[FetchResult, string]("redirect limit exceeded")
- /*line fetch.mygo:157:6*/	} else {
+ /*line fetch.mygo:157:3*/	} else {
  /*line zz_fetch.gen.go:217:1*/	}
  /*line fetch.mygo:160:3*/	return Ok[FetchResult, string](FetchResult{Status: status, Body: payload, ContentType: contentType, FinalURL: current})
  /*line zz_fetch.gen.go:219:1*/}
  /*line fetch.mygo:163:1*/func ResolveLocation(response *http.Response, location string) Result[string, string] {
- /*line fetch.mygo:164:6*/	if location == "" {
+ /*line fetch.mygo:164:3*/	if location == "" {
  /*line fetch.mygo:165:12*/		return Err[string, string]("redirect without location")
- /*line fetch.mygo:164:6*/	} else {
+ /*line fetch.mygo:164:3*/	} else {
  /*line zz_fetch.gen.go:224:1*/	}
  /*line fetch.mygo:163:1*/	base := response.Request.URL
  /*line fetch.mygo:168:19*/	var __mygo_expr_1 Result[*url.URL, error]
@@ -231,9 +231,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_fetch.gen.go:232:1*/	}
  /*line fetch.mygo:163:1*/	reference := __mygo_expr_1
- /*line fetch.mygo:169:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](reference) {
+ /*line fetch.mygo:169:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](reference) {
  /*line fetch.mygo:170:12*/		return Err[string, string]("invalid redirect")
- /*line fetch.mygo:169:6*/	} else {
+ /*line fetch.mygo:169:3*/	} else {
  /*line zz_fetch.gen.go:237:1*/	}
  /*line fetch.mygo:163:1*/	resolved := base.ResolveReference(MygoIN6ResultM6Unwrap[*url.URL, error](reference))
  /*line fetch.mygo:173:3*/	return Ok[string, string](resolved.String())

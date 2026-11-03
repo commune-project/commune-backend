@@ -68,15 +68,14 @@ end
 
 func NewHTTPServer(settings: config.Config, db: Ref[gorm.DB]) -> Ref[http.Server]
   let runtime = settings.Runtime
-  let server = http.Server{
-    Addr: runtime.Listen,
-    Handler: Handler(settings, db) as http.Handler,
-    ReadHeaderTimeout: runtime.ReadTimeoutSeconds as time.Duration * time.Second,
-    ReadTimeout: runtime.ReadTimeoutSeconds as time.Duration * time.Second,
-    WriteTimeout: runtime.WriteTimeoutSeconds as time.Duration * time.Second,
-    IdleTimeout: runtime.IdleTimeoutSeconds as time.Duration * time.Second,
-    MaxHeaderBytes: 32768,
-  }
+  var server = Zero[http.Server]()
+  server.Addr = runtime.Listen
+  server.Handler = Handler(settings, db) as http.Handler
+  server.ReadHeaderTimeout = runtime.ReadTimeoutSeconds as time.Duration * time.Second
+  server.ReadTimeout = runtime.ReadTimeoutSeconds as time.Duration * time.Second
+  server.WriteTimeout = runtime.WriteTimeoutSeconds as time.Duration * time.Second
+  server.IdleTimeout = runtime.IdleTimeoutSeconds as time.Duration * time.Second
+  server.MaxHeaderBytes = 32768
   Ref.new(server)
 end
 

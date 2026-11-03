@@ -19,7 +19,7 @@ struct LocalPostActivity
 end
 
 func PublishForumPost(settings: config.Config, db: Ref[gorm.DB], ctx: context.Context, site: config.Site, communityID: String, identity: auth.Identity, remoteVerified: Bool, input: storage.PublishInput) -> Result[storage.PostRecord, String]
-  var post = storage.PostRecord{}
+  var post = Zero[storage.PostRecord]()
   let result = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
     let published = storage.PostRepository{DB: tx, SiteID: site.ID}.Publish(ctx, site, communityID, identity, remoteVerified, input)
     if published.IsErr() then return Err(published.UnwrapErr()) end

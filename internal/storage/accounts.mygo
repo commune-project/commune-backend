@@ -26,7 +26,7 @@ impl AccountRepository
     if siteID == "" || identifier == "" || (identifier as Slice[Byte]).Len() > 254 || (password as Slice[Byte]).Len() > 72 then
       return Err("invalid credentials")
     end
-    let account = AccountRecord{}
+    let account = Zero[AccountRecord]()
     let query = self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND (username = ? OR email = ?)", siteID, identifier, identifier).Limit(1).Find(Ref.new(account))
     if MutationResult(query).IsErr() then
       return Err("authentication unavailable")
@@ -53,7 +53,7 @@ impl AccountRepository
     if hash.IsErr() || uri.IsErr() then
       return Err("invalid account input")
     end
-    let account = AccountRecord{SiteID: site.ID, ActorURI: uri.Unwrap(), ActorKind: "Person", Username: username, Email: sql.NullString{String: address, Valid: address != ""}, PasswordHash: hash.Unwrap(), CreatedAt: time.Now()}
+    let account = AccountRecord{ID: 0i64, SiteID: site.ID, ActorURI: uri.Unwrap(), ActorKind: "Person", Username: username, Email: sql.NullString{String: address, Valid: address != ""}, PasswordHash: hash.Unwrap(), Disabled: false, CreatedAt: time.Now()}
     let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
       if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?)", uri.Unwrap(), site.ID, uri.Unwrap() + "/inbox")).IsErr() then
         return Err("account creation failed")

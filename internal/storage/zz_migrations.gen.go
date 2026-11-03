@@ -51,18 +51,18 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_migrations.gen.go:51:1*/		}{})
 	}
  /*line migrations.mygo:15:1*/	closeError := __mygo_expr_5
- /*line migrations.mygo:30:6*/	if MygoIN6ResultM5IsErr[struct{}, error](rowError) || MygoIN6ResultM5IsErr[struct{}, error](closeError) {
+ /*line migrations.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, error](rowError) || MygoIN6ResultM5IsErr[struct{}, error](closeError) {
  /*line migrations.mygo:31:12*/		return Err[[]AppliedMigration, string]("cannot finish reading migration history")
- /*line migrations.mygo:30:6*/	} else {
+ /*line migrations.mygo:30:3*/	} else {
  /*line zz_migrations.gen.go:57:1*/	}
  /*line migrations.mygo:33:3*/	return Ok[[]AppliedMigration, string](applied)
  /*line zz_migrations.gen.go:59:1*/}
  /*line migrations.mygo:37:1*/func CheckSchema(ctx context.Context, db *sql.DB) Result[struct {
 }, string] {
 	catalogResult := MigrationCatalog()
- /*line migrations.mygo:39:6*/	if MygoIN6ResultM5IsErr[[]Migration, string](catalogResult) {
+ /*line migrations.mygo:39:3*/	if MygoIN6ResultM5IsErr[[]Migration, string](catalogResult) {
  /*line migrations.mygo:40:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]Migration, string](catalogResult))
- /*line migrations.mygo:39:6*/	} else {
+ /*line migrations.mygo:39:3*/	} else {
  /*line zz_migrations.gen.go:66:1*/	}
  /*line migrations.mygo:37:1*/	exists := false
  /*line migrations.mygo:43:16*/	var __mygo_expr_1 Result[struct{}, error]
@@ -74,13 +74,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_migrations.gen.go:74:1*/		}{})
 	}
  /*line migrations.mygo:37:1*/	lookup := __mygo_expr_1
- /*line migrations.mygo:44:6*/	if MygoIN6ResultM5IsErr[struct{}, error](lookup) {
+ /*line migrations.mygo:44:3*/	if MygoIN6ResultM5IsErr[struct{}, error](lookup) {
  /*line migrations.mygo:45:12*/		return Err[struct{}, string]("cannot check database schema")
- /*line migrations.mygo:44:6*/	} else {
+ /*line migrations.mygo:44:3*/	} else {
  /*line zz_migrations.gen.go:80:1*/	}
- /*line migrations.mygo:47:6*/	if !exists {
+ /*line migrations.mygo:47:3*/	if !exists {
  /*line migrations.mygo:48:12*/		return Err[struct{}, string]("database schema is absent; run explicit migration")
- /*line migrations.mygo:47:6*/	} else {
+ /*line migrations.mygo:47:3*/	} else {
  /*line zz_migrations.gen.go:84:1*/	}
  /*line migrations.mygo:50:15*/	var __mygo_expr_3 Result[*sql.Rows, error]
 	__mygo_expr_4, __mygo_expr_2 := db.QueryContext(ctx, "SELECT version, name, checksum FROM public.commune_schema_migrations ORDER BY version")
@@ -90,14 +90,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[*sql.Rows, error](__mygo_expr_4)
  /*line zz_migrations.gen.go:91:1*/	}
  /*line migrations.mygo:37:1*/	query := __mygo_expr_3
- /*line migrations.mygo:51:6*/	if MygoIN6ResultM5IsErr[*sql.Rows, error](query) {
+ /*line migrations.mygo:51:3*/	if MygoIN6ResultM5IsErr[*sql.Rows, error](query) {
  /*line migrations.mygo:52:12*/		return Err[struct{}, string]("cannot query migration history")
- /*line migrations.mygo:51:6*/	} else {
+ /*line migrations.mygo:51:3*/	} else {
  /*line zz_migrations.gen.go:96:1*/	}
  /*line migrations.mygo:37:1*/	applied := ReadAppliedRows(MygoIN6ResultM6Unwrap[*sql.Rows, error](query))
- /*line migrations.mygo:55:6*/	if MygoIN6ResultM5IsErr[[]AppliedMigration, string](applied) {
+ /*line migrations.mygo:55:3*/	if MygoIN6ResultM5IsErr[[]AppliedMigration, string](applied) {
  /*line migrations.mygo:56:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]AppliedMigration, string](applied))
- /*line migrations.mygo:55:6*/	} else {
+ /*line migrations.mygo:55:3*/	} else {
  /*line zz_migrations.gen.go:101:1*/	}
  /*line migrations.mygo:58:3*/	return ValidateApplied(MygoIN6ResultM6Unwrap[[]AppliedMigration, string](applied), MygoIN6ResultM6Unwrap[[]Migration, string](catalogResult), true)
  /*line zz_migrations.gen.go:103:1*/}
@@ -111,9 +111,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
  /*line zz_migrations.gen.go:112:1*/	}
  /*line migrations.mygo:61:1*/	lock := __mygo_expr_1
- /*line migrations.mygo:64:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](lock) {
+ /*line migrations.mygo:64:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](lock) {
  /*line migrations.mygo:65:12*/		return Err[struct{}, string]("cannot acquire migration lock")
- /*line migrations.mygo:64:6*/	} else {
+ /*line migrations.mygo:64:3*/	} else {
  /*line zz_migrations.gen.go:117:1*/	}
  /*line migrations.mygo:67:14*/	var __mygo_expr_4 Result[sql.Result, error]
 	__mygo_expr_5, __mygo_expr_3 := tx.ExecContext(ctx, "SET LOCAL search_path = public, pg_catalog")
@@ -123,9 +123,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[sql.Result, error](__mygo_expr_5)
  /*line zz_migrations.gen.go:124:1*/	}
  /*line migrations.mygo:61:1*/	path := __mygo_expr_4
- /*line migrations.mygo:68:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](path) {
+ /*line migrations.mygo:68:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](path) {
  /*line migrations.mygo:69:12*/		return Err[struct{}, string]("cannot set migration schema path")
- /*line migrations.mygo:68:6*/	} else {
+ /*line migrations.mygo:68:3*/	} else {
  /*line zz_migrations.gen.go:129:1*/	}
  /*line migrations.mygo:71:16*/	var __mygo_expr_7 Result[sql.Result, error]
 	__mygo_expr_8, __mygo_expr_6 := tx.ExecContext(ctx, ledgerSQL)
@@ -135,9 +135,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[sql.Result, error](__mygo_expr_8)
  /*line zz_migrations.gen.go:136:1*/	}
  /*line migrations.mygo:61:1*/	ledger := __mygo_expr_7
- /*line migrations.mygo:72:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](ledger) {
+ /*line migrations.mygo:72:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](ledger) {
  /*line migrations.mygo:73:12*/		return Err[struct{}, string]("cannot initialize migration ledger")
- /*line migrations.mygo:72:6*/	} else {
+ /*line migrations.mygo:72:3*/	} else {
  /*line zz_migrations.gen.go:141:1*/	}
  /*line migrations.mygo:75:15*/	var __mygo_expr_10 Result[*sql.Rows, error]
 	__mygo_expr_11, __mygo_expr_9 := tx.QueryContext(ctx, "SELECT version, name, checksum FROM public.commune_schema_migrations ORDER BY version")
@@ -147,20 +147,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[*sql.Rows, error](__mygo_expr_11)
  /*line zz_migrations.gen.go:148:1*/	}
  /*line migrations.mygo:61:1*/	query := __mygo_expr_10
- /*line migrations.mygo:76:6*/	if MygoIN6ResultM5IsErr[*sql.Rows, error](query) {
+ /*line migrations.mygo:76:3*/	if MygoIN6ResultM5IsErr[*sql.Rows, error](query) {
  /*line migrations.mygo:77:12*/		return Err[struct{}, string]("cannot query migration history")
- /*line migrations.mygo:76:6*/	} else {
+ /*line migrations.mygo:76:3*/	} else {
  /*line zz_migrations.gen.go:153:1*/	}
  /*line migrations.mygo:61:1*/	read := ReadAppliedRows(MygoIN6ResultM6Unwrap[*sql.Rows, error](query))
- /*line migrations.mygo:80:6*/	if MygoIN6ResultM5IsErr[[]AppliedMigration, string](read) {
+ /*line migrations.mygo:80:3*/	if MygoIN6ResultM5IsErr[[]AppliedMigration, string](read) {
  /*line migrations.mygo:81:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]AppliedMigration, string](read))
- /*line migrations.mygo:80:6*/	} else {
+ /*line migrations.mygo:80:3*/	} else {
  /*line zz_migrations.gen.go:158:1*/	}
  /*line migrations.mygo:61:1*/	applied := MygoIN6ResultM6Unwrap[[]AppliedMigration, string](read)
 	compatible := ValidateApplied(applied, catalog, false)
- /*line migrations.mygo:85:6*/	if MygoIN6ResultM5IsErr[struct{}, string](compatible) {
+ /*line migrations.mygo:85:3*/	if MygoIN6ResultM5IsErr[struct{}, string](compatible) {
  /*line migrations.mygo:86:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](compatible))
- /*line migrations.mygo:85:6*/	} else {
+ /*line migrations.mygo:85:3*/	} else {
  /*line zz_migrations.gen.go:164:1*/	}
  /*line migrations.mygo:61:1*/	i := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied)
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
@@ -197,11 +197,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line migrations.mygo:104:1*/func Migrate(ctx context.Context, db *sql.DB) Result[struct {
 }, string] {
 	catalog := MigrationCatalog()
- /*line migrations.mygo:106:6*/	if MygoIN6ResultM5IsErr[[]Migration, string](catalog) {
+ /*line migrations.mygo:106:3*/	if MygoIN6ResultM5IsErr[[]Migration, string](catalog) {
  /*line migrations.mygo:107:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]Migration, string](catalog))
- /*line migrations.mygo:106:6*/	} else {
+ /*line migrations.mygo:106:3*/	} else {
  /*line zz_migrations.gen.go:203:1*/	}
- /*line migrations.mygo:104:1*/	options := sql.TxOptions{}
+ /*line migrations.mygo:104:1*/	options := sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}
  /*line migrations.mygo:110:15*/	var __mygo_expr_1 Result[*sql.Tx, error]
 	__mygo_expr_2, __mygo_expr_0 := db.BeginTx(ctx, &options)
 	if __mygo_expr_0 != nil {
@@ -210,16 +210,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*sql.Tx, error](__mygo_expr_2)
  /*line zz_migrations.gen.go:211:1*/	}
  /*line migrations.mygo:104:1*/	begin := __mygo_expr_1
- /*line migrations.mygo:111:6*/	if MygoIN6ResultM5IsErr[*sql.Tx, error](begin) {
+ /*line migrations.mygo:111:3*/	if MygoIN6ResultM5IsErr[*sql.Tx, error](begin) {
  /*line migrations.mygo:112:12*/		return Err[struct{}, string]("cannot begin migration transaction")
- /*line migrations.mygo:111:6*/	} else {
+ /*line migrations.mygo:111:3*/	} else {
  /*line zz_migrations.gen.go:216:1*/	}
  /*line migrations.mygo:104:1*/	tx := MygoIN6ResultM6Unwrap[*sql.Tx, error](begin)
 	apply := ApplyTransaction(ctx, tx, MygoIN6ResultM6Unwrap[[]Migration, string](catalog))
- /*line migrations.mygo:116:6*/	if MygoIN6ResultM5IsErr[struct{}, string](apply) {
+ /*line migrations.mygo:116:3*/	if MygoIN6ResultM5IsErr[struct{}, string](apply) {
 		tx.Rollback()
  /*line migrations.mygo:118:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](apply))
- /*line migrations.mygo:116:6*/	} else {
+ /*line migrations.mygo:116:3*/	} else {
  /*line zz_migrations.gen.go:223:1*/	}
  /*line migrations.mygo:120:16*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := tx.Commit()
@@ -230,9 +230,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_migrations.gen.go:230:1*/		}{})
 	}
  /*line migrations.mygo:104:1*/	commit := __mygo_expr_4
- /*line migrations.mygo:121:6*/	if MygoIN6ResultM5IsErr[struct{}, error](commit) {
+ /*line migrations.mygo:121:3*/	if MygoIN6ResultM5IsErr[struct{}, error](commit) {
  /*line migrations.mygo:122:12*/		return Err[struct{}, string]("cannot commit migration transaction; inspect history before retrying")
- /*line migrations.mygo:121:6*/	} else {
+ /*line migrations.mygo:121:3*/	} else {
  /*line zz_migrations.gen.go:236:1*/	}
  /*line migrations.mygo:124:3*/	return Ok[struct{}, string](struct {
  /*line zz_migrations.gen.go:238:1*/	}{})

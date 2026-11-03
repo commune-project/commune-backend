@@ -33,9 +33,16 @@ end
 # only when the signer is the group itself, so a peer cannot rewrite another
 # community's authorization. The return value reports whether the change
 # tightened a previously open read policy.
-func ApplyCommunityState(ctx: context.Context, db: Ref[gorm.DB], payload: Slice[Byte]) -> Result[Bool, String]
-  let state = CommunityStateActivity{}
-  if json.Unmarshal(payload, Ref.new(state)).IsErr() || state.ID == "" || state.Actor == "" || state.Object.ID == "" then
+func ApplyCommunityState(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  payload: Slice[Byte]
+) -> Result[Bool, String]
+  var state = Zero[CommunityStateActivity]()
+  if json.Unmarshal(payload, Ref.new(state)).IsErr() ||
+    state.ID == "" ||
+    state.Actor == "" ||
+    state.Object.ID == "" then
     return Ok(false)
   end
   if state.Type != "Update" || state.Actor != state.Object.ID || state.Object.Type != "Group" then
@@ -49,10 +56,20 @@ func ApplyCommunityState(ctx: context.Context, db: Ref[gorm.DB], payload: Slice[
   # A targeted revocation reveals no remaining membership list. It can only
   # remove authority, and must come from the owning Group's verified signature.
   if state.Object.Revoked.Len() > 0 then
-    return storage.MutationResult(db.WithContext(ctx).Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri IN ? AND revoked_at IS NULL", current.ID, state.Object.Revoked)).Map(func(_: ()) -> Bool false end)
+    return storage.MutationResult(db.WithContext(ctx).Exec(
+      "UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri IN ? AND revoked_at IS NULL",
+      current.ID,
+      state.Object.Revoked
+    )).Map(func(_: ()) -> Bool false end)
   end
   let tightened = current.ReadPolicy == "eligible_users" && state.Object.Policy.Read == "members"
-  let applied = storage.ApplyCommunityPolicy(ctx, db, current.ID, state.Object.Policy.Read, state.Object.Policy.Post)
+  let applied = storage.ApplyCommunityPolicy(
+    ctx,
+    db,
+    current.ID,
+    state.Object.Policy.Read,
+    state.Object.Policy.Post
+  )
   if applied.IsErr() then
     return Err(applied.UnwrapErr())
   end
@@ -62,7 +79,13 @@ func ApplyCommunityState(ctx: context.Context, db: Ref[gorm.DB], payload: Slice[
       return Err(follow.UnwrapErr())
     end
   end
-  let members = storage.ReplaceReplicaMembers(ctx, db, current.ID, state.Actor, state.Object.Members)
+  let members = storage.ReplaceReplicaMembers(
+    ctx,
+    db,
+    current.ID,
+    state.Actor,
+    state.Object.Members
+  )
   if members.IsErr() then
     return Err(members.UnwrapErr())
   end
@@ -71,24 +94,69 @@ end
 
 # Revocation control messages must reach the former member even after ordinary
 # content delivery has been disabled. They contain no private post or roster.
-func QueueMemberRevocation(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, communityID: String, actorURI: String) -> Result[(), String]
+func QueueMemberRevocation(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  communityID: String,
+  actorURI: String
+) -> Result[(), String]
   let group = storage.LoadCommunityByID(ctx, db, communityID)
-  if group.IsErr() || group.Unwrap().IsNone() then return Err("community unavailable") end
+  if group.IsErr() || group.Unwrap().IsNone() then
+    return Err("community unavailable")
+  end
   let community = group.Unwrap().Unwrap()
-  if community.FederationMode != "federated" || community.HostSiteID != site.ID then return Ok(()) end
+  if community.FederationMode != "federated" || community.HostSiteID != site.ID then
+    return Ok(())
+  end
   let actor = storage.LoadActor(ctx, db, actorURI)
-  if actor.IsErr() || actor.Unwrap().IsNone() then return Err("actor unavailable") end
-  if actor.Unwrap().Unwrap().LocalSiteID.Valid then return Ok(()) end
+  if actor.IsErr() || actor.Unwrap().IsNone() then
+    return Err("actor unavailable")
+  end
+  if actor.Unwrap().Unwrap().LocalSiteID.Valid then
+    return Ok(())
+  end
   let capable = storage.PeerSupportsProtectedReads(ctx, db, actorURI)
-  if capable.IsErr() then return Err(capable.UnwrapErr()) end
-  if !capable.Unwrap() then return Ok(()) end
-  if storage.EnsureLocalKey(ctx, db, community.ActorURI.String).IsErr() then return Err("signing unavailable") end
+  if capable.IsErr() then
+    return Err(capable.UnwrapErr())
+  end
+  if !capable.Unwrap() then
+    return Ok(())
+  end
+  if storage.EnsureLocalKey(ctx, db, community.ActorURI.String).IsErr() then
+    return Err("signing unavailable")
+  end
   let uri = site.Origin + "/activities/" + rand.Text()
-  let payload = json.Marshal(CommunityStateActivity{ID: uri, Actor: community.ActorURI.String, Type: "Update", Object: GroupStateObject{ID: community.ActorURI.String, Type: "Group", Revoked: [actorURI]}})
-  if payload.IsErr() then return Err("revocation unavailable") end
-  let stored = storage.InsertActivityPayload(ctx, db, uri, community.ActorURI.String, "Update", payload.Unwrap(), community.ID)
-  if stored.IsErr() then return stored end
+  let payload = json.Marshal(CommunityStateActivity{
+    ID: uri,
+    Actor: community.ActorURI.String,
+    Type: "Update",
+    Object: GroupStateObject {
+      ID: community.ActorURI.String,
+      Type: "Group",
+      Policy: Zero[CommunityStatePolicy](),
+      Members: [],
+      Revoked: [actorURI],
+    },
+  })
+  if payload.IsErr() then
+    return Err("revocation unavailable")
+  end
+  let stored = storage.InsertActivityPayload(
+    ctx,
+    db,
+    uri,
+    community.ActorURI.String,
+    "Update",
+    payload.Unwrap(),
+    community.ID
+  )
+  if stored.IsErr() then
+    return stored
+  end
   let planned = storage.PlanDelivery(ctx, db, uri, community.ActorURI.String, [actorURI], "")
-  if planned.IsErr() then return Err(planned.UnwrapErr()) end
+  if planned.IsErr() then
+    return Err(planned.UnwrapErr())
+  end
   Ok(())
 end

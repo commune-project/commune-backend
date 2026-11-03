@@ -26,9 +26,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var targets []DeliveryTarget = []DeliveryTarget{}
 	failed := false
  /*line delivery_plan.mygo:27:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(actorURIs, func(uri string) {
- /*line delivery_plan.mygo:27:18*/		record := DeliveryTargetRecord{}
+ /*line delivery_plan.mygo:27:18*/		record := Zero[DeliveryTargetRecord]()
 		query := db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(&record)
- /*line delivery_plan.mygo:30:8*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line delivery_plan.mygo:30:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
 			failed = true
 			return
 		} else {
@@ -38,55 +38,55 @@ import . "github.com/mygo-lang/mygo/prelude"
 			} else {
 				__mygo_expr_0 = ""
  /*line zz_delivery_plan.gen.go:40:1*/			}
- /*line delivery_plan.mygo:30:8*/			site := __mygo_expr_0
+ /*line delivery_plan.mygo:30:5*/			site := __mygo_expr_0
 			var __mygo_expr_1 string
 			if record.InboxURI.Valid && record.InboxURI.String != "" {
 				__mygo_expr_1 = record.InboxURI.String
 			} else {
 				__mygo_expr_1 = uri + "/inbox"
  /*line zz_delivery_plan.gen.go:47:1*/			}
- /*line delivery_plan.mygo:30:8*/			inbox := __mygo_expr_1
+ /*line delivery_plan.mygo:30:5*/			inbox := __mygo_expr_1
 			targets = MygoIN5SliceM6Append(targets, DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
 			return
  /*line zz_delivery_plan.gen.go:51:1*/		}
 	})
- /*line delivery_plan.mygo:38:6*/	if failed {
+ /*line delivery_plan.mygo:38:3*/	if failed {
  /*line delivery_plan.mygo:39:12*/		return Err[[]DeliveryTarget, string]("delivery plan failed")
- /*line delivery_plan.mygo:38:6*/	} else {
+ /*line delivery_plan.mygo:38:3*/	} else {
  /*line zz_delivery_plan.gen.go:56:1*/	}
  /*line delivery_plan.mygo:41:3*/	return Ok[[]DeliveryTarget, string](targets)
  /*line zz_delivery_plan.gen.go:58:1*/}
  /*line delivery_plan.mygo:48:1*/func PlanDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, actorURIs []string, communityID string) Result[PlanResult, string] {
 	excluded := IsLocalOnlyActivity(ctx, db, activityURI)
- /*line delivery_plan.mygo:50:6*/	if MygoIN6ResultM5IsErr[bool, string](excluded) {
+ /*line delivery_plan.mygo:50:3*/	if MygoIN6ResultM5IsErr[bool, string](excluded) {
  /*line delivery_plan.mygo:51:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[bool, string](excluded))
- /*line delivery_plan.mygo:50:6*/	} else {
+ /*line delivery_plan.mygo:50:3*/	} else {
  /*line zz_delivery_plan.gen.go:64:1*/	}
- /*line delivery_plan.mygo:53:6*/	if MygoIN6ResultM6Unwrap[bool, string](excluded) {
+ /*line delivery_plan.mygo:53:3*/	if MygoIN6ResultM6Unwrap[bool, string](excluded) {
  /*line delivery_plan.mygo:54:12*/		return Ok[PlanResult, string](PlanResult{Receipts: 0, Jobs: 0})
- /*line delivery_plan.mygo:53:6*/	} else {
+ /*line delivery_plan.mygo:53:3*/	} else {
  /*line zz_delivery_plan.gen.go:68:1*/	}
  /*line delivery_plan.mygo:48:1*/	targets := LoadDeliveryTargets(ctx, db, actorURIs)
- /*line delivery_plan.mygo:57:6*/	if MygoIN6ResultM5IsErr[[]DeliveryTarget, string](targets) {
+ /*line delivery_plan.mygo:57:3*/	if MygoIN6ResultM5IsErr[[]DeliveryTarget, string](targets) {
  /*line delivery_plan.mygo:58:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[[]DeliveryTarget, string](targets))
- /*line delivery_plan.mygo:57:6*/	} else {
+ /*line delivery_plan.mygo:57:3*/	} else {
  /*line zz_delivery_plan.gen.go:73:1*/	}
  /*line delivery_plan.mygo:48:1*/	receipts := int64(0)
 	jobs := int64(0)
 	failed := false
  /*line delivery_plan.mygo:63:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]DeliveryTarget, string](targets), func(target DeliveryTarget) {
- /*line delivery_plan.mygo:64:8*/		if target.LocalSiteID != "" {
+ /*line delivery_plan.mygo:64:5*/		if target.LocalSiteID != "" {
 			inserted := db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
- /*line delivery_plan.mygo:66:10*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
+ /*line delivery_plan.mygo:66:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
 				failed = true
 				return
 			} else {
 				receipts = receipts + inserted.RowsAffected
 				return
  /*line zz_delivery_plan.gen.go:86:1*/			}
- /*line delivery_plan.mygo:64:8*/		} else {
+ /*line delivery_plan.mygo:64:5*/		} else {
 			queued := EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
- /*line delivery_plan.mygo:73:10*/			if MygoIN6ResultM5IsErr[int64, string](queued) {
+ /*line delivery_plan.mygo:73:7*/			if MygoIN6ResultM5IsErr[int64, string](queued) {
 				failed = true
 				return
 			} else {
@@ -95,9 +95,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_delivery_plan.gen.go:95:1*/			}
 		}
 	})
- /*line delivery_plan.mygo:80:6*/	if failed {
+ /*line delivery_plan.mygo:80:3*/	if failed {
  /*line delivery_plan.mygo:81:12*/		return Err[PlanResult, string]("delivery plan failed")
- /*line delivery_plan.mygo:80:6*/	} else {
+ /*line delivery_plan.mygo:80:3*/	} else {
  /*line zz_delivery_plan.gen.go:101:1*/	}
  /*line delivery_plan.mygo:83:3*/	return Ok[PlanResult, string](PlanResult{Receipts: receipts, Jobs: jobs})
  /*line zz_delivery_plan.gen.go:103:1*/}

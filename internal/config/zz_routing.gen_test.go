@@ -22,57 +22,57 @@ import . "github.com/mygo-lang/mygo/prelude"
 	request.RemoteAddr = "198.51.100.1:1000"
  /*line routing_test.mygo:20:3*/	request.Header.Set("X-Forwarded-Host", "b.example")
  /*line routing_test.mygo:21:3*/	request.Header.Set("Forwarded", "host=b.example")
- /*line routing_test.mygo:22:10*/	__mygo_expr_0 := ResolveRequest(config, request)
+ /*line routing_test.mygo:22:3*/	__mygo_expr_0 := ResolveRequest(config, request)
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[Site, string]); ok {
  /*line routing_test.mygo:24:8*/		if __mygo_match___mygo_expr_2.F0.ID != "a" {
  /*line routing_test.mygo:25:7*/			t.Fatal("HTTP request accepted spoofed forwarded host")
- /*line routing_test.mygo:22:10*/		} else {
+ /*line routing_test.mygo:22:3*/		} else {
  /*line zz_routing.gen_test.go:30:1*/		}
 	} else {
- /*line routing_test.mygo:22:10*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Site, string]); ok {
+ /*line routing_test.mygo:22:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Site, string]); ok {
  /*line routing_test.mygo:27:24*/			t.Fatal(__mygo_match___mygo_expr_1.F0)
- /*line routing_test.mygo:22:10*/		} else {
+ /*line routing_test.mygo:22:3*/		} else {
  /*line zz_routing.gen_test.go:35:1*/		}
 	}
  /*line routing_test.mygo:15:1*/	cases := []RoutingCase{RoutingCase{Host: "A.EXAMPLE.:443", Remote: "198.51.100.1:1000", Forwarded: "b.example", Want: "a"}, RoutingCase{Host: "alias.example", Remote: "198.51.100.1:1000", Forwarded: "", Want: "a"}, RoutingCase{Host: "internal.example", Remote: "192.0.2.1:1000", Forwarded: "b.example", Want: "b"}, RoutingCase{Host: "internal.example", Remote: "[2001:db8::1]:1000", Forwarded: "a.example", Want: "a"}, RoutingCase{Host: "internal.example", Remote: "[::ffff:192.0.2.1]:1000", Forwarded: "a.example", Want: "a"}, RoutingCase{Host: "unknown.example", Remote: "198.51.100.1:1000", Forwarded: "a.example", Want: ""}, RoutingCase{Host: "a.example", Remote: "192.0.2.1:1000", Forwarded: "a.example,b.example", Want: ""}, RoutingCase{Host: "a.example", Remote: "192.0.2.1:1000", Forwarded: "unknown.example", Want: ""}, RoutingCase{Host: "a.example", Remote: "invalid", Forwarded: "b.example", Want: "a"}}
  /*line routing_test.mygo:40:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test RoutingCase) {
- /*line routing_test.mygo:41:12*/		__mygo_expr_3 := ResolveSite(config, test.Host, test.Remote, test.Forwarded)
+ /*line routing_test.mygo:41:5*/		__mygo_expr_3 := ResolveSite(config, test.Host, test.Remote, test.Forwarded)
 		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[Site, string]); ok {
  /*line routing_test.mygo:43:10*/			if test.Want == "" || __mygo_match___mygo_expr_5.F0.ID != test.Want {
  /*line routing_test.mygo:44:9*/				t.Errorf("incorrect site selected for %s", test.Host)
- /*line routing_test.mygo:41:12*/			} else {
+ /*line routing_test.mygo:41:5*/			} else {
  /*line zz_routing.gen_test.go:44:1*/			}
 		} else {
- /*line routing_test.mygo:41:12*/			if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[Site, string]); ok {
+ /*line routing_test.mygo:41:5*/			if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[Site, string]); ok {
  /*line routing_test.mygo:47:10*/				if test.Want != "" {
  /*line routing_test.mygo:48:9*/					t.Errorf("routing %s: %s", test.Host, __mygo_match___mygo_expr_4.F0)
- /*line routing_test.mygo:41:12*/				} else {
+ /*line routing_test.mygo:41:5*/				} else {
  /*line zz_routing.gen_test.go:50:1*/				}
- /*line routing_test.mygo:41:12*/			} else {
+ /*line routing_test.mygo:41:5*/			} else {
  /*line zz_routing.gen_test.go:52:1*/			}
 		}
- /*line routing_test.mygo:41:12*/		return
+ /*line routing_test.mygo:41:5*/		return
  /*line zz_routing.gen_test.go:55:1*/	})
  /*line routing_test.mygo:15:1*/	site := MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(config.Sites, 0))
- /*line routing_test.mygo:53:10*/	__mygo_expr_3 := CanonicalURI(site, "users", "alice")
-	if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[string, string]); ok {
- /*line routing_test.mygo:55:15*/		if __mygo_match___mygo_expr_5.F0 != "https://a.example/users/alice" {
+ /*line routing_test.mygo:53:3*/	__mygo_expr_6 := CanonicalURI(site, "users", "alice")
+	if __mygo_match___mygo_expr_8, ok := __mygo_expr_6.(Result__Ok[string, string]); ok {
+ /*line routing_test.mygo:55:15*/		if __mygo_match___mygo_expr_8.F0 != "https://a.example/users/alice" {
  /*line routing_test.mygo:56:7*/			t.Fatal("alias changed canonical identity")
- /*line routing_test.mygo:53:10*/		} else {
+ /*line routing_test.mygo:53:3*/		} else {
  /*line zz_routing.gen_test.go:62:1*/		}
 	} else {
- /*line routing_test.mygo:53:10*/		if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Err[string, string]); ok {
- /*line routing_test.mygo:58:24*/			t.Fatal(__mygo_match___mygo_expr_4.F0)
- /*line routing_test.mygo:53:10*/		} else {
+ /*line routing_test.mygo:53:3*/		if __mygo_match___mygo_expr_7, ok := __mygo_expr_6.(Result__Err[string, string]); ok {
+ /*line routing_test.mygo:58:24*/			t.Fatal(__mygo_match___mygo_expr_7.F0)
+ /*line routing_test.mygo:53:3*/		} else {
  /*line zz_routing.gen_test.go:67:1*/		}
 	}
  /*line routing_test.mygo:15:1*/	invalid := []string{"", "..", "//evil.example", "alice/bob"}
  /*line routing_test.mygo:61:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(id string) {
- /*line routing_test.mygo:62:8*/		if MygoIN6ResultM4IsOk[string, string](CanonicalURI(site, "users", id)) {
+ /*line routing_test.mygo:62:5*/		if MygoIN6ResultM4IsOk[string, string](CanonicalURI(site, "users", id)) {
  /*line routing_test.mygo:63:7*/			t.Errorf("bad id accepted: %s", id)
 			return
- /*line routing_test.mygo:62:8*/		} else {
- /*line routing_test.mygo:62:5*/			return
+ /*line routing_test.mygo:62:5*/		} else {
+			return
  /*line zz_routing.gen_test.go:76:1*/		}
 	})
  /*line routing_test.mygo:61:3*/	return

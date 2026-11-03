@@ -45,40 +45,40 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, community.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
 	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, string](storage.PlanRestrictedDelivery(ctx, db, activityURI, alice.ActorURI, community.ID))
- /*line protected_test.mygo:36:6*/	if planned.Jobs != int64(1) || planned.Receipts != int64(2) {
+ /*line protected_test.mygo:36:3*/	if planned.Jobs != int64(1) || planned.Receipts != int64(2) {
  /*line protected_test.mygo:37:5*/		t.Fatalf("restricted expansion did not address exactly the capable, local and colocated members: %d/%d", planned.Jobs, planned.Receipts)
- /*line protected_test.mygo:36:6*/	} else {
+ /*line protected_test.mygo:36:3*/	} else {
  /*line zz_protected.gen_test.go:51:1*/	}
  /*line protected_test.mygo:10:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", weakMember).Count(&count)))
- /*line protected_test.mygo:41:6*/	if count != int64(0) {
+ /*line protected_test.mygo:41:3*/	if count != int64(0) {
  /*line protected_test.mygo:42:5*/		t.Fatal("an incompatible peer received restricted content")
- /*line protected_test.mygo:41:6*/	} else {
+ /*line protected_test.mygo:41:3*/	} else {
  /*line zz_protected.gen_test.go:57:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", outsider).Count(&count)))
- /*line protected_test.mygo:45:6*/	if count != int64(0) {
+ /*line protected_test.mygo:45:3*/	if count != int64(0) {
  /*line protected_test.mygo:46:5*/		t.Fatal("a non-member received restricted content")
- /*line protected_test.mygo:45:6*/	} else {
+ /*line protected_test.mygo:45:3*/	} else {
  /*line zz_protected.gen_test.go:62:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("target_inbox = ?", capableMember+"/inbox").Count(&count)))
- /*line protected_test.mygo:49:6*/	if count != int64(1) {
+ /*line protected_test.mygo:49:3*/	if count != int64(1) {
  /*line protected_test.mygo:50:5*/		t.Fatal("restricted delivery did not target the member's personal inbox")
- /*line protected_test.mygo:49:6*/	} else {
+ /*line protected_test.mygo:49:3*/	} else {
  /*line zz_protected.gen_test.go:67:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", colocated.ActorURI).Count(&count)))
- /*line protected_test.mygo:53:6*/	if count != int64(1) {
+ /*line protected_test.mygo:53:3*/	if count != int64(1) {
  /*line protected_test.mygo:54:5*/		t.Fatal("a colocated member did not receive a local receipt")
- /*line protected_test.mygo:53:6*/	} else {
+ /*line protected_test.mygo:53:3*/	} else {
  /*line zz_protected.gen_test.go:72:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'a' AND recipient_actor_uri = ?", alice.ActorURI).Count(&count)))
- /*line protected_test.mygo:57:6*/	if count != int64(1) {
+ /*line protected_test.mygo:57:3*/	if count != int64(1) {
  /*line protected_test.mygo:58:5*/		t.Fatal("a local member did not receive a local receipt")
- /*line protected_test.mygo:57:6*/	} else {
+ /*line protected_test.mygo:57:3*/	} else {
  /*line zz_protected.gen_test.go:77:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("recipient_actor_uri = ?", outsider).Count(&count)))
- /*line protected_test.mygo:61:6*/	if count != int64(0) {
+ /*line protected_test.mygo:61:3*/	if count != int64(0) {
  /*line protected_test.mygo:62:5*/		t.Fatal("a non-member received a restricted receipt")
- /*line protected_test.mygo:61:6*/	} else {
+ /*line protected_test.mygo:61:3*/	} else {
  /*line zz_protected.gen_test.go:82:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, capableMember)))
 	calls := 0
@@ -87,15 +87,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line protected_test.mygo:68:5*/		return Ok[int, string](202)
  /*line zz_protected.gen_test.go:88:1*/	}
  /*line protected_test.mygo:10:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, Limits{BatchSize: 5, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
- /*line protected_test.mygo:71:6*/	if calls != 0 || outcome.Suppressed != 1 || outcome.Delivered != 0 {
+ /*line protected_test.mygo:71:3*/	if calls != 0 || outcome.Suppressed != 1 || outcome.Delivered != 0 {
  /*line protected_test.mygo:72:5*/		t.Fatalf("a revoked member's queued restricted delivery was not suppressed: calls=%d suppressed=%d", calls, outcome.Suppressed)
- /*line protected_test.mygo:71:6*/	} else {
+ /*line protected_test.mygo:71:3*/	} else {
  /*line zz_protected.gen_test.go:93:1*/	}
  /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'suppressed' AND error_code = 'membership-revoked'").Count(&count)))
- /*line protected_test.mygo:75:6*/	if count != int64(1) {
+ /*line protected_test.mygo:75:3*/	if count != int64(1) {
  /*line protected_test.mygo:76:5*/		t.Fatal("revoked-member suppression was not recorded")
 		return
- /*line protected_test.mygo:75:6*/	} else {
- /*line protected_test.mygo:75:3*/		return
+ /*line protected_test.mygo:75:3*/	} else {
+		return
  /*line zz_protected.gen_test.go:100:1*/	}
 }

@@ -5,7 +5,6 @@ package storage
 import "testing"
 import "context"
 import "github.com/commune-project/commune-backend/internal/content"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -19,11 +18,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_render_separation.gen_test.go:22:1*/	}
+ /*line zz_render_separation.gen_test.go:21:1*/	}
  /*line render_separation_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
+	site := testSite("a", "https://a.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
@@ -31,24 +30,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	raw := "<script>alert(1)</script><p>hello</p>"
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "T", Body: raw, ParentID: ""}))
-	stored := PostRecord{}
+	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "T", Body: raw, ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	stored := Zero[PostRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&stored)))
- /*line render_separation_test.mygo:25:6*/	if stored.Body != raw {
- /*line render_separation_test.mygo:26:5*/		t.Fatal("stored protocol body was rewritten by display logic")
- /*line render_separation_test.mygo:25:6*/	} else {
- /*line zz_render_separation.gen_test.go:40:1*/	}
+ /*line render_separation_test.mygo:49:3*/	if stored.Body != raw {
+ /*line render_separation_test.mygo:50:5*/		t.Fatal("stored protocol body was rewritten by display logic")
+ /*line render_separation_test.mygo:49:3*/	} else {
+ /*line zz_render_separation.gen_test.go:39:1*/	}
  /*line render_separation_test.mygo:10:1*/	display := content.RenderText(stored.Body)
- /*line render_separation_test.mygo:29:6*/	if display != "hello" || content.RenderText(stored.Body) != display {
- /*line render_separation_test.mygo:30:5*/		t.Fatal("display rendering was unsafe or not deterministic")
- /*line render_separation_test.mygo:29:6*/	} else {
- /*line zz_render_separation.gen_test.go:45:1*/	}
- /*line render_separation_test.mygo:10:1*/	again := PostRecord{}
+ /*line render_separation_test.mygo:53:3*/	if display != "hello" || content.RenderText(stored.Body) != display {
+ /*line render_separation_test.mygo:54:5*/		t.Fatal("display rendering was unsafe or not deterministic")
+ /*line render_separation_test.mygo:53:3*/	} else {
+ /*line zz_render_separation.gen_test.go:44:1*/	}
+ /*line render_separation_test.mygo:10:1*/	again := Zero[PostRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&again)))
- /*line render_separation_test.mygo:34:6*/	if again.Body != raw {
- /*line render_separation_test.mygo:35:5*/		t.Fatal("rendering mutated the retained inbound payload")
+ /*line render_separation_test.mygo:58:3*/	if again.Body != raw {
+ /*line render_separation_test.mygo:59:5*/		t.Fatal("rendering mutated the retained inbound payload")
 		return
- /*line render_separation_test.mygo:34:6*/	} else {
- /*line render_separation_test.mygo:34:3*/		return
- /*line zz_render_separation.gen_test.go:53:1*/	}
+ /*line render_separation_test.mygo:58:3*/	} else {
+		return
+ /*line zz_render_separation.gen_test.go:52:1*/	}
 }

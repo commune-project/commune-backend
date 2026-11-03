@@ -8,7 +8,11 @@ import strconv "go:strconv"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
 
-func SendVerificationSMTP(settings: config.SMTP, recipient: String, link: String) -> Result[(), String]
+func SendVerificationSMTP(
+  settings: config.SMTP,
+  recipient: String,
+  link: String
+) -> Result[(), String]
   if strings.ContainsAny(recipient + settings.From, "\r\n") then
     return Err("invalid mail address")
   end
@@ -16,8 +20,11 @@ func SendVerificationSMTP(settings: config.SMTP, recipient: String, link: String
   let timeout = settings.TimeoutSeconds as time.Duration * time.Second
   var connection: Result[net.Conn, String] = Err("smtp unavailable")
   if settings.TLSMode == "tls" then
-    let dialer = net.Dialer{Timeout: timeout}
-    let security = tls.Config{ServerName: settings.Host, MinVersion: tls.VersionTLS12 as UInt16}
+    var dialer = Zero[net.Dialer]()
+    dialer.Timeout = timeout
+    var security = Zero[tls.Config]()
+    security.ServerName = settings.Host
+    security.MinVersion = tls.VersionTLS12 as UInt16
     let secured = tls.DialWithDialer(Ref.new(dialer), "tcp", address, Ref.new(security))
     if secured.IsOk() then
       connection = Ok(secured.Unwrap() as net.Conn)
@@ -41,13 +48,16 @@ func SendVerificationSMTP(settings: config.SMTP, recipient: String, link: String
   let mailer = client.Unwrap()
   go[()] { code: "defer {mailer}.Close()"; in mailer = mailer }
   if settings.TLSMode == "starttls" then
-    let security = tls.Config{ServerName: settings.Host, MinVersion: tls.VersionTLS12 as UInt16}
+    var security = Zero[tls.Config]()
+    security.ServerName = settings.Host
+    security.MinVersion = tls.VersionTLS12 as UInt16
     if mailer.StartTLS(Ref.new(security)).IsErr() then
       return Err("smtp TLS unavailable")
     end
   end
   if settings.Username != "" then
-    if settings.TLSMode == "test" || mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
+    if settings.TLSMode == "test" ||
+      mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
       return Err("smtp authentication failed")
     end
   end
@@ -58,7 +68,13 @@ func SendVerificationSMTP(settings: config.SMTP, recipient: String, link: String
   if output.IsErr() then
     return Err("smtp unavailable")
   end
-  let message = "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Verify your Commune email\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nComplete registration and choose your password:\r\n" + link + "\r\n"
+  let message = "From: " +
+    settings.From +
+    "\r\nTo: " +
+    recipient +
+    "\r\nSubject: Verify your Commune email\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nComplete registration and choose your password:\r\n" +
+    link +
+    "\r\n"
   let written = output.Unwrap().Write(message as Slice[Byte])
   let closed = output.Unwrap().Close()
   if written.IsErr() || closed.IsErr() then
@@ -68,7 +84,11 @@ func SendVerificationSMTP(settings: config.SMTP, recipient: String, link: String
   Ok(())
 end
 
-func SendPasswordResetSMTP(settings: config.SMTP, recipient: String, link: String) -> Result[(), String]
+func SendPasswordResetSMTP(
+  settings: config.SMTP,
+  recipient: String,
+  link: String
+) -> Result[(), String]
   if strings.ContainsAny(recipient + settings.From, "\r\n") then
     return Err("invalid mail address")
   end
@@ -76,8 +96,11 @@ func SendPasswordResetSMTP(settings: config.SMTP, recipient: String, link: Strin
   let timeout = settings.TimeoutSeconds as time.Duration * time.Second
   var connection: Result[net.Conn, String] = Err("smtp unavailable")
   if settings.TLSMode == "tls" then
-    let dialer = net.Dialer{Timeout: timeout}
-    let security = tls.Config{ServerName: settings.Host, MinVersion: tls.VersionTLS12 as UInt16}
+    var dialer = Zero[net.Dialer]()
+    dialer.Timeout = timeout
+    var security = Zero[tls.Config]()
+    security.ServerName = settings.Host
+    security.MinVersion = tls.VersionTLS12 as UInt16
     let secured = tls.DialWithDialer(Ref.new(dialer), "tcp", address, Ref.new(security))
     if secured.IsOk() then
       connection = Ok(secured.Unwrap() as net.Conn)
@@ -101,13 +124,16 @@ func SendPasswordResetSMTP(settings: config.SMTP, recipient: String, link: Strin
   let mailer = client.Unwrap()
   go[()] { code: "defer {mailer}.Close()"; in mailer = mailer }
   if settings.TLSMode == "starttls" then
-    let security = tls.Config{ServerName: settings.Host, MinVersion: tls.VersionTLS12 as UInt16}
+    var security = Zero[tls.Config]()
+    security.ServerName = settings.Host
+    security.MinVersion = tls.VersionTLS12 as UInt16
     if mailer.StartTLS(Ref.new(security)).IsErr() then
       return Err("smtp TLS unavailable")
     end
   end
   if settings.Username != "" then
-    if settings.TLSMode == "test" || mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
+    if settings.TLSMode == "test" ||
+      mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
       return Err("smtp authentication failed")
     end
   end
@@ -118,7 +144,13 @@ func SendPasswordResetSMTP(settings: config.SMTP, recipient: String, link: Strin
   if output.IsErr() then
     return Err("smtp unavailable")
   end
-  let message = "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Reset your Commune password\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nChoose a new password:\r\n" + link + "\r\n"
+  let message = "From: " +
+    settings.From +
+    "\r\nTo: " +
+    recipient +
+    "\r\nSubject: Reset your Commune password\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nChoose a new password:\r\n" +
+    link +
+    "\r\n"
   let written = output.Unwrap().Write(message as Slice[Byte])
   let closed = output.Unwrap().Close()
   if written.IsErr() || closed.IsErr() then

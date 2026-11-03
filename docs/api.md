@@ -138,6 +138,31 @@ unreceived, deleted, hidden, or unreadable.
 `old`, `top`, or `controversial` and default to `old`. Filters run before
 pagination, and authored time plus ID provides deterministic tie-breaking.
 
+## Mention candidates
+
+| Method | Path | Success |
+| --- | --- | --- |
+| GET | `/api/v1/mentions/candidates?q=&limit=&community_id=` | 200 `{items:[...]}` |
+
+`q` is required and contains 2–64 Unicode code points; `limit` defaults to 8
+and is capped at 20. `community_id` is optional context and does not filter
+results, so the endpoint also works for future community-less posts. The
+endpoint requires a session, returns `401` without one, `400` for invalid
+input, and `405` for non-GET methods. Responses are `no-store` and use
+`Referrer-Policy: no-referrer`.
+
+Each item contains `actor_uri`, `acct`, `display_name`, and `avatar`; missing
+strings are empty rather than null. `acct` is the full `username@domain`
+handle. Local accounts without a profile fall back to the username for
+`display_name`. The endpoint returns the resolved site's local accounts plus
+stored remote Person Actors with a usable handle, including accounts hosted by
+another configured site. Self, disabled accounts, site-blocked or banned
+actors, and the viewer's personal person/instance blocks are excluded. It does
+not perform WebFinger, Actor, or media discovery and does not enqueue delivery
+or notification work; handles that are not already stored are omitted. In the
+composer, `@username` mentions a local account and `@username@domain` mentions
+a remote account.
+
 ## Reports, moderation log, and bans
 
 | Method | Path | Body | Success |

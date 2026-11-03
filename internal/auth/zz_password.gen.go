@@ -7,28 +7,28 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line password.mygo:5:1*/func HashPassword(password string) Result[string, string] {
 	bytes := []byte(password)
- /*line password.mygo:7:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(bytes) < 12 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(bytes) > 72 {
+ /*line password.mygo:7:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(bytes) < 12 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(bytes) > 72 {
  /*line password.mygo:8:12*/		return Err[string, string]("password must contain between 12 and 72 bytes")
- /*line password.mygo:7:6*/	} else {
+ /*line password.mygo:7:3*/	} else {
  /*line zz_password.gen.go:13:1*/	}
- /*line password.mygo:10:10*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line password.mygo:10:3*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := bcrypt.GenerateFromPassword(bytes, bcrypt.DefaultCost)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_password.gen.go:20:1*/	}
- /*line password.mygo:10:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line password.mygo:10:3*/	__mygo_expr_3 := __mygo_expr_1
 	var __mygo_expr_4 Result[string, string]
 	if _, ok := __mygo_expr_3.(Result__Err[[]byte, error]); ok {
 		__mygo_expr_4 = Err[string, string]("password hashing failed")
  /*line zz_password.gen.go:25:1*/	} else {
- /*line password.mygo:10:10*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
+ /*line password.mygo:10:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
 			__mygo_expr_4 = Ok[string, string](string(__mygo_match___mygo_expr_5.F0))
 		} else {
  /*line zz_password.gen.go:29:1*/		}
 	}
- /*line password.mygo:10:10*/	return __mygo_expr_4
+ /*line password.mygo:10:3*/	return __mygo_expr_4
  /*line zz_password.gen.go:32:1*/}
  /*line password.mygo:16:1*/func VerifyPassword(hash string, password string) bool {
  /*line password.mygo:17:3*/	var __mygo_expr_1 Result[struct{}, error]

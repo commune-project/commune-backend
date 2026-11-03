@@ -8,23 +8,23 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line collection_traversal_test.mygo:5:1*/func TestCollectionTraversal(t *testing.T) {
 	payload := "{\"id\":\"https://peer.example/contexts/1\",\"type\":\"OrderedCollectionPage\",\"first\":\"https://peer.example/contexts/1?page=1\",\"next\":{\"id\":\"https://peer.example/contexts/1?page=3\"},\"orderedItems\":[\"https://peer.example/objects/1\",{\"id\":\"https://peer.example/objects/2\"},{\"href\":\"https://peer.example/objects/3\"},\"https://peer.example/objects/1\"]}"
 	parsed := ParseCollectionTraversal([]byte(payload))
- /*line collection_traversal_test.mygo:8:6*/	if MygoIN6ResultM5IsErr[CollectionTraversal, string](parsed) {
+ /*line collection_traversal_test.mygo:8:3*/	if MygoIN6ResultM5IsErr[CollectionTraversal, string](parsed) {
  /*line collection_traversal_test.mygo:9:5*/		t.Fatalf("a valid collection page was rejected: %s", MygoIN6ResultM9UnwrapErr[CollectionTraversal, string](parsed))
- /*line collection_traversal_test.mygo:8:6*/	} else {
+ /*line collection_traversal_test.mygo:8:3*/	} else {
  /*line zz_collection_traversal.gen_test.go:14:1*/	}
  /*line collection_traversal_test.mygo:5:1*/	page := MygoIN6ResultM6Unwrap[CollectionTraversal, string](parsed)
- /*line collection_traversal_test.mygo:12:6*/	if page.ID != "https://peer.example/contexts/1" || page.First != "https://peer.example/contexts/1?page=1" || page.Next != "https://peer.example/contexts/1?page=3" {
+ /*line collection_traversal_test.mygo:12:3*/	if page.ID != "https://peer.example/contexts/1" || page.First != "https://peer.example/contexts/1?page=1" || page.Next != "https://peer.example/contexts/1?page=3" {
  /*line collection_traversal_test.mygo:13:5*/		t.Fatal("collection navigation links were not retained")
- /*line collection_traversal_test.mygo:12:6*/	} else {
+ /*line collection_traversal_test.mygo:12:3*/	} else {
  /*line zz_collection_traversal.gen_test.go:19:1*/	}
- /*line collection_traversal_test.mygo:15:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 3 || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 2)) != "https://peer.example/objects/3" {
+ /*line collection_traversal_test.mygo:15:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 3 || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 2)) != "https://peer.example/objects/3" {
  /*line collection_traversal_test.mygo:16:5*/		t.Fatal("mixed collection items were not decoded and deduplicated")
- /*line collection_traversal_test.mygo:15:6*/	} else {
+ /*line collection_traversal_test.mygo:15:3*/	} else {
  /*line zz_collection_traversal.gen_test.go:23:1*/	}
- /*line collection_traversal_test.mygo:18:6*/	if MygoIN6ResultM4IsOk[CollectionTraversal, string](ParseCollectionTraversal([]byte("{\"type\":\"Note\",\"items\":[]}"))) {
+ /*line collection_traversal_test.mygo:18:3*/	if MygoIN6ResultM4IsOk[CollectionTraversal, string](ParseCollectionTraversal([]byte("{\"type\":\"Note\",\"items\":[]}"))) {
  /*line collection_traversal_test.mygo:19:5*/		t.Fatal("a non-collection document was accepted for traversal")
 		return
- /*line collection_traversal_test.mygo:18:6*/	} else {
- /*line collection_traversal_test.mygo:18:3*/		return
+ /*line collection_traversal_test.mygo:18:3*/	} else {
+		return
  /*line zz_collection_traversal.gen_test.go:29:1*/	}
 }

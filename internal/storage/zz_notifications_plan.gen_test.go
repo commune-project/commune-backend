@@ -28,66 +28,66 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("ANALYZE")))
 	browser := BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
 	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, f.Alice))
- /*line notifications_plan_test.mygo:32:6*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1500) {
- /*line notifications_plan_test.mygo:33:5*/		t.Fatal("hidden targets or reply/mention precedence changed representative count")
- /*line notifications_plan_test.mygo:32:6*/	} else {
+ /*line notifications_plan_test.mygo:46:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1500) {
+ /*line notifications_plan_test.mygo:47:5*/		t.Fatal("hidden targets or reply/mention precedence changed representative count")
+ /*line notifications_plan_test.mygo:46:3*/	} else {
  /*line zz_notifications_plan.gen_test.go:34:1*/	}
- /*line notifications_plan_test.mygo:13:1*/	first := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 20}, 50))
+ /*line notifications_plan_test.mygo:13:1*/	first := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 20, Offset: 0}, 50))
 	next := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 20, Offset: 20}, 50))
- /*line notifications_plan_test.mygo:37:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first.Items) != 20 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(next.Items) != 20 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(first.Items, 19)).ID <= MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(next.Items, 0)).ID {
- /*line notifications_plan_test.mygo:38:5*/		t.Fatal("equal-time notification pagination lost deterministic ID order")
- /*line notifications_plan_test.mygo:37:6*/	} else {
+ /*line notifications_plan_test.mygo:51:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first.Items) != 20 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(next.Items) != 20 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(first.Items, 19)).ID <= MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(next.Items, 0)).ID {
+ /*line notifications_plan_test.mygo:54:5*/		t.Fatal("equal-time notification pagination lost deterministic ID order")
+ /*line notifications_plan_test.mygo:51:3*/	} else {
  /*line zz_notifications_plan.gen_test.go:40:1*/	}
  /*line notifications_plan_test.mygo:13:1*/	var selects int = 0
- /*line notifications_plan_test.mygo:41:20*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line notifications_plan_test.mygo:57:20*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := f.DB.Callback().Row().Before("gorm:row").Register("notification_select_count", func(tx *gorm.DB) {
- /*line notifications_plan_test.mygo:41:99*/		selects = selects + 1
+ /*line notifications_plan_test.mygo:59:5*/		selects = selects + 1
 		return
  /*line zz_notifications_plan.gen_test.go:46:1*/	})
- /*line notifications_plan_test.mygo:41:20*/	if __mygo_expr_0 != nil {
+ /*line notifications_plan_test.mygo:57:20*/	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_notifications_plan.gen_test.go:51:1*/		}{})
 	}
  /*line notifications_plan_test.mygo:13:1*/	registered := __mygo_expr_1
- /*line notifications_plan_test.mygo:44:6*/	if MygoIN6ResultM5IsErr[struct{}, error](registered) {
- /*line notifications_plan_test.mygo:45:5*/		t.Fatal("cannot register notification query counter")
- /*line notifications_plan_test.mygo:44:6*/	} else {
+ /*line notifications_plan_test.mygo:63:3*/	if MygoIN6ResultM5IsErr[struct{}, error](registered) {
+ /*line notifications_plan_test.mygo:64:5*/		t.Fatal("cannot register notification query counter")
+ /*line notifications_plan_test.mygo:63:3*/	} else {
  /*line zz_notifications_plan.gen_test.go:57:1*/	}
  /*line notifications_plan_test.mygo:13:1*/	var sizes []int = []int{1, 20, 50}
- /*line notifications_plan_test.mygo:48:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(sizes, func(size int) {
- /*line notifications_plan_test.mygo:48:14*/		selects = 0
-		result := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: size}, 50))
- /*line notifications_plan_test.mygo:51:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(result.Items) != size || selects != 2 {
- /*line notifications_plan_test.mygo:52:7*/			t.Fatalf("notification page %d returned %d items using %d selects", size, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(result.Items), selects)
- /*line notifications_plan_test.mygo:51:8*/		} else {
+ /*line notifications_plan_test.mygo:67:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(sizes, func(size int) {
+ /*line notifications_plan_test.mygo:67:14*/		selects = 0
+		result := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: size, Offset: 0}, 50))
+ /*line notifications_plan_test.mygo:70:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(result.Items) != size || selects != 2 {
+ /*line notifications_plan_test.mygo:71:7*/			t.Fatalf("notification page %d returned %d items using %d selects", size, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(result.Items), selects)
+ /*line notifications_plan_test.mygo:70:5*/		} else {
  /*line zz_notifications_plan.gen_test.go:65:1*/		}
- /*line notifications_plan_test.mygo:54:5*/		t.Logf("notification page-size=%d selects=%d enrichment-selects=0", size, selects)
+ /*line notifications_plan_test.mygo:78:5*/		t.Logf("notification page-size=%d selects=%d enrichment-selects=0", size, selects)
 		return
  /*line zz_notifications_plan.gen_test.go:68:1*/	})
  /*line notifications_plan_test.mygo:13:1*/	f.DB.Callback().Row().Remove("notification_select_count")
 	var variants []string = []string{"page", "unread-count"}
- /*line notifications_plan_test.mygo:58:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(variants, func(kind string) {
- /*line notifications_plan_test.mygo:58:17*/		var __mygo_expr_2 *gorm.DB
+ /*line notifications_plan_test.mygo:82:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(variants, func(kind string) {
+ /*line notifications_plan_test.mygo:82:17*/		var __mygo_expr_2 *gorm.DB
 		if kind == "page" {
 			__mygo_expr_2 = MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer).Order("created_at DESC,id DESC").Limit(20)
 		} else {
 			__mygo_expr_2 = f.DB.Table("(?) AS unread", MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer)).Where("NOT unread.read")
  /*line zz_notifications_plan.gen_test.go:77:1*/		}
- /*line notifications_plan_test.mygo:58:17*/		query := __mygo_expr_2
+ /*line notifications_plan_test.mygo:82:17*/		query := __mygo_expr_2
 		var lines []NotificationPlanLine = []NotificationPlanLine{}
 		result_1 := f.DB.Raw("EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM (?) AS notification_plan", query).Scan(&lines)
- /*line notifications_plan_test.mygo:66:8*/		if QueryFailed(result_1) {
- /*line notifications_plan_test.mygo:67:7*/			t.Fatalf("notification EXPLAIN failed: %v", result_1.Error)
- /*line notifications_plan_test.mygo:66:8*/		} else {
+ /*line notifications_plan_test.mygo:90:5*/		if QueryFailed(result_1) {
+ /*line notifications_plan_test.mygo:91:7*/			t.Fatalf("notification EXPLAIN failed: %v", result_1.Error)
+ /*line notifications_plan_test.mygo:90:5*/		} else {
  /*line zz_notifications_plan.gen_test.go:84:1*/		}
- /*line notifications_plan_test.mygo:69:5*/		t.Logf("notification plan %s: posts=2000 mentions=1000 visible=1500 page-size=20", kind)
- /*line notifications_plan_test.mygo:70:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(lines, func(line NotificationPlanLine) {
- /*line notifications_plan_test.mygo:71:7*/			t.Logf("%s", line.Line)
+ /*line notifications_plan_test.mygo:93:5*/		t.Logf("notification plan %s: posts=2000 mentions=1000 visible=1500 page-size=20", kind)
+ /*line notifications_plan_test.mygo:94:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(lines, func(line NotificationPlanLine) {
+ /*line notifications_plan_test.mygo:95:7*/			t.Logf("%s", line.Line)
 			return
  /*line zz_notifications_plan.gen_test.go:89:1*/		})
- /*line notifications_plan_test.mygo:70:5*/		return
+ /*line notifications_plan_test.mygo:94:5*/		return
  /*line zz_notifications_plan.gen_test.go:91:1*/	})
- /*line notifications_plan_test.mygo:58:3*/	return
+ /*line notifications_plan_test.mygo:82:3*/	return
  /*line zz_notifications_plan.gen_test.go:93:1*/}

@@ -25,18 +25,18 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mentions.mygo:28:3*/	return text.Segment{Start: -1, Stop: -1}
  /*line zz_mentions.gen.go:26:1*/}
  /*line mentions.mygo:39:1*/func ExtractMentionCandidates(source string, format string) Result[[]MentionCandidate, string] {
- /*line mentions.mygo:40:6*/	if format != "markdown" && format != "legacy" && format != "text" && format != "html" {
+ /*line mentions.mygo:40:3*/	if format != "markdown" && format != "legacy" && format != "text" && format != "html" {
  /*line mentions.mygo:41:12*/		return Err[[]MentionCandidate, string]("unsupported content format")
- /*line mentions.mygo:40:6*/	} else {
+ /*line mentions.mygo:40:3*/	} else {
  /*line zz_mentions.gen.go:31:1*/	}
- /*line mentions.mygo:43:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
+ /*line mentions.mygo:43:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
  /*line mentions.mygo:44:12*/		return Err[[]MentionCandidate, string]("content exceeds 1 MiB")
- /*line mentions.mygo:43:6*/	} else {
+ /*line mentions.mygo:43:3*/	} else {
  /*line zz_mentions.gen.go:35:1*/	}
  /*line mentions.mygo:39:1*/	var candidates []MentionCandidate = []MentionCandidate{}
- /*line mentions.mygo:47:6*/	if format != "markdown" {
+ /*line mentions.mygo:47:3*/	if format != "markdown" {
  /*line mentions.mygo:48:12*/		return Ok[[]MentionCandidate, string](candidates)
- /*line mentions.mygo:47:6*/	} else {
+ /*line mentions.mygo:47:3*/	} else {
  /*line zz_mentions.gen.go:40:1*/	}
  /*line mentions.mygo:39:1*/	input := []byte(source)
 	root := goldmark.New().Parser().Parse(text.NewReader(input))
@@ -46,7 +46,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		excluded := kind == ast.KindCodeSpan || kind == ast.KindCodeBlock || kind == ast.KindFencedCodeBlock || kind == ast.KindLink || kind == ast.KindImage || kind == ast.KindAutoLink || kind == ast.KindRawHTML || kind == ast.KindHTMLBlock
 		if !excluded {
 			segment := MentionTextSegment(node)
- /*line mentions.mygo:58:10*/			if segment.Start >= 0 {
+ /*line mentions.mygo:58:7*/			if segment.Start >= 0 {
 				sibling := node.NextSibling()
 				merging := true
 				for !MentionNodeMissing(sibling) && merging {
@@ -59,12 +59,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 						merging = false
  /*line zz_mentions.gen.go:60:1*/					}
 				}
- /*line mentions.mygo:58:10*/				candidates = ScanMentionSegment(input, segment.Start, segment.Stop, candidates)
+ /*line mentions.mygo:58:7*/				candidates = ScanMentionSegment(input, segment.Start, segment.Stop, candidates)
 				if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(candidates) > 64 {
  /*line mentions.mygo:76:18*/					return Err[[]MentionCandidate, string]("more than 64 mention candidates")
- /*line mentions.mygo:58:10*/				} else {
+ /*line mentions.mygo:58:7*/				} else {
  /*line zz_mentions.gen.go:66:1*/				}
- /*line mentions.mygo:58:10*/			} else {
+ /*line mentions.mygo:58:7*/			} else {
  /*line zz_mentions.gen.go:68:1*/			}
  /*line mentions.mygo:39:1*/			if !MentionNodeMissing(node.FirstChild()) {
 				node = node.FirstChild()
@@ -94,9 +94,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mentions.mygo:104:3*/	return MentionNameByte(code) || code == 46
  /*line zz_mentions.gen.go:95:1*/}
  /*line mentions.mygo:107:1*/func MentionDomainValid(domain string) bool {
- /*line mentions.mygo:108:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(domain)) > 253 || !strings.Contains(domain, ".") {
+ /*line mentions.mygo:108:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(domain)) > 253 || !strings.Contains(domain, ".") {
  /*line mentions.mygo:109:12*/		return false
- /*line mentions.mygo:108:6*/	} else {
+ /*line mentions.mygo:108:3*/	} else {
  /*line zz_mentions.gen.go:100:1*/	}
  /*line mentions.mygo:111:3*/	return MygoIN5SliceM3All(strings.Split(domain, "."), func(label string) bool {
  /*line mentions.mygo:111:34*/		size := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(label))

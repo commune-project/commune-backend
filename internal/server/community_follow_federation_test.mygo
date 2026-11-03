@@ -24,12 +24,12 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)).Unwrap()
   let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)).Unwrap()
   let now = time.Now().UTC().Truncate(time.Microsecond)
-  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now}, remoteAuthor).Unwrap()
+  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: 0i64, DeletedAt: Zero[sql.NullTime]()}, remoteAuthor).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")
   let csrf = csrfOf(cookies)
   let path = "/api/v1/communities/remote/follow"
-  let follow = forumCall{Method: "POST", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}
+  let follow = forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}
   if doForum(handler, follow).Code != 204 then
     t.Fatal("remote community follow failed")
   end
@@ -57,7 +57,7 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "accepted" then
     t.Fatal("Accept did not update the remote follow")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
     t.Fatal("remote unfollow failed")
   end
   if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "undone" ||
@@ -69,7 +69,7 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   if undos != 1i64 then
     t.Fatal("remote unfollow did not queue one Undo")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
     t.Fatal("repeat remote unfollow failed")
   end
   let repeatedUndos = 0i64

@@ -11,31 +11,31 @@ import . "github.com/mygo-lang/mygo/prelude"
 	source := "# Heading\n\n**bold** &amp; `@code`\n\n- one\n- two\n\n> quote\n\n[link](https://example.org)\n\n![alt](https://example.org/image.png)\n\n<script>alert(1)</script>"
 	rendered := MygoIN6ResultM6Unwrap[string, string](RenderRich(source, "markdown"))
  /*line rich_test.mygo:10:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"<h1>Heading</h1>", "<strong>bold</strong>", "<code>@code</code>", "<ul>", "<blockquote>", "https://example.org/image.png", "referrerpolicy=\"no-referrer\"", "noreferrer", "nofollow"}, func(fragment string) {
- /*line rich_test.mygo:11:8*/		if !strings.Contains(rendered, fragment) {
+ /*line rich_test.mygo:11:5*/		if !strings.Contains(rendered, fragment) {
  /*line rich_test.mygo:12:7*/			t.Fatalf("missing Markdown feature %s in %s", fragment, rendered)
 			return
- /*line rich_test.mygo:11:8*/		} else {
- /*line rich_test.mygo:11:5*/			return
+ /*line rich_test.mygo:11:5*/		} else {
+			return
  /*line zz_rich.gen_test.go:19:1*/		}
 	})
- /*line rich_test.mygo:15:6*/	if strings.Contains(rendered, "<script") {
+ /*line rich_test.mygo:15:3*/	if strings.Contains(rendered, "<script") {
  /*line rich_test.mygo:16:5*/		t.Fatal("Markdown raw HTML was enabled")
- /*line rich_test.mygo:15:6*/	} else {
+ /*line rich_test.mygo:15:3*/	} else {
  /*line zz_rich.gen_test.go:24:1*/	}
  /*line rich_test.mygo:7:1*/	legacy := "**literal** <b>old</b> &lt;tag&gt;"
- /*line rich_test.mygo:19:6*/	if MygoIN6ResultM6Unwrap[string, string](RenderRich(legacy, "legacy")) != RenderText(legacy) || MygoIN6ResultM6Unwrap[string, string](RenderRich(legacy, "text")) != RenderText(legacy) {
+ /*line rich_test.mygo:19:3*/	if MygoIN6ResultM6Unwrap[string, string](RenderRich(legacy, "legacy")) != RenderText(legacy) || MygoIN6ResultM6Unwrap[string, string](RenderRich(legacy, "text")) != RenderText(legacy) {
  /*line rich_test.mygo:20:5*/		t.Fatal("legacy rendering changed")
- /*line rich_test.mygo:19:6*/	} else {
+ /*line rich_test.mygo:19:3*/	} else {
  /*line zz_rich.gen_test.go:29:1*/	}
- /*line rich_test.mygo:22:6*/	if MygoIN6ResultM6Unwrap[string, string](RenderRich("**literal** <strong>HTML</strong>", "html")) != "**literal** <strong>HTML</strong>" {
+ /*line rich_test.mygo:22:3*/	if MygoIN6ResultM6Unwrap[string, string](RenderRich("**literal** <strong>HTML</strong>", "html")) != "**literal** <strong>HTML</strong>" {
  /*line rich_test.mygo:23:5*/		t.Fatal("remote HTML was interpreted as Markdown")
- /*line rich_test.mygo:22:6*/	} else {
+ /*line rich_test.mygo:22:3*/	} else {
  /*line zz_rich.gen_test.go:33:1*/	}
- /*line rich_test.mygo:25:6*/	if MygoIN6ResultM4IsOk[string, string](RenderRich("hello", "unknown")) || MygoIN6ResultM4IsOk[string, string](PlainRichText("hello", "unknown")) {
+ /*line rich_test.mygo:25:3*/	if MygoIN6ResultM4IsOk[string, string](RenderRich("hello", "unknown")) || MygoIN6ResultM4IsOk[string, string](PlainRichText("hello", "unknown")) {
  /*line rich_test.mygo:26:5*/		t.Fatal("unknown format accepted")
 		return
- /*line rich_test.mygo:25:6*/	} else {
- /*line rich_test.mygo:25:3*/		return
+ /*line rich_test.mygo:25:3*/	} else {
+		return
  /*line zz_rich.gen_test.go:39:1*/	}
 }
  /*line rich_test.mygo:32:1*/func AssertRichSafe(t *testing.T, rendered string) {
@@ -49,29 +49,29 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line rich_test.mygo:40:10*/			if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
  /*line rich_test.mygo:32:1*/				token := tokenizer.Token()
 				var allowed []string = []string{"p", "br", "hr", "em", "strong", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "img"}
- /*line rich_test.mygo:43:12*/				if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(allowed, token.Data, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line rich_test.mygo:43:9*/				if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(allowed, token.Data, MygoIT2EqFN6StringGN6StringEM6Equals) {
  /*line rich_test.mygo:44:11*/					t.Fatalf("active/unexpected element survived: %s", rendered)
- /*line rich_test.mygo:43:12*/				} else {
+ /*line rich_test.mygo:43:9*/				} else {
  /*line zz_rich.gen_test.go:55:1*/				}
  /*line rich_test.mygo:32:1*/				imagePolicy := false
  /*line rich_test.mygo:47:9*/				MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(token.Attr, func(attr html.Attribute) {
- /*line rich_test.mygo:48:14*/					if attr.Key != "href" && attr.Key != "src" && attr.Key != "alt" && attr.Key != "title" && attr.Key != "rel" && attr.Key != "referrerpolicy" {
+ /*line rich_test.mygo:48:11*/					if attr.Key != "href" && attr.Key != "src" && attr.Key != "alt" && attr.Key != "title" && attr.Key != "rel" && attr.Key != "referrerpolicy" {
  /*line rich_test.mygo:49:13*/						t.Fatalf("unsafe attribute survived: %s", rendered)
- /*line rich_test.mygo:48:14*/					} else {
+ /*line rich_test.mygo:48:11*/					} else {
  /*line zz_rich.gen_test.go:61:1*/					}
- /*line rich_test.mygo:51:14*/					if attr.Key == "href" || attr.Key == "src" {
+ /*line rich_test.mygo:51:11*/					if attr.Key == "href" || attr.Key == "src" {
 						value := strings.ToLower(strings.TrimSpace(attr.Val))
 						if strings.Contains(value, ":") && !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
  /*line rich_test.mygo:54:15*/							t.Fatalf("unsafe URL survived: %s", rendered)
- /*line rich_test.mygo:51:14*/						} else {
+ /*line rich_test.mygo:51:11*/						} else {
  /*line zz_rich.gen_test.go:67:1*/						}
- /*line rich_test.mygo:51:14*/					} else {
+ /*line rich_test.mygo:51:11*/					} else {
  /*line zz_rich.gen_test.go:69:1*/					}
- /*line rich_test.mygo:57:14*/					if attr.Key == "referrerpolicy" && attr.Val == "no-referrer" {
+ /*line rich_test.mygo:57:11*/					if attr.Key == "referrerpolicy" && attr.Val == "no-referrer" {
 						imagePolicy = true
 						return
 					} else {
- /*line rich_test.mygo:57:11*/						return
+						return
  /*line zz_rich.gen_test.go:75:1*/					}
 				})
  /*line rich_test.mygo:32:1*/				if token.Data == "img" && !imagePolicy {
@@ -82,11 +82,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_rich.gen_test.go:82:1*/			}
 		}
 	}
- /*line rich_test.mygo:67:6*/	if SanitizeRichHTML(rendered) != rendered {
+ /*line rich_test.mygo:67:3*/	if SanitizeRichHTML(rendered) != rendered {
  /*line rich_test.mygo:68:5*/		t.Fatalf("sanitization did not converge: %s", rendered)
 		return
- /*line rich_test.mygo:67:6*/	} else {
- /*line rich_test.mygo:67:3*/		return
+ /*line rich_test.mygo:67:3*/	} else {
+		return
  /*line zz_rich.gen_test.go:90:1*/	}
 }
  /*line rich_test.mygo:72:1*/func TestRichAdversarialHTML(t *testing.T) {
@@ -94,9 +94,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line rich_test.mygo:94:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(attacks, func(source string) {
  /*line rich_test.mygo:94:16*/		rendered := MygoIN6ResultM6Unwrap[string, string](RenderRich(source, "html"))
  /*line rich_test.mygo:96:5*/		AssertRichSafe(t, rendered)
- /*line rich_test.mygo:97:8*/		if !strings.Contains(rendered, "safe") {
+ /*line rich_test.mygo:97:5*/		if !strings.Contains(rendered, "safe") {
  /*line rich_test.mygo:98:7*/			t.Fatalf("safe text was lost: %s => %s", source, rendered)
- /*line rich_test.mygo:97:8*/		} else {
+ /*line rich_test.mygo:97:5*/		} else {
  /*line zz_rich.gen_test.go:100:1*/		}
  /*line rich_test.mygo:100:5*/		AssertRichSafe(t, MygoIN6ResultM6Unwrap[string, string](RenderRich(source, "markdown")))
 		return
@@ -111,25 +111,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var cases [][]string = [][]string{[]string{"markdown", "# 中文\n\n**bold** and `code` &amp; ![图像](https://example.org/a.png)", "中文 bold and code & 图像"}, []string{"html", "<p>中<strong>文</strong>&amp; hello</p><p>next<br>line</p><script>hidden</script>", "中文& hello next line"}, []string{"legacy", "a <b>bold</b> &lt;x&gt;", "a bold &lt;x&gt;"}, []string{"html", "&lt;script&gt;literal&lt;/script&gt;", "<script>literal</script>"}}
  /*line rich_test.mygo:114:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(item []string) {
  /*line rich_test.mygo:114:14*/		output := MygoIN6ResultM6Unwrap[string, string](PlainRichText(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(item, 1)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(item, 0))))
- /*line rich_test.mygo:116:8*/		if output != MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(item, 2)) {
+ /*line rich_test.mygo:116:5*/		if output != MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(item, 2)) {
  /*line rich_test.mygo:117:7*/			t.Fatalf("wrong plain text: %s", output)
 			return
- /*line rich_test.mygo:116:8*/		} else {
- /*line rich_test.mygo:116:5*/			return
+ /*line rich_test.mygo:116:5*/		} else {
+			return
  /*line zz_rich.gen_test.go:119:1*/		}
 	})
  /*line rich_test.mygo:114:3*/	return
  /*line zz_rich.gen_test.go:122:1*/}
  /*line rich_test.mygo:122:1*/func TestRichBounds(t *testing.T) {
 	oversized := strings.Repeat("x", 1048577)
- /*line rich_test.mygo:124:6*/	if MygoIN6ResultM4IsOk[string, string](RenderRich(oversized, "markdown")) || MygoIN6ResultM4IsOk[[]MentionCandidate, string](ExtractMentionCandidates(oversized, "markdown")) || MygoIN6ResultM4IsOk[string, string](PlainRichText(oversized, "html")) {
+ /*line rich_test.mygo:124:3*/	if MygoIN6ResultM4IsOk[string, string](RenderRich(oversized, "markdown")) || MygoIN6ResultM4IsOk[[]MentionCandidate, string](ExtractMentionCandidates(oversized, "markdown")) || MygoIN6ResultM4IsOk[string, string](PlainRichText(oversized, "html")) {
  /*line rich_test.mygo:125:5*/		t.Fatal("oversized input accepted")
- /*line rich_test.mygo:124:6*/	} else {
+ /*line rich_test.mygo:124:3*/	} else {
  /*line zz_rich.gen_test.go:128:1*/	}
- /*line rich_test.mygo:127:6*/	if MygoIN6ResultM4IsOk[[]MentionCandidate, string](ExtractMentionCandidates(strings.Repeat("@alice ", 65), "markdown")) {
+ /*line rich_test.mygo:127:3*/	if MygoIN6ResultM4IsOk[[]MentionCandidate, string](ExtractMentionCandidates(strings.Repeat("@alice ", 65), "markdown")) {
  /*line rich_test.mygo:128:5*/		t.Fatal("candidate bound not enforced")
 		return
- /*line rich_test.mygo:127:6*/	} else {
- /*line rich_test.mygo:127:3*/		return
+ /*line rich_test.mygo:127:3*/	} else {
+		return
  /*line zz_rich.gen_test.go:134:1*/	}
 }

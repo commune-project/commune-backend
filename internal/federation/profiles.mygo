@@ -47,8 +47,8 @@ func WithProfile(actor: ActorRepresentation, profile: storage.ProfileRecord) -> 
 end
 
 func PersonUpdateObject(payload: Slice[Byte]) -> Result[ProfileObject, String]
-  let view: ActivityView = ActivityView{}
-  let object: ProfileObject = ProfileObject{}
+  let view: ActivityView = Zero[ActivityView]()
+  let object: ProfileObject = Zero[ProfileObject]()
   if json.Unmarshal(payload, Ref.new(view)).IsErr() || view.Type != "Update" || json.Unmarshal(view.Object as Slice[Byte], Ref.new(object)).IsErr() || object.Type != "Person" then
     return Err("not a Person update")
   end

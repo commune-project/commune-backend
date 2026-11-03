@@ -23,19 +23,19 @@ func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
   let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let private = communities.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let post = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote"}).Unwrap()
-  let hidden = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private"}).Unwrap()
+  let post = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let hidden = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")
   let csrf = csrfOf(cookies)
   let path = "/api/v1/posts/" + post.ID + "/vote"
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies}).Code != 405 then
+  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: ""}).Code != 405 then
     t.Fatal("unsupported vote method was not rejected")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Source: site.Origin}).Code != 401 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: [], CSRF: "", Source: site.Origin}).Code != 401 then
     t.Fatal("anonymous vote was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, Source: site.Origin}).Code != 403 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: "", Source: site.Origin}).Code != 403 then
     t.Fatal("vote without CSRF was accepted")
   end
   let invalid: Slice[String] = ["{}", "{\"score\":null}", "{\"score\":2}", "{\"score\":\"1\"}", "{} trailing"]
@@ -47,7 +47,7 @@ func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
   if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 404 then
     t.Fatal("vote on missing target was not 404")
   end
-  let privateVote = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + hidden.ID + "/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
+  let privateVote = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
   if privateVote.Code != 404 then
     t.Fatalf("vote on unreadable target returned %d: %s", privateVote.Code, privateVote.Body.String())
   end
@@ -55,7 +55,7 @@ func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
     t.Fatal("valid upvote failed")
   end
   let likesPath = "/api/v1/posts/" + post.ID + "/likes"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likesPath, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likesPath, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
     t.Fatal("legacy like alias failed")
   end
   let liked = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID, cookies, 200))
@@ -70,7 +70,7 @@ func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
     downvoted.Upvotes != 0i64 || downvoted.Downvotes != 1i64 then
     t.Fatal("vote change did not replace the legacy like state")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: likesPath, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: likesPath, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
     t.Fatal("legacy unlike alias failed")
   end
   let cleared = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + post.ID, cookies, 200))

@@ -4,7 +4,6 @@ package storage
 
 import "testing"
 import "context"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -18,12 +17,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_local_only.gen_test.go:21:1*/	}
+ /*line zz_local_only.gen_test.go:20:1*/	}
  /*line local_only_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
-	other := config.Site{ID: "b", Origin: "https://b.example"}
+	site := testSite("a", "https://a.example")
+	other := testSite("b", "https://b.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
@@ -34,84 +33,84 @@ import . "github.com/mygo-lang/mygo/prelude"
 	reactions := ReactionRepository{DB: db, SiteID: site.ID}
 	var modes [][]string = [][]string{[]string{"eligible_users", "eligible_users"}, []string{"members", "members"}, []string{"eligible_users", "members"}}
 	index := 0
- /*line local_only_test.mygo:25:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(modes, func(mode []string) {
- /*line local_only_test.mygo:25:14*/		read := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mode, 0))
+ /*line local_only_test.mygo:32:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(modes, func(mode []string) {
+ /*line local_only_test.mygo:32:14*/		read := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mode, 0))
 		post := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mode, 1))
 		community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "local"+MygoIT8ToStringFN3IntGN3IntEM8ToString(index), "Local", "local_only", read, post))
- /*line local_only_test.mygo:29:8*/		if community.ActorURI.Valid || community.FederationMode != "local_only" {
- /*line local_only_test.mygo:30:7*/			t.Fatal("local-only community allocated a federated actor")
- /*line local_only_test.mygo:29:8*/		} else {
- /*line zz_local_only.gen_test.go:44:1*/		}
- /*line local_only_test.mygo:25:14*/		topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: ""}))
- /*line local_only_test.mygo:33:8*/		if topic.ObjectURI.Valid {
- /*line local_only_test.mygo:34:7*/			t.Fatal("local-only topic produced a canonical object URI")
- /*line local_only_test.mygo:33:8*/		} else {
- /*line zz_local_only.gen_test.go:49:1*/		}
- /*line local_only_test.mygo:25:14*/		canRead := read == "eligible_users"
+ /*line local_only_test.mygo:36:5*/		if community.ActorURI.Valid || community.FederationMode != "local_only" {
+ /*line local_only_test.mygo:37:7*/			t.Fatal("local-only community allocated a federated actor")
+ /*line local_only_test.mygo:36:5*/		} else {
+ /*line zz_local_only.gen_test.go:43:1*/		}
+ /*line local_only_test.mygo:32:14*/		topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+ /*line local_only_test.mygo:55:5*/		if topic.ObjectURI.Valid {
+ /*line local_only_test.mygo:56:7*/			t.Fatal("local-only topic produced a canonical object URI")
+ /*line local_only_test.mygo:55:5*/		} else {
+ /*line zz_local_only.gen_test.go:48:1*/		}
+ /*line local_only_test.mygo:32:14*/		canRead := read == "eligible_users"
 		canWrite := post == "eligible_users"
- /*line local_only_test.mygo:38:8*/		if canWrite {
-			reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID}))
+ /*line local_only_test.mygo:60:5*/		if canWrite {
+			reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
 			if reply.ObjectURI.Valid {
- /*line local_only_test.mygo:41:9*/				t.Fatal("local-only reply produced a canonical object URI")
- /*line local_only_test.mygo:38:8*/			} else {
- /*line zz_local_only.gen_test.go:57:1*/			}
- /*line local_only_test.mygo:38:8*/		} else {
-			if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID})) {
- /*line local_only_test.mygo:45:9*/				t.Fatal("non-member published to a member-writer local community")
- /*line local_only_test.mygo:38:8*/			} else {
- /*line zz_local_only.gen_test.go:62:1*/			}
+ /*line local_only_test.mygo:78:9*/				t.Fatal("local-only reply produced a canonical object URI")
+ /*line local_only_test.mygo:60:5*/			} else {
+ /*line zz_local_only.gen_test.go:56:1*/			}
+ /*line local_only_test.mygo:60:5*/		} else {
+			if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""})) {
+ /*line local_only_test.mygo:97:9*/				t.Fatal("non-member published to a member-writer local community")
+ /*line local_only_test.mygo:60:5*/			} else {
+ /*line zz_local_only.gen_test.go:61:1*/			}
 		}
- /*line local_only_test.mygo:48:8*/		if canRead {
+ /*line local_only_test.mygo:100:5*/		if canRead {
 			MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, bob, false, ""))
 			MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, topic.ID, bob, false))
 		} else {
 			if MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, topic.ID, bob, false, "")) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, topic.ID, bob, false)) {
- /*line local_only_test.mygo:53:9*/				t.Fatal("non-member reacted in a members-only local community")
- /*line local_only_test.mygo:48:8*/			} else {
- /*line zz_local_only.gen_test.go:71:1*/			}
+ /*line local_only_test.mygo:106:9*/				t.Fatal("non-member reacted in a members-only local community")
+ /*line local_only_test.mygo:100:5*/			} else {
+ /*line zz_local_only.gen_test.go:70:1*/			}
 		}
- /*line local_only_test.mygo:25:14*/		MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version))
+ /*line local_only_test.mygo:32:14*/		MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version))
 		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, topic.ID, alice, false))
 		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetPolicy(communities, ctx, community.ID, alice, false, read, post))
 		index = index + 1
 		return
- /*line zz_local_only.gen_test.go:78:1*/	})
+ /*line zz_local_only.gen_test.go:77:1*/	})
  /*line local_only_test.mygo:9:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("parent_id IS NULL").Count(&count)))
- /*line local_only_test.mygo:63:6*/	if count != int64(3) {
- /*line local_only_test.mygo:64:5*/		t.Fatal("local-only operation did not store exactly one topic per community")
- /*line local_only_test.mygo:63:6*/	} else {
- /*line zz_local_only.gen_test.go:84:1*/	}
+ /*line local_only_test.mygo:124:3*/	if count != int64(3) {
+ /*line local_only_test.mygo:125:5*/		t.Fatal("local-only operation did not store exactly one topic per community")
+ /*line local_only_test.mygo:124:3*/	} else {
+ /*line zz_local_only.gen_test.go:83:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("activities").Count(&count)))
- /*line local_only_test.mygo:67:6*/	if count != int64(0) {
- /*line local_only_test.mygo:68:5*/		t.Fatal("local-only operation produced protocol activities")
- /*line local_only_test.mygo:67:6*/	} else {
- /*line zz_local_only.gen_test.go:89:1*/	}
+ /*line local_only_test.mygo:128:3*/	if count != int64(0) {
+ /*line local_only_test.mygo:129:5*/		t.Fatal("local-only operation produced protocol activities")
+ /*line local_only_test.mygo:128:3*/	} else {
+ /*line zz_local_only.gen_test.go:88:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("activity_payloads").Count(&count)))
- /*line local_only_test.mygo:71:6*/	if count != int64(0) {
- /*line local_only_test.mygo:72:5*/		t.Fatal("local-only operation produced protocol payloads")
- /*line local_only_test.mygo:71:6*/	} else {
- /*line zz_local_only.gen_test.go:94:1*/	}
+ /*line local_only_test.mygo:132:3*/	if count != int64(0) {
+ /*line local_only_test.mygo:133:5*/		t.Fatal("local-only operation produced protocol payloads")
+ /*line local_only_test.mygo:132:3*/	} else {
+ /*line zz_local_only.gen_test.go:93:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("delivery_jobs").Count(&count)))
- /*line local_only_test.mygo:75:6*/	if count != int64(0) {
- /*line local_only_test.mygo:76:5*/		t.Fatal("local-only operation scheduled federation delivery")
- /*line local_only_test.mygo:75:6*/	} else {
- /*line zz_local_only.gen_test.go:99:1*/	}
+ /*line local_only_test.mygo:136:3*/	if count != int64(0) {
+ /*line local_only_test.mygo:137:5*/		t.Fatal("local-only operation scheduled federation delivery")
+ /*line local_only_test.mygo:136:3*/	} else {
+ /*line zz_local_only.gen_test.go:98:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actors").Where("kind='Group'").Count(&count)))
- /*line local_only_test.mygo:79:6*/	if count != int64(0) {
- /*line local_only_test.mygo:80:5*/		t.Fatal("local-only communities created Group actors")
- /*line local_only_test.mygo:79:6*/	} else {
- /*line zz_local_only.gen_test.go:104:1*/	}
+ /*line local_only_test.mygo:140:3*/	if count != int64(0) {
+ /*line local_only_test.mygo:141:5*/		t.Fatal("local-only communities created Group actors")
+ /*line local_only_test.mygo:140:3*/	} else {
+ /*line zz_local_only.gen_test.go:103:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("site_id='b'").Count(&count)))
- /*line local_only_test.mygo:83:6*/	if count != int64(0) {
- /*line local_only_test.mygo:84:5*/		t.Fatal("local-only content was received by another site")
- /*line local_only_test.mygo:83:6*/	} else {
- /*line zz_local_only.gen_test.go:109:1*/	}
+ /*line local_only_test.mygo:144:3*/	if count != int64(0) {
+ /*line local_only_test.mygo:145:5*/		t.Fatal("local-only content was received by another site")
+ /*line local_only_test.mygo:144:3*/	} else {
+ /*line zz_local_only.gen_test.go:108:1*/	}
  /*line local_only_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("site_id='a'").Count(&count)))
- /*line local_only_test.mygo:87:6*/	if count != int64(4) {
- /*line local_only_test.mygo:88:5*/		t.Fatal("owning site did not record exactly one reception per object")
+ /*line local_only_test.mygo:148:3*/	if count != int64(4) {
+ /*line local_only_test.mygo:149:5*/		t.Fatal("owning site did not record exactly one reception per object")
 		return
- /*line local_only_test.mygo:87:6*/	} else {
- /*line local_only_test.mygo:87:3*/		return
- /*line zz_local_only.gen_test.go:116:1*/	}
+ /*line local_only_test.mygo:148:3*/	} else {
+		return
+ /*line zz_local_only.gen_test.go:115:1*/	}
 }

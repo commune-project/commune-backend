@@ -7,13 +7,13 @@ package auth
  /*line zz_management.gen.go:7:1*/}
 
  /*line management.mygo:7:1*/func MygoIN19ManagementAuthorityM6Allows(self ManagementAuthority, action string) bool {
- /*line management.mygo:9:8*/	if self.Scope == "deployment" {
+ /*line management.mygo:9:5*/	if self.Scope == "deployment" {
  /*line management.mygo:10:14*/		return action == "manage-community" || action == "assign-site-role" || action == "assign-deployment-role"
- /*line management.mygo:9:8*/	} else {
+ /*line management.mygo:9:5*/	} else {
  /*line zz_management.gen.go:13:1*/	}
- /*line management.mygo:12:8*/	if self.Scope == "site" {
+ /*line management.mygo:12:5*/	if self.Scope == "site" {
  /*line management.mygo:13:14*/		return action == "manage-community" || action == "assign-site-role"
- /*line management.mygo:12:8*/	} else {
+ /*line management.mygo:12:5*/	} else {
  /*line zz_management.gen.go:17:1*/	}
  /*line management.mygo:15:5*/	return self.Scope == "community" && action == "manage-community"
  /*line zz_management.gen.go:19:1*/}

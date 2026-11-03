@@ -20,7 +20,7 @@ func TestHTTPCallback(t: Ref[testing.T]) -> ()
   if recorder.Code != 200 || recorder.Header().Get("Content-Type") != "application/json" then
     t.Fatal("incorrect HTTP response")
   end
-  let message = ProbeMessage{}
+  let message = Zero[ProbeMessage]()
   if json.Unmarshal(recorder.Body.Bytes(), Ref.new(message)).IsErr() || message.Status != "ok" then
     t.Fatal("invalid response DTO")
   end

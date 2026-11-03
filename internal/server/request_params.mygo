@@ -13,7 +13,8 @@ func ParseVoteValue(raw: json.RawMessage) -> Result[Int, String]
     return Err("invalid vote")
   end
   let score = 0
-  if json.Unmarshal(raw as Slice[Byte], Ref.new(score)).IsErr() || (score != -1 && score != 0 && score != 1) then
+  if json.Unmarshal(raw as Slice[Byte], Ref.new(score)).IsErr() ||
+    (score != -1 && score != 0 && score != 1) then
     return Err("invalid vote")
   end
   Ok(score)
@@ -23,7 +24,11 @@ func ParseSort(value: String, fallback: String, allowHot: Bool) -> Result[String
   if value == "" then
     return Ok(fallback)
   end
-  if value != "new" && value != "old" && value != "top" && value != "controversial" && (!allowHot || value != "hot") then
+  if value != "new" &&
+    value != "old" &&
+    value != "top" &&
+    value != "controversial" &&
+    (!allowHot || value != "hot") then
     return Err("invalid sort")
   end
   Ok(value)
@@ -85,11 +90,11 @@ end
 
 func ParseBanExpiry(value: String) -> Result[sql.NullTime, String]
   if value == "" then
-    return Ok(sql.NullTime{})
+    return Ok(Zero[sql.NullTime]())
   end
   let parsed = time.Parse(time.RFC3339, value)
   if parsed.IsErr() then
     return Err("invalid ban")
   end
-  Ok(sql.NullTime{Time: parsed.Unwrap(), Valid: true})
+  Ok(sql.NullTime { Time: parsed.Unwrap(), Valid: true })
 end

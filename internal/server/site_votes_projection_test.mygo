@@ -17,12 +17,36 @@ func TestPostgresVoteProjectionAcrossBrowserReads(t: Ref[testing.T]) -> ()
   let site = settings.Sites.Get(0).Unwrap()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
-  let accounts = storage.AccountRepository{DB: db}
+  let accounts = storage.AccountRepository { DB: db }
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
   let carol = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
-  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Projection", Body: "vote projection"}).Unwrap()
+  let community = storage.CommunityRepository { DB: db, SiteID: site.ID }.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let post = storage.PostRepository { DB: db, SiteID: site.ID }.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Projection",
+      Body: "vote projection",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
   let reactions = storage.ReactionRepository{DB: db, SiteID: site.ID}
   let _ = reactions.Vote(ctx, post.ID, bob, false, 1, "").Unwrap()
   let _ = reactions.Vote(ctx, post.ID, carol, false, -1, "").Unwrap()
@@ -31,41 +55,68 @@ func TestPostgresVoteProjectionAcrossBrowserReads(t: Ref[testing.T]) -> ()
   let carolCookies = login(handler, site.Origin, "carol", "carol-password")
   let path = "/api/v1/posts/" + post.ID
   let detail = browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
-  if detail.Score != 0i64 || detail.Upvotes != 1i64 || detail.Downvotes != 1i64 ||
-    detail.VotedByMe != 1i64 || detail.LikeCount != 1i64 || !detail.LikedByMe ||
-    !detail.Permissions.CanVote || !detail.Permissions.CanUpvote || !detail.Permissions.CanDownvote then
+  if detail.Score != 0i64 ||
+    detail.Upvotes != 1i64 ||
+    detail.Downvotes != 1i64 ||
+    detail.VotedByMe != 1i64 ||
+    detail.LikeCount != 1i64 ||
+    !detail.LikedByMe ||
+    !detail.Permissions.CanVote ||
+    !detail.Permissions.CanUpvote ||
+    !detail.Permissions.CanDownvote then
     t.Fatal("authenticated vote projection was inconsistent")
   end
-  let latest = PostPage{}
-  let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/topics", bobCookies, 200).Body.Bytes(), Ref.new(latest)).Unwrap()
-  if latest.Items.Len() != 1 || latest.Items.Get(0).Unwrap().Score != 0i64 ||
-    latest.Items.Get(0).Unwrap().VotedByMe != 1i64 || latest.Items.Get(0).Unwrap().LikeCount != 1i64 then
+  let latest = Zero[PostPage]()
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, "/api/v1/topics", bobCookies, 200).Body.Bytes(),
+    Ref.new(latest)
+  ).Unwrap()
+  if latest.Items.Len() != 1 ||
+    latest.Items.Get(0).Unwrap().Score != 0i64 ||
+    latest.Items.Get(0).Unwrap().VotedByMe != 1i64 ||
+    latest.Items.Get(0).Unwrap().LikeCount != 1i64 then
     t.Fatal("latest list did not use the shared vote projection")
   end
-  let search = PostPage{}
-  let _ = json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/search?kind=posts&q=Projection", bobCookies, 200).Body.Bytes(), Ref.new(search)).Unwrap()
-  if search.Items.Len() != 1 || search.Items.Get(0).Unwrap().Score != 0i64 ||
+  let search = Zero[PostPage]()
+  let _ = json.Unmarshal(
+    browserGet(t, handler, site.Origin, "/api/v1/search?kind=posts&q=Projection", bobCookies, 200).Body.Bytes(),
+    Ref.new(search)
+  ).Unwrap()
+  if search.Items.Len() != 1 ||
+    search.Items.Get(0).Unwrap().Score != 0i64 ||
     search.Items.Get(0).Unwrap().VotedByMe != 1i64 then
     t.Fatal("search did not use the shared vote projection")
   end
   let anonymous: Slice[Ref[http.Cookie]] = []
   let public = browserPost(t, browserGet(t, handler, site.Origin, path, anonymous, 200))
-  if public.Score != 0i64 || public.Upvotes != 1i64 || public.Downvotes != 1i64 ||
-    public.VotedByMe != 0i64 || public.Permissions.CanVote ||
-    public.Permissions.CanUpvote || public.Permissions.CanDownvote then
+  if public.Score != 0i64 ||
+    public.Upvotes != 1i64 ||
+    public.Downvotes != 1i64 ||
+    public.VotedByMe != 0i64 ||
+    public.Permissions.CanVote ||
+    public.Permissions.CanUpvote ||
+    public.Permissions.CanDownvote then
     t.Fatal("anonymous vote projection leaked personal state or permissions")
   end
   let admin = storage.FindAccount(ctx, db, site.ID, "admin").Unwrap().Unwrap().Identity()
   let _ = storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true).Unwrap()
   let disabled = browserPost(t, browserGet(t, handler, site.Origin, path, carolCookies, 200))
-  if disabled.Score != 1i64 || disabled.Upvotes != 1i64 || disabled.Downvotes != 0i64 ||
-    disabled.VotedByMe != 0i64 || !disabled.Permissions.CanUpvote || disabled.Permissions.CanDownvote then
+  if disabled.Score != 1i64 ||
+    disabled.Upvotes != 1i64 ||
+    disabled.Downvotes != 0i64 ||
+    disabled.VotedByMe != 0i64 ||
+    !disabled.Permissions.CanUpvote ||
+    disabled.Permissions.CanDownvote then
     t.Fatal("disabled downvotes were not excluded from projections")
   end
   let _ = storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false).Unwrap()
   let none = browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
-  if none.Permissions.CanVote || none.Permissions.CanUpvote || none.Permissions.CanDownvote ||
-    none.Upvotes != 0i64 || none.Downvotes != 0i64 || none.Score != 0i64 then
+  if none.Permissions.CanVote ||
+    none.Permissions.CanUpvote ||
+    none.Permissions.CanDownvote ||
+    none.Upvotes != 0i64 ||
+    none.Downvotes != 0i64 ||
+    none.Score != 0i64 then
     t.Fatal("both-disabled vote settings were not projected consistently")
   end
 end

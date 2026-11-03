@@ -83,7 +83,7 @@ func TestPostgresMediaHTTPAuthorizationAndDownloadSafety(t: Ref[testing.T]) -> (
   let uploaded = httptest.NewRecorder()
   handler.ServeHTTP(uploaded as http.ResponseWriter, uploadRequest)
   if uploaded.Code != 201 then t.Fatalf("upload failed: %d %s", uploaded.Code, uploaded.Body.String()) end
-  let output = MediaOutput{}
+  let output = Zero[MediaOutput]()
   let _ = json.Unmarshal(uploaded.Body.Bytes(), Ref.new(output)).Unwrap()
   if output.Size <= 0i64 || output.MediaType != "text/html; charset=utf-8" || output.PreviewURL != "" then t.Fatal("upload metadata incorrect") end
   let fileFirst = mediaMultipartRequest(site.Origin, "post", "<svg onload='alert(1)'/>", "vector.svg", "image/svg+xml", true)
@@ -93,7 +93,7 @@ func TestPostgresMediaHTTPAuthorizationAndDownloadSafety(t: Ref[testing.T]) -> (
   handler.ServeHTTP(fileFirstOutput as http.ResponseWriter, fileFirst)
   if fileFirstOutput.Code != 201 then t.Fatalf("file-first multipart failed: %s", fileFirstOutput.Body.String()) end
   let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
-  let published = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body"})
+  let published = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []})
   if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr()) end
   let post = published.Unwrap()
   var path: String = ""

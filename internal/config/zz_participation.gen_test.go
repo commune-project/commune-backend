@@ -11,139 +11,139 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line participation_test.mygo:9:1*/func TestParticipationDefaults(t *testing.T) {
 	settings := MygoIN6ResultM6Unwrap[Config, string](Validate(validInput()))
- /*line participation_test.mygo:11:6*/	if settings.Registration.TokenTTLSeconds != 86400 {
+ /*line participation_test.mygo:11:3*/	if settings.Registration.TokenTTLSeconds != 86400 {
  /*line participation_test.mygo:12:5*/		t.Fatal("Registration.TokenTTLSeconds default changed")
- /*line participation_test.mygo:11:6*/	} else {
+ /*line participation_test.mygo:11:3*/	} else {
  /*line zz_participation.gen_test.go:17:1*/	}
- /*line participation_test.mygo:14:6*/	if settings.Registration.RateWindowSeconds != 3600 {
+ /*line participation_test.mygo:14:3*/	if settings.Registration.RateWindowSeconds != 3600 {
  /*line participation_test.mygo:15:5*/		t.Fatal("Registration.RateWindowSeconds default changed")
- /*line participation_test.mygo:14:6*/	} else {
+ /*line participation_test.mygo:14:3*/	} else {
  /*line zz_participation.gen_test.go:21:1*/	}
- /*line participation_test.mygo:17:6*/	if settings.Registration.IPLimit != 20 {
+ /*line participation_test.mygo:17:3*/	if settings.Registration.IPLimit != 20 {
  /*line participation_test.mygo:18:5*/		t.Fatal("Registration.IPLimit default changed")
- /*line participation_test.mygo:17:6*/	} else {
+ /*line participation_test.mygo:17:3*/	} else {
  /*line zz_participation.gen_test.go:25:1*/	}
- /*line participation_test.mygo:20:6*/	if settings.Registration.EmailLimit != 3 {
+ /*line participation_test.mygo:20:3*/	if settings.Registration.EmailLimit != 3 {
  /*line participation_test.mygo:21:5*/		t.Fatal("Registration.EmailLimit default changed")
- /*line participation_test.mygo:20:6*/	} else {
+ /*line participation_test.mygo:20:3*/	} else {
  /*line zz_participation.gen_test.go:29:1*/	}
- /*line participation_test.mygo:23:6*/	if settings.SMTP.Port != 587 {
+ /*line participation_test.mygo:23:3*/	if settings.SMTP.Port != 587 {
  /*line participation_test.mygo:24:5*/		t.Fatal("SMTP.Port default changed")
- /*line participation_test.mygo:23:6*/	} else {
+ /*line participation_test.mygo:23:3*/	} else {
  /*line zz_participation.gen_test.go:33:1*/	}
- /*line participation_test.mygo:26:6*/	if settings.SMTP.TimeoutSeconds != 10 {
+ /*line participation_test.mygo:26:3*/	if settings.SMTP.TimeoutSeconds != 10 {
  /*line participation_test.mygo:27:5*/		t.Fatal("SMTP.TimeoutSeconds default changed")
- /*line participation_test.mygo:26:6*/	} else {
+ /*line participation_test.mygo:26:3*/	} else {
  /*line zz_participation.gen_test.go:37:1*/	}
- /*line participation_test.mygo:29:6*/	if settings.Media.MaxFileBytes != 26214400 {
+ /*line participation_test.mygo:29:3*/	if settings.Media.MaxFileBytes != 26214400 {
  /*line participation_test.mygo:30:5*/		t.Fatal("Media.MaxFileBytes default changed")
- /*line participation_test.mygo:29:6*/	} else {
+ /*line participation_test.mygo:29:3*/	} else {
  /*line zz_participation.gen_test.go:41:1*/	}
- /*line participation_test.mygo:32:6*/	if settings.Media.MaxImageBytes != 10485760 {
+ /*line participation_test.mygo:32:3*/	if settings.Media.MaxImageBytes != 10485760 {
  /*line participation_test.mygo:33:5*/		t.Fatal("Media.MaxImageBytes default changed")
- /*line participation_test.mygo:32:6*/	} else {
+ /*line participation_test.mygo:32:3*/	} else {
  /*line zz_participation.gen_test.go:45:1*/	}
- /*line participation_test.mygo:35:6*/	if settings.Media.MaxImagePixels != 20000000 {
+ /*line participation_test.mygo:35:3*/	if settings.Media.MaxImagePixels != 20000000 {
  /*line participation_test.mygo:36:5*/		t.Fatal("Media.MaxImagePixels default changed")
- /*line participation_test.mygo:35:6*/	} else {
+ /*line participation_test.mygo:35:3*/	} else {
  /*line zz_participation.gen_test.go:49:1*/	}
- /*line participation_test.mygo:38:6*/	if settings.Media.MaxImageDimension != 16384 {
+ /*line participation_test.mygo:38:3*/	if settings.Media.MaxImageDimension != 16384 {
  /*line participation_test.mygo:39:5*/		t.Fatal("Media.MaxImageDimension default changed")
- /*line participation_test.mygo:38:6*/	} else {
+ /*line participation_test.mygo:38:3*/	} else {
  /*line zz_participation.gen_test.go:53:1*/	}
- /*line participation_test.mygo:41:6*/	if settings.Media.PreviewDimension != 1024 {
+ /*line participation_test.mygo:41:3*/	if settings.Media.PreviewDimension != 1024 {
  /*line participation_test.mygo:42:5*/		t.Fatal("Media.PreviewDimension default changed")
- /*line participation_test.mygo:41:6*/	} else {
+ /*line participation_test.mygo:41:3*/	} else {
  /*line zz_participation.gen_test.go:57:1*/	}
- /*line participation_test.mygo:44:6*/	if settings.Media.AccountQuotaBytes != 1073741824 {
+ /*line participation_test.mygo:44:3*/	if settings.Media.AccountQuotaBytes != 1073741824 {
  /*line participation_test.mygo:45:5*/		t.Fatal("Media.AccountQuotaBytes default changed")
- /*line participation_test.mygo:44:6*/	} else {
+ /*line participation_test.mygo:44:3*/	} else {
  /*line zz_participation.gen_test.go:61:1*/	}
- /*line participation_test.mygo:47:6*/	if settings.Media.SiteQuotaBytes != 10737418240 {
+ /*line participation_test.mygo:47:3*/	if settings.Media.SiteQuotaBytes != 10737418240 {
  /*line participation_test.mygo:48:5*/		t.Fatal("Media.SiteQuotaBytes default changed")
- /*line participation_test.mygo:47:6*/	} else {
+ /*line participation_test.mygo:47:3*/	} else {
  /*line zz_participation.gen_test.go:65:1*/	}
- /*line participation_test.mygo:50:6*/	if settings.Media.TemporaryRetentionSeconds != 86400 {
+ /*line participation_test.mygo:50:3*/	if settings.Media.TemporaryRetentionSeconds != 86400 {
  /*line participation_test.mygo:51:5*/		t.Fatal("Media.TemporaryRetentionSeconds default changed")
- /*line participation_test.mygo:50:6*/	} else {
+ /*line participation_test.mygo:50:3*/	} else {
  /*line zz_participation.gen_test.go:69:1*/	}
- /*line participation_test.mygo:53:6*/	if settings.Media.PrivateCacheRetentionSeconds != 604800 {
+ /*line participation_test.mygo:53:3*/	if settings.Media.PrivateCacheRetentionSeconds != 604800 {
  /*line participation_test.mygo:54:5*/		t.Fatal("Media.PrivateCacheRetentionSeconds default changed")
- /*line participation_test.mygo:53:6*/	} else {
+ /*line participation_test.mygo:53:3*/	} else {
  /*line zz_participation.gen_test.go:73:1*/	}
- /*line participation_test.mygo:56:6*/	if settings.Media.CleanupIntervalSeconds != 3600 {
+ /*line participation_test.mygo:56:3*/	if settings.Media.CleanupIntervalSeconds != 3600 {
  /*line participation_test.mygo:57:5*/		t.Fatal("Media.CleanupIntervalSeconds default changed")
- /*line participation_test.mygo:56:6*/	} else {
+ /*line participation_test.mygo:56:3*/	} else {
  /*line zz_participation.gen_test.go:77:1*/	}
- /*line participation_test.mygo:59:6*/	if settings.Rendering.MaxSourceBytes != 1048576 {
+ /*line participation_test.mygo:59:3*/	if settings.Rendering.MaxSourceBytes != 1048576 {
  /*line participation_test.mygo:60:5*/		t.Fatal("Rendering.MaxSourceBytes default changed")
- /*line participation_test.mygo:59:6*/	} else {
+ /*line participation_test.mygo:59:3*/	} else {
  /*line zz_participation.gen_test.go:81:1*/	}
- /*line participation_test.mygo:62:6*/	if settings.Rendering.MaxDisplayNameLength != 100 {
+ /*line participation_test.mygo:62:3*/	if settings.Rendering.MaxDisplayNameLength != 100 {
  /*line participation_test.mygo:63:5*/		t.Fatal("Rendering.MaxDisplayNameLength default changed")
- /*line participation_test.mygo:62:6*/	} else {
+ /*line participation_test.mygo:62:3*/	} else {
  /*line zz_participation.gen_test.go:85:1*/	}
- /*line participation_test.mygo:65:6*/	if settings.Rendering.MaxBiographyLength != 5000 {
+ /*line participation_test.mygo:65:3*/	if settings.Rendering.MaxBiographyLength != 5000 {
  /*line participation_test.mygo:66:5*/		t.Fatal("Rendering.MaxBiographyLength default changed")
- /*line participation_test.mygo:65:6*/	} else {
+ /*line participation_test.mygo:65:3*/	} else {
  /*line zz_participation.gen_test.go:89:1*/	}
- /*line participation_test.mygo:68:6*/	if settings.Rendering.MaxMentions != 20 {
+ /*line participation_test.mygo:68:3*/	if settings.Rendering.MaxMentions != 20 {
  /*line participation_test.mygo:69:5*/		t.Fatal("Rendering.MaxMentions default changed")
- /*line participation_test.mygo:68:6*/	} else {
+ /*line participation_test.mygo:68:3*/	} else {
  /*line zz_participation.gen_test.go:93:1*/	}
- /*line participation_test.mygo:71:6*/	if settings.Rendering.MaxRemoteDiscoveries != 10 {
+ /*line participation_test.mygo:71:3*/	if settings.Rendering.MaxRemoteDiscoveries != 10 {
  /*line participation_test.mygo:72:5*/		t.Fatal("Rendering.MaxRemoteDiscoveries default changed")
- /*line participation_test.mygo:71:6*/	} else {
+ /*line participation_test.mygo:71:3*/	} else {
  /*line zz_participation.gen_test.go:97:1*/	}
- /*line participation_test.mygo:74:6*/	if settings.Rendering.MentionTimeoutSeconds != 10 {
+ /*line participation_test.mygo:74:3*/	if settings.Rendering.MentionTimeoutSeconds != 10 {
  /*line participation_test.mygo:75:5*/		t.Fatal("Rendering.MentionTimeoutSeconds default changed")
- /*line participation_test.mygo:74:6*/	} else {
+ /*line participation_test.mygo:74:3*/	} else {
  /*line zz_participation.gen_test.go:101:1*/	}
- /*line participation_test.mygo:77:6*/	if settings.ParticipationWorkers.MailWorkers != 1 {
+ /*line participation_test.mygo:77:3*/	if settings.ParticipationWorkers.MailWorkers != 1 {
  /*line participation_test.mygo:78:5*/		t.Fatal("ParticipationWorkers.MailWorkers default changed")
- /*line participation_test.mygo:77:6*/	} else {
+ /*line participation_test.mygo:77:3*/	} else {
  /*line zz_participation.gen_test.go:105:1*/	}
- /*line participation_test.mygo:80:6*/	if settings.ParticipationWorkers.NotificationWorkers != 1 {
+ /*line participation_test.mygo:80:3*/	if settings.ParticipationWorkers.NotificationWorkers != 1 {
  /*line participation_test.mygo:81:5*/		t.Fatal("ParticipationWorkers.NotificationWorkers default changed")
- /*line participation_test.mygo:80:6*/	} else {
+ /*line participation_test.mygo:80:3*/	} else {
  /*line zz_participation.gen_test.go:109:1*/	}
- /*line participation_test.mygo:83:6*/	if settings.ParticipationWorkers.MediaWorkers != 1 {
+ /*line participation_test.mygo:83:3*/	if settings.ParticipationWorkers.MediaWorkers != 1 {
  /*line participation_test.mygo:84:5*/		t.Fatal("ParticipationWorkers.MediaWorkers default changed")
- /*line participation_test.mygo:83:6*/	} else {
+ /*line participation_test.mygo:83:3*/	} else {
  /*line zz_participation.gen_test.go:113:1*/	}
- /*line participation_test.mygo:86:6*/	if settings.ParticipationWorkers.ActorWorkers != 1 {
+ /*line participation_test.mygo:86:3*/	if settings.ParticipationWorkers.ActorWorkers != 1 {
  /*line participation_test.mygo:87:5*/		t.Fatal("ParticipationWorkers.ActorWorkers default changed")
- /*line participation_test.mygo:86:6*/	} else {
+ /*line participation_test.mygo:86:3*/	} else {
  /*line zz_participation.gen_test.go:117:1*/	}
- /*line participation_test.mygo:89:6*/	if settings.ParticipationWorkers.BatchSize != 100 {
+ /*line participation_test.mygo:89:3*/	if settings.ParticipationWorkers.BatchSize != 100 {
  /*line participation_test.mygo:90:5*/		t.Fatal("ParticipationWorkers.BatchSize default changed")
- /*line participation_test.mygo:89:6*/	} else {
+ /*line participation_test.mygo:89:3*/	} else {
  /*line zz_participation.gen_test.go:121:1*/	}
- /*line participation_test.mygo:92:6*/	if settings.ParticipationWorkers.PollIntervalSeconds != 5 {
+ /*line participation_test.mygo:92:3*/	if settings.ParticipationWorkers.PollIntervalSeconds != 5 {
  /*line participation_test.mygo:93:5*/		t.Fatal("ParticipationWorkers.PollIntervalSeconds default changed")
- /*line participation_test.mygo:92:6*/	} else {
+ /*line participation_test.mygo:92:3*/	} else {
  /*line zz_participation.gen_test.go:125:1*/	}
- /*line participation_test.mygo:95:6*/	if settings.ParticipationWorkers.LeaseSeconds != 60 {
+ /*line participation_test.mygo:95:3*/	if settings.ParticipationWorkers.LeaseSeconds != 60 {
  /*line participation_test.mygo:96:5*/		t.Fatal("ParticipationWorkers.LeaseSeconds default changed")
- /*line participation_test.mygo:95:6*/	} else {
+ /*line participation_test.mygo:95:3*/	} else {
  /*line zz_participation.gen_test.go:129:1*/	}
- /*line participation_test.mygo:98:6*/	if settings.ParticipationWorkers.MaxAttempts != 8 {
+ /*line participation_test.mygo:98:3*/	if settings.ParticipationWorkers.MaxAttempts != 8 {
  /*line participation_test.mygo:99:5*/		t.Fatal("ParticipationWorkers.MaxAttempts default changed")
- /*line participation_test.mygo:98:6*/	} else {
+ /*line participation_test.mygo:98:3*/	} else {
  /*line zz_participation.gen_test.go:133:1*/	}
- /*line participation_test.mygo:101:6*/	if settings.ParticipationWorkers.RetryBaseSeconds != 30 {
+ /*line participation_test.mygo:101:3*/	if settings.ParticipationWorkers.RetryBaseSeconds != 30 {
  /*line participation_test.mygo:102:5*/		t.Fatal("ParticipationWorkers.RetryBaseSeconds default changed")
- /*line participation_test.mygo:101:6*/	} else {
+ /*line participation_test.mygo:101:3*/	} else {
  /*line zz_participation.gen_test.go:137:1*/	}
- /*line participation_test.mygo:104:6*/	if settings.ParticipationWorkers.RetryMaxSeconds != 3600 {
+ /*line participation_test.mygo:104:3*/	if settings.ParticipationWorkers.RetryMaxSeconds != 3600 {
  /*line participation_test.mygo:105:5*/		t.Fatal("ParticipationWorkers.RetryMaxSeconds default changed")
- /*line participation_test.mygo:104:6*/	} else {
+ /*line participation_test.mygo:104:3*/	} else {
  /*line zz_participation.gen_test.go:141:1*/	}
- /*line participation_test.mygo:107:6*/	if MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled || settings.Media.Enabled || settings.ParticipationWorkers.Enabled || settings.SMTP.TLSMode != "starttls" {
+ /*line participation_test.mygo:107:3*/	if MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled || settings.Media.Enabled || settings.ParticipationWorkers.Enabled || settings.SMTP.TLSMode != "starttls" {
  /*line participation_test.mygo:108:5*/		t.Fatal("feature defaults changed")
 		return
- /*line participation_test.mygo:107:6*/	} else {
- /*line participation_test.mygo:107:3*/		return
+ /*line participation_test.mygo:107:3*/	} else {
+		return
  /*line zz_participation.gen_test.go:147:1*/	}
 }
  /*line participation_test.mygo:112:1*/func TestParticipationLoadAndSecretEnvironment(t *testing.T) {
@@ -151,7 +151,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var envName string = "COMMUNE_CONFIG_TEST_OUTBOX_KEY"
  /*line participation_test.mygo:115:3*/	t.Setenv(envName, key)
  /*line participation_test.mygo:112:1*/	input := validInput()
-	input.Sites = []Site{Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}}
+	input.Sites = []Site{Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}}}
 	input.Registration.OutboxSecretEnv = envName
 	input.Registration.IPLimit = 7
 	input.Registration.EmailLimit = 2
@@ -180,527 +180,527 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_participation.gen_test.go:181:1*/		}{})
 	}
- /*line participation_test.mygo:131:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line participation_test.mygo:131:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
  /*line participation_test.mygo:132:5*/		t.Fatal("cannot write configuration fixture")
- /*line participation_test.mygo:131:6*/	} else {
+ /*line participation_test.mygo:131:3*/	} else {
  /*line zz_participation.gen_test.go:186:1*/	}
  /*line participation_test.mygo:112:1*/	settings := MygoIN6ResultM6Unwrap[Config, string](Load(path))
- /*line participation_test.mygo:135:6*/	if settings.Registration.OutboxSecret != key || settings.Registration.IPLimit != 7 || settings.Registration.EmailLimit != 2 || settings.Media.PrivateCacheRetentionSeconds != 600 || settings.SMTP.TLSMode != "tls" || settings.SMTP.Password != "mail-password" || !MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled {
+ /*line participation_test.mygo:135:3*/	if settings.Registration.OutboxSecret != key || settings.Registration.IPLimit != 7 || settings.Registration.EmailLimit != 2 || settings.Media.PrivateCacheRetentionSeconds != 600 || settings.SMTP.TLSMode != "tls" || settings.SMTP.Password != "mail-password" || !MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled {
  /*line participation_test.mygo:136:5*/		t.Fatal("JSON fields, overrides or environment key were lost")
- /*line participation_test.mygo:135:6*/	} else {
+ /*line participation_test.mygo:135:3*/	} else {
  /*line zz_participation.gen_test.go:191:1*/	}
  /*line participation_test.mygo:112:1*/	input.Registration.OutboxSecret = key
- /*line participation_test.mygo:139:6*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
+ /*line participation_test.mygo:139:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
  /*line participation_test.mygo:140:5*/		t.Fatal("ambiguous secret sources accepted")
- /*line participation_test.mygo:139:6*/	} else {
+ /*line participation_test.mygo:139:3*/	} else {
  /*line zz_participation.gen_test.go:196:1*/	}
  /*line participation_test.mygo:112:1*/	input.Registration.OutboxSecret = ""
  /*line participation_test.mygo:143:3*/	t.Setenv(envName, "")
- /*line participation_test.mygo:144:6*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
+ /*line participation_test.mygo:144:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
  /*line participation_test.mygo:145:5*/		t.Fatal("empty secret environment accepted")
- /*line participation_test.mygo:144:6*/	} else {
+ /*line participation_test.mygo:144:3*/	} else {
  /*line zz_participation.gen_test.go:202:1*/	}
  /*line participation_test.mygo:112:1*/	input.Registration.OutboxSecretEnv = "COMMUNE_CONFIG_TEST_MISSING_KEY"
  /*line participation_test.mygo:148:3*/	t.Setenv("COMMUNE_CONFIG_TEST_MISSING_KEY", "")
- /*line participation_test.mygo:149:6*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
+ /*line participation_test.mygo:149:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
  /*line participation_test.mygo:150:5*/		t.Fatal("missing environment secret accepted")
- /*line participation_test.mygo:149:6*/	} else {
+ /*line participation_test.mygo:149:3*/	} else {
  /*line zz_participation.gen_test.go:208:1*/	}
  /*line participation_test.mygo:112:1*/	input.Registration.OutboxSecretEnv = envName
  /*line participation_test.mygo:153:3*/	t.Setenv(envName, "not-a-valid-secret")
- /*line participation_test.mygo:154:10*/	__mygo_expr_5 := Validate(input)
+ /*line participation_test.mygo:154:3*/	__mygo_expr_5 := Validate(input)
 	if _, ok := __mygo_expr_5.(Result__Ok[Config, string]); ok {
 		t.Fatal("invalid environment key accepted")
  /*line zz_participation.gen_test.go:214:1*/	} else {
- /*line participation_test.mygo:154:10*/		if __mygo_match___mygo_expr_6, ok := __mygo_expr_5.(Result__Err[Config, string]); ok {
+ /*line participation_test.mygo:154:3*/		if __mygo_match___mygo_expr_6, ok := __mygo_expr_5.(Result__Err[Config, string]); ok {
  /*line participation_test.mygo:157:8*/			if strings.Contains(__mygo_match___mygo_expr_6.F0, "not-a-valid-secret") || strings.Contains(__mygo_match___mygo_expr_6.F0, envName) {
  /*line participation_test.mygo:158:7*/				t.Fatal("environment secret error leaked input")
- /*line participation_test.mygo:154:10*/			} else {
+ /*line participation_test.mygo:154:3*/			} else {
  /*line zz_participation.gen_test.go:219:1*/			}
- /*line participation_test.mygo:154:10*/		} else {
+ /*line participation_test.mygo:154:3*/		} else {
  /*line zz_participation.gen_test.go:221:1*/		}
 	}
- /*line participation_test.mygo:154:10*/	return
+ /*line participation_test.mygo:154:3*/	return
  /*line zz_participation.gen_test.go:224:1*/}
  /*line participation_test.mygo:163:1*/func TestParticipationBounds(t *testing.T) {
  /*line participation_test.mygo:164:3*/	t.Run("Registration.TokenTTLSeconds", func(t_1 *testing.T) {
  /*line participation_test.mygo:164:41*/		input := validInput()
  /*line participation_test.mygo:166:5*/		input.Registration.TokenTTLSeconds = -1
- /*line participation_test.mygo:167:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
+ /*line participation_test.mygo:167:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
  /*line participation_test.mygo:168:7*/			t_1.Fatal("negative limit accepted")
- /*line participation_test.mygo:167:8*/		} else {
+ /*line participation_test.mygo:167:5*/		} else {
  /*line zz_participation.gen_test.go:232:1*/		}
  /*line participation_test.mygo:164:41*/		input.Registration.TokenTTLSeconds = 604801
- /*line participation_test.mygo:171:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
+ /*line participation_test.mygo:171:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input)) {
  /*line participation_test.mygo:172:7*/			t_1.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:171:8*/		} else {
- /*line participation_test.mygo:171:5*/			return
+ /*line participation_test.mygo:171:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:239:1*/		}
 	})
  /*line participation_test.mygo:175:3*/	t.Run("Registration.RateWindowSeconds", func(t_2 *testing.T) {
  /*line participation_test.mygo:175:43*/		input_1 := validInput()
  /*line participation_test.mygo:177:5*/		input_1.Registration.RateWindowSeconds = -1
- /*line participation_test.mygo:178:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_1)) {
+ /*line participation_test.mygo:178:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_1)) {
  /*line participation_test.mygo:179:7*/			t_2.Fatal("negative limit accepted")
- /*line participation_test.mygo:178:8*/		} else {
+ /*line participation_test.mygo:178:5*/		} else {
  /*line zz_participation.gen_test.go:247:1*/		}
  /*line participation_test.mygo:175:43*/		input_1.Registration.RateWindowSeconds = 86401
- /*line participation_test.mygo:182:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_1)) {
+ /*line participation_test.mygo:182:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_1)) {
  /*line participation_test.mygo:183:7*/			t_2.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:182:8*/		} else {
- /*line participation_test.mygo:182:5*/			return
+ /*line participation_test.mygo:182:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:254:1*/		}
 	})
  /*line participation_test.mygo:186:3*/	t.Run("Registration.IPLimit", func(t_3 *testing.T) {
  /*line participation_test.mygo:186:33*/		input_2 := validInput()
  /*line participation_test.mygo:188:5*/		input_2.Registration.IPLimit = -1
- /*line participation_test.mygo:189:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_2)) {
+ /*line participation_test.mygo:189:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_2)) {
  /*line participation_test.mygo:190:7*/			t_3.Fatal("negative limit accepted")
- /*line participation_test.mygo:189:8*/		} else {
+ /*line participation_test.mygo:189:5*/		} else {
  /*line zz_participation.gen_test.go:262:1*/		}
  /*line participation_test.mygo:186:33*/		input_2.Registration.IPLimit = 10001
- /*line participation_test.mygo:193:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_2)) {
+ /*line participation_test.mygo:193:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_2)) {
  /*line participation_test.mygo:194:7*/			t_3.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:193:8*/		} else {
- /*line participation_test.mygo:193:5*/			return
+ /*line participation_test.mygo:193:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:269:1*/		}
 	})
  /*line participation_test.mygo:197:3*/	t.Run("Registration.EmailLimit", func(t_4 *testing.T) {
  /*line participation_test.mygo:197:36*/		input_3 := validInput()
  /*line participation_test.mygo:199:5*/		input_3.Registration.EmailLimit = -1
- /*line participation_test.mygo:200:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_3)) {
+ /*line participation_test.mygo:200:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_3)) {
  /*line participation_test.mygo:201:7*/			t_4.Fatal("negative limit accepted")
- /*line participation_test.mygo:200:8*/		} else {
+ /*line participation_test.mygo:200:5*/		} else {
  /*line zz_participation.gen_test.go:277:1*/		}
  /*line participation_test.mygo:197:36*/		input_3.Registration.EmailLimit = 101
- /*line participation_test.mygo:204:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_3)) {
+ /*line participation_test.mygo:204:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_3)) {
  /*line participation_test.mygo:205:7*/			t_4.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:204:8*/		} else {
- /*line participation_test.mygo:204:5*/			return
+ /*line participation_test.mygo:204:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:284:1*/		}
 	})
  /*line participation_test.mygo:208:3*/	t.Run("SMTP.Port", func(t_5 *testing.T) {
  /*line participation_test.mygo:208:22*/		input_4 := validInput()
  /*line participation_test.mygo:210:5*/		input_4.SMTP.Port = -1
- /*line participation_test.mygo:211:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_4)) {
+ /*line participation_test.mygo:211:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_4)) {
  /*line participation_test.mygo:212:7*/			t_5.Fatal("negative limit accepted")
- /*line participation_test.mygo:211:8*/		} else {
+ /*line participation_test.mygo:211:5*/		} else {
  /*line zz_participation.gen_test.go:292:1*/		}
  /*line participation_test.mygo:208:22*/		input_4.SMTP.Port = 65536
- /*line participation_test.mygo:215:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_4)) {
+ /*line participation_test.mygo:215:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_4)) {
  /*line participation_test.mygo:216:7*/			t_5.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:215:8*/		} else {
- /*line participation_test.mygo:215:5*/			return
+ /*line participation_test.mygo:215:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:299:1*/		}
 	})
  /*line participation_test.mygo:219:3*/	t.Run("SMTP.TimeoutSeconds", func(t_6 *testing.T) {
  /*line participation_test.mygo:219:32*/		input_5 := validInput()
  /*line participation_test.mygo:221:5*/		input_5.SMTP.TimeoutSeconds = -1
- /*line participation_test.mygo:222:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_5)) {
+ /*line participation_test.mygo:222:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_5)) {
  /*line participation_test.mygo:223:7*/			t_6.Fatal("negative limit accepted")
- /*line participation_test.mygo:222:8*/		} else {
+ /*line participation_test.mygo:222:5*/		} else {
  /*line zz_participation.gen_test.go:307:1*/		}
  /*line participation_test.mygo:219:32*/		input_5.SMTP.TimeoutSeconds = 61
- /*line participation_test.mygo:226:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_5)) {
+ /*line participation_test.mygo:226:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_5)) {
  /*line participation_test.mygo:227:7*/			t_6.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:226:8*/		} else {
- /*line participation_test.mygo:226:5*/			return
+ /*line participation_test.mygo:226:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:314:1*/		}
 	})
  /*line participation_test.mygo:230:3*/	t.Run("Media.MaxFileBytes", func(t_7 *testing.T) {
  /*line participation_test.mygo:230:31*/		input_6 := validInput()
  /*line participation_test.mygo:232:5*/		input_6.Media.MaxFileBytes = -1
- /*line participation_test.mygo:233:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_6)) {
+ /*line participation_test.mygo:233:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_6)) {
  /*line participation_test.mygo:234:7*/			t_7.Fatal("negative limit accepted")
- /*line participation_test.mygo:233:8*/		} else {
+ /*line participation_test.mygo:233:5*/		} else {
  /*line zz_participation.gen_test.go:322:1*/		}
  /*line participation_test.mygo:230:31*/		input_6.Media.MaxFileBytes = 1073741825
- /*line participation_test.mygo:237:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_6)) {
+ /*line participation_test.mygo:237:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_6)) {
  /*line participation_test.mygo:238:7*/			t_7.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:237:8*/		} else {
- /*line participation_test.mygo:237:5*/			return
+ /*line participation_test.mygo:237:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:329:1*/		}
 	})
  /*line participation_test.mygo:241:3*/	t.Run("Media.MaxImageBytes", func(t_8 *testing.T) {
  /*line participation_test.mygo:241:32*/		input_7 := validInput()
  /*line participation_test.mygo:243:5*/		input_7.Media.MaxImageBytes = -1
- /*line participation_test.mygo:244:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_7)) {
+ /*line participation_test.mygo:244:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_7)) {
  /*line participation_test.mygo:245:7*/			t_8.Fatal("negative limit accepted")
- /*line participation_test.mygo:244:8*/		} else {
+ /*line participation_test.mygo:244:5*/		} else {
  /*line zz_participation.gen_test.go:337:1*/		}
  /*line participation_test.mygo:241:32*/		input_7.Media.MaxImageBytes = 1073741825
- /*line participation_test.mygo:248:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_7)) {
+ /*line participation_test.mygo:248:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_7)) {
  /*line participation_test.mygo:249:7*/			t_8.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:248:8*/		} else {
- /*line participation_test.mygo:248:5*/			return
+ /*line participation_test.mygo:248:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:344:1*/		}
 	})
  /*line participation_test.mygo:252:3*/	t.Run("Media.MaxImagePixels", func(t_9 *testing.T) {
  /*line participation_test.mygo:252:33*/		input_8 := validInput()
  /*line participation_test.mygo:254:5*/		input_8.Media.MaxImagePixels = -1
- /*line participation_test.mygo:255:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_8)) {
+ /*line participation_test.mygo:255:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_8)) {
  /*line participation_test.mygo:256:7*/			t_9.Fatal("negative limit accepted")
- /*line participation_test.mygo:255:8*/		} else {
+ /*line participation_test.mygo:255:5*/		} else {
  /*line zz_participation.gen_test.go:352:1*/		}
  /*line participation_test.mygo:252:33*/		input_8.Media.MaxImagePixels = 100000001
- /*line participation_test.mygo:259:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_8)) {
+ /*line participation_test.mygo:259:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_8)) {
  /*line participation_test.mygo:260:7*/			t_9.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:259:8*/		} else {
- /*line participation_test.mygo:259:5*/			return
+ /*line participation_test.mygo:259:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:359:1*/		}
 	})
  /*line participation_test.mygo:263:3*/	t.Run("Media.MaxImageDimension", func(t_10 *testing.T) {
  /*line participation_test.mygo:263:36*/		input_9 := validInput()
  /*line participation_test.mygo:265:5*/		input_9.Media.MaxImageDimension = -1
- /*line participation_test.mygo:266:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_9)) {
+ /*line participation_test.mygo:266:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_9)) {
  /*line participation_test.mygo:267:7*/			t_10.Fatal("negative limit accepted")
- /*line participation_test.mygo:266:8*/		} else {
+ /*line participation_test.mygo:266:5*/		} else {
  /*line zz_participation.gen_test.go:367:1*/		}
  /*line participation_test.mygo:263:36*/		input_9.Media.MaxImageDimension = 65537
- /*line participation_test.mygo:270:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_9)) {
+ /*line participation_test.mygo:270:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_9)) {
  /*line participation_test.mygo:271:7*/			t_10.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:270:8*/		} else {
- /*line participation_test.mygo:270:5*/			return
+ /*line participation_test.mygo:270:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:374:1*/		}
 	})
  /*line participation_test.mygo:274:3*/	t.Run("Media.PreviewDimension", func(t_11 *testing.T) {
  /*line participation_test.mygo:274:35*/		input_10 := validInput()
  /*line participation_test.mygo:276:5*/		input_10.Media.PreviewDimension = -1
- /*line participation_test.mygo:277:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_10)) {
+ /*line participation_test.mygo:277:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_10)) {
  /*line participation_test.mygo:278:7*/			t_11.Fatal("negative limit accepted")
- /*line participation_test.mygo:277:8*/		} else {
+ /*line participation_test.mygo:277:5*/		} else {
  /*line zz_participation.gen_test.go:382:1*/		}
  /*line participation_test.mygo:274:35*/		input_10.Media.PreviewDimension = 4097
- /*line participation_test.mygo:281:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_10)) {
+ /*line participation_test.mygo:281:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_10)) {
  /*line participation_test.mygo:282:7*/			t_11.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:281:8*/		} else {
- /*line participation_test.mygo:281:5*/			return
+ /*line participation_test.mygo:281:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:389:1*/		}
 	})
  /*line participation_test.mygo:285:3*/	t.Run("Media.AccountQuotaBytes", func(t_12 *testing.T) {
  /*line participation_test.mygo:285:36*/		input_11 := validInput()
  /*line participation_test.mygo:287:5*/		input_11.Media.AccountQuotaBytes = -1
- /*line participation_test.mygo:288:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_11)) {
+ /*line participation_test.mygo:288:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_11)) {
  /*line participation_test.mygo:289:7*/			t_12.Fatal("negative limit accepted")
- /*line participation_test.mygo:288:8*/		} else {
+ /*line participation_test.mygo:288:5*/		} else {
  /*line zz_participation.gen_test.go:397:1*/		}
  /*line participation_test.mygo:285:36*/		input_11.Media.AccountQuotaBytes = 1099511627777
- /*line participation_test.mygo:292:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_11)) {
+ /*line participation_test.mygo:292:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_11)) {
  /*line participation_test.mygo:293:7*/			t_12.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:292:8*/		} else {
- /*line participation_test.mygo:292:5*/			return
+ /*line participation_test.mygo:292:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:404:1*/		}
 	})
  /*line participation_test.mygo:296:3*/	t.Run("Media.SiteQuotaBytes", func(t_13 *testing.T) {
  /*line participation_test.mygo:296:33*/		input_12 := validInput()
  /*line participation_test.mygo:298:5*/		input_12.Media.SiteQuotaBytes = -1
- /*line participation_test.mygo:299:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_12)) {
+ /*line participation_test.mygo:299:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_12)) {
  /*line participation_test.mygo:300:7*/			t_13.Fatal("negative limit accepted")
- /*line participation_test.mygo:299:8*/		} else {
+ /*line participation_test.mygo:299:5*/		} else {
  /*line zz_participation.gen_test.go:412:1*/		}
  /*line participation_test.mygo:296:33*/		input_12.Media.SiteQuotaBytes = 1099511627777
- /*line participation_test.mygo:303:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_12)) {
+ /*line participation_test.mygo:303:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_12)) {
  /*line participation_test.mygo:304:7*/			t_13.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:303:8*/		} else {
- /*line participation_test.mygo:303:5*/			return
+ /*line participation_test.mygo:303:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:419:1*/		}
 	})
  /*line participation_test.mygo:307:3*/	t.Run("Media.TemporaryRetentionSeconds", func(t_14 *testing.T) {
  /*line participation_test.mygo:307:44*/		input_13 := validInput()
  /*line participation_test.mygo:309:5*/		input_13.Media.TemporaryRetentionSeconds = -1
- /*line participation_test.mygo:310:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_13)) {
+ /*line participation_test.mygo:310:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_13)) {
  /*line participation_test.mygo:311:7*/			t_14.Fatal("negative limit accepted")
- /*line participation_test.mygo:310:8*/		} else {
+ /*line participation_test.mygo:310:5*/		} else {
  /*line zz_participation.gen_test.go:427:1*/		}
  /*line participation_test.mygo:307:44*/		input_13.Media.TemporaryRetentionSeconds = 2592001
- /*line participation_test.mygo:314:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_13)) {
+ /*line participation_test.mygo:314:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_13)) {
  /*line participation_test.mygo:315:7*/			t_14.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:314:8*/		} else {
- /*line participation_test.mygo:314:5*/			return
+ /*line participation_test.mygo:314:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:434:1*/		}
 	})
  /*line participation_test.mygo:318:3*/	t.Run("Media.PrivateCacheRetentionSeconds", func(t_15 *testing.T) {
  /*line participation_test.mygo:318:47*/		input_14 := validInput()
  /*line participation_test.mygo:320:5*/		input_14.Media.PrivateCacheRetentionSeconds = -1
- /*line participation_test.mygo:321:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_14)) {
+ /*line participation_test.mygo:321:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_14)) {
  /*line participation_test.mygo:322:7*/			t_15.Fatal("negative limit accepted")
- /*line participation_test.mygo:321:8*/		} else {
+ /*line participation_test.mygo:321:5*/		} else {
  /*line zz_participation.gen_test.go:442:1*/		}
  /*line participation_test.mygo:318:47*/		input_14.Media.PrivateCacheRetentionSeconds = 31536001
- /*line participation_test.mygo:325:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_14)) {
+ /*line participation_test.mygo:325:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_14)) {
  /*line participation_test.mygo:326:7*/			t_15.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:325:8*/		} else {
- /*line participation_test.mygo:325:5*/			return
+ /*line participation_test.mygo:325:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:449:1*/		}
 	})
  /*line participation_test.mygo:329:3*/	t.Run("Media.CleanupIntervalSeconds", func(t_16 *testing.T) {
  /*line participation_test.mygo:329:41*/		input_15 := validInput()
  /*line participation_test.mygo:331:5*/		input_15.Media.CleanupIntervalSeconds = -1
- /*line participation_test.mygo:332:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_15)) {
+ /*line participation_test.mygo:332:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_15)) {
  /*line participation_test.mygo:333:7*/			t_16.Fatal("negative limit accepted")
- /*line participation_test.mygo:332:8*/		} else {
+ /*line participation_test.mygo:332:5*/		} else {
  /*line zz_participation.gen_test.go:457:1*/		}
  /*line participation_test.mygo:329:41*/		input_15.Media.CleanupIntervalSeconds = 86401
- /*line participation_test.mygo:336:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_15)) {
+ /*line participation_test.mygo:336:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_15)) {
  /*line participation_test.mygo:337:7*/			t_16.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:336:8*/		} else {
- /*line participation_test.mygo:336:5*/			return
+ /*line participation_test.mygo:336:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:464:1*/		}
 	})
  /*line participation_test.mygo:340:3*/	t.Run("Rendering.MaxSourceBytes", func(t_17 *testing.T) {
  /*line participation_test.mygo:340:37*/		input_16 := validInput()
  /*line participation_test.mygo:342:5*/		input_16.Rendering.MaxSourceBytes = -1
- /*line participation_test.mygo:343:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_16)) {
+ /*line participation_test.mygo:343:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_16)) {
  /*line participation_test.mygo:344:7*/			t_17.Fatal("negative limit accepted")
- /*line participation_test.mygo:343:8*/		} else {
+ /*line participation_test.mygo:343:5*/		} else {
  /*line zz_participation.gen_test.go:472:1*/		}
  /*line participation_test.mygo:340:37*/		input_16.Rendering.MaxSourceBytes = 16777217
- /*line participation_test.mygo:347:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_16)) {
+ /*line participation_test.mygo:347:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_16)) {
  /*line participation_test.mygo:348:7*/			t_17.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:347:8*/		} else {
- /*line participation_test.mygo:347:5*/			return
+ /*line participation_test.mygo:347:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:479:1*/		}
 	})
  /*line participation_test.mygo:351:3*/	t.Run("Rendering.MaxDisplayNameLength", func(t_18 *testing.T) {
  /*line participation_test.mygo:351:43*/		input_17 := validInput()
  /*line participation_test.mygo:353:5*/		input_17.Rendering.MaxDisplayNameLength = -1
- /*line participation_test.mygo:354:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_17)) {
+ /*line participation_test.mygo:354:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_17)) {
  /*line participation_test.mygo:355:7*/			t_18.Fatal("negative limit accepted")
- /*line participation_test.mygo:354:8*/		} else {
+ /*line participation_test.mygo:354:5*/		} else {
  /*line zz_participation.gen_test.go:487:1*/		}
  /*line participation_test.mygo:351:43*/		input_17.Rendering.MaxDisplayNameLength = 1001
- /*line participation_test.mygo:358:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_17)) {
+ /*line participation_test.mygo:358:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_17)) {
  /*line participation_test.mygo:359:7*/			t_18.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:358:8*/		} else {
- /*line participation_test.mygo:358:5*/			return
+ /*line participation_test.mygo:358:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:494:1*/		}
 	})
  /*line participation_test.mygo:362:3*/	t.Run("Rendering.MaxBiographyLength", func(t_19 *testing.T) {
  /*line participation_test.mygo:362:41*/		input_18 := validInput()
  /*line participation_test.mygo:364:5*/		input_18.Rendering.MaxBiographyLength = -1
- /*line participation_test.mygo:365:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_18)) {
+ /*line participation_test.mygo:365:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_18)) {
  /*line participation_test.mygo:366:7*/			t_19.Fatal("negative limit accepted")
- /*line participation_test.mygo:365:8*/		} else {
+ /*line participation_test.mygo:365:5*/		} else {
  /*line zz_participation.gen_test.go:502:1*/		}
  /*line participation_test.mygo:362:41*/		input_18.Rendering.MaxBiographyLength = 100001
- /*line participation_test.mygo:369:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_18)) {
+ /*line participation_test.mygo:369:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_18)) {
  /*line participation_test.mygo:370:7*/			t_19.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:369:8*/		} else {
- /*line participation_test.mygo:369:5*/			return
+ /*line participation_test.mygo:369:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:509:1*/		}
 	})
  /*line participation_test.mygo:373:3*/	t.Run("Rendering.MaxMentions", func(t_20 *testing.T) {
  /*line participation_test.mygo:373:34*/		input_19 := validInput()
  /*line participation_test.mygo:375:5*/		input_19.Rendering.MaxMentions = -1
- /*line participation_test.mygo:376:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_19)) {
+ /*line participation_test.mygo:376:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_19)) {
  /*line participation_test.mygo:377:7*/			t_20.Fatal("negative limit accepted")
- /*line participation_test.mygo:376:8*/		} else {
+ /*line participation_test.mygo:376:5*/		} else {
  /*line zz_participation.gen_test.go:517:1*/		}
  /*line participation_test.mygo:373:34*/		input_19.Rendering.MaxMentions = 101
- /*line participation_test.mygo:380:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_19)) {
+ /*line participation_test.mygo:380:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_19)) {
  /*line participation_test.mygo:381:7*/			t_20.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:380:8*/		} else {
- /*line participation_test.mygo:380:5*/			return
+ /*line participation_test.mygo:380:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:524:1*/		}
 	})
  /*line participation_test.mygo:384:3*/	t.Run("Rendering.MaxRemoteDiscoveries", func(t_21 *testing.T) {
  /*line participation_test.mygo:384:43*/		input_20 := validInput()
  /*line participation_test.mygo:386:5*/		input_20.Rendering.MaxRemoteDiscoveries = -1
- /*line participation_test.mygo:387:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_20)) {
+ /*line participation_test.mygo:387:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_20)) {
  /*line participation_test.mygo:388:7*/			t_21.Fatal("negative limit accepted")
- /*line participation_test.mygo:387:8*/		} else {
+ /*line participation_test.mygo:387:5*/		} else {
  /*line zz_participation.gen_test.go:532:1*/		}
  /*line participation_test.mygo:384:43*/		input_20.Rendering.MaxRemoteDiscoveries = 101
- /*line participation_test.mygo:391:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_20)) {
+ /*line participation_test.mygo:391:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_20)) {
  /*line participation_test.mygo:392:7*/			t_21.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:391:8*/		} else {
- /*line participation_test.mygo:391:5*/			return
+ /*line participation_test.mygo:391:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:539:1*/		}
 	})
  /*line participation_test.mygo:395:3*/	t.Run("Rendering.MentionTimeoutSeconds", func(t_22 *testing.T) {
  /*line participation_test.mygo:395:44*/		input_21 := validInput()
  /*line participation_test.mygo:397:5*/		input_21.Rendering.MentionTimeoutSeconds = -1
- /*line participation_test.mygo:398:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_21)) {
+ /*line participation_test.mygo:398:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_21)) {
  /*line participation_test.mygo:399:7*/			t_22.Fatal("negative limit accepted")
- /*line participation_test.mygo:398:8*/		} else {
+ /*line participation_test.mygo:398:5*/		} else {
  /*line zz_participation.gen_test.go:547:1*/		}
  /*line participation_test.mygo:395:44*/		input_21.Rendering.MentionTimeoutSeconds = 61
- /*line participation_test.mygo:402:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_21)) {
+ /*line participation_test.mygo:402:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_21)) {
  /*line participation_test.mygo:403:7*/			t_22.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:402:8*/		} else {
- /*line participation_test.mygo:402:5*/			return
+ /*line participation_test.mygo:402:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:554:1*/		}
 	})
  /*line participation_test.mygo:406:3*/	t.Run("ParticipationWorkers.MailWorkers", func(t_23 *testing.T) {
  /*line participation_test.mygo:406:45*/		input_22 := validInput()
  /*line participation_test.mygo:408:5*/		input_22.ParticipationWorkers.MailWorkers = -1
- /*line participation_test.mygo:409:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_22)) {
+ /*line participation_test.mygo:409:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_22)) {
  /*line participation_test.mygo:410:7*/			t_23.Fatal("negative limit accepted")
- /*line participation_test.mygo:409:8*/		} else {
+ /*line participation_test.mygo:409:5*/		} else {
  /*line zz_participation.gen_test.go:562:1*/		}
  /*line participation_test.mygo:406:45*/		input_22.ParticipationWorkers.MailWorkers = 33
- /*line participation_test.mygo:413:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_22)) {
+ /*line participation_test.mygo:413:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_22)) {
  /*line participation_test.mygo:414:7*/			t_23.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:413:8*/		} else {
- /*line participation_test.mygo:413:5*/			return
+ /*line participation_test.mygo:413:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:569:1*/		}
 	})
  /*line participation_test.mygo:417:3*/	t.Run("ParticipationWorkers.NotificationWorkers", func(t_24 *testing.T) {
  /*line participation_test.mygo:417:53*/		input_23 := validInput()
  /*line participation_test.mygo:419:5*/		input_23.ParticipationWorkers.NotificationWorkers = -1
- /*line participation_test.mygo:420:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_23)) {
+ /*line participation_test.mygo:420:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_23)) {
  /*line participation_test.mygo:421:7*/			t_24.Fatal("negative limit accepted")
- /*line participation_test.mygo:420:8*/		} else {
+ /*line participation_test.mygo:420:5*/		} else {
  /*line zz_participation.gen_test.go:577:1*/		}
  /*line participation_test.mygo:417:53*/		input_23.ParticipationWorkers.NotificationWorkers = 33
- /*line participation_test.mygo:424:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_23)) {
+ /*line participation_test.mygo:424:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_23)) {
  /*line participation_test.mygo:425:7*/			t_24.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:424:8*/		} else {
- /*line participation_test.mygo:424:5*/			return
+ /*line participation_test.mygo:424:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:584:1*/		}
 	})
  /*line participation_test.mygo:428:3*/	t.Run("ParticipationWorkers.MediaWorkers", func(t_25 *testing.T) {
  /*line participation_test.mygo:428:46*/		input_24 := validInput()
  /*line participation_test.mygo:430:5*/		input_24.ParticipationWorkers.MediaWorkers = -1
- /*line participation_test.mygo:431:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_24)) {
+ /*line participation_test.mygo:431:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_24)) {
  /*line participation_test.mygo:432:7*/			t_25.Fatal("negative limit accepted")
- /*line participation_test.mygo:431:8*/		} else {
+ /*line participation_test.mygo:431:5*/		} else {
  /*line zz_participation.gen_test.go:592:1*/		}
  /*line participation_test.mygo:428:46*/		input_24.ParticipationWorkers.MediaWorkers = 33
- /*line participation_test.mygo:435:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_24)) {
+ /*line participation_test.mygo:435:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_24)) {
  /*line participation_test.mygo:436:7*/			t_25.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:435:8*/		} else {
- /*line participation_test.mygo:435:5*/			return
+ /*line participation_test.mygo:435:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:599:1*/		}
 	})
  /*line participation_test.mygo:439:3*/	t.Run("ParticipationWorkers.ActorWorkers", func(t_26 *testing.T) {
  /*line participation_test.mygo:439:46*/		input_25 := validInput()
  /*line participation_test.mygo:441:5*/		input_25.ParticipationWorkers.ActorWorkers = -1
- /*line participation_test.mygo:442:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
+ /*line participation_test.mygo:442:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
  /*line participation_test.mygo:443:7*/			t_26.Fatal("negative limit accepted")
- /*line participation_test.mygo:442:8*/		} else {
+ /*line participation_test.mygo:442:5*/		} else {
  /*line zz_participation.gen_test.go:607:1*/		}
  /*line participation_test.mygo:439:46*/		input_25.ParticipationWorkers.ActorWorkers = 33
- /*line participation_test.mygo:446:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
+ /*line participation_test.mygo:446:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_25)) {
  /*line participation_test.mygo:447:7*/			t_26.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:446:8*/		} else {
- /*line participation_test.mygo:446:5*/			return
+ /*line participation_test.mygo:446:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:614:1*/		}
 	})
  /*line participation_test.mygo:450:3*/	t.Run("ParticipationWorkers.BatchSize", func(t_27 *testing.T) {
  /*line participation_test.mygo:450:43*/		input_26 := validInput()
  /*line participation_test.mygo:452:5*/		input_26.ParticipationWorkers.BatchSize = -1
- /*line participation_test.mygo:453:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
+ /*line participation_test.mygo:453:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
  /*line participation_test.mygo:454:7*/			t_27.Fatal("negative limit accepted")
- /*line participation_test.mygo:453:8*/		} else {
+ /*line participation_test.mygo:453:5*/		} else {
  /*line zz_participation.gen_test.go:622:1*/		}
  /*line participation_test.mygo:450:43*/		input_26.ParticipationWorkers.BatchSize = 1001
- /*line participation_test.mygo:457:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
+ /*line participation_test.mygo:457:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_26)) {
  /*line participation_test.mygo:458:7*/			t_27.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:457:8*/		} else {
- /*line participation_test.mygo:457:5*/			return
+ /*line participation_test.mygo:457:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:629:1*/		}
 	})
  /*line participation_test.mygo:461:3*/	t.Run("ParticipationWorkers.PollIntervalSeconds", func(t_28 *testing.T) {
  /*line participation_test.mygo:461:53*/		input_27 := validInput()
  /*line participation_test.mygo:463:5*/		input_27.ParticipationWorkers.PollIntervalSeconds = -1
- /*line participation_test.mygo:464:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
+ /*line participation_test.mygo:464:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
  /*line participation_test.mygo:465:7*/			t_28.Fatal("negative limit accepted")
- /*line participation_test.mygo:464:8*/		} else {
+ /*line participation_test.mygo:464:5*/		} else {
  /*line zz_participation.gen_test.go:637:1*/		}
  /*line participation_test.mygo:461:53*/		input_27.ParticipationWorkers.PollIntervalSeconds = 301
- /*line participation_test.mygo:468:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
+ /*line participation_test.mygo:468:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_27)) {
  /*line participation_test.mygo:469:7*/			t_28.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:468:8*/		} else {
- /*line participation_test.mygo:468:5*/			return
+ /*line participation_test.mygo:468:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:644:1*/		}
 	})
  /*line participation_test.mygo:472:3*/	t.Run("ParticipationWorkers.LeaseSeconds", func(t_29 *testing.T) {
  /*line participation_test.mygo:472:46*/		input_28 := validInput()
  /*line participation_test.mygo:474:5*/		input_28.ParticipationWorkers.LeaseSeconds = -1
- /*line participation_test.mygo:475:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
+ /*line participation_test.mygo:475:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
  /*line participation_test.mygo:476:7*/			t_29.Fatal("negative limit accepted")
- /*line participation_test.mygo:475:8*/		} else {
+ /*line participation_test.mygo:475:5*/		} else {
  /*line zz_participation.gen_test.go:652:1*/		}
  /*line participation_test.mygo:472:46*/		input_28.ParticipationWorkers.LeaseSeconds = 3601
- /*line participation_test.mygo:479:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
+ /*line participation_test.mygo:479:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_28)) {
  /*line participation_test.mygo:480:7*/			t_29.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:479:8*/		} else {
- /*line participation_test.mygo:479:5*/			return
+ /*line participation_test.mygo:479:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:659:1*/		}
 	})
  /*line participation_test.mygo:483:3*/	t.Run("ParticipationWorkers.MaxAttempts", func(t_30 *testing.T) {
  /*line participation_test.mygo:483:45*/		input_29 := validInput()
  /*line participation_test.mygo:485:5*/		input_29.ParticipationWorkers.MaxAttempts = -1
- /*line participation_test.mygo:486:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
+ /*line participation_test.mygo:486:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
  /*line participation_test.mygo:487:7*/			t_30.Fatal("negative limit accepted")
- /*line participation_test.mygo:486:8*/		} else {
+ /*line participation_test.mygo:486:5*/		} else {
  /*line zz_participation.gen_test.go:667:1*/		}
  /*line participation_test.mygo:483:45*/		input_29.ParticipationWorkers.MaxAttempts = 101
- /*line participation_test.mygo:490:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
+ /*line participation_test.mygo:490:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_29)) {
  /*line participation_test.mygo:491:7*/			t_30.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:490:8*/		} else {
- /*line participation_test.mygo:490:5*/			return
+ /*line participation_test.mygo:490:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:674:1*/		}
 	})
  /*line participation_test.mygo:494:3*/	t.Run("ParticipationWorkers.RetryBaseSeconds", func(t_31 *testing.T) {
  /*line participation_test.mygo:494:50*/		input_30 := validInput()
  /*line participation_test.mygo:496:5*/		input_30.ParticipationWorkers.RetryBaseSeconds = -1
- /*line participation_test.mygo:497:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
+ /*line participation_test.mygo:497:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
  /*line participation_test.mygo:498:7*/			t_31.Fatal("negative limit accepted")
- /*line participation_test.mygo:497:8*/		} else {
+ /*line participation_test.mygo:497:5*/		} else {
  /*line zz_participation.gen_test.go:682:1*/		}
  /*line participation_test.mygo:494:50*/		input_30.ParticipationWorkers.RetryBaseSeconds = 3601
- /*line participation_test.mygo:501:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
+ /*line participation_test.mygo:501:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_30)) {
  /*line participation_test.mygo:502:7*/			t_31.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:501:8*/		} else {
- /*line participation_test.mygo:501:5*/			return
+ /*line participation_test.mygo:501:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:689:1*/		}
 	})
  /*line participation_test.mygo:505:3*/	t.Run("ParticipationWorkers.RetryMaxSeconds", func(t_32 *testing.T) {
  /*line participation_test.mygo:505:49*/		input_31 := validInput()
  /*line participation_test.mygo:507:5*/		input_31.ParticipationWorkers.RetryMaxSeconds = -1
- /*line participation_test.mygo:508:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
+ /*line participation_test.mygo:508:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
  /*line participation_test.mygo:509:7*/			t_32.Fatal("negative limit accepted")
- /*line participation_test.mygo:508:8*/		} else {
+ /*line participation_test.mygo:508:5*/		} else {
  /*line zz_participation.gen_test.go:697:1*/		}
  /*line participation_test.mygo:505:49*/		input_31.ParticipationWorkers.RetryMaxSeconds = 86401
- /*line participation_test.mygo:512:8*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
+ /*line participation_test.mygo:512:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(input_31)) {
  /*line participation_test.mygo:513:7*/			t_32.Fatal("excessive limit accepted")
 			return
- /*line participation_test.mygo:512:8*/		} else {
- /*line participation_test.mygo:512:5*/			return
+ /*line participation_test.mygo:512:5*/		} else {
+			return
  /*line zz_participation.gen_test.go:704:1*/		}
 	})
  /*line participation_test.mygo:516:3*/	return
@@ -710,7 +710,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line participation_test.mygo:521:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(name string) {
  /*line participation_test.mygo:522:5*/		t.Run(name, func(t_1 *testing.T) {
  /*line participation_test.mygo:522:17*/			input := validInput()
- /*line participation_test.mygo:524:14*/			if name == "relative" {
+ /*line participation_test.mygo:524:7*/			if name == "relative" {
 				input.Media.Root = "media"
 			} else {
 				if name == "root" {
@@ -727,7 +727,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 								input.Media.Enabled = true
 							} else {
 								if name == "missing secret" {
-									input.Sites = []Site{Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}}
+									input.Sites = []Site{Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}}}
 								} else {
 									if name == "short secret" {
 										input.Registration.OutboxSecret = "c2VjcmV0"
@@ -736,11 +736,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 											input.Registration.OutboxSecret = "secret"
 										} else {
 											if name == "missing smtp" {
-												input.Sites = []Site{Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}}
+												input.Sites = []Site{Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}}}
 												input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
 											} else {
 												if name == "bad sender" {
-													input.Sites = []Site{Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}}
+													input.Sites = []Site{Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}}}
 													input.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
 													input.SMTP.Host = "smtp.example"
 													input.SMTP.From = "secret"
@@ -780,24 +780,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 					}
 				}
 			}
- /*line participation_test.mygo:553:14*/			__mygo_expr_0 := Validate(input)
+ /*line participation_test.mygo:553:7*/			__mygo_expr_0 := Validate(input)
 			if _, ok := __mygo_expr_0.(Result__Ok[Config, string]); ok {
 				t_1.Fatal("invalid participation settings accepted")
  /*line zz_participation.gen_test.go:786:1*/			} else {
- /*line participation_test.mygo:553:14*/				if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Config, string]); ok {
+ /*line participation_test.mygo:553:7*/				if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Config, string]); ok {
  /*line participation_test.mygo:556:12*/					if strings.Contains(__mygo_match___mygo_expr_1.F0, "MDEy") || strings.Contains(__mygo_match___mygo_expr_1.F0, "c2Vj") {
  /*line participation_test.mygo:557:11*/						t_1.Fatal("configuration error leaked key")
- /*line participation_test.mygo:553:14*/					} else {
+ /*line participation_test.mygo:553:7*/					} else {
  /*line zz_participation.gen_test.go:791:1*/					}
- /*line participation_test.mygo:553:14*/				} else {
+ /*line participation_test.mygo:553:7*/				} else {
  /*line zz_participation.gen_test.go:793:1*/				}
 			}
- /*line participation_test.mygo:553:14*/			return
+ /*line participation_test.mygo:553:7*/			return
  /*line zz_participation.gen_test.go:796:1*/		})
  /*line participation_test.mygo:561:5*/		return
  /*line zz_participation.gen_test.go:798:1*/	})
  /*line participation_test.mygo:519:1*/	input_1 := validInput()
-	input_1.Sites = []Site{Site{ID: "a", Origin: "https://a.example", RegistrationEnabled: true}}
+	input_1.Sites = []Site{Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}}}
 	input_1.Registration.OutboxSecret = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
 	input_1.SMTP.Host = "smtp.example"
 	input_1.SMTP.From = "Commune <noreply@example.com>"
@@ -805,10 +805,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	input_1.Media.Root = "/var/lib/commune/media"
 	input_1.ParticipationWorkers.Enabled = true
 	settings := MygoIN6ResultM6Unwrap[Config, string](Validate(input_1))
- /*line participation_test.mygo:572:6*/	if !MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled || settings.Media.Root != input_1.Media.Root {
+ /*line participation_test.mygo:572:3*/	if !MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).RegistrationEnabled || settings.Media.Root != input_1.Media.Root {
  /*line participation_test.mygo:573:5*/		t.Fatal("enabled feature settings lost")
 		return
- /*line participation_test.mygo:572:6*/	} else {
- /*line participation_test.mygo:572:3*/		return
+ /*line participation_test.mygo:572:3*/	} else {
+		return
  /*line zz_participation.gen_test.go:813:1*/	}
 }

@@ -9,14 +9,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 	password := "first-site-password"
 	first := MygoIN6ResultM6Unwrap[string, string](HashPassword(password))
 	second := MygoIN6ResultM6Unwrap[string, string](HashPassword(password))
- /*line password_test.mygo:9:6*/	if first == password || first == second || !VerifyPassword(first, password) || VerifyPassword(first, "other-site-password") {
+ /*line password_test.mygo:9:3*/	if first == password || first == second || !VerifyPassword(first, password) || VerifyPassword(first, "other-site-password") {
  /*line password_test.mygo:10:5*/		t.Fatal("password hashing or verification failed")
- /*line password_test.mygo:9:6*/	} else {
+ /*line password_test.mygo:9:3*/	} else {
  /*line zz_password.gen_test.go:15:1*/	}
- /*line password_test.mygo:12:6*/	if MygoIN6ResultM4IsOk[string, string](HashPassword("short")) {
+ /*line password_test.mygo:12:3*/	if MygoIN6ResultM4IsOk[string, string](HashPassword("short")) {
  /*line password_test.mygo:13:5*/		t.Fatal("short password accepted")
 		return
- /*line password_test.mygo:12:6*/	} else {
- /*line password_test.mygo:12:3*/		return
+ /*line password_test.mygo:12:3*/	} else {
+		return
  /*line zz_password.gen_test.go:21:1*/	}
 }

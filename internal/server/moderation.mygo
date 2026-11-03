@@ -113,7 +113,7 @@ func ReportsRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
     WriteErrorJSON(w, 403, "CSRF denied")
     return true
   end
-  let input = ReportInput{}
+  var input = Zero[ReportInput]()
   if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
     WriteErrorJSON(w, 400, "invalid report")
     return true
@@ -182,7 +182,7 @@ func ResolveReportRoute(settings: config.Config, db: Ref[gorm.DB], site: config.
     WriteErrorJSON(w, 400, "invalid report")
     return true
   end
-  let input = ReportResolveInput{}
+  var input = Zero[ReportResolveInput]()
   if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
     WriteErrorJSON(w, 400, "invalid report")
     return true
@@ -210,7 +210,7 @@ func AdminBanRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     WriteErrorJSON(w, 403, "CSRF denied")
     return true
   end
-  let input = BanInput{}
+  var input = Zero[BanInput]()
   if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
     WriteErrorJSON(w, 400, "invalid ban")
     return true

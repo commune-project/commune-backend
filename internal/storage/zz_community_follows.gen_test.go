@@ -4,7 +4,6 @@ package storage
 
 import "testing"
 import "context"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
@@ -18,11 +17,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_community_follows.gen_test.go:21:1*/	}
+ /*line zz_community_follows.gen_test.go:20:1*/	}
  /*line community_follows_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", Origin: "https://a.example"}
+	site := testSite("a", "https://a.example")
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
 	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
@@ -34,55 +33,55 @@ import . "github.com/mygo-lang/mygo/prelude"
 	approval := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval"))
 	disabled := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "disabled", "Disabled", "federated", "eligible_users", "eligible_users", "disabled"))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(communities, ctx, restricted.ID, creator, false, member.ActorURI, true))
- /*line community_follows_test.mygo:25:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, true)) != "accepted" {
+ /*line community_follows_test.mygo:25:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, true)) != "accepted" {
  /*line community_follows_test.mygo:26:5*/		t.Fatal("open follow was not accepted")
- /*line community_follows_test.mygo:25:6*/	} else {
- /*line zz_community_follows.gen_test.go:40:1*/	}
- /*line community_follows_test.mygo:28:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, true)) != "accepted" {
+ /*line community_follows_test.mygo:25:3*/	} else {
+ /*line zz_community_follows.gen_test.go:39:1*/	}
+ /*line community_follows_test.mygo:28:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, true)) != "accepted" {
  /*line community_follows_test.mygo:29:5*/		t.Fatal("accepted follow was not idempotent")
- /*line community_follows_test.mygo:28:6*/	} else {
- /*line zz_community_follows.gen_test.go:44:1*/	}
- /*line community_follows_test.mygo:31:6*/	if MygoIN6ResultM9UnwrapErr[string, string](BrowserFollow(ctx, db, site.ID, restricted.ID, outsider, true)) != "follow_requires_membership" {
+ /*line community_follows_test.mygo:28:3*/	} else {
+ /*line zz_community_follows.gen_test.go:43:1*/	}
+ /*line community_follows_test.mygo:31:3*/	if MygoIN6ResultM9UnwrapErr[string, string](BrowserFollow(ctx, db, site.ID, restricted.ID, outsider, true)) != "follow_requires_membership" {
  /*line community_follows_test.mygo:32:5*/		t.Fatal("members policy allowed a non-member")
- /*line community_follows_test.mygo:31:6*/	} else {
- /*line zz_community_follows.gen_test.go:48:1*/	}
- /*line community_follows_test.mygo:34:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, restricted.ID, member, true)) != "accepted" {
+ /*line community_follows_test.mygo:31:3*/	} else {
+ /*line zz_community_follows.gen_test.go:47:1*/	}
+ /*line community_follows_test.mygo:34:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, restricted.ID, member, true)) != "accepted" {
  /*line community_follows_test.mygo:35:5*/		t.Fatal("members policy rejected a member")
- /*line community_follows_test.mygo:34:6*/	} else {
- /*line zz_community_follows.gen_test.go:52:1*/	}
- /*line community_follows_test.mygo:37:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, approval.ID, outsider, true)) != "pending" {
+ /*line community_follows_test.mygo:34:3*/	} else {
+ /*line zz_community_follows.gen_test.go:51:1*/	}
+ /*line community_follows_test.mygo:37:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, approval.ID, outsider, true)) != "pending" {
  /*line community_follows_test.mygo:38:5*/		t.Fatal("approval policy did not create a pending follow")
- /*line community_follows_test.mygo:37:6*/	} else {
- /*line zz_community_follows.gen_test.go:56:1*/	}
+ /*line community_follows_test.mygo:37:3*/	} else {
+ /*line zz_community_follows.gen_test.go:55:1*/	}
  /*line community_follows_test.mygo:9:1*/	pendingMember := MygoIN6ResultM6Unwrap[bool, string](IsCurrentMember(ctx, db, approval.ID, outsider.ActorURI))
- /*line community_follows_test.mygo:41:6*/	if pendingMember {
+ /*line community_follows_test.mygo:41:3*/	if pendingMember {
  /*line community_follows_test.mygo:42:5*/		t.Fatal("pending follow granted membership")
- /*line community_follows_test.mygo:41:6*/	} else {
- /*line zz_community_follows.gen_test.go:61:1*/	}
- /*line community_follows_test.mygo:44:6*/	if MygoIN6ResultM9UnwrapErr[string, string](BrowserFollow(ctx, db, site.ID, disabled.ID, outsider, true)) != "feature_disabled" {
+ /*line community_follows_test.mygo:41:3*/	} else {
+ /*line zz_community_follows.gen_test.go:60:1*/	}
+ /*line community_follows_test.mygo:44:3*/	if MygoIN6ResultM9UnwrapErr[string, string](BrowserFollow(ctx, db, site.ID, disabled.ID, outsider, true)) != "feature_disabled" {
  /*line community_follows_test.mygo:45:5*/		t.Fatal("disabled follow policy was ignored")
- /*line community_follows_test.mygo:44:6*/	} else {
- /*line zz_community_follows.gen_test.go:65:1*/	}
- /*line community_follows_test.mygo:47:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, false)) != "undone" {
+ /*line community_follows_test.mygo:44:3*/	} else {
+ /*line zz_community_follows.gen_test.go:64:1*/	}
+ /*line community_follows_test.mygo:47:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, false)) != "undone" {
  /*line community_follows_test.mygo:48:5*/		t.Fatal("unfollow failed")
- /*line community_follows_test.mygo:47:6*/	} else {
- /*line zz_community_follows.gen_test.go:69:1*/	}
- /*line community_follows_test.mygo:50:6*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, false)) != "undone" {
+ /*line community_follows_test.mygo:47:3*/	} else {
+ /*line zz_community_follows.gen_test.go:68:1*/	}
+ /*line community_follows_test.mygo:50:3*/	if MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, open.ID, outsider, false)) != "undone" {
  /*line community_follows_test.mygo:51:5*/		t.Fatal("repeat unfollow failed")
- /*line community_follows_test.mygo:50:6*/	} else {
- /*line zz_community_follows.gen_test.go:73:1*/	}
+ /*line community_follows_test.mygo:50:3*/	} else {
+ /*line zz_community_follows.gen_test.go:72:1*/	}
  /*line community_follows_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ReviewFollow(ctx, db, site.ID, approval.ID, creator, outsider.ActorURI, true))
- /*line community_follows_test.mygo:54:6*/	if MygoIN6ResultM6Unwrap[string, string](CommunityFollowState(ctx, db, approval.ID, outsider.ActorURI)) != "accepted" || !MygoIN6ResultM6Unwrap[bool, string](IsCurrentMember(ctx, db, approval.ID, outsider.ActorURI)) {
+ /*line community_follows_test.mygo:54:3*/	if MygoIN6ResultM6Unwrap[string, string](CommunityFollowState(ctx, db, approval.ID, outsider.ActorURI)) != "accepted" || !MygoIN6ResultM6Unwrap[bool, string](IsCurrentMember(ctx, db, approval.ID, outsider.ActorURI)) {
  /*line community_follows_test.mygo:56:5*/		t.Fatal("approval did not atomically grant follow and membership")
- /*line community_follows_test.mygo:54:6*/	} else {
- /*line zz_community_follows.gen_test.go:78:1*/	}
+ /*line community_follows_test.mygo:54:3*/	} else {
+ /*line zz_community_follows.gen_test.go:77:1*/	}
  /*line community_follows_test.mygo:9:1*/	second := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "second", "", "second-password"))
 	MygoIN6ResultM6Unwrap[string, string](BrowserFollow(ctx, db, site.ID, approval.ID, second, true))
 	MygoIN6ResultM6Unwrap[struct{}, string](ReviewFollow(ctx, db, site.ID, approval.ID, creator, second.ActorURI, false))
- /*line community_follows_test.mygo:61:6*/	if MygoIN6ResultM6Unwrap[string, string](CommunityFollowState(ctx, db, approval.ID, second.ActorURI)) != "rejected" || MygoIN6ResultM6Unwrap[bool, string](IsCurrentMember(ctx, db, approval.ID, second.ActorURI)) {
+ /*line community_follows_test.mygo:61:3*/	if MygoIN6ResultM6Unwrap[string, string](CommunityFollowState(ctx, db, approval.ID, second.ActorURI)) != "rejected" || MygoIN6ResultM6Unwrap[bool, string](IsCurrentMember(ctx, db, approval.ID, second.ActorURI)) {
  /*line community_follows_test.mygo:63:5*/		t.Fatal("rejection granted membership or retained pending state")
 		return
- /*line community_follows_test.mygo:61:6*/	} else {
- /*line community_follows_test.mygo:61:3*/		return
- /*line zz_community_follows.gen_test.go:87:1*/	}
+ /*line community_follows_test.mygo:61:3*/	} else {
+		return
+ /*line zz_community_follows.gen_test.go:86:1*/	}
 }

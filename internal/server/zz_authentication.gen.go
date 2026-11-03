@@ -29,36 +29,36 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication.mygo:27:1*/func WriteIdentity(w http.ResponseWriter, identity auth.Identity, db *gorm.DB, site config.Site, request *http.Request) {
 	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(browser, request.Context(), identity)
- /*line authentication.mygo:36:6*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+ /*line authentication.mygo:36:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
  /*line authentication.mygo:37:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
- /*line authentication.mygo:36:6*/		return
+ /*line authentication.mygo:36:3*/		return
 	} else {
  /*line zz_authentication.gen.go:36:1*/	}
  /*line authentication.mygo:27:1*/	dto := IdentityOutput{SiteID: identity.SiteID, AccountID: identity.AccountID, ActorURI: identity.ActorURI, Username: identity.Username, Roles: MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer).Roles}
- /*line authentication.mygo:47:10*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line authentication.mygo:47:3*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := json.Marshal(dto)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_authentication.gen.go:44:1*/	}
- /*line authentication.mygo:47:10*/	__mygo_expr_3 := __mygo_expr_1
+ /*line authentication.mygo:47:3*/	__mygo_expr_3 := __mygo_expr_1
 	if _, ok := __mygo_expr_3.(Result__Err[[]byte, error]); ok {
 		http.Error(w, "response unavailable", 500)
  /*line zz_authentication.gen.go:48:1*/	} else {
- /*line authentication.mygo:47:10*/		if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
+ /*line authentication.mygo:47:3*/		if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
  /*line authentication.mygo:50:7*/			w.Header().Set("Content-Type", "application/json")
  /*line authentication.mygo:51:15*/			w.Write(__mygo_match___mygo_expr_4.F0)
- /*line authentication.mygo:47:10*/		} else {
+ /*line authentication.mygo:47:3*/		} else {
  /*line zz_authentication.gen.go:53:1*/		}
 	}
- /*line authentication.mygo:47:10*/	return
+ /*line authentication.mygo:47:3*/	return
  /*line zz_authentication.gen.go:56:1*/}
  /*line authentication.mygo:55:1*/func SameOrigin(settings config.Config, request *http.Request) bool {
 	origin := config.NormalizeOrigin(request.Header.Get("Origin"))
- /*line authentication.mygo:57:6*/	if MygoIN6ResultM5IsErr[string, string](origin) {
+ /*line authentication.mygo:57:3*/	if MygoIN6ResultM5IsErr[string, string](origin) {
  /*line authentication.mygo:58:12*/		return false
- /*line authentication.mygo:57:6*/	} else {
+ /*line authentication.mygo:57:3*/	} else {
  /*line zz_authentication.gen.go:62:1*/	}
  /*line authentication.mygo:55:1*/	forwarded := request.Header.Get("X-Forwarded-Host")
 	var __mygo_expr_0 string
@@ -75,16 +75,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 	cookies := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(request.Cookies(), func(cookie *http.Cookie) bool {
  /*line authentication.mygo:72:5*/		return cookie.Name == "__Host-commune_session"
  /*line zz_authentication.gen.go:77:1*/	})
- /*line authentication.mygo:74:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(cookies) != 1 {
+ /*line authentication.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(cookies) != 1 {
  /*line authentication.mygo:75:12*/		return Err[string, string]("unauthenticated")
- /*line authentication.mygo:74:6*/	} else {
+ /*line authentication.mygo:74:3*/	} else {
  /*line zz_authentication.gen.go:81:1*/	}
  /*line authentication.mygo:77:3*/	return Ok[string, string](MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(cookies, 0)).Value)
  /*line zz_authentication.gen.go:83:1*/}
  /*line authentication.mygo:80:1*/func ReadLogin(w http.ResponseWriter, request *http.Request, maxBytes int) Result[LoginInput, string] {
- /*line authentication.mygo:85:6*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(request.Header.Get("Content-Type"), ";"), 0), "") != "application/json" {
+ /*line authentication.mygo:85:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(request.Header.Get("Content-Type"), ";"), 0), "") != "application/json" {
  /*line authentication.mygo:87:12*/		return Err[LoginInput, string]("expected application/json")
- /*line authentication.mygo:85:6*/	} else {
+ /*line authentication.mygo:85:3*/	} else {
  /*line zz_authentication.gen.go:88:1*/	}
  /*line authentication.mygo:80:1*/	reader := http.MaxBytesReader(w, request.Body, int64(maxBytes))
 	result := DecodeLoginBody(io.ReadCloser(reader))
@@ -94,7 +94,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication.mygo:95:1*/func DecodeLoginBody(reader io.ReadCloser) Result[LoginInput, string] {
 	decoder := json.NewDecoder(io.Reader(reader))
  /*line authentication.mygo:97:3*/	decoder.DisallowUnknownFields()
- /*line authentication.mygo:95:1*/	input := LoginInput{}
+ /*line authentication.mygo:95:1*/	input := Zero[LoginInput]()
  /*line authentication.mygo:99:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := decoder.Decode(&input)
 	if __mygo_expr_0 != nil {
@@ -103,9 +103,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_authentication.gen.go:104:1*/		}{})
 	}
- /*line authentication.mygo:99:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line authentication.mygo:99:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line authentication.mygo:100:12*/		return Err[LoginInput, string]("invalid login request")
- /*line authentication.mygo:99:6*/	} else {
+ /*line authentication.mygo:99:3*/	} else {
  /*line zz_authentication.gen.go:109:1*/	}
  /*line authentication.mygo:95:1*/	extra := json.RawMessage{}
  /*line authentication.mygo:103:18*/	var __mygo_expr_3 Result[struct{}, error]
@@ -117,9 +117,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_authentication.gen.go:117:1*/		}{})
 	}
  /*line authentication.mygo:95:1*/	trailing := __mygo_expr_3
- /*line authentication.mygo:104:6*/	if MygoIN6ResultM4IsOk[struct{}, error](trailing) || !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](trailing), io.EOF) {
+ /*line authentication.mygo:104:3*/	if MygoIN6ResultM4IsOk[struct{}, error](trailing) || !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](trailing), io.EOF) {
  /*line authentication.mygo:105:12*/		return Err[LoginInput, string]("invalid login request")
- /*line authentication.mygo:104:6*/	} else {
+ /*line authentication.mygo:104:3*/	} else {
  /*line zz_authentication.gen.go:123:1*/	}
  /*line authentication.mygo:107:3*/	return Ok[LoginInput, string](input)
  /*line zz_authentication.gen.go:125:1*/}
@@ -136,35 +136,35 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication.mygo:125:9*/				http.Error(w, "origin denied", 403)
 				return
  /*line zz_authentication.gen.go:138:1*/			} else {
- /*line authentication.mygo:124:10*/				input := ReadLogin(w, request, settings.Runtime.MaxBodyBytes)
+ /*line authentication.mygo:124:7*/				input := ReadLogin(w, request, settings.Runtime.MaxBodyBytes)
  /*line authentication.mygo:128:12*/				if MygoIN6ResultM5IsErr[LoginInput, string](input) {
  /*line authentication.mygo:129:11*/					http.Error(w, MygoIN6ResultM9UnwrapErr[LoginInput, string](input), 400)
 					return
  /*line zz_authentication.gen.go:143:1*/				} else {
- /*line authentication.mygo:128:12*/					identity := storage.MygoIN17AccountRepositoryM12Authenticate(accounts, request.Context(), site.ID, MygoIN6ResultM6Unwrap[LoginInput, string](input).Login, MygoIN6ResultM6Unwrap[LoginInput, string](input).Password)
+ /*line authentication.mygo:128:9*/					identity := storage.MygoIN17AccountRepositoryM12Authenticate(accounts, request.Context(), site.ID, MygoIN6ResultM6Unwrap[LoginInput, string](input).Login, MygoIN6ResultM6Unwrap[LoginInput, string](input).Password)
  /*line authentication.mygo:132:14*/					if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
-						var __mygo_expr_0 int
+ /*line authentication.mygo:132:11*/						var __mygo_expr_0 int
 						if MygoIN6ResultM9UnwrapErr[auth.Identity, string](identity) == "invalid credentials" {
 							__mygo_expr_0 = 401
 						} else {
 							__mygo_expr_0 = 503
  /*line zz_authentication.gen.go:151:1*/						}
- /*line authentication.mygo:132:14*/						status := __mygo_expr_0
+ /*line authentication.mygo:132:11*/						status := __mygo_expr_0
  /*line authentication.mygo:138:13*/						http.Error(w, "authentication failed", status)
 						return
  /*line zz_authentication.gen.go:155:1*/					} else {
- /*line authentication.mygo:132:14*/						banned := storage.ActiveSiteBan(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, string](identity).ActorURI, time.Now())
- /*line authentication.mygo:141:16*/						if MygoIN6ResultM5IsErr[bool, string](banned) {
+ /*line authentication.mygo:132:11*/						banned := storage.ActiveSiteBan(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, string](identity).ActorURI, time.Now())
+ /*line authentication.mygo:141:13*/						if MygoIN6ResultM5IsErr[bool, string](banned) {
  /*line authentication.mygo:142:15*/							http.Error(w, "authentication unavailable", 503)
- /*line authentication.mygo:141:16*/							return
+ /*line authentication.mygo:141:13*/							return
 						} else {
  /*line zz_authentication.gen.go:161:1*/						}
- /*line authentication.mygo:145:16*/						if MygoIN6ResultM6Unwrap[bool, string](banned) {
+ /*line authentication.mygo:145:13*/						if MygoIN6ResultM6Unwrap[bool, string](banned) {
  /*line authentication.mygo:146:15*/							http.Error(w, "authentication failed", 401)
- /*line authentication.mygo:145:16*/							return
+ /*line authentication.mygo:145:13*/							return
 						} else {
  /*line zz_authentication.gen.go:166:1*/						}
- /*line authentication.mygo:132:14*/						now := time.Now()
+ /*line authentication.mygo:132:11*/						now := time.Now()
 						issued := storage.MygoIN17SessionRepositoryM5Issue(sessions, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, string](identity), now)
  /*line authentication.mygo:151:16*/						if MygoIN6ResultM5IsErr[auth.SessionTokens, string](issued) {
  /*line authentication.mygo:152:15*/							http.Error(w, "authentication unavailable", 503)
@@ -182,32 +182,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 			}
 		}
 	} else {
- /*line authentication.mygo:119:6*/		var __mygo_expr_1 string
+ /*line authentication.mygo:119:3*/		var __mygo_expr_1 string
 		if request.URL.Path == "/api/v1/auth/logout" {
 			__mygo_expr_1 = "POST"
 		} else {
 			__mygo_expr_1 = "GET"
  /*line zz_authentication.gen.go:190:1*/		}
- /*line authentication.mygo:119:6*/		method := __mygo_expr_1
+ /*line authentication.mygo:119:3*/		method := __mygo_expr_1
  /*line authentication.mygo:169:8*/		if request.Method != method {
  /*line authentication.mygo:170:7*/			w.Header().Set("Allow", method)
  /*line authentication.mygo:171:7*/			http.Error(w, "method not allowed", 405)
 			return
  /*line zz_authentication.gen.go:196:1*/		} else {
- /*line authentication.mygo:169:8*/			token := ReadSession(request)
+ /*line authentication.mygo:169:5*/			token := ReadSession(request)
  /*line authentication.mygo:174:10*/			if MygoIN6ResultM5IsErr[string, string](token) {
  /*line authentication.mygo:175:9*/				http.Error(w, "unauthenticated", 401)
 				return
  /*line zz_authentication.gen.go:201:1*/			} else {
- /*line authentication.mygo:174:10*/				session := storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())
+ /*line authentication.mygo:174:7*/				session := storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())
  /*line authentication.mygo:178:12*/				if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
-					var __mygo_expr_2 int
+ /*line authentication.mygo:178:9*/					var __mygo_expr_2 int
 					if MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session) == "unauthenticated" {
 						__mygo_expr_2 = 401
 					} else {
 						__mygo_expr_2 = 503
  /*line zz_authentication.gen.go:209:1*/					}
- /*line authentication.mygo:178:12*/					status_1 := __mygo_expr_2
+ /*line authentication.mygo:178:9*/					status_1 := __mygo_expr_2
  /*line authentication.mygo:184:11*/					http.Error(w, "authentication failed", status_1)
 					return
  /*line zz_authentication.gen.go:213:1*/				} else {

@@ -34,7 +34,7 @@ func RunOnce(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, li
     slog.Warn("delivery claim failed", "reason", claimed.UnwrapErr())
     return Err(claimed.UnwrapErr())
   end
-  var outcome = Outcome{Delivered: 0, Retried: 0, Failed: 0}
+  var outcome = Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: 0}
   var failed = false
   GroupJobs(claimed.Unwrap()).Each(func(group: Slice[storage.DeliveryJobRecord]) -> ()
     let settled = SendGroup(ctx, db, settings, limits, group, poster)
@@ -178,7 +178,8 @@ func PostContext(ctx: context.Context, target: String, actorURI: String, private
   request.Unwrap().Header.Set("Date", date)
   request.Unwrap().Header.Set("Digest", digest)
   request.Unwrap().Header.Set("Signature", header)
-  let client = http.Client{Timeout: 15 as time.Duration * time.Second}
+  var client = Zero[http.Client]()
+  client.Timeout = 15 as time.Duration * time.Second
   let response = client.Do(request.Unwrap())
   if response.IsErr() then
     return Err("unreachable")

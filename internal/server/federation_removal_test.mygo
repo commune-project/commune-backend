@@ -23,8 +23,8 @@ func TestPostgresScopedPeerRemoval(t: Ref[testing.T]) -> ()
   let posts = storage.PostRepository{DB: db, SiteID: a.ID}
   let community = communities.Create(ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users").Unwrap()
   let otherCommunity = communities.Create(ctx, a, alice, "other", "Other", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "T", Body: "Body", ParentID: ""}).Unwrap()
-  let ignoredPost = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "Ignored", Body: "Body", ParentID: ""}).Unwrap()
+  let post = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "T", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let ignoredPost = posts.Publish(ctx, a, community.ID, alice, false, storage.PublishInput{Title: "Ignored", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let _ = storage.EnsureLocalKey(ctx, db, community.ActorURI.String).Unwrap()
   let _ = storage.EnsureLocalKey(ctx, db, otherCommunity.ActorURI.String).Unwrap()
   let groupKey = storage.LoadLocalPrivateKey(ctx, db, community.ActorURI.String).Unwrap()
@@ -63,7 +63,7 @@ struct PostState
 end
 
 func PostRecordForTest(ctx: context.Context, db: Ref[gorm.DB], id: String) -> PostState
-  let record = storage.PostRecord{}
+  var record = Zero[storage.PostRecord]()
   let _ = storage.MutationResult(db.WithContext(ctx).Table("posts").Where("id = ?", id).Find(Ref.new(record))).Unwrap()
-  PostState{Body: record.Body, DeletedAtValid: record.DeletedAt.Valid}
+  PostState { Body: record.Body, DeletedAtValid: record.DeletedAt.Valid }
 end

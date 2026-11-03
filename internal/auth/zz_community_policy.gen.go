@@ -27,13 +27,13 @@ package auth
  /*line community_policy.mygo:29:5*/	return MygoIN15CommunityPolicyM5Valid(self) && !subject.Blocked && subject.Verified && subject.ActorURI != "" && (self.FederationMode == "federated" || subject.SiteID == self.HostSiteID && subject.AccountID > int64(0))
  /*line zz_community_policy.gen.go:28:1*/}
  /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM7CanRead(self CommunityPolicy, subject AccessSubject) bool {
- /*line community_policy.mygo:33:8*/	if !MygoIN15CommunityPolicyM5Valid(self) || subject.Blocked {
+ /*line community_policy.mygo:33:5*/	if !MygoIN15CommunityPolicyM5Valid(self) || subject.Blocked {
  /*line community_policy.mygo:34:14*/		return false
- /*line community_policy.mygo:33:8*/	} else {
+ /*line community_policy.mygo:33:5*/	} else {
  /*line zz_community_policy.gen.go:33:1*/	}
- /*line community_policy.mygo:36:8*/	if self.FederationMode == "federated" && self.ReadPolicy == "eligible_users" {
+ /*line community_policy.mygo:36:5*/	if self.FederationMode == "federated" && self.ReadPolicy == "eligible_users" {
  /*line community_policy.mygo:37:14*/		return true
- /*line community_policy.mygo:36:8*/	} else {
+ /*line community_policy.mygo:36:5*/	} else {
  /*line zz_community_policy.gen.go:37:1*/	}
  /*line community_policy.mygo:39:5*/	return MygoIN15CommunityPolicyM8Eligible(self, subject) && (self.ReadPolicy == "eligible_users" || subject.Member)
  /*line zz_community_policy.gen.go:39:1*/}

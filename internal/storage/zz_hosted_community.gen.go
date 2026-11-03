@@ -7,24 +7,24 @@ import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line hosted_community.mygo:6:1*/func LoadHostedCommunityByActor(ctx context.Context, db *gorm.DB, siteID string, actorURI string) Result[Option[CommunityRecord], string] {
-	record := CommunityRecord{}
+	record := Zero[CommunityRecord]()
 	query := db.WithContext(ctx).Table("communities").Where("actor_uri = ? AND host_site_id = ?", actorURI, siteID).Limit(1).Find(&record)
- /*line hosted_community.mygo:9:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line hosted_community.mygo:10:12*/		return Err[Option[CommunityRecord], string]("community unavailable")
- /*line hosted_community.mygo:9:6*/	} else {
+ /*line hosted_community.mygo:18:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line hosted_community.mygo:19:12*/		return Err[Option[CommunityRecord], string]("community unavailable")
+ /*line hosted_community.mygo:18:3*/	} else {
  /*line zz_hosted_community.gen.go:15:1*/	}
- /*line hosted_community.mygo:12:6*/	if query.RowsAffected != int64(1) {
- /*line hosted_community.mygo:13:12*/		return Ok[Option[CommunityRecord], string](None[CommunityRecord]())
- /*line hosted_community.mygo:12:6*/	} else {
+ /*line hosted_community.mygo:21:3*/	if query.RowsAffected != int64(1) {
+ /*line hosted_community.mygo:22:12*/		return Ok[Option[CommunityRecord], string](None[CommunityRecord]())
+ /*line hosted_community.mygo:21:3*/	} else {
  /*line zz_hosted_community.gen.go:19:1*/	}
- /*line hosted_community.mygo:15:3*/	return Ok[Option[CommunityRecord], string](Some[CommunityRecord](record))
+ /*line hosted_community.mygo:24:3*/	return Ok[Option[CommunityRecord], string](Some[CommunityRecord](record))
  /*line zz_hosted_community.gen.go:21:1*/}
- /*line hosted_community.mygo:19:1*/func IsCommunityManager(ctx context.Context, db *gorm.DB, communityID string, actorURI string) Result[bool, string] {
+ /*line hosted_community.mygo:28:1*/func IsCommunityManager(ctx context.Context, db *gorm.DB, communityID string, actorURI string) Result[bool, string] {
 	var count int64 = int64(0)
 	query := db.WithContext(ctx).Raw("SELECT (SELECT count(*) FROM communities WHERE id = ? AND creator_actor_uri = ?) + (SELECT count(*) FROM moderators WHERE community_id = ? AND actor_uri = ? AND revoked_at IS NULL) AS total", communityID, actorURI, communityID, actorURI).Scan(&count)
- /*line hosted_community.mygo:22:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line hosted_community.mygo:23:12*/		return Err[bool, string]("manager lookup failed")
- /*line hosted_community.mygo:22:6*/	} else {
+ /*line hosted_community.mygo:42:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line hosted_community.mygo:43:12*/		return Err[bool, string]("manager lookup failed")
+ /*line hosted_community.mygo:42:3*/	} else {
  /*line zz_hosted_community.gen.go:28:1*/	}
- /*line hosted_community.mygo:25:3*/	return Ok[bool, string](count > int64(0))
+ /*line hosted_community.mygo:45:3*/	return Ok[bool, string](count > int64(0))
  /*line zz_hosted_community.gen.go:30:1*/}

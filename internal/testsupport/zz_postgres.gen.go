@@ -13,65 +13,67 @@ import "gorm.io/gorm/logger"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line postgres.mygo:12:1*/func OpenTestPool(dsn string) *sql.DB {
-	settings := gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard}
- /*line postgres.mygo:14:3*/	var __mygo_expr_1 Result[*gorm.DB, error]
+	settings := Zero[gorm.Config]()
+	settings.DisableAutomaticPing = true
+	settings.Logger = logger.Discard
+ /*line postgres.mygo:16:3*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := gorm.Open(postgres.Open(dsn), gorm.Option(&settings))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_postgres.gen.go:23:1*/	}
- /*line postgres.mygo:14:3*/	var __mygo_expr_4 Result[*sql.DB, error]
+ /*line zz_postgres.gen.go:25:1*/	}
+ /*line postgres.mygo:16:3*/	var __mygo_expr_4 Result[*sql.DB, error]
 	__mygo_expr_5, __mygo_expr_3 := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1).DB()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*sql.DB, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*sql.DB, error](__mygo_expr_5)
- /*line zz_postgres.gen.go:30:1*/	}
- /*line postgres.mygo:14:3*/	return MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_4)
- /*line zz_postgres.gen.go:32:1*/}
- /*line postgres.mygo:17:1*/func Postgres(t *testing.T) *sql.DB {
+ /*line zz_postgres.gen.go:32:1*/	}
+ /*line postgres.mygo:16:3*/	return MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_4)
+ /*line zz_postgres.gen.go:34:1*/}
+ /*line postgres.mygo:19:1*/func Postgres(t *testing.T) *sql.DB {
 	dsn := os.Getenv("COMMUNE_TEST_POSTGRES_DSN")
- /*line postgres.mygo:19:6*/	if dsn == "" {
- /*line postgres.mygo:20:5*/		t.Skip("set COMMUNE_TEST_POSTGRES_DSN to run real PostgreSQL tests")
- /*line postgres.mygo:19:6*/	} else {
- /*line zz_postgres.gen.go:38:1*/	}
- /*line postgres.mygo:17:1*/	admin := OpenTestPool(dsn)
+ /*line postgres.mygo:21:3*/	if dsn == "" {
+ /*line postgres.mygo:22:5*/		t.Skip("set COMMUNE_TEST_POSTGRES_DSN to run real PostgreSQL tests")
+ /*line postgres.mygo:21:3*/	} else {
+ /*line zz_postgres.gen.go:40:1*/	}
+ /*line postgres.mygo:19:1*/	admin := OpenTestPool(dsn)
 	name := fmt.Sprintf("commune_test_%d", time.Now().UnixNano())
- /*line postgres.mygo:24:3*/	t.Cleanup(func() {
- /*line postgres.mygo:24:13*/		admin.Close()
+ /*line postgres.mygo:26:3*/	t.Cleanup(func() {
+ /*line postgres.mygo:26:13*/		admin.Close()
 		return
- /*line zz_postgres.gen.go:44:1*/	})
- /*line postgres.mygo:27:6*/	var __mygo_expr_1 Result[sql.Result, error]
+ /*line zz_postgres.gen.go:46:1*/	})
+ /*line postgres.mygo:29:6*/	var __mygo_expr_1 Result[sql.Result, error]
 	__mygo_expr_2, __mygo_expr_0 := admin.Exec("CREATE DATABASE " + name)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
- /*line zz_postgres.gen.go:51:1*/	}
- /*line postgres.mygo:27:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_1) {
- /*line postgres.mygo:28:5*/		t.Fatal("cannot create isolated PostgreSQL test database")
- /*line postgres.mygo:27:6*/	} else {
- /*line zz_postgres.gen.go:55:1*/	}
- /*line postgres.mygo:30:3*/	t.Cleanup(func() {
- /*line postgres.mygo:31:8*/		var __mygo_expr_4 Result[sql.Result, error]
+ /*line zz_postgres.gen.go:53:1*/	}
+ /*line postgres.mygo:29:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_1) {
+ /*line postgres.mygo:30:5*/		t.Fatal("cannot create isolated PostgreSQL test database")
+ /*line postgres.mygo:29:3*/	} else {
+ /*line zz_postgres.gen.go:57:1*/	}
+ /*line postgres.mygo:32:3*/	t.Cleanup(func() {
+ /*line postgres.mygo:33:8*/		var __mygo_expr_4 Result[sql.Result, error]
 		__mygo_expr_5, __mygo_expr_3 := admin.Exec("DROP DATABASE " + name + " WITH (FORCE)")
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[sql.Result, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[sql.Result, error](__mygo_expr_5)
- /*line zz_postgres.gen.go:63:1*/		}
- /*line postgres.mygo:31:8*/		if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_4) {
- /*line postgres.mygo:32:7*/			t.Error("cannot remove PostgreSQL test database")
+ /*line zz_postgres.gen.go:65:1*/		}
+ /*line postgres.mygo:33:5*/		if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_4) {
+ /*line postgres.mygo:34:7*/			t.Error("cannot remove PostgreSQL test database")
 			return
- /*line postgres.mygo:31:8*/		} else {
- /*line postgres.mygo:31:5*/			return
- /*line zz_postgres.gen.go:69:1*/		}
+ /*line postgres.mygo:33:5*/		} else {
+			return
+ /*line zz_postgres.gen.go:71:1*/		}
 	})
- /*line postgres.mygo:17:1*/	db := OpenTestPool(dsn + " dbname=" + name)
- /*line postgres.mygo:36:3*/	t.Cleanup(func() {
- /*line postgres.mygo:36:13*/		db.Close()
+ /*line postgres.mygo:19:1*/	db := OpenTestPool(dsn + " dbname=" + name)
+ /*line postgres.mygo:38:3*/	t.Cleanup(func() {
+ /*line postgres.mygo:38:13*/		db.Close()
 		return
- /*line zz_postgres.gen.go:75:1*/	})
- /*line postgres.mygo:39:3*/	return db
- /*line zz_postgres.gen.go:77:1*/}
+ /*line zz_postgres.gen.go:77:1*/	})
+ /*line postgres.mygo:41:3*/	return db
+ /*line zz_postgres.gen.go:79:1*/}

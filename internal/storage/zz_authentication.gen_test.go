@@ -23,80 +23,80 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_authentication.gen_test.go:23:1*/	}
  /*line authentication_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
- /*line authentication_test.mygo:14:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MigrateGORM(ctx, db)) {
+ /*line authentication_test.mygo:14:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MigrateGORM(ctx, db)) {
  /*line authentication_test.mygo:15:5*/		t.Fatal("migration failed")
- /*line authentication_test.mygo:14:6*/	} else {
+ /*line authentication_test.mygo:14:3*/	} else {
  /*line zz_authentication.gen_test.go:29:1*/	}
- /*line authentication_test.mygo:10:1*/	a := config.Site{ID: "a", Origin: "https://a.example", Aliases: []string{}}
-	b := config.Site{ID: "b", Origin: "https://b.example", Aliases: []string{}}
+ /*line authentication_test.mygo:10:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}}
+	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}}
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
 	accounts := AccountRepository{DB: db}
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "ALICE@EXAMPLE.ORG", "first-site-password"))
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "alice", "alice@example.org", "other-site-password"))
- /*line authentication_test.mygo:24:6*/	if alice.AccountID == bob.AccountID || !auth.MygoIN8IdentityM9BelongsTo(alice, "a") || auth.MygoIN8IdentityM9BelongsTo(alice, "b") {
- /*line authentication_test.mygo:25:5*/		t.Fatal("account site identity is incorrect")
- /*line authentication_test.mygo:24:6*/	} else {
+ /*line authentication_test.mygo:34:3*/	if alice.AccountID == bob.AccountID || !auth.MygoIN8IdentityM9BelongsTo(alice, "a") || auth.MygoIN8IdentityM9BelongsTo(alice, "b") {
+ /*line authentication_test.mygo:35:5*/		t.Fatal("account site identity is incorrect")
+ /*line authentication_test.mygo:34:3*/	} else {
  /*line zz_authentication.gen_test.go:40:1*/	}
  /*line authentication_test.mygo:10:1*/	logins := []string{"alice", "ALICE@EXAMPLE.ORG"}
- /*line authentication_test.mygo:28:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(logins, func(login string) {
- /*line authentication_test.mygo:29:8*/		if MygoIN6ResultM5IsErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", login, "first-site-password")) || MygoIN6ResultM5IsErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "b", login, "other-site-password")) {
- /*line authentication_test.mygo:30:7*/			t.Fatal("site-local username or email login failed")
- /*line authentication_test.mygo:29:8*/		} else {
+ /*line authentication_test.mygo:38:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(logins, func(login string) {
+ /*line authentication_test.mygo:39:5*/		if MygoIN6ResultM5IsErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", login, "first-site-password")) || MygoIN6ResultM5IsErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "b", login, "other-site-password")) {
+ /*line authentication_test.mygo:41:7*/			t.Fatal("site-local username or email login failed")
+ /*line authentication_test.mygo:39:5*/		} else {
  /*line zz_authentication.gen_test.go:46:1*/		}
- /*line authentication_test.mygo:32:8*/		if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "b", login, "first-site-password")) {
- /*line authentication_test.mygo:33:7*/			t.Fatal("password authenticated at another site")
+ /*line authentication_test.mygo:43:5*/		if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "b", login, "first-site-password")) {
+ /*line authentication_test.mygo:44:7*/			t.Fatal("password authenticated at another site")
 			return
- /*line authentication_test.mygo:32:8*/		} else {
- /*line authentication_test.mygo:32:5*/			return
+ /*line authentication_test.mygo:43:5*/		} else {
+			return
  /*line zz_authentication.gen_test.go:52:1*/		}
 	})
- /*line authentication_test.mygo:36:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice' OR 1=1 --", "first-site-password")) || MygoIN6ResultM9UnwrapErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "missing", "first-site-password")) != "invalid credentials" {
- /*line authentication_test.mygo:37:5*/		t.Fatal("login input or unknown account handling failed")
- /*line authentication_test.mygo:36:6*/	} else {
+ /*line authentication_test.mygo:47:3*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice' OR 1=1 --", "first-site-password")) || MygoIN6ResultM9UnwrapErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "missing", "first-site-password")) != "invalid credentials" {
+ /*line authentication_test.mygo:50:5*/		t.Fatal("login input or unknown account handling failed")
+ /*line authentication_test.mygo:47:3*/	} else {
  /*line zz_authentication.gen_test.go:57:1*/	}
- /*line authentication_test.mygo:39:6*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "changed-password")) {
- /*line authentication_test.mygo:40:5*/		t.Fatal("duplicate account replaced credentials")
- /*line authentication_test.mygo:39:6*/	} else {
+ /*line authentication_test.mygo:52:3*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "changed-password")) {
+ /*line authentication_test.mygo:53:5*/		t.Fatal("duplicate account replaced credentials")
+ /*line authentication_test.mygo:52:3*/	} else {
  /*line zz_authentication.gen_test.go:61:1*/	}
  /*line authentication_test.mygo:10:1*/	sessions := SessionRepository{DB: db}
 	now := time.Now()
 	tokens := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(sessions, ctx, alice, now))
 	session := MygoIN6ResultM6Unwrap[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now))
- /*line authentication_test.mygo:46:6*/	if session.Identity.AccountID != alice.AccountID || !MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, tokens.CSRF) || MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, auth.NewSessionTokens().CSRF) {
- /*line authentication_test.mygo:47:5*/		t.Fatal("session or CSRF identity failed")
- /*line authentication_test.mygo:46:6*/	} else {
+ /*line authentication_test.mygo:59:3*/	if session.Identity.AccountID != alice.AccountID || !MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, tokens.CSRF) || MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, auth.NewSessionTokens().CSRF) {
+ /*line authentication_test.mygo:62:5*/		t.Fatal("session or CSRF identity failed")
+ /*line authentication_test.mygo:59:3*/	} else {
  /*line zz_authentication.gen_test.go:69:1*/	}
- /*line authentication_test.mygo:49:6*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "b", tokens.Session, now)) || MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now.Add(time.Duration(25)*time.Hour))) {
- /*line authentication_test.mygo:50:5*/		t.Fatal("cross-site or expired session accepted")
- /*line authentication_test.mygo:49:6*/	} else {
+ /*line authentication_test.mygo:64:3*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "b", tokens.Session, now)) || MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now.Add(time.Duration(25)*time.Hour))) {
+ /*line authentication_test.mygo:66:5*/		t.Fatal("cross-site or expired session accepted")
+ /*line authentication_test.mygo:64:3*/	} else {
  /*line zz_authentication.gen_test.go:73:1*/	}
  /*line authentication_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17SessionRepositoryM6Revoke(sessions, ctx, "b", tokens.Session, now))
- /*line authentication_test.mygo:53:6*/	if MygoIN6ResultM5IsErr[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now)) {
- /*line authentication_test.mygo:54:5*/		t.Fatal("wrong-site logout revoked session")
- /*line authentication_test.mygo:53:6*/	} else {
+ /*line authentication_test.mygo:69:3*/	if MygoIN6ResultM5IsErr[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now)) {
+ /*line authentication_test.mygo:70:5*/		t.Fatal("wrong-site logout revoked session")
+ /*line authentication_test.mygo:69:3*/	} else {
  /*line zz_authentication.gen_test.go:78:1*/	}
  /*line authentication_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17SessionRepositoryM6Revoke(sessions, ctx, "a", tokens.Session, now))
- /*line authentication_test.mygo:57:6*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now)) {
- /*line authentication_test.mygo:58:5*/		t.Fatal("logout session remained valid")
- /*line authentication_test.mygo:57:6*/	} else {
+ /*line authentication_test.mygo:73:3*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", tokens.Session, now)) {
+ /*line authentication_test.mygo:74:5*/		t.Fatal("logout session remained valid")
+ /*line authentication_test.mygo:73:3*/	} else {
  /*line zz_authentication.gen_test.go:83:1*/	}
  /*line authentication_test.mygo:10:1*/	active := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(sessions, ctx, alice, now))
- /*line authentication_test.mygo:61:6*/	var __mygo_expr_4 Result[sql.Result, error]
+ /*line authentication_test.mygo:77:6*/	var __mygo_expr_4 Result[sql.Result, error]
 	__mygo_expr_5, __mygo_expr_3 := pool.Exec("UPDATE accounts SET disabled=true WHERE site_id='a'")
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[sql.Result, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[sql.Result, error](__mygo_expr_5)
  /*line zz_authentication.gen_test.go:91:1*/	}
- /*line authentication_test.mygo:61:6*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_4) {
- /*line authentication_test.mygo:62:5*/		t.Fatal("cannot disable account fixture")
- /*line authentication_test.mygo:61:6*/	} else {
+ /*line authentication_test.mygo:77:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_4) {
+ /*line authentication_test.mygo:78:5*/		t.Fatal("cannot disable account fixture")
+ /*line authentication_test.mygo:77:3*/	} else {
  /*line zz_authentication.gen_test.go:95:1*/	}
- /*line authentication_test.mygo:64:6*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", active.Session, now)) || MygoIN6ResultM4IsOk[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(sessions, ctx, alice, now)) || MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "first-site-password")) {
- /*line authentication_test.mygo:65:5*/		t.Fatal("disabled account remained authenticated")
+ /*line authentication_test.mygo:80:3*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(sessions, ctx, "a", active.Session, now)) || MygoIN6ResultM4IsOk[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(sessions, ctx, alice, now)) || MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "alice", "first-site-password")) {
+ /*line authentication_test.mygo:83:5*/		t.Fatal("disabled account remained authenticated")
 		return
- /*line authentication_test.mygo:64:6*/	} else {
- /*line authentication_test.mygo:64:3*/		return
+ /*line authentication_test.mygo:80:3*/	} else {
+		return
  /*line zz_authentication.gen_test.go:101:1*/	}
 }

@@ -31,18 +31,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = self.DB.WithContext(ctx).Exec("DELETE FROM saved_posts WHERE site_id=? AND account_id=? AND post_id=?", self.SiteID, self.AccountID, postID)
  /*line zz_content_state.gen.go:32:1*/	}
  /*line content_state.mygo:26:1*/	query := __mygo_expr_0
- /*line content_state.mygo:48:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line content_state.mygo:48:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line content_state.mygo:49:14*/		return Err[struct{}, string]("content state unavailable")
- /*line content_state.mygo:48:8*/	} else {
+ /*line content_state.mygo:48:5*/	} else {
  /*line zz_content_state.gen.go:37:1*/	}
  /*line content_state.mygo:51:5*/	return Ok[struct{}, string](struct {
  /*line zz_content_state.gen.go:39:1*/	}{})
 }
  /*line content_state.mygo:26:1*/func MygoIN22ContentStateRepositoryM4Read(self ContentStateRepository, ctx context.Context, postID string) Result[struct{}, string] {
 	query := self.DB.WithContext(ctx).Exec("INSERT INTO post_reads(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING", self.SiteID, self.AccountID, postID)
- /*line content_state.mygo:64:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line content_state.mygo:64:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line content_state.mygo:65:14*/		return Err[struct{}, string]("content state unavailable")
- /*line content_state.mygo:64:8*/	} else {
+ /*line content_state.mygo:64:5*/	} else {
  /*line zz_content_state.gen.go:46:1*/	}
  /*line content_state.mygo:67:5*/	return Ok[struct{}, string](struct {
  /*line zz_content_state.gen.go:48:1*/	}{})
@@ -55,9 +55,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = self.DB.WithContext(ctx).Exec("DELETE FROM post_hidden WHERE site_id=? AND account_id=? AND post_id=?", self.SiteID, self.AccountID, postID)
  /*line zz_content_state.gen.go:56:1*/	}
  /*line content_state.mygo:26:1*/	query := __mygo_expr_0
- /*line content_state.mygo:90:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line content_state.mygo:90:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line content_state.mygo:91:14*/		return Err[struct{}, string]("content state unavailable")
- /*line content_state.mygo:90:8*/	} else {
+ /*line content_state.mygo:90:5*/	} else {
  /*line zz_content_state.gen.go:61:1*/	}
  /*line content_state.mygo:93:5*/	return Ok[struct{}, string](struct {
  /*line zz_content_state.gen.go:63:1*/	}{})
@@ -66,45 +66,45 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var saved []string = []string{}
 	var read []string = []string{}
 	var hidden []string = []string{}
- /*line content_state.mygo:103:8*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
- /*line content_state.mygo:104:14*/		return Ok[ContentStateFlags, string](ContentStateFlags{})
- /*line content_state.mygo:103:8*/	} else {
+ /*line content_state.mygo:103:5*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
+ /*line content_state.mygo:104:14*/		return Ok[ContentStateFlags, string](ContentStateFlags{Saved: []string{}, Read: []string{}, Hidden: []string{}})
+ /*line content_state.mygo:103:5*/	} else {
  /*line zz_content_state.gen.go:72:1*/	}
  /*line content_state.mygo:26:1*/	var rows []ContentStateRow = []ContentStateRow{}
 	query := self.DB.WithContext(ctx).Raw("SELECT post_id, bool_or(source='saved') AS saved, bool_or(source='read') AS read, bool_or(source='hidden') AS hidden FROM (SELECT post_id,'saved' AS source FROM saved_posts WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'read' FROM post_reads WHERE site_id=? AND account_id=? AND post_id IN ? UNION ALL SELECT post_id,'hidden' FROM post_hidden WHERE site_id=? AND account_id=? AND post_id IN ?) states GROUP BY post_id", self.SiteID, self.AccountID, ids, self.SiteID, self.AccountID, ids, self.SiteID, self.AccountID, ids).Scan(&rows)
- /*line content_state.mygo:113:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line content_state.mygo:114:14*/		return Err[ContentStateFlags, string]("content state unavailable")
- /*line content_state.mygo:113:8*/	} else {
+ /*line content_state.mygo:119:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line content_state.mygo:120:14*/		return Err[ContentStateFlags, string]("content state unavailable")
+ /*line content_state.mygo:119:5*/	} else {
  /*line zz_content_state.gen.go:78:1*/	}
- /*line content_state.mygo:116:5*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(rows, func(row ContentStateRow) {
- /*line content_state.mygo:117:10*/		if row.Saved {
+ /*line content_state.mygo:122:5*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(rows, func(row ContentStateRow) {
+ /*line content_state.mygo:123:7*/		if row.Saved {
 			saved = MygoIN5SliceM6Append(saved, row.PostID)
 		} else {
  /*line zz_content_state.gen.go:83:1*/		}
- /*line content_state.mygo:118:10*/		if row.Read {
+ /*line content_state.mygo:126:7*/		if row.Read {
 			read = MygoIN5SliceM6Append(read, row.PostID)
 		} else {
  /*line zz_content_state.gen.go:87:1*/		}
- /*line content_state.mygo:119:10*/		if row.Hidden {
+ /*line content_state.mygo:129:7*/		if row.Hidden {
 			hidden = MygoIN5SliceM6Append(hidden, row.PostID)
 			return
 		} else {
- /*line content_state.mygo:119:7*/			return
+			return
  /*line zz_content_state.gen.go:93:1*/		}
 	})
- /*line content_state.mygo:121:5*/	return Ok[ContentStateFlags, string](ContentStateFlags{Saved: saved, Read: read, Hidden: hidden})
+ /*line content_state.mygo:133:5*/	return Ok[ContentStateFlags, string](ContentStateFlags{Saved: saved, Read: read, Hidden: hidden})
  /*line zz_content_state.gen.go:96:1*/}
- /*line content_state.mygo:125:1*/func MygoIN17BrowserRepositoryM12accountPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int, source string) Result[[]PostRecord, string] {
- /*line content_state.mygo:134:8*/	if !MygoIN4PageM5Valid(page, max) {
- /*line content_state.mygo:135:14*/		return Err[[]PostRecord, string]("invalid page")
- /*line content_state.mygo:134:8*/	} else {
+ /*line content_state.mygo:137:1*/func MygoIN17BrowserRepositoryM12accountPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int, source string) Result[[]PostRecord, string] {
+ /*line content_state.mygo:146:5*/	if !MygoIN4PageM5Valid(page, max) {
+ /*line content_state.mygo:147:14*/		return Err[[]PostRecord, string]("invalid page")
+ /*line content_state.mygo:146:5*/	} else {
  /*line zz_content_state.gen.go:101:1*/	}
- /*line content_state.mygo:125:1*/	var records []PostRecord = []PostRecord{}
+ /*line content_state.mygo:137:1*/	var records []PostRecord = []PostRecord{}
 	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
 	query := self.DB.WithContext(ctx).Table("posts AS p").Select("p.*")
 	query = query.Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID)
 	query = query.Joins("JOIN (?) AS c ON c.id=p.community_id", readable)
- /*line content_state.mygo:142:8*/	if source == "saved" {
+ /*line content_state.mygo:154:5*/	if source == "saved" {
 		query = query.Joins("JOIN saved_posts s ON s.post_id=p.id AND s.site_id=? AND s.account_id=?", self.SiteID, viewer.Identity.AccountID).Order("s.created_at DESC")
 	} else {
 		if source == "read" {
@@ -117,34 +117,34 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_content_state.gen.go:117:1*/			}
 		}
 	}
- /*line content_state.mygo:125:1*/	query = query.Where("p.deleted_at IS NULL AND sp.hidden_at IS NULL")
+ /*line content_state.mygo:137:1*/	query = query.Where("p.deleted_at IS NULL AND sp.hidden_at IS NULL")
 	query = query.Where(PersonalBlockSQL("p", false), self.SiteID, viewer.Identity.AccountID)
- /*line content_state.mygo:157:8*/	if source != "hidden" {
+ /*line content_state.mygo:184:5*/	if source != "hidden" {
 		query = query.Where("NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id)", self.SiteID, viewer.Identity.AccountID)
 	} else {
  /*line zz_content_state.gen.go:125:1*/	}
- /*line content_state.mygo:125:1*/	query = query.Where("NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
- /*line content_state.mygo:161:8*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query.Order("p.id").Limit(page.Limit).Offset(page.Offset).Scan(&records))) {
- /*line content_state.mygo:162:14*/		return Err[[]PostRecord, string]("content state unavailable")
- /*line content_state.mygo:161:8*/	} else {
+ /*line content_state.mygo:137:1*/	query = query.Where("NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
+ /*line content_state.mygo:192:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query.Order("p.id").Limit(page.Limit).Offset(page.Offset).Scan(&records))) {
+ /*line content_state.mygo:193:14*/		return Err[[]PostRecord, string]("content state unavailable")
+ /*line content_state.mygo:192:5*/	} else {
  /*line zz_content_state.gen.go:130:1*/	}
- /*line content_state.mygo:164:5*/	return Ok[[]PostRecord, string](records)
+ /*line content_state.mygo:195:5*/	return Ok[[]PostRecord, string](records)
  /*line zz_content_state.gen.go:132:1*/}
- /*line content_state.mygo:125:1*/func MygoIN17BrowserRepositoryM10SavedPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
- /*line content_state.mygo:173:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "saved")
+ /*line content_state.mygo:137:1*/func MygoIN17BrowserRepositoryM10SavedPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
+ /*line content_state.mygo:204:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "saved")
  /*line zz_content_state.gen.go:135:1*/}
- /*line content_state.mygo:125:1*/func MygoIN17BrowserRepositoryM9ReadPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
- /*line content_state.mygo:182:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "read")
+ /*line content_state.mygo:137:1*/func MygoIN17BrowserRepositoryM9ReadPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
+ /*line content_state.mygo:213:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "read")
  /*line zz_content_state.gen.go:138:1*/}
- /*line content_state.mygo:125:1*/func MygoIN17BrowserRepositoryM11HiddenPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
- /*line content_state.mygo:191:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "hidden")
+ /*line content_state.mygo:137:1*/func MygoIN17BrowserRepositoryM11HiddenPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
+ /*line content_state.mygo:222:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "hidden")
  /*line zz_content_state.gen.go:141:1*/}
- /*line content_state.mygo:125:1*/func MygoIN17BrowserRepositoryM10LikedPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
+ /*line content_state.mygo:137:1*/func MygoIN17BrowserRepositoryM10LikedPosts(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]PostRecord, string] {
 	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
- /*line content_state.mygo:201:8*/	if !up {
+ /*line content_state.mygo:232:5*/	if !up {
 		var empty []PostRecord = []PostRecord{}
- /*line content_state.mygo:203:14*/		return Ok[[]PostRecord, string](empty)
- /*line content_state.mygo:201:8*/	} else {
+ /*line content_state.mygo:234:14*/		return Ok[[]PostRecord, string](empty)
+ /*line content_state.mygo:232:5*/	} else {
  /*line zz_content_state.gen.go:148:1*/	}
- /*line content_state.mygo:205:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "liked")
+ /*line content_state.mygo:236:5*/	return MygoIN17BrowserRepositoryM12accountPosts(self, ctx, viewer, page, max, "liked")
  /*line zz_content_state.gen.go:150:1*/}

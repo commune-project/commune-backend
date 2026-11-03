@@ -106,7 +106,7 @@ func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Res
 end
 
 func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, String]
-  let client = http.Client{}
+  let client = Zero[http.Client]()
   DisableRedirects(Ref.new(client))
   var current = raw
   var hops = 0

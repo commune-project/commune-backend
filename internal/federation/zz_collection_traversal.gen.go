@@ -25,7 +25,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_collection_traversal.gen.go:25:1*/}
 
  /*line collection_traversal.mygo:28:1*/func ParseCollectionTraversal(payload []byte) Result[CollectionTraversal, string] {
-	document := CollectionDocument{}
+	document := Zero[CollectionDocument]()
  /*line collection_traversal.mygo:30:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &document)
 	if __mygo_expr_0 != nil {
@@ -34,13 +34,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_collection_traversal.gen.go:35:1*/		}{})
 	}
- /*line collection_traversal.mygo:30:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line collection_traversal.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line collection_traversal.mygo:31:12*/		return Err[CollectionTraversal, string]("invalid collection")
- /*line collection_traversal.mygo:30:6*/	} else {
+ /*line collection_traversal.mygo:30:3*/	} else {
  /*line zz_collection_traversal.gen.go:40:1*/	}
- /*line collection_traversal.mygo:33:6*/	if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" {
+ /*line collection_traversal.mygo:33:3*/	if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" {
  /*line collection_traversal.mygo:34:12*/		return Err[CollectionTraversal, string]("not a collection")
- /*line collection_traversal.mygo:33:6*/	} else {
+ /*line collection_traversal.mygo:33:3*/	} else {
  /*line zz_collection_traversal.gen.go:44:1*/	}
  /*line collection_traversal.mygo:28:1*/	var __mygo_expr_2 json.RawMessage
 	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.OrderedItems)) > 0 {
@@ -51,7 +51,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line collection_traversal.mygo:28:1*/	rawItems := __mygo_expr_2
 	var items []string = []string{}
  /*line collection_traversal.mygo:38:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(rawItems)) > 0 {
-		var elements []json.RawMessage = []json.RawMessage{}
+ /*line collection_traversal.mygo:38:3*/		var elements []json.RawMessage = []json.RawMessage{}
  /*line collection_traversal.mygo:40:8*/		var __mygo_expr_4 Result[struct{}, error]
 		__mygo_expr_3 := json.Unmarshal([]byte(rawItems), &elements)
 		if __mygo_expr_3 != nil {
@@ -60,20 +60,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_collection_traversal.gen.go:61:1*/			}{})
 		}
- /*line collection_traversal.mygo:40:8*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line collection_traversal.mygo:40:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
  /*line collection_traversal.mygo:41:14*/			return Err[CollectionTraversal, string]("invalid collection items")
- /*line collection_traversal.mygo:40:8*/		} else {
+ /*line collection_traversal.mygo:40:5*/		} else {
  /*line zz_collection_traversal.gen.go:66:1*/		}
  /*line collection_traversal.mygo:43:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(elements, func(element json.RawMessage) {
  /*line collection_traversal.mygo:43:19*/			uri := DecodeCollectionItemURI(element)
- /*line collection_traversal.mygo:45:10*/			if uri != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(items, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line collection_traversal.mygo:45:7*/			if uri != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(items, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
 				items = MygoIN5SliceM6Append(items, uri)
 				return
 			} else {
- /*line collection_traversal.mygo:45:7*/				return
+				return
  /*line zz_collection_traversal.gen.go:74:1*/			}
 		})
- /*line collection_traversal.mygo:38:6*/	} else {
+ /*line collection_traversal.mygo:38:3*/	} else {
  /*line zz_collection_traversal.gen.go:77:1*/	}
  /*line collection_traversal.mygo:50:3*/	return Ok[CollectionTraversal, string](CollectionTraversal{ID: document.ID, First: DecodeCollectionLink(document.First), Next: DecodeCollectionLink(document.Next), Items: items})
  /*line zz_collection_traversal.gen.go:79:1*/}
@@ -87,11 +87,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_collection_traversal.gen.go:88:1*/		}{})
 	}
- /*line collection_traversal.mygo:60:6*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
+ /*line collection_traversal.mygo:60:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
  /*line collection_traversal.mygo:61:12*/		return uri
- /*line collection_traversal.mygo:60:6*/	} else {
+ /*line collection_traversal.mygo:60:3*/	} else {
  /*line zz_collection_traversal.gen.go:93:1*/	}
- /*line collection_traversal.mygo:58:1*/	item := CollectionItemView{}
+ /*line collection_traversal.mygo:58:1*/	item := Zero[CollectionItemView]()
  /*line collection_traversal.mygo:64:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal([]byte(raw), &item)
 	if __mygo_expr_2 != nil {
@@ -100,13 +100,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[struct{}, error](struct {
  /*line zz_collection_traversal.gen.go:101:1*/		}{})
 	}
- /*line collection_traversal.mygo:64:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) {
+ /*line collection_traversal.mygo:64:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) {
  /*line collection_traversal.mygo:65:12*/		return ""
- /*line collection_traversal.mygo:64:6*/	} else {
+ /*line collection_traversal.mygo:64:3*/	} else {
  /*line zz_collection_traversal.gen.go:106:1*/	}
- /*line collection_traversal.mygo:67:6*/	if item.ID != "" {
+ /*line collection_traversal.mygo:67:3*/	if item.ID != "" {
  /*line collection_traversal.mygo:68:12*/		return item.ID
- /*line collection_traversal.mygo:67:6*/	} else {
+ /*line collection_traversal.mygo:67:3*/	} else {
  /*line zz_collection_traversal.gen.go:110:1*/	}
  /*line collection_traversal.mygo:70:3*/	return item.Href
  /*line zz_collection_traversal.gen.go:112:1*/}

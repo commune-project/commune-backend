@@ -38,7 +38,7 @@ func InboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
     WriteErrorJSON(w, 400, "ambiguous activity")
     return
   end
-  let envelope = ActivityEnvelope{}
+  let envelope = Zero[ActivityEnvelope]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() || envelope.ID == "" || envelope.Actor == "" || !KnownActivityKind(envelope.Type) then
     WriteErrorJSON(w, 400, "invalid activity")
     return
@@ -131,7 +131,7 @@ func AuthorizeInbound(ctx: context.Context, db: Ref[gorm.DB], settings: config.C
   if !federation.CreateAuthorMatches(activity) then
     return Err("forged author")
   end
-  var signer = federation.ForwardSigner{}
+  var signer = Zero[federation.ForwardSigner]()
   if activity.Type == "Announce" then
     let group = storage.LoadReplicaCommunity(ctx, db, activity.Actor)
     if group.IsErr() then return Err(group.UnwrapErr()) end

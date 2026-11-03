@@ -10,7 +10,7 @@ import testsupport "github.com/commune-project/commune-backend/internal/testsupp
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
 func topicOrderPage(t: Ref[testing.T], handler: http.HandlerFunc, origin: String, path: String) -> PostPage
-  let output = PostPage{}
+  let output = Zero[PostPage]()
   let response = browserGet(t, handler, origin, path, [] as Slice[Ref[http.Cookie]], 200)
   if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
     t.Fatalf("invalid topic page: %s", response.Body.String())
@@ -34,9 +34,9 @@ func TestPostgresTopicSortModes(t: Ref[testing.T]) -> ()
   let erin = accounts.Create(ctx, site, "erin", "", "erin-password").Unwrap()
   let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let p1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Old", Body: "old"}).Unwrap()
-  let p2 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Middle", Body: "middle"}).Unwrap()
-  let p3 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "New", Body: "new"}).Unwrap()
+  let p1 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Old", Body: "old", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let p2 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "Middle", Body: "middle", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let p3 = posts.Publish(ctx, site, community.ID, author, false, storage.PublishInput{Title: "New", Body: "new", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id=?", p1.ID)).Unwrap()
   let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-15T00:00:00Z',updated_at='2026-01-15T00:00:00Z' WHERE id=?", p2.ID)).Unwrap()
   let _ = storage.MutationResult(db.Exec("UPDATE posts SET authored_at=now(),updated_at=now() WHERE id=?", p3.ID)).Unwrap()

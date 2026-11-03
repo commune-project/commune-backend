@@ -14,7 +14,7 @@ func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
   if catalog.IsErr() then
     t.Fatalf("load migration catalog: %s", catalog.UnwrapErr())
   end
-  let begin = pool.BeginTx(ctx, Ref.new(sql.TxOptions{}))
+  let begin = pool.BeginTx(ctx, Ref.new(sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}))
   if begin.IsErr() then
     t.Fatalf("begin migration transaction: %s", begin.UnwrapErr())
   end
@@ -28,7 +28,7 @@ func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
     t.Fatalf("commit first twelve migrations: %s", committed.UnwrapErr())
   end
   let db = transport.ORM(pool).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://a.example"}
+  let site = testSite("a", "https://a.example")
   let provisioned = ProvisionSite(ctx, db, site)
   if provisioned.IsErr() then
     t.Fatalf("provision site: %s", provisioned.UnwrapErr())

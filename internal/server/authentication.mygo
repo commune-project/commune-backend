@@ -95,7 +95,7 @@ end
 func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, String]
   let decoder = json.NewDecoder(reader as io.Reader)
   decoder.DisallowUnknownFields()
-  let input = LoginInput {}
+  let input = Zero[LoginInput]()
   if decoder.Decode(Ref.new(input)).IsErr() then
     return Err("invalid login request")
   end

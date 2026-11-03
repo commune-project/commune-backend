@@ -14,18 +14,51 @@ func TestPostgresBlockedInteractionsCreateNothing(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()
   let site = settings.Sites.Get(0).Unwrap()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
-  let accounts = storage.AccountRepository{DB: db}
+  let accounts = storage.AccountRepository { DB: db }
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
-  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let parent = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body"}).Unwrap()
-  let _ = storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: alice.AccountID}.Add(ctx, alice, "person", bob.ActorURI).Unwrap()
+  let community = storage.CommunityRepository { DB: db, SiteID: site.ID }.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let parent = storage.PostRepository { DB: db, SiteID: site.ID }.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Title: "Parent",
+      Body: "body",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      Mentions: [],
+      AttachmentIDs: [],
+    }
+  ).Unwrap()
+  let _ = storage.AccountBlockRepository {
+    DB: db,
+    SiteID: site.ID,
+    AccountID: alice.AccountID,
+  }.Add(
+    ctx,
+    alice,
+    "person",
+    bob.ActorURI
+  ).Unwrap()
   let handler = Handler(settings, db)
   let bobCookies = login(handler, site.Origin, "bob", "bob-password")
   let bobCSRF = csrfOf(bobCookies)
   let reply = doForum(
     handler,
-    forumCall{
+    forumCall {
       Method: "POST",
       Origin: site.Origin,
       Path: "/api/v1/posts/" + parent.ID + "/replies",
@@ -40,7 +73,7 @@ func TestPostgresBlockedInteractionsCreateNothing(t: Ref[testing.T]) -> ()
   end
   let vote = doForum(
     handler,
-    forumCall{
+    forumCall {
       Method: "POST",
       Origin: site.Origin,
       Path: "/api/v1/posts/" + parent.ID + "/vote",
@@ -55,7 +88,7 @@ func TestPostgresBlockedInteractionsCreateNothing(t: Ref[testing.T]) -> ()
   end
   let mention = doForum(
     handler,
-    forumCall{
+    forumCall {
       Method: "POST",
       Origin: site.Origin,
       Path: "/api/v1/communities/" + community.ID + "/topics",

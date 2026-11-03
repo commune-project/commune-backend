@@ -20,64 +20,261 @@ func TestPostgresAccountBlockHTTP(t: Ref[testing.T]) -> ()
   let accounts = storage.AccountRepository{DB: db}
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
-  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "alice", "alice-password")
   let csrf = csrfOf(cookies)
   let anonymous: Slice[Ref[http.Cookie]] = []
   let path = "/api/v1/account/blocks"
-
-  if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: anonymous}).Code != 401 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "GET",
+      Origin: site.Origin,
+      Path: path,
+      Cookies: anonymous,
+      Source: "",
+      CSRF: "",
+      Payload: "",
+    }
+  ).Code != 401 then
     t.Fatal("anonymous account block listing was accepted")
   end
-  let initial = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies})
-  let initialPage = AccountBlockPage{}
-  if initial.Code != 200 || json.Unmarshal(initial.Body.Bytes(), Ref.new(initialPage)).IsErr() || initialPage.Items.Len() != 0 then
+  let initial = doForum(
+    handler,
+    forumCall {
+      Method: "GET",
+      Origin: site.Origin,
+      Path: path,
+      Cookies: cookies,
+      Source: "",
+      CSRF: "",
+      Payload: "",
+    }
+  )
+  var initialPage = Zero[AccountBlockPage]()
+  if initial.Code != 200 ||
+    json.Unmarshal(initial.Body.Bytes(), Ref.new(initialPage)).IsErr() ||
+    initialPage.Items.Len() != 0 then
     t.Fatal("initial account block listing failed")
   end
-  let personBody = "{\"kind\":\"person\",\"target\":\"" + bob.ActorURI + "\"}"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, Source: site.Origin}).Code != 403 then
+  let personBody = `{"kind":"person","target":"` + bob.ActorURI + `"}`
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: personBody,
+      Cookies: cookies,
+      Source: site.Origin,
+      CSRF: "",
+    }
+  ).Code != 403 then
     t.Fatal("account block without CSRF was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: "https://foreign.example"}).Code != 403 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: personBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: "https://foreign.example",
+    }
+  ).Code != 403 then
     t.Fatal("cross-origin account block was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: personBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code != 204 then
     t.Fatal("valid person block failed")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: personBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code != 204 then
     t.Fatal("repeat person block was not idempotent")
   end
   let selfBody = "{\"kind\":\"person\",\"target\":\"" + alice.ActorURI + "\"}"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: selfBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: selfBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    400 then
     t.Fatal("self block was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"domain\",\"target\":\"remote.example\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "{\"kind\":\"domain\",\"target\":\"remote.example\"}",
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    400 then
     t.Fatal("invalid block kind was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"person\",\"target\":\"not-an-actor\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "{\"kind\":\"person\",\"target\":\"not-an-actor\"}",
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    400 then
     t.Fatal("malformed person target was accepted")
   end
   let ownInstance = strings.TrimPrefix(site.Origin, "https://")
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"instance\",\"target\":\"" + ownInstance + "\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "{\"kind\":\"instance\",\"target\":\"" + ownInstance + "\"}",
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    400 then
     t.Fatal("own-instance block was accepted")
   end
   let communityBody = "{\"kind\":\"community\",\"target\":\"" + community.ID + "\"}"
   let instanceBody = "{\"kind\":\"instance\",\"target\":\"REMOTE.EXAMPLE\"}"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: communityBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 ||
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: instanceBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: communityBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 ||
+    doForum(
+      handler,
+      forumCall{
+        Method: "POST",
+        Origin: site.Origin,
+        Path: path,
+        Payload: instanceBody,
+        Cookies: cookies,
+        CSRF: csrf,
+        Source: site.Origin,
+      }
+    ).Code !=
+      204 then
     t.Fatal("community or instance block failed")
   end
-  let listed = AccountBlockPage{}
-  let response = doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies})
-  if response.Code != 200 || json.Unmarshal(response.Body.Bytes(), Ref.new(listed)).IsErr() || listed.Items.Len() != 3 then
+  let listed = AccountBlockPage{ Items: [] }
+  let response = doForum(
+    handler,
+    forumCall {
+      Method: "GET",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "",
+      Cookies: cookies,
+      CSRF: "",
+      Source: "",
+    }
+  )
+  if response.Code != 200 ||
+    json.Unmarshal(response.Body.Bytes(), Ref.new(listed)).IsErr() ||
+    listed.Items.Len() != 3 then
     t.Fatal("account block listing did not return each target once")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 ||
-    doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: path,
+      Payload: personBody,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 ||
+    doForum(
+      handler,
+      forumCall{
+        Method: "DELETE",
+        Origin: site.Origin,
+        Path: path,
+        Payload: personBody,
+        Cookies: cookies,
+        CSRF: csrf,
+        Source: site.Origin,
+      }
+    ).Code !=
+      204 then
     t.Fatal("idempotent person unblock failed")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"instance\",\"target\":\"https://evil.example/path\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: path,
+      Payload: "{\"kind\":\"instance\",\"target\":\"https://evil.example/path\"}",
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    400 then
     t.Fatal("malformed instance unblock was accepted")
   end
 end
@@ -93,15 +290,129 @@ func TestPostgresBlockedThreadSubtreeAndChildCount(t: Ref[testing.T]) -> ()
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
   let viewer = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
-  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let topic = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "topic"}).Unwrap()
-  let visibleRoot = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible root", ParentID: topic.ID}).Unwrap()
-  let visibleChild = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible child", ParentID: visibleRoot.ID}).Unwrap()
-  let blockedRoot = posts.Publish(ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked root", ParentID: topic.ID}).Unwrap()
-  let blockedDescendant = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked descendant", ParentID: blockedRoot.ID}).Unwrap()
-  let blockedChild = posts.Publish(ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked child", ParentID: visibleRoot.ID}).Unwrap()
-  let blockedGrandchild = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked grandchild", ParentID: blockedChild.ID}).Unwrap()
+  let topic = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Title: "Topic",
+      Body: "topic",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let visibleRoot = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Body: "visible root",
+      ParentID: topic.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let visibleChild = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput {
+      Body: "visible child",
+      ParentID: visibleRoot.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let blockedRoot = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    bob,
+    false,
+    storage.PublishInput{
+      Body: "blocked root",
+      ParentID: topic.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let blockedDescendant = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Body: "blocked descendant",
+      ParentID: blockedRoot.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let blockedChild = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    bob,
+    false,
+    storage.PublishInput{
+      Body: "blocked child",
+      ParentID: visibleRoot.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let blockedGrandchild = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Body: "blocked grandchild",
+      ParentID: blockedChild.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
   let blocks = storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
   let _ = blocks.Add(ctx, viewer, "person", bob.ActorURI).Unwrap()
   let handler = Handler(settings, db)
@@ -113,9 +424,12 @@ func TestPostgresBlockedThreadSubtreeAndChildCount(t: Ref[testing.T]) -> ()
       Origin: site.Origin,
       Path: "/api/v1/posts/" + topic.ID + "/replies",
       Cookies: cookies,
+      Payload: "",
+      CSRF: "",
+      Source: "",
     }
   )
-  let page = PostPage{}
+  let page = Zero[PostPage]()
   if response.Code != 200 || json.Unmarshal(response.Body.Bytes(), Ref.new(page)).IsErr() then
     t.Fatalf("thread read failed: %d %s", response.Code, response.Body.String())
   end
@@ -123,7 +437,9 @@ func TestPostgresBlockedThreadSubtreeAndChildCount(t: Ref[testing.T]) -> ()
     t.Fatal("blocked root subtree remained visible")
   end
   let root = page.Items.Get(0).Unwrap()
-  if root.ChildCount != 1 || root.Children.Len() != 1 || root.Children.Get(0).Unwrap().ID != visibleChild.ID then
+  if root.ChildCount != 1 ||
+    root.Children.Len() != 1 ||
+    root.Children.Get(0).Unwrap().ID != visibleChild.ID then
     t.Fatal("blocked child contributed to visible child count")
   end
   if strings.Contains(response.Body.String(), blockedRoot.ID) ||
@@ -145,10 +461,49 @@ func TestPostgresBlockBeforeAndAfterRead(t: Ref[testing.T]) -> ()
   let alice = accounts.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let bob = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
   let _ = accounts.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
-  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
+  let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let alicePost = posts.Publish(ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Alice secret", Body: "alice body"}).Unwrap()
-  let bobPost = posts.Publish(ctx, site, community.ID, bob, false, storage.PublishInput{Title: "Bob secret", Body: "bob body"}).Unwrap()
+  let alicePost = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Alice secret",
+      Body: "alice body",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let bobPost = posts.Publish(
+    ctx,
+    site,
+    community.ID,
+    bob,
+    false,
+    storage.PublishInput{
+      Title: "Bob secret",
+      Body: "bob body",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "viewer", "viewer-password")
   let csrf = csrfOf(cookies)
@@ -158,23 +513,67 @@ func TestPostgresBlockBeforeAndAfterRead(t: Ref[testing.T]) -> ()
     t.Fatal("pre-block read returned no content")
   end
   let aliceBlock = "{\"kind\":\"person\",\"target\":\"" + alice.ActorURI + "\"}"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: aliceBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: aliceBlock,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 then
     t.Fatal("post-read block failed")
   end
   let blocked = browserGet(t, handler, site.Origin, alicePostPath, cookies, 404)
-  if strings.Contains(blocked.Body.String(), "Alice secret") || strings.Contains(blocked.Body.String(), alice.ActorURI) then
+  if strings.Contains(blocked.Body.String(), "Alice secret") ||
+    strings.Contains(blocked.Body.String(), alice.ActorURI) then
     t.Fatal("blocked direct read leaked metadata")
   end
-  let topics = browserGet(t, handler, site.Origin, "/api/v1/communities/" + community.ID + "/topics", cookies, 200)
+  let topics = browserGet(
+    t,
+    handler,
+    site.Origin,
+    "/api/v1/communities/" + community.ID + "/topics",
+    cookies,
+    200
+  )
   if strings.Contains(topics.Body.String(), alicePost.ID) then
     t.Fatal("block created after read did not filter the community listing")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: aliceBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: path,
+      Payload: aliceBlock,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 then
     t.Fatal("unblock after read failed")
   end
   let _ = browserGet(t, handler, site.Origin, alicePostPath, cookies, 200)
   let bobBlock = "{\"kind\":\"person\",\"target\":\"" + bob.ActorURI + "\"}"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: bobBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: path,
+      Payload: bobBlock,
+      Cookies: cookies,
+      CSRF: csrf,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 then
     t.Fatal("pre-read block failed")
   end
   let _ = browserGet(t, handler, site.Origin, "/api/v1/posts/" + bobPost.ID, cookies, 404)

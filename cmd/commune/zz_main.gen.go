@@ -19,43 +19,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line main.mygo:14:1*/func RunCommand(args []string) Result[struct {
 }, string] {
- /*line main.mygo:15:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) < 3 {
+ /*line main.mygo:15:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) < 3 {
  /*line main.mygo:16:12*/		return Err[struct{}, string]("usage: commune <check-config|migrate|provision-sites|provision-admin|provision-account|serve> <config.json> [site-id username [option]]")
- /*line main.mygo:15:6*/	} else {
+ /*line main.mygo:15:3*/	} else {
  /*line zz_main.gen.go:25:1*/	}
  /*line main.mygo:14:1*/	command := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 1))
 	loaded := config.Load(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 2)))
- /*line main.mygo:20:6*/	if MygoIN6ResultM5IsErr[config.Config, string](loaded) {
+ /*line main.mygo:20:3*/	if MygoIN6ResultM5IsErr[config.Config, string](loaded) {
  /*line main.mygo:21:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[config.Config, string](loaded))
- /*line main.mygo:20:6*/	} else {
+ /*line main.mygo:20:3*/	} else {
  /*line zz_main.gen.go:31:1*/	}
  /*line main.mygo:14:1*/	settings := MygoIN6ResultM6Unwrap[config.Config, string](loaded)
- /*line main.mygo:24:6*/	if command == "check-config" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 3 {
+ /*line main.mygo:24:3*/	if command == "check-config" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 3 {
 		fmt.Println("configuration valid; sites:", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Sites))
  /*line main.mygo:26:12*/		return Ok[struct{}, string](struct {
  /*line zz_main.gen.go:36:1*/		}{})
- /*line main.mygo:24:6*/	} else {
+ /*line main.mygo:24:3*/	} else {
  /*line zz_main.gen.go:38:1*/	}
- /*line main.mygo:28:6*/	if command != "migrate" && command != "provision-sites" && command != "provision-admin" && command != "provision-account" && command != "serve" {
- /*line main.mygo:29:12*/		return Err[struct{}, string]("unknown command or invalid arguments")
- /*line main.mygo:28:6*/	} else {
+ /*line main.mygo:28:3*/	if command != "migrate" && command != "provision-sites" && command != "provision-admin" && command != "provision-account" && command != "serve" {
+ /*line main.mygo:33:12*/		return Err[struct{}, string]("unknown command or invalid arguments")
+ /*line main.mygo:28:3*/	} else {
  /*line zz_main.gen.go:42:1*/	}
  /*line main.mygo:14:1*/	provisioning := command == "provision-admin" || command == "provision-account"
- /*line main.mygo:32:6*/	if !provisioning && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 3 || provisioning && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 5 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 6 {
- /*line main.mygo:33:12*/		return Err[struct{}, string]("invalid command arguments")
- /*line main.mygo:32:6*/	} else {
+ /*line main.mygo:36:3*/	if !provisioning && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 3 || provisioning && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 5 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) != 6 {
+ /*line main.mygo:37:12*/		return Err[struct{}, string]("invalid command arguments")
+ /*line main.mygo:36:3*/	} else {
  /*line zz_main.gen.go:47:1*/	}
- /*line main.mygo:35:6*/	if command == "provision-admin" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 6 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 5)) != "--deployment-superadministrator" {
- /*line main.mygo:36:12*/		return Err[struct{}, string]("unknown provisioning option")
- /*line main.mygo:35:6*/	} else {
+ /*line main.mygo:39:3*/	if command == "provision-admin" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 6 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 5)) != "--deployment-superadministrator" {
+ /*line main.mygo:42:12*/		return Err[struct{}, string]("unknown provisioning option")
+ /*line main.mygo:39:3*/	} else {
  /*line zz_main.gen.go:51:1*/	}
  /*line main.mygo:14:1*/	opened := storage.OpenPostgres(settings.DatabaseURL)
- /*line main.mygo:39:6*/	if MygoIN6ResultM5IsErr[*gorm.DB, string](opened) {
- /*line main.mygo:40:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[*gorm.DB, string](opened))
- /*line main.mygo:39:6*/	} else {
+ /*line main.mygo:45:3*/	if MygoIN6ResultM5IsErr[*gorm.DB, string](opened) {
+ /*line main.mygo:46:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[*gorm.DB, string](opened))
+ /*line main.mygo:45:3*/	} else {
  /*line zz_main.gen.go:56:1*/	}
  /*line main.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, string](opened)
- /*line main.mygo:43:14*/	var __mygo_expr_1 Result[*sql.DB, error]
+ /*line main.mygo:49:14*/	var __mygo_expr_1 Result[*sql.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := db.DB()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.DB, error](__mygo_expr_0)
@@ -63,77 +63,77 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*sql.DB, error](__mygo_expr_2)
  /*line zz_main.gen.go:64:1*/	}
  /*line main.mygo:14:1*/	pool := MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_1)
- /*line main.mygo:44:3*/	defer pool.Close()
+ /*line main.mygo:50:3*/	defer pool.Close()
  /*line main.mygo:14:1*/	ctx := context.Background()
- /*line main.mygo:46:6*/	if command == "serve" {
-		options := slog.HandlerOptions{}
- /*line main.mygo:48:5*/		slog.SetDefault(slog.New(slog.NewJSONHandler(io.Writer(os.Stdout), &options)))
- /*line main.mygo:46:6*/		lifetime, stop := signal.NotifyContext(ctx, os.Signal(syscall.SIGINT), os.Signal(syscall.SIGTERM))
- /*line main.mygo:50:5*/		defer stop()
- /*line main.mygo:51:12*/		return server.Serve(lifetime, settings, db)
- /*line main.mygo:46:6*/	} else {
+ /*line main.mygo:52:3*/	if command == "serve" {
+		options := Zero[slog.HandlerOptions]()
+ /*line main.mygo:54:5*/		slog.SetDefault(slog.New(slog.NewJSONHandler(io.Writer(os.Stdout), &options)))
+ /*line main.mygo:52:3*/		lifetime, stop := signal.NotifyContext(ctx, os.Signal(syscall.SIGINT), os.Signal(syscall.SIGTERM))
+ /*line main.mygo:60:5*/		defer stop()
+ /*line main.mygo:61:12*/		return server.Serve(lifetime, settings, db)
+ /*line main.mygo:52:3*/	} else {
  /*line zz_main.gen.go:75:1*/	}
- /*line main.mygo:53:6*/	if command == "migrate" {
- /*line main.mygo:54:12*/		return storage.MigrateGORM(ctx, db)
- /*line main.mygo:53:6*/	} else {
+ /*line main.mygo:63:3*/	if command == "migrate" {
+ /*line main.mygo:64:12*/		return storage.MigrateGORM(ctx, db)
+ /*line main.mygo:63:3*/	} else {
  /*line zz_main.gen.go:79:1*/	}
- /*line main.mygo:56:6*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.CheckGORM(ctx, db)) {
- /*line main.mygo:57:12*/		return Err[struct{}, string]("schema is incompatible; run explicit migration")
- /*line main.mygo:56:6*/	} else {
+ /*line main.mygo:66:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.CheckGORM(ctx, db)) {
+ /*line main.mygo:67:12*/		return Err[struct{}, string]("schema is incompatible; run explicit migration")
+ /*line main.mygo:66:3*/	} else {
  /*line zz_main.gen.go:83:1*/	}
- /*line main.mygo:59:6*/	if command == "provision-sites" {
- /*line main.mygo:60:12*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(settings.Sites, Ok[struct{}, string](struct {
- /*line main.mygo:60:52*/		}{}), func(previous Result[struct{}, string], site config.Site) Result[struct{}, string] {
- /*line main.mygo:61:10*/			if MygoIN6ResultM5IsErr[struct{}, string](previous) {
- /*line main.mygo:62:16*/				return previous
- /*line main.mygo:61:10*/			} else {
+ /*line main.mygo:69:3*/	if command == "provision-sites" {
+ /*line main.mygo:70:12*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(settings.Sites, Ok[struct{}, string](struct {
+ /*line main.mygo:72:7*/		}{}), func(previous Result[struct{}, string], site config.Site) Result[struct{}, string] {
+ /*line main.mygo:73:9*/			if MygoIN6ResultM5IsErr[struct{}, string](previous) {
+ /*line main.mygo:74:18*/				return previous
+ /*line main.mygo:73:9*/			} else {
  /*line zz_main.gen.go:90:1*/			}
- /*line main.mygo:64:7*/			return storage.ProvisionSite(ctx, db, site)
+ /*line main.mygo:76:9*/			return storage.ProvisionSite(ctx, db, site)
  /*line zz_main.gen.go:92:1*/		})
- /*line main.mygo:59:6*/	} else {
+ /*line main.mygo:69:3*/	} else {
  /*line zz_main.gen.go:94:1*/	}
  /*line main.mygo:14:1*/	sites := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(settings.Sites, func(site_1 config.Site) bool {
- /*line main.mygo:68:5*/		return site_1.ID == MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 3))
+ /*line main.mygo:81:5*/		return site_1.ID == MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 3))
  /*line zz_main.gen.go:97:1*/	})
- /*line main.mygo:70:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(sites) != 1 {
- /*line main.mygo:71:12*/		return Err[struct{}, string]("provisioning site is not configured")
- /*line main.mygo:70:6*/	} else {
+ /*line main.mygo:83:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(sites) != 1 {
+ /*line main.mygo:84:12*/		return Err[struct{}, string]("provisioning site is not configured")
+ /*line main.mygo:83:3*/	} else {
  /*line zz_main.gen.go:101:1*/	}
- /*line main.mygo:73:6*/	if command == "provision-account" {
-		var __mygo_expr_3 string
+ /*line main.mygo:86:6*/	if command == "provision-account" {
+ /*line main.mygo:86:3*/		var __mygo_expr_3 string
 		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 6 {
 			__mygo_expr_3 = MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 5))
 		} else {
 			__mygo_expr_3 = ""
  /*line zz_main.gen.go:108:1*/		}
- /*line main.mygo:73:6*/		email := __mygo_expr_3
+ /*line main.mygo:86:3*/		email := __mygo_expr_3
 		repository := storage.AccountRepository{DB: db}
 		created := storage.MygoIN17AccountRepositoryM6Create(repository, ctx, MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(sites, 0)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 4)), email, os.Getenv("COMMUNE_ACCOUNT_PASSWORD"))
- /*line main.mygo:77:12*/		var __mygo_expr_4 Result[struct{}, string]
+ /*line main.mygo:100:5*/		var __mygo_expr_4 Result[struct{}, string]
 		if __mygo_match___mygo_expr_5, ok := created.(Result__Err[auth.Identity, string]); ok {
 			__mygo_expr_4 = Err[struct{}, string](__mygo_match___mygo_expr_5.F0)
 		} else {
 			if _, ok := created.(Result__Ok[auth.Identity, string]); ok {
 				__mygo_expr_4 = Ok[struct{}, string](struct {
  /*line zz_main.gen.go:118:1*/				}{})
- /*line main.mygo:77:12*/			} else {
+ /*line main.mygo:100:5*/			} else {
  /*line zz_main.gen.go:120:1*/			}
 		}
- /*line main.mygo:77:12*/		return __mygo_expr_4
- /*line main.mygo:73:6*/	} else {
+ /*line main.mygo:100:5*/		return __mygo_expr_4
+ /*line main.mygo:86:3*/	} else {
 		password := os.Getenv("COMMUNE_ADMIN_PASSWORD")
- /*line main.mygo:83:3*/		return storage.ProvisionAdministrator(ctx, db, MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(sites, 0)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 4)), password, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 6)
+ /*line main.mygo:106:5*/		return storage.ProvisionAdministrator(ctx, db, MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(sites, 0)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(args, 4)), password, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(args) == 6)
  /*line zz_main.gen.go:126:1*/	}
 }
- /*line main.mygo:87:1*/func main() {
- /*line main.mygo:88:10*/	__mygo_expr_0 := RunCommand(os.Args)
+ /*line main.mygo:117:1*/func main() {
+ /*line main.mygo:118:3*/	__mygo_expr_0 := RunCommand(os.Args)
 	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, string]); ok {
- /*line main.mygo:90:15*/		os.Stderr.WriteString(__mygo_match___mygo_expr_1.F0 + "\n")
- /*line main.mygo:88:10*/		os.Exit(1)
+ /*line main.mygo:120:15*/		os.Stderr.WriteString(__mygo_match___mygo_expr_1.F0 + "\n")
+ /*line main.mygo:118:3*/		os.Exit(1)
 	} else {
 		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, string]); ok {
 		} else {
  /*line zz_main.gen.go:136:1*/		}
 	}
- /*line main.mygo:88:10*/	return
+ /*line main.mygo:118:3*/	return
  /*line zz_main.gen.go:139:1*/}

@@ -23,7 +23,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	delay := base
 	remaining := attempts - 1
 	for remaining > 0 && delay < maximum {
- /*line verification_mail.mygo:23:16*/		var __mygo_expr_0 int
+ /*line verification_mail.mygo:23:13*/		var __mygo_expr_0 int
 		if delay > maximum/2 {
 			__mygo_expr_0 = maximum
 		} else {
@@ -40,37 +40,37 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_verification_mail.gen.go:40:1*/}
  /*line verification_mail.mygo:58:1*/func DeliverVerificationMailWithRetry(ctx context.Context, db *gorm.DB, key []byte, now time.Time, batch int, leaseSeconds int, maxAttempts int, retrySeconds int, retryMaxSeconds int, send func(string, string) Result[struct {
 }, string]) Result[int, string] {
- /*line verification_mail.mygo:70:6*/	if batch < 1 || batch > 1000 || leaseSeconds < 1 || maxAttempts < 1 || retrySeconds < 1 || retryMaxSeconds < retrySeconds {
+ /*line verification_mail.mygo:70:3*/	if batch < 1 || batch > 1000 || leaseSeconds < 1 || maxAttempts < 1 || retrySeconds < 1 || retryMaxSeconds < retrySeconds {
  /*line verification_mail.mygo:76:12*/		return Err[int, string]("invalid mail worker limits")
- /*line verification_mail.mygo:70:6*/	} else {
+ /*line verification_mail.mygo:70:3*/	} else {
  /*line zz_verification_mail.gen.go:46:1*/	}
  /*line verification_mail.mygo:58:1*/	erased := db.WithContext(ctx).Exec("UPDATE verification_mail_jobs j SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL FROM pending_registrations p WHERE j.registration_id=p.id AND j.state IN ('pending','leased') AND (j.generation<>p.generation OR p.expires_at<=? OR (j.attempts>=? AND (j.state='pending' OR j.lease_until<=?)))", now, maxAttempts, now)
- /*line verification_mail.mygo:84:6*/	if QueryFailed(erased) {
+ /*line verification_mail.mygo:84:3*/	if QueryFailed(erased) {
  /*line verification_mail.mygo:85:12*/		return Err[int, string]("mail unavailable")
- /*line verification_mail.mygo:84:6*/	} else {
+ /*line verification_mail.mygo:84:3*/	} else {
  /*line zz_verification_mail.gen.go:51:1*/	}
  /*line verification_mail.mygo:58:1*/	lease := rand.Text()
 	var jobs []VerificationMail = []VerificationMail{}
 	query := db.WithContext(ctx).Raw("WITH ready AS (SELECT j.id FROM verification_mail_jobs j JOIN pending_registrations p ON p.id=j.registration_id AND p.generation=j.generation WHERE p.expires_at>? AND j.available_at<=? AND j.attempts<? AND (j.state='pending' OR (j.state='leased' AND j.lease_until<=?)) ORDER BY j.available_at,j.id FOR UPDATE OF j SKIP LOCKED LIMIT ?), claimed AS (UPDATE verification_mail_jobs j SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1 FROM ready WHERE j.id=ready.id RETURNING j.*) SELECT c.*,p.email FROM claimed c JOIN pending_registrations p ON p.id=c.registration_id", now, now, maxAttempts, now, batch, lease, now.Add(time.Duration(leaseSeconds)*time.Second)).Scan(&jobs)
- /*line verification_mail.mygo:99:6*/	if QueryFailed(query) {
+ /*line verification_mail.mygo:99:3*/	if QueryFailed(query) {
  /*line verification_mail.mygo:100:12*/		return Err[int, string]("mail unavailable")
- /*line verification_mail.mygo:99:6*/	} else {
+ /*line verification_mail.mygo:99:3*/	} else {
  /*line zz_verification_mail.gen.go:58:1*/	}
  /*line verification_mail.mygo:58:1*/	var delivered int = 0
 	var failed bool = false
  /*line verification_mail.mygo:104:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(jobs, func(job VerificationMail) {
  /*line verification_mail.mygo:104:13*/		cancelled := ctx.Err() != nil
- /*line verification_mail.mygo:106:8*/		if cancelled {
+ /*line verification_mail.mygo:106:5*/		if cancelled {
 			failed = true
 			return
 		} else {
  /*line zz_verification_mail.gen.go:67:1*/		}
  /*line verification_mail.mygo:104:13*/		current := QueryExists(db.WithContext(ctx).Table("pending_registrations").Where("id=? AND generation=? AND expires_at>?", job.RegistrationID, job.Generation, now))
- /*line verification_mail.mygo:117:8*/		if MygoIN6ResultM5IsErr[bool, string](current) {
+ /*line verification_mail.mygo:117:5*/		if MygoIN6ResultM5IsErr[bool, string](current) {
 			failed = true
 			return
 		} else {
- /*line verification_mail.mygo:120:10*/			if MygoIN6ResultM6Unwrap[bool, string](current) {
+ /*line verification_mail.mygo:120:7*/			if MygoIN6ResultM6Unwrap[bool, string](current) {
 				opened := auth.OpenVerification(key, job.EncryptedPayload)
 				var __mygo_expr_0 Result[struct{}, string]
 				if MygoIN6ResultM4IsOk[string, string](opened) {
@@ -78,49 +78,49 @@ import . "github.com/mygo-lang/mygo/prelude"
 				} else {
 					__mygo_expr_0 = Err[struct{}, string]("invalid mail payload")
  /*line zz_verification_mail.gen.go:80:1*/				}
- /*line verification_mail.mygo:120:10*/				sent := __mygo_expr_0
+ /*line verification_mail.mygo:120:7*/				sent := __mygo_expr_0
 				terminal := MygoIN6ResultM4IsOk[struct{}, string](sent) || MygoIN6ResultM5IsErr[string, string](opened) || job.Attempts >= maxAttempts
 				var __mygo_expr_2 string
 				if MygoIN6ResultM4IsOk[struct{}, string](sent) {
 					__mygo_expr_2 = "sent"
 				} else {
- /*line verification_mail.mygo:131:14*/					var __mygo_expr_1 string
+ /*line verification_mail.mygo:131:11*/					var __mygo_expr_1 string
 					if terminal {
 						__mygo_expr_1 = "failed"
 					} else {
 						__mygo_expr_1 = "pending"
  /*line zz_verification_mail.gen.go:92:1*/					}
- /*line verification_mail.mygo:120:10*/					__mygo_expr_2 = __mygo_expr_1
+ /*line verification_mail.mygo:120:7*/					__mygo_expr_2 = __mygo_expr_1
  /*line zz_verification_mail.gen.go:94:1*/				}
- /*line verification_mail.mygo:120:10*/				state := __mygo_expr_2
+ /*line verification_mail.mygo:120:7*/				state := __mygo_expr_2
 				var __mygo_expr_3 []byte
 				if terminal {
 					__mygo_expr_3 = []byte{}
 				} else {
 					__mygo_expr_3 = job.EncryptedPayload
  /*line zz_verification_mail.gen.go:101:1*/				}
- /*line verification_mail.mygo:120:10*/				payload := __mygo_expr_3
+ /*line verification_mail.mygo:120:7*/				payload := __mygo_expr_3
 				delay := VerificationRetrySeconds(retrySeconds, retryMaxSeconds, job.Attempts)
 				settle := db.WithContext(ctx).Exec("UPDATE verification_mail_jobs SET state=?,encrypted_payload=?,lease_token=NULL,lease_until=NULL,available_at=? WHERE id=? AND state='leased' AND lease_token=?", state, payload, now.Add(time.Duration(delay)*time.Second), job.ID, lease)
- /*line verification_mail.mygo:151:12*/				if QueryFailed(settle) {
+ /*line verification_mail.mygo:151:9*/				if QueryFailed(settle) {
 					failed = true
 					return
 				} else {
- /*line verification_mail.mygo:154:14*/					if MygoIN6ResultM4IsOk[struct{}, string](sent) && settle.RowsAffected == int64(1) {
+ /*line verification_mail.mygo:154:11*/					if MygoIN6ResultM4IsOk[struct{}, string](sent) && settle.RowsAffected == int64(1) {
 						delivered = delivered + 1
 						return
 					} else {
  /*line verification_mail.mygo:154:11*/						return
  /*line zz_verification_mail.gen.go:114:1*/					}
 				}
- /*line verification_mail.mygo:120:10*/			} else {
+ /*line verification_mail.mygo:120:7*/			} else {
  /*line verification_mail.mygo:120:7*/				return
  /*line zz_verification_mail.gen.go:118:1*/			}
 		}
 	})
- /*line verification_mail.mygo:161:6*/	if failed {
+ /*line verification_mail.mygo:161:3*/	if failed {
  /*line verification_mail.mygo:162:12*/		return Err[int, string]("mail unavailable")
- /*line verification_mail.mygo:161:6*/	} else {
+ /*line verification_mail.mygo:161:3*/	} else {
  /*line zz_verification_mail.gen.go:124:1*/	}
  /*line verification_mail.mygo:164:3*/	return Ok[int, string](delivered)
  /*line zz_verification_mail.gen.go:126:1*/}

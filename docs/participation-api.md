@@ -81,6 +81,26 @@ hide/delete, and inclusion filters apply before pagination. Communities sort by
 name then ID; posts by authored time descending then ID ascending. This endpoint
 does not discover or import remote objects and does not promise relevance ranking.
 
+## Mention candidates
+
+`GET /api/v1/mentions/candidates?q=ali&limit=8` returns autocomplete items for
+the authenticated user. `q` is required and contains 2–64 Unicode code points;
+`limit` defaults to 8 and is capped at 20. `community_id` is optional context
+and does not filter results, so the endpoint also works for future
+community-less posts.
+
+The response is `{items:[...]}`. Each item contains `actor_uri`, `acct`,
+`display_name`, and `avatar`; missing strings are empty rather than null.
+`acct` is the full `username@domain` handle. Local accounts without a profile
+fall back to the username for `display_name`. The endpoint returns the resolved
+site's local accounts plus stored remote Person Actors with a usable handle,
+including accounts hosted by another configured site. Self, disabled accounts,
+site-blocked or banned actors, and the viewer's personal person/instance
+blocks are excluded. It does not perform WebFinger, Actor, or media discovery
+and does not enqueue delivery or notification work; handles that are not
+already stored are omitted. In the composer, `@username` mentions a local
+account and `@username@domain` mentions a remote account.
+
 ## Profiles
 
 `GET /api/v1/profiles/alice` reads the selected site's public profile.

@@ -9,8 +9,14 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
-func accountPostPage(t: Ref[testing.T], handler: http.HandlerFunc, site: config.Site, path: String, cookies: Slice[Ref[http.Cookie]]) -> PostPage
-  let output = PostPage{}
+func accountPostPage(
+  t: Ref[testing.T],
+  handler: http.HandlerFunc,
+  site: config.Site,
+  path: String,
+  cookies: Slice[Ref[http.Cookie]]
+) -> PostPage
+  let output = Zero[PostPage]()
   let response = browserGet(t, handler, site.Origin, path, cookies, 200)
   if json.Unmarshal(response.Body.Bytes(), Ref.new(output)).IsErr() then
     t.Fatalf("invalid account page: %s", response.Body.String())
@@ -30,81 +36,274 @@ func TestPostgresAccountContentHTTP(t: Ref[testing.T]) -> ()
   let _ = accounts.Create(ctx, site, "bob", "", "bob-password").Unwrap()
   let _ = accounts.Create(ctx, site, "carol", "", "carol-password").Unwrap()
   let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
-  let open = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let private = communities.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
+  let open = communities.Create(
+    ctx,
+    site,
+    alice,
+    "open",
+    "Open",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let private = communities.Create(
+    ctx,
+    site,
+    alice,
+    "private",
+    "Private",
+    "federated",
+    "members",
+    "members"
+  ).Unwrap()
   let bobBooks = storage.FindAccount(ctx, db, site.ID, "bob").Unwrap().Unwrap().Identity()
   let _ = communities.SetMember(ctx, private.ID, alice, false, bobBooks.ActorURI, true).Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
-  let visible = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Visible state", Body: "visible state"}).Unwrap()
-  let hidden = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Hidden state", Body: "hidden state"}).Unwrap()
-  let deleted = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Deleted state", Body: "deleted state"}).Unwrap()
-  let privatePost = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private state", Body: "private state"}).Unwrap()
-  let _ = storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, hidden.ID)).Unwrap()
+  let visible = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Visible state",
+      Body: "visible state",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let hidden = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Hidden state",
+      Body: "hidden state",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let deleted = posts.Publish(
+    ctx,
+    site,
+    open.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Deleted state",
+      Body: "deleted state",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let privatePost = posts.Publish(
+    ctx,
+    site,
+    private.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Private state",
+      Body: "private state",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
+  let _ = storage.MutationResult(db.Exec(
+    "UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?",
+    site.ID,
+    hidden.ID
+  )).Unwrap()
   let _ = posts.Delete(ctx, deleted.ID, alice, false).Unwrap()
   let handler = Handler(settings, db)
   let bob = login(handler, site.Origin, "bob", "bob-password")
   let bobCSRF = csrfOf(bob)
   let carol = login(handler, site.Origin, "carol", "carol-password")
   let carolCSRF = csrfOf(carol)
-
   let savePath = "/api/v1/posts/" + visible.ID + "/save"
-  let save = forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
+  let save = forumCall {
+    Method: "POST",
+    Origin: site.Origin,
+    Path: savePath,
+    Payload: "",
+    Cookies: bob,
+    CSRF: bobCSRF,
+    Source: site.Origin,
+  }
   if doForum(handler, save).Code != 204 || doForum(handler, save).Code != 204 then
     t.Fatal("save was not idempotent")
   end
   let privateSave = "/api/v1/posts/" + privatePost.ID + "/save"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: privateSave,
+      Payload: "",
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+    }
+  ).Code !=
+    204 then
     t.Fatal("member could not save private post")
   end
   let readPath = "/api/v1/posts/" + visible.ID + "/read"
-  let read = forumCall{Method: "POST", Origin: site.Origin, Path: readPath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
+  let read = forumCall {
+    Method: "POST",
+    Origin: site.Origin,
+    Path: readPath,
+    Cookies: bob,
+    CSRF: bobCSRF,
+    Source: site.Origin,
+    Payload: "",
+  }
   if doForum(handler, read).Code != 204 || doForum(handler, read).Code != 204 then
     t.Fatal("read state was not idempotent")
   end
   let hidePath = "/api/v1/posts/" + visible.ID + "/hide-for-me"
-  let hide = forumCall{Method: "POST", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}
+  let hide = forumCall {
+    Method: "POST",
+    Origin: site.Origin,
+    Path: hidePath,
+    Cookies: bob,
+    CSRF: bobCSRF,
+    Source: site.Origin,
+    Payload: "",
+  }
   if doForum(handler, hide).Code != 204 || doForum(handler, hide).Code != 204 then
     t.Fatal("personal hide was not idempotent")
   end
   let siteHidden = false
-  let _ = storage.MutationResult(db.Raw("SELECT hidden_at IS NOT NULL FROM site_posts WHERE site_id=? AND post_id=?", site.ID, visible.ID).Scan(Ref.new(siteHidden))).Unwrap()
+  let _ = storage.MutationResult(db.Raw(
+    "SELECT hidden_at IS NOT NULL FROM site_posts WHERE site_id=? AND post_id=?",
+    site.ID,
+    visible.ID
+  ).Scan(Ref.new(siteHidden))).Unwrap()
   if siteHidden then
     t.Fatal("personal hide changed site-administrator visibility")
   end
-  let hiddenSave = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + hidden.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin})
+  let hiddenSave = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/" + hidden.ID + "/save",
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  )
   if hiddenSave.Code != 404 then
     t.Fatalf("site-hidden save returned %d: %s", hiddenSave.Code, hiddenSave.Body.String())
   end
-  let deletedSave = doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + deleted.ID + "/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin})
+  let deletedSave = doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/" + deleted.ID + "/save",
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  )
   if deletedSave.Code != 404 then
     t.Fatalf("deleted save returned %d: %s", deletedSave.Code, deletedSave.Body.String())
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/save", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 404 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/missing/save",
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  ).Code != 404 then
     t.Fatal("missing save target was accepted")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: privateSave, Cookies: carol, CSRF: carolCSRF, Source: site.Origin}).Code != 404 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: privateSave,
+      Cookies: carol,
+      CSRF: carolCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  ).Code != 404 then
     t.Fatal("outsider saved private post")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: savePath, Cookies: bob, Source: site.Origin}).Code != 403 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: savePath,
+      Cookies: bob,
+      Source: site.Origin,
+      Payload: "",
+      CSRF: "",
+    }
+  ).Code != 403 then
     t.Fatal("save without CSRF was accepted")
   end
-
-  let detail = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + visible.ID, bob, 200))
-  if !detail.SavedByMe || !detail.ReadByMe || !detail.HiddenByMe ||
-    !detail.Permissions.CanSave || !detail.Permissions.CanHideForMe then
+  let detail = browserPost(
+    t,
+    browserGet(t, handler, site.Origin, "/api/v1/posts/" + visible.ID, bob, 200)
+  )
+  if !detail.SavedByMe ||
+    !detail.ReadByMe ||
+    !detail.HiddenByMe ||
+    !detail.Permissions.CanSave ||
+    !detail.Permissions.CanHideForMe then
     t.Fatal("post detail did not expose current personal state")
   end
   let anonymous: Slice[Ref[http.Cookie]] = []
-  let public = browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/" + visible.ID, anonymous, 200))
-  if public.SavedByMe || public.ReadByMe || public.HiddenByMe ||
-    public.Permissions.CanSave || public.Permissions.CanHideForMe then
+  let public = browserPost(
+    t,
+    browserGet(t, handler, site.Origin, "/api/v1/posts/" + visible.ID, anonymous, 200)
+  )
+  if public.SavedByMe ||
+    public.ReadByMe ||
+    public.HiddenByMe ||
+    public.Permissions.CanSave ||
+    public.Permissions.CanHideForMe then
     t.Fatal("anonymous detail leaked personal state")
   end
   let latest = accountPostPage(t, handler, site, "/api/v1/topics", bob)
   if latest.Items.Any(func(item: PostOutput) -> Bool item.ID == visible.ID end) then
     t.Fatal("personally hidden post remained in latest feed")
   end
-  let communityTopics = accountPostPage(t, handler, site, "/api/v1/communities/" + open.ID + "/topics", bob)
+  let communityTopics = accountPostPage(
+    t,
+    handler,
+    site,
+    "/api/v1/communities/" + open.ID + "/topics",
+    bob
+  )
   if communityTopics.Items.Any(func(item: PostOutput) -> Bool item.ID == visible.ID end) then
     t.Fatal("personally hidden post remained in community feed")
   end
@@ -124,13 +323,35 @@ func TestPostgresAccountContentHTTP(t: Ref[testing.T]) -> ()
     t.Fatal("hidden list omitted the current personal hide")
   end
   let likePath = "/api/v1/posts/" + visible.ID + "/likes"
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: likePath,
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  ).Code != 204 then
     t.Fatal("liking hidden-for-me post failed")
   end
   if accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items.Len() != 0 then
     t.Fatal("liked list did not omit personally hidden post")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: hidePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall{
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: hidePath,
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  ).Code != 204 then
     t.Fatal("personal unhide failed")
   end
   if accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items.Len() != 1 ||
@@ -138,7 +359,18 @@ func TestPostgresAccountContentHTTP(t: Ref[testing.T]) -> ()
     accountPostPage(t, handler, site, "/api/v1/account/saved", bob).Items.Len() != 2 then
     t.Fatal("account lists did not restore after unhide")
   end
-  if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + visible.ID + "/vote", Payload: "{\"score\":-1}", Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/" + visible.ID + "/vote",
+      Payload: `{"score":-1}`,
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+    }
+  ).Code != 204 then
     t.Fatal("changing liked post to downvote failed")
   end
   if accountPostPage(t, handler, site, "/api/v1/account/liked", bob).Items.Len() != 0 then
@@ -149,7 +381,18 @@ func TestPostgresAccountContentHTTP(t: Ref[testing.T]) -> ()
   if revoked.Items.Len() != 1 || revoked.Items.Get(0).Unwrap().ID != visible.ID then
     t.Fatal("saved list exposed post after membership revocation")
   end
-  if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: savePath, Cookies: bob, CSRF: bobCSRF, Source: site.Origin}).Code != 204 then
+  if doForum(
+    handler,
+    forumCall {
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: savePath,
+      Cookies: bob,
+      CSRF: bobCSRF,
+      Source: site.Origin,
+      Payload: "",
+    }
+  ).Code != 204 then
     t.Fatal("unsave failed")
   end
 end

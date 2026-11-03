@@ -31,15 +31,43 @@ impl SessionTokens
   func SessionHash(self: SessionTokens) -> Slice[Byte]
     TokenHash(self.Session)
   end
-
   func CSRFHash(self: SessionTokens) -> Slice[Byte]
     TokenHash(self.CSRF)
   end
-
   func Cookies(self: SessionTokens, expires: time.Time) -> Slice[http.Cookie]
     [
-      http.Cookie{Name: "__Host-commune_session", Value: self.Session, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400},
-      http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Path: "/", Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Expires: expires, MaxAge: 86400}
+      http.Cookie {
+        Name: "__Host-commune_session",
+        Value: self.Session,
+        Quoted: false,
+        Path: "/",
+        Domain: "",
+        Expires: expires,
+        RawExpires: "",
+        MaxAge: 86400,
+        Secure: true,
+        HttpOnly: true,
+        SameSite: http.SameSiteStrictMode,
+        Partitioned: false,
+        Raw: "",
+        Unparsed: [],
+      },
+      http.Cookie {
+        Name: "__Host-commune_csrf",
+        Value: self.CSRF,
+        Quoted: false,
+        Path: "/",
+        Domain: "",
+        Expires: expires,
+        RawExpires: "",
+        MaxAge: 86400,
+        Secure: true,
+        HttpOnly: false,
+        SameSite: http.SameSiteStrictMode,
+        Partitioned: false,
+        Raw: "",
+        Unparsed: [],
+      },
     ]
   end
 end

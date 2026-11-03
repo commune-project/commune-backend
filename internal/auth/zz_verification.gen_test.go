@@ -12,18 +12,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var message string = "https://a.example/verify-email#token=PRIVATE-TOKEN"
 	first := MygoIN6ResultM6Unwrap[[]byte, string](SealVerification(key, message))
 	second := MygoIN6ResultM6Unwrap[[]byte, string](SealVerification(key, message))
- /*line verification_test.mygo:12:6*/	if bytes.Equal(first, second) || bytes.Contains(first, []byte(message)) || MygoIN6ResultM6Unwrap[string, string](OpenVerification(key, first)) != message {
+ /*line verification_test.mygo:12:3*/	if bytes.Equal(first, second) || bytes.Contains(first, []byte(message)) || MygoIN6ResultM6Unwrap[string, string](OpenVerification(key, first)) != message {
  /*line verification_test.mygo:13:5*/		t.Fatal("verification encryption did not preserve confidentiality or round trip")
- /*line verification_test.mygo:12:6*/	} else {
+ /*line verification_test.mygo:12:3*/	} else {
  /*line zz_verification.gen_test.go:18:1*/	}
- /*line verification_test.mygo:15:6*/	if MygoIN6ResultM4IsOk[string, string](OpenVerification([]byte(strings.Repeat("x", 32)), first)) {
+ /*line verification_test.mygo:15:3*/	if MygoIN6ResultM4IsOk[string, string](OpenVerification([]byte(strings.Repeat("x", 32)), first)) {
  /*line verification_test.mygo:16:5*/		t.Fatal("wrong key authenticated a verification link")
- /*line verification_test.mygo:15:6*/	} else {
+ /*line verification_test.mygo:15:3*/	} else {
  /*line zz_verification.gen_test.go:22:1*/	}
  /*line verification_test.mygo:7:1*/	badNonce := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM6Concat(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(first, 1), func(value byte) byte {
- /*line verification_test.mygo:20:8*/		if value == byte(0) {
+ /*line verification_test.mygo:20:5*/		if value == byte(0) {
  /*line verification_test.mygo:20:34*/			return byte(1)
- /*line verification_test.mygo:20:8*/		} else {
+ /*line verification_test.mygo:20:5*/		} else {
  /*line verification_test.mygo:20:49*/			return byte(0)
  /*line zz_verification.gen_test.go:28:1*/		}
  /*line verification_test.mygo:21:15*/	}), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Skip(first, 1))
@@ -38,27 +38,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 	badBody := MygoIN5SliceM6Append(MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(first, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first)-1), changed)
 	var invalid [][]byte = [][]byte{[]byte{}, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(first, 11), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(first, 12), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(first, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(first)-1), badNonce, badBody}
  /*line verification_test.mygo:26:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(payload []byte) {
- /*line verification_test.mygo:27:12*/		__mygo_expr_1 := OpenVerification(key, payload)
+ /*line verification_test.mygo:27:5*/		__mygo_expr_1 := OpenVerification(key, payload)
 		if _, ok := __mygo_expr_1.(Result__Ok[string, string]); ok {
 			t.Fatal("truncated or modified verification payload authenticated")
  /*line zz_verification.gen_test.go:44:1*/		} else {
- /*line verification_test.mygo:27:12*/			if __mygo_match___mygo_expr_2, ok := __mygo_expr_1.(Result__Err[string, string]); ok {
+ /*line verification_test.mygo:27:5*/			if __mygo_match___mygo_expr_2, ok := __mygo_expr_1.(Result__Err[string, string]); ok {
  /*line verification_test.mygo:30:10*/				if strings.Contains(__mygo_match___mygo_expr_2.F0, "PRIVATE-TOKEN") || strings.Contains(__mygo_match___mygo_expr_2.F0, "kkkk") {
  /*line verification_test.mygo:31:9*/					t.Fatal("decryption error leaked secrets")
- /*line verification_test.mygo:27:12*/				} else {
+ /*line verification_test.mygo:27:5*/				} else {
  /*line zz_verification.gen_test.go:49:1*/				}
- /*line verification_test.mygo:27:12*/			} else {
+ /*line verification_test.mygo:27:5*/			} else {
  /*line zz_verification.gen_test.go:51:1*/			}
 		}
- /*line verification_test.mygo:27:12*/		return
+ /*line verification_test.mygo:27:5*/		return
  /*line zz_verification.gen_test.go:54:1*/	})
  /*line verification_test.mygo:7:1*/	var badKeys [][]byte = [][]byte{[]byte{}, []byte(strings.Repeat("k", 31)), []byte(strings.Repeat("k", 33))}
  /*line verification_test.mygo:36:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(badKeys, func(badKey []byte) {
- /*line verification_test.mygo:37:8*/		if MygoIN6ResultM4IsOk[[]byte, string](SealVerification(badKey, message)) || MygoIN6ResultM4IsOk[string, string](OpenVerification(badKey, first)) {
+ /*line verification_test.mygo:37:5*/		if MygoIN6ResultM4IsOk[[]byte, string](SealVerification(badKey, message)) || MygoIN6ResultM4IsOk[string, string](OpenVerification(badKey, first)) {
  /*line verification_test.mygo:38:7*/			t.Fatal("invalid encryption key accepted")
 			return
- /*line verification_test.mygo:37:8*/		} else {
- /*line verification_test.mygo:37:5*/			return
+ /*line verification_test.mygo:37:5*/		} else {
+			return
  /*line zz_verification.gen_test.go:62:1*/		}
 	})
  /*line verification_test.mygo:36:3*/	return

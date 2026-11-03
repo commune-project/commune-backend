@@ -16,10 +16,10 @@ end
 func BrowserPostMedia(post: storage.PostRecord, local: Slice[content.RichMedia], restricted: Bool, cached: Slice[storage.PrivateMediaCache], output: PostOutput) -> Result[PostOutput, String]
   var result = output
   result.Attachments = local.Map(func(item: content.RichMedia) -> PostAttachmentOutput
-    PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, PreviewURL: if item.MediaType == "image/png" || item.MediaType == "image/jpeg" || item.MediaType == "image/gif" then "/api/v1/media/" + item.BindingID + "/preview" else "" end}
+    PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, Name: "", PreviewURL: if item.MediaType == "image/png" || item.MediaType == "image/jpeg" || item.MediaType == "image/gif" then "/api/v1/media/" + item.BindingID + "/preview" else "" end}
   end)
   if post.RichMetadata == "" then return Ok(result) end
-  let metadata = federation.RichMetadata{}
+  let metadata = Zero[federation.RichMetadata]()
   if json.Unmarshal(post.RichMetadata as Slice[Byte], Ref.new(metadata)).IsErr() then return Err("media unavailable") end
   var references: Slice[content.RemoteMediaReference] = []
   metadata.Attachment.Each(func(item: federation.RichAttachment) -> ()

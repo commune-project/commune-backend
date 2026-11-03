@@ -41,6 +41,10 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
       Title: "Topic",
       Body: "original",
       ContentFormat: "markdown",
+      ParentID: "",
+      ContextURI: "",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   if post.Version != 1i64 then
@@ -55,6 +59,7 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
     Source: site.Origin,
     Cookies: cookies,
     CSRF: csrfOf(cookies),
+    Payload: "",
   }
   let source = doForum(
     handler,
@@ -63,9 +68,12 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
       Origin: site.Origin,
       Path: call.Path + "/source",
       Cookies: cookies,
+      Payload: "",
+      CSRF: "",
+      Source: "",
     }
   )
-  let editing = PostSource {}
+  let editing = Zero[PostSource]()
   if source.Code != 200 ||
     json.Unmarshal(source.Body.Bytes(), Ref.new(editing)).IsErr() ||
     editing.Version != post.Version ||
@@ -96,7 +104,7 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
   var stale = first
   stale.Payload = `{"title":"Topic","body":"stale @alice","attachment_ids":["missing"],"expected_version":1}`
   let conflict = doForum(handler, stale)
-  let conflictError = ErrorOutput {}
+  let conflictError = Zero[ErrorOutput]()
   if conflict.Code != 409 ||
     json.Unmarshal(conflict.Body.Bytes(), Ref.new(conflictError)).IsErr() ||
     conflictError.Error != "edit_conflict" ||
@@ -163,6 +171,11 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
     storage.PublishInput{
       Body: "Reply",
       ParentID: post.ID,
+      Title: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   if storage.LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version != 4i64 then
@@ -219,6 +232,11 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
     storage.PublishInput{
       Title: "Bob",
       Body: "draft",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "legacy",
+      AttachmentIDs: [],
+      Mentions: [],
     }
   ).Unwrap()
   var bobEdit = foreign

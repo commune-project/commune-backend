@@ -11,7 +11,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_authority.gen.go:11:1*/}
 
  /*line context_authority.mygo:11:1*/func ContextAuthorityURI(payload []byte) string {
-	view := ContextAuthorityView{}
+	view := Zero[ContextAuthorityView]()
  /*line context_authority.mygo:13:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &view)
 	if __mygo_expr_0 != nil {
@@ -20,13 +20,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_context_authority.gen.go:21:1*/		}{})
 	}
- /*line context_authority.mygo:13:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line context_authority.mygo:13:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line context_authority.mygo:14:12*/		return ""
- /*line context_authority.mygo:13:6*/	} else {
+ /*line context_authority.mygo:13:3*/	} else {
  /*line zz_context_authority.gen.go:26:1*/	}
- /*line context_authority.mygo:16:6*/	if view.AttributedTo != "" {
+ /*line context_authority.mygo:16:3*/	if view.AttributedTo != "" {
  /*line context_authority.mygo:17:12*/		return view.AttributedTo
- /*line context_authority.mygo:16:6*/	} else {
+ /*line context_authority.mygo:16:3*/	} else {
  /*line zz_context_authority.gen.go:30:1*/	}
  /*line context_authority.mygo:19:3*/	return view.Actor
  /*line zz_context_authority.gen.go:32:1*/}

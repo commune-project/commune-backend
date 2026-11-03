@@ -12,54 +12,54 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line collections.mygo:13:1*/func CountActorObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string) Result[int64, string] {
 	var count int64 = int64(0)
 	query := publicObjectQuery(ctx, db, origin).Where("p.author_actor_uri = ?", actorURI).Count(&count)
- /*line collections.mygo:16:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:16:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:17:12*/		return Err[int64, string]("collection unavailable")
- /*line collections.mygo:16:6*/	} else {
+ /*line collections.mygo:16:3*/	} else {
  /*line zz_collections.gen.go:18:1*/	}
  /*line collections.mygo:19:3*/	return Ok[int64, string](count)
  /*line zz_collections.gen.go:20:1*/}
  /*line collections.mygo:22:1*/func ListActorObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string, limit int, offset int) Result[[]PostRecord, string] {
 	var records []PostRecord = []PostRecord{}
 	query := publicObjectQuery(ctx, db, origin).Where("p.author_actor_uri = ?", actorURI).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line collections.mygo:25:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:25:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:26:12*/		return Err[[]PostRecord, string]("collection unavailable")
- /*line collections.mygo:25:6*/	} else {
+ /*line collections.mygo:25:3*/	} else {
  /*line zz_collections.gen.go:27:1*/	}
  /*line collections.mygo:28:3*/	return Ok[[]PostRecord, string](records)
  /*line zz_collections.gen.go:29:1*/}
  /*line collections.mygo:31:1*/func CountObjectReplies(ctx context.Context, db *gorm.DB, parentID string, origin string) Result[int64, string] {
 	var count int64 = int64(0)
 	query := publicObjectQuery(ctx, db, origin).Where("p.parent_id = ?", parentID).Count(&count)
- /*line collections.mygo:34:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:34:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:35:12*/		return Err[int64, string]("collection unavailable")
- /*line collections.mygo:34:6*/	} else {
+ /*line collections.mygo:34:3*/	} else {
  /*line zz_collections.gen.go:36:1*/	}
  /*line collections.mygo:37:3*/	return Ok[int64, string](count)
  /*line zz_collections.gen.go:38:1*/}
  /*line collections.mygo:40:1*/func ListObjectReplies(ctx context.Context, db *gorm.DB, parentID string, origin string, limit int, offset int) Result[[]PostRecord, string] {
 	var records []PostRecord = []PostRecord{}
 	query := publicObjectQuery(ctx, db, origin).Where("p.parent_id = ?", parentID).Order("p.authored_at, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line collections.mygo:43:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:43:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:44:12*/		return Err[[]PostRecord, string]("collection unavailable")
- /*line collections.mygo:43:6*/	} else {
+ /*line collections.mygo:43:3*/	} else {
  /*line zz_collections.gen.go:45:1*/	}
  /*line collections.mygo:46:3*/	return Ok[[]PostRecord, string](records)
  /*line zz_collections.gen.go:47:1*/}
  /*line collections.mygo:49:1*/func CountAcceptedFollowers(ctx context.Context, db *gorm.DB, communityID string) Result[int64, string] {
 	var count int64 = int64(0)
 	query := db.WithContext(ctx).Table("follows").Where("community_id = ? AND state = 'accepted'", communityID).Count(&count)
- /*line collections.mygo:52:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:52:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:53:12*/		return Err[int64, string]("collection unavailable")
- /*line collections.mygo:52:6*/	} else {
+ /*line collections.mygo:52:3*/	} else {
  /*line zz_collections.gen.go:54:1*/	}
  /*line collections.mygo:55:3*/	return Ok[int64, string](count)
  /*line zz_collections.gen.go:56:1*/}
  /*line collections.mygo:58:1*/func ListAcceptedFollowers(ctx context.Context, db *gorm.DB, communityID string, limit int, offset int) Result[[]string, string] {
 	var records []string = []string{}
 	query := db.WithContext(ctx).Table("follows").Select("actor_uri").Where("community_id = ? AND state = 'accepted'", communityID).Order("actor_uri").Limit(limit).Offset(offset).Find(&records)
- /*line collections.mygo:61:6*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line collections.mygo:61:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
  /*line collections.mygo:62:12*/		return Err[[]string, string]("collection unavailable")
- /*line collections.mygo:61:6*/	} else {
+ /*line collections.mygo:61:3*/	} else {
  /*line zz_collections.gen.go:63:1*/	}
  /*line collections.mygo:64:3*/	return Ok[[]string, string](records)
  /*line zz_collections.gen.go:65:1*/}

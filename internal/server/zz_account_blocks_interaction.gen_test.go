@@ -30,25 +30,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	parent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body"}))
+	parent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", Mentions: []storage.ResolvedPostMention{}, AttachmentIDs: []string{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN22AccountBlockRepositoryM3Add(storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: alice.AccountID}, ctx, alice, "person", bob.ActorURI))
 	handler := Handler(settings, db)
 	bobCookies := login(handler, site.Origin, "bob", "bob-password")
 	bobCSRF := csrfOf(bobCookies)
 	reply := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + parent.ID + "/replies", Payload: "{\"body\":\"blocked reply\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
- /*line account_blocks_interaction_test.mygo:38:6*/	if reply.Code != 403 {
- /*line account_blocks_interaction_test.mygo:39:5*/		t.Fatalf("blocked reply returned %d: %s", reply.Code, reply.Body.String())
- /*line account_blocks_interaction_test.mygo:38:6*/	} else {
+ /*line account_blocks_interaction_test.mygo:71:3*/	if reply.Code != 403 {
+ /*line account_blocks_interaction_test.mygo:72:5*/		t.Fatalf("blocked reply returned %d: %s", reply.Code, reply.Body.String())
+ /*line account_blocks_interaction_test.mygo:71:3*/	} else {
  /*line zz_account_blocks_interaction.gen_test.go:42:1*/	}
  /*line account_blocks_interaction_test.mygo:10:1*/	vote := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + parent.ID + "/vote", Payload: "{\"score\":1}", Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
- /*line account_blocks_interaction_test.mygo:53:6*/	if vote.Code != 403 {
- /*line account_blocks_interaction_test.mygo:54:5*/		t.Fatalf("blocked vote returned %d: %s", vote.Code, vote.Body.String())
- /*line account_blocks_interaction_test.mygo:53:6*/	} else {
+ /*line account_blocks_interaction_test.mygo:86:3*/	if vote.Code != 403 {
+ /*line account_blocks_interaction_test.mygo:87:5*/		t.Fatalf("blocked vote returned %d: %s", vote.Code, vote.Body.String())
+ /*line account_blocks_interaction_test.mygo:86:3*/	} else {
  /*line zz_account_blocks_interaction.gen_test.go:47:1*/	}
  /*line account_blocks_interaction_test.mygo:10:1*/	mention := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + community.ID + "/topics", Payload: "{\"title\":\"Mention\",\"body\":\"hello @alice\",\"content_format\":\"markdown\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
- /*line account_blocks_interaction_test.mygo:68:6*/	if mention.Code != 403 {
- /*line account_blocks_interaction_test.mygo:69:5*/		t.Fatalf("blocked mention returned %d: %s", mention.Code, mention.Body.String())
- /*line account_blocks_interaction_test.mygo:68:6*/	} else {
+ /*line account_blocks_interaction_test.mygo:101:3*/	if mention.Code != 403 {
+ /*line account_blocks_interaction_test.mygo:102:5*/		t.Fatalf("blocked mention returned %d: %s", mention.Code, mention.Body.String())
+ /*line account_blocks_interaction_test.mygo:101:3*/	} else {
  /*line zz_account_blocks_interaction.gen_test.go:52:1*/	}
  /*line account_blocks_interaction_test.mygo:10:1*/	posts := int64(0)
 	reactions := int64(0)
@@ -58,10 +58,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("reactions").Count(&reactions)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Count(&mentions)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("notification_events").Count(&events)))
- /*line account_blocks_interaction_test.mygo:79:6*/	if posts != int64(1) || reactions != int64(0) || mentions != int64(0) || events != int64(0) {
- /*line account_blocks_interaction_test.mygo:80:5*/		t.Fatal("rejected blocked interaction left content, vote, mention, or notification")
+ /*line account_blocks_interaction_test.mygo:112:3*/	if posts != int64(1) || reactions != int64(0) || mentions != int64(0) || events != int64(0) {
+ /*line account_blocks_interaction_test.mygo:113:5*/		t.Fatal("rejected blocked interaction left content, vote, mention, or notification")
 		return
- /*line account_blocks_interaction_test.mygo:79:6*/	} else {
- /*line account_blocks_interaction_test.mygo:79:3*/		return
+ /*line account_blocks_interaction_test.mygo:112:3*/	} else {
+		return
  /*line zz_account_blocks_interaction.gen_test.go:66:1*/	}
 }

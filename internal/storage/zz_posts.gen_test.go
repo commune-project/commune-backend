@@ -6,7 +6,6 @@ import "testing"
 import "context"
 import "database/sql"
 import "time"
-import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import "github.com/mygo-lang/mygo/lib/concurrency"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
@@ -20,12 +19,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_posts.gen_test.go:23:1*/	}
+ /*line zz_posts.gen_test.go:22:1*/	}
  /*line posts_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, config.Site{ID: "a", Origin: "https://a.example"}))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, config.Site{ID: "b", Origin: "https://b.example"}))
+	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, testSite("a", "https://a.example")))
+	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, testSite("b", "https://b.example")))
 	author := "https://remote.example/users/alice"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/communities/news','Group'),('https://remote.example/users/bob','Person')", author)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('news','https://remote.example/communities/news',?,'federated','eligible_users','eligible_users','news','News')", author)))
@@ -33,86 +32,86 @@ import . "github.com/mygo-lang/mygo/prelude"
 	second := PostRepository{DB: db, SiteID: "b"}
 	authored := time.Now()
 	makePost := func(uri string, owner string, body string, updated time.Time, deleted bool) PostRecord {
- /*line posts_test.mygo:25:5*/		return PostRecord{ObjectURI: sql.NullString{String: uri, Valid: true}, CommunityID: "news", FederationMode: "federated", AuthorActorURI: owner, ObjectType: "Page", Title: sql.NullString{String: "Title", Valid: true}, Body: body, AuthoredAt: authored, UpdatedAt: updated, DeletedAt: sql.NullTime{Time: updated, Valid: deleted}}
- /*line zz_posts.gen_test.go:37:1*/	}
+ /*line posts_test.mygo:31:5*/		return PostRecord{ObjectURI: sql.NullString{String: uri, Valid: true}, CommunityID: "news", FederationMode: "federated", AuthorActorURI: owner, ObjectType: "Page", Title: sql.NullString{String: "Title", Valid: true}, Body: body, AuthoredAt: authored, UpdatedAt: updated, DeletedAt: sql.NullTime{Time: updated, Valid: deleted}, Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}
+ /*line zz_posts.gen_test.go:36:1*/	}
  /*line posts_test.mygo:12:1*/	uri_1 := "https://remote.example/objects/one"
 	post := makePost(uri_1, author, "same text", authored, false)
 	ready := concurrency.MakeChan[struct{}](2)
 	start := concurrency.MakeChan[struct{}](2)
 	results := concurrency.MakeChan[Result[PostRecord, string]](2)
- /*line posts_test.mygo:32:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]PostRepository{first, second}, func(repository PostRepository) {
- /*line posts_test.mygo:33:5*/		concurrency.Spawn(func() {
- /*line posts_test.mygo:34:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
- /*line zz_posts.gen_test.go:46:1*/			}{})
- /*line posts_test.mygo:33:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
- /*line posts_test.mygo:36:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN14PostRepositoryM7Receive(repository, ctx, post, author))
+ /*line posts_test.mygo:64:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]PostRepository{first, second}, func(repository PostRepository) {
+ /*line posts_test.mygo:65:5*/		concurrency.Spawn(func() {
+ /*line posts_test.mygo:66:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
+ /*line zz_posts.gen_test.go:45:1*/			}{})
+ /*line posts_test.mygo:65:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
+ /*line posts_test.mygo:68:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN14PostRepositoryM7Receive(repository, ctx, post, author))
 			return
- /*line zz_posts.gen_test.go:50:1*/		})
- /*line posts_test.mygo:33:5*/		return
- /*line zz_posts.gen_test.go:52:1*/	})
+ /*line zz_posts.gen_test.go:49:1*/		})
+ /*line posts_test.mygo:65:5*/		return
+ /*line zz_posts.gen_test.go:51:1*/	})
  /*line posts_test.mygo:12:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
- /*line posts_test.mygo:41:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_posts.gen_test.go:56:1*/	}{})
- /*line posts_test.mygo:42:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_posts.gen_test.go:58:1*/	}{})
+ /*line posts_test.mygo:73:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_posts.gen_test.go:55:1*/	}{})
+ /*line posts_test.mygo:74:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_posts.gen_test.go:57:1*/	}{})
  /*line posts_test.mygo:12:1*/	a := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN6OptionM6Unwrap[Result[PostRecord, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[PostRecord, string]](results)))
 	b := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN6OptionM6Unwrap[Result[PostRecord, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[PostRecord, string]](results)))
- /*line posts_test.mygo:45:6*/	if a.ID != b.ID || a.Body != "same text" || a.Version != int64(1) || b.Version != int64(1) {
- /*line posts_test.mygo:46:5*/		t.Fatal("concurrent reception did not converge on one shared body")
- /*line posts_test.mygo:45:6*/	} else {
- /*line zz_posts.gen_test.go:64:1*/	}
+ /*line posts_test.mygo:77:3*/	if a.ID != b.ID || a.Body != "same text" || a.Version != int64(1) || b.Version != int64(1) {
+ /*line posts_test.mygo:78:5*/		t.Fatal("concurrent reception did not converge on one shared body")
+ /*line posts_test.mygo:77:3*/	} else {
+ /*line zz_posts.gen_test.go:63:1*/	}
  /*line posts_test.mygo:12:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Count(&count)))
- /*line posts_test.mygo:50:6*/	if count != int64(1) {
- /*line posts_test.mygo:51:5*/		t.Fatal("duplicate shared object rows")
- /*line posts_test.mygo:50:6*/	} else {
- /*line zz_posts.gen_test.go:70:1*/	}
+ /*line posts_test.mygo:82:3*/	if count != int64(1) {
+ /*line posts_test.mygo:83:5*/		t.Fatal("duplicate shared object rows")
+ /*line posts_test.mygo:82:3*/	} else {
+ /*line zz_posts.gen_test.go:69:1*/	}
  /*line posts_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("post_id=?", a.ID).Count(&count)))
- /*line posts_test.mygo:54:6*/	if count != int64(2) {
- /*line posts_test.mygo:55:5*/		t.Fatal("site reception rows were deduplicated across sites")
- /*line posts_test.mygo:54:6*/	} else {
- /*line zz_posts.gen_test.go:75:1*/	}
+ /*line posts_test.mygo:86:3*/	if count != int64(2) {
+ /*line posts_test.mygo:87:5*/		t.Fatal("site reception rows were deduplicated across sites")
+ /*line posts_test.mygo:86:3*/	} else {
+ /*line zz_posts.gen_test.go:74:1*/	}
  /*line posts_test.mygo:12:1*/	distinct := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost("https://remote.example/objects/two", author, "same text", authored, false), author))
- /*line posts_test.mygo:58:6*/	if distinct.ID == a.ID {
- /*line posts_test.mygo:59:5*/		t.Fatal("identical text merged different canonical URIs")
- /*line posts_test.mygo:58:6*/	} else {
- /*line zz_posts.gen_test.go:80:1*/	}
+ /*line posts_test.mygo:94:3*/	if distinct.ID == a.ID {
+ /*line posts_test.mygo:95:5*/		t.Fatal("identical text merged different canonical URIs")
+ /*line posts_test.mygo:94:3*/	} else {
+ /*line zz_posts.gen_test.go:79:1*/	}
  /*line posts_test.mygo:12:1*/	newer := authored.Add(time.Second)
- /*line posts_test.mygo:62:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, "https://remote.example/users/bob", "forged", newer, false), "https://remote.example/users/bob")) {
- /*line posts_test.mygo:63:5*/		t.Fatal("unrelated authenticated author reused another object's URI")
- /*line posts_test.mygo:62:6*/	} else {
- /*line zz_posts.gen_test.go:85:1*/	}
- /*line posts_test.mygo:65:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "forged", authored, false), author)) {
- /*line posts_test.mygo:66:5*/		t.Fatal("conflicting body reused the same version")
- /*line posts_test.mygo:65:6*/	} else {
- /*line zz_posts.gen_test.go:89:1*/	}
+ /*line posts_test.mygo:98:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, "https://remote.example/users/bob", "forged", newer, false), "https://remote.example/users/bob")) {
+ /*line posts_test.mygo:103:5*/		t.Fatal("unrelated authenticated author reused another object's URI")
+ /*line posts_test.mygo:98:3*/	} else {
+ /*line zz_posts.gen_test.go:84:1*/	}
+ /*line posts_test.mygo:105:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "forged", authored, false), author)) {
+ /*line posts_test.mygo:106:5*/		t.Fatal("conflicting body reused the same version")
+ /*line posts_test.mygo:105:3*/	} else {
+ /*line zz_posts.gen_test.go:88:1*/	}
  /*line posts_test.mygo:12:1*/	update := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "updated", newer, false), author))
- /*line posts_test.mygo:69:6*/	if update.ID != a.ID || update.Body != "updated" || update.Version != int64(2) {
- /*line posts_test.mygo:70:5*/		t.Fatal("authoritative update replaced identity or failed to update body")
- /*line posts_test.mygo:69:6*/	} else {
- /*line zz_posts.gen_test.go:94:1*/	}
+ /*line posts_test.mygo:109:3*/	if update.ID != a.ID || update.Body != "updated" || update.Version != int64(2) {
+ /*line posts_test.mygo:110:5*/		t.Fatal("authoritative update replaced identity or failed to update body")
+ /*line posts_test.mygo:109:3*/	} else {
+ /*line zz_posts.gen_test.go:93:1*/	}
  /*line posts_test.mygo:12:1*/	late := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, post, author))
- /*line posts_test.mygo:73:6*/	if late.Body != "updated" || late.Version != int64(2) {
- /*line posts_test.mygo:74:5*/		t.Fatal("late original version replaced a newer body")
- /*line posts_test.mygo:73:6*/	} else {
- /*line zz_posts.gen_test.go:99:1*/	}
+ /*line posts_test.mygo:113:3*/	if late.Body != "updated" || late.Version != int64(2) {
+ /*line posts_test.mygo:114:5*/		t.Fatal("late original version replaced a newer body")
+ /*line posts_test.mygo:113:3*/	} else {
+ /*line zz_posts.gen_test.go:98:1*/	}
  /*line posts_test.mygo:12:1*/	deleted_1 := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "", newer.Add(time.Second), true), author))
 	replay := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, makePost(uri_1, author, "resurrected", newer.Add(time.Duration(2)*time.Second), false), author))
- /*line posts_test.mygo:78:6*/	if !deleted_1.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" || deleted_1.Version != int64(3) || replay.Version != int64(3) {
- /*line posts_test.mygo:79:5*/		t.Fatal("a newer replay resurrected a tombstone")
- /*line posts_test.mygo:78:6*/	} else {
- /*line zz_posts.gen_test.go:105:1*/	}
+ /*line posts_test.mygo:122:3*/	if !deleted_1.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" || deleted_1.Version != int64(3) || replay.Version != int64(3) {
+ /*line posts_test.mygo:127:5*/		t.Fatal("a newer replay resurrected a tombstone")
+ /*line posts_test.mygo:122:3*/	} else {
+ /*line zz_posts.gen_test.go:104:1*/	}
  /*line posts_test.mygo:12:1*/	missing := PostRepository{DB: db, SiteID: "missing"}
- /*line posts_test.mygo:82:6*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(missing, ctx, makePost("https://remote.example/objects/rollback", author, "body", authored, false), author)) {
- /*line posts_test.mygo:83:5*/		t.Fatal("missing site accepted reception")
- /*line posts_test.mygo:82:6*/	} else {
- /*line zz_posts.gen_test.go:110:1*/	}
+ /*line posts_test.mygo:130:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(missing, ctx, makePost("https://remote.example/objects/rollback", author, "body", authored, false), author)) {
+ /*line posts_test.mygo:135:5*/		t.Fatal("missing site accepted reception")
+ /*line posts_test.mygo:130:3*/	} else {
+ /*line zz_posts.gen_test.go:109:1*/	}
  /*line posts_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("object_uri=?", "https://remote.example/objects/rollback").Count(&count)))
- /*line posts_test.mygo:86:6*/	if count != int64(0) {
- /*line posts_test.mygo:87:5*/		t.Fatal("reception failure left an uncommitted object")
+ /*line posts_test.mygo:141:3*/	if count != int64(0) {
+ /*line posts_test.mygo:142:5*/		t.Fatal("reception failure left an uncommitted object")
 		return
- /*line posts_test.mygo:86:6*/	} else {
- /*line posts_test.mygo:86:3*/		return
- /*line zz_posts.gen_test.go:117:1*/	}
+ /*line posts_test.mygo:141:3*/	} else {
+		return
+ /*line zz_posts.gen_test.go:116:1*/	}
 }

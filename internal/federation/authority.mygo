@@ -34,7 +34,7 @@ end
 
 # `object` is either an identifier string or an embedded object/activity.
 func ParseActivity(payload: Slice[Byte]) -> Result[ParsedActivity, String]
-  let view = ActivityView{}
+  let view = Zero[ActivityView]()
   if json.Unmarshal(payload, Ref.new(view)).IsErr() then
     return Err("invalid activity")
   end
@@ -47,7 +47,7 @@ func ParseActivity(payload: Slice[Byte]) -> Result[ParsedActivity, String]
   if json.Unmarshal(view.Object as Slice[Byte], Ref.new(asString)).IsOk() then
     objectURI = asString
   else
-    let nested = EmbeddedActivity{}
+    let nested = Zero[EmbeddedActivity]()
     if json.Unmarshal(view.Object as Slice[Byte], Ref.new(nested)).IsOk() && nested.ID != "" then
       embedded = Some(nested)
       objectURI = nested.ID
@@ -92,11 +92,11 @@ func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limi
   if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type then
     return Err("unverifiable embedded author")
   end
-  let envelope = ActivityView{}
+  let envelope = Zero[ActivityView]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then return Err("invalid forwarded activity") end
   let forwarded = json.Marshal(envelope.Object)
   let authoritative = json.Marshal(canonical.Unwrap() as json.RawMessage)
-  let document = ActivityView{}
+  let document = Zero[ActivityView]()
   if json.Unmarshal(envelope.Object as Slice[Byte], Ref.new(document)).IsErr() then return Err("invalid forwarded activity") end
   if (document.Object as Slice[Byte]).Len() > 0 && (forwarded.IsErr() || authoritative.IsErr() || (forwarded.Unwrap() as String) != (authoritative.Unwrap() as String)) then
     return Err("modified forwarded activity")

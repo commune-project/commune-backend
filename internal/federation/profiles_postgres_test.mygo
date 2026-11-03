@@ -12,7 +12,7 @@ func TestPostgresPersonUpdateFreshnessBlocksAndLocalAuthority(t: Ref[testing.T])
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "profiles", Origin: "https://profiles.example"}
+  let site = config.Site{ID: "profiles", RegistrationEnabled: false, Origin: "https://profiles.example", Aliases: []}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let local = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let remote = "https://remote.example/users/a"

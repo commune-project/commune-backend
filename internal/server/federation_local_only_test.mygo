@@ -23,8 +23,8 @@ func TestPostgresLocalOnlyExclusion(t: Ref[testing.T]) -> ()
   let posts = storage.PostRepository{DB: db, SiteID: a.ID}
   let local = communities.Create(ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
   let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
-  let hiddenPost = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "secret", ParentID: ""}).Unwrap()
-  let _ = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Public", Body: "shared", ParentID: ""}).Unwrap()
+  let hiddenPost = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "secret", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let _ = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Public", Body: "shared", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let handler = Handler(settings, db)
   let accept = "application/activity+json"
   if getAP(handler, a.Origin, "/objects/" + hiddenPost.ID, accept).Code != 404 then

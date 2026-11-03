@@ -31,7 +31,7 @@ impl FeedRepository
       if !received.Unwrap() then
         return Err("not found")
       end
-      let stamp = if hidden then sql.NullTime{Time: time.Now().UTC().Truncate(time.Microsecond), Valid: true} else sql.NullTime{} end
+      let stamp = if hidden then sql.NullTime{Time: time.Now().UTC().Truncate(time.Microsecond), Valid: true} else Zero[sql.NullTime]() end
       if MutationResult(tx.Exec("UPDATE site_posts SET hidden_at=? WHERE site_id=? AND post_id=?", stamp, self.SiteID, postID)).IsErr() then
         return Err("moderation failed")
       end

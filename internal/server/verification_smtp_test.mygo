@@ -7,7 +7,15 @@ import transport "go:github.com/commune-project/commune-backend/internal/testtra
 
 func TestVerificationSMTPTransport(t: Ref[testing.T]) -> ()
   let sink = transport.NewSMTP(t)
-  let settings = config.SMTP{Host: sink.Host, Port: sink.Port, From: "forum@example.org", TLSMode: "test", TimeoutSeconds: 2}
+  let settings = config.SMTP {
+    Host: sink.Host,
+    Port: sink.Port,
+    From: "forum@example.org",
+    TLSMode: "test",
+    TimeoutSeconds: 2,
+    Username: "",
+    Password: "",
+  }
   let link = "https://a.example/verify-email#token=EXAMPLE"
   if SendVerificationSMTP(settings, "owner@example.org", link).IsErr() then
     t.Fatal("test SMTP delivery failed")

@@ -63,7 +63,7 @@ func PostMutation(
   identity: auth.Identity
 ) -> ()
   if request.Method == "PATCH" then
-    let input = EditPostInput{}
+    var input = Zero[EditPostInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -101,7 +101,7 @@ func PostMutation(
         Fail(w, mentions.UnwrapErr())
         return
       end
-      var updated = storage.PostRecord{}
+      var updated = Zero[storage.PostRecord]()
       let saved = storage.RunTransaction(
         request.Context(),
         db,
@@ -218,7 +218,7 @@ func PostSectionRoute(
     return
   end
   if section == "vote" then
-    let input = VoteInput{}
+    var input = Zero[VoteInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, "invalid vote")
@@ -298,7 +298,7 @@ func ReplyRoute(
         Fail(w, "forbidden")
         return
       end
-      let input = ReplyInput{}
+      var input = Zero[ReplyInput]()
       let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
       if decoded.IsErr() then
         WriteErrorJSON(w, 400, decoded.UnwrapErr())

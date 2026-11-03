@@ -25,7 +25,7 @@ func LoadDeliveryTargets(ctx: context.Context, db: Ref[gorm.DB], actorURIs: Slic
   var targets: Slice[DeliveryTarget] = []
   var failed = false
   actorURIs.Each(func(uri: String) -> ()
-    let record = DeliveryTargetRecord{}
+    let record = Zero[DeliveryTargetRecord]()
     let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
     if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
       failed = true

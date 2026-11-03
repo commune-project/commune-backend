@@ -10,7 +10,7 @@ func TestPostgresReplyContextIndependence(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", Origin: "https://forum-a.example"}
+  let site = testSite("a", "https://forum-a.example")
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let accounts = AccountRepository{DB: db}
   let alice = accounts.Create(ctx, site, "alice", "", "alice-account-password").Unwrap()
@@ -36,6 +36,10 @@ func TestPostgresReplyContextIndependence(t: Ref[testing.T]) -> ()
       Title: "Topic",
       Body: "Body",
       ParentID: "",
+      Mentions: [],
+      AttachmentIDs: [],
+      ContentFormat: "",
+      ContextURI: "",
     }
   ).Unwrap()
   let homeContext = CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin).Unwrap()
@@ -51,6 +55,10 @@ func TestPostgresReplyContextIndependence(t: Ref[testing.T]) -> ()
       Body: "Reply",
       ParentID: topic.ID,
       ContextURI: remoteContext,
+      Mentions: [],
+      AttachmentIDs: [],
+      ContentFormat: "",
+      Title: "",
     }
   )
   if published.IsErr() then

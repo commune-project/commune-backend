@@ -78,7 +78,7 @@ struct PostPage
 end
 
 func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
-  CommunityOutput{
+  CommunityOutput {
     ID: record.ID,
     Name: record.Name,
     Title: record.Title,
@@ -86,15 +86,17 @@ func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
     FederationMode: record.FederationMode,
     ReadPolicy: record.ReadPolicy,
     PostPolicy: record.PostPolicy,
-    FollowPolicy: "open",
+    FollowPolicy: record.FollowPolicy,
     FollowerCount: 0i64,
     ActorURI: record.ActorURI.String,
     HostSiteID: record.HostSiteID,
+    Viewer: Zero[CommunityViewerOutput](),
+    Permissions: Zero[CommunityPermissions](),
   }
 end
 
 func PostDTO(record: storage.PostRecord) -> PostOutput
-  PostOutput{
+  PostOutput {
     Version: record.Version,
     ID: record.ID,
     CommunityID: record.CommunityID,
@@ -117,10 +119,25 @@ func PostDTO(record: storage.PostRecord) -> PostOutput
     AttachmentIDs: [],
     Attachments: [],
     AuthorActorURI: record.AuthorActorURI,
+    Author: Zero[AuthorOutput](),
     ParentID: record.ParentID.String,
     AuthoredAt: record.AuthoredAt,
     UpdatedAt: record.UpdatedAt,
     Deleted: record.DeletedAt.Valid,
+    Score: 0i64,
+    Upvotes: 0i64,
+    Downvotes: 0i64,
+    VotedByMe: 0i64,
+    LikeCount: 0i64,
+    LikedByMe: false,
+    ReplyCount: 0i64,
+    SavedByMe: false,
+    ReadByMe: false,
+    HiddenByMe: false,
+    Depth: 0,
+    ChildCount: 0,
+    Children: [],
+    Permissions: Zero[PostPermissions](),
   }
 end
 

@@ -22,7 +22,11 @@ func GeneratePrivatePEM() -> Result[String, String]
   switch rsa.GenerateKey(rand.Reader, 2048)
     case Err(_) => Err("key generation failed")
     case Ok(key) then
-      let block = pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}
+      let block = pem.Block{
+        Type: "RSA PRIVATE KEY",
+        Headers: Zero[Map[String, String]](),
+        Bytes: x509.MarshalPKCS1PrivateKey(key),
+      }
       Ok(pem.EncodeToMemory(Ref.new(block)) as String)
     end
   end
@@ -45,7 +49,11 @@ func PublicPEMFromPrivate(privatePEM: String) -> Result[String, String]
   if derived.IsErr() then
     return Err("invalid public key")
   end
-  let publicBlock = pem.Block{Type: "PUBLIC KEY", Bytes: derived.Unwrap()}
+  let publicBlock = pem.Block{
+    Type: "PUBLIC KEY",
+    Headers: {},
+    Bytes: derived.Unwrap(),
+  }
   Ok(pem.EncodeToMemory(Ref.new(publicBlock)) as String)
 end
 
@@ -66,7 +74,7 @@ func LoadActor(
   if uri == "" then
     return Err("invalid actor")
   end
-  let record = ActorRecord{}
+  let record = Zero[ActorRecord]()
   let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
     return Err("actor unavailable")
@@ -83,7 +91,7 @@ func LoadLocalPerson(
   siteID: String,
   username: String
 ) -> Result[Option[ActorRecord], String]
-  let record = ActorRecord{}
+  let record = Zero[ActorRecord]()
   let query = db.WithContext(ctx).Table("actors AS a").Where(
     "a.local_site_id = ? AND a.kind = 'Person' AND a.uri IN (SELECT actor_uri FROM accounts WHERE site_id = ? AND username = ? AND NOT disabled)",
     siteID,

@@ -35,7 +35,7 @@ func SignedRequester(db: Ref[gorm.DB], settings: config.Config, request: Ref[htt
   if verified.IsErr() then
     return Err("unauthenticated")
   end
-  Ok(auth.Identity{ActorURI: actorURI})
+  Ok(auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: actorURI, Username: ""})
 end
 
 # Member-readable reads require a signed request whose actor currently satisfies

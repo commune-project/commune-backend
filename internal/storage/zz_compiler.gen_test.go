@@ -7,29 +7,29 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line compiler_test.mygo:5:1*/func earlyError(fail bool) Result[struct {
 }, string] {
- /*line compiler_test.mygo:6:6*/	if fail {
+ /*line compiler_test.mygo:6:3*/	if fail {
  /*line compiler_test.mygo:7:12*/		return Err[struct{}, string]("failure")
- /*line compiler_test.mygo:6:6*/	} else {
+ /*line compiler_test.mygo:6:3*/	} else {
  /*line zz_compiler.gen_test.go:13:1*/	}
  /*line compiler_test.mygo:9:3*/	return Ok[struct{}, string](struct {
  /*line zz_compiler.gen_test.go:15:1*/	}{})
 }
  /*line compiler_test.mygo:12:1*/func TestEarlyResultError(t *testing.T) {
- /*line compiler_test.mygo:13:6*/	if !MygoIN6ResultM5IsErr[struct{}, string](earlyError(true)) || MygoIN6ResultM4IsOk[struct{}, string](earlyError(true)) {
+ /*line compiler_test.mygo:13:3*/	if !MygoIN6ResultM5IsErr[struct{}, string](earlyError(true)) || MygoIN6ResultM4IsOk[struct{}, string](earlyError(true)) {
  /*line compiler_test.mygo:14:5*/		t.Fatal("early Err lost its declared Result type")
- /*line compiler_test.mygo:13:6*/	} else {
+ /*line compiler_test.mygo:13:3*/	} else {
  /*line zz_compiler.gen_test.go:21:1*/	}
- /*line compiler_test.mygo:16:10*/	__mygo_expr_0 := earlyError(true)
+ /*line compiler_test.mygo:16:3*/	__mygo_expr_0 := earlyError(true)
 	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, string]); ok {
  /*line compiler_test.mygo:18:19*/		if __mygo_match___mygo_expr_1.F0 != "failure" {
  /*line compiler_test.mygo:19:7*/			t.Fatal("error payload changed")
- /*line compiler_test.mygo:16:10*/		} else {
+ /*line compiler_test.mygo:16:3*/		} else {
  /*line zz_compiler.gen_test.go:27:1*/		}
- /*line compiler_test.mygo:16:10*/	} else {
+ /*line compiler_test.mygo:16:3*/	} else {
 		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, string]); ok {
 			t.Fatal("early Err matched Ok")
 		} else {
  /*line zz_compiler.gen_test.go:32:1*/		}
 	}
- /*line compiler_test.mygo:16:10*/	return
+ /*line compiler_test.mygo:16:3*/	return
  /*line zz_compiler.gen_test.go:35:1*/}

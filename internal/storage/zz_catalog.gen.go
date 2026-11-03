@@ -48,9 +48,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_catalog.gen.go:48:1*/}
  /*line catalog.mygo:69:1*/func ValidateApplied(applied []AppliedMigration, catalog []Migration, requireCurrent bool) Result[struct {
 }, string] {
- /*line catalog.mygo:74:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) > MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
+ /*line catalog.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) > MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
  /*line catalog.mygo:75:12*/		return Err[struct{}, string]("database schema is newer than this binary")
- /*line catalog.mygo:74:6*/	} else {
+ /*line catalog.mygo:74:3*/	} else {
  /*line zz_catalog.gen.go:54:1*/	}
  /*line catalog.mygo:69:1*/	i := 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) {
@@ -62,9 +62,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_catalog.gen.go:62:1*/		}
  /*line catalog.mygo:69:1*/		i = i + 1
  /*line zz_catalog.gen.go:64:1*/	}
- /*line catalog.mygo:88:6*/	if requireCurrent && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
+ /*line catalog.mygo:88:3*/	if requireCurrent && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
  /*line catalog.mygo:89:12*/		return Err[struct{}, string]("database schema is behind this binary; run explicit migration")
- /*line catalog.mygo:88:6*/	} else {
+ /*line catalog.mygo:88:3*/	} else {
  /*line zz_catalog.gen.go:68:1*/	}
  /*line catalog.mygo:91:3*/	return Ok[struct{}, string](struct {
  /*line zz_catalog.gen.go:70:1*/	}{})

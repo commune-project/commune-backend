@@ -26,7 +26,7 @@ end
 # Collection traversal returns only canonical item identities. Callers fetch each
 # object from its advertised URI so that the object body's id can be verified.
 func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversal, String]
-  let document = CollectionDocument{}
+  let document = Zero[CollectionDocument]()
   if json.Unmarshal(payload, Ref.new(document)).IsErr() then
     return Err("invalid collection")
   end
@@ -60,7 +60,7 @@ func DecodeCollectionItemURI(raw: json.RawMessage) -> String
   if json.Unmarshal(raw as Slice[Byte], Ref.new(uri)).IsOk() then
     return uri
   end
-  let item = CollectionItemView{}
+  let item = Zero[CollectionItemView]()
   if json.Unmarshal(raw as Slice[Byte], Ref.new(item)).IsErr() then
     return ""
   end

@@ -4,9 +4,15 @@ import http "go:net/http"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
-
 # Call before browser/mutation dispatch; false leaves unrelated routes alone.
-func SearchRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
+func SearchRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
   if parts.Len() != 3 || parts.Get(2).UnwrapOr("") != "search" then
     return false
   end
@@ -18,7 +24,9 @@ func SearchRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
   let kind = request.URL.Query().Get("kind")
   let query = request.URL.Query().Get("q")
   let page = PageFromQuery(settings, request)
-  if (kind != "communities" && kind != "posts") || !storage.ValidSearchQuery(query) || page.IsErr() then
+  if (kind != "communities" && kind != "posts") ||
+    !storage.ValidSearchQuery(query) ||
+    page.IsErr() then
     Fail(w, "invalid page")
     return true
   end
@@ -34,17 +42,37 @@ func SearchRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
     return true
   end
   if kind == "communities" then
-    let rows = repository.SearchCommunities(request.Context(), viewer.Unwrap(), query, page.Unwrap(), settings.Runtime.MaxPageSize)
+    let rows = repository.SearchCommunities(
+      request.Context(),
+      viewer.Unwrap(),
+      query,
+      page.Unwrap(),
+      settings.Runtime.MaxPageSize
+    )
     if rows.IsErr() then
       Fail(w, rows.UnwrapErr())
     else
       let outputs = rows.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
         BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
       end)
-      WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+      WriteJSON(
+        w,
+        200,
+        CommunityPage{
+          Items: outputs,
+          Limit: page.Unwrap().Limit,
+          Offset: page.Unwrap().Offset,
+        }
+      )
     end
   else
-    let rows = repository.SearchPosts(request.Context(), viewer.Unwrap(), query, page.Unwrap(), settings.Runtime.MaxPageSize)
+    let rows = repository.SearchPosts(
+      request.Context(),
+      viewer.Unwrap(),
+      query,
+      page.Unwrap(),
+      settings.Runtime.MaxPageSize
+    )
     if rows.IsErr() then
       Fail(w, rows.UnwrapErr())
     else
@@ -52,7 +80,15 @@ func SearchRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
       if outputs.IsErr() then
         Fail(w, outputs.UnwrapErr())
       else
-        WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+        WriteJSON(
+          w,
+          200,
+          PostPage{
+            Items: outputs.Unwrap(),
+            Limit: page.Unwrap().Limit,
+            Offset: page.Unwrap().Offset,
+          }
+        )
       end
     end
   end

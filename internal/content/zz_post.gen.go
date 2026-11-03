@@ -22,12 +22,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post.mygo:21:1*/func RenderPostRich(source string, format string, mentions []RichMention, origin string, media []RichMedia, strict bool) Result[string, string] {
 	expanded := source
  /*line post.mygo:30:6*/	if format == "markdown" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mentions) > 0 {
-		candidates := ExtractMentionCandidates(source, format)
- /*line post.mygo:32:8*/		if MygoIN6ResultM5IsErr[[]MentionCandidate, string](candidates) {
+ /*line post.mygo:30:3*/		candidates := ExtractMentionCandidates(source, format)
+ /*line post.mygo:32:5*/		if MygoIN6ResultM5IsErr[[]MentionCandidate, string](candidates) {
  /*line post.mygo:33:14*/			return Err[string, string](MygoIN6ResultM9UnwrapErr[[]MentionCandidate, string](candidates))
- /*line post.mygo:32:8*/		} else {
+ /*line post.mygo:32:5*/		} else {
  /*line zz_post.gen.go:29:1*/		}
- /*line post.mygo:30:6*/		output := strings.Builder{}
+ /*line post.mygo:30:3*/		output := strings.Builder{}
 		position := 0
  /*line post.mygo:37:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]MentionCandidate, string](candidates), func(candidate MentionCandidate) {
  /*line post.mygo:37:30*/			spelling := string(MygoIN6OptionM6Unwrap[[]byte](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), candidate.Start, candidate.End)))
@@ -35,7 +35,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post.mygo:39:37*/				original := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), mention.Start, mention.End), []byte{}))
  /*line post.mygo:41:9*/				return strings.EqualFold(original, spelling) && mention.ActorURI != ""
  /*line zz_post.gen.go:37:1*/			})
- /*line post.mygo:43:10*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) > 0 {
+ /*line post.mygo:43:7*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) > 0 {
 				prefix := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), position, candidate.Start), []byte{}))
 				escaped := strings.NewReplacer("\\", "\\\\", "_", "\\_", "[", "\\[", "]", "\\]").Replace(spelling)
 				target := strings.NewReplacer("(", "%28", ")", "%29", "<", "%3C", ">", "%3E", "\\", "%5C", " ", "%20", "\n", "%0A", "\r", "%0D").Replace(MygoIN6OptionM6Unwrap[RichMention](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matched, 0)).ActorURI)
@@ -43,24 +43,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 				position = candidate.End
 				return
 			} else {
- /*line post.mygo:43:7*/				return
+				return
  /*line zz_post.gen.go:47:1*/			}
 		})
- /*line post.mygo:30:6*/		output.WriteString(string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), position, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source))), []byte{})))
+ /*line post.mygo:30:3*/		output.WriteString(string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), position, MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source))), []byte{})))
 		expanded = output.String()
 	} else {
  /*line zz_post.gen.go:52:1*/	}
- /*line post.mygo:71:10*/	__mygo_expr_0 := RenderRich(expanded, format)
+ /*line post.mygo:71:3*/	__mygo_expr_0 := RenderRich(expanded, format)
 	var __mygo_expr_1 Result[string, string]
 	if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
 		__mygo_expr_1 = Err[string, string](__mygo_match___mygo_expr_3.F0)
  /*line zz_post.gen.go:57:1*/	} else {
- /*line post.mygo:71:10*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
+ /*line post.mygo:71:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
 			__mygo_expr_1 = RewritePostMedia(__mygo_match___mygo_expr_2.F0, origin, media, strict)
 		} else {
  /*line zz_post.gen.go:61:1*/		}
 	}
- /*line post.mygo:71:10*/	return __mygo_expr_1
+ /*line post.mygo:71:3*/	return __mygo_expr_1
  /*line zz_post.gen.go:64:1*/}
  /*line post.mygo:79:1*/func RewritePostMedia(rendered string, origin string, media []RichMedia, strict bool) Result[string, string] {
 	tokenizer := html.NewTokenizer(strings.NewReader(rendered))
@@ -73,11 +73,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 			done = true
 		} else {
 			token := tokenizer.Token()
- /*line post.mygo:95:10*/			if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
+ /*line post.mygo:95:7*/			if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
 				token.Attr = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(token.Attr, func(attr html.Attribute) html.Attribute {
- /*line post.mygo:97:14*/					if attr.Key != "href" && attr.Key != "src" {
+ /*line post.mygo:97:11*/					if attr.Key != "href" && attr.Key != "src" {
  /*line post.mygo:98:20*/						return attr
- /*line post.mygo:97:14*/					} else {
+ /*line post.mygo:97:11*/					} else {
  /*line zz_post.gen.go:81:1*/					}
  /*line post.mygo:100:24*/					var __mygo_expr_1 Result[*url.URL, error]
 					__mygo_expr_2, __mygo_expr_0 := url.Parse(attr.Val)
@@ -87,12 +87,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 						__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_post.gen.go:88:1*/					}
  /*line post.mygo:96:37*/					parsed := __mygo_expr_1
- /*line post.mygo:101:14*/					if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
+ /*line post.mygo:101:11*/					if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
  /*line post.mygo:102:20*/						return attr
- /*line post.mygo:101:14*/					} else {
+ /*line post.mygo:101:11*/					} else {
  /*line zz_post.gen.go:93:1*/					}
  /*line post.mygo:96:37*/					value := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
- /*line post.mygo:105:14*/					if value.Host != "" {
+ /*line post.mygo:105:11*/					if value.Host != "" {
  /*line post.mygo:106:24*/						var __mygo_expr_4 Result[*url.URL, error]
 						__mygo_expr_5, __mygo_expr_3 := url.Parse(origin)
 						if __mygo_expr_3 != nil {
@@ -100,51 +100,51 @@ import . "github.com/mygo-lang/mygo/prelude"
 						} else {
 							__mygo_expr_4 = Ok[*url.URL, error](__mygo_expr_5)
  /*line zz_post.gen.go:102:1*/						}
- /*line post.mygo:105:14*/						base := __mygo_expr_4
+ /*line post.mygo:105:11*/						base := __mygo_expr_4
 						if MygoIN6ResultM5IsErr[*url.URL, error](base) || !strings.EqualFold(value.Host, MygoIN6ResultM6Unwrap[*url.URL, error](base).Host) {
  /*line post.mygo:108:22*/							return attr
- /*line post.mygo:105:14*/						} else {
+ /*line post.mygo:105:11*/						} else {
  /*line zz_post.gen.go:107:1*/						}
- /*line post.mygo:105:14*/					} else {
+ /*line post.mygo:105:11*/					} else {
  /*line zz_post.gen.go:109:1*/					}
  /*line post.mygo:96:37*/					mediaPath := path.Clean("/" + strings.TrimPrefix(value.Path, "/"))
- /*line post.mygo:112:14*/					if !strings.HasPrefix(mediaPath, "/api/v1/media/") {
+ /*line post.mygo:112:11*/					if !strings.HasPrefix(mediaPath, "/api/v1/media/") {
  /*line post.mygo:113:20*/						return attr
- /*line post.mygo:112:14*/					} else {
+ /*line post.mygo:112:11*/					} else {
  /*line zz_post.gen.go:114:1*/					}
  /*line post.mygo:96:37*/					parts := strings.Split(strings.TrimPrefix(mediaPath, "/api/v1/media/"), "/")
 					id := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0), "")
 					matched := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(media, func(item RichMedia) bool {
  /*line post.mygo:118:13*/						return item.UploadID == id || item.BindingID == id
  /*line zz_post.gen.go:119:1*/					})
- /*line post.mygo:120:14*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) > 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)) != "preview" {
+ /*line post.mygo:120:11*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) > 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)) != "preview" {
 						invalid = true
- /*line post.mygo:124:20*/						return html.Attribute{Key: attr.Key, Val: ""}
- /*line post.mygo:120:14*/					} else {
+ /*line post.mygo:124:20*/						return html.Attribute{Namespace: "", Key: attr.Key, Val: ""}
+ /*line post.mygo:120:11*/					} else {
  /*line zz_post.gen.go:124:1*/					}
  /*line post.mygo:96:37*/					item_1 := MygoIN6OptionM6Unwrap[RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matched, 0))
 					raster := item_1.MediaType == "image/png" || item_1.MediaType == "image/jpeg" || item_1.MediaType == "image/gif" || item_1.MediaType == "image/webp"
- /*line post.mygo:131:14*/					if token.Data == "img" && !raster {
+ /*line post.mygo:131:11*/					if token.Data == "img" && !raster {
 						invalid = true
- /*line post.mygo:133:20*/						return html.Attribute{Key: attr.Key, Val: ""}
- /*line post.mygo:131:14*/					} else {
+ /*line post.mygo:133:20*/						return html.Attribute{Namespace: "", Key: attr.Key, Val: ""}
+ /*line post.mygo:131:11*/					} else {
  /*line zz_post.gen.go:131:1*/					}
- /*line post.mygo:139:18*/					var __mygo_expr_6 string
+ /*line post.mygo:140:15*/					var __mygo_expr_6 string
 					if token.Data == "img" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 {
 						__mygo_expr_6 = "/preview"
 					} else {
 						__mygo_expr_6 = ""
  /*line zz_post.gen.go:137:1*/					}
- /*line post.mygo:135:11*/					return html.Attribute{Key: attr.Key, Val: "/api/v1/media/" + item_1.BindingID + __mygo_expr_6}
+ /*line post.mygo:135:11*/					return html.Attribute{Namespace: "", Key: attr.Key, Val: "/api/v1/media/" + item_1.BindingID + __mygo_expr_6}
  /*line zz_post.gen.go:139:1*/				})
- /*line post.mygo:95:10*/			} else {
+ /*line post.mygo:95:7*/			} else {
  /*line zz_post.gen.go:141:1*/			}
  /*line post.mygo:79:1*/			output.WriteString(token.String())
  /*line zz_post.gen.go:143:1*/		}
 	}
- /*line post.mygo:150:6*/	if strict && invalid {
- /*line post.mygo:151:12*/		return Err[string, string]("invalid media reference")
- /*line post.mygo:150:6*/	} else {
+ /*line post.mygo:151:3*/	if strict && invalid {
+ /*line post.mygo:152:12*/		return Err[string, string]("invalid media reference")
+ /*line post.mygo:151:3*/	} else {
  /*line zz_post.gen.go:148:1*/	}
- /*line post.mygo:153:3*/	return Ok[string, string](SanitizeRichHTML(output.String()))
+ /*line post.mygo:154:3*/	return Ok[string, string](SanitizeRichHTML(output.String()))
  /*line zz_post.gen.go:150:1*/}

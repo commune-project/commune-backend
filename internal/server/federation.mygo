@@ -74,7 +74,7 @@ func FederationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Sit
     return
   end
   if parts.Len() == 2 && parts.Get(0).Unwrap() == "activities" then
-    let community = storage.CommunityRecord{}
+    let community = Zero[storage.CommunityRecord]()
     let scoped = db.WithContext(request.Context()).Raw("SELECT c.* FROM communities c JOIN activities a ON a.community_id=c.id WHERE a.uri=?", site.Origin + request.URL.Path).Scan(Ref.new(community))
     if storage.QueryFailed(scoped) then
       http.NotFound(w, request)

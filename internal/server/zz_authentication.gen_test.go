@@ -35,9 +35,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	accounts := storage.AccountRepository{DB: db}
 	first := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "alice@example.org", "first-site-password"))
 	second := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "alice", "alice@example.org", "other-site-password"))
- /*line authentication_test.mygo:27:6*/	if first.SiteID == second.SiteID {
+ /*line authentication_test.mygo:27:3*/	if first.SiteID == second.SiteID {
  /*line authentication_test.mygo:28:5*/		t.Fatal("account creation did not preserve site identity")
- /*line authentication_test.mygo:27:6*/	} else {
+ /*line authentication_test.mygo:27:3*/	} else {
  /*line zz_authentication.gen_test.go:41:1*/	}
  /*line authentication_test.mygo:15:1*/	handler := Handler(settings, db)
 	loginBody := "{\"login\":\"alice@example.org\",\"password\":\"first-site-password\"}"
@@ -54,64 +54,64 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication_test.mygo:41:5*/		handler.ServeHTTP(http.ResponseWriter(recorder), req)
  /*line authentication_test.mygo:42:5*/		return recorder
  /*line zz_authentication.gen_test.go:56:1*/	}
- /*line authentication_test.mygo:44:6*/	if request("POST", a.Origin, "/api/v1/auth/login", loginBody, []*http.Cookie{}, "", b.Origin).Code != 403 {
+ /*line authentication_test.mygo:44:3*/	if request("POST", a.Origin, "/api/v1/auth/login", loginBody, []*http.Cookie{}, "", b.Origin).Code != 403 {
  /*line authentication_test.mygo:45:5*/		t.Fatal("cross-origin login accepted")
- /*line authentication_test.mygo:44:6*/	} else {
+ /*line authentication_test.mygo:44:3*/	} else {
  /*line zz_authentication.gen_test.go:60:1*/	}
  /*line authentication_test.mygo:15:1*/	login := request("POST", a.Origin, "/api/v1/auth/login", loginBody, []*http.Cookie{}, "", a.Origin)
- /*line authentication_test.mygo:48:6*/	if login.Code != 200 || strings.Contains(login.Body.String(), "password") || strings.Contains(login.Body.String(), "$2") {
+ /*line authentication_test.mygo:48:3*/	if login.Code != 200 || strings.Contains(login.Body.String(), "password") || strings.Contains(login.Body.String(), "$2") {
  /*line authentication_test.mygo:49:5*/		t.Fatal("login response failed or exposed credentials")
- /*line authentication_test.mygo:48:6*/	} else {
+ /*line authentication_test.mygo:48:3*/	} else {
  /*line zz_authentication.gen_test.go:65:1*/	}
  /*line authentication_test.mygo:15:1*/	cookies_1 := login.Result().Cookies()
 	csrf_1 := MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cookies_1, func(cookie_1 *http.Cookie) bool {
  /*line authentication_test.mygo:53:5*/		return cookie_1.Name == "__Host-commune_csrf"
  /*line authentication_test.mygo:54:12*/	}), 0)).Value
- /*line authentication_test.mygo:55:6*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 200 {
+ /*line authentication_test.mygo:55:3*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 200 {
  /*line authentication_test.mygo:56:5*/		t.Fatal("issued browser session failed")
- /*line authentication_test.mygo:55:6*/	} else {
+ /*line authentication_test.mygo:55:3*/	} else {
  /*line zz_authentication.gen_test.go:73:1*/	}
- /*line authentication_test.mygo:58:6*/	if request("GET", b.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 401 {
+ /*line authentication_test.mygo:58:3*/	if request("GET", b.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 401 {
  /*line authentication_test.mygo:59:5*/		t.Fatal("browser session replayed across sites")
- /*line authentication_test.mygo:58:6*/	} else {
+ /*line authentication_test.mygo:58:3*/	} else {
  /*line zz_authentication.gen_test.go:77:1*/	}
- /*line authentication_test.mygo:61:6*/	if request("POST", a.Origin, "/api/v1/auth/logout", "", cookies_1, "", a.Origin).Code != 403 || request("POST", a.Origin, "/api/v1/auth/logout", "", cookies_1, csrf_1, b.Origin).Code != 403 {
+ /*line authentication_test.mygo:61:3*/	if request("POST", a.Origin, "/api/v1/auth/logout", "", cookies_1, "", a.Origin).Code != 403 || request("POST", a.Origin, "/api/v1/auth/logout", "", cookies_1, csrf_1, b.Origin).Code != 403 {
  /*line authentication_test.mygo:62:5*/		t.Fatal("missing CSRF or cross-origin logout accepted")
- /*line authentication_test.mygo:61:6*/	} else {
+ /*line authentication_test.mygo:61:3*/	} else {
  /*line zz_authentication.gen_test.go:81:1*/	}
- /*line authentication_test.mygo:64:6*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 200 {
+ /*line authentication_test.mygo:64:3*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 200 {
  /*line authentication_test.mygo:65:5*/		t.Fatal("rejected logout mutated session")
- /*line authentication_test.mygo:64:6*/	} else {
+ /*line authentication_test.mygo:64:3*/	} else {
  /*line zz_authentication.gen_test.go:85:1*/	}
  /*line authentication_test.mygo:15:1*/	logout := request("POST", a.Origin, "/api/v1/auth/logout", "", cookies_1, csrf_1, a.Origin)
- /*line authentication_test.mygo:68:6*/	if logout.Code != 204 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(logout.Result().Cookies()) != 2 {
+ /*line authentication_test.mygo:68:3*/	if logout.Code != 204 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(logout.Result().Cookies()) != 2 {
  /*line authentication_test.mygo:69:5*/		t.Fatal("authorized logout failed")
- /*line authentication_test.mygo:68:6*/	} else {
+ /*line authentication_test.mygo:68:3*/	} else {
  /*line zz_authentication.gen_test.go:90:1*/	}
- /*line authentication_test.mygo:71:6*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 401 {
+ /*line authentication_test.mygo:71:3*/	if request("GET", a.Origin, "/api/v1/auth/session", "", cookies_1, "", "").Code != 401 {
  /*line authentication_test.mygo:72:5*/		t.Fatal("logged out cookie remained valid")
- /*line authentication_test.mygo:71:6*/	} else {
+ /*line authentication_test.mygo:71:3*/	} else {
  /*line zz_authentication.gen_test.go:94:1*/	}
- /*line authentication_test.mygo:74:6*/	if request("POST", a.Origin, "/api/v1/auth/login", loginBody+" {}", []*http.Cookie{}, "", a.Origin).Code != 400 {
+ /*line authentication_test.mygo:74:3*/	if request("POST", a.Origin, "/api/v1/auth/login", loginBody+" {}", []*http.Cookie{}, "", a.Origin).Code != 400 {
  /*line authentication_test.mygo:75:5*/		t.Fatal("trailing login JSON accepted")
- /*line authentication_test.mygo:74:6*/	} else {
+ /*line authentication_test.mygo:74:3*/	} else {
  /*line zz_authentication.gen_test.go:98:1*/	}
- /*line authentication_test.mygo:77:6*/	if request("POST", a.Origin, "/api/v1/auth/login", "{\"login\":\"alice\",\"unknown\":true}", []*http.Cookie{}, "", a.Origin).Code != 400 {
+ /*line authentication_test.mygo:77:3*/	if request("POST", a.Origin, "/api/v1/auth/login", "{\"login\":\"alice\",\"unknown\":true}", []*http.Cookie{}, "", a.Origin).Code != 400 {
  /*line authentication_test.mygo:78:5*/		t.Fatal("unknown login fields accepted")
- /*line authentication_test.mygo:77:6*/	} else {
+ /*line authentication_test.mygo:77:3*/	} else {
  /*line zz_authentication.gen_test.go:102:1*/	}
- /*line authentication_test.mygo:80:6*/	if request("POST", a.Origin, "/api/v1/auth/login", strings.Repeat(" ", settings.Runtime.MaxBodyBytes+1), []*http.Cookie{}, "", a.Origin).Code != 400 {
+ /*line authentication_test.mygo:80:3*/	if request("POST", a.Origin, "/api/v1/auth/login", strings.Repeat(" ", settings.Runtime.MaxBodyBytes+1), []*http.Cookie{}, "", a.Origin).Code != 400 {
  /*line authentication_test.mygo:81:5*/		t.Fatal("oversized login body accepted")
- /*line authentication_test.mygo:80:6*/	} else {
+ /*line authentication_test.mygo:80:3*/	} else {
  /*line zz_authentication.gen_test.go:106:1*/	}
- /*line authentication_test.mygo:83:6*/	if request("GET", a.Origin, "/api/v1/auth/login", "", []*http.Cookie{}, "", a.Origin).Code != 405 {
+ /*line authentication_test.mygo:83:3*/	if request("GET", a.Origin, "/api/v1/auth/login", "", []*http.Cookie{}, "", a.Origin).Code != 405 {
  /*line authentication_test.mygo:84:5*/		t.Fatal("login accepted an unsupported method")
- /*line authentication_test.mygo:83:6*/	} else {
+ /*line authentication_test.mygo:83:3*/	} else {
  /*line zz_authentication.gen_test.go:110:1*/	}
- /*line authentication_test.mygo:86:6*/	if request("GET", a.Origin, "/api/v1/auth/session", "", MygoIN5SliceM6Append(cookies_1, MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(cookies_1, 0))), "", "").Code != 401 {
+ /*line authentication_test.mygo:86:3*/	if request("GET", a.Origin, "/api/v1/auth/session", "", MygoIN5SliceM6Append(cookies_1, MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(cookies_1, 0))), "", "").Code != 401 {
  /*line authentication_test.mygo:87:5*/		t.Fatal("ambiguous session cookies accepted")
 		return
- /*line authentication_test.mygo:86:6*/	} else {
- /*line authentication_test.mygo:86:3*/		return
+ /*line authentication_test.mygo:86:3*/	} else {
+		return
  /*line zz_authentication.gen_test.go:116:1*/	}
 }

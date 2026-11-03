@@ -1,7 +1,7 @@
 # BuildKit is required for named build contexts and cache mounts.
 # The MyGO checkout is supplied as the named context "mygo" by compose.yaml.
 
-ARG GO_VERSION=1.27.1
+ARG GO_VERSION=1.27.3
 
 FROM golang:${GO_VERSION}-bookworm AS build
 

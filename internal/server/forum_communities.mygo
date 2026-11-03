@@ -91,7 +91,7 @@ func CommunityRoute(
       if actor.IsErr() then
         Fail(w, actor.UnwrapErr())
       else
-        let input = CreateCommunityInput {}
+        let input = Zero[CreateCommunityInput]()
         let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
         if decoded.IsErr() then
           WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -187,7 +187,7 @@ func CommunityMemberRoute(
     return
   end
   if section == "follow-requests" && request.Method == "POST" && parts.Len() == 6 then
-    let input = FollowDecisionInput{}
+    let input = Zero[FollowDecisionInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -206,7 +206,7 @@ func CommunityMemberRoute(
       MethodNotAllowed(w, "PUT")
       return
     end
-    let input = PolicyInput {}
+    let input = Zero[PolicyInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -225,7 +225,7 @@ func CommunityMemberRoute(
     return
   end
   if section == "bans" && (request.Method == "POST" || request.Method == "DELETE") then
-    let input = BanInput{}
+    let input = Zero[BanInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, "invalid ban")
@@ -245,7 +245,7 @@ func CommunityMemberRoute(
     return
   end
   if section == "removals" && (request.Method == "POST" || request.Method == "DELETE") then
-    let post = PostRefInput {}
+    let post = Zero[PostRefInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(post))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -265,7 +265,7 @@ func CommunityMemberRoute(
     return
   end
   if section == "submissions" && request.Method == "POST" then
-    let submission = SubmissionInput{}
+    let submission = Zero[SubmissionInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(submission))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -286,7 +286,7 @@ func CommunityMemberRoute(
   end
   if (section == "members" || section == "managers") &&
     (request.Method == "POST" || request.Method == "DELETE") then
-    let input = ActorInput{}
+    let input = Zero[ActorInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
       WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -340,7 +340,7 @@ func CommunityTopicRoute(
         return
       end
       let identity = actor.Unwrap()
-      let input = CreateTopicInput{}
+      let input = Zero[CreateTopicInput]()
       let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
       if decoded.IsErr() then
         WriteErrorJSON(w, 400, decoded.UnwrapErr())
@@ -360,6 +360,7 @@ func CommunityTopicRoute(
             Title: input.Title,
             Body: input.Body,
             ParentID: "",
+            ContextURI: "",
             ContentFormat: input.ContentFormat,
             AttachmentIDs: input.AttachmentIDs,
             Mentions: mentions.Unwrap(),

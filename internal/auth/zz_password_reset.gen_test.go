@@ -9,20 +9,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 	key := []byte("0123456789abcdef0123456789abcdef")
 	message := "https://forum.example/reset-password#token=sensitive"
 	sealed := MygoIN6ResultM6Unwrap[[]byte, string](SealPasswordReset(key, message))
- /*line password_reset_test.mygo:9:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(sealed) <= 12 || MygoIN6ResultM6Unwrap[string, string](OpenPasswordReset(key, sealed)) != message {
+ /*line password_reset_test.mygo:9:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(sealed) <= 12 || MygoIN6ResultM6Unwrap[string, string](OpenPasswordReset(key, sealed)) != message {
  /*line password_reset_test.mygo:10:5*/		t.Fatal("reset payload did not round trip")
- /*line password_reset_test.mygo:9:6*/	} else {
+ /*line password_reset_test.mygo:9:3*/	} else {
  /*line zz_password_reset.gen_test.go:15:1*/	}
  /*line password_reset_test.mygo:5:1*/	tampered := MygoIN5SliceM6Append(sealed, byte(0))
- /*line password_reset_test.mygo:13:6*/	if MygoIN6ResultM4IsOk[string, string](OpenPasswordReset(key, tampered)) {
+ /*line password_reset_test.mygo:13:3*/	if MygoIN6ResultM4IsOk[string, string](OpenPasswordReset(key, tampered)) {
  /*line password_reset_test.mygo:14:5*/		t.Fatal("tampered reset payload was accepted")
- /*line password_reset_test.mygo:13:6*/	} else {
+ /*line password_reset_test.mygo:13:3*/	} else {
  /*line zz_password_reset.gen_test.go:20:1*/	}
  /*line password_reset_test.mygo:5:1*/	other := []byte("fedcba9876543210fedcba9876543210")
- /*line password_reset_test.mygo:17:6*/	if MygoIN6ResultM4IsOk[string, string](OpenPasswordReset(other, sealed)) {
+ /*line password_reset_test.mygo:17:3*/	if MygoIN6ResultM4IsOk[string, string](OpenPasswordReset(other, sealed)) {
  /*line password_reset_test.mygo:18:5*/		t.Fatal("reset payload opened with the wrong key")
 		return
- /*line password_reset_test.mygo:17:6*/	} else {
- /*line password_reset_test.mygo:17:3*/		return
+ /*line password_reset_test.mygo:17:3*/	} else {
+		return
  /*line zz_password_reset.gen_test.go:27:1*/	}
 }

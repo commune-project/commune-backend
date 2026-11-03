@@ -14,7 +14,7 @@ impl MediaRepository
       return Err("not found")
     end
     RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let binding = MediaBinding{}
+      let binding = Zero[MediaBinding]()
       let loaded = tx.Raw("SELECT * FROM media_bindings WHERE id=? AND site_id=? AND purpose='post' AND active FOR SHARE", bindingID, self.SiteID).Scan(Ref.new(binding))
       if QueryFailed(loaded) then
         return Err("media unavailable")
@@ -22,7 +22,7 @@ impl MediaRepository
       if loaded.RowsAffected != 1i64 then
         return Err("not found")
       end
-      let post = PostRecord{}
+      let post = Zero[PostRecord]()
       let found = tx.Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND p.federation_mode='federated' AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", binding.PostID).Find(Ref.new(post))
       if QueryFailed(found) then
         return Err("media unavailable")
@@ -39,7 +39,7 @@ impl MediaRepository
       if access.Community.FederationMode != "federated" || !access.Subject.Verified || !access.CanRead() then
         return Err("not found")
       end
-      let upload = MediaUpload{}
+      let upload = Zero[MediaUpload]()
       let original = tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", binding.UploadID).Scan(Ref.new(upload))
       if QueryFailed(original) then
         return Err("media unavailable")

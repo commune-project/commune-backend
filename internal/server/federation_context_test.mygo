@@ -25,15 +25,15 @@ func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
   let open = communities.Create(ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let restricted = communities.Create(ctx, a, alice, "restricted", "Restricted", "federated", "members", "members").Unwrap()
   let local = communities.Create(ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users").Unwrap()
-  let topic = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: ""}).Unwrap()
-  let reply = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Body: "Reply", ParentID: topic.ID}).Unwrap()
+  let topic = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let reply = posts.Publish(ctx, a, open.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let contextRow = storage.CreateDiscussionContext(ctx, db, open, topic.ID, a.Origin).Unwrap()
   let _ = storage.AttachPostToContext(ctx, db, topic.ID, contextRow.ID).Unwrap()
   let _ = storage.AttachPostToContext(ctx, db, reply.ID, contextRow.ID).Unwrap()
-  let restrictedTopic = posts.Publish(ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "Body", ParentID: ""}).Unwrap()
+  let restrictedTopic = posts.Publish(ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let restrictedContext = storage.CreateDiscussionContext(ctx, db, restricted, restrictedTopic.ID, a.Origin).Unwrap()
   let _ = storage.AttachPostToContext(ctx, db, restrictedTopic.ID, restrictedContext.ID).Unwrap()
-  let localTopic = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: ""}).Unwrap()
+  let localTopic = posts.Publish(ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let localContext = storage.CreateDiscussionContext(ctx, db, local, localTopic.ID, a.Origin).Unwrap()
   let _ = storage.AttachPostToContext(ctx, db, localTopic.ID, localContext.ID).Unwrap()
   let handler = Handler(settings, db)
@@ -98,12 +98,12 @@ func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
     let body = "{\"id\":\"" + restrictedContext.ContextURI.String + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + restricted.ActorURI.String + "\"}"
     Ok(body as Slice[Byte])
   end
-  let deniedBackfill = BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{ActorURI: outsider}, true, fetcher)
+  let deniedBackfill = BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: outsider, Username: ""}, true, fetcher)
   if deniedBackfill.IsOk() || fetchCount != 0 then
     t.Fatal("a non-member caused protected context backfill or remote fetch")
   end
   let _ = storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id=? AND actor_uri=?", restricted.ID, member)).Unwrap()
-  let memberBackfill = BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{ActorURI: member}, true, fetcher)
+  let memberBackfill = BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: member, Username: ""}, true, fetcher)
   if memberBackfill.IsErr() then
     t.Fatalf("a current member could not authorize protected context traversal: %s", memberBackfill.UnwrapErr())
   end
@@ -111,7 +111,7 @@ func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
     t.Fatalf("a current member caused %d protected context fetches", fetchCount)
   end
   let fetchBeforeLocal = fetchCount
-  if BackfillDiscussion(ctx, settings, db, a, localContext.ID, auth.Identity{ActorURI: member}, true, fetcher).IsOk() || fetchCount != fetchBeforeLocal then
+  if BackfillDiscussion(ctx, settings, db, a, localContext.ID, auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: member, Username: ""}, true, fetcher).IsOk() || fetchCount != fetchBeforeLocal then
     t.Fatal("a local-only context initiated remote synchronization")
   end
 end
