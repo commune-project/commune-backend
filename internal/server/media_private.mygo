@@ -133,7 +133,9 @@ func ReconcileRemoteMedia(
     Files: Zero[storage.MediaFiles](),
     Settings: Zero[config.Media](),
   }
-  let origins = attachments.Map(func(item: federation.RichAttachment) -> String item.URL end)
+  let origins = attachments.Map(func(item: federation.RichAttachment) -> String
+    item.URL
+  end)
   let invalidated = if current.ReadPolicy != "members" || origins.Len() == 0 then
     repository.InvalidatePrivateCache(ctx, tx, post.ID, "")
   else
