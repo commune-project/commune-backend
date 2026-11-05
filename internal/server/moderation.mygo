@@ -36,7 +36,14 @@ struct ModlogPage
   Offset: Int `json:"offset"`
 end
 
-func ModerationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], parts: Slice[String]) -> Bool
+func ModerationRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  parts: Slice[String]
+) -> Bool
   let resource = parts.Get(2).UnwrapOr("")
   if resource == "modlog" && parts.Len() == 3 then
     return ModlogRoute(settings, db, site, w, request)
@@ -56,110 +63,173 @@ func ModerationRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Sit
   false
 end
 
-func ModlogRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> Bool
+func ModlogRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request]
+) -> Bool
   if request.Method != "GET" then
     MethodNotAllowed(w, "GET")
     return true
   end
-  WithSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
-    let page = PageFromQuery(settings, request)
-    if page.IsErr() then
-      return Err(page.UnwrapErr())
+  WithSession(
+    db,
+    site,
+    w,
+    request,
+    func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+      let page = PageFromQuery(settings, request)
+      if page.IsErr() then
+        return Err(page.UnwrapErr())
+      end
+      let rows = storage.ModerationLog(
+        request.Context(),
+        db,
+        site.ID,
+        session.Identity,
+        request.URL.Query().Get("community_id"),
+        page.Unwrap().Limit,
+        page.Unwrap().Offset
+      )
+      if rows.IsErr() then
+        return Err(rows.UnwrapErr())
+      end
+      WriteJSON(
+        w,
+        200,
+        ModlogPage {
+          Items: rows.Unwrap(),
+          Limit: page.Unwrap().Limit,
+          Offset: page.Unwrap().Offset,
+        }
+      )
+      Ok(())
     end
-    let rows = storage.ModerationLog(request.Context(), db, site.ID, session.Identity, request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
-    if rows.IsErr() then
-      return Err(rows.UnwrapErr())
-    end
-    WriteJSON(w, 200, ModlogPage { Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset })
-    Ok(())
-  end)
+  )
   true
 end
 
-func ReportsRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> Bool
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    FailFailure(w, session.UnwrapErr())
-    return true
-  end
-  if request.Method == "GET" then
-    let page = PageFromQuery(settings, request)
-    if page.IsErr() then
-      FailFailure(w, page.UnwrapErr())
-      return true
+func ReportsRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request]
+) -> Bool
+  WithSession(
+    db,
+    site,
+    w,
+    request,
+    func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+      if request.Method == "GET" then
+        let page = PageFromQuery(settings, request)
+        if page.IsErr() then
+          return Err(page.UnwrapErr())
+        end
+        let state = ParseReportState(request.URL.Query().Get("state"), true)
+        if state.IsErr() then
+          return Err(state.UnwrapErr())
+        end
+        let rows = storage.ListReports(
+          request.Context(),
+          db,
+          site.ID,
+          session.Identity,
+          state.Unwrap(),
+          request.URL.Query().Get("community_id"),
+          page.Unwrap().Limit,
+          page.Unwrap().Offset
+        )
+        if rows.IsErr() then
+          return Err(rows.UnwrapErr())
+        end
+        WriteJSON(
+          w,
+          200,
+          ReportPage {
+            Items: rows.Unwrap(),
+            Limit: page.Unwrap().Limit,
+            Offset: page.Unwrap().Offset,
+          }
+        )
+        return Ok(())
+      end
+      if request.Method != "POST" then
+        MethodNotAllowed(w, "GET, POST")
+        return Ok(())
+      end
+      if !AuthorizeMutation(settings, session, request) then
+        WriteErrorJSON(w, 403, "CSRF denied")
+        return Ok(())
+      end
+      var input = Zero[ReportInput]()
+      if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+        WriteErrorJSON(w, 400, "invalid report")
+        return Ok(())
+      end
+      var communityID = input.CommunityID
+      if input.TargetKind == "post" then
+        let post = storage.FeedRepository { DB: db, SiteID: site.ID }.ReadObject(request.Context(), input.TargetID, session.Identity, false)
+        if post.IsErr() then
+          return Err(Of("not found"))
+        end
+        if post.Unwrap().AuthorActorURI == session.Identity.ActorURI then
+          WriteErrorJSON(w, 400, "invalid report")
+          return Ok(())
+        end
+        communityID = post.Unwrap().CommunityID
+      end
+      if input.TargetKind == "community" then
+        let community = storage.CommunityRepository { DB: db, SiteID: site.ID }.Check(request.Context(), input.TargetID, session.Identity, false)
+        if community.IsErr() || !community.Unwrap().CanRead() then
+          return Err(Of("not found"))
+        end
+        communityID = input.TargetID
+      end
+      if input.TargetKind == "person" then
+        if input.TargetID == session.Identity.ActorURI then
+          WriteErrorJSON(w, 400, "invalid report")
+          return Ok(())
+        end
+        let known = storage.QueryExists(db.WithContext(request.Context()).Table("actors").Where("uri=? AND kind='Person'", input.TargetID))
+        if known.IsErr() || !known.Unwrap() then
+          return Err(Of("not found"))
+        end
+      end
+      if input.TargetKind != "post" && input.TargetKind != "community" && input.TargetKind != "person" then
+        return Err(Of("invalid report"))
+      end
+      let created = storage.CreateReport(
+        request.Context(),
+        db,
+        site.ID,
+        session.Identity,
+        input.TargetKind,
+        input.TargetID,
+        communityID,
+        input.Reason
+      )
+      if created.IsErr() then
+        return Err(created.UnwrapErr())
+      end
+      w.WriteHeader(if created.Unwrap() => 201 else 200)
+      Ok(())
     end
-    let state = ParseReportState(request.URL.Query().Get("state"), true)
-    if state.IsErr() then
-      FailFailure(w, state.UnwrapErr())
-      return true
-    end
-    let rows = storage.ListReports(request.Context(), db, site.ID, session.Unwrap().Identity, state.Unwrap(), request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
-    if rows.IsErr() then
-      FailFailure(w, rows.UnwrapErr())
-    else
-      WriteJSON(w, 200, ReportPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
-    end
-    return true
-  end
-  if request.Method != "POST" then
-    MethodNotAllowed(w, "GET, POST")
-    return true
-  end
-  if !AuthorizeMutation(settings, session.Unwrap(), request) then
-    WriteErrorJSON(w, 403, "CSRF denied")
-    return true
-  end
-  var input = Zero[ReportInput]()
-  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid report")
-    return true
-  end
-  var communityID = input.CommunityID
-  if input.TargetKind == "post" then
-    let post = storage.FeedRepository{DB: db, SiteID: site.ID}.ReadObject(request.Context(), input.TargetID, session.Unwrap().Identity, false)
-    if post.IsErr() then
-      Fail(w, "not found")
-      return true
-    end
-    if post.Unwrap().AuthorActorURI == session.Unwrap().Identity.ActorURI then
-      WriteErrorJSON(w, 400, "invalid report")
-      return true
-    end
-    communityID = post.Unwrap().CommunityID
-  end
-  if input.TargetKind == "community" then
-    let community = storage.CommunityRepository{DB: db, SiteID: site.ID}.Check(request.Context(), input.TargetID, session.Unwrap().Identity, false)
-    if community.IsErr() || !community.Unwrap().CanRead() then
-      Fail(w, "not found")
-      return true
-    end
-    communityID = input.TargetID
-  end
-  if input.TargetKind == "person" then
-    if input.TargetID == session.Unwrap().Identity.ActorURI then
-      WriteErrorJSON(w, 400, "invalid report")
-      return true
-    end
-    let known = storage.QueryExists(db.WithContext(request.Context()).Table("actors").Where("uri=? AND kind='Person'", input.TargetID))
-    if known.IsErr() || !known.Unwrap() then
-      Fail(w, "not found")
-      return true
-    end
-  end
-  if input.TargetKind != "post" && input.TargetKind != "community" && input.TargetKind != "person" then
-    WriteErrorJSON(w, 400, "invalid report")
-    return true
-  end
-  let created = storage.CreateReport(request.Context(), db, site.ID, session.Unwrap().Identity, input.TargetKind, input.TargetID, communityID, input.Reason)
-  if created.IsErr() then
-    FailFailure(w, created.UnwrapErr())
-  else
-    w.WriteHeader(if created.Unwrap() then 201 else 200 end)
-  end
+  )
   true
 end
 
-func ResolveReportRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], rawID: String) -> Bool
+func ResolveReportRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  rawID: String
+) -> Bool
   if request.Method != "POST" then
     MethodNotAllowed(w, "POST")
     return true
@@ -188,11 +258,28 @@ func ResolveReportRoute(settings: config.Config, db: Ref[gorm.DB], site: config.
     WriteErrorJSON(w, 400, "invalid report state")
     return true
   end
-  Settle(w, storage.ResolveReport(request.Context(), db, site.ID, session.Unwrap().Identity, id.Unwrap(), input.State, input.Note))
+  Settle(
+    w,
+    storage.ResolveReport(
+      request.Context(),
+      db,
+      site.ID,
+      session.Unwrap().Identity,
+      id.Unwrap(),
+      input.State,
+      input.Note
+    )
+  )
   true
 end
 
-func AdminBanRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> Bool
+func AdminBanRoute(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request]
+) -> Bool
   if request.Method != "POST" && request.Method != "DELETE" then
     MethodNotAllowed(w, "POST, DELETE")
     return true
@@ -217,7 +304,15 @@ func AdminBanRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     return true
   end
   let result = if request.Method == "POST" then
-    storage.BanSite(request.Context(), db, site.ID, session.Unwrap().Identity, input.Actor, input.Reason, expiry.Unwrap())
+    storage.BanSite(
+      request.Context(),
+      db,
+      site.ID,
+      session.Unwrap().Identity,
+      input.Actor,
+      input.Reason,
+      expiry.Unwrap()
+    )
   else
     storage.UnbanSite(request.Context(), db, site.ID, session.Unwrap().Identity, input.Actor)
   end
