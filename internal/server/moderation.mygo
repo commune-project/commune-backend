@@ -61,22 +61,18 @@ func ModlogRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
     MethodNotAllowed(w, "GET")
     return true
   end
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    FailFailure(w, session.UnwrapErr())
-    return true
-  end
-  let page = PageFromQuery(settings, request)
-  if page.IsErr() then
-    FailFailure(w, page.UnwrapErr())
-    return true
-  end
-  let rows = storage.ModerationLog(request.Context(), db, site.ID, session.Unwrap().Identity, request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
-  if rows.IsErr() then
-    FailFailure(w, rows.UnwrapErr())
-  else
-    WriteJSON(w, 200, ModlogPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
-  end
+  WithSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      return Err(page.UnwrapErr())
+    end
+    let rows = storage.ModerationLog(request.Context(), db, site.ID, session.Identity, request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
+    if rows.IsErr() then
+      return Err(rows.UnwrapErr())
+    end
+    WriteJSON(w, 200, ModlogPage { Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset })
+    Ok(())
+  end)
   true
 end
 

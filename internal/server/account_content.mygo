@@ -25,41 +25,31 @@ func AccountContentRoute(
     MethodNotAllowed(w, "GET")
     return true
   end
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    FailFailure(w, session.UnwrapErr())
-    return true
-  end
-  let page = PageFromQuery(settings, request)
-  if page.IsErr() then
-    FailFailure(w, page.UnwrapErr())
-    return true
-  end
-  let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
-  let viewer = repository.Viewer(request.Context(), session.Unwrap().Identity)
-  if viewer.IsErr() then
-    FailFailure(w, viewer.UnwrapErr())
-    return true
-  end
-  var records: Result[Slice[storage.PostRecord], failure.Failure] = Err(Of("not found"))
-  if source == "saved" then
-    records = repository.SavedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
-  else if source == "read" then
-    records = repository.ReadPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
-  else if source == "hidden" then
-    records = repository.HiddenPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
-  else
-    records = repository.LikedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
-  end end end
-  if records.IsErr() then
-    FailFailure(w, records.UnwrapErr())
-    return true
-  end
-  let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), records.Unwrap())
-  if outputs.IsErr() then
-    FailFailure(w, outputs.UnwrapErr())
-  else
-    WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
-  end
+  WithSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+    let page = PageFromQuery(settings, request)
+    if page.IsErr() then
+      return Err(page.UnwrapErr())
+    end
+    let repository = storage.BrowserRepository { DB: db, SiteID: site.ID }
+    let viewer = repository.Viewer(request.Context(), session.Identity)
+    if viewer.IsErr() then
+      return Err(viewer.UnwrapErr())
+    end
+    let records = switch source
+      case "saved" => repository.SavedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+      case "read" => repository.ReadPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+      case "hidden" => repository.HiddenPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+      case _ => repository.LikedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
+    end
+    if records.IsErr() then
+      return Err(records.UnwrapErr())
+    end
+    let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), records.Unwrap())
+    if outputs.IsErr() then
+      return Err(outputs.UnwrapErr())
+    end
+    WriteJSON(w, 200, PostPage { Items: outputs.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset })
+    Ok(())
+  end)
   true
 end

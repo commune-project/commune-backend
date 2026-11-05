@@ -24,49 +24,45 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_content.mygo:26:12*/		return true
  /*line account_content.mygo:24:3*/	} else {
  /*line zz_account_content.gen.go:26:1*/	}
- /*line account_content.mygo:9:1*/	session := Authenticated(db, site, request)
- /*line account_content.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
- /*line account_content.mygo:30:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
- /*line account_content.mygo:31:12*/		return true
- /*line account_content.mygo:29:3*/	} else {
- /*line zz_account_content.gen.go:32:1*/	}
- /*line account_content.mygo:9:1*/	page := PageFromQuery(settings, request)
- /*line account_content.mygo:34:3*/	if MygoIN6ResultM5IsErr[storage.Page, failure.Failure](page) {
- /*line account_content.mygo:35:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.Page, failure.Failure](page))
- /*line account_content.mygo:36:12*/		return true
- /*line account_content.mygo:34:3*/	} else {
- /*line zz_account_content.gen.go:38:1*/	}
- /*line account_content.mygo:9:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity)
- /*line account_content.mygo:40:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, failure.Failure](viewer) {
- /*line account_content.mygo:41:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, failure.Failure](viewer))
- /*line account_content.mygo:42:12*/		return true
- /*line account_content.mygo:40:3*/	} else {
- /*line zz_account_content.gen.go:45:1*/	}
- /*line account_content.mygo:9:1*/	var records Result[[]storage.PostRecord, failure.Failure] = Err[[]storage.PostRecord, failure.Failure](Of("not found"))
- /*line account_content.mygo:45:3*/	if source == "saved" {
-		records = storage.MygoIN17BrowserRepositoryM10SavedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
-	} else {
-		if source == "read" {
-			records = storage.MygoIN17BrowserRepositoryM9ReadPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line account_content.mygo:28:3*/	WithSession(db, site, w, request, func(session storage.AuthenticatedSession) Result[struct{}, failure.Failure] {
+ /*line account_content.mygo:28:37*/		page := PageFromQuery(settings, request)
+ /*line account_content.mygo:30:5*/		if MygoIN6ResultM5IsErr[storage.Page, failure.Failure](page) {
+ /*line account_content.mygo:31:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.Page, failure.Failure](page))
+ /*line account_content.mygo:30:5*/		} else {
+ /*line zz_account_content.gen.go:32:1*/		}
+ /*line account_content.mygo:28:37*/		repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
+		viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), session.Identity)
+ /*line account_content.mygo:35:5*/		if MygoIN6ResultM5IsErr[storage.BrowserViewer, failure.Failure](viewer) {
+ /*line account_content.mygo:36:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, failure.Failure](viewer))
+ /*line account_content.mygo:35:5*/		} else {
+ /*line zz_account_content.gen.go:38:1*/		}
+ /*line account_content.mygo:38:19*/		var __mygo_expr_0 Result[[]storage.PostRecord, failure.Failure]
+		if source == "saved" {
+			__mygo_expr_0 = storage.MygoIN17BrowserRepositoryM10SavedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 		} else {
-			if source == "hidden" {
-				records = storage.MygoIN17BrowserRepositoryM11HiddenPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+			if source == "read" {
+				__mygo_expr_0 = storage.MygoIN17BrowserRepositoryM9ReadPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 			} else {
-				records = storage.MygoIN17BrowserRepositoryM10LikedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
- /*line zz_account_content.gen.go:57:1*/			}
+				if source == "hidden" {
+					__mygo_expr_0 = storage.MygoIN17BrowserRepositoryM11HiddenPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+				} else {
+					__mygo_expr_0 = storage.MygoIN17BrowserRepositoryM10LikedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line zz_account_content.gen.go:50:1*/				}
+			}
 		}
-	}
- /*line account_content.mygo:54:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](records) {
- /*line account_content.mygo:55:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](records))
- /*line account_content.mygo:56:12*/		return true
- /*line account_content.mygo:54:3*/	} else {
- /*line zz_account_content.gen.go:64:1*/	}
- /*line account_content.mygo:9:1*/	outputs := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records))
- /*line account_content.mygo:59:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
- /*line account_content.mygo:60:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
- /*line account_content.mygo:59:3*/	} else {
- /*line account_content.mygo:62:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
- /*line zz_account_content.gen.go:70:1*/	}
- /*line account_content.mygo:64:3*/	return true
- /*line zz_account_content.gen.go:72:1*/}
+ /*line account_content.mygo:28:37*/		records := __mygo_expr_0
+ /*line account_content.mygo:44:5*/		if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](records) {
+ /*line account_content.mygo:45:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](records))
+ /*line account_content.mygo:44:5*/		} else {
+ /*line zz_account_content.gen.go:57:1*/		}
+ /*line account_content.mygo:28:37*/		outputs := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records))
+ /*line account_content.mygo:48:5*/		if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
+ /*line account_content.mygo:49:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
+ /*line account_content.mygo:48:5*/		} else {
+ /*line zz_account_content.gen.go:62:1*/		}
+ /*line account_content.mygo:51:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
+ /*line account_content.mygo:52:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_content.gen.go:65:1*/		}{})
+	})
+ /*line account_content.mygo:54:3*/	return true
+ /*line zz_account_content.gen.go:68:1*/}
