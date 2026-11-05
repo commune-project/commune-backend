@@ -8,82 +8,111 @@ import "crypto/rand"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line verification.mygo:9:1*/func SealVerification(key []byte, message string) Result[[]byte, string] {
- /*line verification.mygo:10:15*/	var __mygo_expr_1 Result[cipher.Block, error]
+ /*line verification.mygo:10:3*/	var __mygo_expr_1 Result[cipher.Block, error]
 	__mygo_expr_2, __mygo_expr_0 := aes.NewCipher(key)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[cipher.Block, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_verification.gen.go:17:1*/	}
- /*line verification.mygo:9:1*/	block := __mygo_expr_1
- /*line verification.mygo:11:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
- /*line verification.mygo:12:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:11:3*/	} else {
- /*line zz_verification.gen.go:22:1*/	}
- /*line verification.mygo:14:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
-	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[cipher.AEAD, error](__mygo_expr_3)
-	} else {
-		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
- /*line zz_verification.gen.go:29:1*/	}
- /*line verification.mygo:9:1*/	aead := __mygo_expr_4
- /*line verification.mygo:15:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
- /*line verification.mygo:16:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:15:3*/	} else {
- /*line zz_verification.gen.go:34:1*/	}
- /*line verification.mygo:9:1*/	nonce := []byte(rand.Text())
- /*line verification.mygo:19:6*/	var __mygo_expr_7 Result[int, error]
-	__mygo_expr_8, __mygo_expr_6 := rand.Read(nonce)
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[int, error](__mygo_expr_6)
-	} else {
-		__mygo_expr_7 = Ok[int, error](__mygo_expr_8)
- /*line zz_verification.gen.go:42:1*/	}
- /*line verification.mygo:19:3*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
- /*line verification.mygo:20:12*/		return Err[[]byte, string]("verification encryption unavailable")
- /*line verification.mygo:19:3*/	} else {
- /*line zz_verification.gen.go:46:1*/	}
- /*line verification.mygo:9:1*/	prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize())
- /*line verification.mygo:23:3*/	return Ok[[]byte, string](MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Seal(prefix, prefix, []byte(message), []byte("commune-verification-v1")))
- /*line zz_verification.gen.go:49:1*/}
- /*line verification.mygo:26:1*/func OpenVerification(key []byte, encrypted []byte) Result[string, string] {
- /*line verification.mygo:27:15*/	var __mygo_expr_1 Result[cipher.Block, error]
+ /*line verification.mygo:10:3*/	__mygo_expr_3 := __mygo_expr_1
+	var __mygo_expr_4 Result[[]byte, string]
+	if _, ok := __mygo_expr_3.(Result__Err[cipher.Block, error]); ok {
+		__mygo_expr_4 = Err[[]byte, string]("verification encryption unavailable")
+ /*line zz_verification.gen.go:22:1*/	} else {
+ /*line verification.mygo:10:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[cipher.Block, error]); ok {
+ /*line verification.mygo:13:7*/			var __mygo_expr_7 Result[cipher.AEAD, error]
+			__mygo_expr_8, __mygo_expr_6 := cipher.NewGCM(__mygo_match___mygo_expr_5.F0)
+			if __mygo_expr_6 != nil {
+				__mygo_expr_7 = Err[cipher.AEAD, error](__mygo_expr_6)
+			} else {
+				__mygo_expr_7 = Ok[cipher.AEAD, error](__mygo_expr_8)
+ /*line zz_verification.gen.go:30:1*/			}
+ /*line verification.mygo:13:7*/			__mygo_expr_9 := __mygo_expr_7
+			var __mygo_expr_10 Result[[]byte, string]
+			if _, ok := __mygo_expr_9.(Result__Err[cipher.AEAD, error]); ok {
+				__mygo_expr_10 = Err[[]byte, string]("verification encryption unavailable")
+ /*line zz_verification.gen.go:35:1*/			} else {
+ /*line verification.mygo:13:7*/				if __mygo_match___mygo_expr_11, ok := __mygo_expr_9.(Result__Ok[cipher.AEAD, error]); ok {
+ /*line verification.mygo:16:11*/					nonce := []byte(rand.Text())
+ /*line verification.mygo:17:14*/					var __mygo_expr_13 Result[int, error]
+					__mygo_expr_14, __mygo_expr_12 := rand.Read(nonce)
+					if __mygo_expr_12 != nil {
+						__mygo_expr_13 = Err[int, error](__mygo_expr_12)
+					} else {
+						__mygo_expr_13 = Ok[int, error](__mygo_expr_14)
+ /*line zz_verification.gen.go:44:1*/					}
+ /*line verification.mygo:17:11*/					if MygoIN6ResultM5IsErr[int, error](__mygo_expr_13) {
+ /*line verification.mygo:18:20*/						return Err[[]byte, string]("verification encryption unavailable")
+ /*line verification.mygo:17:11*/					} else {
+ /*line zz_verification.gen.go:48:1*/					}
+ /*line verification.mygo:16:11*/					prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, __mygo_match___mygo_expr_11.F0.NonceSize())
+ /*line verification.mygo:13:7*/					__mygo_expr_10 = Ok[[]byte, string](__mygo_match___mygo_expr_11.F0.Seal(prefix, prefix, []byte(message), []byte("commune-verification-v1")))
+				} else {
+ /*line zz_verification.gen.go:52:1*/				}
+			}
+ /*line verification.mygo:10:3*/			__mygo_expr_4 = __mygo_expr_10
+		} else {
+ /*line zz_verification.gen.go:56:1*/		}
+	}
+ /*line verification.mygo:10:3*/	return __mygo_expr_4
+ /*line zz_verification.gen.go:59:1*/}
+ /*line verification.mygo:28:1*/func OpenVerification(key []byte, encrypted []byte) Result[string, string] {
+ /*line verification.mygo:29:3*/	var __mygo_expr_1 Result[cipher.Block, error]
 	__mygo_expr_2, __mygo_expr_0 := aes.NewCipher(key)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[cipher.Block, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
- /*line zz_verification.gen.go:57:1*/	}
- /*line verification.mygo:26:1*/	block := __mygo_expr_1
- /*line verification.mygo:28:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
- /*line verification.mygo:29:12*/		return Err[string, string]("verification encryption unavailable")
- /*line verification.mygo:28:3*/	} else {
- /*line zz_verification.gen.go:62:1*/	}
- /*line verification.mygo:31:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
-	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[cipher.AEAD, error](__mygo_expr_3)
-	} else {
-		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
- /*line zz_verification.gen.go:69:1*/	}
- /*line verification.mygo:26:1*/	aead := __mygo_expr_4
- /*line verification.mygo:32:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
- /*line verification.mygo:33:12*/		return Err[string, string]("invalid verification payload")
- /*line verification.mygo:32:3*/	} else {
- /*line zz_verification.gen.go:74:1*/	}
- /*line verification.mygo:26:1*/	size := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize()
- /*line verification.mygo:36:16*/	var __mygo_expr_7 Result[[]byte, error]
-	__mygo_expr_8, __mygo_expr_6 := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Open([]byte{}, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(encrypted, size), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Skip(encrypted, size), []byte("commune-verification-v1"))
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
-	} else {
-		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
- /*line zz_verification.gen.go:82:1*/	}
- /*line verification.mygo:26:1*/	opened := __mygo_expr_7
- /*line verification.mygo:37:3*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
- /*line verification.mygo:38:12*/		return Err[string, string]("invalid verification payload")
- /*line verification.mygo:37:3*/	} else {
- /*line zz_verification.gen.go:87:1*/	}
- /*line verification.mygo:40:3*/	return Ok[string, string](string(MygoIN6ResultM6Unwrap[[]byte, error](opened)))
- /*line zz_verification.gen.go:89:1*/}
+ /*line zz_verification.gen.go:67:1*/	}
+ /*line verification.mygo:29:3*/	__mygo_expr_3 := __mygo_expr_1
+	var __mygo_expr_4 Result[string, string]
+	if _, ok := __mygo_expr_3.(Result__Err[cipher.Block, error]); ok {
+		__mygo_expr_4 = Err[string, string]("verification encryption unavailable")
+ /*line zz_verification.gen.go:72:1*/	} else {
+ /*line verification.mygo:29:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[cipher.Block, error]); ok {
+ /*line verification.mygo:32:7*/			var __mygo_expr_7 Result[cipher.AEAD, error]
+			__mygo_expr_8, __mygo_expr_6 := cipher.NewGCM(__mygo_match___mygo_expr_5.F0)
+			if __mygo_expr_6 != nil {
+				__mygo_expr_7 = Err[cipher.AEAD, error](__mygo_expr_6)
+			} else {
+				__mygo_expr_7 = Ok[cipher.AEAD, error](__mygo_expr_8)
+ /*line zz_verification.gen.go:80:1*/			}
+ /*line verification.mygo:32:7*/			__mygo_expr_9 := __mygo_expr_7
+			var __mygo_expr_10 Result[string, string]
+			if _, ok := __mygo_expr_9.(Result__Err[cipher.AEAD, error]); ok {
+				__mygo_expr_10 = Err[string, string]("invalid verification payload")
+ /*line zz_verification.gen.go:85:1*/			} else {
+ /*line verification.mygo:32:7*/				if __mygo_match___mygo_expr_11, ok := __mygo_expr_9.(Result__Ok[cipher.AEAD, error]); ok {
+ /*line verification.mygo:35:11*/					size := __mygo_match___mygo_expr_11.F0.NonceSize()
+ /*line verification.mygo:36:11*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < size {
+ /*line verification.mygo:37:20*/						return Err[string, string]("invalid verification payload")
+ /*line verification.mygo:36:11*/					} else {
+ /*line zz_verification.gen.go:91:1*/					}
+ /*line verification.mygo:39:11*/					var __mygo_expr_13 Result[[]byte, error]
+					__mygo_expr_14, __mygo_expr_12 := __mygo_match___mygo_expr_11.F0.Open([]byte{}, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(encrypted, size), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Skip(encrypted, size), []byte("commune-verification-v1"))
+					if __mygo_expr_12 != nil {
+						__mygo_expr_13 = Err[[]byte, error](__mygo_expr_12)
+					} else {
+						__mygo_expr_13 = Ok[[]byte, error](__mygo_expr_14)
+ /*line zz_verification.gen.go:98:1*/					}
+ /*line verification.mygo:39:11*/					__mygo_expr_15 := __mygo_expr_13
+					var __mygo_expr_16 Result[string, string]
+					if _, ok := __mygo_expr_15.(Result__Err[[]byte, error]); ok {
+						__mygo_expr_16 = Err[string, string]("invalid verification payload")
+ /*line zz_verification.gen.go:103:1*/					} else {
+ /*line verification.mygo:39:11*/						if __mygo_match___mygo_expr_17, ok := __mygo_expr_15.(Result__Ok[[]byte, error]); ok {
+							__mygo_expr_16 = Ok[string, string](string(__mygo_match___mygo_expr_17.F0))
+						} else {
+ /*line zz_verification.gen.go:107:1*/						}
+					}
+ /*line verification.mygo:32:7*/					__mygo_expr_10 = __mygo_expr_16
+				} else {
+ /*line zz_verification.gen.go:111:1*/				}
+			}
+ /*line verification.mygo:29:3*/			__mygo_expr_4 = __mygo_expr_10
+		} else {
+ /*line zz_verification.gen.go:115:1*/		}
+	}
+ /*line verification.mygo:29:3*/	return __mygo_expr_4
+ /*line zz_verification.gen.go:118:1*/}

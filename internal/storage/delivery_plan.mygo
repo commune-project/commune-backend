@@ -3,6 +3,7 @@ package storage
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
+import functional "github.com/commune-project/commune-backend/internal/functional"
 
 struct DeliveryTarget
   ActorURI: String
@@ -21,24 +22,25 @@ struct PlanResult
   Jobs: Int64
 end
 
+struct DeliveryProgress
+  Receipts: Int64
+  Jobs: Int64
+  Failed: Bool
+end
+
 func LoadDeliveryTargets(ctx: context.Context, db: Ref[gorm.DB], actorURIs: Slice[String]) -> Result[Slice[DeliveryTarget], String]
-  var targets: Slice[DeliveryTarget] = []
-  var failed = false
-  actorURIs.Each(func(uri: String) -> ()
+  let loaded = actorURIs.Map(func(uri: String) -> Result[DeliveryTarget, String]
     let record = Zero[DeliveryTargetRecord]()
     let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
     if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-      failed = true
+      Err("delivery plan failed")
     else
       let site = if record.LocalSiteID.Valid then record.LocalSiteID.String else "" end
       let inbox = if record.InboxURI.Valid && record.InboxURI.String != "" then record.InboxURI.String else uri + "/inbox" end
-      targets = targets.Append(DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
+      Ok(DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
     end
   end)
-  if failed then
-    return Err("delivery plan failed")
-  end
-  Ok(targets)
+  functional.Sequence(loaded)
 end
 
 # Colocated recipients receive a local inbox receipt rather than an outbound POST,
@@ -57,28 +59,24 @@ func PlanDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, s
   if targets.IsErr() then
     return Err(targets.UnwrapErr())
   end
-  var receipts = 0i64
-  var jobs = 0i64
-  var failed = false
-  targets.Unwrap().Each(func(target: DeliveryTarget) -> ()
+  let progress = targets.Unwrap().Fold(DeliveryProgress{Receipts: 0i64, Jobs: 0i64, Failed: false}, func(progress: DeliveryProgress, target: DeliveryTarget) -> DeliveryProgress
     if target.LocalSiteID != "" then
       let inserted = db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
       if MutationResult(inserted).IsErr() then
-        failed = true
+        DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
       else
-        receipts = receipts + inserted.RowsAffected
+        DeliveryProgress{Receipts: progress.Receipts + inserted.RowsAffected, Jobs: progress.Jobs, Failed: progress.Failed}
       end
     else
       let queued = EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
-      if queued.IsErr() then
-        failed = true
-      else
-        jobs = jobs + queued.Unwrap()
+      switch queued
+        case Err(_) => DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
+        case Ok(count) => DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs + count, Failed: progress.Failed}
       end
     end
   end)
-  if failed then
+  if progress.Failed then
     return Err("delivery plan failed")
   end
-  Ok(PlanResult{Receipts: receipts, Jobs: jobs})
+  Ok(PlanResult{Receipts: progress.Receipts, Jobs: progress.Jobs})
 end

@@ -11,51 +11,51 @@ import . "github.com/mygo-lang/mygo/prelude"
 	foreign := AccessSubject{SiteID: "b", AccountID: int64(2), ActorURI: "https://b.example/users/bob", Verified: true, Member: true, Blocked: false}
 	remote := AccessSubject{SiteID: "", AccountID: int64(0), ActorURI: "https://remote.example/users/bob", Verified: true, Member: true, Blocked: false}
 	anonymous := AccessSubject{SiteID: "", AccountID: int64(0), ActorURI: "", Verified: false, Member: false, Blocked: false}
-	policies := []CommunityPolicy{CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "eligible_users", PostPolicy: "eligible_users"}, CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "members", PostPolicy: "members"}, CommunityPolicy{HostSiteID: "a", FederationMode: "local_only", ReadPolicy: "eligible_users", PostPolicy: "members"}}
- /*line community_policy_test.mygo:66:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(policies, func(policy CommunityPolicy) {
- /*line community_policy_test.mygo:67:5*/		if !MygoIN15CommunityPolicyM5Valid(policy) || MygoIN15CommunityPolicyM16AllowsFederation(policy) || !MygoIN15CommunityPolicyM7CanRead(policy, member) || !MygoIN15CommunityPolicyM7CanPost(policy, member) {
- /*line community_policy_test.mygo:71:7*/			t.Fatal("local member access or federation isolation failed")
- /*line community_policy_test.mygo:67:5*/		} else {
+	var policies []CommunityPolicy = []CommunityPolicy{MygoIN6ResultM6Unwrap[CommunityPolicy, string](NewCommunityPolicy("a", "local_only", "eligible_users", "eligible_users")), MygoIN6ResultM6Unwrap[CommunityPolicy, string](NewCommunityPolicy("a", "local_only", "members", "members")), MygoIN6ResultM6Unwrap[CommunityPolicy, string](NewCommunityPolicy("a", "local_only", "eligible_users", "members"))}
+ /*line community_policy_test.mygo:51:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(policies, func(policy CommunityPolicy) {
+ /*line community_policy_test.mygo:52:5*/		if !MygoIN15CommunityPolicyM5Valid(policy) || MygoIN15CommunityPolicyM16AllowsFederation(policy) || !MygoIN15CommunityPolicyM7CanRead(policy, member) || !MygoIN15CommunityPolicyM7CanPost(policy, member) {
+ /*line community_policy_test.mygo:56:7*/			t.Fatal("local member access or federation isolation failed")
+ /*line community_policy_test.mygo:52:5*/		} else {
  /*line zz_community_policy.gen_test.go:19:1*/		}
- /*line community_policy_test.mygo:73:8*/		if MygoIN15CommunityPolicyM7CanRead(policy, local) != (policy.ReadPolicy == "eligible_users") || MygoIN15CommunityPolicyM7CanPost(policy, local) != (policy.PostPolicy == "eligible_users") {
- /*line community_policy_test.mygo:75:7*/			t.Fatal("local non-member access does not match independent policies")
- /*line community_policy_test.mygo:73:5*/		} else {
+ /*line community_policy_test.mygo:58:5*/		if MygoIN15CommunityPolicyM7CanRead(policy, local) != MygoIN10ReadPolicyM15IsEligibleUsers(policy.ReadPolicy) || MygoIN15CommunityPolicyM7CanPost(policy, local) != MygoIN10PostPolicyM15IsEligibleUsers(policy.PostPolicy) {
+ /*line community_policy_test.mygo:60:7*/			t.Fatal("local non-member access does not match independent policies")
+ /*line community_policy_test.mygo:58:5*/		} else {
  /*line zz_community_policy.gen_test.go:23:1*/		}
- /*line community_policy_test.mygo:77:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]AccessSubject{foreign, remote, anonymous}, func(subject AccessSubject) {
- /*line community_policy_test.mygo:78:7*/			if MygoIN15CommunityPolicyM7CanRead(policy, subject) || MygoIN15CommunityPolicyM7CanPost(policy, subject) {
- /*line community_policy_test.mygo:79:9*/				t.Fatal("local-only content accessible outside its site")
+ /*line community_policy_test.mygo:62:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]AccessSubject{foreign, remote, anonymous}, func(subject AccessSubject) {
+ /*line community_policy_test.mygo:63:7*/			if MygoIN15CommunityPolicyM7CanRead(policy, subject) || MygoIN15CommunityPolicyM7CanPost(policy, subject) {
+ /*line community_policy_test.mygo:64:9*/				t.Fatal("local-only content accessible outside its site")
 				return
- /*line community_policy_test.mygo:78:7*/			} else {
+ /*line community_policy_test.mygo:63:7*/			} else {
 				return
  /*line zz_community_policy.gen_test.go:30:1*/			}
 		})
- /*line community_policy_test.mygo:66:17*/		federated := CommunityPolicy{HostSiteID: "a", FederationMode: "federated", ReadPolicy: policy.ReadPolicy, PostPolicy: policy.PostPolicy}
- /*line community_policy_test.mygo:88:5*/		if !MygoIN15CommunityPolicyM16AllowsFederation(federated) || !MygoIN15CommunityPolicyM7CanRead(federated, remote) || !MygoIN15CommunityPolicyM7CanPost(federated, remote) || MygoIN15CommunityPolicyM7CanPost(federated, anonymous) {
- /*line community_policy_test.mygo:92:7*/			t.Fatal("verified remote member or anonymous posting policy failed")
- /*line community_policy_test.mygo:88:5*/		} else {
+ /*line community_policy_test.mygo:51:17*/		federated := CommunityPolicy{HostSiteID: "a", FederationMode: FederationMode__Federated__Ctor(), ReadPolicy: policy.ReadPolicy, PostPolicy: policy.PostPolicy}
+ /*line community_policy_test.mygo:73:5*/		if !MygoIN15CommunityPolicyM16AllowsFederation(federated) || !MygoIN15CommunityPolicyM7CanRead(federated, remote) || !MygoIN15CommunityPolicyM7CanPost(federated, remote) || MygoIN15CommunityPolicyM7CanPost(federated, anonymous) {
+ /*line community_policy_test.mygo:77:7*/			t.Fatal("verified remote member or anonymous posting policy failed")
+ /*line community_policy_test.mygo:73:5*/		} else {
  /*line zz_community_policy.gen_test.go:36:1*/		}
- /*line community_policy_test.mygo:94:8*/		if MygoIN15CommunityPolicyM7CanRead(federated, anonymous) != (policy.ReadPolicy == "eligible_users") {
- /*line community_policy_test.mygo:95:7*/			t.Fatal("federated public and member-only reading were conflated")
- /*line community_policy_test.mygo:94:5*/		} else {
+ /*line community_policy_test.mygo:79:5*/		if MygoIN15CommunityPolicyM7CanRead(federated, anonymous) != MygoIN10ReadPolicyM15IsEligibleUsers(policy.ReadPolicy) {
+ /*line community_policy_test.mygo:80:7*/			t.Fatal("federated public and member-only reading were conflated")
+ /*line community_policy_test.mygo:79:5*/		} else {
  /*line zz_community_policy.gen_test.go:40:1*/		}
- /*line community_policy_test.mygo:66:17*/		revoked := AccessSubject{SiteID: "", AccountID: int64(0), ActorURI: remote.ActorURI, Verified: true, Member: false, Blocked: false}
- /*line community_policy_test.mygo:105:8*/		if MygoIN15CommunityPolicyM7CanRead(federated, revoked) != (policy.ReadPolicy == "eligible_users") || MygoIN15CommunityPolicyM7CanPost(federated, revoked) != (policy.PostPolicy == "eligible_users") {
- /*line community_policy_test.mygo:107:7*/			t.Fatal("former membership bypassed current policy")
- /*line community_policy_test.mygo:105:5*/		} else {
+ /*line community_policy_test.mygo:51:17*/		revoked := AccessSubject{SiteID: "", AccountID: int64(0), ActorURI: remote.ActorURI, Verified: true, Member: false, Blocked: false}
+ /*line community_policy_test.mygo:90:5*/		if MygoIN15CommunityPolicyM7CanRead(federated, revoked) != MygoIN10ReadPolicyM15IsEligibleUsers(policy.ReadPolicy) || MygoIN15CommunityPolicyM7CanPost(federated, revoked) != MygoIN10PostPolicyM15IsEligibleUsers(policy.PostPolicy) {
+ /*line community_policy_test.mygo:92:7*/			t.Fatal("former membership bypassed current policy")
+ /*line community_policy_test.mygo:90:5*/		} else {
  /*line zz_community_policy.gen_test.go:45:1*/		}
- /*line community_policy_test.mygo:66:17*/		blocked := AccessSubject{SiteID: "a", AccountID: int64(1), ActorURI: local.ActorURI, Verified: true, Member: true, Blocked: true}
- /*line community_policy_test.mygo:117:5*/		if MygoIN15CommunityPolicyM7CanRead(policy, blocked) || MygoIN15CommunityPolicyM7CanPost(policy, blocked) || MygoIN15CommunityPolicyM7CanRead(federated, blocked) || MygoIN15CommunityPolicyM7CanPost(federated, blocked) {
- /*line community_policy_test.mygo:121:7*/			t.Fatal("membership bypassed a site block")
+ /*line community_policy_test.mygo:51:17*/		blocked := AccessSubject{SiteID: "a", AccountID: int64(1), ActorURI: local.ActorURI, Verified: true, Member: true, Blocked: true}
+ /*line community_policy_test.mygo:102:5*/		if MygoIN15CommunityPolicyM7CanRead(policy, blocked) || MygoIN15CommunityPolicyM7CanPost(policy, blocked) || MygoIN15CommunityPolicyM7CanRead(federated, blocked) || MygoIN15CommunityPolicyM7CanPost(federated, blocked) {
+ /*line community_policy_test.mygo:106:7*/			t.Fatal("membership bypassed a site block")
 			return
- /*line community_policy_test.mygo:117:5*/		} else {
+ /*line community_policy_test.mygo:102:5*/		} else {
 			return
  /*line zz_community_policy.gen_test.go:52:1*/		}
 	})
- /*line community_policy_test.mygo:5:1*/	invalid := CommunityPolicy{HostSiteID: "a", FederationMode: "federated", ReadPolicy: "members", PostPolicy: "eligible_users"}
- /*line community_policy_test.mygo:130:3*/	if MygoIN15CommunityPolicyM5Valid(invalid) || MygoIN15CommunityPolicyM7CanRead(invalid, member) || MygoIN15CommunityPolicyM7CanPost(invalid, member) || MygoIN15CommunityPolicyM16AllowsFederation(invalid) {
- /*line community_policy_test.mygo:134:5*/		t.Fatal("invalid policy did not fail closed")
+ /*line community_policy_test.mygo:5:1*/	invalid := CommunityPolicy{HostSiteID: "a", FederationMode: FederationMode__Federated__Ctor(), ReadPolicy: ReadPolicy__Members__Ctor(), PostPolicy: PostPolicy__EligibleUsers__Ctor()}
+ /*line community_policy_test.mygo:115:3*/	if MygoIN15CommunityPolicyM5Valid(invalid) || MygoIN15CommunityPolicyM7CanRead(invalid, member) || MygoIN15CommunityPolicyM7CanPost(invalid, member) || MygoIN15CommunityPolicyM16AllowsFederation(invalid) {
+ /*line community_policy_test.mygo:119:5*/		t.Fatal("invalid policy did not fail closed")
 		return
- /*line community_policy_test.mygo:130:3*/	} else {
+ /*line community_policy_test.mygo:115:3*/	} else {
 		return
  /*line zz_community_policy.gen_test.go:60:1*/	}
 }

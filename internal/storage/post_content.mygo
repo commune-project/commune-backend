@@ -103,7 +103,7 @@ func SetPostMentionsTx(
   if parsed.IsErr() then
     return Err("invalid post input")
   end
-  let repository = CommunityRepository{DB: tx, SiteID: siteID}
+  let repository = CommunityRepository { DB: tx, SiteID: siteID }
   let loaded = repository.Load(ctx, post.CommunityID, false)
   if loaded.IsErr() then
     return Err(loaded.UnwrapErr())
@@ -155,7 +155,7 @@ func SetPostMentionsTx(
     if uri == "" || seen.Contains(uri) || !CanonicalObjectURI(uri) then
       continue
     end
-    let policy = SiteRepository{DB: tx, SiteID: siteID}
+    let policy = SiteRepository { DB: tx, SiteID: siteID }
     let blocked = policy.IsBlocked(ctx, uri)
     if blocked.IsErr() then
       return Err(blocked.UnwrapErr())
@@ -191,7 +191,7 @@ func SetPostMentionsTx(
     if accountQuery.RowsAffected > 0i64 && account.Disabled then
       continue
     end
-    let subject = auth.AccessSubject{
+    let subject = auth.AccessSubject {
       SiteID: account.SiteID,
       AccountID: account.ID,
       ActorURI: uri,
@@ -199,7 +199,11 @@ func SetPostMentionsTx(
       Member: member.Unwrap(),
       Blocked: false,
     }
-    if !community.Policy().CanRead(subject) then
+    let canRead = switch community.Policy()
+      case Err(_) => false
+      case Ok(policy) => policy.CanRead(subject)
+    end
+    if !canRead then
       continue
     end
     if candidate.Domain != "" && accountQuery.RowsAffected == 0i64 then
@@ -230,7 +234,7 @@ func SetPostMentionsTx(
     if actor.Unwrap().IsNone() || actor.Unwrap().Unwrap().Kind != "Person" then
       continue
     end
-    next = next.Append(content.RichMention{
+    next = next.Append(content.RichMention {
       ActorURI: uri,
       Start: candidate.Start,
       End: candidate.End,
@@ -357,7 +361,7 @@ func RetainPostMentionsTx(
         return Err(actor.UnwrapErr())
       end
       if actor.Unwrap().IsSome() then
-        resolved = resolved.Append(ResolvedPostMention{
+        resolved = resolved.Append(ResolvedPostMention {
           ActorURI: actor.Unwrap().Unwrap().URI,
           InboxURI: actor.Unwrap().Unwrap().Inbox(),
           Username: candidate.Username,

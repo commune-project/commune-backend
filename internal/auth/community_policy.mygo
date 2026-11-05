@@ -9,37 +9,162 @@ struct AccessSubject
   Blocked: Bool
 end
 
+enum FederationMode
+  LocalOnly
+  Federated
+end
+
+impl FederationMode
+  func Parse(raw: String) -> Result[FederationMode, String]
+    switch raw
+      case "local_only" => Ok(FederationMode.LocalOnly)
+      case "federated" => Ok(FederationMode.Federated)
+      case _ => Err("invalid federation mode")
+    end
+  end
+  func Render(self: FederationMode) -> String
+    switch self
+      case LocalOnly => "local_only"
+      case Federated => "federated"
+    end
+  end
+end
+
+enum ReadPolicy
+  EligibleUsers
+  Members
+end
+
+impl ReadPolicy
+  func Parse(raw: String) -> Result[ReadPolicy, String]
+    switch raw
+      case "eligible_users" => Ok(ReadPolicy.EligibleUsers)
+      case "members" => Ok(ReadPolicy.Members)
+      case _ => Err("invalid access policy")
+    end
+  end
+  func Render(self: ReadPolicy) -> String
+    switch self
+      case EligibleUsers => "eligible_users"
+      case Members => "members"
+    end
+  end
+  func IsEligibleUsers(self: ReadPolicy) -> Bool
+    switch self
+      case EligibleUsers => true
+      case Members => false
+    end
+  end
+  func Allows(self: ReadPolicy, subject: AccessSubject) -> Bool
+    switch self
+      case EligibleUsers => true
+      case Members => subject.Member
+    end
+  end
+end
+
+enum PostPolicy
+  EligibleUsers
+  Members
+end
+
+impl PostPolicy
+  func Parse(raw: String) -> Result[PostPolicy, String]
+    switch raw
+      case "eligible_users" => Ok(PostPolicy.EligibleUsers)
+      case "members" => Ok(PostPolicy.Members)
+      case _ => Err("invalid access policy")
+    end
+  end
+  func Render(self: PostPolicy) -> String
+    switch self
+      case EligibleUsers => "eligible_users"
+      case Members => "members"
+    end
+  end
+  func IsEligibleUsers(self: PostPolicy) -> Bool
+    switch self
+      case EligibleUsers => true
+      case Members => false
+    end
+  end
+  func Allows(self: PostPolicy, subject: AccessSubject) -> Bool
+    switch self
+      case EligibleUsers => true
+      case Members => subject.Member
+    end
+  end
+end
+
 struct CommunityPolicy
   HostSiteID: String
-  FederationMode: String
-  ReadPolicy: String
-  PostPolicy: String
+  FederationMode: FederationMode
+  ReadPolicy: ReadPolicy
+  PostPolicy: PostPolicy
+end
+
+# Boundary constructor: stored and requested policies arrive as strings.
+func NewCommunityPolicy(
+  hostSiteID: String,
+  mode: String,
+  read: String,
+  post: String
+) -> Result[CommunityPolicy, String]
+  FederationMode.Parse(mode).AndThen(func(federation: FederationMode) -> Result[CommunityPolicy, String]
+    ReadPolicy.Parse(read).AndThen(func(readPolicy: ReadPolicy) -> Result[CommunityPolicy, String]
+      PostPolicy.Parse(post).Map(func(postPolicy: PostPolicy) -> CommunityPolicy
+        CommunityPolicy {
+          HostSiteID: hostSiteID,
+          FederationMode: federation,
+          ReadPolicy: readPolicy,
+          PostPolicy: postPolicy,
+        }
+      end)
+    end)
+  end)
 end
 
 impl CommunityPolicy
   func Valid(self: CommunityPolicy) -> Bool
-    (self.FederationMode == "local_only" || self.FederationMode == "federated") && (self.FederationMode != "local_only" || self.HostSiteID != "") && (self.ReadPolicy == "eligible_users" || self.ReadPolicy == "members") && (self.PostPolicy == "eligible_users" || self.PostPolicy == "members") && (self.ReadPolicy != "members" || self.PostPolicy == "members")
+    switch self.FederationMode
+      case Federated => self.PoliciesValid()
+      case LocalOnly => self.HostSiteID != "" && self.PoliciesValid()
+    end
   end
 
+  # Member-only reading implies member-only posting.
+  func PoliciesValid(self: CommunityPolicy) -> Bool
+    switch (self.ReadPolicy, self.PostPolicy)
+      case (Members, Members) => true
+      case (Members, EligibleUsers) => false
+      case (EligibleUsers, _) => true
+    end
+  end
   func AllowsFederation(self: CommunityPolicy) -> Bool
-    self.Valid() && self.FederationMode == "federated"
+    switch self.FederationMode
+      case Federated => self.Valid()
+      case LocalOnly => false
+    end
   end
-
   func Eligible(self: CommunityPolicy, subject: AccessSubject) -> Bool
-    self.Valid() && !subject.Blocked && subject.Verified && subject.ActorURI != "" && (self.FederationMode == "federated" || (subject.SiteID == self.HostSiteID && subject.AccountID > 0i64))
+    if !self.Valid() || subject.Blocked || !subject.Verified || subject.ActorURI == "" then
+      return false
+    end
+    switch self.FederationMode
+      case Federated => true
+      case LocalOnly => subject.SiteID == self.HostSiteID && subject.AccountID > 0i64
+    end
   end
-
   func CanRead(self: CommunityPolicy, subject: AccessSubject) -> Bool
     if !self.Valid() || subject.Blocked then
       return false
     end
-    if self.FederationMode == "federated" && self.ReadPolicy == "eligible_users" then
-      return true
+    switch (self.FederationMode, self.ReadPolicy)
+      case (Federated, EligibleUsers) => true
+      case _ => self.Eligible(subject) && self.ReadPolicy.Allows(subject)
     end
-    self.Eligible(subject) && (self.ReadPolicy == "eligible_users" || subject.Member)
   end
-
   func CanPost(self: CommunityPolicy, subject: AccessSubject) -> Bool
-    self.CanRead(subject) && self.Eligible(subject) && (self.PostPolicy == "eligible_users" || subject.Member)
+    self.CanRead(subject) && self.Eligible(subject) && self.PostPolicy.Allows(subject)
   end
 end

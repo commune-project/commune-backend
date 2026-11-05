@@ -168,7 +168,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_files_test.mygo:75:1*/	var ordinary []string = []string{"<html><script>alert(1)</script></html>", "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>", "%PDF-1.7\nfile", "PK archive"}
 	var index int = 0
  /*line media_files_test.mygo:104:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(ordinary, func(body string) {
- /*line media_files_test.mygo:104:17*/		fileID := "abcdefghijklmnop" + strings.Repeat("x", index+1)
+ /*line media_files_test.mygo:104:17*/		fileID := "abcdefghijklmnop" + MygoIN6StringM6Repeat("x", index+1)
 		index = index + 1
 		MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, fileID, io.Reader(strings.NewReader(body)), int64(1048576)))
 		checked := MygoIN6ResultM6Unwrap[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, fileID, "application/octet-stream", "post", settings))
@@ -218,4 +218,60 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_files_test.mygo:128:3*/	} else {
 		return
  /*line zz_media_files.gen_test.go:220:1*/	}
+}
+ /*line media_files_test.mygo:133:1*/func TestMediaFileIDValidation(t *testing.T) {
+ /*line media_files_test.mygo:134:3*/	if !MediaFileID("abcdefghijklmnop") {
+ /*line media_files_test.mygo:135:5*/		t.Fatal("valid id rejected")
+ /*line media_files_test.mygo:134:3*/	} else {
+ /*line zz_media_files.gen_test.go:226:1*/	}
+ /*line media_files_test.mygo:137:3*/	if MediaFileID("short") {
+ /*line media_files_test.mygo:138:5*/		t.Fatal("short id accepted")
+ /*line media_files_test.mygo:137:3*/	} else {
+ /*line zz_media_files.gen_test.go:230:1*/	}
+ /*line media_files_test.mygo:140:3*/	if MediaFileID(MygoIN6StringM6Repeat("a", 129)) {
+ /*line media_files_test.mygo:141:5*/		t.Fatal("long id accepted")
+ /*line media_files_test.mygo:140:3*/	} else {
+ /*line zz_media_files.gen_test.go:234:1*/	}
+ /*line media_files_test.mygo:143:3*/	if !MediaFileID(MygoIN6StringM6Repeat("a", 128)) {
+ /*line media_files_test.mygo:144:5*/		t.Fatal("max length id rejected")
+ /*line media_files_test.mygo:143:3*/	} else {
+ /*line zz_media_files.gen_test.go:238:1*/	}
+ /*line media_files_test.mygo:146:3*/	if MediaFileID("abcdefghijklmno/") {
+ /*line media_files_test.mygo:147:5*/		t.Fatal("separator accepted")
+ /*line media_files_test.mygo:146:3*/	} else {
+ /*line zz_media_files.gen_test.go:242:1*/	}
+ /*line media_files_test.mygo:149:3*/	if MediaFileID("abcdefghijklmno ") {
+ /*line media_files_test.mygo:150:5*/		t.Fatal("space accepted")
+		return
+ /*line media_files_test.mygo:149:3*/	} else {
+		return
+ /*line zz_media_files.gen_test.go:248:1*/	}
+}
+ /*line media_files_test.mygo:154:1*/func TestMediaSafeName(t *testing.T) {
+ /*line media_files_test.mygo:155:3*/	if MediaSafeName("") != "download" {
+ /*line media_files_test.mygo:156:5*/		t.Fatal("empty name accepted")
+ /*line media_files_test.mygo:155:3*/	} else {
+ /*line zz_media_files.gen_test.go:254:1*/	}
+ /*line media_files_test.mygo:158:3*/	if MediaSafeName(".") != "download" || MediaSafeName("..") != "download" {
+ /*line media_files_test.mygo:159:5*/		t.Fatal("dot name accepted")
+ /*line media_files_test.mygo:158:3*/	} else {
+ /*line zz_media_files.gen_test.go:258:1*/	}
+ /*line media_files_test.mygo:161:3*/	if MediaSafeName("a/b\\c") != "a_b_c" {
+ /*line media_files_test.mygo:162:5*/		t.Fatalf("separator sanitized as %s", MediaSafeName("a/b\\c"))
+ /*line media_files_test.mygo:161:3*/	} else {
+ /*line zz_media_files.gen_test.go:262:1*/	}
+ /*line media_files_test.mygo:164:3*/	if MediaSafeName("a\tb") != "a_b" {
+ /*line media_files_test.mygo:165:5*/		t.Fatal("control character survived")
+ /*line media_files_test.mygo:164:3*/	} else {
+ /*line zz_media_files.gen_test.go:266:1*/	}
+ /*line media_files_test.mygo:167:3*/	if MediaSafeName(MygoIN6StringM6Repeat("a", 181)) != "download" {
+ /*line media_files_test.mygo:168:5*/		t.Fatal("overlong name accepted")
+ /*line media_files_test.mygo:167:3*/	} else {
+ /*line zz_media_files.gen_test.go:270:1*/	}
+ /*line media_files_test.mygo:170:3*/	if MediaSafeName(MygoIN6StringM6Repeat("a", 180)) != MygoIN6StringM6Repeat("a", 180) {
+ /*line media_files_test.mygo:171:5*/		t.Fatal("max length name rejected")
+		return
+ /*line media_files_test.mygo:170:3*/	} else {
+		return
+ /*line zz_media_files.gen_test.go:276:1*/	}
 }

@@ -90,37 +90,45 @@ import . "github.com/mygo-lang/mygo/prelude"
 }
  /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM9SetPolicy(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string) Result[struct{}, string] {
  /*line community_management.mygo:69:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:69:70*/		policy := auth.CommunityPolicy{HostSiteID: community.HostSiteID, FederationMode: community.FederationMode, ReadPolicy: read, PostPolicy: post}
- /*line community_management.mygo:71:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(policy) {
+ /*line community_management.mygo:69:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
+ /*line community_management.mygo:71:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
  /*line community_management.mygo:72:16*/			return Err[struct{}, string]("invalid access policy")
  /*line community_management.mygo:71:7*/		} else {
  /*line zz_community_management.gen.go:97:1*/		}
- /*line community_management.mygo:74:7*/		return MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))
- /*line zz_community_management.gen.go:99:1*/	})
+ /*line community_management.mygo:74:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) {
+ /*line community_management.mygo:75:16*/			return Err[struct{}, string]("invalid access policy")
+ /*line community_management.mygo:74:7*/		} else {
+ /*line zz_community_management.gen.go:101:1*/		}
+ /*line community_management.mygo:77:7*/		return MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))
+ /*line zz_community_management.gen.go:103:1*/	})
 }
  /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM12SetPolicyAll(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string, follow string) Result[struct{}, string] {
- /*line community_management.mygo:79:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:79:70*/		policy := auth.CommunityPolicy{HostSiteID: community.HostSiteID, FederationMode: community.FederationMode, ReadPolicy: read, PostPolicy: post}
+ /*line community_management.mygo:82:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
+ /*line community_management.mygo:82:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
 		currentFollow := LoadCommunityFollowRule(ctx, tx, id)
- /*line community_management.mygo:82:7*/		if MygoIN6ResultM5IsErr[string, string](currentFollow) {
- /*line community_management.mygo:83:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](currentFollow))
- /*line community_management.mygo:82:7*/		} else {
- /*line zz_community_management.gen.go:108:1*/		}
- /*line community_management.mygo:79:70*/		var __mygo_expr_0 string
+ /*line community_management.mygo:85:7*/		if MygoIN6ResultM5IsErr[string, string](currentFollow) {
+ /*line community_management.mygo:86:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](currentFollow))
+ /*line community_management.mygo:85:7*/		} else {
+ /*line zz_community_management.gen.go:112:1*/		}
+ /*line community_management.mygo:82:70*/		var __mygo_expr_0 string
 		if follow == "" {
 			__mygo_expr_0 = MygoIN6ResultM6Unwrap[string, string](currentFollow)
 		} else {
 			__mygo_expr_0 = follow
- /*line zz_community_management.gen.go:114:1*/		}
- /*line community_management.mygo:79:70*/		followPolicy := __mygo_expr_0
- /*line community_management.mygo:86:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(policy) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" {
- /*line community_management.mygo:87:16*/			return Err[struct{}, string]("invalid access policy")
- /*line community_management.mygo:86:7*/		} else {
- /*line zz_community_management.gen.go:119:1*/		}
- /*line community_management.mygo:89:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))) {
- /*line community_management.mygo:90:16*/			return Err[struct{}, string]("policy update failed")
+ /*line zz_community_management.gen.go:118:1*/		}
+ /*line community_management.mygo:82:70*/		followPolicy := __mygo_expr_0
+ /*line community_management.mygo:89:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
+ /*line community_management.mygo:90:16*/			return Err[struct{}, string]("invalid access policy")
  /*line community_management.mygo:89:7*/		} else {
  /*line zz_community_management.gen.go:123:1*/		}
- /*line community_management.mygo:92:7*/		return SetCommunityFollowRule(ctx, tx, id, followPolicy)
- /*line zz_community_management.gen.go:125:1*/	})
+ /*line community_management.mygo:92:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" {
+ /*line community_management.mygo:94:16*/			return Err[struct{}, string]("invalid access policy")
+ /*line community_management.mygo:92:7*/		} else {
+ /*line zz_community_management.gen.go:127:1*/		}
+ /*line community_management.mygo:96:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))) {
+ /*line community_management.mygo:97:16*/			return Err[struct{}, string]("policy update failed")
+ /*line community_management.mygo:96:7*/		} else {
+ /*line zz_community_management.gen.go:131:1*/		}
+ /*line community_management.mygo:99:7*/		return SetCommunityFollowRule(ctx, tx, id, followPolicy)
+ /*line zz_community_management.gen.go:133:1*/	})
 }

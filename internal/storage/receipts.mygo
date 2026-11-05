@@ -8,6 +8,7 @@ import sha256 "go:crypto/sha256"
 import hash "go:hash"
 import rand "go:crypto/rand"
 import sql "go:database/sql"
+import functional "github.com/commune-project/commune-backend/internal/functional"
 
 struct ReceiptRecord
   ActivityURI: String `gorm:"column:activity_uri"`
@@ -21,7 +22,7 @@ end
 func PayloadChecksum(payload: Slice[Byte]) -> Slice[Byte]
   let digest = sha256.New()
   let _ = digest.Write(payload)
-  digest.Sum([] as Slice[Byte])
+  digest.Sum([])
 end
 
 # The stored activity identity and payload are immutable. Reusing a URI with a
@@ -118,22 +119,26 @@ func LocalActors(
   siteID: String,
   candidates: Slice[String]
 ) -> Result[Slice[String], String]
-  var found: Slice[String] = []
-  var failed = false
-  candidates.Each(func(candidate: String) -> ()
-    let match = QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
-    if match.IsErr() then
-      failed = true
-    else
-      if match.Unwrap() && !found.Contains(candidate) then
-        found = found.Append(candidate)
-      end
+  let matched = candidates.Map(func(candidate: String) -> Result[Bool, String]
+    switch QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
+      case Err(_) => Err("receipt unavailable")
+      case Ok(value) => Ok(value)
     end
   end)
-  if failed then
-    return Err("receipt unavailable")
+  switch functional.Sequence(matched)
+    case Err(reason) => Err(reason)
+    case Ok(flags) then
+      let found = candidates.ZipWith(flags, func(candidate: String, exists: Bool) -> Option[String]
+        if exists then Some(candidate) else None end
+      end).Fold([], func(acc: Slice[String], item: Option[String]) -> Slice[String]
+        switch item
+          case Some(value) => acc.Append(value)
+          case None => acc
+        end
+      end)
+      Ok(found.Distinct())
+    end
   end
-  Ok(found)
 end
 
 # Accepted work survives restart: pending rows are claimed under a lease and can

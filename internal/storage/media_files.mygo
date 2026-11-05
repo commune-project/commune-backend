@@ -71,11 +71,32 @@ func OpenMediaFiles(settings: config.Media) -> Result[MediaFiles, String]
 end
 
 func MediaFileID(id: String) -> Bool
-  go[Bool] { code: "if len({id}) < 16 || len({id}) > 128 { return false }; for _, c := range {id} { if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_') { return false } }; return true"; in id = id }
+  id.Len() >= 16 &&
+    id.Len() <= 128 &&
+    id.ToSlice().All(func(ch: Rune) -> Bool
+      (ch >= 'a' && ch <= 'z') ||
+        (ch >= 'A' && ch <= 'Z') ||
+        (ch >= '0' && ch <= '9') ||
+        ch == '-' ||
+        ch == '_'
+    end)
 end
 
 func MediaSafeName(name: String) -> String
-  go[String] { code: "s := strings.Map(func(r rune) rune { if r < 32 || r == 127 || r == '/' || r == 92 { return '_' }; return r }, {name}); if len(s)>180 { s=\"download\" }; if s==\"\" || s==\".\" || s==\"..\" { s=\"download\" }; return s"; in name = name }
+  let cleaned = String.FromRunes(name.ToSlice().Map(func(ch: Rune) -> Rune
+    let code = ch as Int
+    if code < 32 || code == 127 || ch == '/' || ch == '\\' then
+      '_'
+    else
+      ch
+    end
+  end))
+  switch cleaned
+    case "" => "download"
+    case "." => "download"
+    case ".." => "download"
+    case _ => if cleaned.Len() > 180 then "download" else cleaned end
+  end
 end
 
 impl MediaFiles

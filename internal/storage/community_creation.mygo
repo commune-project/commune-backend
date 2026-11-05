@@ -35,12 +35,11 @@ impl CommunityRepository
     post: String,
     follow: String
   ) -> Result[CommunityRecord, String]
-    let policy = auth.CommunityPolicy{
-      HostSiteID: self.SiteID,
-      FederationMode: mode,
-      ReadPolicy: read,
-      PostPolicy: post,
-    }
+    let policyResult = auth.NewCommunityPolicy(self.SiteID, mode, read, post)
+    if policyResult.IsErr() then
+      return Err("invalid community input")
+    end
+    let policy = policyResult.Unwrap()
     let followPolicy = if follow == "" then
       if read == "members" then
         "members"

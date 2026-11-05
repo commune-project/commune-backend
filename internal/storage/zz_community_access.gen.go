@@ -42,29 +42,74 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line community_access.mygo:49:10*/			if administrator {
  /*line community_access.mygo:45:3*/				scope = "site"
  /*line zz_community_access.gen.go:44:1*/			} else {
- /*line community_access.mygo:52:12*/				if auth.MygoIN15CommunityPolicyM8Eligible(MygoIN15CommunityRecordM6Policy(community), subject) && (community.CreatorActorURI == subject.ActorURI || moderator) {
+ /*line community_access.mygo:52:24*/				__mygo_expr_0 := MygoIN15CommunityRecordM6Policy(community)
+				var __mygo_expr_1 bool
+				if _, ok := __mygo_expr_0.(Result__Err[auth.CommunityPolicy, string]); ok {
+					__mygo_expr_1 = false
+ /*line zz_community_access.gen.go:49:1*/				} else {
+ /*line community_access.mygo:52:24*/					if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[auth.CommunityPolicy, string]); ok {
+						__mygo_expr_1 = auth.MygoIN15CommunityPolicyM8Eligible(__mygo_match___mygo_expr_2.F0, subject)
+					} else {
+ /*line zz_community_access.gen.go:53:1*/					}
+				}
+ /*line community_access.mygo:45:3*/				eligible := __mygo_expr_1
+ /*line community_access.mygo:56:12*/				if eligible && (community.CreatorActorURI == subject.ActorURI || moderator) {
  /*line community_access.mygo:45:3*/					scope = "community"
 				} else {
- /*line zz_community_access.gen.go:48:1*/				}
+ /*line zz_community_access.gen.go:59:1*/				}
 			}
 		}
  /*line community_access.mygo:45:3*/	} else {
- /*line zz_community_access.gen.go:52:1*/	}
- /*line community_access.mygo:59:3*/	return CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}}
- /*line zz_community_access.gen.go:54:1*/}
- /*line community_access.mygo:66:1*/func MygoIN15CommunityRecordM6Policy(self CommunityRecord) auth.CommunityPolicy {
- /*line community_access.mygo:68:5*/	return auth.CommunityPolicy{HostSiteID: self.HostSiteID, FederationMode: self.FederationMode, ReadPolicy: self.ReadPolicy, PostPolicy: self.PostPolicy}
- /*line zz_community_access.gen.go:57:1*/}
- /*line community_access.mygo:77:1*/func MygoIN15CommunityAccessM7CanRead(self CommunityAccess) bool {
- /*line community_access.mygo:79:5*/	return auth.MygoIN19ManagementAuthorityM6Allows(self.Authority, "manage-community") || auth.MygoIN15CommunityPolicyM7CanRead(MygoIN15CommunityRecordM6Policy(self.Community), self.Subject)
- /*line zz_community_access.gen.go:60:1*/}
- /*line community_access.mygo:77:1*/func MygoIN15CommunityAccessM7CanPost(self CommunityAccess) bool {
- /*line community_access.mygo:83:5*/	return auth.MygoIN15CommunityPolicyM7CanPost(MygoIN15CommunityRecordM6Policy(self.Community), self.Subject)
- /*line zz_community_access.gen.go:63:1*/}
- /*line community_access.mygo:77:1*/func MygoIN15CommunityAccessM11CanEditBody(self CommunityAccess, authorURI string) bool {
- /*line community_access.mygo:86:5*/	return self.Subject.Verified && self.Subject.ActorURI == authorURI && auth.MygoIN15CommunityPolicyM7CanRead(MygoIN15CommunityRecordM6Policy(self.Community), self.Subject)
- /*line zz_community_access.gen.go:66:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM4Load(self CommunityRepository, ctx context.Context, id string, lock bool) Result[CommunityRecord, string] {
+ /*line zz_community_access.gen.go:63:1*/	}
+ /*line community_access.mygo:63:3*/	return CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: scope}}
+ /*line zz_community_access.gen.go:65:1*/}
+ /*line community_access.mygo:70:1*/func MygoIN15CommunityRecordM6Policy(self CommunityRecord) Result[auth.CommunityPolicy, string] {
+ /*line community_access.mygo:72:5*/	return auth.NewCommunityPolicy(self.HostSiteID, self.FederationMode, self.ReadPolicy, self.PostPolicy)
+ /*line zz_community_access.gen.go:68:1*/}
+ /*line community_access.mygo:76:1*/func MygoIN15CommunityAccessM7CanRead(self CommunityAccess) bool {
+ /*line community_access.mygo:78:5*/	if auth.MygoIN19ManagementAuthorityM6Allows(self.Authority, "manage-community") {
+ /*line community_access.mygo:79:14*/		return true
+ /*line community_access.mygo:78:5*/	} else {
+ /*line zz_community_access.gen.go:73:1*/	}
+ /*line community_access.mygo:81:5*/	__mygo_expr_0 := MygoIN15CommunityRecordM6Policy(self.Community)
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(Result__Err[auth.CommunityPolicy, string]); ok {
+		__mygo_expr_1 = false
+ /*line zz_community_access.gen.go:78:1*/	} else {
+ /*line community_access.mygo:81:5*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[auth.CommunityPolicy, string]); ok {
+			__mygo_expr_1 = auth.MygoIN15CommunityPolicyM7CanRead(__mygo_match___mygo_expr_2.F0, self.Subject)
+		} else {
+ /*line zz_community_access.gen.go:82:1*/		}
+	}
+ /*line community_access.mygo:81:5*/	return __mygo_expr_1
+ /*line zz_community_access.gen.go:85:1*/}
+ /*line community_access.mygo:76:1*/func MygoIN15CommunityAccessM7CanPost(self CommunityAccess) bool {
+ /*line community_access.mygo:88:5*/	__mygo_expr_0 := MygoIN15CommunityRecordM6Policy(self.Community)
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(Result__Err[auth.CommunityPolicy, string]); ok {
+		__mygo_expr_1 = false
+ /*line zz_community_access.gen.go:91:1*/	} else {
+ /*line community_access.mygo:88:5*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[auth.CommunityPolicy, string]); ok {
+			__mygo_expr_1 = auth.MygoIN15CommunityPolicyM7CanPost(__mygo_match___mygo_expr_2.F0, self.Subject)
+		} else {
+ /*line zz_community_access.gen.go:95:1*/		}
+	}
+ /*line community_access.mygo:88:5*/	return __mygo_expr_1
+ /*line zz_community_access.gen.go:98:1*/}
+ /*line community_access.mygo:76:1*/func MygoIN15CommunityAccessM11CanEditBody(self CommunityAccess, authorURI string) bool {
+ /*line community_access.mygo:94:5*/	__mygo_expr_0 := MygoIN15CommunityRecordM6Policy(self.Community)
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(Result__Err[auth.CommunityPolicy, string]); ok {
+		__mygo_expr_1 = false
+ /*line zz_community_access.gen.go:104:1*/	} else {
+ /*line community_access.mygo:94:5*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[auth.CommunityPolicy, string]); ok {
+			__mygo_expr_1 = self.Subject.Verified && self.Subject.ActorURI == authorURI && auth.MygoIN15CommunityPolicyM7CanRead(__mygo_match___mygo_expr_2.F0, self.Subject)
+		} else {
+ /*line zz_community_access.gen.go:108:1*/		}
+	}
+ /*line community_access.mygo:94:5*/	return __mygo_expr_1
+ /*line zz_community_access.gen.go:111:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM4Load(self CommunityRepository, ctx context.Context, id string, lock bool) Result[CommunityRecord, string] {
 	record := Zero[CommunityRecord]()
 	query := self.DB.WithContext(ctx).Table("communities").Where("id = ? AND host_site_id = ?", id, self.SiteID)
 	locking := clause.Locking{Strength: "UPDATE", Table: Zero[clause.Table](), Options: ""}
@@ -74,177 +119,177 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = query.Clauses(expression)
 	} else {
 		__mygo_expr_0 = query
- /*line zz_community_access.gen.go:77:1*/	}
- /*line community_access.mygo:92:1*/	scoped := __mygo_expr_0
+ /*line zz_community_access.gen.go:122:1*/	}
+ /*line community_access.mygo:103:1*/	scoped := __mygo_expr_0
 	found := scoped.Limit(1).Find(&record)
- /*line community_access.mygo:113:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line community_access.mygo:114:14*/		return Err[CommunityRecord, string]("community unavailable")
- /*line community_access.mygo:113:5*/	} else {
- /*line zz_community_access.gen.go:83:1*/	}
- /*line community_access.mygo:116:5*/	if found.RowsAffected != int64(1) {
- /*line community_access.mygo:117:14*/		return Err[CommunityRecord, string]("not found")
- /*line community_access.mygo:116:5*/	} else {
- /*line zz_community_access.gen.go:87:1*/	}
- /*line community_access.mygo:119:5*/	return Ok[CommunityRecord, string](record)
- /*line zz_community_access.gen.go:89:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM6Access(self CommunityRepository, ctx context.Context, community CommunityRecord, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
+ /*line community_access.mygo:124:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
+ /*line community_access.mygo:125:14*/		return Err[CommunityRecord, string]("community unavailable")
+ /*line community_access.mygo:124:5*/	} else {
+ /*line zz_community_access.gen.go:128:1*/	}
+ /*line community_access.mygo:127:5*/	if found.RowsAffected != int64(1) {
+ /*line community_access.mygo:128:14*/		return Err[CommunityRecord, string]("not found")
+ /*line community_access.mygo:127:5*/	} else {
+ /*line zz_community_access.gen.go:132:1*/	}
+ /*line community_access.mygo:130:5*/	return Ok[CommunityRecord, string](record)
+ /*line zz_community_access.gen.go:134:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM6Access(self CommunityRepository, ctx context.Context, community CommunityRecord, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
 	hosted := community.HostSiteID == self.SiteID
 	local := identity.AccountID > int64(0)
 	var __mygo_expr_1 Result[bool, string]
 	if local {
 		__mygo_expr_1 = QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id = ? AND site_id = ? AND actor_uri = ? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
 	} else {
- /*line community_access.mygo:138:7*/		var __mygo_expr_0 Result[bool, string]
+ /*line community_access.mygo:149:7*/		var __mygo_expr_0 Result[bool, string]
 		if remoteVerified && identity.ActorURI != "" {
 			__mygo_expr_0 = QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri = ? AND kind = 'Person' AND local_site_id IS NULL", identity.ActorURI))
 		} else {
 			__mygo_expr_0 = Ok[bool, string](false)
- /*line zz_community_access.gen.go:102:1*/		}
- /*line community_access.mygo:92:1*/		__mygo_expr_1 = __mygo_expr_0
- /*line zz_community_access.gen.go:104:1*/	}
- /*line community_access.mygo:92:1*/	verified := __mygo_expr_1
- /*line community_access.mygo:147:5*/	if MygoIN6ResultM5IsErr[bool, string](verified) {
- /*line community_access.mygo:148:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](verified))
- /*line community_access.mygo:147:5*/	} else {
- /*line zz_community_access.gen.go:109:1*/	}
- /*line community_access.mygo:92:1*/	site := SiteRepository{DB: self.DB, SiteID: self.SiteID}
+ /*line zz_community_access.gen.go:147:1*/		}
+ /*line community_access.mygo:103:1*/		__mygo_expr_1 = __mygo_expr_0
+ /*line zz_community_access.gen.go:149:1*/	}
+ /*line community_access.mygo:103:1*/	verified := __mygo_expr_1
+ /*line community_access.mygo:158:5*/	if MygoIN6ResultM5IsErr[bool, string](verified) {
+ /*line community_access.mygo:159:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](verified))
+ /*line community_access.mygo:158:5*/	} else {
+ /*line zz_community_access.gen.go:154:1*/	}
+ /*line community_access.mygo:103:1*/	site := SiteRepository{DB: self.DB, SiteID: self.SiteID}
 	var __mygo_expr_2 Result[bool, string]
 	if MygoIN6ResultM6Unwrap[bool, string](verified) {
 		__mygo_expr_2 = MygoIN14SiteRepositoryM9IsBlocked(site, ctx, identity.ActorURI)
 	} else {
 		__mygo_expr_2 = Ok[bool, string](false)
- /*line zz_community_access.gen.go:116:1*/	}
- /*line community_access.mygo:92:1*/	blocked := __mygo_expr_2
- /*line community_access.mygo:156:5*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line community_access.mygo:157:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line community_access.mygo:156:5*/	} else {
- /*line zz_community_access.gen.go:121:1*/	}
- /*line community_access.mygo:92:1*/	member := QueryExists(self.DB.WithContext(ctx).Table("community_members").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
- /*line community_access.mygo:164:5*/	if MygoIN6ResultM5IsErr[bool, string](member) {
- /*line community_access.mygo:165:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
- /*line community_access.mygo:164:5*/	} else {
- /*line zz_community_access.gen.go:126:1*/	}
- /*line community_access.mygo:168:15*/	var __mygo_expr_3 string
+ /*line zz_community_access.gen.go:161:1*/	}
+ /*line community_access.mygo:103:1*/	blocked := __mygo_expr_2
+ /*line community_access.mygo:167:5*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
+ /*line community_access.mygo:168:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
+ /*line community_access.mygo:167:5*/	} else {
+ /*line zz_community_access.gen.go:166:1*/	}
+ /*line community_access.mygo:103:1*/	member := QueryExists(self.DB.WithContext(ctx).Table("community_members").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
+ /*line community_access.mygo:175:5*/	if MygoIN6ResultM5IsErr[bool, string](member) {
+ /*line community_access.mygo:176:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
+ /*line community_access.mygo:175:5*/	} else {
+ /*line zz_community_access.gen.go:171:1*/	}
+ /*line community_access.mygo:179:15*/	var __mygo_expr_3 string
 	if local {
 		__mygo_expr_3 = identity.SiteID
 	} else {
 		__mygo_expr_3 = ""
- /*line zz_community_access.gen.go:132:1*/	}
- /*line community_access.mygo:173:18*/	var __mygo_expr_4 int64
+ /*line zz_community_access.gen.go:177:1*/	}
+ /*line community_access.mygo:180:18*/	var __mygo_expr_4 int64
 	if local {
 		__mygo_expr_4 = identity.AccountID
 	} else {
 		__mygo_expr_4 = int64(0)
- /*line zz_community_access.gen.go:138:1*/	}
- /*line community_access.mygo:92:1*/	subject := auth.AccessSubject{SiteID: __mygo_expr_3, AccountID: __mygo_expr_4, ActorURI: identity.ActorURI, Verified: MygoIN6ResultM6Unwrap[bool, string](verified), Member: MygoIN6ResultM6Unwrap[bool, string](member), Blocked: MygoIN6ResultM6Unwrap[bool, string](blocked)}
- /*line community_access.mygo:183:5*/	if !hosted || !subject.Verified || subject.Blocked {
- /*line community_access.mygo:184:14*/		return Ok[CommunityAccess, string](CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: ""}})
- /*line community_access.mygo:183:5*/	} else {
- /*line zz_community_access.gen.go:143:1*/	}
- /*line community_access.mygo:92:1*/	var __mygo_expr_5 Result[bool, string]
+ /*line zz_community_access.gen.go:183:1*/	}
+ /*line community_access.mygo:103:1*/	subject := auth.AccessSubject{SiteID: __mygo_expr_3, AccountID: __mygo_expr_4, ActorURI: identity.ActorURI, Verified: MygoIN6ResultM6Unwrap[bool, string](verified), Member: MygoIN6ResultM6Unwrap[bool, string](member), Blocked: MygoIN6ResultM6Unwrap[bool, string](blocked)}
+ /*line community_access.mygo:186:5*/	if !hosted || !subject.Verified || subject.Blocked {
+ /*line community_access.mygo:187:14*/		return Ok[CommunityAccess, string](CommunityAccess{Community: community, Subject: subject, Authority: auth.ManagementAuthority{Scope: ""}})
+ /*line community_access.mygo:186:5*/	} else {
+ /*line zz_community_access.gen.go:188:1*/	}
+ /*line community_access.mygo:103:1*/	var __mygo_expr_5 Result[bool, string]
 	if local {
 		__mygo_expr_5 = QueryExists(self.DB.WithContext(ctx).Table("deployment_roles").Where("account_id = ? AND role = 'superadministrator'", identity.AccountID))
 	} else {
 		__mygo_expr_5 = Ok[bool, string](false)
- /*line zz_community_access.gen.go:149:1*/	}
- /*line community_access.mygo:92:1*/	deployment := __mygo_expr_5
- /*line community_access.mygo:198:5*/	if MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line community_access.mygo:199:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](deployment))
- /*line community_access.mygo:198:5*/	} else {
- /*line zz_community_access.gen.go:154:1*/	}
- /*line community_access.mygo:201:5*/	if MygoIN6ResultM6Unwrap[bool, string](deployment) {
- /*line community_access.mygo:202:14*/		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, false, true))
+ /*line zz_community_access.gen.go:194:1*/	}
+ /*line community_access.mygo:103:1*/	deployment := __mygo_expr_5
+ /*line community_access.mygo:201:5*/	if MygoIN6ResultM5IsErr[bool, string](deployment) {
+ /*line community_access.mygo:202:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](deployment))
  /*line community_access.mygo:201:5*/	} else {
- /*line zz_community_access.gen.go:158:1*/	}
- /*line community_access.mygo:92:1*/	administrator := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
- /*line community_access.mygo:205:5*/	if MygoIN6ResultM5IsErr[bool, string](administrator) {
- /*line community_access.mygo:206:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](administrator))
- /*line community_access.mygo:205:5*/	} else {
- /*line zz_community_access.gen.go:163:1*/	}
- /*line community_access.mygo:208:5*/	if MygoIN6ResultM6Unwrap[bool, string](administrator) {
- /*line community_access.mygo:209:14*/		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, true, false))
+ /*line zz_community_access.gen.go:199:1*/	}
+ /*line community_access.mygo:204:5*/	if MygoIN6ResultM6Unwrap[bool, string](deployment) {
+ /*line community_access.mygo:205:14*/		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, false, true))
+ /*line community_access.mygo:204:5*/	} else {
+ /*line zz_community_access.gen.go:203:1*/	}
+ /*line community_access.mygo:103:1*/	administrator := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
+ /*line community_access.mygo:208:5*/	if MygoIN6ResultM5IsErr[bool, string](administrator) {
+ /*line community_access.mygo:209:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](administrator))
  /*line community_access.mygo:208:5*/	} else {
- /*line zz_community_access.gen.go:167:1*/	}
- /*line community_access.mygo:92:1*/	moderator := QueryExists(self.DB.WithContext(ctx).Table("moderators").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
- /*line community_access.mygo:216:5*/	if MygoIN6ResultM5IsErr[bool, string](moderator) {
- /*line community_access.mygo:217:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](moderator))
- /*line community_access.mygo:216:5*/	} else {
- /*line zz_community_access.gen.go:172:1*/	}
- /*line community_access.mygo:219:5*/	return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, MygoIN6ResultM6Unwrap[bool, string](moderator), false, false))
- /*line zz_community_access.gen.go:174:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM5Check(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
+ /*line zz_community_access.gen.go:208:1*/	}
+ /*line community_access.mygo:211:5*/	if MygoIN6ResultM6Unwrap[bool, string](administrator) {
+ /*line community_access.mygo:212:14*/		return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, false, true, false))
+ /*line community_access.mygo:211:5*/	} else {
+ /*line zz_community_access.gen.go:212:1*/	}
+ /*line community_access.mygo:103:1*/	moderator := QueryExists(self.DB.WithContext(ctx).Table("moderators").Where("community_id = ? AND actor_uri = ? AND revoked_at IS NULL", community.ID, identity.ActorURI))
+ /*line community_access.mygo:219:5*/	if MygoIN6ResultM5IsErr[bool, string](moderator) {
+ /*line community_access.mygo:220:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[bool, string](moderator))
+ /*line community_access.mygo:219:5*/	} else {
+ /*line zz_community_access.gen.go:217:1*/	}
+ /*line community_access.mygo:222:5*/	return Ok[CommunityAccess, string](ProjectCommunityAccess(self.SiteID, community, subject, MygoIN6ResultM6Unwrap[bool, string](moderator), false, false))
+ /*line zz_community_access.gen.go:219:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM5Check(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
 	loaded := MygoIN19CommunityRepositoryM4Load(self, ctx, id, false)
- /*line community_access.mygo:229:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line community_access.mygo:230:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line community_access.mygo:229:5*/	} else {
- /*line zz_community_access.gen.go:180:1*/	}
- /*line community_access.mygo:232:5*/	return MygoIN19CommunityRepositoryM6Access(self, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
- /*line zz_community_access.gen.go:182:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM15CheckAuthorship(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
+ /*line community_access.mygo:232:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
+ /*line community_access.mygo:233:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
+ /*line community_access.mygo:232:5*/	} else {
+ /*line zz_community_access.gen.go:225:1*/	}
+ /*line community_access.mygo:235:5*/	return MygoIN19CommunityRepositoryM6Access(self, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
+ /*line zz_community_access.gen.go:227:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM15CheckAuthorship(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityAccess, string] {
 	loaded := MygoIN19CommunityRepositoryM4Load(self, ctx, id, false)
- /*line community_access.mygo:242:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line community_access.mygo:243:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line community_access.mygo:242:5*/	} else {
- /*line zz_community_access.gen.go:188:1*/	}
- /*line community_access.mygo:245:5*/	return MygoIN19CommunityRepositoryM6Access(self, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
- /*line zz_community_access.gen.go:190:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM5Audit(self CommunityRepository, ctx context.Context, access CommunityAccess, action string, target string) Result[struct{}, string] {
- /*line community_access.mygo:254:5*/	if !auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community") {
- /*line community_access.mygo:255:14*/		return Err[struct{}, string]("forbidden")
- /*line community_access.mygo:254:5*/	} else {
- /*line zz_community_access.gen.go:195:1*/	}
- /*line community_access.mygo:92:1*/	var __mygo_expr_1 string
+ /*line community_access.mygo:245:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
+ /*line community_access.mygo:246:14*/		return Err[CommunityAccess, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
+ /*line community_access.mygo:245:5*/	} else {
+ /*line zz_community_access.gen.go:233:1*/	}
+ /*line community_access.mygo:248:5*/	return MygoIN19CommunityRepositoryM6Access(self, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
+ /*line zz_community_access.gen.go:235:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM5Audit(self CommunityRepository, ctx context.Context, access CommunityAccess, action string, target string) Result[struct{}, string] {
+ /*line community_access.mygo:257:5*/	if !auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community") {
+ /*line community_access.mygo:258:14*/		return Err[struct{}, string]("forbidden")
+ /*line community_access.mygo:257:5*/	} else {
+ /*line zz_community_access.gen.go:240:1*/	}
+ /*line community_access.mygo:103:1*/	var __mygo_expr_1 string
 	if access.Authority.Scope == "deployment" {
 		__mygo_expr_1 = "deployment"
 	} else {
- /*line community_access.mygo:260:7*/		var __mygo_expr_0 string
+ /*line community_access.mygo:263:7*/		var __mygo_expr_0 string
 		if access.Authority.Scope == "site" {
 			__mygo_expr_0 = self.SiteID
 		} else {
 			__mygo_expr_0 = access.Community.ID
- /*line zz_community_access.gen.go:205:1*/		}
- /*line community_access.mygo:92:1*/		__mygo_expr_1 = __mygo_expr_0
- /*line zz_community_access.gen.go:207:1*/	}
- /*line community_access.mygo:92:1*/	scopeID := __mygo_expr_1
- /*line community_access.mygo:266:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,?,?,?,?)", access.Subject.ActorURI, access.Authority.Scope, scopeID, action, target))
- /*line zz_community_access.gen.go:210:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM4Read(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityRecord, string] {
+ /*line zz_community_access.gen.go:250:1*/		}
+ /*line community_access.mygo:103:1*/		__mygo_expr_1 = __mygo_expr_0
+ /*line zz_community_access.gen.go:252:1*/	}
+ /*line community_access.mygo:103:1*/	scopeID := __mygo_expr_1
+ /*line community_access.mygo:269:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,?,?,?,?)", access.Subject.ActorURI, access.Authority.Scope, scopeID, action, target))
+ /*line zz_community_access.gen.go:255:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM4Read(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[CommunityRecord, string] {
 	record := Zero[CommunityRecord]()
 	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line community_access.mygo:286:7*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
+ /*line community_access.mygo:289:7*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		loaded := MygoIN19CommunityRepositoryM4Load(repository, ctx, id, true)
- /*line community_access.mygo:289:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line community_access.mygo:290:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line community_access.mygo:289:9*/		} else {
- /*line zz_community_access.gen.go:219:1*/		}
- /*line community_access.mygo:286:7*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
- /*line community_access.mygo:293:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line community_access.mygo:294:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line community_access.mygo:293:9*/		} else {
- /*line zz_community_access.gen.go:224:1*/		}
- /*line community_access.mygo:296:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line community_access.mygo:297:18*/			return Err[struct{}, string]("not found")
+ /*line community_access.mygo:292:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
+ /*line community_access.mygo:293:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
+ /*line community_access.mygo:292:9*/		} else {
+ /*line zz_community_access.gen.go:264:1*/		}
+ /*line community_access.mygo:289:7*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
+ /*line community_access.mygo:296:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
+ /*line community_access.mygo:297:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
  /*line community_access.mygo:296:9*/		} else {
- /*line zz_community_access.gen.go:228:1*/		}
- /*line community_access.mygo:299:9*/		if auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Authority, "manage-community") {
+ /*line zz_community_access.gen.go:269:1*/		}
+ /*line community_access.mygo:299:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
+ /*line community_access.mygo:300:18*/			return Err[struct{}, string]("not found")
+ /*line community_access.mygo:299:9*/		} else {
+ /*line zz_community_access.gen.go:273:1*/		}
+ /*line community_access.mygo:302:9*/		if auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Authority, "manage-community") {
 			audited := MygoIN19CommunityRepositoryM5Audit(repository, ctx, MygoIN6ResultM6Unwrap[CommunityAccess, string](access), "read-community", id)
 			if MygoIN6ResultM5IsErr[struct{}, string](audited) {
- /*line community_access.mygo:302:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audited))
- /*line community_access.mygo:299:9*/			} else {
- /*line zz_community_access.gen.go:234:1*/			}
- /*line community_access.mygo:299:9*/		} else {
- /*line zz_community_access.gen.go:236:1*/		}
- /*line community_access.mygo:286:7*/		record = MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded)
- /*line community_access.mygo:306:9*/		return Ok[struct{}, string](struct {
- /*line zz_community_access.gen.go:239:1*/		}{})
+ /*line community_access.mygo:305:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audited))
+ /*line community_access.mygo:302:9*/			} else {
+ /*line zz_community_access.gen.go:279:1*/			}
+ /*line community_access.mygo:302:9*/		} else {
+ /*line zz_community_access.gen.go:281:1*/		}
+ /*line community_access.mygo:289:7*/		record = MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded)
+ /*line community_access.mygo:309:9*/		return Ok[struct{}, string](struct {
+ /*line zz_community_access.gen.go:284:1*/		}{})
 	})
- /*line community_access.mygo:309:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line community_access.mygo:310:14*/		return Err[CommunityRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line community_access.mygo:309:5*/	} else {
- /*line zz_community_access.gen.go:244:1*/	}
- /*line community_access.mygo:312:5*/	return Ok[CommunityRecord, string](record)
- /*line zz_community_access.gen.go:246:1*/}
- /*line community_access.mygo:92:1*/func MygoIN19CommunityRepositoryM4Open(self CommunityRepository, ctx context.Context, id string, lock bool) Result[CommunityRecord, string] {
+ /*line community_access.mygo:312:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line community_access.mygo:313:14*/		return Err[CommunityRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+ /*line community_access.mygo:312:5*/	} else {
+ /*line zz_community_access.gen.go:289:1*/	}
+ /*line community_access.mygo:315:5*/	return Ok[CommunityRecord, string](record)
+ /*line zz_community_access.gen.go:291:1*/}
+ /*line community_access.mygo:103:1*/func MygoIN19CommunityRepositoryM4Open(self CommunityRepository, ctx context.Context, id string, lock bool) Result[CommunityRecord, string] {
 	record := Zero[CommunityRecord]()
 	query := self.DB.WithContext(ctx).Table("communities").Where("id = ?", id)
 	locking := clause.Locking{Strength: "UPDATE", Table: Zero[clause.Table](), Options: ""}
@@ -254,16 +299,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = query.Clauses(expression)
 	} else {
 		__mygo_expr_0 = query
- /*line zz_community_access.gen.go:257:1*/	}
- /*line community_access.mygo:92:1*/	scoped := __mygo_expr_0
+ /*line zz_community_access.gen.go:302:1*/	}
+ /*line community_access.mygo:103:1*/	scoped := __mygo_expr_0
 	found := scoped.Limit(1).Find(&record)
- /*line community_access.mygo:334:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line community_access.mygo:335:14*/		return Err[CommunityRecord, string]("community unavailable")
- /*line community_access.mygo:334:5*/	} else {
- /*line zz_community_access.gen.go:263:1*/	}
- /*line community_access.mygo:337:5*/	if found.RowsAffected != int64(1) {
- /*line community_access.mygo:338:14*/		return Err[CommunityRecord, string]("not found")
+ /*line community_access.mygo:337:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
+ /*line community_access.mygo:338:14*/		return Err[CommunityRecord, string]("community unavailable")
  /*line community_access.mygo:337:5*/	} else {
- /*line zz_community_access.gen.go:267:1*/	}
- /*line community_access.mygo:340:5*/	return Ok[CommunityRecord, string](record)
- /*line zz_community_access.gen.go:269:1*/}
+ /*line zz_community_access.gen.go:308:1*/	}
+ /*line community_access.mygo:340:5*/	if found.RowsAffected != int64(1) {
+ /*line community_access.mygo:341:14*/		return Err[CommunityRecord, string]("not found")
+ /*line community_access.mygo:340:5*/	} else {
+ /*line zz_community_access.gen.go:312:1*/	}
+ /*line community_access.mygo:343:5*/	return Ok[CommunityRecord, string](record)
+ /*line zz_community_access.gen.go:314:1*/}

@@ -25,19 +25,20 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mentions.mygo:28:3*/	return text.Segment{Start: -1, Stop: -1}
  /*line zz_mentions.gen.go:26:1*/}
  /*line mentions.mygo:39:1*/func ExtractMentionCandidates(source string, format string) Result[[]MentionCandidate, string] {
- /*line mentions.mygo:40:3*/	if format != "markdown" && format != "legacy" && format != "text" && format != "html" {
- /*line mentions.mygo:41:12*/		return Err[[]MentionCandidate, string]("unsupported content format")
- /*line mentions.mygo:40:3*/	} else {
- /*line zz_mentions.gen.go:31:1*/	}
- /*line mentions.mygo:43:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
- /*line mentions.mygo:44:12*/		return Err[[]MentionCandidate, string]("content exceeds 1 MiB")
- /*line mentions.mygo:43:3*/	} else {
- /*line zz_mentions.gen.go:35:1*/	}
+	parsed := MygoIN13ContentFormatM5Parse(format)
+ /*line mentions.mygo:41:3*/	if MygoIN6ResultM5IsErr[ContentFormat, string](parsed) {
+ /*line mentions.mygo:42:12*/		return Err[[]MentionCandidate, string]("unsupported content format")
+ /*line mentions.mygo:41:3*/	} else {
+ /*line zz_mentions.gen.go:32:1*/	}
+ /*line mentions.mygo:44:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
+ /*line mentions.mygo:45:12*/		return Err[[]MentionCandidate, string]("content exceeds 1 MiB")
+ /*line mentions.mygo:44:3*/	} else {
+ /*line zz_mentions.gen.go:36:1*/	}
  /*line mentions.mygo:39:1*/	var candidates []MentionCandidate = []MentionCandidate{}
- /*line mentions.mygo:47:3*/	if format != "markdown" {
- /*line mentions.mygo:48:12*/		return Ok[[]MentionCandidate, string](candidates)
- /*line mentions.mygo:47:3*/	} else {
- /*line zz_mentions.gen.go:40:1*/	}
+ /*line mentions.mygo:48:3*/	if !MygoIN13ContentFormatM10IsMarkdown(MygoIN6ResultM6Unwrap[ContentFormat, string](parsed)) {
+ /*line mentions.mygo:49:12*/		return Ok[[]MentionCandidate, string](candidates)
+ /*line mentions.mygo:48:3*/	} else {
+ /*line zz_mentions.gen.go:41:1*/	}
  /*line mentions.mygo:39:1*/	input := []byte(source)
 	root := goldmark.New().Parser().Parse(text.NewReader(input))
 	node := root.FirstChild()
@@ -46,7 +47,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		excluded := kind == ast.KindCodeSpan || kind == ast.KindCodeBlock || kind == ast.KindFencedCodeBlock || kind == ast.KindLink || kind == ast.KindImage || kind == ast.KindAutoLink || kind == ast.KindRawHTML || kind == ast.KindHTMLBlock
 		if !excluded {
 			segment := MentionTextSegment(node)
- /*line mentions.mygo:58:7*/			if segment.Start >= 0 {
+ /*line mentions.mygo:59:7*/			if segment.Start >= 0 {
 				sibling := node.NextSibling()
 				merging := true
 				for !MentionNodeMissing(sibling) && merging {
@@ -57,53 +58,53 @@ import . "github.com/mygo-lang/mygo/prelude"
 						sibling = sibling.NextSibling()
 					} else {
 						merging = false
- /*line zz_mentions.gen.go:60:1*/					}
+ /*line zz_mentions.gen.go:61:1*/					}
 				}
- /*line mentions.mygo:58:7*/				candidates = ScanMentionSegment(input, segment.Start, segment.Stop, candidates)
+ /*line mentions.mygo:59:7*/				candidates = ScanMentionSegment(input, segment.Start, segment.Stop, candidates)
 				if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(candidates) > 64 {
- /*line mentions.mygo:76:18*/					return Err[[]MentionCandidate, string]("more than 64 mention candidates")
- /*line mentions.mygo:58:7*/				} else {
- /*line zz_mentions.gen.go:66:1*/				}
- /*line mentions.mygo:58:7*/			} else {
- /*line zz_mentions.gen.go:68:1*/			}
+ /*line mentions.mygo:77:18*/					return Err[[]MentionCandidate, string]("more than 64 mention candidates")
+ /*line mentions.mygo:59:7*/				} else {
+ /*line zz_mentions.gen.go:67:1*/				}
+ /*line mentions.mygo:59:7*/			} else {
+ /*line zz_mentions.gen.go:69:1*/			}
  /*line mentions.mygo:39:1*/			if !MentionNodeMissing(node.FirstChild()) {
 				node = node.FirstChild()
 				continue
 			} else {
- /*line zz_mentions.gen.go:73:1*/			}
+ /*line zz_mentions.gen.go:74:1*/			}
  /*line mentions.mygo:39:1*/		} else {
- /*line zz_mentions.gen.go:75:1*/		}
+ /*line zz_mentions.gen.go:76:1*/		}
  /*line mentions.mygo:39:1*/		for MentionNodeMissing(node.NextSibling()) && node != root {
 			node = node.Parent()
- /*line zz_mentions.gen.go:78:1*/		}
+ /*line zz_mentions.gen.go:79:1*/		}
  /*line mentions.mygo:39:1*/		if node == root {
- /*line mentions.mygo:88:14*/			return Ok[[]MentionCandidate, string](candidates)
+ /*line mentions.mygo:89:14*/			return Ok[[]MentionCandidate, string](candidates)
  /*line mentions.mygo:39:1*/		} else {
- /*line zz_mentions.gen.go:82:1*/		}
+ /*line zz_mentions.gen.go:83:1*/		}
  /*line mentions.mygo:39:1*/		node = node.NextSibling()
- /*line zz_mentions.gen.go:84:1*/	}
- /*line mentions.mygo:92:3*/	return Ok[[]MentionCandidate, string](candidates)
- /*line zz_mentions.gen.go:86:1*/}
- /*line mentions.mygo:95:1*/func MentionByte(source []byte, index int) int {
- /*line mentions.mygo:96:3*/	return int(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(source, index), byte(0)))
- /*line zz_mentions.gen.go:89:1*/}
- /*line mentions.mygo:99:1*/func MentionNameByte(code int) bool {
- /*line mentions.mygo:100:3*/	return code >= 65 && code <= 90 || code >= 97 && code <= 122 || code >= 48 && code <= 57 || code == 95 || code == 45
- /*line zz_mentions.gen.go:92:1*/}
- /*line mentions.mygo:103:1*/func MentionDomainByte(code int) bool {
- /*line mentions.mygo:104:3*/	return MentionNameByte(code) || code == 46
- /*line zz_mentions.gen.go:95:1*/}
- /*line mentions.mygo:107:1*/func MentionDomainValid(domain string) bool {
- /*line mentions.mygo:108:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(domain)) > 253 || !strings.Contains(domain, ".") {
- /*line mentions.mygo:109:12*/		return false
- /*line mentions.mygo:108:3*/	} else {
- /*line zz_mentions.gen.go:100:1*/	}
- /*line mentions.mygo:111:3*/	return MygoIN5SliceM3All(strings.Split(domain, "."), func(label string) bool {
- /*line mentions.mygo:111:34*/		size := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(label))
- /*line mentions.mygo:113:5*/		return size > 0 && size <= 63 && !strings.HasPrefix(label, "-") && !strings.HasSuffix(label, "-") && !strings.Contains(label, "_")
- /*line zz_mentions.gen.go:104:1*/	})
+ /*line zz_mentions.gen.go:85:1*/	}
+ /*line mentions.mygo:93:3*/	return Ok[[]MentionCandidate, string](candidates)
+ /*line zz_mentions.gen.go:87:1*/}
+ /*line mentions.mygo:96:1*/func MentionByte(source []byte, index int) int {
+ /*line mentions.mygo:97:3*/	return int(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(source, index), byte(0)))
+ /*line zz_mentions.gen.go:90:1*/}
+ /*line mentions.mygo:100:1*/func MentionNameByte(code int) bool {
+ /*line mentions.mygo:101:3*/	return code >= 65 && code <= 90 || code >= 97 && code <= 122 || code >= 48 && code <= 57 || code == 95 || code == 45
+ /*line zz_mentions.gen.go:93:1*/}
+ /*line mentions.mygo:104:1*/func MentionDomainByte(code int) bool {
+ /*line mentions.mygo:105:3*/	return MentionNameByte(code) || code == 46
+ /*line zz_mentions.gen.go:96:1*/}
+ /*line mentions.mygo:108:1*/func MentionDomainValid(domain string) bool {
+ /*line mentions.mygo:109:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(domain)) > 253 || !strings.Contains(domain, ".") {
+ /*line mentions.mygo:110:12*/		return false
+ /*line mentions.mygo:109:3*/	} else {
+ /*line zz_mentions.gen.go:101:1*/	}
+ /*line mentions.mygo:112:3*/	return MygoIN5SliceM3All(strings.Split(domain, "."), func(label string) bool {
+ /*line mentions.mygo:112:34*/		size := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(label))
+ /*line mentions.mygo:114:5*/		return size > 0 && size <= 63 && !strings.HasPrefix(label, "-") && !strings.HasSuffix(label, "-") && !strings.Contains(label, "_")
+ /*line zz_mentions.gen.go:105:1*/	})
 }
- /*line mentions.mygo:117:1*/func ScanMentionSegment(input []byte, start int, stop int, previous []MentionCandidate) []MentionCandidate {
+ /*line mentions.mygo:118:1*/func ScanMentionSegment(input []byte, start int, stop int, previous []MentionCandidate) []MentionCandidate {
 	found := previous
 	index := start
 	for index < stop && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(found) <= 64 {
@@ -111,26 +112,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 			index = index + 1
 			continue
 		} else {
- /*line zz_mentions.gen.go:114:1*/		}
- /*line mentions.mygo:117:1*/		before := MentionByte(input, index-1)
+ /*line zz_mentions.gen.go:115:1*/		}
+ /*line mentions.mygo:118:1*/		before := MentionByte(input, index-1)
 		back := index - 1
 		escaped := false
 		for back >= 0 && MentionByte(input, back) == 92 {
 			escaped = !escaped
 			back = back - 1
- /*line zz_mentions.gen.go:121:1*/		}
- /*line mentions.mygo:117:1*/		if MentionNameByte(before) || before == 46 || before == 64 || before == 47 || before == 58 || before == 43 || before == 37 || escaped {
+ /*line zz_mentions.gen.go:122:1*/		}
+ /*line mentions.mygo:118:1*/		if MentionNameByte(before) || before == 46 || before == 64 || before == 47 || before == 58 || before == 43 || before == 37 || escaped {
 			index = index + 1
 			continue
 		} else {
- /*line zz_mentions.gen.go:126:1*/		}
- /*line mentions.mygo:117:1*/		begin := index
+ /*line zz_mentions.gen.go:127:1*/		}
+ /*line mentions.mygo:118:1*/		begin := index
 		index = index + 1
 		nameStart := index
 		for index < stop && MentionNameByte(MentionByte(input, index)) {
 			index = index + 1
- /*line zz_mentions.gen.go:132:1*/		}
- /*line mentions.mygo:117:1*/		name := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice(input, nameStart, index), []byte{}))
+ /*line zz_mentions.gen.go:133:1*/		}
+ /*line mentions.mygo:118:1*/		name := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice(input, nameStart, index), []byte{}))
 		domain := ""
 		valid := name != "" && index-nameStart <= 64
 		if index < stop && MentionByte(input, index) == 64 {
@@ -138,11 +139,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 			domainStart := index
 			for index < stop && MentionDomainByte(MentionByte(input, index)) {
 				index = index + 1
- /*line zz_mentions.gen.go:141:1*/			}
- /*line mentions.mygo:117:1*/			for index > domainStart && MentionByte(input, index-1) == 46 {
+ /*line zz_mentions.gen.go:142:1*/			}
+ /*line mentions.mygo:118:1*/			for index > domainStart && MentionByte(input, index-1) == 46 {
 				index = index - 1
- /*line zz_mentions.gen.go:144:1*/			}
- /*line mentions.mygo:117:1*/			domain = string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice(input, domainStart, index), []byte{}))
+ /*line zz_mentions.gen.go:145:1*/			}
+ /*line mentions.mygo:118:1*/			domain = string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice(input, domainStart, index), []byte{}))
 			valid = valid && MentionDomainValid(domain)
 			if index < stop && MentionByte(input, index) == 58 {
 				index = index + 1
@@ -152,23 +153,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 					if portNumber <= 65535 {
 						portNumber = portNumber*10 + MentionByte(input, index) - 48
 					} else {
- /*line zz_mentions.gen.go:155:1*/					}
- /*line mentions.mygo:117:1*/					index = index + 1
- /*line zz_mentions.gen.go:157:1*/				}
- /*line mentions.mygo:117:1*/				valid = valid && index > portStart && portNumber > 0 && portNumber <= 65535
+ /*line zz_mentions.gen.go:156:1*/					}
+ /*line mentions.mygo:118:1*/					index = index + 1
+ /*line zz_mentions.gen.go:158:1*/				}
+ /*line mentions.mygo:118:1*/				valid = valid && index > portStart && portNumber > 0 && portNumber <= 65535
 				domain = string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice(input, domainStart, index), []byte{}))
 			} else {
- /*line zz_mentions.gen.go:161:1*/			}
- /*line mentions.mygo:117:1*/		} else {
- /*line zz_mentions.gen.go:163:1*/		}
- /*line mentions.mygo:117:1*/		if MentionByte(input, index) == 64 || MentionByte(input, index) == 92 {
+ /*line zz_mentions.gen.go:162:1*/			}
+ /*line mentions.mygo:118:1*/		} else {
+ /*line zz_mentions.gen.go:164:1*/		}
+ /*line mentions.mygo:118:1*/		if MentionByte(input, index) == 64 || MentionByte(input, index) == 92 {
 			valid = false
 		} else {
- /*line zz_mentions.gen.go:167:1*/		}
- /*line mentions.mygo:117:1*/		if valid {
+ /*line zz_mentions.gen.go:168:1*/		}
+ /*line mentions.mygo:118:1*/		if valid {
 			found = MygoIN5SliceM6Append(found, MentionCandidate{Username: name, Domain: strings.ToLower(domain), Start: begin, End: index})
 		} else {
- /*line zz_mentions.gen.go:171:1*/		}
+ /*line zz_mentions.gen.go:172:1*/		}
 	}
- /*line mentions.mygo:180:3*/	return found
- /*line zz_mentions.gen.go:174:1*/}
+ /*line mentions.mygo:181:3*/	return found
+ /*line zz_mentions.gen.go:175:1*/}

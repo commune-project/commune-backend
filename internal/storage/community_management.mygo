@@ -67,8 +67,11 @@ impl CommunityRepository
 
   func SetPolicy(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, read: String, post: String) -> Result[(), String]
     self.Manage(ctx, id, identity, remoteVerified, "set-policy", id, func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
-      let policy = auth.CommunityPolicy{HostSiteID: community.HostSiteID, FederationMode: community.FederationMode, ReadPolicy: read, PostPolicy: post}
-      if !policy.Valid() then
+      let policyResult = auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
+      if policyResult.IsErr() then
+        return Err("invalid access policy")
+      end
+      if !policyResult.Unwrap().Valid() then
         return Err("invalid access policy")
       end
       MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))
@@ -77,13 +80,17 @@ impl CommunityRepository
 
   func SetPolicyAll(self: CommunityRepository, ctx: context.Context, id: String, identity: auth.Identity, remoteVerified: Bool, read: String, post: String, follow: String) -> Result[(), String]
     self.Manage(ctx, id, identity, remoteVerified, "set-policy", id, func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
-      let policy = auth.CommunityPolicy{HostSiteID: community.HostSiteID, FederationMode: community.FederationMode, ReadPolicy: read, PostPolicy: post}
+      let policyResult = auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
       let currentFollow = LoadCommunityFollowRule(ctx, tx, id)
       if currentFollow.IsErr() then
         return Err(currentFollow.UnwrapErr())
       end
       let followPolicy = if follow == "" then currentFollow.Unwrap() else follow end
-      if !policy.Valid() || (followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled") then
+      if policyResult.IsErr() then
+        return Err("invalid access policy")
+      end
+      if !policyResult.Unwrap().Valid() ||
+        (followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled") then
         return Err("invalid access policy")
       end
       if MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID)).IsErr() then

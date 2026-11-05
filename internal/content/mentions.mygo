@@ -37,14 +37,15 @@ end
 # Markdown syntax only: no discovery, URL fetch, linking, or remote HTML parsing.
 # Explicit errors avoid silently returning incomplete candidates to a resolver.
 func ExtractMentionCandidates(source: String, format: String) -> Result[Slice[MentionCandidate], String]
-  if format != "markdown" && format != "legacy" && format != "text" && format != "html" then
+  let parsed = ContentFormat.Parse(format)
+  if parsed.IsErr() then
     return Err("unsupported content format")
   end
   if (source as Slice[Byte]).Len() > 1048576 then
     return Err("content exceeds 1 MiB")
   end
   var candidates: Slice[MentionCandidate] = []
-  if format != "markdown" then
+  if !parsed.Unwrap().IsMarkdown() then
     return Ok(candidates)
   end
   let input = source as Slice[Byte]

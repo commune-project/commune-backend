@@ -1,0 +1,64 @@
+package content
+
+# Content formats live as strings in requests, storage, and federation payloads.
+# This ADT is the in-process view: parse once at the boundary, then match.
+enum ContentFormat
+  Markdown
+  Legacy
+  Text
+  HTML
+end
+
+impl ContentFormat
+  func Parse(raw: String) -> Result[ContentFormat, String]
+    switch raw
+      case "markdown" => Ok(ContentFormat.Markdown)
+      case "legacy" => Ok(ContentFormat.Legacy)
+      case "text" => Ok(ContentFormat.Text)
+      case "html" => Ok(ContentFormat.HTML)
+      case _ => Err("unsupported content format")
+    end
+  end
+  func Render(self: ContentFormat) -> String
+    switch self
+      case Markdown => "markdown"
+      case Legacy => "legacy"
+      case Text => "text"
+      case HTML => "html"
+    end
+  end
+  func IsMarkdown(self: ContentFormat) -> Bool
+    switch self
+      case Markdown => true
+      case _ => false
+    end
+  end
+  func IsPlainText(self: ContentFormat) -> Bool
+    switch self
+      case Legacy => true
+      case Text => true
+      case _ => false
+    end
+  end
+end
+
+enum ObjectType
+  Page
+  Note
+end
+
+impl ObjectType
+  func Parse(raw: String) -> Result[ObjectType, String]
+    switch raw
+      case "Page" => Ok(ObjectType.Page)
+      case "Note" => Ok(ObjectType.Note)
+      case _ => Err("unsupported object type")
+    end
+  end
+  func Render(self: ObjectType) -> String
+    switch self
+      case Page => "Page"
+      case Note => "Note"
+    end
+  end
+end

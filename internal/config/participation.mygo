@@ -8,6 +8,7 @@ import os "go:os"
 import regexp "go:regexp"
 import strings "go:strings"
 import content "github.com/commune-project/commune-backend/internal/content"
+import functional "github.com/commune-project/commune-backend/internal/functional"
 
 struct Registration
   OutboxSecret: String `json:"outbox_secret"`
@@ -141,61 +142,66 @@ end
 
 func ValidMarkupAttribute(name: String) -> Bool
   let lower = strings.ToLower(name)
-  lower != "style" && lower != "srcset" && !strings.HasPrefix(lower, "on") && attributeNamePattern.MatchString(lower)
+  lower != "style" &&
+    lower != "srcset" &&
+    !strings.HasPrefix(lower, "on") &&
+    attributeNamePattern.MatchString(lower)
 end
 
 func BuildRendering(rendering: Rendering) -> Result[Rendering, String]
-  let hardWraps = OptionalBool(rendering.Markdown.HardWraps, true)
-  if hardWraps.IsErr() then
-    return Err("rendering.markdown.hard_wraps must be a boolean")
+  let flags: Slice[Result[Bool, String]] = [
+    OptionalBool(rendering.Markdown.HardWraps, true).MapErr(func(_: String) -> String
+      "rendering.markdown.hard_wraps must be a boolean"
+    end),
+    OptionalBool(rendering.Markdown.AllowRawHTML, false).MapErr(func(_: String) -> String
+      "rendering.markdown.allow_raw_html must be a boolean"
+    end),
+    OptionalBool(rendering.Sanitize.AllowRelativeURLs, true).MapErr(func(_: String) -> String
+      "rendering.sanitize.allow_relative_urls must be a boolean"
+    end),
+  ]
+  let parsed = functional.Sequence(flags)
+  if parsed.IsErr() then
+    return Err(parsed.UnwrapErr())
   end
-  let rawHTML = OptionalBool(rendering.Markdown.AllowRawHTML, false)
-  if rawHTML.IsErr() then
-    return Err("rendering.markdown.allow_raw_html must be a boolean")
-  end
-  let relative = OptionalBool(rendering.Sanitize.AllowRelativeURLs, true)
-  if relative.IsErr() then
-    return Err("rendering.sanitize.allow_relative_urls must be a boolean")
-  end
-  let elements = rendering.Sanitize.Elements
-  var invalid = false
-  elements.Each(func(name: String) -> ()
-    if !tagNamePattern.MatchString(name) || BlockedMarkupElement(name) then
-      invalid = true
-    end
-  end)
-  rendering.Sanitize.Attributes.Each(func(item: SanitizeAttribute) -> ()
-    if !elements.Contains(item.Element) || item.Names.Len() == 0 then
-      invalid = true
-    end
-    item.Names.Each(func(name: String) -> ()
-      if !ValidMarkupAttribute(name) then
-        invalid = true
-      end
-    end)
-  end)
-  rendering.Sanitize.URLSchemes.Each(func(scheme: String) -> ()
-    let lower = strings.ToLower(scheme)
-    if lower != "http" && lower != "https" && lower != "mailto" && lower != "tel" then
-      invalid = true
-    end
-  end)
-  if invalid then
+  let values = parsed.Unwrap()
+  let hardWraps = values.Get(0).UnwrapOr(true)
+  let rawHTML = values.Get(1).UnwrapOr(false)
+  let relative = values.Get(2).UnwrapOr(true)
+  if !RenderingAllowlistValid(rendering.Sanitize) then
     return Err("rendering sanitize allowlist is invalid")
   end
   let attributes = rendering.Sanitize.Attributes.Map(func(item: SanitizeAttribute) -> content.SanitizerAttribute
-    content.SanitizerAttribute{Element: item.Element, Names: item.Names}
+    content.SanitizerAttribute { Element: item.Element, Names: item.Names }
   end)
   var output = rendering
   output.Sanitizer = content.NewSanitizer(content.SanitizerConfig{
-    HardWraps: hardWraps.Unwrap(),
-    AllowRawHTML: rawHTML.Unwrap(),
-    Elements: elements,
+    HardWraps: hardWraps,
+    AllowRawHTML: rawHTML,
+    Elements: rendering.Sanitize.Elements,
     Attributes: attributes,
     URLSchemes: rendering.Sanitize.URLSchemes,
-    AllowRelativeURLs: relative.Unwrap(),
+    AllowRelativeURLs: relative,
   })
   Ok(output)
+end
+
+func RenderingAllowlistValid(sanitize: Sanitize) -> Bool
+  let elementsClean = sanitize.Elements.All(func(name: String) -> Bool
+    tagNamePattern.MatchString(name) && !BlockedMarkupElement(name)
+  end)
+  let attributesClean = sanitize.Attributes.All(func(item: SanitizeAttribute) -> Bool
+    sanitize.Elements.Contains(item.Element) &&
+      item.Names.Len() > 0 &&
+      item.Names.All(func(name: String) -> Bool
+        ValidMarkupAttribute(name)
+      end)
+  end)
+  let schemesClean = sanitize.URLSchemes.All(func(scheme: String) -> Bool
+    let lower = strings.ToLower(scheme)
+    lower == "http" || lower == "https" || lower == "mailto" || lower == "tel"
+  end)
+  elementsClean && attributesClean && schemesClean
 end
 
 struct ParticipationWorkers
@@ -212,122 +218,124 @@ struct ParticipationWorkers
   RetryMaxSeconds: Int `json:"retry_max_seconds"`
 end
 
+func OrDefault(value: Int, fallback: Int) -> Int
+  if value == 0 then
+    fallback
+  else
+    value
+  end
+end
+
+func RegistrationDefaults(value: Registration) -> Registration
+  Registration {
+    OutboxSecret: value.OutboxSecret,
+    OutboxSecretEnv: value.OutboxSecretEnv,
+    TokenTTLSeconds: OrDefault(value.TokenTTLSeconds, 86400),
+    RateWindowSeconds: OrDefault(value.RateWindowSeconds, 3600),
+    IPLimit: OrDefault(value.IPLimit, 20),
+    EmailLimit: OrDefault(value.EmailLimit, 3),
+  }
+end
+
+func SMTPDefaults(value: SMTP) -> SMTP
+  SMTP {
+    Host: value.Host,
+    Username: value.Username,
+    Password: value.Password,
+    From: value.From,
+    TLSMode: if value.TLSMode == "" => "starttls" else value.TLSMode,
+    Port: OrDefault(value.Port, 587),
+    TimeoutSeconds: OrDefault(value.TimeoutSeconds, 10),
+  }
+end
+
+func MediaDefaults(value: Media) -> Media
+  Media {
+    Enabled: value.Enabled,
+    Root: value.Root,
+    MaxFileBytes: OrDefault(value.MaxFileBytes, 26214400),
+    MaxImageBytes: OrDefault(value.MaxImageBytes, 10485760),
+    MaxImagePixels: OrDefault(value.MaxImagePixels, 20000000),
+    MaxImageDimension: OrDefault(value.MaxImageDimension, 16384),
+    PreviewDimension: OrDefault(value.PreviewDimension, 1024),
+    AccountQuotaBytes: OrDefault(value.AccountQuotaBytes, 1073741824),
+    SiteQuotaBytes: OrDefault(value.SiteQuotaBytes, 10737418240),
+    TemporaryRetentionSeconds: OrDefault(value.TemporaryRetentionSeconds, 86400),
+    PrivateCacheRetentionSeconds: OrDefault(value.PrivateCacheRetentionSeconds, 604800),
+    CleanupIntervalSeconds: OrDefault(value.CleanupIntervalSeconds, 3600),
+  }
+end
+
+func RenderingDefaults(value: Rendering) -> Rendering
+  Rendering {
+    MaxSourceBytes: OrDefault(value.MaxSourceBytes, 1048576),
+    MaxDisplayNameLength: OrDefault(value.MaxDisplayNameLength, 100),
+    MaxBiographyLength: OrDefault(value.MaxBiographyLength, 5000),
+    MaxMentions: OrDefault(value.MaxMentions, 20),
+    MaxRemoteDiscoveries: OrDefault(value.MaxRemoteDiscoveries, 10),
+    MentionTimeoutSeconds: OrDefault(value.MentionTimeoutSeconds, 10),
+    Markdown: value.Markdown,
+    Sanitize: SanitizeDefaults(value.Sanitize),
+    Sanitizer: value.Sanitizer,
+  }
+end
+
+func SanitizeDefaults(value: Sanitize) -> Sanitize
+  let defaults = content.DefaultSanitizerConfig
+  let elements = if OptionalSliceMissing(value.Elements) then
+    defaults.Elements
+  else
+    value.Elements
+  end
+  let attributes = if OptionalSliceMissing(value.Attributes) then
+    defaults.Attributes.Map(func(item: content.SanitizerAttribute) -> SanitizeAttribute
+      SanitizeAttribute{Element: item.Element, Names: item.Names}
+    end)
+  else
+    value.Attributes
+  end
+  let schemes = if OptionalSliceMissing(value.URLSchemes) then
+    defaults.URLSchemes
+  else
+    value.URLSchemes
+  end
+  Sanitize {
+    Elements: elements,
+    Attributes: attributes,
+    URLSchemes: schemes,
+    AllowRelativeURLs: value.AllowRelativeURLs,
+  }
+end
+
+func WorkerDefaults(value: ParticipationWorkers) -> ParticipationWorkers
+  ParticipationWorkers {
+    Enabled: value.Enabled,
+    MailWorkers: OrDefault(value.MailWorkers, 1),
+    NotificationWorkers: OrDefault(value.NotificationWorkers, 1),
+    MediaWorkers: OrDefault(value.MediaWorkers, 1),
+    ActorWorkers: OrDefault(value.ActorWorkers, 1),
+    BatchSize: OrDefault(value.BatchSize, 100),
+    PollIntervalSeconds: OrDefault(value.PollIntervalSeconds, 5),
+    LeaseSeconds: OrDefault(value.LeaseSeconds, 60),
+    MaxAttempts: OrDefault(value.MaxAttempts, 8),
+    RetryBaseSeconds: OrDefault(value.RetryBaseSeconds, 30),
+    RetryMaxSeconds: OrDefault(value.RetryMaxSeconds, 3600),
+  }
+end
+
 func ParticipationDefaults(input: Input) -> Input
-  var settings = input
-  if settings.Registration.TokenTTLSeconds == 0 then
-    settings.Registration.TokenTTLSeconds = 86400
-  end
-  if settings.Registration.RateWindowSeconds == 0 then
-    settings.Registration.RateWindowSeconds = 3600
-  end
-  if settings.Registration.IPLimit == 0 then
-    settings.Registration.IPLimit = 20
-  end
-  if settings.Registration.EmailLimit == 0 then
-    settings.Registration.EmailLimit = 3
-  end
-  if settings.SMTP.Port == 0 then
-    settings.SMTP.Port = 587
-  end
-  if settings.SMTP.TimeoutSeconds == 0 then
-    settings.SMTP.TimeoutSeconds = 10
-  end
-  if settings.Media.MaxFileBytes == 0 then
-    settings.Media.MaxFileBytes = 26214400
-  end
-  if settings.Media.MaxImageBytes == 0 then
-    settings.Media.MaxImageBytes = 10485760
-  end
-  if settings.Media.MaxImagePixels == 0 then
-    settings.Media.MaxImagePixels = 20000000
-  end
-  if settings.Media.MaxImageDimension == 0 then
-    settings.Media.MaxImageDimension = 16384
-  end
-  if settings.Media.PreviewDimension == 0 then
-    settings.Media.PreviewDimension = 1024
-  end
-  if settings.Media.AccountQuotaBytes == 0 then
-    settings.Media.AccountQuotaBytes = 1073741824
-  end
-  if settings.Media.SiteQuotaBytes == 0 then
-    settings.Media.SiteQuotaBytes = 10737418240
-  end
-  if settings.Media.TemporaryRetentionSeconds == 0 then
-    settings.Media.TemporaryRetentionSeconds = 86400
-  end
-  if settings.Media.PrivateCacheRetentionSeconds == 0 then
-    settings.Media.PrivateCacheRetentionSeconds = 604800
-  end
-  if settings.Media.CleanupIntervalSeconds == 0 then
-    settings.Media.CleanupIntervalSeconds = 3600
-  end
-  if settings.Rendering.MaxSourceBytes == 0 then
-    settings.Rendering.MaxSourceBytes = 1048576
-  end
-  if settings.Rendering.MaxDisplayNameLength == 0 then
-    settings.Rendering.MaxDisplayNameLength = 100
-  end
-  if settings.Rendering.MaxBiographyLength == 0 then
-    settings.Rendering.MaxBiographyLength = 5000
-  end
-  if settings.Rendering.MaxMentions == 0 then
-    settings.Rendering.MaxMentions = 20
-  end
-  if settings.Rendering.MaxRemoteDiscoveries == 0 then
-    settings.Rendering.MaxRemoteDiscoveries = 10
-  end
-  if settings.Rendering.MentionTimeoutSeconds == 0 then
-    settings.Rendering.MentionTimeoutSeconds = 10
-  end
-  if settings.ParticipationWorkers.MailWorkers == 0 then
-    settings.ParticipationWorkers.MailWorkers = 1
-  end
-  if settings.ParticipationWorkers.NotificationWorkers == 0 then
-    settings.ParticipationWorkers.NotificationWorkers = 1
-  end
-  if settings.ParticipationWorkers.MediaWorkers == 0 then
-    settings.ParticipationWorkers.MediaWorkers = 1
-  end
-  if settings.ParticipationWorkers.ActorWorkers == 0 then
-    settings.ParticipationWorkers.ActorWorkers = 1
-  end
-  if settings.ParticipationWorkers.BatchSize == 0 then
-    settings.ParticipationWorkers.BatchSize = 100
-  end
-  if settings.ParticipationWorkers.PollIntervalSeconds == 0 then
-    settings.ParticipationWorkers.PollIntervalSeconds = 5
-  end
-  if settings.ParticipationWorkers.LeaseSeconds == 0 then
-    settings.ParticipationWorkers.LeaseSeconds = 60
-  end
-  if settings.ParticipationWorkers.MaxAttempts == 0 then
-    settings.ParticipationWorkers.MaxAttempts = 8
-  end
-  if settings.ParticipationWorkers.RetryBaseSeconds == 0 then
-    settings.ParticipationWorkers.RetryBaseSeconds = 30
-  end
-  if settings.ParticipationWorkers.RetryMaxSeconds == 0 then
-    settings.ParticipationWorkers.RetryMaxSeconds = 3600
-  end
-  if settings.SMTP.TLSMode == "" then
-    settings.SMTP.TLSMode = "starttls"
-  end
-  let defaultRendering = content.DefaultSanitizerConfig
-  if OptionalSliceMissing(settings.Rendering.Sanitize.Elements) then
-    settings.Rendering.Sanitize.Elements = defaultRendering.Elements
-  end
-  if OptionalSliceMissing(settings.Rendering.Sanitize.Attributes) then
-    settings.Rendering.Sanitize.Attributes = defaultRendering.Attributes.Map(
-      func(item: content.SanitizerAttribute) -> SanitizeAttribute
-        SanitizeAttribute{Element: item.Element, Names: item.Names}
-      end
-    )
-  end
-  if OptionalSliceMissing(settings.Rendering.Sanitize.URLSchemes) then
-    settings.Rendering.Sanitize.URLSchemes = defaultRendering.URLSchemes
-  end
-  settings
+  Input{
+    Registration: RegistrationDefaults(input.Registration),
+    SMTP: SMTPDefaults(input.SMTP),
+    Media: MediaDefaults(input.Media),
+    Rendering: RenderingDefaults(input.Rendering),
+    ParticipationWorkers: WorkerDefaults(input.ParticipationWorkers),
+    Sites: input.Sites,
+    DatabaseURL: input.DatabaseURL,
+    TrustedProxies: input.TrustedProxies,
+    Runtime: input.Runtime,
+    Federation: input.Federation,
+  }
 end
 
 func ValidateParticipation(input: Input) -> Result[(), String]
@@ -370,10 +378,12 @@ func ValidateParticipation(input: Input) -> Result[(), String]
   if input.Media.SiteQuotaBytes < 1024 || input.Media.SiteQuotaBytes > 1099511627776 then
     return Err("media.site_quota_bytes is out of range")
   end
-  if input.Media.TemporaryRetentionSeconds < 60 || input.Media.TemporaryRetentionSeconds > 2592000 then
+  if input.Media.TemporaryRetentionSeconds < 60 ||
+    input.Media.TemporaryRetentionSeconds > 2592000 then
     return Err("media.temporary_retention_seconds is out of range")
   end
-  if input.Media.PrivateCacheRetentionSeconds < 60 || input.Media.PrivateCacheRetentionSeconds > 31536000 then
+  if input.Media.PrivateCacheRetentionSeconds < 60 ||
+    input.Media.PrivateCacheRetentionSeconds > 31536000 then
     return Err("media.private_cache_retention_seconds is out of range")
   end
   if input.Media.CleanupIntervalSeconds < 1 || input.Media.CleanupIntervalSeconds > 86400 then
@@ -400,45 +410,61 @@ func ValidateParticipation(input: Input) -> Result[(), String]
   if input.ParticipationWorkers.MailWorkers < 1 || input.ParticipationWorkers.MailWorkers > 32 then
     return Err("participation_workers.mail_workers is out of range")
   end
-  if input.ParticipationWorkers.NotificationWorkers < 1 || input.ParticipationWorkers.NotificationWorkers > 32 then
+  if input.ParticipationWorkers.NotificationWorkers < 1 ||
+    input.ParticipationWorkers.NotificationWorkers > 32 then
     return Err("participation_workers.notification_workers is out of range")
   end
-  if input.ParticipationWorkers.MediaWorkers < 1 || input.ParticipationWorkers.MediaWorkers > 32 then
+  if input.ParticipationWorkers.MediaWorkers < 1 ||
+    input.ParticipationWorkers.MediaWorkers > 32 then
     return Err("participation_workers.media_workers is out of range")
   end
-  if input.ParticipationWorkers.ActorWorkers < 1 || input.ParticipationWorkers.ActorWorkers > 32 then
+  if input.ParticipationWorkers.ActorWorkers < 1 ||
+    input.ParticipationWorkers.ActorWorkers > 32 then
     return Err("participation_workers.actor_workers is out of range")
   end
   if input.ParticipationWorkers.BatchSize < 1 || input.ParticipationWorkers.BatchSize > 1000 then
     return Err("participation_workers.batch_size is out of range")
   end
-  if input.ParticipationWorkers.PollIntervalSeconds < 1 || input.ParticipationWorkers.PollIntervalSeconds > 300 then
+  if input.ParticipationWorkers.PollIntervalSeconds < 1 ||
+    input.ParticipationWorkers.PollIntervalSeconds > 300 then
     return Err("participation_workers.poll_interval_seconds is out of range")
   end
-  if input.ParticipationWorkers.LeaseSeconds < 1 || input.ParticipationWorkers.LeaseSeconds > 3600 then
+  if input.ParticipationWorkers.LeaseSeconds < 1 ||
+    input.ParticipationWorkers.LeaseSeconds > 3600 then
     return Err("participation_workers.lease_seconds is out of range")
   end
   if input.ParticipationWorkers.MaxAttempts < 1 || input.ParticipationWorkers.MaxAttempts > 100 then
     return Err("participation_workers.max_attempts is out of range")
   end
-  if input.ParticipationWorkers.RetryBaseSeconds < 1 || input.ParticipationWorkers.RetryBaseSeconds > 3600 then
+  if input.ParticipationWorkers.RetryBaseSeconds < 1 ||
+    input.ParticipationWorkers.RetryBaseSeconds > 3600 then
     return Err("participation_workers.retry_base_seconds is out of range")
   end
-  if input.ParticipationWorkers.RetryMaxSeconds < 1 || input.ParticipationWorkers.RetryMaxSeconds > 86400 then
+  if input.ParticipationWorkers.RetryMaxSeconds < 1 ||
+    input.ParticipationWorkers.RetryMaxSeconds > 86400 then
     return Err("participation_workers.retry_max_seconds is out of range")
   end
-  if input.Media.MaxImageBytes > input.Media.MaxFileBytes || input.Media.AccountQuotaBytes < input.Media.MaxFileBytes || input.Media.SiteQuotaBytes < input.Media.AccountQuotaBytes || input.Media.PreviewDimension > input.Media.MaxImageDimension then
+  if input.Media.MaxImageBytes > input.Media.MaxFileBytes ||
+    input.Media.AccountQuotaBytes < input.Media.MaxFileBytes ||
+    input.Media.SiteQuotaBytes < input.Media.AccountQuotaBytes ||
+    input.Media.PreviewDimension > input.Media.MaxImageDimension then
     return Err("media limits are inconsistent")
   end
-  if input.ParticipationWorkers.RetryBaseSeconds > input.ParticipationWorkers.RetryMaxSeconds || input.ParticipationWorkers.LeaseSeconds <= input.SMTP.TimeoutSeconds then
+  if input.ParticipationWorkers.RetryBaseSeconds > input.ParticipationWorkers.RetryMaxSeconds ||
+    input.ParticipationWorkers.LeaseSeconds <= input.SMTP.TimeoutSeconds then
     return Err("worker retry or lease limits are inconsistent")
   end
   if input.Media.Root != "" || input.Media.Enabled then
-    if !filepath.IsAbs(input.Media.Root) || filepath.Clean(input.Media.Root) != input.Media.Root || input.Media.Root == "/" || strings.IndexByte(input.Media.Root, 0 as Byte) >= 0 then
+    if !filepath.IsAbs(input.Media.Root) ||
+      filepath.Clean(input.Media.Root) != input.Media.Root ||
+      input.Media.Root == "/" ||
+      strings.IndexByte(input.Media.Root, 0 as Byte) >= 0 then
       return Err("media root must be a clean absolute non-root path")
     end
   end
-  if input.SMTP.TLSMode != "starttls" && input.SMTP.TLSMode != "tls" && input.SMTP.TLSMode != "test" then
+  if input.SMTP.TLSMode != "starttls" &&
+    input.SMTP.TLSMode != "tls" &&
+    input.SMTP.TLSMode != "test" then
     return Err("invalid SMTP TLS mode")
   end
   if input.SMTP.TLSMode == "test" && (input.SMTP.Username != "" || input.SMTP.Password != "") then
@@ -460,7 +486,9 @@ func ValidateParticipation(input: Input) -> Result[(), String]
     end
   end
   if enabled then
-    if NormalizeAuthority(input.SMTP.Host).IsErr() || strings.Contains(input.SMTP.Host, ":") || mail.ParseAddress(input.SMTP.From).IsErr() then
+    if NormalizeAuthority(input.SMTP.Host).IsErr() ||
+      strings.Contains(input.SMTP.Host, ":") ||
+      mail.ParseAddress(input.SMTP.From).IsErr() then
       return Err("registration requires an SMTP host and valid sender")
     end
     if (input.SMTP.Username == "") != (input.SMTP.Password == "") then

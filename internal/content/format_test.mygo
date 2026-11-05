@@ -1,0 +1,47 @@
+package content
+
+import testing "go:testing"
+
+func TestContentFormatRoundTrip(t: Ref[testing.T]) -> ()
+  let formats: Slice[ContentFormat] = [
+    ContentFormat.Markdown,
+    ContentFormat.Legacy,
+    ContentFormat.Text,
+    ContentFormat.HTML,
+  ]
+  formats.Each(func(format: ContentFormat) -> ()
+    switch ContentFormat.Parse(format.Render())
+      case Err(_) => t.Fatalf("cannot parse %s", format.Render())
+      case Ok(parsed) then
+        if parsed.Render() != format.Render() then
+          t.Fatalf("%s round trip rendered as %s", format.Render(), parsed.Render())
+        end
+      end
+    end
+  end)
+  if ContentFormat.Parse("unknown").IsOk() then
+    t.Fatal("unknown format parsed")
+  end
+end
+
+func TestContentFormatPredicates(t: Ref[testing.T]) -> ()
+  if !ContentFormat.Markdown.IsMarkdown() || ContentFormat.HTML.IsMarkdown() then
+    t.Fatal("markdown predicate changed")
+  end
+  if !ContentFormat.Legacy.IsPlainText() || !ContentFormat.Text.IsPlainText() || ContentFormat.HTML.IsPlainText() then
+    t.Fatal("plain text predicate changed")
+  end
+end
+
+func TestObjectTypeRoundTrip(t: Ref[testing.T]) -> ()
+  if ObjectType.Parse("Page").Unwrap().Render() != "Page" then
+    t.Fatal("Page round trip changed")
+  end
+  if ObjectType.Parse("Note").Unwrap().Render() != "Note" then
+    t.Fatal("Note round trip changed")
+  end
+  if ObjectType.Parse("Article").IsOk() then
+    t.Fatal("unsupported object type parsed")
+  end
+end
+

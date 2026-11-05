@@ -49,7 +49,11 @@ func ProjectCommunityAccess(
       if administrator then
         scope = "site"
       else
-        if community.Policy().Eligible(subject) &&
+        let eligible = switch community.Policy()
+          case Err(_) => false
+          case Ok(policy) => policy.Eligible(subject)
+        end
+        if eligible &&
           (community.CreatorActorURI == subject.ActorURI || moderator) then
           scope = "community"
         end
@@ -64,28 +68,35 @@ func ProjectCommunityAccess(
 end
 
 impl CommunityRecord
-  func Policy(self: CommunityRecord) -> auth.CommunityPolicy
-    auth.CommunityPolicy{
-      HostSiteID: self.HostSiteID,
-      FederationMode: self.FederationMode,
-      ReadPolicy: self.ReadPolicy,
-      PostPolicy: self.PostPolicy,
-    }
+  func Policy(self: CommunityRecord) -> Result[auth.CommunityPolicy, String]
+    auth.NewCommunityPolicy(self.HostSiteID, self.FederationMode, self.ReadPolicy, self.PostPolicy)
   end
 end
 
 impl CommunityAccess
   func CanRead(self: CommunityAccess) -> Bool
-    self.Authority.Allows("manage-community") || self.Community.Policy().CanRead(self.Subject)
+    if self.Authority.Allows("manage-community") then
+      return true
+    end
+    switch self.Community.Policy()
+      case Err(_) => false
+      case Ok(policy) => policy.CanRead(self.Subject)
+    end
   end
   func CanPost(self: CommunityAccess) -> Bool
     # An administrative override is not ordinary membership or posting identity.
-    self.Community.Policy().CanPost(self.Subject)
+    switch self.Community.Policy()
+      case Err(_) => false
+      case Ok(policy) => policy.CanPost(self.Subject)
+    end
   end
   func CanEditBody(self: CommunityAccess, authorURI: String) -> Bool
-    self.Subject.Verified &&
-      self.Subject.ActorURI == authorURI &&
-      self.Community.Policy().CanRead(self.Subject)
+    switch self.Community.Policy()
+      case Err(_) => false
+      case Ok(policy) then
+        self.Subject.Verified && self.Subject.ActorURI == authorURI && policy.CanRead(self.Subject)
+      end
+    end
   end
 end
 
@@ -147,7 +158,7 @@ impl CommunityRepository
     if verified.IsErr() then
       return Err(verified.UnwrapErr())
     end
-    let site = SiteRepository{DB: self.DB, SiteID: self.SiteID}
+    let site = SiteRepository { DB: self.DB, SiteID: self.SiteID }
     let blocked = if verified.Unwrap() then
       site.IsBlocked(ctx, identity.ActorURI)
     else
@@ -164,17 +175,9 @@ impl CommunityRepository
     if member.IsErr() then
       return Err(member.UnwrapErr())
     end
-    let subject = auth.AccessSubject{
-      SiteID: if local then
-        identity.SiteID
-      else
-        ""
-      end,
-      AccountID: if local then
-        identity.AccountID
-      else
-        0i64
-      end,
+    let subject = auth.AccessSubject {
+      SiteID: if local => identity.SiteID else "",
+      AccountID: if local => identity.AccountID else 0i64,
       ActorURI: identity.ActorURI,
       Verified: verified.Unwrap(),
       Member: member.Unwrap(),

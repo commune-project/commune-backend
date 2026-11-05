@@ -102,7 +102,7 @@ func TestMediaImageBoundsAndOrdinaryDownloads(t: Ref[testing.T]) -> ()
   let ordinary: Slice[String] = ["<html><script>alert(1)</script></html>", "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>", "%PDF-1.7\nfile", "PK archive"]
   var index: Int = 0
   ordinary.Each(func(body: String) -> ()
-    let fileID = "abcdefghijklmnop" + strings.Repeat("x", index + 1)
+    let fileID = "abcdefghijklmnop" + "x".Repeat(index + 1)
     index = index + 1
     let _ = mediaFS.Stream(ctx, fileID, strings.NewReader(body) as io.Reader, 1048576i64).Unwrap()
     let checked = mediaFS.Inspect(fileID, "application/octet-stream", "post", settings).Unwrap()
@@ -129,3 +129,46 @@ func TestMediaRejectNamespaceAndRootSymlinks(t: Ref[testing.T]) -> ()
     t.Fatal("symlink root accepted")
   end
 end
+
+func TestMediaFileIDValidation(t: Ref[testing.T]) -> ()
+  if !MediaFileID("abcdefghijklmnop") then
+    t.Fatal("valid id rejected")
+  end
+  if MediaFileID("short") then
+    t.Fatal("short id accepted")
+  end
+  if MediaFileID("a".Repeat(129)) then
+    t.Fatal("long id accepted")
+  end
+  if !MediaFileID("a".Repeat(128)) then
+    t.Fatal("max length id rejected")
+  end
+  if MediaFileID("abcdefghijklmno/") then
+    t.Fatal("separator accepted")
+  end
+  if MediaFileID("abcdefghijklmno ") then
+    t.Fatal("space accepted")
+  end
+end
+
+func TestMediaSafeName(t: Ref[testing.T]) -> ()
+  if MediaSafeName("") != "download" then
+    t.Fatal("empty name accepted")
+  end
+  if MediaSafeName(".") != "download" || MediaSafeName("..") != "download" then
+    t.Fatal("dot name accepted")
+  end
+  if MediaSafeName("a/b\\c") != "a_b_c" then
+    t.Fatalf("separator sanitized as %s", MediaSafeName("a/b\\c"))
+  end
+  if MediaSafeName("a\tb") != "a_b" then
+    t.Fatal("control character survived")
+  end
+  if MediaSafeName("a".Repeat(181)) != "download" then
+    t.Fatal("overlong name accepted")
+  end
+  if MediaSafeName("a".Repeat(180)) != "a".Repeat(180) then
+    t.Fatal("max length name rejected")
+  end
+end
+

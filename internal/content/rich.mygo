@@ -27,7 +27,7 @@ struct Sanitizer
   Converter: goldmark.Markdown
 end
 
-let DefaultSanitizerConfig = SanitizerConfig{
+let DefaultSanitizerConfig = SanitizerConfig {
   HardWraps: true,
   AllowRawHTML: false,
   Elements: [
@@ -59,8 +59,8 @@ let DefaultSanitizerConfig = SanitizerConfig{
     "td",
   ],
   Attributes: [
-    SanitizerAttribute{Element: "a", Names: ["href", "title"]},
-    SanitizerAttribute{
+    SanitizerAttribute { Element: "a", Names: ["href", "title"] },
+    SanitizerAttribute {
       Element: "img",
       Names: ["src", "alt", "title", "referrerpolicy"],
     },
@@ -139,7 +139,7 @@ func NewSanitizer(config: SanitizerConfig) -> Sanitizer
     in policy = policy
     in schemes = config.URLSchemes
   }
-  Sanitizer{
+  Sanitizer {
     Policy: policy,
     Converter: BuildRichConverter(config.HardWraps, config.AllowRawHTML),
   }
@@ -152,30 +152,31 @@ impl Sanitizer
 end
 
 let DefaultSanitizer: Sanitizer = Sanitizer.Default()
-
 # Format strings are persisted by callers; unknown formats fail closed.
 func RenderRich(sanitizer: Sanitizer, source: String, format: String) -> Result[String, String]
   if (source as Slice[Byte]).Len() > 1048576 then
     return Err("content exceeds 1 MiB")
   end
-  if format == "legacy" || format == "text" then
-    return Ok(RenderText(source))
-  end
-  var rendered = source
-  if format == "markdown" then
-    let output = bytes.Buffer{}
-    # The configured converter enables GFM, optional hard wraps and raw HTML;
-    # the allowlist below remains the only executable-content boundary.
-    if sanitizer.Converter.Convert(source as Slice[Byte], Ref.new(output) as io.Writer).IsErr() then
-      return Err("Markdown rendering failed")
+  switch ContentFormat.Parse(format)
+    case Err(_) => Err("unsupported content format")
+    case Ok(kind) then
+      switch kind
+        case Legacy => Ok(RenderText(source))
+        case Text => Ok(RenderText(source))
+        case HTML => Ok(SanitizeRichHTML(sanitizer, source))
+        case Markdown then
+          let output = bytes.Buffer {}
+          # The configured converter enables GFM, optional hard wraps and raw HTML;
+          # the allowlist below remains the only executable-content boundary.
+          if sanitizer.Converter.Convert(source as Slice[Byte], Ref.new(output) as io.Writer).IsErr() then
+            Err("Markdown rendering failed")
+          else
+            Ok(SanitizeRichHTML(sanitizer, output.String()))
+          end
+        end
+      end
     end
-    rendered = output.String()
-  else
-    if format != "html" then
-      return Err("unsupported content format")
-    end
   end
-  Ok(SanitizeRichHTML(sanitizer, rendered))
 end
 
 # Search normalization follows the same interpretation as display, decodes HTML

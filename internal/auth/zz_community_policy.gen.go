@@ -2,6 +2,8 @@
 
 package auth
 
+import . "github.com/mygo-lang/mygo/prelude"
+
  /*line community_policy.mygo:3:1*/type AccessSubject struct {
 	SiteID    string
 	AccountID int64
@@ -9,34 +11,318 @@ package auth
 	Verified  bool
 	Member    bool
 	Blocked   bool
- /*line zz_community_policy.gen.go:12:1*/}
- /*line community_policy.mygo:12:1*/type CommunityPolicy struct {
-	HostSiteID     string
-	FederationMode string
-	ReadPolicy     string
-	PostPolicy     string
- /*line zz_community_policy.gen.go:18:1*/}
+ /*line zz_community_policy.gen.go:14:1*/}
+ /*line community_policy.mygo:12:1*/type FederationMode interface {
+	isFederationMode()
+ /*line zz_community_policy.gen.go:17:1*/}
+ /*line community_policy.mygo:12:1*/type FederationMode__LocalOnly struct {
+ /*line zz_community_policy.gen.go:19:1*/}
 
- /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM5Valid(self CommunityPolicy) bool {
- /*line community_policy.mygo:21:5*/	return (self.FederationMode == "local_only" || self.FederationMode == "federated") && (self.FederationMode != "local_only" || self.HostSiteID != "") && (self.ReadPolicy == "eligible_users" || self.ReadPolicy == "members") && (self.PostPolicy == "eligible_users" || self.PostPolicy == "members") && (self.ReadPolicy != "members" || self.PostPolicy == "members")
+ /*line community_policy.mygo:12:1*/func (FederationMode__LocalOnly) isFederationMode() {
  /*line zz_community_policy.gen.go:22:1*/}
- /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM16AllowsFederation(self CommunityPolicy) bool {
- /*line community_policy.mygo:25:5*/	return MygoIN15CommunityPolicyM5Valid(self) && self.FederationMode == "federated"
+ /*line community_policy.mygo:12:1*/func FederationMode__LocalOnly__Ctor() FederationMode {
+	return FederationMode__LocalOnly{}
  /*line zz_community_policy.gen.go:25:1*/}
- /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM8Eligible(self CommunityPolicy, subject AccessSubject) bool {
- /*line community_policy.mygo:29:5*/	return MygoIN15CommunityPolicyM5Valid(self) && !subject.Blocked && subject.Verified && subject.ActorURI != "" && (self.FederationMode == "federated" || subject.SiteID == self.HostSiteID && subject.AccountID > int64(0))
+
+ /*line community_policy.mygo:12:1*/type FederationMode__Federated struct {
  /*line zz_community_policy.gen.go:28:1*/}
- /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM7CanRead(self CommunityPolicy, subject AccessSubject) bool {
- /*line community_policy.mygo:33:5*/	if !MygoIN15CommunityPolicyM5Valid(self) || subject.Blocked {
- /*line community_policy.mygo:34:14*/		return false
- /*line community_policy.mygo:33:5*/	} else {
- /*line zz_community_policy.gen.go:33:1*/	}
- /*line community_policy.mygo:36:5*/	if self.FederationMode == "federated" && self.ReadPolicy == "eligible_users" {
- /*line community_policy.mygo:37:14*/		return true
- /*line community_policy.mygo:36:5*/	} else {
- /*line zz_community_policy.gen.go:37:1*/	}
- /*line community_policy.mygo:39:5*/	return MygoIN15CommunityPolicyM8Eligible(self, subject) && (self.ReadPolicy == "eligible_users" || subject.Member)
- /*line zz_community_policy.gen.go:39:1*/}
- /*line community_policy.mygo:19:1*/func MygoIN15CommunityPolicyM7CanPost(self CommunityPolicy, subject AccessSubject) bool {
- /*line community_policy.mygo:43:5*/	return MygoIN15CommunityPolicyM7CanRead(self, subject) && MygoIN15CommunityPolicyM8Eligible(self, subject) && (self.PostPolicy == "eligible_users" || subject.Member)
- /*line zz_community_policy.gen.go:42:1*/}
+
+ /*line community_policy.mygo:12:1*/func (FederationMode__Federated) isFederationMode() {
+ /*line zz_community_policy.gen.go:31:1*/}
+ /*line community_policy.mygo:12:1*/func FederationMode__Federated__Ctor() FederationMode {
+	return FederationMode__Federated{}
+ /*line zz_community_policy.gen.go:34:1*/}
+ /*line community_policy.mygo:17:1*/func MygoIN14FederationModeM5Parse(raw string) Result[FederationMode, string] {
+ /*line community_policy.mygo:19:5*/	var __mygo_expr_0 Result[FederationMode, string]
+	if raw == "local_only" {
+		__mygo_expr_0 = Ok[FederationMode, string](FederationMode__LocalOnly__Ctor())
+	} else {
+		if raw == "federated" {
+			__mygo_expr_0 = Ok[FederationMode, string](FederationMode__Federated__Ctor())
+		} else {
+			__mygo_expr_0 = Err[FederationMode, string]("invalid federation mode")
+ /*line zz_community_policy.gen.go:44:1*/		}
+	}
+ /*line community_policy.mygo:19:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:47:1*/}
+ /*line community_policy.mygo:17:1*/func MygoIN14FederationModeM6Render(self FederationMode) string {
+ /*line community_policy.mygo:26:5*/	var __mygo_expr_0 string
+	if _, ok := self.(FederationMode__LocalOnly); ok {
+		__mygo_expr_0 = "local_only"
+	} else {
+		if _, ok := self.(FederationMode__Federated); ok {
+			__mygo_expr_0 = "federated"
+		} else {
+ /*line zz_community_policy.gen.go:56:1*/		}
+	}
+ /*line community_policy.mygo:26:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:59:1*/}
+
+ /*line community_policy.mygo:33:1*/type ReadPolicy interface {
+	isReadPolicy()
+ /*line zz_community_policy.gen.go:63:1*/}
+ /*line community_policy.mygo:33:1*/type ReadPolicy__EligibleUsers struct {
+ /*line zz_community_policy.gen.go:65:1*/}
+
+ /*line community_policy.mygo:33:1*/func (ReadPolicy__EligibleUsers) isReadPolicy() {
+ /*line zz_community_policy.gen.go:68:1*/}
+ /*line community_policy.mygo:33:1*/func ReadPolicy__EligibleUsers__Ctor() ReadPolicy {
+	return ReadPolicy__EligibleUsers{}
+ /*line zz_community_policy.gen.go:71:1*/}
+
+ /*line community_policy.mygo:33:1*/type ReadPolicy__Members struct {
+ /*line zz_community_policy.gen.go:74:1*/}
+
+ /*line community_policy.mygo:33:1*/func (ReadPolicy__Members) isReadPolicy() {
+ /*line zz_community_policy.gen.go:77:1*/}
+ /*line community_policy.mygo:33:1*/func ReadPolicy__Members__Ctor() ReadPolicy {
+	return ReadPolicy__Members{}
+ /*line zz_community_policy.gen.go:80:1*/}
+ /*line community_policy.mygo:38:1*/func MygoIN10ReadPolicyM5Parse(raw string) Result[ReadPolicy, string] {
+ /*line community_policy.mygo:40:5*/	var __mygo_expr_0 Result[ReadPolicy, string]
+	if raw == "eligible_users" {
+		__mygo_expr_0 = Ok[ReadPolicy, string](ReadPolicy__EligibleUsers__Ctor())
+	} else {
+		if raw == "members" {
+			__mygo_expr_0 = Ok[ReadPolicy, string](ReadPolicy__Members__Ctor())
+		} else {
+			__mygo_expr_0 = Err[ReadPolicy, string]("invalid access policy")
+ /*line zz_community_policy.gen.go:90:1*/		}
+	}
+ /*line community_policy.mygo:40:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:93:1*/}
+ /*line community_policy.mygo:38:1*/func MygoIN10ReadPolicyM6Render(self ReadPolicy) string {
+ /*line community_policy.mygo:47:5*/	var __mygo_expr_0 string
+	if _, ok := self.(ReadPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = "eligible_users"
+	} else {
+		if _, ok := self.(ReadPolicy__Members); ok {
+			__mygo_expr_0 = "members"
+		} else {
+ /*line zz_community_policy.gen.go:102:1*/		}
+	}
+ /*line community_policy.mygo:47:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:105:1*/}
+ /*line community_policy.mygo:38:1*/func MygoIN10ReadPolicyM15IsEligibleUsers(self ReadPolicy) bool {
+ /*line community_policy.mygo:53:5*/	var __mygo_expr_0 bool
+	if _, ok := self.(ReadPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = true
+	} else {
+		if _, ok := self.(ReadPolicy__Members); ok {
+			__mygo_expr_0 = false
+		} else {
+ /*line zz_community_policy.gen.go:114:1*/		}
+	}
+ /*line community_policy.mygo:53:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:117:1*/}
+ /*line community_policy.mygo:38:1*/func MygoIN10ReadPolicyM6Allows(self ReadPolicy, subject AccessSubject) bool {
+ /*line community_policy.mygo:59:5*/	var __mygo_expr_0 bool
+	if _, ok := self.(ReadPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = true
+	} else {
+		if _, ok := self.(ReadPolicy__Members); ok {
+			__mygo_expr_0 = subject.Member
+		} else {
+ /*line zz_community_policy.gen.go:126:1*/		}
+	}
+ /*line community_policy.mygo:59:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:129:1*/}
+
+ /*line community_policy.mygo:66:1*/type PostPolicy interface {
+	isPostPolicy()
+ /*line zz_community_policy.gen.go:133:1*/}
+ /*line community_policy.mygo:66:1*/type PostPolicy__EligibleUsers struct {
+ /*line zz_community_policy.gen.go:135:1*/}
+
+ /*line community_policy.mygo:66:1*/func (PostPolicy__EligibleUsers) isPostPolicy() {
+ /*line zz_community_policy.gen.go:138:1*/}
+ /*line community_policy.mygo:66:1*/func PostPolicy__EligibleUsers__Ctor() PostPolicy {
+	return PostPolicy__EligibleUsers{}
+ /*line zz_community_policy.gen.go:141:1*/}
+
+ /*line community_policy.mygo:66:1*/type PostPolicy__Members struct {
+ /*line zz_community_policy.gen.go:144:1*/}
+
+ /*line community_policy.mygo:66:1*/func (PostPolicy__Members) isPostPolicy() {
+ /*line zz_community_policy.gen.go:147:1*/}
+ /*line community_policy.mygo:66:1*/func PostPolicy__Members__Ctor() PostPolicy {
+	return PostPolicy__Members{}
+ /*line zz_community_policy.gen.go:150:1*/}
+ /*line community_policy.mygo:71:1*/func MygoIN10PostPolicyM5Parse(raw string) Result[PostPolicy, string] {
+ /*line community_policy.mygo:73:5*/	var __mygo_expr_0 Result[PostPolicy, string]
+	if raw == "eligible_users" {
+		__mygo_expr_0 = Ok[PostPolicy, string](PostPolicy__EligibleUsers__Ctor())
+	} else {
+		if raw == "members" {
+			__mygo_expr_0 = Ok[PostPolicy, string](PostPolicy__Members__Ctor())
+		} else {
+			__mygo_expr_0 = Err[PostPolicy, string]("invalid access policy")
+ /*line zz_community_policy.gen.go:160:1*/		}
+	}
+ /*line community_policy.mygo:73:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:163:1*/}
+ /*line community_policy.mygo:71:1*/func MygoIN10PostPolicyM6Render(self PostPolicy) string {
+ /*line community_policy.mygo:80:5*/	var __mygo_expr_0 string
+	if _, ok := self.(PostPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = "eligible_users"
+	} else {
+		if _, ok := self.(PostPolicy__Members); ok {
+			__mygo_expr_0 = "members"
+		} else {
+ /*line zz_community_policy.gen.go:172:1*/		}
+	}
+ /*line community_policy.mygo:80:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:175:1*/}
+ /*line community_policy.mygo:71:1*/func MygoIN10PostPolicyM15IsEligibleUsers(self PostPolicy) bool {
+ /*line community_policy.mygo:86:5*/	var __mygo_expr_0 bool
+	if _, ok := self.(PostPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = true
+	} else {
+		if _, ok := self.(PostPolicy__Members); ok {
+			__mygo_expr_0 = false
+		} else {
+ /*line zz_community_policy.gen.go:184:1*/		}
+	}
+ /*line community_policy.mygo:86:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:187:1*/}
+ /*line community_policy.mygo:71:1*/func MygoIN10PostPolicyM6Allows(self PostPolicy, subject AccessSubject) bool {
+ /*line community_policy.mygo:92:5*/	var __mygo_expr_0 bool
+	if _, ok := self.(PostPolicy__EligibleUsers); ok {
+		__mygo_expr_0 = true
+	} else {
+		if _, ok := self.(PostPolicy__Members); ok {
+			__mygo_expr_0 = subject.Member
+		} else {
+ /*line zz_community_policy.gen.go:196:1*/		}
+	}
+ /*line community_policy.mygo:92:5*/	return __mygo_expr_0
+ /*line zz_community_policy.gen.go:199:1*/}
+
+ /*line community_policy.mygo:99:1*/type CommunityPolicy struct {
+	HostSiteID     string
+	FederationMode FederationMode
+	ReadPolicy     ReadPolicy
+	PostPolicy     PostPolicy
+ /*line zz_community_policy.gen.go:206:1*/}
+
+ /*line community_policy.mygo:107:1*/func NewCommunityPolicy(hostSiteID string, mode string, read string, post string) Result[CommunityPolicy, string] {
+ /*line community_policy.mygo:113:3*/	return MygoIN6ResultM7AndThen[FederationMode, string, CommunityPolicy](MygoIN14FederationModeM5Parse(mode), func(federation FederationMode) Result[CommunityPolicy, string] {
+ /*line community_policy.mygo:114:5*/		return MygoIN6ResultM7AndThen[ReadPolicy, string, CommunityPolicy](MygoIN10ReadPolicyM5Parse(read), func(readPolicy ReadPolicy) Result[CommunityPolicy, string] {
+ /*line community_policy.mygo:115:7*/			return MygoIN6ResultM3Map[PostPolicy, string](MygoIN10PostPolicyM5Parse(post), func(postPolicy PostPolicy) CommunityPolicy {
+ /*line community_policy.mygo:116:9*/				return CommunityPolicy{HostSiteID: hostSiteID, FederationMode: federation, ReadPolicy: readPolicy, PostPolicy: postPolicy}
+ /*line zz_community_policy.gen.go:213:1*/			})
+		})
+	})
+}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM5Valid(self CommunityPolicy) bool {
+ /*line community_policy.mygo:129:5*/	__mygo_expr_0 := self.FederationMode
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(FederationMode__Federated); ok {
+		__mygo_expr_1 = MygoIN15CommunityPolicyM13PoliciesValid(self)
+	} else {
+		if _, ok := __mygo_expr_0.(FederationMode__LocalOnly); ok {
+			__mygo_expr_1 = self.HostSiteID != "" && MygoIN15CommunityPolicyM13PoliciesValid(self)
+		} else {
+ /*line zz_community_policy.gen.go:226:1*/		}
+	}
+ /*line community_policy.mygo:129:5*/	return __mygo_expr_1
+ /*line zz_community_policy.gen.go:229:1*/}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM13PoliciesValid(self CommunityPolicy) bool {
+ /*line community_policy.mygo:137:5*/	__mygo_expr_0 := struct {
+ /*line community_policy.mygo:137:12*/		F0 ReadPolicy
+		F1 PostPolicy
+	}{F0: self.ReadPolicy, F1: self.PostPolicy}
+ /*line community_policy.mygo:137:5*/	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.F0.(ReadPolicy__Members); ok {
+		if _, ok := __mygo_expr_0.F1.(PostPolicy__Members); ok {
+			__mygo_expr_1 = true
+		} else {
+			if _, ok := __mygo_expr_0.F0.(ReadPolicy__Members); ok {
+				if _, ok := __mygo_expr_0.F1.(PostPolicy__EligibleUsers); ok {
+					__mygo_expr_1 = false
+				} else {
+					if _, ok := __mygo_expr_0.F0.(ReadPolicy__EligibleUsers); ok {
+						__mygo_expr_1 = true
+					} else {
+ /*line zz_community_policy.gen.go:247:1*/					}
+				}
+ /*line community_policy.mygo:137:5*/			} else {
+				if _, ok := __mygo_expr_0.F0.(ReadPolicy__EligibleUsers); ok {
+					__mygo_expr_1 = true
+				} else {
+ /*line zz_community_policy.gen.go:253:1*/				}
+			}
+		}
+ /*line community_policy.mygo:137:5*/	} else {
+		if _, ok := __mygo_expr_0.F0.(ReadPolicy__Members); ok {
+			if _, ok := __mygo_expr_0.F1.(PostPolicy__EligibleUsers); ok {
+				__mygo_expr_1 = false
+			} else {
+				if _, ok := __mygo_expr_0.F0.(ReadPolicy__EligibleUsers); ok {
+					__mygo_expr_1 = true
+				} else {
+ /*line zz_community_policy.gen.go:264:1*/				}
+			}
+ /*line community_policy.mygo:137:5*/		} else {
+			if _, ok := __mygo_expr_0.F0.(ReadPolicy__EligibleUsers); ok {
+				__mygo_expr_1 = true
+			} else {
+ /*line zz_community_policy.gen.go:270:1*/			}
+		}
+	}
+ /*line community_policy.mygo:137:5*/	return __mygo_expr_1
+ /*line zz_community_policy.gen.go:274:1*/}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM16AllowsFederation(self CommunityPolicy) bool {
+ /*line community_policy.mygo:144:5*/	__mygo_expr_0 := self.FederationMode
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(FederationMode__Federated); ok {
+		__mygo_expr_1 = MygoIN15CommunityPolicyM5Valid(self)
+	} else {
+		if _, ok := __mygo_expr_0.(FederationMode__LocalOnly); ok {
+			__mygo_expr_1 = false
+		} else {
+ /*line zz_community_policy.gen.go:284:1*/		}
+	}
+ /*line community_policy.mygo:144:5*/	return __mygo_expr_1
+ /*line zz_community_policy.gen.go:287:1*/}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM8Eligible(self CommunityPolicy, subject AccessSubject) bool {
+ /*line community_policy.mygo:150:5*/	if !MygoIN15CommunityPolicyM5Valid(self) || subject.Blocked || !subject.Verified || subject.ActorURI == "" {
+ /*line community_policy.mygo:151:14*/		return false
+ /*line community_policy.mygo:150:5*/	} else {
+ /*line zz_community_policy.gen.go:292:1*/	}
+ /*line community_policy.mygo:153:5*/	__mygo_expr_0 := self.FederationMode
+	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.(FederationMode__Federated); ok {
+		__mygo_expr_1 = true
+	} else {
+		if _, ok := __mygo_expr_0.(FederationMode__LocalOnly); ok {
+			__mygo_expr_1 = subject.SiteID == self.HostSiteID && subject.AccountID > int64(0)
+		} else {
+ /*line zz_community_policy.gen.go:301:1*/		}
+	}
+ /*line community_policy.mygo:153:5*/	return __mygo_expr_1
+ /*line zz_community_policy.gen.go:304:1*/}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM7CanRead(self CommunityPolicy, subject AccessSubject) bool {
+ /*line community_policy.mygo:159:5*/	if !MygoIN15CommunityPolicyM5Valid(self) || subject.Blocked {
+ /*line community_policy.mygo:160:14*/		return false
+ /*line community_policy.mygo:159:5*/	} else {
+ /*line zz_community_policy.gen.go:309:1*/	}
+ /*line community_policy.mygo:162:5*/	__mygo_expr_0 := struct {
+ /*line community_policy.mygo:162:12*/		F0 FederationMode
+		F1 ReadPolicy
+	}{F0: self.FederationMode, F1: self.ReadPolicy}
+ /*line community_policy.mygo:162:5*/	var __mygo_expr_1 bool
+	if _, ok := __mygo_expr_0.F0.(FederationMode__Federated); ok {
+		if _, ok := __mygo_expr_0.F1.(ReadPolicy__EligibleUsers); ok {
+			__mygo_expr_1 = true
+		} else {
+			__mygo_expr_1 = MygoIN15CommunityPolicyM8Eligible(self, subject) && MygoIN10ReadPolicyM6Allows(self.ReadPolicy, subject)
+ /*line zz_community_policy.gen.go:320:1*/		}
+ /*line community_policy.mygo:162:5*/	} else {
+		__mygo_expr_1 = MygoIN15CommunityPolicyM8Eligible(self, subject) && MygoIN10ReadPolicyM6Allows(self.ReadPolicy, subject)
+ /*line zz_community_policy.gen.go:323:1*/	}
+ /*line community_policy.mygo:162:5*/	return __mygo_expr_1
+ /*line zz_community_policy.gen.go:325:1*/}
+ /*line community_policy.mygo:127:1*/func MygoIN15CommunityPolicyM7CanPost(self CommunityPolicy, subject AccessSubject) bool {
+ /*line community_policy.mygo:168:5*/	return MygoIN15CommunityPolicyM7CanRead(self, subject) && MygoIN15CommunityPolicyM8Eligible(self, subject) && MygoIN10PostPolicyM6Allows(self.PostPolicy, subject)
+ /*line zz_community_policy.gen.go:328:1*/}

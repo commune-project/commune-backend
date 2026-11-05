@@ -8,82 +8,111 @@ import "crypto/rand"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line password_reset.mygo:7:1*/func SealPasswordReset(key []byte, message string) Result[[]byte, string] {
- /*line password_reset.mygo:8:15*/	var __mygo_expr_1 Result[cipher.Block, error]
+ /*line password_reset.mygo:8:3*/	var __mygo_expr_1 Result[cipher.Block, error]
 	__mygo_expr_2, __mygo_expr_0 := aes.NewCipher(key)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[cipher.Block, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
  /*line zz_password_reset.gen.go:17:1*/	}
- /*line password_reset.mygo:7:1*/	block := __mygo_expr_1
- /*line password_reset.mygo:9:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
- /*line password_reset.mygo:10:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:9:3*/	} else {
- /*line zz_password_reset.gen.go:22:1*/	}
- /*line password_reset.mygo:12:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
-	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[cipher.AEAD, error](__mygo_expr_3)
-	} else {
-		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
- /*line zz_password_reset.gen.go:29:1*/	}
- /*line password_reset.mygo:7:1*/	aead := __mygo_expr_4
- /*line password_reset.mygo:13:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) {
- /*line password_reset.mygo:14:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:13:3*/	} else {
- /*line zz_password_reset.gen.go:34:1*/	}
- /*line password_reset.mygo:7:1*/	nonce := []byte(rand.Text())
- /*line password_reset.mygo:17:6*/	var __mygo_expr_7 Result[int, error]
-	__mygo_expr_8, __mygo_expr_6 := rand.Read(nonce)
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[int, error](__mygo_expr_6)
-	} else {
-		__mygo_expr_7 = Ok[int, error](__mygo_expr_8)
- /*line zz_password_reset.gen.go:42:1*/	}
- /*line password_reset.mygo:17:3*/	if MygoIN6ResultM5IsErr[int, error](__mygo_expr_7) {
- /*line password_reset.mygo:18:12*/		return Err[[]byte, string]("reset encryption unavailable")
- /*line password_reset.mygo:17:3*/	} else {
- /*line zz_password_reset.gen.go:46:1*/	}
- /*line password_reset.mygo:7:1*/	prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize())
- /*line password_reset.mygo:21:3*/	return Ok[[]byte, string](MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Seal(prefix, prefix, []byte(message), []byte("commune-password-reset-v1")))
- /*line zz_password_reset.gen.go:49:1*/}
- /*line password_reset.mygo:24:1*/func OpenPasswordReset(key []byte, encrypted []byte) Result[string, string] {
- /*line password_reset.mygo:25:15*/	var __mygo_expr_1 Result[cipher.Block, error]
+ /*line password_reset.mygo:8:3*/	__mygo_expr_3 := __mygo_expr_1
+	var __mygo_expr_4 Result[[]byte, string]
+	if _, ok := __mygo_expr_3.(Result__Err[cipher.Block, error]); ok {
+		__mygo_expr_4 = Err[[]byte, string]("reset encryption unavailable")
+ /*line zz_password_reset.gen.go:22:1*/	} else {
+ /*line password_reset.mygo:8:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[cipher.Block, error]); ok {
+ /*line password_reset.mygo:11:7*/			var __mygo_expr_7 Result[cipher.AEAD, error]
+			__mygo_expr_8, __mygo_expr_6 := cipher.NewGCM(__mygo_match___mygo_expr_5.F0)
+			if __mygo_expr_6 != nil {
+				__mygo_expr_7 = Err[cipher.AEAD, error](__mygo_expr_6)
+			} else {
+				__mygo_expr_7 = Ok[cipher.AEAD, error](__mygo_expr_8)
+ /*line zz_password_reset.gen.go:30:1*/			}
+ /*line password_reset.mygo:11:7*/			__mygo_expr_9 := __mygo_expr_7
+			var __mygo_expr_10 Result[[]byte, string]
+			if _, ok := __mygo_expr_9.(Result__Err[cipher.AEAD, error]); ok {
+				__mygo_expr_10 = Err[[]byte, string]("reset encryption unavailable")
+ /*line zz_password_reset.gen.go:35:1*/			} else {
+ /*line password_reset.mygo:11:7*/				if __mygo_match___mygo_expr_11, ok := __mygo_expr_9.(Result__Ok[cipher.AEAD, error]); ok {
+ /*line password_reset.mygo:14:11*/					nonce := []byte(rand.Text())
+ /*line password_reset.mygo:15:14*/					var __mygo_expr_13 Result[int, error]
+					__mygo_expr_14, __mygo_expr_12 := rand.Read(nonce)
+					if __mygo_expr_12 != nil {
+						__mygo_expr_13 = Err[int, error](__mygo_expr_12)
+					} else {
+						__mygo_expr_13 = Ok[int, error](__mygo_expr_14)
+ /*line zz_password_reset.gen.go:44:1*/					}
+ /*line password_reset.mygo:15:11*/					if MygoIN6ResultM5IsErr[int, error](__mygo_expr_13) {
+ /*line password_reset.mygo:16:20*/						return Err[[]byte, string]("reset encryption unavailable")
+ /*line password_reset.mygo:15:11*/					} else {
+ /*line zz_password_reset.gen.go:48:1*/					}
+ /*line password_reset.mygo:14:11*/					prefix := MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(nonce, __mygo_match___mygo_expr_11.F0.NonceSize())
+ /*line password_reset.mygo:11:7*/					__mygo_expr_10 = Ok[[]byte, string](__mygo_match___mygo_expr_11.F0.Seal(prefix, prefix, []byte(message), []byte("commune-password-reset-v1")))
+				} else {
+ /*line zz_password_reset.gen.go:52:1*/				}
+			}
+ /*line password_reset.mygo:8:3*/			__mygo_expr_4 = __mygo_expr_10
+		} else {
+ /*line zz_password_reset.gen.go:56:1*/		}
+	}
+ /*line password_reset.mygo:8:3*/	return __mygo_expr_4
+ /*line zz_password_reset.gen.go:59:1*/}
+ /*line password_reset.mygo:26:1*/func OpenPasswordReset(key []byte, encrypted []byte) Result[string, string] {
+ /*line password_reset.mygo:27:3*/	var __mygo_expr_1 Result[cipher.Block, error]
 	__mygo_expr_2, __mygo_expr_0 := aes.NewCipher(key)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[cipher.Block, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[cipher.Block, error](__mygo_expr_2)
- /*line zz_password_reset.gen.go:57:1*/	}
- /*line password_reset.mygo:24:1*/	block := __mygo_expr_1
- /*line password_reset.mygo:26:3*/	if MygoIN6ResultM5IsErr[cipher.Block, error](block) {
- /*line password_reset.mygo:27:12*/		return Err[string, string]("reset encryption unavailable")
- /*line password_reset.mygo:26:3*/	} else {
- /*line zz_password_reset.gen.go:62:1*/	}
- /*line password_reset.mygo:29:14*/	var __mygo_expr_4 Result[cipher.AEAD, error]
-	__mygo_expr_5, __mygo_expr_3 := cipher.NewGCM(MygoIN6ResultM6Unwrap[cipher.Block, error](block))
-	if __mygo_expr_3 != nil {
-		__mygo_expr_4 = Err[cipher.AEAD, error](__mygo_expr_3)
-	} else {
-		__mygo_expr_4 = Ok[cipher.AEAD, error](__mygo_expr_5)
- /*line zz_password_reset.gen.go:69:1*/	}
- /*line password_reset.mygo:24:1*/	aead := __mygo_expr_4
- /*line password_reset.mygo:30:3*/	if MygoIN6ResultM5IsErr[cipher.AEAD, error](aead) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize() {
- /*line password_reset.mygo:31:12*/		return Err[string, string]("invalid reset payload")
- /*line password_reset.mygo:30:3*/	} else {
- /*line zz_password_reset.gen.go:74:1*/	}
- /*line password_reset.mygo:24:1*/	size := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).NonceSize()
- /*line password_reset.mygo:34:16*/	var __mygo_expr_7 Result[[]byte, error]
-	__mygo_expr_8, __mygo_expr_6 := MygoIN6ResultM6Unwrap[cipher.AEAD, error](aead).Open([]byte{}, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(encrypted, size), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Skip(encrypted, size), []byte("commune-password-reset-v1"))
-	if __mygo_expr_6 != nil {
-		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
-	} else {
-		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
- /*line zz_password_reset.gen.go:82:1*/	}
- /*line password_reset.mygo:24:1*/	opened := __mygo_expr_7
- /*line password_reset.mygo:35:3*/	if MygoIN6ResultM5IsErr[[]byte, error](opened) {
- /*line password_reset.mygo:36:12*/		return Err[string, string]("invalid reset payload")
- /*line password_reset.mygo:35:3*/	} else {
- /*line zz_password_reset.gen.go:87:1*/	}
- /*line password_reset.mygo:38:3*/	return Ok[string, string](string(MygoIN6ResultM6Unwrap[[]byte, error](opened)))
- /*line zz_password_reset.gen.go:89:1*/}
+ /*line zz_password_reset.gen.go:67:1*/	}
+ /*line password_reset.mygo:27:3*/	__mygo_expr_3 := __mygo_expr_1
+	var __mygo_expr_4 Result[string, string]
+	if _, ok := __mygo_expr_3.(Result__Err[cipher.Block, error]); ok {
+		__mygo_expr_4 = Err[string, string]("reset encryption unavailable")
+ /*line zz_password_reset.gen.go:72:1*/	} else {
+ /*line password_reset.mygo:27:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[cipher.Block, error]); ok {
+ /*line password_reset.mygo:30:7*/			var __mygo_expr_7 Result[cipher.AEAD, error]
+			__mygo_expr_8, __mygo_expr_6 := cipher.NewGCM(__mygo_match___mygo_expr_5.F0)
+			if __mygo_expr_6 != nil {
+				__mygo_expr_7 = Err[cipher.AEAD, error](__mygo_expr_6)
+			} else {
+				__mygo_expr_7 = Ok[cipher.AEAD, error](__mygo_expr_8)
+ /*line zz_password_reset.gen.go:80:1*/			}
+ /*line password_reset.mygo:30:7*/			__mygo_expr_9 := __mygo_expr_7
+			var __mygo_expr_10 Result[string, string]
+			if _, ok := __mygo_expr_9.(Result__Err[cipher.AEAD, error]); ok {
+				__mygo_expr_10 = Err[string, string]("invalid reset payload")
+ /*line zz_password_reset.gen.go:85:1*/			} else {
+ /*line password_reset.mygo:30:7*/				if __mygo_match___mygo_expr_11, ok := __mygo_expr_9.(Result__Ok[cipher.AEAD, error]); ok {
+ /*line password_reset.mygo:33:11*/					size := __mygo_match___mygo_expr_11.F0.NonceSize()
+ /*line password_reset.mygo:34:11*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(encrypted) < size {
+ /*line password_reset.mygo:35:20*/						return Err[string, string]("invalid reset payload")
+ /*line password_reset.mygo:34:11*/					} else {
+ /*line zz_password_reset.gen.go:91:1*/					}
+ /*line password_reset.mygo:37:11*/					var __mygo_expr_13 Result[[]byte, error]
+					__mygo_expr_14, __mygo_expr_12 := __mygo_match___mygo_expr_11.F0.Open([]byte{}, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(encrypted, size), MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Skip(encrypted, size), []byte("commune-password-reset-v1"))
+					if __mygo_expr_12 != nil {
+						__mygo_expr_13 = Err[[]byte, error](__mygo_expr_12)
+					} else {
+						__mygo_expr_13 = Ok[[]byte, error](__mygo_expr_14)
+ /*line zz_password_reset.gen.go:98:1*/					}
+ /*line password_reset.mygo:37:11*/					__mygo_expr_15 := __mygo_expr_13
+					var __mygo_expr_16 Result[string, string]
+					if _, ok := __mygo_expr_15.(Result__Err[[]byte, error]); ok {
+						__mygo_expr_16 = Err[string, string]("invalid reset payload")
+ /*line zz_password_reset.gen.go:103:1*/					} else {
+ /*line password_reset.mygo:37:11*/						if __mygo_match___mygo_expr_17, ok := __mygo_expr_15.(Result__Ok[[]byte, error]); ok {
+							__mygo_expr_16 = Ok[string, string](string(__mygo_match___mygo_expr_17.F0))
+						} else {
+ /*line zz_password_reset.gen.go:107:1*/						}
+					}
+ /*line password_reset.mygo:30:7*/					__mygo_expr_10 = __mygo_expr_16
+				} else {
+ /*line zz_password_reset.gen.go:111:1*/				}
+			}
+ /*line password_reset.mygo:27:3*/			__mygo_expr_4 = __mygo_expr_10
+		} else {
+ /*line zz_password_reset.gen.go:115:1*/		}
+	}
+ /*line password_reset.mygo:27:3*/	return __mygo_expr_4
+ /*line zz_password_reset.gen.go:118:1*/}
