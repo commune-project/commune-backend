@@ -72,12 +72,10 @@ func MediaRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, me
   end
   let repository = storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
   if parts.Len() == 5 && parts.Get(3).UnwrapOr("") == "private" then
-    let session = Authenticated(db, site, request)
-    if session.IsErr() then
-      MediaFailure(w, session.UnwrapErr().Render())
-      return true
-    end
-    ServePrivateMedia(repository, session.Unwrap().Identity, parts.Get(4).UnwrapOr(""), w, request, PrivateMediaUnavailable)
+    WithMediaSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+      ServePrivateMedia(repository, session.Identity, parts.Get(4).UnwrapOr(""), w, request, PrivateMediaUnavailable)
+      Ok(())
+    end)
     return true
   end
   if parts.Len() == 3 then

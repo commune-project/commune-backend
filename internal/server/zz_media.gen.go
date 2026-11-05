@@ -97,121 +97,119 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen.go:97:1*/	}
  /*line media.mygo:62:1*/	repository := storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
  /*line media.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") == "private" {
-		session := Authenticated(db, site, request)
- /*line media.mygo:76:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
- /*line media.mygo:77:7*/			MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session)))
- /*line media.mygo:78:14*/			return true
- /*line media.mygo:76:5*/		} else {
- /*line zz_media.gen.go:105:1*/		}
- /*line media.mygo:80:5*/		ServePrivateMedia(repository, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), ""), w, request, PrivateMediaUnavailable)
- /*line media.mygo:81:12*/		return true
+ /*line media.mygo:75:5*/		WithMediaSession(db, site, w, request, func(session storage.AuthenticatedSession) Result[struct{}, failure.Failure] {
+ /*line media.mygo:76:7*/			ServePrivateMedia(repository, session.Identity, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), ""), w, request, PrivateMediaUnavailable)
+ /*line media.mygo:77:7*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_media.gen.go:103:1*/			}{})
+		})
+ /*line media.mygo:79:12*/		return true
  /*line media.mygo:74:3*/	} else {
- /*line zz_media.gen.go:109:1*/	}
- /*line media.mygo:83:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
- /*line media.mygo:84:5*/		if request.Method != "POST" {
- /*line media.mygo:85:7*/			MethodNotAllowed(w, "POST")
- /*line media.mygo:86:14*/			return true
- /*line media.mygo:84:5*/		} else {
- /*line zz_media.gen.go:115:1*/		}
- /*line media.mygo:83:3*/		session_1 := Authenticated(db, site, request)
- /*line media.mygo:89:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session_1) {
- /*line media.mygo:90:7*/			MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session_1)))
- /*line media.mygo:91:14*/			return true
- /*line media.mygo:89:5*/		} else {
- /*line zz_media.gen.go:121:1*/		}
- /*line media.mygo:93:5*/		if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session_1), request) {
- /*line media.mygo:94:7*/			MediaFailure(w, "forbidden")
- /*line media.mygo:95:14*/			return true
- /*line media.mygo:93:5*/		} else {
- /*line zz_media.gen.go:126:1*/		}
- /*line media.mygo:97:5*/		UploadMedia(repository, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session_1).Identity, w, request)
- /*line media.mygo:98:12*/		return true
- /*line media.mygo:83:3*/	} else {
- /*line zz_media.gen.go:130:1*/	}
+ /*line zz_media.gen.go:107:1*/	}
+ /*line media.mygo:81:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line media.mygo:82:5*/		if request.Method != "POST" {
+ /*line media.mygo:83:7*/			MethodNotAllowed(w, "POST")
+ /*line media.mygo:84:14*/			return true
+ /*line media.mygo:82:5*/		} else {
+ /*line zz_media.gen.go:113:1*/		}
+ /*line media.mygo:81:3*/		session_1 := Authenticated(db, site, request)
+ /*line media.mygo:87:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session_1) {
+ /*line media.mygo:88:7*/			MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session_1)))
+ /*line media.mygo:89:14*/			return true
+ /*line media.mygo:87:5*/		} else {
+ /*line zz_media.gen.go:119:1*/		}
+ /*line media.mygo:91:5*/		if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session_1), request) {
+ /*line media.mygo:92:7*/			MediaFailure(w, "forbidden")
+ /*line media.mygo:93:14*/			return true
+ /*line media.mygo:91:5*/		} else {
+ /*line zz_media.gen.go:124:1*/		}
+ /*line media.mygo:95:5*/		UploadMedia(repository, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session_1).Identity, w, request)
+ /*line media.mygo:96:12*/		return true
+ /*line media.mygo:81:3*/	} else {
+ /*line zz_media.gen.go:128:1*/	}
  /*line media.mygo:62:1*/	preview := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "preview"
- /*line media.mygo:101:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 && !preview {
- /*line media.mygo:102:5*/		http.NotFound(w, request)
- /*line media.mygo:103:12*/		return true
- /*line media.mygo:101:3*/	} else {
- /*line zz_media.gen.go:136:1*/	}
- /*line media.mygo:105:3*/	if request.Method != "GET" && request.Method != "HEAD" {
- /*line media.mygo:106:5*/		MethodNotAllowed(w, "GET, HEAD")
- /*line media.mygo:107:12*/		return true
- /*line media.mygo:105:3*/	} else {
- /*line zz_media.gen.go:141:1*/	}
+ /*line media.mygo:99:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 && !preview {
+ /*line media.mygo:100:5*/		http.NotFound(w, request)
+ /*line media.mygo:101:12*/		return true
+ /*line media.mygo:99:3*/	} else {
+ /*line zz_media.gen.go:134:1*/	}
+ /*line media.mygo:103:3*/	if request.Method != "GET" && request.Method != "HEAD" {
+ /*line media.mygo:104:5*/		MethodNotAllowed(w, "GET, HEAD")
+ /*line media.mygo:105:12*/		return true
+ /*line media.mygo:103:3*/	} else {
+ /*line zz_media.gen.go:139:1*/	}
  /*line media.mygo:62:1*/	identity := BrowserIdentity(db, site, request, false)
- /*line media.mygo:110:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](identity) {
- /*line media.mygo:111:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](identity)))
- /*line media.mygo:112:12*/		return true
- /*line media.mygo:110:3*/	} else {
- /*line zz_media.gen.go:147:1*/	}
+ /*line media.mygo:108:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](identity) {
+ /*line media.mygo:109:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](identity)))
+ /*line media.mygo:110:12*/		return true
+ /*line media.mygo:108:3*/	} else {
+ /*line zz_media.gen.go:145:1*/	}
  /*line media.mygo:62:1*/	result := storage.MygoIN15MediaRepositoryM4Read(repository, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](identity), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), preview, func(upload storage.MediaUpload, file *os.File) Result[struct{}, failure.Failure] {
- /*line media.mygo:115:5*/		ServeMedia(w, request, upload, file, preview)
- /*line media.mygo:116:5*/		return Ok[struct{}, failure.Failure](struct {
- /*line zz_media.gen.go:151:1*/		}{})
+ /*line media.mygo:113:5*/		ServeMedia(w, request, upload, file, preview)
+ /*line media.mygo:114:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_media.gen.go:149:1*/		}{})
 	})
- /*line media.mygo:118:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
- /*line media.mygo:119:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)))
- /*line media.mygo:118:3*/	} else {
- /*line zz_media.gen.go:156:1*/	}
- /*line media.mygo:121:3*/	return true
- /*line zz_media.gen.go:158:1*/}
- /*line media.mygo:124:1*/func UploadMedia(repository storage.MediaRepository, identity auth.Identity, w http.ResponseWriter, request *http.Request) {
+ /*line media.mygo:116:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line media.mygo:117:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)))
+ /*line media.mygo:116:3*/	} else {
+ /*line zz_media.gen.go:154:1*/	}
+ /*line media.mygo:119:3*/	return true
+ /*line zz_media.gen.go:156:1*/}
+ /*line media.mygo:122:1*/func UploadMedia(repository storage.MediaRepository, identity auth.Identity, w http.ResponseWriter, request *http.Request) {
 	max := int64(repository.Settings.MaxFileBytes) + int64(65536)
 	request.Body = io.ReadCloser(http.MaxBytesReader(w, request.Body, max))
 	body := request.Body
- /*line media.mygo:128:3*/	defer body.Close()
- /*line media.mygo:129:25*/	var __mygo_expr_1 Result[*multipart.Reader, error]
+ /*line media.mygo:126:3*/	defer body.Close()
+ /*line media.mygo:127:25*/	var __mygo_expr_1 Result[*multipart.Reader, error]
 	__mygo_expr_2, __mygo_expr_0 := request.MultipartReader()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*multipart.Reader, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*multipart.Reader, error](__mygo_expr_2)
- /*line zz_media.gen.go:170:1*/	}
- /*line media.mygo:124:1*/	multipartResult := __mygo_expr_1
- /*line media.mygo:130:3*/	if MygoIN6ResultM5IsErr[*multipart.Reader, error](multipartResult) {
- /*line media.mygo:131:5*/		MediaFailure(w, "unsupported media")
- /*line media.mygo:130:3*/		return
+ /*line zz_media.gen.go:168:1*/	}
+ /*line media.mygo:122:1*/	multipartResult := __mygo_expr_1
+ /*line media.mygo:128:3*/	if MygoIN6ResultM5IsErr[*multipart.Reader, error](multipartResult) {
+ /*line media.mygo:129:5*/		MediaFailure(w, "unsupported media")
+ /*line media.mygo:128:3*/		return
 	} else {
- /*line zz_media.gen.go:176:1*/	}
- /*line media.mygo:124:1*/	reader := MygoIN6ResultM6Unwrap[*multipart.Reader, error](multipartResult)
+ /*line zz_media.gen.go:174:1*/	}
+ /*line media.mygo:122:1*/	reader := MygoIN6ResultM6Unwrap[*multipart.Reader, error](multipartResult)
 	ctx, cancel := context.WithTimeout(request.Context(), time.Duration(5)*time.Minute)
- /*line media.mygo:136:3*/	defer cancel()
- /*line media.mygo:124:1*/	var purpose string = ""
+ /*line media.mygo:134:3*/	defer cancel()
+ /*line media.mygo:122:1*/	var purpose string = ""
 	upload := Zero[storage.MediaUpload]()
 	var mediaFailure Option[failure.Failure] = None[failure.Failure]()
 	var done bool = false
 	var count int = 0
 	for !done && MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) {
- /*line media.mygo:143:16*/		var __mygo_expr_4 Result[*multipart.Part, error]
+ /*line media.mygo:141:16*/		var __mygo_expr_4 Result[*multipart.Part, error]
 		__mygo_expr_5, __mygo_expr_3 := reader.NextPart()
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[*multipart.Part, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[*multipart.Part, error](__mygo_expr_5)
- /*line zz_media.gen.go:192:1*/		}
- /*line media.mygo:124:1*/		next := __mygo_expr_4
+ /*line zz_media.gen.go:190:1*/		}
+ /*line media.mygo:122:1*/		next := __mygo_expr_4
 		if MygoIN6ResultM5IsErr[*multipart.Part, error](next) {
 			done = true
 			if !errors.Is(MygoIN6ResultM9UnwrapErr[*multipart.Part, error](next), io.EOF) {
 				mediaFailure = Some[failure.Failure](Of("invalid upload"))
 			} else {
- /*line zz_media.gen.go:199:1*/			}
- /*line media.mygo:124:1*/		} else {
+ /*line zz_media.gen.go:197:1*/			}
+ /*line media.mygo:122:1*/		} else {
 			count = count + 1
 			part := MygoIN6ResultM6Unwrap[*multipart.Part, error](next)
 			if count > 2 {
 				mediaFailure = Some[failure.Failure](Of("invalid upload"))
 			} else {
 				if part.FormName() == "purpose" && part.FileName() == "" && purpose == "" {
- /*line media.mygo:156:23*/					var __mygo_expr_7 Result[[]byte, error]
+ /*line media.mygo:154:23*/					var __mygo_expr_7 Result[[]byte, error]
 					__mygo_expr_8, __mygo_expr_6 := io.ReadAll(io.LimitReader(io.Reader(part), int64(16)))
 					if __mygo_expr_6 != nil {
 						__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
 					} else {
 						__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
- /*line zz_media.gen.go:213:1*/					}
- /*line media.mygo:124:1*/					value := __mygo_expr_7
+ /*line zz_media.gen.go:211:1*/					}
+ /*line media.mygo:122:1*/					value := __mygo_expr_7
 					if MygoIN6ResultM5IsErr[[]byte, error](value) {
 						mediaFailure = Some[failure.Failure](Of("invalid media purpose"))
 					} else {
@@ -219,96 +217,96 @@ import . "github.com/mygo-lang/mygo/prelude"
 						if purpose != "post" && purpose != "avatar" {
 							mediaFailure = Some[failure.Failure](Of("invalid media purpose"))
 						} else {
- /*line zz_media.gen.go:222:1*/						}
+ /*line zz_media.gen.go:220:1*/						}
 					}
- /*line media.mygo:124:1*/				} else {
+ /*line media.mygo:122:1*/				} else {
 					if part.FormName() == "file" && part.FileName() != "" && upload.ID == "" {
 						var __mygo_expr_9 string
 						if purpose == "" {
 							__mygo_expr_9 = "post"
 						} else {
 							__mygo_expr_9 = purpose
- /*line zz_media.gen.go:231:1*/						}
- /*line media.mygo:124:1*/						initialPurpose := __mygo_expr_9
+ /*line zz_media.gen.go:229:1*/						}
+ /*line media.mygo:122:1*/						initialPurpose := __mygo_expr_9
 						uploaded := storage.MygoIN15MediaRepositoryM6Upload(repository, ctx, identity, initialPurpose, part.FileName(), MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(part.Header.Get("Content-Type"), ";"), 0), ""), io.Reader(part))
 						if MygoIN6ResultM5IsErr[storage.MediaUpload, failure.Failure](uploaded) {
 							mediaFailure = Some[failure.Failure](MygoIN6ResultM9UnwrapErr[storage.MediaUpload, failure.Failure](uploaded))
 						} else {
 							upload = MygoIN6ResultM6Unwrap[storage.MediaUpload, failure.Failure](uploaded)
- /*line zz_media.gen.go:238:1*/						}
- /*line media.mygo:124:1*/					} else {
+ /*line zz_media.gen.go:236:1*/						}
+ /*line media.mygo:122:1*/					} else {
 						mediaFailure = Some[failure.Failure](Of("invalid upload"))
- /*line zz_media.gen.go:241:1*/					}
+ /*line zz_media.gen.go:239:1*/					}
 				}
 			}
 		}
 	}
- /*line media.mygo:183:6*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && (purpose == "" || upload.ID == "") {
- /*line media.mygo:183:3*/		mediaFailure = Some[failure.Failure](Of("invalid upload"))
+ /*line media.mygo:181:6*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && (purpose == "" || upload.ID == "") {
+ /*line media.mygo:181:3*/		mediaFailure = Some[failure.Failure](Of("invalid upload"))
 	} else {
- /*line zz_media.gen.go:249:1*/	}
- /*line media.mygo:186:3*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && purpose == "avatar" && upload.PreviewBytes == int64(0) {
+ /*line zz_media.gen.go:247:1*/	}
+ /*line media.mygo:184:3*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && purpose == "avatar" && upload.PreviewBytes == int64(0) {
 		mediaFailure = Some[failure.Failure](Of("unsupported media"))
 	} else {
- /*line zz_media.gen.go:253:1*/	}
- /*line media.mygo:189:3*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && upload.Purpose != purpose {
+ /*line zz_media.gen.go:251:1*/	}
+ /*line media.mygo:187:3*/	if MygoIN6OptionM6IsNone[failure.Failure](mediaFailure) && upload.Purpose != purpose {
 		changed := repository.DB.WithContext(ctx).Exec("UPDATE media_uploads SET purpose=? WHERE id=? AND state='ready' AND NOT EXISTS(SELECT 1 FROM media_bindings WHERE upload_id=?)", purpose, upload.ID, upload.ID)
 		if storage.QueryFailed(changed) || changed.RowsAffected != int64(1) {
 			mediaFailure = Some[failure.Failure](Of("media unavailable"))
 		} else {
- /*line zz_media.gen.go:259:1*/		}
- /*line media.mygo:189:3*/	} else {
- /*line zz_media.gen.go:261:1*/	}
- /*line media.mygo:195:3*/	if MygoIN6OptionM6IsSome[failure.Failure](mediaFailure) {
- /*line media.mygo:196:5*/		if upload.ID != "" {
+ /*line zz_media.gen.go:257:1*/		}
+ /*line media.mygo:187:3*/	} else {
+ /*line zz_media.gen.go:259:1*/	}
+ /*line media.mygo:193:3*/	if MygoIN6OptionM6IsSome[failure.Failure](mediaFailure) {
+ /*line media.mygo:194:5*/		if upload.ID != "" {
 			repository.DB.WithContext(context.Background()).Exec("UPDATE media_uploads SET expires_at=? WHERE id=?", time.Now(), upload.ID)
 		} else {
- /*line zz_media.gen.go:266:1*/		}
- /*line media.mygo:199:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6OptionM6Unwrap[failure.Failure](mediaFailure)))
- /*line media.mygo:195:3*/		return
+ /*line zz_media.gen.go:264:1*/		}
+ /*line media.mygo:197:5*/		MediaFailure(w, failure.MygoIN7FailureM6Render(MygoIN6OptionM6Unwrap[failure.Failure](mediaFailure)))
+ /*line media.mygo:193:3*/		return
 	} else {
- /*line zz_media.gen.go:270:1*/	}
- /*line media.mygo:124:1*/	reference := storage.MediaBindingURL(upload.ID)
- /*line media.mygo:203:180*/	var __mygo_expr_10 string
+ /*line zz_media.gen.go:268:1*/	}
+ /*line media.mygo:122:1*/	reference := storage.MediaBindingURL(upload.ID)
+ /*line media.mygo:201:180*/	var __mygo_expr_10 string
 	if upload.PreviewBytes > int64(0) {
 		__mygo_expr_10 = reference + "/preview"
 	} else {
 		__mygo_expr_10 = ""
- /*line zz_media.gen.go:277:1*/	}
- /*line media.mygo:203:3*/	WriteJSON(w, 201, MediaOutput{ID: upload.ID, Purpose: purpose, MediaType: upload.MediaType, Size: upload.SizeBytes, Name: upload.OriginalName, Reference: reference, PreviewURL: __mygo_expr_10})
+ /*line zz_media.gen.go:275:1*/	}
+ /*line media.mygo:201:3*/	WriteJSON(w, 201, MediaOutput{ID: upload.ID, Purpose: purpose, MediaType: upload.MediaType, Size: upload.SizeBytes, Name: upload.OriginalName, Reference: reference, PreviewURL: __mygo_expr_10})
 	return
- /*line zz_media.gen.go:280:1*/}
- /*line media.mygo:206:1*/func ServeMedia(w http.ResponseWriter, request *http.Request, upload storage.MediaUpload, file *os.File, preview bool) {
- /*line media.mygo:207:3*/	w.Header().Set("Cache-Control", "no-store")
- /*line media.mygo:208:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
- /*line media.mygo:209:3*/	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
- /*line media.mygo:210:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
- /*line media.mygo:206:1*/	raster := upload.MediaType == "image/png" || upload.MediaType == "image/jpeg" || upload.MediaType == "image/gif"
+ /*line zz_media.gen.go:278:1*/}
+ /*line media.mygo:204:1*/func ServeMedia(w http.ResponseWriter, request *http.Request, upload storage.MediaUpload, file *os.File, preview bool) {
+ /*line media.mygo:205:3*/	w.Header().Set("Cache-Control", "no-store")
+ /*line media.mygo:206:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
+ /*line media.mygo:207:3*/	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+ /*line media.mygo:208:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
+ /*line media.mygo:204:1*/	raster := upload.MediaType == "image/png" || upload.MediaType == "image/jpeg" || upload.MediaType == "image/gif"
 	var __mygo_expr_0 string
 	if preview {
 		__mygo_expr_0 = "image/png"
 	} else {
 		__mygo_expr_0 = upload.MediaType
- /*line zz_media.gen.go:292:1*/	}
- /*line media.mygo:206:1*/	kind := __mygo_expr_0
- /*line media.mygo:214:3*/	w.Header().Set("Content-Type", kind)
- /*line media.mygo:206:1*/	var __mygo_expr_1 string
+ /*line zz_media.gen.go:290:1*/	}
+ /*line media.mygo:204:1*/	kind := __mygo_expr_0
+ /*line media.mygo:212:3*/	w.Header().Set("Content-Type", kind)
+ /*line media.mygo:204:1*/	var __mygo_expr_1 string
 	if preview || raster {
 		__mygo_expr_1 = "inline"
 	} else {
 		__mygo_expr_1 = "attachment"
- /*line zz_media.gen.go:300:1*/	}
- /*line media.mygo:206:1*/	disposition := __mygo_expr_1
+ /*line zz_media.gen.go:298:1*/	}
+ /*line media.mygo:204:1*/	disposition := __mygo_expr_1
 	filename := upload.OriginalName
 	header := mime.FormatMediaType(disposition, map[string]string{"filename": filename})
- /*line media.mygo:218:3*/	w.Header().Set("Content-Disposition", header)
- /*line media.mygo:219:45*/	var __mygo_expr_2 string
+ /*line media.mygo:216:3*/	w.Header().Set("Content-Disposition", header)
+ /*line media.mygo:217:45*/	var __mygo_expr_2 string
 	if preview {
 		__mygo_expr_2 = "-preview"
 	} else {
 		__mygo_expr_2 = ""
- /*line zz_media.gen.go:310:1*/	}
- /*line media.mygo:219:3*/	w.Header().Set("ETag", "\""+upload.ID+__mygo_expr_2+"\"")
- /*line media.mygo:222:3*/	http.ServeContent(w, request, "", upload.CreatedAt, io.ReadSeeker(file))
+ /*line zz_media.gen.go:308:1*/	}
+ /*line media.mygo:217:3*/	w.Header().Set("ETag", "\""+upload.ID+__mygo_expr_2+"\"")
+ /*line media.mygo:220:3*/	http.ServeContent(w, request, "", upload.CreatedAt, io.ReadSeeker(file))
 	return
- /*line zz_media.gen.go:314:1*/}
+ /*line zz_media.gen.go:312:1*/}

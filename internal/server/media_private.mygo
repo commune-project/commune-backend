@@ -89,25 +89,22 @@ func PrivateMediaRoute(
     http.NotFound(w, request)
     return true
   end
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    w.Header().Set("Cache-Control", "no-store")
-    MediaFailure(w, session.UnwrapErr().Render())
-    return true
-  end
-  ServePrivateMedia(
-    storage.MediaRepository {
-      DB: db,
-      SiteID: site.ID,
-      Files: files,
-      Settings: settings.Media,
-    },
-    session.Unwrap().Identity,
-    parts.Get(4).UnwrapOr(""),
-    w,
-    request,
-    fetch
-  )
+  WithMediaSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+    ServePrivateMedia(
+      storage.MediaRepository {
+        DB: db,
+        SiteID: site.ID,
+        Files: files,
+        Settings: settings.Media,
+      },
+      session.Identity,
+      parts.Get(4).UnwrapOr(""),
+      w,
+      request,
+      fetch
+    )
+    Ok(())
+  end)
   true
 end
 

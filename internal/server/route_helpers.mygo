@@ -42,6 +42,17 @@ func WithSession(db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, re
   end
 end
 
+# Media routes render authentication failures with the media error shape.
+func WithMediaSession(db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], handle: func(storage.AuthenticatedSession) -> Result[(), failure.Failure]) -> ()
+  switch Authenticated(db, site, request)
+    case Err(reason) then
+      w.Header().Set("Cache-Control", "no-store")
+      MediaFailure(w, reason.Render())
+    end
+    case Ok(session) => Complete(w, handle(session))
+  end
+end
+
 # Mutation routes share one authenticated admission step. The handler body stays
 # flat: it returns a typed failure instead of writing status codes itself.
 func WithActor(

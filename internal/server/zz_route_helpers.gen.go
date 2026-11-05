@@ -58,29 +58,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line route_helpers.mygo:39:3*/	return
  /*line zz_route_helpers.gen.go:60:1*/}
- /*line route_helpers.mygo:47:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
+ /*line route_helpers.mygo:46:1*/func WithMediaSession(db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(storage.AuthenticatedSession) Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:55:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
-	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[auth.Identity, failure.Failure]); ok {
- /*line route_helpers.mygo:56:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
- /*line zz_route_helpers.gen.go:66:1*/	} else {
- /*line route_helpers.mygo:55:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, failure.Failure]); ok {
- /*line route_helpers.mygo:57:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
- /*line route_helpers.mygo:55:3*/		} else {
- /*line zz_route_helpers.gen.go:70:1*/		}
+ /*line route_helpers.mygo:47:3*/	__mygo_expr_0 := Authenticated(db, site, request)
+	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[storage.AuthenticatedSession, failure.Failure]); ok {
+ /*line route_helpers.mygo:49:7*/		w.Header().Set("Cache-Control", "no-store")
+ /*line route_helpers.mygo:50:7*/		MediaFailure(w, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_2.F0))
+ /*line zz_route_helpers.gen.go:67:1*/	} else {
+ /*line route_helpers.mygo:47:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[storage.AuthenticatedSession, failure.Failure]); ok {
+ /*line route_helpers.mygo:52:25*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:47:3*/		} else {
+ /*line zz_route_helpers.gen.go:71:1*/		}
 	}
- /*line route_helpers.mygo:55:3*/	return
- /*line zz_route_helpers.gen.go:73:1*/}
- /*line route_helpers.mygo:62:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
+ /*line route_helpers.mygo:47:3*/	return
+ /*line zz_route_helpers.gen.go:74:1*/}
+ /*line route_helpers.mygo:58:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:69:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
+ /*line route_helpers.mygo:66:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
+	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[auth.Identity, failure.Failure]); ok {
+ /*line route_helpers.mygo:67:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
+ /*line zz_route_helpers.gen.go:80:1*/	} else {
+ /*line route_helpers.mygo:66:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, failure.Failure]); ok {
+ /*line route_helpers.mygo:68:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:66:3*/		} else {
+ /*line zz_route_helpers.gen.go:84:1*/		}
+	}
+ /*line route_helpers.mygo:66:3*/	return
+ /*line zz_route_helpers.gen.go:87:1*/}
+ /*line route_helpers.mygo:73:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
+}, failure.Failure]) {
+ /*line route_helpers.mygo:80:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
 	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, failure.Failure]); ok {
- /*line route_helpers.mygo:70:25*/		WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_1.F0))
- /*line route_helpers.mygo:69:3*/	} else {
+ /*line route_helpers.mygo:81:25*/		WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:80:3*/	} else {
 		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, failure.Failure]); ok {
 			Complete(w, handle())
 		} else {
- /*line zz_route_helpers.gen.go:83:1*/		}
+ /*line zz_route_helpers.gen.go:97:1*/		}
 	}
- /*line route_helpers.mygo:69:3*/	return
- /*line zz_route_helpers.gen.go:86:1*/}
+ /*line route_helpers.mygo:80:3*/	return
+ /*line zz_route_helpers.gen.go:100:1*/}
