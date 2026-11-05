@@ -443,7 +443,7 @@ func TestPostgresRegistrationHTTPGuardsAndRate(t: Ref[testing.T]) -> ()
       assertRegistrationResponse(t, response, 403)
     end)
     var disabled = settings
-    disabled.Sites = [config.Site{ID: site.ID, RegistrationEnabled: false, Origin: site.Origin, Aliases: [], Sanitizer: content.DefaultSanitizer()}]
+    disabled.Sites = [config.Site{ID: site.ID, RegistrationEnabled: false, Origin: site.Origin, Aliases: [], Sanitizer: content.DefaultSanitizer}]
     assertRegistrationResponse(
       t,
       registrationRequest(Handler(disabled, db), site.Origin, route, payload, "198.51.100.30:1234", ""),

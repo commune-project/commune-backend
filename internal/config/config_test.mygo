@@ -286,7 +286,7 @@ func TestLoad(t: Ref[testing.T]) -> ()
 end
 
 func TestRenderingConfiguration(t: Ref[testing.T]) -> ()
-  let defaults = content.DefaultSanitizerConfig()
+  let defaults = content.DefaultSanitizerConfig
   let settings = Validate(validInput()).Unwrap()
   if settings.Rendering.Sanitize.Elements.Len() != defaults.Elements.Len() ||
     settings.Rendering.Sanitize.Attributes.Len() != defaults.Attributes.Len() then
@@ -342,7 +342,7 @@ func TestRenderingConfiguration(t: Ref[testing.T]) -> ()
 end
 
 func TestRenderingTemplateDefaults(t: Ref[testing.T]) -> ()
-  let defaults = content.DefaultSanitizerConfig()
+  let defaults = content.DefaultSanitizerConfig
   let expectedAttributes = defaults.Attributes.Map(func(item: content.SanitizerAttribute) -> String
     item.Element + ":" + strings.Join(item.Names, ",")
   end)

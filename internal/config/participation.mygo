@@ -313,7 +313,7 @@ func ParticipationDefaults(input: Input) -> Input
   if settings.SMTP.TLSMode == "" then
     settings.SMTP.TLSMode = "starttls"
   end
-  let defaultRendering = content.DefaultSanitizerConfig()
+  let defaultRendering = content.DefaultSanitizerConfig
   if OptionalSliceMissing(settings.Rendering.Sanitize.Elements) then
     settings.Rendering.Sanitize.Elements = defaultRendering.Elements
   end

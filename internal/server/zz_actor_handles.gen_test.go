@@ -107,11 +107,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.EnsureRemoteActor(ctx, db, remote, "Person"))
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	incoming := storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/1", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remote, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote body", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
-	received := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote, content.DefaultSanitizer()))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote, content.DefaultSanitizer()))
+	received := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote, content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remote, content.DefaultSanitizer))
 	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(repository, ctx, alice))
-	before := MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, repository, viewer, []storage.PostRecord{local, received}))
+	before := MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, repository, viewer, []storage.PostRecord{local, received}))
 	localBefore := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(before, func(post PostOutput) bool {
  /*line actor_handles_test.mygo:170:66*/		return post.ID == local.ID
  /*line actor_handles_test.mygo:170:95*/	}), 0))
@@ -146,7 +146,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line actor_handles_test.mygo:212:5*/		t.Fatal("actor handle worker did not resolve the queued author")
  /*line actor_handles_test.mygo:211:3*/	} else {
  /*line zz_actor_handles.gen_test.go:148:1*/	}
- /*line actor_handles_test.mygo:91:1*/	after := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, repository, viewer, []storage.PostRecord{received})), 0))
+ /*line actor_handles_test.mygo:91:1*/	after := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, repository, viewer, []storage.PostRecord{received})), 0))
  /*line actor_handles_test.mygo:215:3*/	if fetches != 2 || after.Author.Acct != "bob@peer.example" || after.Author.DisplayName != "Bob" {
  /*line actor_handles_test.mygo:218:5*/		t.Fatal("browser projection fetched remotely or did not use the resolved handle")
  /*line actor_handles_test.mygo:215:3*/	} else {

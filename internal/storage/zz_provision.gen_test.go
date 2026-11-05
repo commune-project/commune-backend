@@ -26,8 +26,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line provision_test.mygo:15:5*/		t.Fatal("migration failed")
  /*line provision_test.mygo:14:3*/	} else {
  /*line zz_provision.gen_test.go:28:1*/	}
- /*line provision_test.mygo:10:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{"alias.example"}, Sanitizer: content.DefaultSanitizer()}
-	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+ /*line provision_test.mygo:10:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{"alias.example"}, Sanitizer: content.DefaultSanitizer}
+	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
  /*line provision_test.mygo:19:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, a)) || MygoIN6ResultM5IsErr[struct{}, string](ProvisionSite(ctx, db, b)) {
  /*line provision_test.mygo:20:5*/		t.Fatal("site provisioning or repetition failed")
  /*line provision_test.mygo:19:3*/	} else {
@@ -66,8 +66,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line provision_test.mygo:34:5*/		t.Fatal("repeat provisioning did not restore vote settings defaults")
  /*line provision_test.mygo:33:3*/	} else {
  /*line zz_provision.gen_test.go:68:1*/	}
- /*line provision_test.mygo:10:1*/	conflict := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://changed.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
-	alias := config.Site{ID: "c", RegistrationEnabled: false, Origin: "https://c.example", Aliases: []string{"alias.example"}, Sanitizer: content.DefaultSanitizer()}
+ /*line provision_test.mygo:10:1*/	conflict := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://changed.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
+	alias := config.Site{ID: "c", RegistrationEnabled: false, Origin: "https://c.example", Aliases: []string{"alias.example"}, Sanitizer: content.DefaultSanitizer}
  /*line provision_test.mygo:38:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, conflict)) || MygoIN6ResultM4IsOk[struct{}, string](ProvisionSite(ctx, db, alias)) {
  /*line provision_test.mygo:39:5*/		t.Fatal("site identity conflict accepted")
  /*line provision_test.mygo:38:3*/	} else {

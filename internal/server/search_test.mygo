@@ -86,14 +86,14 @@ func TestPostgresSearchRoute(t: Ref[testing.T]) -> ()
   let probeOne = transport.NewQueryProbe(db)
   let probeTwenty = transport.NewQueryProbe(db)
   let _ = BrowserPosts(
-    content.DefaultSanitizer(),
+    content.DefaultSanitizer,
     ctx,
     storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID},
     viewer,
     one
   ).Unwrap()
   let _ = BrowserPosts(
-    content.DefaultSanitizer(),
+    content.DefaultSanitizer,
     ctx,
     storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID},
     viewer,

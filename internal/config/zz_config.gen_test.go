@@ -186,7 +186,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line config_test.mygo:276:3*/	return
  /*line zz_config.gen_test.go:187:1*/}
  /*line config_test.mygo:288:1*/func TestRenderingConfiguration(t *testing.T) {
-	defaults := content.DefaultSanitizerConfig()
+	defaults := content.DefaultSanitizerConfig
 	settings := MygoIN6ResultM6Unwrap[Config, string](Validate(validInput()))
  /*line config_test.mygo:291:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Elements) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Elements) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Attributes) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Attributes) {
  /*line config_test.mygo:293:5*/		t.Fatal("rendering defaults were not applied")
@@ -245,7 +245,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_config.gen_test.go:245:1*/	}
 }
  /*line config_test.mygo:344:1*/func TestRenderingTemplateDefaults(t *testing.T) {
-	defaults := content.DefaultSanitizerConfig()
+	defaults := content.DefaultSanitizerConfig
 	expectedAttributes := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(defaults.Attributes, func(item content.SanitizerAttribute) string {
  /*line config_test.mygo:347:5*/		return item.Element + ":" + strings.Join(item.Names, ",")
  /*line zz_config.gen_test.go:251:1*/	})

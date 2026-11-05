@@ -28,8 +28,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line authentication_test.mygo:16:5*/		t.Fatal("migration failed")
  /*line authentication_test.mygo:15:3*/	} else {
  /*line zz_authentication.gen_test.go:30:1*/	}
- /*line authentication_test.mygo:11:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
-	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+ /*line authentication_test.mygo:11:1*/	a := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
+	b := config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
 	accounts := AccountRepository{DB: db}

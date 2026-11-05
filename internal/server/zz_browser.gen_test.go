@@ -493,7 +493,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line browser_test.mygo:631:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
@@ -505,8 +505,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM6Latest(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50))
 	probeOne := transport.NewQueryProbe(db)
 	probeTwenty := transport.NewQueryProbe(db)
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
  /*line browser_test.mygo:677:3*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(5) {
  /*line browser_test.mygo:678:5*/		t.Fatalf("batch query count grew: one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
  /*line browser_test.mygo:677:3*/	} else {

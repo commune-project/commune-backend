@@ -28,9 +28,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:17:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	site := config.Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true, Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}))
+	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, config.Site{ID: "b", Origin: "https://b.example", RegistrationEnabled: true, Aliases: []string{}, Sanitizer: content.DefaultSanitizer}))
  /*line registration_test.mygo:34:3*/	return RegistrationRepository{DB: db, Site: site, EncryptionKey: []byte(strings.Repeat("k", 32)), IPAttempts: 100, EmailAttempts: 100, TokenTTLSeconds: 86400, RateWindowSeconds: 3600}
  /*line zz_registration.gen_test.go:35:1*/}
  /*line registration_test.mygo:45:1*/func registrationCount(db *gorm.DB, query string) int {
@@ -228,7 +228,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:230:3*/	} else {
  /*line zz_registration.gen_test.go:229:1*/	}
  /*line registration_test.mygo:216:1*/	other := repository
-	other.Site = config.Site{ID: "b", RegistrationEnabled: true, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	other.Site = config.Site{ID: "b", RegistrationEnabled: true, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
  /*line registration_test.mygo:241:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22RegistrationRepositoryM7Confirm(other, ctx, second, "chosen-final-password", later)) {
  /*line registration_test.mygo:242:5*/		t.Fatal("token redeemed on another site")
  /*line registration_test.mygo:241:3*/	} else {
@@ -307,7 +307,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:316:3*/	} else {
  /*line zz_registration.gen_test.go:308:1*/	}
  /*line registration_test.mygo:274:1*/	other := repository
-	other.Site = config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	other.Site = config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(other, ctx, "one@example.com", "192.0.2.30", now))
 	return
  /*line zz_registration.gen_test.go:313:1*/}

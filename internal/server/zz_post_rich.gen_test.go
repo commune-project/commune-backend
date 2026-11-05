@@ -110,7 +110,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: []string{}, Mentions: resolved}))
 	previousMention := Zero[storage.PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&previousMention)))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, remotePost.ID))).Version, content.DefaultSanitizer()))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, remotePost.ID))).Version, content.DefaultSanitizer))
 	retainedMention := Zero[storage.PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&retainedMention)))
  /*line post_rich_test.mygo:170:3*/	if retainedMention.ID != previousMention.ID {
@@ -129,7 +129,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_post_rich.gen_test.go:129:1*/	}
  /*line post_rich_test.mygo:73:1*/	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, alice))
-	projected := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, browser, viewer, []storage.PostRecord{remotePost})), 0))
+	projected := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, browser, viewer, []storage.PostRecord{remotePost})), 0))
  /*line post_rich_test.mygo:211:3*/	if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 || !strings.Contains(projected.BodyHTML, "@second@second.example") {
  /*line post_rich_test.mygo:213:5*/		t.Fatal("resolved mentions were not linked or unresolved text disappeared")
  /*line post_rich_test.mygo:211:3*/	} else {

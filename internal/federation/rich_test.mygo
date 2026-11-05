@@ -10,7 +10,7 @@ import content "github.com/commune-project/commune-backend/internal/content"
 func TestRichObjectRepresentation(t: Ref[testing.T]) -> ()
   let post = richTestPost("**中文** [link](https://example.org)", "markdown")
   let output = BuildObjectRepresentation(
-    content.DefaultSanitizer(),
+    content.DefaultSanitizer,
     post,
     richTestCommunity("eligible_users")
   )
@@ -21,7 +21,7 @@ func TestRichObjectRepresentation(t: Ref[testing.T]) -> ()
     t.Fatal("rich output lost rendered HTML or source")
   end
   let remote = BuildObjectRepresentation(
-    content.DefaultSanitizer(),
+    content.DefaultSanitizer,
     richTestPost("<p>safe</p><script>alert(1)</script>", "html"),
     richTestCommunity("eligible_users")
   )
@@ -42,11 +42,11 @@ end
 
 func TestParseRichObjectBoundaries(t: Ref[testing.T]) -> ()
   let payload = `{"id":"https://remote.example/p/1","type":"Page","attributedTo":"https://remote.example/u/a","published":"2026-01-01T00:00:00Z","content":"<p>safe</p>","source":{"content":"<script>untrusted</script>","mediaType":"text/markdown"},"extension":{"untouched":true}}`
-  let parsed = ParseRichObject(content.DefaultSanitizer(), payload as Slice[Byte]).Unwrap()
+  let parsed = ParseRichObject(content.DefaultSanitizer, payload as Slice[Byte]).Unwrap()
   if parsed.Content != "<p>safe</p>" || parsed.Source.Content != "<script>untrusted</script>" then
     t.Fatal("source replaced display or optional fields rejected")
   end
-  if ParseRichObject(content.DefaultSanitizer(), strings.Replace(payload, "https://remote.example/p/1", "javascript:bad", 1) as Slice[Byte]).IsOk() then
+  if ParseRichObject(content.DefaultSanitizer, strings.Replace(payload, "https://remote.example/p/1", "javascript:bad", 1) as Slice[Byte]).IsOk() then
     t.Fatal("invalid canonical identity accepted")
   end
 end

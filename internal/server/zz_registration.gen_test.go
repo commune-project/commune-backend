@@ -256,7 +256,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line zz_registration.gen_test.go:257:1*/		})
  /*line registration_test.mygo:421:15*/		disabled := settings
-		disabled.Sites = []config.Site{config.Site{ID: site.ID, RegistrationEnabled: false, Origin: site.Origin, Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}}
+		disabled.Sites = []config.Site{config.Site{ID: site.ID, RegistrationEnabled: false, Origin: site.Origin, Aliases: []string{}, Sanitizer: content.DefaultSanitizer}}
  /*line registration_test.mygo:447:5*/		assertRegistrationResponse(t, registrationRequest(Handler(disabled, db), site.Origin, route, payload, "198.51.100.30:1234", ""), 403)
 		return
  /*line zz_registration.gen_test.go:262:1*/	})

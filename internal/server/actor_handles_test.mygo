@@ -162,11 +162,11 @@ func TestPostgresActorHandleWorkerAndBrowserProjection(t: Ref[testing.T]) -> ()
     Version: 0i64,
     DeletedAt: Zero[sql.NullTime](),
   }
-  let received = posts.Receive(ctx, incoming, remote, content.DefaultSanitizer()).Unwrap()
-  let _ = posts.Receive(ctx, incoming, remote, content.DefaultSanitizer()).Unwrap()
+  let received = posts.Receive(ctx, incoming, remote, content.DefaultSanitizer).Unwrap()
+  let _ = posts.Receive(ctx, incoming, remote, content.DefaultSanitizer).Unwrap()
   let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = repository.Viewer(ctx, alice).Unwrap()
-  let before = BrowserPosts(content.DefaultSanitizer(), ctx, repository, viewer, [local, received]).Unwrap()
+  let before = BrowserPosts(content.DefaultSanitizer, ctx, repository, viewer, [local, received]).Unwrap()
   let localBefore = before.Filter(func(post: PostOutput) -> Bool post.ID == local.ID end).Get(0).Unwrap()
   let remoteBefore = before.Filter(func(post: PostOutput) -> Bool post.ID == received.ID end).Get(0).Unwrap()
   if localBefore.Author.Acct != "alice@forum-a.example" ||
@@ -211,7 +211,7 @@ func TestPostgresActorHandleWorkerAndBrowserProjection(t: Ref[testing.T]) -> ()
   if outcome.Resolved != 1 || fetches != 2 then
     t.Fatal("actor handle worker did not resolve the queued author")
   end
-  let after = BrowserPosts(content.DefaultSanitizer(), ctx, repository, viewer, [received]).Unwrap().Get(0).Unwrap()
+  let after = BrowserPosts(content.DefaultSanitizer, ctx, repository, viewer, [received]).Unwrap().Get(0).Unwrap()
   if fetches != 2 ||
     after.Author.Acct != "bob@peer.example" ||
     after.Author.DisplayName != "Bob" then

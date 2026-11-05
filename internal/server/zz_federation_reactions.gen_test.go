@@ -29,7 +29,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_reactions.gen_test.go:29:1*/	}
  /*line federation_reactions_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users"))
@@ -39,7 +39,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	receive := func(kind string, id string, target string) {
  /*line federation_reactions_test.mygo:27:17*/		payload := "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"" + kind + "\",\"object\":\"" + target + "\"}"
 		MygoIN6ResultM6Unwrap[int64, string](storage.ReceiveActivity(ctx, db, site.ID, []string{alice.ActorURI}, id, actor, kind, []byte(payload)))
-		MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(payload))), []byte(payload), []string{alice.ActorURI}))
+		MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(payload))), []byte(payload), []string{alice.ActorURI}))
 		MygoIN6ResultM6Unwrap[struct{}, string](storage.ProjectNotifications(ctx, db, 100))
 		return
  /*line zz_federation_reactions.gen_test.go:45:1*/	}
@@ -80,7 +80,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_reactions.gen_test.go:80:1*/	}
  /*line federation_reactions_test.mygo:49:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
@@ -100,7 +100,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_reactions_test.mygo:66:35*/			return Err[bool, string](MygoIN6ResultM9UnwrapErr[federation.ParsedActivity, string](parsed))
  /*line federation_reactions_test.mygo:66:5*/		} else {
  /*line zz_federation_reactions.gen_test.go:102:1*/		}
- /*line federation_reactions_test.mygo:67:5*/		return ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed), []byte(payload), []string{alice.ActorURI})
+ /*line federation_reactions_test.mygo:67:5*/		return ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed), []byte(payload), []string{alice.ActorURI})
  /*line zz_federation_reactions.gen_test.go:104:1*/	}
  /*line federation_reactions_test.mygo:49:1*/	dislikeURI := "https://remote.example/activities/dislike-1"
 	MygoIN6ResultM6Unwrap[bool, string](apply("Dislike", dislikeURI, post.ObjectURI.String))

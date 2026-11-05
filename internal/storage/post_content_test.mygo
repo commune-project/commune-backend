@@ -71,7 +71,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "",
     [],
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   var unchanged = Zero[PostMentionRecord]()
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(unchanged))).Unwrap()
@@ -89,7 +89,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "",
     [],
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let retired: Int64 = 0i64
   let _ = MutationResult(db.Table("notification_events").Where(
@@ -109,7 +109,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "",
     [],
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let reintroduced = Zero[PostMentionRecord]()
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(reintroduced))).Unwrap()
@@ -136,11 +136,11 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "markdown",
     ["owned"],
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let state = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
   let media = PostRichMedia(state).Unwrap()
-  let rendered = RenderStoredPost(content.DefaultSanitizer(), saved, state, false).Unwrap()
+  let rendered = RenderStoredPost(content.DefaultSanitizer, saved, state, false).Unwrap()
   if saved.Body != illustrated ||
     media.Len() != 1 ||
     !strings.Contains(rendered, "/api/v1/media/" + media.Get(0).Unwrap().BindingID + "/preview") ||
@@ -165,7 +165,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "markdown",
     ["replacement"],
     saved.Version - 1i64,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   )
   if stale.IsOk() || stale.UnwrapErr() != "edit_conflict" then
     t.Fatal("stale attachment save did not conflict")
@@ -180,7 +180,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "markdown",
     ["replacement"],
     saved.Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).IsOk() then
     t.Fatal("unbound source reference accepted")
   end
@@ -207,7 +207,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "markdown",
     ["owned"],
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).IsOk() then
     t.Fatal("foreign owner edited content/bindings")
   end
@@ -219,7 +219,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "Topic",
     illustrated,
     LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   if beforeDelete.ContentFormat != "markdown" ||
     PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() !=

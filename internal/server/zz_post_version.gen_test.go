@@ -134,7 +134,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_version_test.mygo:144:5*/		t.Fatal("concurrent save revision/content mismatch")
  /*line post_version_test.mygo:143:3*/	} else {
  /*line zz_post_version.gen_test.go:136:1*/	}
- /*line post_version_test.mygo:15:1*/	unchanged := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, "Topic", after.Body, after.Version, content.DefaultSanitizer()))
+ /*line post_version_test.mygo:15:1*/	unchanged := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, "Topic", after.Body, after.Version, content.DefaultSanitizer))
  /*line post_version_test.mygo:156:3*/	if unchanged.Version != int64(4) {
  /*line post_version_test.mygo:157:5*/		t.Fatal("accepted unchanged edit did not advance revision")
  /*line post_version_test.mygo:156:3*/	} else {

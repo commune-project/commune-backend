@@ -20,14 +20,14 @@ func TestPostgresAuthenticationAndSessions(t: Ref[testing.T]) -> ()
     RegistrationEnabled: false,
     Origin: "https://a.example",
     Aliases: [],
-    Sanitizer: content.DefaultSanitizer(),
+    Sanitizer: content.DefaultSanitizer,
   }
   let b = config.Site {
     ID: "b",
     RegistrationEnabled: false,
     Origin: "https://b.example",
     Aliases: [],
-    Sanitizer: content.DefaultSanitizer(),
+    Sanitizer: content.DefaultSanitizer,
   }
   let _ = ProvisionSite(ctx, db, a).Unwrap()
   let _ = ProvisionSite(ctx, db, b).Unwrap()

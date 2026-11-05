@@ -25,7 +25,7 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)).Unwrap()
   let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)).Unwrap()
   let now = time.Now().UTC().Truncate(time.Microsecond)
-  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: 0i64, DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer()).Unwrap()
+  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Receive(ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: 0i64, DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")
   let csrf = csrfOf(cookies)
@@ -53,8 +53,8 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   end
   let acceptPayload = `{"id":"https://peer.example/activities/accept-1","actor":"` + remoteGroup + `","type":"Accept","object":"` + firstFollow + `"}`
   let accept = federation.ParseActivity(acceptPayload as Slice[Byte]).Unwrap()
-  let _ = ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
-  let _ = ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  let _ = ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  let _ = ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
   if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "accepted" then
     t.Fatal("Accept did not update the remote follow")
   end
@@ -85,13 +85,13 @@ func TestPostgresFederatedBrowserFollowFlow(t: Ref[testing.T]) -> ()
   if secondFollow == firstFollow || storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "pending" then
     t.Fatal("re-follow did not create a new pending request")
   end
-  let _ = ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  let _ = ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, acceptPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
   if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "pending" then
     t.Fatal("stale Accept changed a newer follow")
   end
   let rejectPayload = `{"id":"https://peer.example/activities/reject-2","actor":"` + remoteGroup + `","type":"Reject","object":"` + secondFollow + `"}`
   let reject = federation.ParseActivity(rejectPayload as Slice[Byte]).Unwrap()
-  let _ = ApplyActivity(content.DefaultSanitizer(), ctx, db, site, reject, rejectPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
+  let _ = ApplyActivity(content.DefaultSanitizer, ctx, db, site, reject, rejectPayload as Slice[Byte], [bob.ActorURI]).Unwrap()
   if storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI).Unwrap() != "rejected" then
     t.Fatal("Reject did not update the current follow")
   end

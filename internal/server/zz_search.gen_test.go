@@ -69,8 +69,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 20, Offset: 0}, 50))
 	probeOne := transport.NewQueryProbe(db)
 	probeTwenty := transport.NewQueryProbe(db)
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
  /*line search_test.mygo:102:3*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(3) {
  /*line search_test.mygo:103:5*/		t.Fatal("search enrichment queries grew with page size")
  /*line search_test.mygo:102:3*/	} else {

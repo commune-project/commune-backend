@@ -56,7 +56,7 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
       ID: "",
     },
     author,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let _ = MutationResult(db.Exec(
     "INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?),('remote',?,?)",

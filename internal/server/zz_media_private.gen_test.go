@@ -31,14 +31,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media_private.gen_test.go:31:1*/	}
  /*line media_private_test.mygo:19:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "cache-http", RegistrationEnabled: false, Origin: "https://cache.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "cache-http", RegistrationEnabled: false, Origin: "https://cache.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password-long"))
 	var author string = "https://remote.example/users/author"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: Zero[sql.NullString](), Body: "Private", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, author, content.DefaultSanitizer()))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: Zero[sql.NullString](), Body: "Private", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, author, content.DefaultSanitizer))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?)", alice.ActorURI, author)))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json")).Media
 	settings.Enabled = true

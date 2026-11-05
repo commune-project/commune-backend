@@ -65,7 +65,7 @@ func TestPostgresPersonalBlockPredicate(t: Ref[testing.T]) -> ()
     ContentFormat: "",
     ID: "",
   }
-  let remote = posts.Receive(ctx, incoming, remoteAuthor, content.DefaultSanitizer()).Unwrap()
+  let remote = posts.Receive(ctx, incoming, remoteAuthor, content.DefaultSanitizer).Unwrap()
   let browser = BrowserRepository{DB: db, SiteID: site.ID}
   let identity = browser.Viewer(ctx, viewer).Unwrap()
   let blocks = AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
@@ -93,7 +93,7 @@ func TestPostgresPersonalBlockPredicate(t: Ref[testing.T]) -> ()
 end
 
 func testSite(id: String, origin: String) -> config.Site
-  config.Site{ID: id, RegistrationEnabled: false, Origin: origin, Aliases: [], Sanitizer: content.DefaultSanitizer()}
+  config.Site{ID: id, RegistrationEnabled: false, Origin: origin, Aliases: [], Sanitizer: content.DefaultSanitizer}
 end
 
 func testPublishInput(title: String, body: String) -> PublishInput
@@ -230,7 +230,7 @@ func TestPostgresPersonalBlocksBeforePaginationAndDetail(t: Ref[testing.T]) -> (
       ID: "",
     },
     "https://remote.example/users/writer",
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let visibleRemote = posts.Receive(
     ctx,
@@ -259,7 +259,7 @@ func TestPostgresPersonalBlocksBeforePaginationAndDetail(t: Ref[testing.T]) -> (
       ID: "",
     },
     "https://good.example/users/writer",
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let blockedCommunityPost = posts.Publish(
     ctx,
@@ -420,7 +420,7 @@ func TestPostgresPersonalBlocksBeforeSearchPagination(t: Ref[testing.T]) -> ()
       ID: "",
     },
     "https://remote.example/users/writer",
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let visibleRemote = posts.Receive(
     ctx,
@@ -449,7 +449,7 @@ func TestPostgresPersonalBlocksBeforeSearchPagination(t: Ref[testing.T]) -> ()
       ID: "",
     },
     "https://good.example/users/writer",
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let browser = BrowserRepository{DB: db, SiteID: site.ID}
   let browserViewer = browser.Viewer(ctx, viewer).Unwrap()
@@ -565,7 +565,7 @@ func TestPostgresPersonalBlocksNotificationsAndAccountLists(t: Ref[testing.T]) -
       ID: "",
     },
     "https://remote.example/users/writer",
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let state = ContentStateRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
   let reactions = ReactionRepository{DB: db, SiteID: site.ID}

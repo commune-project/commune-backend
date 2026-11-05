@@ -151,7 +151,7 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
     "Topic",
     after.Body,
     after.Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   if unchanged.Version != 4i64 then
     t.Fatal("accepted unchanged edit did not advance revision")

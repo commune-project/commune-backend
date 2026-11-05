@@ -203,12 +203,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	posts := PostRepository{DB: f.DB, SiteID: f.Site.ID}
 	incoming := PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/objects/reply", Valid: true}, CommunityID: f.Community.ID, FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: sql.NullString{String: "", Valid: false}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: sql.NullString{String: f.Parent.ID, Valid: true}, AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
- /*line notifications_test.mygo:215:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, "https://forged.example/actor", content.DefaultSanitizer())) {
+ /*line notifications_test.mygo:215:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, "https://forged.example/actor", content.DefaultSanitizer)) {
  /*line notifications_test.mygo:216:5*/		t.Fatal("unverified remote author accepted")
  /*line notifications_test.mygo:215:3*/	} else {
  /*line zz_notifications.gen_test.go:209:1*/	}
- /*line notifications_test.mygo:184:1*/	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer()))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer()))
+ /*line notifications_test.mygo:184:1*/	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, f.DB, 100))
 	browser := BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
 	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, f.Alice))

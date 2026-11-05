@@ -146,7 +146,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/news','Group')", author)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica','https://remote.example/groups/news',?,'federated','eligible_users','eligible_users','remote','Remote')", author)))
 	incoming := PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "replica", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: fixed, UpdatedAt: fixed, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}
-	remote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: b.ID}, ctx, incoming, author, content.DefaultSanitizer()))
+	remote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: b.ID}, ctx, incoming, author, content.DefaultSanitizer))
 	before := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
  /*line browser_test.mygo:205:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(before) != 1 {
  /*line browser_test.mygo:206:5*/		t.Fatal("unreceived replica appeared in discovery")

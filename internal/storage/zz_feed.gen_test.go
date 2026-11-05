@@ -102,7 +102,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	uri := sql.NullString{String: unReceived, Valid: true}
 	incoming := PostRecord{ID: "", ObjectURI: uri, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: sql.NullString{String: "", Valid: false}, Body: "remote body", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
 	receiver := PostRepository{DB: db, SiteID: "b"}
-	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(receiver, ctx, incoming, author, content.DefaultSanitizer()))
+	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(receiver, ctx, incoming, author, content.DefaultSanitizer))
  /*line feed_test.mygo:152:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, received.ID, alice, false)) {
  /*line feed_test.mygo:153:5*/		t.Fatal("site A exposed an object it had not received")
  /*line feed_test.mygo:152:3*/	} else {

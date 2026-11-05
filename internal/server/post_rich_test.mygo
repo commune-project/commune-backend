@@ -160,7 +160,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     "Remote",
     source,
     storage.LoadObjectByID(ctx, db, remotePost.ID).Unwrap().Unwrap().Version,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   var retainedMention = Zero[storage.PostMentionRecord]()
   let _ = storage.MutationResult(db.Table("post_mentions").Where(
@@ -207,7 +207,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   end
   let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = browser.Viewer(ctx, alice).Unwrap()
-  let projected = BrowserPosts(content.DefaultSanitizer(), ctx, browser, viewer, [remotePost]).Unwrap().Get(0).Unwrap()
+  let projected = BrowserPosts(content.DefaultSanitizer, ctx, browser, viewer, [remotePost]).Unwrap().Get(0).Unwrap()
   if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 ||
     !strings.Contains(projected.BodyHTML, "@second@second.example") then
     t.Fatal("resolved mentions were not linked or unresolved text disappeared")

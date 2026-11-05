@@ -14,13 +14,28 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
   if MigrateGORM(ctx, db).IsErr() then
     t.Fatal("migration failed")
   end
-  let a = config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://a.example", Aliases: ["alias.example"], Sanitizer: content.DefaultSanitizer()}
-  let b = config.Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
-  if ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, a).IsErr() || ProvisionSite(ctx, db, b).IsErr() then
+  let a = config.Site {
+    ID: "a",
+    RegistrationEnabled: false,
+    Origin: "https://a.example",
+    Aliases: ["alias.example"],
+    Sanitizer: content.DefaultSanitizer,
+  }
+  let b = config.Site {
+    ID: "b",
+    RegistrationEnabled: false,
+    Origin: "https://b.example",
+    Aliases: [],
+    Sanitizer: content.DefaultSanitizer,
+  }
+  if ProvisionSite(ctx, db, a).IsErr() ||
+    ProvisionSite(ctx, db, a).IsErr() ||
+    ProvisionSite(ctx, db, b).IsErr() then
     t.Fatal("site provisioning or repetition failed")
   end
   let voteRows = 0
-  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() || voteRows != 2 then
+  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() ||
+    voteRows != 2 then
     t.Fatal("site vote settings defaults were not provisioned")
   end
   if MutationResult(db.Exec("DELETE FROM site_vote_settings WHERE site_id='a'")).IsErr() then
@@ -30,24 +45,42 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
     t.Fatal("missing vote settings did not resolve enabled")
   end
   let _ = ProvisionSite(ctx, db, a).Unwrap()
-  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE site_id='a' AND upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() || voteRows != 1 then
+  if pool.QueryRow("SELECT count(*) FROM site_vote_settings WHERE site_id='a' AND upvotes_enabled AND downvotes_enabled").Scan(Ref.new(voteRows)).IsErr() ||
+    voteRows != 1 then
     t.Fatal("repeat provisioning did not restore vote settings defaults")
   end
-  let conflict = config.Site{ID: "a", RegistrationEnabled: false, Origin: "https://changed.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
-  let alias = config.Site{ID: "c", RegistrationEnabled: false, Origin: "https://c.example", Aliases: ["alias.example"], Sanitizer: content.DefaultSanitizer()}
+  let conflict = config.Site {
+    ID: "a",
+    RegistrationEnabled: false,
+    Origin: "https://changed.example",
+    Aliases: [],
+    Sanitizer: content.DefaultSanitizer,
+  }
+  let alias = config.Site {
+    ID: "c",
+    RegistrationEnabled: false,
+    Origin: "https://c.example",
+    Aliases: ["alias.example"],
+    Sanitizer: content.DefaultSanitizer,
+  }
   if ProvisionSite(ctx, db, conflict).IsOk() || ProvisionSite(ctx, db, alias).IsOk() then
     t.Fatal("site identity conflict accepted")
   end
   let count = 0
-  if pool.QueryRow("SELECT count(*) FROM sites WHERE id='c'").Scan(Ref.new(count)).IsErr() || count != 0 then
+  if pool.QueryRow("SELECT count(*) FROM sites WHERE id='c'").Scan(Ref.new(count)).IsErr() ||
+    count != 0 then
     t.Fatal("conflicting site was not rolled back")
   end
-  if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false).IsErr() || ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false).IsErr() then
+  if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false).IsErr() ||
+    ProvisionAdministrator(ctx, db, b, "alice", "other-site-password", false).IsErr() then
     t.Fatal("administrator provisioning failed")
   end
   let first = FindAccount(ctx, db, "a", "alice").Unwrap().Unwrap()
   let second = FindAccount(ctx, db, "b", "alice").Unwrap().Unwrap()
-  if first.ID == second.ID || !auth.VerifyPassword(first.PasswordHash, "first-site-password") || auth.VerifyPassword(first.PasswordHash, "other-site-password") || !auth.VerifyPassword(second.PasswordHash, "other-site-password") then
+  if first.ID == second.ID ||
+    !auth.VerifyPassword(first.PasswordHash, "first-site-password") ||
+    auth.VerifyPassword(first.PasswordHash, "other-site-password") ||
+    !auth.VerifyPassword(second.PasswordHash, "other-site-password") then
     t.Fatal("site credentials are not independent")
   end
   if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", false).IsErr() then
@@ -60,16 +93,19 @@ func TestPostgresProvisioning(t: Ref[testing.T]) -> ()
   if repeated.PasswordHash != first.PasswordHash then
     t.Fatal("repeat changed stored hash")
   end
-  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() || count != 0 then
+  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() ||
+    count != 0 then
     t.Fatal("site provisioning escalated deployment authority")
   end
   if ProvisionAdministrator(ctx, db, a, "alice", "first-site-password", true).IsErr() then
     t.Fatal("explicit deployment grant failed")
   end
-  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() || count != 1 then
+  if pool.QueryRow("SELECT count(*) FROM deployment_roles").Scan(Ref.new(count)).IsErr() ||
+    count != 1 then
     t.Fatal("deployment grant was not scoped")
   end
-  if pool.QueryRow("SELECT count(*) FROM audit_events").Scan(Ref.new(count)).IsErr() || count != 3 then
+  if pool.QueryRow("SELECT count(*) FROM audit_events").Scan(Ref.new(count)).IsErr() ||
+    count != 3 then
     t.Fatal("role grants not audited once in their own scope")
   end
 end

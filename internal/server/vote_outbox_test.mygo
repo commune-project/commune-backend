@@ -62,7 +62,7 @@ func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
       Version: 0i64,
     },
     remoteAuthor,
-    content.DefaultSanitizer()
+    content.DefaultSanitizer
   ).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")

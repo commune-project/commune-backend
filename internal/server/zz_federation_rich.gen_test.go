@@ -26,7 +26,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_rich_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "rich", RegistrationEnabled: false, Origin: "https://rich.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
+	site := config.Site{ID: "rich", RegistrationEnabled: false, Origin: "https://rich.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "creator", "", "creator-password"))
 	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, creator, "rich", "Rich", "federated", "eligible_users", "eligible_users"))
@@ -35,32 +35,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 	objectURI := "https://remote.example/posts/1"
 	create := "{\"id\":\"https://remote.example/a/create\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"object\":{\"id\":\"" + objectURI + "\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"published\":\"2026-01-01T00:00:00Z\",\"content\":\"<p>中文 &amp; rich</p>\",\"mediaType\":\"text/html\",\"attachment\":[{\"type\":\"Image\",\"url\":\"https://remote.example/image.png\"}],\"tag\":[{\"type\":\"Mention\",\"href\":\"" + creator.ActorURI + "\"}],\"source\":{\"mediaType\":\"text/markdown\",\"content\":\"**untrusted source**\"}}}"
 	restricted := strings.Replace(create, "\"published\":", "\"to\":[\""+creator.ActorURI+"\"],\"published\":", 1)
- /*line federation_rich_test.mygo:26:3*/	if MygoIN6ResultM4IsOk[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(restricted))), []byte(restricted), []string{group.ActorURI.String})) {
+ /*line federation_rich_test.mygo:26:3*/	if MygoIN6ResultM4IsOk[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(restricted))), []byte(restricted), []string{group.ActorURI.String})) {
  /*line federation_rich_test.mygo:27:5*/		t.Fatal("restricted content expanded into public community")
  /*line federation_rich_test.mygo:26:3*/	} else {
  /*line zz_federation_rich.gen_test.go:41:1*/	}
- /*line federation_rich_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(create))), []byte(create), []string{group.ActorURI.String}))
+ /*line federation_rich_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(create))), []byte(create), []string{group.ActorURI.String}))
 	stored := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByURI(ctx, db, objectURI)))
  /*line federation_rich_test.mygo:31:3*/	if stored.ContentFormat != "html" || stored.SearchText != "中文 & rich" || stored.RichMetadata == "" {
  /*line federation_rich_test.mygo:32:5*/		t.Fatal("accepted Create failed to receive rich content")
  /*line federation_rich_test.mygo:31:3*/	} else {
  /*line zz_federation_rich.gen_test.go:47:1*/	}
- /*line federation_rich_test.mygo:13:1*/	output := MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](BuildRichObject(content.DefaultSanitizer(), ctx, db, stored, group, ""))
+ /*line federation_rich_test.mygo:13:1*/	output := MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](BuildRichObject(content.DefaultSanitizer, ctx, db, stored, group, ""))
  /*line federation_rich_test.mygo:35:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(output.Attachment) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(output.Tag) != 1 || output.Source.Content != "**untrusted source**" || strings.Contains(output.Content, "untrusted") {
  /*line federation_rich_test.mygo:36:5*/		t.Fatal("rich metadata did not roundtrip independently of display")
  /*line federation_rich_test.mygo:35:3*/	} else {
  /*line zz_federation_rich.gen_test.go:52:1*/	}
  /*line federation_rich_test.mygo:13:1*/	update := strings.Replace(strings.Replace(strings.Replace(create, "a/create", "a/update", 1), "\"type\":\"Create\"", "\"type\":\"Update\"", 1), "<p>中文 &amp; rich</p>", "<p>updated</p>", 1)
 	newer := strings.Replace(update, "\"published\":", "\"updated\":\"2026-01-02T00:00:00Z\",\"published\":", 1)
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(newer))), []byte(newer), []string{}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(newer))), []byte(newer), []string{}))
 	changed := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByURI(ctx, db, objectURI)))
  /*line federation_rich_test.mygo:42:3*/	if changed.ID != stored.ID || changed.SearchText != "updated" {
  /*line federation_rich_test.mygo:42:70*/		t.Fatal("author update lost identity or text")
  /*line federation_rich_test.mygo:42:3*/	} else {
  /*line zz_federation_rich.gen_test.go:60:1*/	}
  /*line federation_rich_test.mygo:13:1*/	deletion := "{\"id\":\"https://remote.example/a/delete\",\"actor\":\"" + author + "\",\"type\":\"Delete\",\"object\":\"" + objectURI + "\"}"
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(deletion))), []byte(deletion), []string{}))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(newer))), []byte(newer), []string{}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(deletion))), []byte(deletion), []string{}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(newer))), []byte(newer), []string{}))
 	tombstone := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByURI(ctx, db, objectURI)))
  /*line federation_rich_test.mygo:47:3*/	if !tombstone.DeletedAt.Valid || tombstone.Body != "" || tombstone.RichMetadata != "" {
  /*line federation_rich_test.mygo:47:94*/		t.Fatal("rich update resurrected deleted post")

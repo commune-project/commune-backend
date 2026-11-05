@@ -45,7 +45,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line posts_test.mygo:67:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
  /*line zz_posts.gen_test.go:46:1*/			}{})
  /*line posts_test.mygo:66:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
- /*line posts_test.mygo:69:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN14PostRepositoryM7Receive(repository, ctx, post, author, content.DefaultSanitizer()))
+ /*line posts_test.mygo:69:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN14PostRepositoryM7Receive(repository, ctx, post, author, content.DefaultSanitizer))
 			return
  /*line zz_posts.gen_test.go:50:1*/		})
  /*line posts_test.mygo:66:5*/		return
@@ -73,38 +73,38 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line posts_test.mygo:88:5*/		t.Fatal("site reception rows were deduplicated across sites")
  /*line posts_test.mygo:87:3*/	} else {
  /*line zz_posts.gen_test.go:75:1*/	}
- /*line posts_test.mygo:13:1*/	distinct := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost("https://remote.example/objects/two", author, "same text", authored, false), author, content.DefaultSanitizer()))
+ /*line posts_test.mygo:13:1*/	distinct := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost("https://remote.example/objects/two", author, "same text", authored, false), author, content.DefaultSanitizer))
  /*line posts_test.mygo:96:3*/	if distinct.ID == a.ID {
  /*line posts_test.mygo:97:5*/		t.Fatal("identical text merged different canonical URIs")
  /*line posts_test.mygo:96:3*/	} else {
  /*line zz_posts.gen_test.go:80:1*/	}
  /*line posts_test.mygo:13:1*/	newer := authored.Add(time.Second)
- /*line posts_test.mygo:100:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, "https://remote.example/users/bob", "forged", newer, false), "https://remote.example/users/bob", content.DefaultSanitizer())) {
+ /*line posts_test.mygo:100:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, "https://remote.example/users/bob", "forged", newer, false), "https://remote.example/users/bob", content.DefaultSanitizer)) {
  /*line posts_test.mygo:106:5*/		t.Fatal("unrelated authenticated author reused another object's URI")
  /*line posts_test.mygo:100:3*/	} else {
  /*line zz_posts.gen_test.go:85:1*/	}
- /*line posts_test.mygo:108:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "forged", authored, false), author, content.DefaultSanitizer())) {
+ /*line posts_test.mygo:108:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "forged", authored, false), author, content.DefaultSanitizer)) {
  /*line posts_test.mygo:109:5*/		t.Fatal("conflicting body reused the same version")
  /*line posts_test.mygo:108:3*/	} else {
  /*line zz_posts.gen_test.go:89:1*/	}
- /*line posts_test.mygo:13:1*/	update := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "updated", newer, false), author, content.DefaultSanitizer()))
+ /*line posts_test.mygo:13:1*/	update := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "updated", newer, false), author, content.DefaultSanitizer))
  /*line posts_test.mygo:112:3*/	if update.ID != a.ID || update.Body != "updated" || update.Version != int64(2) {
  /*line posts_test.mygo:113:5*/		t.Fatal("authoritative update replaced identity or failed to update body")
  /*line posts_test.mygo:112:3*/	} else {
  /*line zz_posts.gen_test.go:94:1*/	}
- /*line posts_test.mygo:13:1*/	late := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, post, author, content.DefaultSanitizer()))
+ /*line posts_test.mygo:13:1*/	late := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, post, author, content.DefaultSanitizer))
  /*line posts_test.mygo:116:3*/	if late.Body != "updated" || late.Version != int64(2) {
  /*line posts_test.mygo:117:5*/		t.Fatal("late original version replaced a newer body")
  /*line posts_test.mygo:116:3*/	} else {
  /*line zz_posts.gen_test.go:99:1*/	}
- /*line posts_test.mygo:13:1*/	deleted_1 := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "", newer.Add(time.Second), true), author, content.DefaultSanitizer()))
-	replay := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, makePost(uri_1, author, "resurrected", newer.Add(time.Duration(2)*time.Second), false), author, content.DefaultSanitizer()))
+ /*line posts_test.mygo:13:1*/	deleted_1 := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(first, ctx, makePost(uri_1, author, "", newer.Add(time.Second), true), author, content.DefaultSanitizer))
+	replay := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(second, ctx, makePost(uri_1, author, "resurrected", newer.Add(time.Duration(2)*time.Second), false), author, content.DefaultSanitizer))
  /*line posts_test.mygo:126:3*/	if !deleted_1.DeletedAt.Valid || !replay.DeletedAt.Valid || replay.Body != "" || deleted_1.Version != int64(3) || replay.Version != int64(3) {
  /*line posts_test.mygo:131:5*/		t.Fatal("a newer replay resurrected a tombstone")
  /*line posts_test.mygo:126:3*/	} else {
  /*line zz_posts.gen_test.go:105:1*/	}
  /*line posts_test.mygo:13:1*/	missing := PostRepository{DB: db, SiteID: "missing"}
- /*line posts_test.mygo:134:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(missing, ctx, makePost("https://remote.example/objects/rollback", author, "body", authored, false), author, content.DefaultSanitizer())) {
+ /*line posts_test.mygo:134:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(missing, ctx, makePost("https://remote.example/objects/rollback", author, "body", authored, false), author, content.DefaultSanitizer)) {
  /*line posts_test.mygo:140:5*/		t.Fatal("missing site accepted reception")
  /*line posts_test.mygo:134:3*/	} else {
  /*line zz_posts.gen_test.go:110:1*/	}

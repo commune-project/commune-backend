@@ -18,7 +18,7 @@ func registrationFixture(t: Ref[testing.T]) -> RegistrationRepository
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let ctx = context.Background()
   let _ = MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
+  let site = config.Site{ID: "a", RegistrationEnabled: true, Origin: "https://a.example", Aliases: [], Sanitizer: content.DefaultSanitizer}
   let _ = ProvisionSite(ctx, db, site).Unwrap()
   let _ = ProvisionSite(
     ctx,
@@ -28,7 +28,7 @@ func registrationFixture(t: Ref[testing.T]) -> RegistrationRepository
       Origin: "https://b.example",
       RegistrationEnabled: true,
       Aliases: [],
-      Sanitizer: content.DefaultSanitizer(),
+      Sanitizer: content.DefaultSanitizer,
     }
   ).Unwrap()
   RegistrationRepository{
@@ -237,7 +237,7 @@ func TestPostgresRegistrationResendIsolationAndExpiry(t: Ref[testing.T]) -> ()
     t.Fatal("resend expiry or old payload invalidation failed")
   end
   var other = repository
-  other.Site = config.Site{ID: "b", RegistrationEnabled: true, Origin: "https://b.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
+  other.Site = config.Site{ID: "b", RegistrationEnabled: true, Origin: "https://b.example", Aliases: [], Sanitizer: content.DefaultSanitizer}
   if other.Confirm(ctx, second, "chosen-final-password", later).IsOk() then
     t.Fatal("token redeemed on another site")
   end
@@ -323,7 +323,7 @@ func TestPostgresRegistrationDuplicatesAndRateLimits(t: Ref[testing.T]) -> ()
     RegistrationEnabled: false,
     Origin: "https://b.example",
     Aliases: [],
-    Sanitizer: content.DefaultSanitizer(),
+    Sanitizer: content.DefaultSanitizer,
   }
   let _ = other.Resend(ctx, "one@example.com", "192.0.2.30", now).Unwrap()
 end

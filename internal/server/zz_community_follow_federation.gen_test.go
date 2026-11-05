@@ -36,7 +36,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer()))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "bob", "bob-password")
 	csrf := csrfOf(cookies)
@@ -69,8 +69,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_federation.gen_test.go:69:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	acceptPayload := "{\"id\":\"https://peer.example/activities/accept-1\",\"actor\":\"" + remoteGroup + "\",\"type\":\"Accept\",\"object\":\"" + firstFollow + "\"}"
 	accept := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(acceptPayload)))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
  /*line community_follow_federation_test.mygo:58:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "accepted" {
  /*line community_follow_federation_test.mygo:59:5*/		t.Fatal("Accept did not update the remote follow")
  /*line community_follow_federation_test.mygo:58:3*/	} else {
@@ -108,14 +108,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line community_follow_federation_test.mygo:86:5*/		t.Fatal("re-follow did not create a new pending request")
  /*line community_follow_federation_test.mygo:85:3*/	} else {
  /*line zz_community_follow_federation.gen_test.go:110:1*/	}
- /*line community_follow_federation_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+ /*line community_follow_federation_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
  /*line community_follow_federation_test.mygo:89:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
  /*line community_follow_federation_test.mygo:90:5*/		t.Fatal("stale Accept changed a newer follow")
  /*line community_follow_federation_test.mygo:89:3*/	} else {
  /*line zz_community_follow_federation.gen_test.go:115:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	rejectPayload := "{\"id\":\"https://peer.example/activities/reject-2\",\"actor\":\"" + remoteGroup + "\",\"type\":\"Reject\",\"object\":\"" + secondFollow + "\"}"
 	reject := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(rejectPayload)))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer(), ctx, db, site, reject, []byte(rejectPayload), []string{bob.ActorURI}))
+	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, reject, []byte(rejectPayload), []string{bob.ActorURI}))
  /*line community_follow_federation_test.mygo:95:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "rejected" {
  /*line community_follow_federation_test.mygo:96:5*/		t.Fatal("Reject did not update the current follow")
  /*line community_follow_federation_test.mygo:95:3*/	} else {

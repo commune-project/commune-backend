@@ -17,7 +17,7 @@ func TestPostgresRemoteReactionReplayOccurrences(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
+  let site = config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: [], Sanitizer: content.DefaultSanitizer}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users").Unwrap()
@@ -27,7 +27,7 @@ func TestPostgresRemoteReactionReplayOccurrences(t: Ref[testing.T]) -> ()
   let receive = func(kind: String, id: String, target: String) -> ()
     let payload = `{"id":"` + id + `","actor":"` + actor + `","type":"` + kind + `","object":"` + target + `"}`
     let _ = storage.ReceiveActivity(ctx, db, site.ID, [alice.ActorURI], id, actor, kind, payload as Slice[Byte]).Unwrap()
-    let _ = ApplyActivity(content.DefaultSanitizer(), ctx, db, site, federation.ParseActivity(payload as Slice[Byte]).Unwrap(), payload as Slice[Byte], [alice.ActorURI]).Unwrap()
+    let _ = ApplyActivity(content.DefaultSanitizer, ctx, db, site, federation.ParseActivity(payload as Slice[Byte]).Unwrap(), payload as Slice[Byte], [alice.ActorURI]).Unwrap()
     let _ = storage.ProjectNotifications(ctx, db, 100).Unwrap()
   end
   let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
@@ -50,7 +50,7 @@ func TestPostgresRemoteDislikeAndUndo(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
   let _ = storage.MigrateGORM(ctx, db).Unwrap()
-  let site = config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: [], Sanitizer: content.DefaultSanitizer()}
+  let site = config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: [], Sanitizer: content.DefaultSanitizer}
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let _ = storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
@@ -64,7 +64,7 @@ func TestPostgresRemoteDislikeAndUndo(t: Ref[testing.T]) -> ()
     if received.IsErr() then return Err(received.UnwrapErr()) end
     let parsed = federation.ParseActivity(payload as Slice[Byte])
     if parsed.IsErr() then return Err(parsed.UnwrapErr()) end
-    ApplyActivity(content.DefaultSanitizer(), ctx, db, site, parsed.Unwrap(), payload as Slice[Byte], [alice.ActorURI])
+    ApplyActivity(content.DefaultSanitizer, ctx, db, site, parsed.Unwrap(), payload as Slice[Byte], [alice.ActorURI])
   end
   let dislikeURI = "https://remote.example/activities/dislike-1"
   let _ = apply("Dislike", dislikeURI, post.ObjectURI.String).Unwrap()

@@ -200,7 +200,7 @@ func TestPostgresBrowserFilteredPagesAndReplica(t: Ref[testing.T]) -> ()
     ContentFormat: "",
     ID: "",
   }
-  let remote = PostRepository{DB: db, SiteID: b.ID}.Receive(ctx, incoming, author, content.DefaultSanitizer()).Unwrap()
+  let remote = PostRepository{DB: db, SiteID: b.ID}.Receive(ctx, incoming, author, content.DefaultSanitizer).Unwrap()
   let before = browser.ListCommunities(ctx, anonymous, Page{Limit: 20, Offset: 0}, 50).Unwrap()
   if before.Len() != 1 then
     t.Fatal("unreceived replica appeared in discovery")

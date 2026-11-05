@@ -47,21 +47,21 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_content_test.mygo:60:3*/	} else {
  /*line zz_post_content.gen_test.go:48:1*/	}
  /*line post_content_test.mygo:12:1*/	occurrence := MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).ID
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer()))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	unchanged := Zero[PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&unchanged)))
  /*line post_content_test.mygo:78:3*/	if unchanged.ID != occurrence || unchanged.SourceStart == MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).SourceStart {
  /*line post_content_test.mygo:80:5*/		t.Fatal("unchanged actor renotified or source span did not move")
  /*line post_content_test.mygo:78:3*/	} else {
  /*line zz_post_content.gen_test.go:56:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer()))
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	var retired int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(&retired)))
  /*line post_content_test.mygo:99:3*/	if retired != int64(1) {
  /*line post_content_test.mygo:100:5*/		t.Fatal("removed mention notification remained active")
  /*line post_content_test.mygo:99:3*/	} else {
  /*line zz_post_content.gen_test.go:63:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer()))
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	reintroduced := Zero[PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&reintroduced)))
  /*line post_content_test.mygo:116:3*/	if reintroduced.ID == occurrence {
@@ -71,21 +71,21 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_content_test.mygo:12:1*/	expires := time.Now().Add(time.Hour)
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
 	illustrated := "![图](/api/v1/media/owned) @bob"
-	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer()))
+	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	state := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
 	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(state))
-	rendered := MygoIN6ResultM6Unwrap[string, string](RenderStoredPost(content.DefaultSanitizer(), saved, state, false))
+	rendered := MygoIN6ResultM6Unwrap[string, string](RenderStoredPost(content.DefaultSanitizer, saved, state, false))
  /*line post_content_test.mygo:144:3*/	if saved.Body != illustrated || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(media) != 1 || !strings.Contains(rendered, "/api/v1/media/"+MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(media, 0)).BindingID+"/preview") || strings.Contains(rendered, "src=\"/api/v1/media/owned\"") {
  /*line post_content_test.mygo:148:5*/		t.Fatal("display binding rewrite changed source or missed safe preview")
  /*line post_content_test.mygo:144:3*/	} else {
  /*line zz_post_content.gen_test.go:81:1*/	}
  /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
-	stale := MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![new](/api/v1/media/replacement)", "markdown", []string{"replacement"}, saved.Version-int64(1), content.DefaultSanitizer())
+	stale := MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![new](/api/v1/media/replacement)", "markdown", []string{"replacement"}, saved.Version-int64(1), content.DefaultSanitizer)
  /*line post_content_test.mygo:170:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](stale) || MygoIN6ResultM9UnwrapErr[PostRecord, string](stale) != "edit_conflict" {
  /*line post_content_test.mygo:171:5*/		t.Fatal("stale attachment save did not conflict")
  /*line post_content_test.mygo:170:3*/	} else {
  /*line zz_post_content.gen_test.go:87:1*/	}
- /*line post_content_test.mygo:173:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"}, saved.Version, content.DefaultSanitizer())) {
+ /*line post_content_test.mygo:173:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"}, saved.Version, content.DefaultSanitizer)) {
  /*line post_content_test.mygo:185:5*/		t.Fatal("unbound source reference accepted")
  /*line post_content_test.mygo:173:3*/	} else {
  /*line zz_post_content.gen_test.go:91:1*/	}
@@ -101,11 +101,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_content_test.mygo:198:5*/		t.Fatal("failed edit left a new binding")
  /*line post_content_test.mygo:197:3*/	} else {
  /*line zz_post_content.gen_test.go:103:1*/	}
- /*line post_content_test.mygo:200:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer())) {
+ /*line post_content_test.mygo:200:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer)) {
  /*line post_content_test.mygo:212:5*/		t.Fatal("foreign owner edited content/bindings")
  /*line post_content_test.mygo:200:3*/	} else {
  /*line zz_post_content.gen_test.go:107:1*/	}
- /*line post_content_test.mygo:12:1*/	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer()))
+ /*line post_content_test.mygo:12:1*/	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
  /*line post_content_test.mygo:224:3*/	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
  /*line post_content_test.mygo:227:5*/		t.Fatal("legacy edit API cleared format/attachments")
  /*line post_content_test.mygo:224:3*/	} else {

@@ -27,49 +27,47 @@ struct Sanitizer
   Converter: goldmark.Markdown
 end
 
-func DefaultSanitizerConfig() -> SanitizerConfig
-  SanitizerConfig{
-    HardWraps: true,
-    AllowRawHTML: false,
-    Elements: [
-      "p",
-      "br",
-      "hr",
-      "em",
-      "strong",
-      "del",
-      "ul",
-      "ol",
-      "li",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "blockquote",
-      "pre",
-      "code",
-      "a",
-      "img",
-      "table",
-      "thead",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-    ],
-    Attributes: [
-      SanitizerAttribute{Element: "a", Names: ["href", "title"]},
-      SanitizerAttribute{
-        Element: "img",
-        Names: ["src", "alt", "title", "referrerpolicy"],
-      },
-    ],
-    URLSchemes: ["http", "https"],
-    AllowRelativeURLs: true,
-  }
-end
+let DefaultSanitizerConfig = SanitizerConfig{
+  HardWraps: true,
+  AllowRawHTML: false,
+  Elements: [
+    "p",
+    "br",
+    "hr",
+    "em",
+    "strong",
+    "del",
+    "ul",
+    "ol",
+    "li",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "blockquote",
+    "pre",
+    "code",
+    "a",
+    "img",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+  ],
+  Attributes: [
+    SanitizerAttribute{Element: "a", Names: ["href", "title"]},
+    SanitizerAttribute{
+      Element: "img",
+      Names: ["src", "alt", "title", "referrerpolicy"],
+    },
+  ],
+  URLSchemes: ["http", "https"],
+  AllowRelativeURLs: true,
+}
 
 func BuildRichConverter(hardWraps: Bool, allowRawHTML: Bool) -> goldmark.Markdown
   switch (hardWraps, allowRawHTML)
@@ -147,17 +145,13 @@ func NewSanitizer(config: SanitizerConfig) -> Sanitizer
   }
 end
 
-impl Sanitizer: Default[Sanitizer]
+impl Sanitizer
   func Default() -> Sanitizer
-    NewSanitizer(DefaultSanitizerConfig())
+    NewSanitizer(DefaultSanitizerConfig)
   end
 end
 
-let defaultSanitizer: Sanitizer = NewSanitizer(DefaultSanitizerConfig())
-
-func DefaultSanitizer() -> Sanitizer
-  defaultSanitizer
-end
+let DefaultSanitizer: Sanitizer = Sanitizer.Default()
 
 # Format strings are persisted by callers; unknown formats fail closed.
 func RenderRich(sanitizer: Sanitizer, source: String, format: String) -> Result[String, String]

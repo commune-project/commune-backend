@@ -115,7 +115,7 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
       "Topic",
       "Edited",
       LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version,
-      content.DefaultSanitizer()
+      content.DefaultSanitizer
     ).Unwrap()
     let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
     let _ = communities.SetPolicy(ctx, community.ID, alice, false, read, post).Unwrap()

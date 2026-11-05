@@ -345,7 +345,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		settings.SMTP.TLSMode = "starttls"
 	} else {
  /*line zz_participation.gen.go:347:1*/	}
- /*line participation.mygo:215:1*/	defaultRendering := content.DefaultSanitizerConfig()
+ /*line participation.mygo:215:1*/	defaultRendering := content.DefaultSanitizerConfig
  /*line participation.mygo:317:3*/	if OptionalSliceMissing(settings.Rendering.Sanitize.Elements) {
 		settings.Rendering.Sanitize.Elements = defaultRendering.Elements
 	} else {

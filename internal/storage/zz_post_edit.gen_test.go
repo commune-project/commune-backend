@@ -31,7 +31,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, testPublishInput("Topic", "Original")))
- /*line post_edit_test.mygo:23:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, bob, false, "Topic", "Hijacked", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer())) {
+ /*line post_edit_test.mygo:23:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, bob, false, "Topic", "Hijacked", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer)) {
  /*line post_edit_test.mygo:24:5*/		t.Fatal("non-author edited a post")
  /*line post_edit_test.mygo:23:3*/	} else {
  /*line zz_post_edit.gen_test.go:37:1*/	}
@@ -45,17 +45,17 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_edit_test.mygo:32:5*/		t.Fatal("unauthorized mutation changed the shared body")
  /*line post_edit_test.mygo:31:3*/	} else {
  /*line zz_post_edit.gen_test.go:47:1*/	}
- /*line post_edit_test.mygo:10:1*/	edited := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer()))
+ /*line post_edit_test.mygo:10:1*/	edited := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer))
  /*line post_edit_test.mygo:35:3*/	if edited.Body != "Edited" || edited.ID != topic.ID || edited.UpdatedAt.Before(edited.AuthoredAt) {
  /*line post_edit_test.mygo:36:5*/		t.Fatal("author edit failed or moved identity")
  /*line post_edit_test.mygo:35:3*/	} else {
  /*line zz_post_edit.gen_test.go:52:1*/	}
- /*line post_edit_test.mygo:38:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer())) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer())) {
+ /*line post_edit_test.mygo:38:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "", "Edited", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer)) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer)) {
  /*line post_edit_test.mygo:39:5*/		t.Fatal("edit accepted a shape change or empty body")
  /*line post_edit_test.mygo:38:3*/	} else {
  /*line zz_post_edit.gen_test.go:56:1*/	}
  /*line post_edit_test.mygo:10:1*/	reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}))
- /*line post_edit_test.mygo:42:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, reply.ID, alice, false, "Title", "Body", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, reply.ID))).Version, content.DefaultSanitizer())) {
+ /*line post_edit_test.mygo:42:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, reply.ID, alice, false, "Title", "Body", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, reply.ID))).Version, content.DefaultSanitizer)) {
  /*line post_edit_test.mygo:43:5*/		t.Fatal("reply edit added a title")
  /*line post_edit_test.mygo:42:3*/	} else {
  /*line zz_post_edit.gen_test.go:61:1*/	}
@@ -66,7 +66,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_edit_test.mygo:49:5*/		t.Fatal("author deletion did not tombstone the post")
  /*line post_edit_test.mygo:48:3*/	} else {
  /*line zz_post_edit.gen_test.go:68:1*/	}
- /*line post_edit_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Resurrected", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer())) {
+ /*line post_edit_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, topic.ID, alice, false, "Topic", "Resurrected", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, topic.ID))).Version, content.DefaultSanitizer)) {
  /*line post_edit_test.mygo:52:5*/		t.Fatal("edit restored a tombstoned body")
  /*line post_edit_test.mygo:51:3*/	} else {
  /*line zz_post_edit.gen_test.go:72:1*/	}
@@ -76,7 +76,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_post_edit.gen_test.go:76:1*/	}
  /*line post_edit_test.mygo:10:1*/	member := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "memberonly", "Member", "local_only", "members", "members"))
 	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, member.ID, alice, false, testPublishInput("Hidden", "Body")))
- /*line post_edit_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, hidden.ID, bob, false, "Hidden", "Nope", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, hidden.ID))).Version, content.DefaultSanitizer())) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, hidden.ID, bob, false)) {
+ /*line post_edit_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, hidden.ID, bob, false, "Hidden", "Nope", MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, hidden.ID))).Version, content.DefaultSanitizer)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, hidden.ID, bob, false)) {
  /*line post_edit_test.mygo:60:5*/		t.Fatal("non-member mutated a member-only post")
 		return
  /*line post_edit_test.mygo:59:3*/	} else {
