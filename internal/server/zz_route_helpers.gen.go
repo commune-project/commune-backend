@@ -7,66 +7,80 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "github.com/commune-project/commune-backend/internal/storage"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line route_helpers.mygo:10:1*/func Classify(reason string) failure.Failure {
- /*line route_helpers.mygo:11:3*/	__mygo_expr_0 := failure.Parse(reason)
+ /*line route_helpers.mygo:11:1*/func Classify(reason string) failure.Failure {
+ /*line route_helpers.mygo:12:3*/	__mygo_expr_0 := failure.Parse(reason)
 	var __mygo_expr_1 failure.Failure
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[failure.Failure, string]); ok {
 		__mygo_expr_1 = __mygo_match___mygo_expr_2.F0
- /*line zz_route_helpers.gen.go:17:1*/	} else {
- /*line route_helpers.mygo:11:3*/		if _, ok := __mygo_expr_0.(Result__Err[failure.Failure, string]); ok {
+ /*line zz_route_helpers.gen.go:18:1*/	} else {
+ /*line route_helpers.mygo:12:3*/		if _, ok := __mygo_expr_0.(Result__Err[failure.Failure, string]); ok {
 			__mygo_expr_1 = failure.Failure__Internal__Ctor(reason)
 		} else {
- /*line zz_route_helpers.gen.go:21:1*/		}
+ /*line zz_route_helpers.gen.go:22:1*/		}
 	}
- /*line route_helpers.mygo:11:3*/	return __mygo_expr_1
- /*line zz_route_helpers.gen.go:24:1*/}
- /*line route_helpers.mygo:17:1*/func Of(reason string) failure.Failure {
- /*line route_helpers.mygo:18:3*/	return Classify(reason)
- /*line zz_route_helpers.gen.go:27:1*/}
- /*line route_helpers.mygo:21:1*/func FailFailure(w http.ResponseWriter, value failure.Failure) {
- /*line route_helpers.mygo:22:3*/	if failure.MygoIN7FailureM14IsEditConflict(value) {
- /*line route_helpers.mygo:23:5*/		w.Header().Set("Cache-Control", "no-store")
- /*line route_helpers.mygo:22:3*/	} else {
- /*line zz_route_helpers.gen.go:32:1*/	}
- /*line route_helpers.mygo:25:3*/	WriteErrorJSON(w, failure.MygoIN7FailureM6Status(value), failure.MygoIN7FailureM6Render(value))
+ /*line route_helpers.mygo:12:3*/	return __mygo_expr_1
+ /*line zz_route_helpers.gen.go:25:1*/}
+ /*line route_helpers.mygo:18:1*/func Of(reason string) failure.Failure {
+ /*line route_helpers.mygo:19:3*/	return Classify(reason)
+ /*line zz_route_helpers.gen.go:28:1*/}
+ /*line route_helpers.mygo:22:1*/func FailFailure(w http.ResponseWriter, value failure.Failure) {
+ /*line route_helpers.mygo:23:3*/	if failure.MygoIN7FailureM14IsEditConflict(value) {
+ /*line route_helpers.mygo:24:5*/		w.Header().Set("Cache-Control", "no-store")
+ /*line route_helpers.mygo:23:3*/	} else {
+ /*line zz_route_helpers.gen.go:33:1*/	}
+ /*line route_helpers.mygo:26:3*/	WriteErrorJSON(w, failure.MygoIN7FailureM6Status(value), failure.MygoIN7FailureM6Render(value))
 	return
- /*line zz_route_helpers.gen.go:35:1*/}
- /*line route_helpers.mygo:28:1*/func Complete(w http.ResponseWriter, result Result[struct {
+ /*line zz_route_helpers.gen.go:36:1*/}
+ /*line route_helpers.mygo:29:1*/func Complete(w http.ResponseWriter, result Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:29:3*/	if _, ok := result.(Result__Ok[struct{}, failure.Failure]); ok {
- /*line zz_route_helpers.gen.go:39:1*/	} else {
- /*line route_helpers.mygo:29:3*/		if __mygo_match___mygo_expr_0, ok := result.(Result__Err[struct{}, failure.Failure]); ok {
- /*line route_helpers.mygo:31:24*/			FailFailure(w, __mygo_match___mygo_expr_0.F0)
- /*line route_helpers.mygo:29:3*/		} else {
- /*line zz_route_helpers.gen.go:43:1*/		}
+ /*line route_helpers.mygo:30:3*/	if _, ok := result.(Result__Ok[struct{}, failure.Failure]); ok {
+ /*line zz_route_helpers.gen.go:40:1*/	} else {
+ /*line route_helpers.mygo:30:3*/		if __mygo_match___mygo_expr_0, ok := result.(Result__Err[struct{}, failure.Failure]); ok {
+ /*line route_helpers.mygo:32:24*/			FailFailure(w, __mygo_match___mygo_expr_0.F0)
+ /*line route_helpers.mygo:30:3*/		} else {
+ /*line zz_route_helpers.gen.go:44:1*/		}
 	}
- /*line route_helpers.mygo:29:3*/	return
- /*line zz_route_helpers.gen.go:46:1*/}
- /*line route_helpers.mygo:37:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
+ /*line route_helpers.mygo:30:3*/	return
+ /*line zz_route_helpers.gen.go:47:1*/}
+ /*line route_helpers.mygo:38:1*/func WithSession(db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(storage.AuthenticatedSession) Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:45:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
+ /*line route_helpers.mygo:39:3*/	__mygo_expr_0 := Authenticated(db, site, request)
+	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[storage.AuthenticatedSession, failure.Failure]); ok {
+ /*line route_helpers.mygo:40:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
+ /*line zz_route_helpers.gen.go:53:1*/	} else {
+ /*line route_helpers.mygo:39:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[storage.AuthenticatedSession, failure.Failure]); ok {
+ /*line route_helpers.mygo:41:25*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:39:3*/		} else {
+ /*line zz_route_helpers.gen.go:57:1*/		}
+	}
+ /*line route_helpers.mygo:39:3*/	return
+ /*line zz_route_helpers.gen.go:60:1*/}
+ /*line route_helpers.mygo:47:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
+}, failure.Failure]) {
+ /*line route_helpers.mygo:55:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[auth.Identity, failure.Failure]); ok {
- /*line route_helpers.mygo:46:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
- /*line zz_route_helpers.gen.go:52:1*/	} else {
- /*line route_helpers.mygo:45:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, failure.Failure]); ok {
- /*line route_helpers.mygo:47:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
- /*line route_helpers.mygo:45:3*/		} else {
- /*line zz_route_helpers.gen.go:56:1*/		}
+ /*line route_helpers.mygo:56:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
+ /*line zz_route_helpers.gen.go:66:1*/	} else {
+ /*line route_helpers.mygo:55:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, failure.Failure]); ok {
+ /*line route_helpers.mygo:57:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:55:3*/		} else {
+ /*line zz_route_helpers.gen.go:70:1*/		}
 	}
- /*line route_helpers.mygo:45:3*/	return
- /*line zz_route_helpers.gen.go:59:1*/}
- /*line route_helpers.mygo:52:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
+ /*line route_helpers.mygo:55:3*/	return
+ /*line zz_route_helpers.gen.go:73:1*/}
+ /*line route_helpers.mygo:62:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:59:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
+ /*line route_helpers.mygo:69:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
 	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, failure.Failure]); ok {
- /*line route_helpers.mygo:60:25*/		WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_1.F0))
- /*line route_helpers.mygo:59:3*/	} else {
+ /*line route_helpers.mygo:70:25*/		WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:69:3*/	} else {
 		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, failure.Failure]); ok {
 			Complete(w, handle())
 		} else {
- /*line zz_route_helpers.gen.go:69:1*/		}
+ /*line zz_route_helpers.gen.go:83:1*/		}
 	}
- /*line route_helpers.mygo:59:3*/	return
- /*line zz_route_helpers.gen.go:72:1*/}
+ /*line route_helpers.mygo:69:3*/	return
+ /*line zz_route_helpers.gen.go:86:1*/}

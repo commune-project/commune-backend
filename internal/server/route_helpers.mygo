@@ -5,6 +5,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import failure "github.com/commune-project/commune-backend/internal/failure"
+import storage "github.com/commune-project/commune-backend/internal/storage"
 # Reasons still cross the repository boundary as strings; this converts them
 # to the typed failure once, at the HTTP edge.
 func Classify(reason: String) -> failure.Failure
@@ -29,6 +30,15 @@ func Complete(w: http.ResponseWriter, result: Result[(), failure.Failure]) -> ()
   switch result
     case Ok(_) => ()
     case Err(value) => FailFailure(w, value)
+  end
+end
+
+# Read routes share the same authenticated admission; the handler returns typed
+# failures and writes its own success response.
+func WithSession(db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request], handle: func(storage.AuthenticatedSession) -> Result[(), failure.Failure]) -> ()
+  switch Authenticated(db, site, request)
+    case Err(reason) => FailFailure(w, reason)
+    case Ok(session) => Complete(w, handle(session))
   end
 end
 

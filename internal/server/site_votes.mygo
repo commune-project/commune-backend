@@ -5,6 +5,8 @@ import json "go:encoding/json"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct SiteVoteSettingsOutput
   UpvotesEnabled: Bool `json:"upvotes_enabled"`
@@ -52,48 +54,41 @@ func SiteVoteRoute(
     MethodNotAllowed(w, "PUT")
     return true
   end
-  let actor = RequireMutation(settings, db, site, request)
-  if actor.IsErr() then
-    FailFailure(w, actor.UnwrapErr())
-    return true
-  end
-  var patch = Zero[SiteVoteSettingsPatch]()
-  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(patch)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid vote settings")
-    return true
-  end
-  let hasUp = (patch.UpvotesEnabled as Slice[Byte]).Len() > 0
-  let hasDown = (patch.DownvotesEnabled as Slice[Byte]).Len() > 0
-  if !hasUp && !hasDown then
-    WriteErrorJSON(w, 400, "invalid vote settings")
-    return true
-  end
-  var up = false
-  var down = false
-  if hasUp && json.Unmarshal(patch.UpvotesEnabled as Slice[Byte], Ref.new(up)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid vote settings")
-    return true
-  end
-  if hasDown && json.Unmarshal(patch.DownvotesEnabled as Slice[Byte], Ref.new(down)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid vote settings")
-    return true
-  end
-  let updated = storage.UpdateSiteVoteSettings(
-    request.Context(),
-    db,
-    site.ID,
-    actor.Unwrap(),
-    up,
-    down,
-    hasUp,
-    hasDown
-  )
-  if updated.IsErr() then
-    FailFailure(w, updated.UnwrapErr())
-  else
-    let savedUp = storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
-    let savedDown = storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
-    WriteJSON(w, 200, SiteVoteSettingsOutput.FromFlags(savedUp, savedDown))
-  end
+  WithActor(settings, db, site, w, request, func(actor: auth.Identity) -> Result[(), failure.Failure]
+    var patch = Zero[SiteVoteSettingsPatch]()
+    switch DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(patch))
+      case Err(_) then
+        WriteErrorJSON(w, 400, "invalid vote settings")
+        Ok(())
+      end
+      case Ok(_) then
+        let hasUp = (patch.UpvotesEnabled as Slice[Byte]).Len() > 0
+        let hasDown = (patch.DownvotesEnabled as Slice[Byte]).Len() > 0
+        if !hasUp && !hasDown then
+          WriteErrorJSON(w, 400, "invalid vote settings")
+          return Ok(())
+        end
+        var up = false
+        var down = false
+        if hasUp && json.Unmarshal(patch.UpvotesEnabled as Slice[Byte], Ref.new(up)).IsErr() then
+          WriteErrorJSON(w, 400, "invalid vote settings")
+          return Ok(())
+        end
+        if hasDown && json.Unmarshal(patch.DownvotesEnabled as Slice[Byte], Ref.new(down)).IsErr() then
+          WriteErrorJSON(w, 400, "invalid vote settings")
+          return Ok(())
+        end
+        switch storage.UpdateSiteVoteSettings(request.Context(), db, site.ID, actor, up, down, hasUp, hasDown)
+          case Err(reason) => return Err(reason)
+          case Ok(_) then
+            let savedUp = storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
+            let savedDown = storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
+            WriteJSON(w, 200, SiteVoteSettingsOutput.FromFlags(savedUp, savedDown))
+            Ok(())
+          end
+        end
+      end
+    end
+  end)
   true
 end

@@ -22,53 +22,56 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_blocks.mygo:26:12*/		return false
  /*line account_blocks.mygo:25:3*/	} else {
  /*line zz_account_blocks.gen.go:24:1*/	}
- /*line account_blocks.mygo:17:1*/	session := Authenticated(db, site, request)
- /*line account_blocks.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
- /*line account_blocks.mygo:30:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
- /*line account_blocks.mygo:31:12*/		return true
- /*line account_blocks.mygo:29:3*/	} else {
- /*line zz_account_blocks.gen.go:30:1*/	}
- /*line account_blocks.mygo:17:1*/	identity := MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity
-	repository := storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
- /*line account_blocks.mygo:35:3*/	if request.Method == "GET" {
-		rows := storage.MygoIN22AccountBlockRepositoryM4List(repository, request.Context())
- /*line account_blocks.mygo:37:5*/		if MygoIN6ResultM5IsErr[[]storage.AccountBlockRecord, failure.Failure](rows) {
- /*line account_blocks.mygo:38:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.AccountBlockRecord, failure.Failure](rows))
- /*line account_blocks.mygo:37:5*/		} else {
- /*line account_blocks.mygo:40:7*/			WriteJSON(w, 200, AccountBlockPage{Items: MygoIN6ResultM6Unwrap[[]storage.AccountBlockRecord, failure.Failure](rows)})
- /*line zz_account_blocks.gen.go:39:1*/		}
- /*line account_blocks.mygo:42:12*/		return true
- /*line account_blocks.mygo:35:3*/	} else {
- /*line zz_account_blocks.gen.go:42:1*/	}
- /*line account_blocks.mygo:44:3*/	if request.Method != "POST" && request.Method != "DELETE" {
- /*line account_blocks.mygo:45:5*/		MethodNotAllowed(w, "GET, POST, DELETE")
- /*line account_blocks.mygo:46:12*/		return true
- /*line account_blocks.mygo:44:3*/	} else {
- /*line zz_account_blocks.gen.go:47:1*/	}
- /*line account_blocks.mygo:48:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session), request) {
- /*line account_blocks.mygo:49:5*/		WriteErrorJSON(w, 403, "CSRF denied")
- /*line account_blocks.mygo:50:12*/		return true
- /*line account_blocks.mygo:48:3*/	} else {
- /*line zz_account_blocks.gen.go:52:1*/	}
- /*line account_blocks.mygo:17:1*/	input := Zero[AccountBlockInput]()
- /*line account_blocks.mygo:53:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
- /*line account_blocks.mygo:54:5*/		WriteErrorJSON(w, 400, "invalid block")
- /*line account_blocks.mygo:55:12*/		return true
- /*line account_blocks.mygo:53:3*/	} else {
- /*line zz_account_blocks.gen.go:58:1*/	}
- /*line account_blocks.mygo:17:1*/	kind := ParseBlockKind(input.Kind)
- /*line account_blocks.mygo:58:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](kind) {
- /*line account_blocks.mygo:59:5*/		WriteErrorJSON(w, 400, "invalid block")
- /*line account_blocks.mygo:60:12*/		return true
- /*line account_blocks.mygo:58:3*/	} else {
- /*line zz_account_blocks.gen.go:64:1*/	}
- /*line account_blocks.mygo:17:1*/	var __mygo_expr_0 Result[struct{}, failure.Failure]
-	if request.Method == "POST" {
-		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM3Add(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, failure.Failure](kind), input.Target)
-	} else {
-		__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM6Remove(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, failure.Failure](kind), input.Target)
- /*line zz_account_blocks.gen.go:70:1*/	}
- /*line account_blocks.mygo:17:1*/	result := __mygo_expr_0
- /*line account_blocks.mygo:67:3*/	Settle(w, result)
- /*line account_blocks.mygo:68:3*/	return true
- /*line zz_account_blocks.gen.go:74:1*/}
+ /*line account_blocks.mygo:28:3*/	WithSession(db, site, w, request, func(session storage.AuthenticatedSession) Result[struct{}, failure.Failure] {
+ /*line account_blocks.mygo:28:37*/		identity := session.Identity
+		repository := storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
+ /*line account_blocks.mygo:31:5*/		if request.Method == "GET" {
+			rows := storage.MygoIN22AccountBlockRepositoryM4List(repository, request.Context())
+ /*line account_blocks.mygo:33:7*/			if MygoIN6ResultM5IsErr[[]storage.AccountBlockRecord, failure.Failure](rows) {
+ /*line account_blocks.mygo:34:16*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]storage.AccountBlockRecord, failure.Failure](rows))
+ /*line account_blocks.mygo:33:7*/			} else {
+ /*line zz_account_blocks.gen.go:33:1*/			}
+ /*line account_blocks.mygo:36:7*/			WriteJSON(w, 200, AccountBlockPage{Items: MygoIN6ResultM6Unwrap[[]storage.AccountBlockRecord, failure.Failure](rows)})
+ /*line account_blocks.mygo:37:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:36:1*/			}{})
+ /*line account_blocks.mygo:31:5*/		} else {
+ /*line zz_account_blocks.gen.go:38:1*/		}
+ /*line account_blocks.mygo:39:5*/		if request.Method != "POST" && request.Method != "DELETE" {
+ /*line account_blocks.mygo:40:7*/			MethodNotAllowed(w, "GET, POST, DELETE")
+ /*line account_blocks.mygo:41:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:42:1*/			}{})
+ /*line account_blocks.mygo:39:5*/		} else {
+ /*line zz_account_blocks.gen.go:44:1*/		}
+ /*line account_blocks.mygo:43:5*/		if !AuthorizeMutation(settings, session, request) {
+ /*line account_blocks.mygo:44:7*/			WriteErrorJSON(w, 403, "CSRF denied")
+ /*line account_blocks.mygo:45:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:48:1*/			}{})
+ /*line account_blocks.mygo:43:5*/		} else {
+ /*line zz_account_blocks.gen.go:50:1*/		}
+ /*line account_blocks.mygo:28:37*/		input := Zero[AccountBlockInput]()
+ /*line account_blocks.mygo:48:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line account_blocks.mygo:49:7*/			WriteErrorJSON(w, 400, "invalid block")
+ /*line account_blocks.mygo:50:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:55:1*/			}{})
+ /*line account_blocks.mygo:48:5*/		} else {
+ /*line zz_account_blocks.gen.go:57:1*/		}
+ /*line account_blocks.mygo:28:37*/		kind := ParseBlockKind(input.Kind)
+ /*line account_blocks.mygo:53:5*/		if MygoIN6ResultM5IsErr[string, failure.Failure](kind) {
+ /*line account_blocks.mygo:54:7*/			WriteErrorJSON(w, 400, "invalid block")
+ /*line account_blocks.mygo:55:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:62:1*/			}{})
+ /*line account_blocks.mygo:53:5*/		} else {
+ /*line zz_account_blocks.gen.go:64:1*/		}
+ /*line account_blocks.mygo:28:37*/		var __mygo_expr_0 Result[struct{}, failure.Failure]
+		if request.Method == "POST" {
+			__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM3Add(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, failure.Failure](kind), input.Target)
+		} else {
+			__mygo_expr_0 = storage.MygoIN22AccountBlockRepositoryM6Remove(repository, request.Context(), identity, MygoIN6ResultM6Unwrap[string, failure.Failure](kind), input.Target)
+ /*line zz_account_blocks.gen.go:70:1*/		}
+ /*line account_blocks.mygo:28:37*/		result := __mygo_expr_0
+ /*line account_blocks.mygo:62:5*/		Settle(w, result)
+ /*line account_blocks.mygo:63:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:74:1*/		}{})
+	})
+ /*line account_blocks.mygo:65:3*/	return true
+ /*line zz_account_blocks.gen.go:77:1*/}
