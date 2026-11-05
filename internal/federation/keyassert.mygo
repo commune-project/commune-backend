@@ -7,14 +7,18 @@ import failure "github.com/commune-project/commune-backend/internal/failure"
 # syntax, so this single conversion is the only bound Go fragment needed
 # alongside the nil check in signature.mygo.
 func AsRSAPublicKey(key: Any) -> Result[Ref[rsa.PublicKey], failure.Failure]
-  go[Result[Ref[rsa.PublicKey], failure.Failure]] {
+  let parsed = go[Option[Ref[rsa.PublicKey]]] {
     code: """
-      typed, ok := {key}.(*rsa.PublicKey)
-      if !ok {
-        return Err[*rsa.PublicKey, string]("unsupported key type")
-      }
-      return Ok[*rsa.PublicKey, string](typed)
+      func() *rsa.PublicKey {
+        typed, ok := {key}.(*rsa.PublicKey)
+        if !ok {
+          return nil
+        }
+        return typed
+      }()
     """
+    raw: Ref[rsa.PublicKey]
     in key = key
   }
+  parsed.OkOr(Of("unsupported key type"))
 end

@@ -7,9 +7,19 @@ import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line keyassert.mygo:9:1*/func AsRSAPublicKey(key any) Result[*rsa.PublicKey, failure.Failure] {
- /*line keyassert.mygo:10:3*/	typed, ok := key.(*rsa.PublicKey)
-	if !ok {
-		return Err[*rsa.PublicKey, string]("unsupported key type")
- /*line zz_keyassert.gen.go:13:1*/	}
- /*line keyassert.mygo:10:3*/	return Ok[*rsa.PublicKey, string](typed)
- /*line zz_keyassert.gen.go:15:1*/}
+ /*line keyassert.mygo:10:16*/	var __mygo_expr_0 Option[*rsa.PublicKey]
+	__mygo_expr_1 := (func() *rsa.PublicKey {
+		typed, ok := key.(*rsa.PublicKey)
+		if !ok {
+			return nil
+ /*line zz_keyassert.gen.go:15:1*/		}
+ /*line keyassert.mygo:10:16*/		return typed
+ /*line zz_keyassert.gen.go:17:1*/	}())
+ /*line keyassert.mygo:10:16*/	if __mygo_expr_1 == nil {
+		__mygo_expr_0 = None[*rsa.PublicKey]()
+	} else {
+		__mygo_expr_0 = Some[*rsa.PublicKey](__mygo_expr_1)
+ /*line zz_keyassert.gen.go:22:1*/	}
+ /*line keyassert.mygo:9:1*/	parsed := __mygo_expr_0
+ /*line keyassert.mygo:23:3*/	return MygoIN6OptionM4OkOr[*rsa.PublicKey](parsed, Of("unsupported key type"))
+ /*line zz_keyassert.gen.go:25:1*/}
