@@ -1,0 +1,274 @@
+package failure
+
+import strings "go:strings"
+# Field names behind the public "invalid <field>" messages. Keep the rendered
+# text identical to the strings the HTTP layer already publishes.
+enum InvalidField
+  Page
+  Sort
+  Depth
+  View
+  PostInput
+  Vote
+  VoteSettings
+  Block
+  Report
+  ReportState
+  Ban
+  ContentFormat
+  MediaReference
+  MediaBinding
+  CommunityInput
+  AccessPolicy
+  State
+  Member
+  Manager
+  ExpectedVersion
+  MentionQuery
+  Limit
+  Cursor
+  Activity
+  ClientAddress
+  Notification
+  ResetRequest
+  RegistrationRequest
+  VerificationRequest
+  ProfileInput
+end
+
+impl InvalidField
+  func Render(self: InvalidField) -> String
+    switch self
+      case Page => "page"
+      case Sort => "sort"
+      case Depth => "depth"
+      case View => "view"
+      case PostInput => "post input"
+      case Vote => "vote"
+      case VoteSettings => "vote settings"
+      case Block => "block"
+      case Report => "report"
+      case ReportState => "report state"
+      case Ban => "ban"
+      case ContentFormat => "content format"
+      case MediaReference => "media reference"
+      case MediaBinding => "media binding"
+      case CommunityInput => "community input"
+      case AccessPolicy => "access policy"
+      case State => "state"
+      case Member => "member"
+      case Manager => "manager"
+      case ExpectedVersion => "expected version"
+      case MentionQuery => "mention query"
+      case Limit => "limit"
+      case Cursor => "cursor"
+      case Activity => "activity"
+      case ClientAddress => "client address"
+      case Notification => "notification"
+      case ResetRequest => "reset request"
+      case RegistrationRequest => "registration request"
+      case VerificationRequest => "verification request"
+      case ProfileInput => "profile input"
+    end
+  end
+  func Parse(raw: String) -> Result[InvalidField, String]
+    switch raw
+      case "page" => Ok(InvalidField.Page)
+      case "sort" => Ok(InvalidField.Sort)
+      case "depth" => Ok(InvalidField.Depth)
+      case "view" => Ok(InvalidField.View)
+      case "post input" => Ok(InvalidField.PostInput)
+      case "vote" => Ok(InvalidField.Vote)
+      case "vote settings" => Ok(InvalidField.VoteSettings)
+      case "block" => Ok(InvalidField.Block)
+      case "report" => Ok(InvalidField.Report)
+      case "report state" => Ok(InvalidField.ReportState)
+      case "ban" => Ok(InvalidField.Ban)
+      case "content format" => Ok(InvalidField.ContentFormat)
+      case "media reference" => Ok(InvalidField.MediaReference)
+      case "media binding" => Ok(InvalidField.MediaBinding)
+      case "community input" => Ok(InvalidField.CommunityInput)
+      case "access policy" => Ok(InvalidField.AccessPolicy)
+      case "state" => Ok(InvalidField.State)
+      case "member" => Ok(InvalidField.Member)
+      case "manager" => Ok(InvalidField.Manager)
+      case "expected version" => Ok(InvalidField.ExpectedVersion)
+      case "mention query" => Ok(InvalidField.MentionQuery)
+      case "limit" => Ok(InvalidField.Limit)
+      case "cursor" => Ok(InvalidField.Cursor)
+      case "activity" => Ok(InvalidField.Activity)
+      case "client address" => Ok(InvalidField.ClientAddress)
+      case "notification" => Ok(InvalidField.Notification)
+      case "reset request" => Ok(InvalidField.ResetRequest)
+      case "registration request" => Ok(InvalidField.RegistrationRequest)
+      case "verification request" => Ok(InvalidField.VerificationRequest)
+      case "profile input" => Ok(InvalidField.ProfileInput)
+      case _ => Err(raw)
+    end
+  end
+end
+
+enum ConflictKind
+  Edit
+  ObjectVersion
+  ObjectIdentity
+  MediaBinding
+  Follow
+  Report
+end
+
+impl ConflictKind
+  func Render(self: ConflictKind) -> String
+    switch self
+      case Edit => "edit_conflict"
+      case ObjectVersion => "object version conflict"
+      case ObjectIdentity => "object identity conflict"
+      case MediaBinding => "media binding conflict"
+      case Follow => "follow conflict"
+      case Report => "report conflict"
+    end
+  end
+  func Parse(raw: String) -> Result[ConflictKind, String]
+    switch raw
+      case "edit_conflict" => Ok(ConflictKind.Edit)
+      case "object version conflict" => Ok(ConflictKind.ObjectVersion)
+      case "object identity conflict" => Ok(ConflictKind.ObjectIdentity)
+      case "media binding conflict" => Ok(ConflictKind.MediaBinding)
+      case "follow conflict" => Ok(ConflictKind.Follow)
+      case "report conflict" => Ok(ConflictKind.Report)
+      case _ => Err(raw)
+    end
+  end
+end
+
+enum LimitKind
+  Registration
+  Reset
+end
+
+impl LimitKind
+  func Render(self: LimitKind) -> String
+    switch self
+      case Registration => "registration rate limited"
+      case Reset => "reset rate limited"
+    end
+  end
+end
+
+enum UpstreamKind
+  Fetch
+  Media
+  Profile
+  Key
+end
+
+impl UpstreamKind
+  func Render(self: UpstreamKind) -> String
+    switch self
+      case Fetch => "resource unavailable"
+      case Media => "media unavailable"
+      case Profile => "profile unavailable"
+      case Key => "invalid key"
+    end
+  end
+end
+
+enum Failure
+  Unauthenticated
+  Forbidden
+  InvalidParent
+  FollowRequiresMembership
+  NotFound
+  FeatureDisabled
+  NotReady
+  Unavailable
+  Invalid(InvalidField)
+  Conflict(ConflictKind)
+  RateLimited(LimitKind)
+  Upstream(UpstreamKind)
+  Internal(String)
+end
+
+impl Failure
+  func Status(self: Failure) -> Int
+    switch self
+      case Unauthenticated => 401
+      case Forbidden => 403
+      case InvalidParent => 403
+      case FollowRequiresMembership => 403
+      case FeatureDisabled => 403
+      case NotFound => 404
+      case Invalid(_) => 400
+      case Conflict(_) => 409
+      case RateLimited(_) => 429
+      case NotReady => 503
+      case Unavailable => 503
+      case Upstream(_) => 503
+      case Internal(_) => 503
+    end
+  end
+  func Render(self: Failure) -> String
+    switch self
+      case Unauthenticated => "unauthenticated"
+      case Forbidden => "forbidden"
+      case InvalidParent => "invalid parent"
+      case FollowRequiresMembership => "follow_requires_membership"
+      case NotFound => "not found"
+      case FeatureDisabled => "feature_disabled"
+      case NotReady => "not ready"
+      case Unavailable => "unavailable"
+      case Invalid(field) => "invalid " + field.Render()
+      case Conflict(kind) => kind.Render()
+      case RateLimited(kind) => kind.Render()
+      case Upstream(kind) => kind.Render()
+      case Internal(message) => message
+    end
+  end
+  func IsConflict(self: Failure) -> Bool
+    switch self
+      case Conflict(_) => true
+      case _ => false
+    end
+  end
+
+  func IsEditConflict(self: Failure) -> Bool
+    switch self
+      case Conflict(Edit) => true
+      case _ => false
+    end
+  end
+end
+
+# Parsing is used at the HTTP boundary for reasons still carried as strings.
+func Parse(reason: String) -> Result[Failure, String]
+  switch reason
+    case "unauthenticated" => Ok(Failure.Unauthenticated)
+    case "forbidden" => Ok(Failure.Forbidden)
+    case "invalid parent" => Ok(Failure.InvalidParent)
+    case "follow_requires_membership" => Ok(Failure.FollowRequiresMembership)
+    case "not found" => Ok(Failure.NotFound)
+    case "feature_disabled" => Ok(Failure.FeatureDisabled)
+    case "not ready" => Ok(Failure.NotReady)
+    case "unavailable" => Ok(Failure.Unavailable)
+    case "registration rate limited" => Ok(Failure.RateLimited(LimitKind.Registration))
+    case "reset rate limited" => Ok(Failure.RateLimited(LimitKind.Reset))
+    case "resource unavailable" => Ok(Failure.Upstream(UpstreamKind.Fetch))
+    case "media unavailable" => Ok(Failure.Upstream(UpstreamKind.Media))
+    case "profile unavailable" => Ok(Failure.Upstream(UpstreamKind.Profile))
+    case "invalid key" => Ok(Failure.Upstream(UpstreamKind.Key))
+    case _ then
+      switch ConflictKind.Parse(reason)
+        case Ok(kind) => Ok(Failure.Conflict(kind))
+        case Err(_) then
+          if strings.HasPrefix(reason, "invalid ") then
+            InvalidField.Parse(strings.TrimPrefix(reason, "invalid ")).Map(func(field: InvalidField) -> Failure
+              Failure.Invalid(field)
+            end)
+          else
+            Err(reason)
+          end
+        end
+      end
+    end
+  end
+end

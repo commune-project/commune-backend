@@ -1,0 +1,79 @@
+ package server
+
+ import testing "go:testing"
+ import http "go:net/http"
+ import httptest "go:net/http/httptest"
+ import strings "go:strings"
+
+ func TestFailStatusMapping(t: Ref[testing.T]) -> ()
+   let cases: Slice[(String, Int)] = [
+     ("unauthenticated", 401),
+     ("forbidden", 403),
+     ("invalid parent", 403),
+     ("follow_requires_membership", 403),
+     ("feature_disabled", 403),
+     ("not found", 404),
+     ("invalid expected version", 400),
+     ("invalid page", 400),
+     ("invalid sort", 400),
+     ("invalid depth", 400),
+     ("invalid view", 400),
+     ("invalid post input", 400),
+     ("invalid vote", 400),
+     ("invalid vote settings", 400),
+     ("invalid block", 400),
+     ("invalid report", 400),
+     ("invalid report state", 400),
+     ("invalid ban", 400),
+     ("invalid content format", 400),
+     ("invalid media reference", 400),
+     ("invalid media binding", 400),
+     ("invalid community input", 400),
+     ("invalid access policy", 400),
+     ("invalid state", 400),
+     ("invalid member", 400),
+     ("invalid manager", 400),
+     ("edit_conflict", 409),
+     ("object version conflict", 409),
+     ("object identity conflict", 409),
+     ("media binding conflict", 409),
+     ("follow conflict", 409),
+     ("report conflict", 409),
+     ("registration rate limited", 429),
+     ("reset rate limited", 429),
+     ("database mutation failed", 503),
+     ("feed unavailable", 503),
+   ]
+   cases.Each(func(item: (String, Int)) -> ()
+     let (reason, status) = item
+     if FailStatus(reason) != status then
+       t.Fatalf("%s status = %d, want %d", reason, FailStatus(reason), status)
+     end
+   end)
+ end
+
+ func TestFailRendersKnownReason(t: Ref[testing.T]) -> ()
+   let recorder = httptest.NewRecorder()
+   Fail(recorder as http.ResponseWriter, "edit_conflict")
+   if recorder.Code != 409 then
+     t.Fatalf("edit conflict status = %d", recorder.Code)
+   end
+   if recorder.Header().Get("Cache-Control") != "no-store" then
+     t.Fatal("edit conflict lost the no-store cache header")
+   end
+   if !strings.Contains(recorder.Body.String(), "edit_conflict") then
+     t.Fatalf("edit conflict body = %s", recorder.Body.String())
+   end
+ end
+
+ func TestFailKeepsUnknownReason(t: Ref[testing.T]) -> ()
+   let recorder = httptest.NewRecorder()
+   Fail(recorder as http.ResponseWriter, "database mutation failed")
+   if recorder.Code != 503 then
+     t.Fatalf("unknown reason status = %d", recorder.Code)
+   end
+   if !strings.Contains(recorder.Body.String(), "database mutation failed") then
+     t.Fatalf("unknown reason body = %s", recorder.Body.String())
+   end
+ end
+

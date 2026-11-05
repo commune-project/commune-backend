@@ -10,6 +10,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 let maxBackfillPages: Int = 10
 let maxBackfillItems: Int = 1000
@@ -44,26 +45,25 @@ func ContextBackfillRoute(
     MethodNotAllowed(w, "POST")
     return
   end
-  let actor = RequireMutation(settings, db, site, request)
-  if actor.IsErr() then
-    Fail(w, actor.UnwrapErr())
-    return
-  end
-  let result = BackfillDiscussion(
-    request.Context(),
-    settings,
-    db,
-    site,
-    contextID,
-    actor.Unwrap(),
-    false,
-    FetchBackfillPayload
-  )
-  if result.IsErr() then
-    Fail(w, result.UnwrapErr())
-  else
-    WriteJSON(w, 200, result.Unwrap())
-  end
+  WithActor(settings, db, site, w, request, func(identity: auth.Identity) -> Result[(), failure.Failure]
+    let result = BackfillDiscussion(
+      request.Context(),
+      settings,
+      db,
+      site,
+      contextID,
+      identity,
+      false,
+      FetchBackfillPayload
+    )
+    switch result
+      case Err(reason) => Err(Classify(reason))
+      case Ok(value) then
+        WriteJSON(w, 200, value)
+        Ok(())
+      end
+    end
+  end)
 end
 
 func FetchBackfillPayload(

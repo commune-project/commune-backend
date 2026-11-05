@@ -1,0 +1,30 @@
+package functional
+
+import testing "go:testing"
+
+func TestSequenceEmpty(t: Ref[testing.T]) -> ()
+  let items: Slice[Result[Int, String]] = []
+  if Sequence(items).Unwrap().Len() != 0 then
+    t.Fatal("empty sequence produced items")
+  end
+end
+
+func TestSequenceAllOk(t: Ref[testing.T]) -> ()
+  let items: Slice[Result[Int, String]] = [Ok(1), Ok(2), Ok(3)]
+  let collected = Sequence(items).Unwrap()
+  if collected.Len() != 3 || collected.Get(0).Unwrap() != 1 || collected.Get(2).Unwrap() != 3 then
+    t.Fatal("sequence lost or reordered values")
+  end
+end
+
+func TestSequenceFirstError(t: Ref[testing.T]) -> ()
+  let items: Slice[Result[Int, String]] = [Ok(1), Err("first"), Err("second")]
+  switch Sequence(items)
+    case Ok(_) => t.Fatal("sequence accepted an error")
+    case Err(reason) then
+      if reason != "first" then
+        t.Fatalf("sequence reported %s, want first", reason)
+      end
+    end
+  end
+end

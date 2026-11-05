@@ -1,0 +1,108 @@
+package failure
+
+import testing "go:testing"
+
+func TestFailureStatusAndRender(t: Ref[testing.T]) -> ()
+  let cases: Slice[(Failure, Int, String)] = [
+    (Failure.Unauthenticated, 401, "unauthenticated"),
+    (Failure.Forbidden, 403, "forbidden"),
+    (Failure.InvalidParent, 403, "invalid parent"),
+    (Failure.FollowRequiresMembership, 403, "follow_requires_membership"),
+    (Failure.FeatureDisabled, 403, "feature_disabled"),
+    (Failure.NotFound, 404, "not found"),
+    (Failure.Invalid(InvalidField.Page), 400, "invalid page"),
+    (Failure.Invalid(InvalidField.PostInput), 400, "invalid post input"),
+    (Failure.Invalid(InvalidField.ExpectedVersion), 400, "invalid expected version"),
+    (Failure.Invalid(InvalidField.MentionQuery), 400, "invalid mention query"),
+    (Failure.Conflict(ConflictKind.Edit), 409, "edit_conflict"),
+    (Failure.Conflict(ConflictKind.ObjectVersion), 409, "object version conflict"),
+    (Failure.Conflict(ConflictKind.Report), 409, "report conflict"),
+    (Failure.RateLimited(LimitKind.Registration), 429, "registration rate limited"),
+    (Failure.RateLimited(LimitKind.Reset), 429, "reset rate limited"),
+    (Failure.NotReady, 503, "not ready"),
+    (Failure.Unavailable, 503, "unavailable"),
+    (Failure.Upstream(UpstreamKind.Fetch), 503, "resource unavailable"),
+    (Failure.Upstream(UpstreamKind.Media), 503, "media unavailable"),
+    (Failure.Upstream(UpstreamKind.Profile), 503, "profile unavailable"),
+    (Failure.Upstream(UpstreamKind.Key), 503, "invalid key"),
+    (Failure.Internal("delivery plan failed"), 503, "delivery plan failed"),
+  ]
+  cases.Each(func(item: (Failure, Int, String)) -> ()
+    let (value, status, message) = item
+    if value.Status() != status then
+      t.Fatalf("%s status = %d, want %d", message, value.Status(), status)
+    end
+    if value.Render() != message then
+      t.Fatalf("%s rendered as %s", message, value.Render())
+    end
+    switch value
+      case Internal(_) => ()
+      case _ then
+        switch Parse(message)
+          case Err(_) => t.Fatalf("cannot parse %s", message)
+          case Ok(parsed) then
+            if parsed.Render() != message then
+              t.Fatalf("%s round trip rendered as %s", message, parsed.Render())
+            end
+          end
+        end
+      end
+    end
+  end)
+end
+
+func TestFailureParseRejectsUnknown(t: Ref[testing.T]) -> ()
+  switch Parse("database mutation failed")
+    case Ok(_) => t.Fatal("unknown reason parsed as a failure")
+    case Err(reason) then
+      if reason != "database mutation failed" then
+        t.Fatalf("unknown reason = %s", reason)
+      end
+    end
+  end
+end
+
+func TestInvalidFieldRoundTrip(t: Ref[testing.T]) -> ()
+  let fields: Slice[InvalidField] = [
+    InvalidField.Page,
+    InvalidField.Sort,
+    InvalidField.Depth,
+    InvalidField.View,
+    InvalidField.PostInput,
+    InvalidField.Vote,
+    InvalidField.VoteSettings,
+    InvalidField.Block,
+    InvalidField.Report,
+    InvalidField.ReportState,
+    InvalidField.Ban,
+    InvalidField.ContentFormat,
+    InvalidField.MediaReference,
+    InvalidField.MediaBinding,
+    InvalidField.CommunityInput,
+    InvalidField.AccessPolicy,
+    InvalidField.State,
+    InvalidField.Member,
+    InvalidField.Manager,
+    InvalidField.ExpectedVersion,
+    InvalidField.MentionQuery,
+    InvalidField.Limit,
+    InvalidField.Cursor,
+    InvalidField.Activity,
+    InvalidField.ClientAddress,
+    InvalidField.Notification,
+    InvalidField.ResetRequest,
+    InvalidField.RegistrationRequest,
+    InvalidField.VerificationRequest,
+    InvalidField.ProfileInput,
+  ]
+  fields.Each(func(field: InvalidField) -> ()
+    switch InvalidField.Parse(field.Render())
+      case Err(_) => t.Fatalf("cannot parse %s", field.Render())
+      case Ok(parsed) then
+        if parsed.Render() != field.Render() then
+          t.Fatalf("%s round trip rendered as %s", field.Render(), parsed.Render())
+        end
+      end
+    end
+  end)
+end

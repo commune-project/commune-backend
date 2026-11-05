@@ -1,0 +1,18 @@
+package functional
+
+# Collecting a Slice of Result values into a Result of Slice is the one
+# combinator the prelude does not provide yet. The element type is anchored to
+# the argument, which keeps inference working with the current compiler.
+func Sequence[T](items: Slice[Result[T, String]]) -> Result[Slice[T], String]
+  let seed: Result[Slice[T], String] = Ok([] as Slice[T])
+  items.Fold(
+    seed,
+    func(acc: Result[Slice[T], String], item: Result[T, String]) -> Result[Slice[T], String]
+      acc.AndThen(func(done: Slice[T]) -> Result[Slice[T], String]
+        item.Map(func(value: T) -> Slice[T]
+          done.Append(value)
+        end)
+      end)
+    end
+  )
+end

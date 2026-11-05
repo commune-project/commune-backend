@@ -1,0 +1,59 @@
+package server
+
+import http "go:net/http"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
+# Reasons still cross the repository boundary as strings; this converts them
+# to the typed failure once, at the HTTP edge.
+func Classify(reason: String) -> failure.Failure
+  switch failure.Parse(reason)
+    case Ok(value) => value
+    case Err(_) => failure.Failure.Internal(reason)
+  end
+end
+
+func FailFailure(w: http.ResponseWriter, value: failure.Failure) -> ()
+  if value.IsEditConflict() then
+    w.Header().Set("Cache-Control", "no-store")
+  end
+  WriteErrorJSON(w, value.Status(), value.Render())
+end
+
+func Complete(w: http.ResponseWriter, result: Result[(), failure.Failure]) -> ()
+  switch result
+    case Ok(_) => ()
+    case Err(value) => FailFailure(w, value)
+  end
+end
+
+# Mutation routes share one authenticated admission step. The handler body stays
+# flat: it returns a typed failure instead of writing status codes itself.
+func WithActor(
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  handle: func(auth.Identity) -> Result[(), failure.Failure]
+) -> ()
+  switch RequireMutation(settings, db, site, request)
+    case Err(reason) => Fail(w, reason)
+    case Ok(identity) => Complete(w, handle(identity))
+  end
+end
+
+# Decoding failures answer 400 directly; the handler only sees a decoded body.
+func WithJSON[T](
+  w: http.ResponseWriter,
+  request: Ref[http.Request],
+  maxBytes: Int,
+  target: Ref[T],
+  handle: func() -> Result[(), failure.Failure]
+) -> ()
+  switch DecodeJSON[T](w, request, maxBytes, target)
+    case Err(reason) => WriteErrorJSON(w, 400, reason)
+    case Ok(_) => Complete(w, handle())
+  end
+end

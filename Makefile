@@ -12,6 +12,8 @@ compiler:
 
 generate: compiler
 	"$(BUILD_DIR)/mygo" sync internal/testsupport
+	"$(BUILD_DIR)/mygo" sync internal/functional
+	"$(BUILD_DIR)/mygo" sync internal/failure
 	"$(BUILD_DIR)/mygo" sync internal/infrastructure
 	"$(BUILD_DIR)/mygo" sync internal/config
 	"$(BUILD_DIR)/mygo" sync internal/auth

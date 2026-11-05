@@ -12,6 +12,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ErrorOutput
   Error: String `json:"error"`
@@ -154,75 +155,28 @@ func WriteJSON[T](w: http.ResponseWriter, status: Int, value: T) -> ()
 end
 
 func WriteErrorJSON(w: http.ResponseWriter, status: Int, message: String) -> ()
-  WriteJSON(w, status, ErrorOutput{Error: message})
+  WriteJSON(w, status, ErrorOutput { Error: message })
 end
 
 # Maps repository errors to stable HTTP status codes without leaking detail.
+# Unknown internal reasons stay opaque and surface as 503 with their own text.
 func FailStatus(reason: String) -> Int
-  if reason == "invalid expected version" then
-    return 400
+  switch failure.Parse(reason)
+    case Ok(value) => value.Status()
+    case Err(_) => 503
   end
-  if reason == "edit_conflict" then
-    return 409
-  end
-  if reason == "not found" then
-    return 404
-  end
-  if reason == "forbidden" ||
-    reason == "invalid parent" ||
-    reason == "follow_requires_membership" then
-    return 403
-  end
-  if reason == "feature_disabled" then
-    return 403
-  end
-  if reason == "unauthenticated" then
-    return 401
-  end
-  if reason == "invalid page" ||
-    reason == "invalid sort" ||
-    reason == "invalid depth" ||
-    reason == "invalid view" ||
-    reason == "invalid post input" ||
-    reason == "invalid vote" ||
-    reason == "invalid vote settings" ||
-    reason == "invalid block" ||
-    reason == "invalid report" ||
-    reason == "invalid report state" ||
-    reason == "invalid ban" ||
-    reason == "invalid content format" ||
-    reason == "invalid media reference" ||
-    reason == "invalid media binding" ||
-    reason == "invalid community input" ||
-    reason == "invalid access policy" ||
-    reason == "invalid state" ||
-    reason == "invalid member" ||
-    reason == "invalid manager" then
-    return 400
-  end
-  if reason == "object version conflict" ||
-    reason == "object identity conflict" ||
-    reason == "media binding conflict" ||
-    reason == "follow conflict" ||
-    reason == "report conflict" then
-    return 409
-  end
-  503
 end
 
 func Fail(w: http.ResponseWriter, reason: String) -> ()
-  if reason == "edit_conflict" then
-    w.Header().Set("Cache-Control", "no-store")
-  end
-  WriteErrorJSON(w, FailStatus(reason), reason)
+  FailFailure(w, Classify(reason))
 end
 
 func Segments(path: String) -> Slice[String]
-  strings.Split(strings.Trim(path, "/"), "/")
+  path.Trim("/").Split("/")
 end
 
 func RequestSegments(request: Ref[http.Request]) -> Slice[String]
-  strings.Split(strings.Trim(request.URL.EscapedPath(), "/"), "/").Map(func(segment: String) -> String
+  (request.URL.EscapedPath() |> Segments).Map(func(segment: String) -> String
     url.PathUnescape(segment).UnwrapOr(segment)
   end)
 end
@@ -233,7 +187,7 @@ func DecodeJSON[T](
   maxBytes: Int,
   target: Ref[T]
 ) -> Result[(), String]
-  if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") !=
+  if request.Header.Get("Content-Type").Split(";").Get(0).UnwrapOr("") !=
     "application/json" then
     return Err("expected application/json")
   end
