@@ -25,14 +25,13 @@ func BrowserIdentity(
   request: Ref[http.Request],
   required: Bool
 ) -> Result[auth.Identity, failure.Failure]
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    if !required && session.UnwrapErr().Render() == "unauthenticated" then
-      return Ok(Zero[auth.Identity]())
+  switch Authenticated(db, site, request)
+    case Err(err) if required && err.Render() == "unauthenticated" then
+      Ok(Zero[auth.Identity]())
     end
-    return Err(session.UnwrapErr())
+    case Err(err) => Err(err)
+    case Ok(session) => Ok(session.Identity)
   end
-  Ok(session.Unwrap().Identity)
 end
 
 # Handles browser reads before mutation dispatch. Existing POST/PATCH/DELETE

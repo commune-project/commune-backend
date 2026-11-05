@@ -267,108 +267,67 @@ func ReplyRoute(
   let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
   if request.Method == "GET" then
     let _ = BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
-  else
-    if request.Method == "POST" then
-      let actor = RequireMutation(settings, db, site, request)
-      if actor.IsErr() then
-        FailFailure(w, actor.UnwrapErr())
-        return
-      end
-      let parent = feed.ReadObject(request.Context(), id, actor.Unwrap(), false)
-      if parent.IsErr() then
-        FailFailure(w, parent.UnwrapErr())
-        return
-      end
-      let communityBan = storage.ActiveCommunityBan(
-        request.Context(),
-        db,
-        parent.Unwrap().CommunityID,
-        actor.Unwrap().ActorURI,
-        time.Now()
-      )
-      let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.Unwrap().ActorURI, time.Now())
-      if communityBan.IsErr() || siteBan.IsErr() then
-        Fail(w, "moderation unavailable")
-        return
-      end
-      if communityBan.Unwrap() || siteBan.Unwrap() then
-        Fail(w, "forbidden")
-        return
-      end
-      let blocked = storage.IsInteractionBlocked(
-        request.Context(),
-        db,
-        site.ID,
-        parent.Unwrap().AuthorActorURI,
-        actor.Unwrap().ActorURI
-      )
-      if blocked.IsErr() then
-        FailFailure(w, blocked.UnwrapErr())
-        return
-      end
-      if blocked.Unwrap() then
-        Fail(w, "forbidden")
-        return
-      end
-      var input = Zero[ReplyInput]()
-      let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
-      if decoded.IsErr() then
-        WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
-        return
-      end
-      let mentions = ResolvePostMentions(
-        request.Context(),
-        settings,
-        db,
-        site,
-        actor.Unwrap(),
-        parent.Unwrap().CommunityID,
-        input.Body,
-        input.ContentFormat,
-        false
-      )
-      if mentions.IsErr() then
-        FailFailure(w, mentions.UnwrapErr())
-        return
-      end
-      let published = PublishForumPost(
-        settings,
-        db,
-        request.Context(),
-        site,
-        parent.Unwrap().CommunityID,
-        actor.Unwrap(),
-        false,
-        storage.PublishInput {
-          Title: "",
-          Body: input.Body,
-          ParentID: id,
-          ContextURI: input.ContextURI,
-          ContentFormat: input.ContentFormat,
-          AttachmentIDs: input.AttachmentIDs,
-          Mentions: mentions.Unwrap(),
-        }
-      )
-      if published.IsErr() then
-        FailFailure(w, published.UnwrapErr())
-      else
-        WriteBrowserPost(
-          settings.Rendering.Sanitizer,
-          db,
-          site,
-          w,
-          request,
-          201,
-          actor.Unwrap(),
-          published.Unwrap()
-        )
-      end
-    else
-      MethodNotAllowed(w, "GET, POST")
-    end
+    return
   end
+  if request.Method != "POST" then
+    MethodNotAllowed(w, "GET, POST")
+    return
+  end
+  WithActor(settings, db, site, w, request, func(actor: auth.Identity) -> Result[(), failure.Failure]
+    let parent = feed.ReadObject(request.Context(), id, actor, false)
+    if parent.IsErr() then
+      return Err(parent.UnwrapErr())
+    end
+    let communityBan = storage.ActiveCommunityBan(request.Context(), db, parent.Unwrap().CommunityID, actor.ActorURI, time.Now())
+    let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.ActorURI, time.Now())
+    if communityBan.IsErr() || siteBan.IsErr() then
+      return Err(Of("moderation unavailable"))
+    end
+    if communityBan.Unwrap() || siteBan.Unwrap() then
+      return Err(Of("forbidden"))
+    end
+    let blocked = storage.IsInteractionBlocked(request.Context(), db, site.ID, parent.Unwrap().AuthorActorURI, actor.ActorURI)
+    if blocked.IsErr() then
+      return Err(blocked.UnwrapErr())
+    end
+    if blocked.Unwrap() then
+      return Err(Of("forbidden"))
+    end
+    var input = Zero[ReplyInput]()
+    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+    if decoded.IsErr() then
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
+      return Ok(())
+    end
+    let mentions = ResolvePostMentions(request.Context(), settings, db, site, actor, parent.Unwrap().CommunityID, input.Body, input.ContentFormat, false)
+    if mentions.IsErr() then
+      return Err(mentions.UnwrapErr())
+    end
+    let published = PublishForumPost(
+      settings,
+      db,
+      request.Context(),
+      site,
+      parent.Unwrap().CommunityID,
+      actor,
+      false,
+      storage.PublishInput {
+        Title: "",
+        Body: input.Body,
+        ParentID: id,
+        ContextURI: input.ContextURI,
+        ContentFormat: input.ContentFormat,
+        AttachmentIDs: input.AttachmentIDs,
+        Mentions: mentions.Unwrap(),
+      }
+    )
+    if published.IsErr() then
+      return Err(published.UnwrapErr())
+    end
+    WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, actor, published.Unwrap())
+    Ok(())
+  end)
 end
-
 func Settle(w: http.ResponseWriter, result: Result[(), failure.Failure]) -> ()
   if result.IsErr() then
     FailFailure(w, result.UnwrapErr())
