@@ -42,6 +42,12 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:3.22 AS runtime
 
+ARG ALPINE_MIRROR=dl-cdn.alpinelinux.org
+
+RUN sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories \
+    && apk update \
+    && apk upgrade
+
 RUN apk add --no-cache ca-certificates curl jq \
     && addgroup -S -g 10001 commune \
     && adduser -S -D -H -u 10001 -G commune commune \
