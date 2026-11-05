@@ -194,98 +194,66 @@ func PostSectionRoute(
     MethodNotAllowed(w, "POST, DELETE")
     return
   end
-  let actor = RequireMutation(settings, db, site, request)
-  if actor.IsErr() then
-    FailFailure(w, actor.UnwrapErr())
-    return
-  end
-  let identity = actor.Unwrap()
-  if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
-    (section == "read" && request.Method == "POST") ||
-    (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
-    let readable = storage.FeedRepository {
-      DB: db,
-      SiteID: site.ID
-    }.ReadObject(request.Context(), id, identity, false)
-    if readable.IsErr() then
-      FailFailure(w, readable.UnwrapErr())
-      return
-    end
-    if readable.Unwrap().DeletedAt.Valid then
-      Fail(w, "not found")
-      return
-    end
-    let state = storage.ContentStateRepository {
-      DB: db,
-      SiteID: site.ID,
-      AccountID: identity.AccountID,
-    }
-    var result: Result[(), failure.Failure] = Err(Of("not found"))
-    if section == "save" then
-      result = state.Save(request.Context(), id, request.Method == "POST")
-    else
-      if section == "read" then
-        result = state.Read(request.Context(), id)
-      else
-        result = state.Hide(request.Context(), id, request.Method == "POST")
+  WithActor(settings, db, site, w, request, func(identity: auth.Identity) -> Result[(), failure.Failure]
+    if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
+      (section == "read" && request.Method == "POST") ||
+      (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
+      let readable = storage.FeedRepository { DB: db, SiteID: site.ID }.ReadObject(request.Context(), id, identity, false)
+      if readable.IsErr() then
+        return Err(readable.UnwrapErr())
       end
+      if readable.Unwrap().DeletedAt.Valid then
+        return Err(Of("not found"))
+      end
+      let state = storage.ContentStateRepository {
+        DB: db,
+        SiteID: site.ID,
+        AccountID: identity.AccountID,
+      }
+      let result = switch section
+        case "save" => state.Save(request.Context(), id, request.Method == "POST")
+        case "read" => state.Read(request.Context(), id)
+        case _ => state.Hide(request.Context(), id, request.Method == "POST")
+      end
+      Settle(w, result)
+      return Ok(())
     end
-    Settle(w, result)
-    return
-  end
-  if section == "vote" then
-    var input = Zero[VoteInput]()
-    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
-    if decoded.IsErr() then
-      WriteErrorJSON(w, 400, "invalid vote")
-      return
+    if section == "vote" then
+      var input = Zero[VoteInput]()
+      if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+        WriteErrorJSON(w, 400, "invalid vote")
+        return Ok(())
+      end
+      let score = ParseVoteValue(input.Score)
+      if score.IsErr() then
+        WriteErrorJSON(w, 400, "invalid vote")
+        return Ok(())
+      end
+      Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score.Unwrap()))
+      return Ok(())
     end
-    let score = ParseVoteValue(input.Score)
-    if score.IsErr() then
-      WriteErrorJSON(w, 400, "invalid vote")
-      return
+    if section == "likes" then
+      let score = if request.Method == "POST" => 1 else 0
+      Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
+      return Ok(())
     end
-    Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score.Unwrap()))
-    return
-  end
-  if section == "likes" then
-    let score = if request.Method == "POST" then
-      1
-    else
-      0
+    if section == "import" && request.Method == "POST" then
+      let posts = storage.PostRepository { DB: db, SiteID: site.ID }
+      let imported = posts.Import(request.Context(), id, identity, false)
+      if imported.IsErr() then
+        return Err(imported.UnwrapErr())
+      end
+      WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, imported.Unwrap())
+      return Ok(())
     end
-    Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
-    return
-  end
-  if section == "import" && request.Method == "POST" then
-    let posts = storage.PostRepository {
-      DB: db,
-      SiteID: site.ID,
-    }
-    let imported = posts.Import(request.Context(), id, identity, false)
-    if imported.IsErr() then
-      FailFailure(w, imported.UnwrapErr())
-    else
-      WriteBrowserPost(
-        settings.Rendering.Sanitizer,
-        db,
-        site,
-        w,
-        request,
-        201,
-        identity,
-        imported.Unwrap()
-      )
+    if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
+      let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
+      Settle(w, feed.SetHidden(request.Context(), id, request.Method == "POST", identity))
+      return Ok(())
     end
-    return
-  end
-  if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
-    let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
-    let hidden = feed.SetHidden(request.Context(), id, request.Method == "POST", identity)
-    Settle(w, hidden)
-    return
-  end
-  WriteErrorJSON(w, 404, "not found")
+    WriteErrorJSON(w, 404, "not found")
+    Ok(())
+  end)
 end
 
 func ReplyRoute(

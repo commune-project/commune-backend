@@ -171,167 +171,168 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line forum_posts.mygo:193:3*/		return
 	} else {
  /*line zz_forum_posts.gen.go:173:1*/	}
- /*line forum_posts.mygo:175:1*/	actor := RequireMutation(settings, db, site, request)
- /*line forum_posts.mygo:198:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](actor) {
- /*line forum_posts.mygo:199:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](actor))
- /*line forum_posts.mygo:198:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:179:1*/	}
- /*line forum_posts.mygo:175:1*/	identity := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor)
- /*line forum_posts.mygo:203:7*/	if section == "save" && (request.Method == "POST" || request.Method == "DELETE") || section == "read" && request.Method == "POST" || section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE") {
- /*line forum_posts.mygo:203:3*/		readable := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: db, SiteID: site.ID}, request.Context(), id, identity, false)
- /*line forum_posts.mygo:210:5*/		if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](readable) {
- /*line forum_posts.mygo:211:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](readable))
- /*line forum_posts.mygo:210:5*/			return
-		} else {
- /*line zz_forum_posts.gen.go:187:1*/		}
- /*line forum_posts.mygo:214:5*/		if MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](readable).DeletedAt.Valid {
- /*line forum_posts.mygo:215:7*/			Fail(w, "not found")
- /*line forum_posts.mygo:214:5*/			return
-		} else {
- /*line zz_forum_posts.gen.go:192:1*/		}
- /*line forum_posts.mygo:203:3*/		state := storage.ContentStateRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
-		var result Result[struct{}, failure.Failure] = Err[struct{}, failure.Failure](Of("not found"))
- /*line forum_posts.mygo:224:5*/		if section == "save" {
-			result = storage.MygoIN22ContentStateRepositoryM4Save(state, request.Context(), id, request.Method == "POST")
-		} else {
-			if section == "read" {
-				result = storage.MygoIN22ContentStateRepositoryM4Read(state, request.Context(), id)
+ /*line forum_posts.mygo:197:3*/	WithActor(settings, db, site, w, request, func(identity auth.Identity) Result[struct{}, failure.Failure] {
+ /*line forum_posts.mygo:198:9*/		if section == "save" && (request.Method == "POST" || request.Method == "DELETE") || section == "read" && request.Method == "POST" || section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE") {
+ /*line forum_posts.mygo:198:5*/			readable := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: db, SiteID: site.ID}, request.Context(), id, identity, false)
+ /*line forum_posts.mygo:202:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](readable) {
+ /*line forum_posts.mygo:203:16*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](readable))
+ /*line forum_posts.mygo:202:7*/			} else {
+ /*line zz_forum_posts.gen.go:180:1*/			}
+ /*line forum_posts.mygo:205:7*/			if MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](readable).DeletedAt.Valid {
+ /*line forum_posts.mygo:206:16*/				return Err[struct{}, failure.Failure](Of("not found"))
+ /*line forum_posts.mygo:205:7*/			} else {
+ /*line zz_forum_posts.gen.go:184:1*/			}
+ /*line forum_posts.mygo:198:5*/			state := storage.ContentStateRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
+ /*line forum_posts.mygo:213:20*/			var __mygo_expr_0 Result[struct{}, failure.Failure]
+			if section == "save" {
+				__mygo_expr_0 = storage.MygoIN22ContentStateRepositoryM4Save(state, request.Context(), id, request.Method == "POST")
 			} else {
-				result = storage.MygoIN22ContentStateRepositoryM4Hide(state, request.Context(), id, request.Method == "POST")
- /*line zz_forum_posts.gen.go:202:1*/			}
-		}
- /*line forum_posts.mygo:233:5*/		Settle(w, result)
- /*line forum_posts.mygo:203:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:207:1*/	}
- /*line forum_posts.mygo:236:3*/	if section == "vote" {
-		input := Zero[VoteInput]()
-		decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
- /*line forum_posts.mygo:239:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](decoded) {
- /*line forum_posts.mygo:240:7*/			WriteErrorJSON(w, 400, "invalid vote")
- /*line forum_posts.mygo:239:5*/			return
-		} else {
- /*line zz_forum_posts.gen.go:215:1*/		}
- /*line forum_posts.mygo:236:3*/		score := ParseVoteValue(input.Score)
- /*line forum_posts.mygo:244:5*/		if MygoIN6ResultM5IsErr[int, failure.Failure](score) {
- /*line forum_posts.mygo:245:7*/			WriteErrorJSON(w, 400, "invalid vote")
- /*line forum_posts.mygo:244:5*/			return
-		} else {
+				if section == "read" {
+					__mygo_expr_0 = storage.MygoIN22ContentStateRepositoryM4Read(state, request.Context(), id)
+				} else {
+					__mygo_expr_0 = storage.MygoIN22ContentStateRepositoryM4Hide(state, request.Context(), id, request.Method == "POST")
+ /*line zz_forum_posts.gen.go:194:1*/				}
+			}
+ /*line forum_posts.mygo:198:5*/			result := __mygo_expr_0
+ /*line forum_posts.mygo:218:7*/			Settle(w, result)
+ /*line forum_posts.mygo:219:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:199:1*/			}{})
+ /*line forum_posts.mygo:198:5*/		} else {
+ /*line zz_forum_posts.gen.go:201:1*/		}
+ /*line forum_posts.mygo:221:5*/		if section == "vote" {
+			input := Zero[VoteInput]()
+ /*line forum_posts.mygo:223:7*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line forum_posts.mygo:224:9*/				WriteErrorJSON(w, 400, "invalid vote")
+ /*line forum_posts.mygo:225:16*/				return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:207:1*/				}{})
+ /*line forum_posts.mygo:223:7*/			} else {
+ /*line zz_forum_posts.gen.go:209:1*/			}
+ /*line forum_posts.mygo:221:5*/			score := ParseVoteValue(input.Score)
+ /*line forum_posts.mygo:228:7*/			if MygoIN6ResultM5IsErr[int, failure.Failure](score) {
+ /*line forum_posts.mygo:229:9*/				WriteErrorJSON(w, 400, "invalid vote")
+ /*line forum_posts.mygo:230:16*/				return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:214:1*/				}{})
+ /*line forum_posts.mygo:228:7*/			} else {
+ /*line zz_forum_posts.gen.go:216:1*/			}
+ /*line forum_posts.mygo:232:7*/			Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, MygoIN6ResultM6Unwrap[int, failure.Failure](score)))
+ /*line forum_posts.mygo:233:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:219:1*/			}{})
+ /*line forum_posts.mygo:221:5*/		} else {
  /*line zz_forum_posts.gen.go:221:1*/		}
- /*line forum_posts.mygo:248:5*/		Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, MygoIN6ResultM6Unwrap[int, failure.Failure](score)))
- /*line forum_posts.mygo:236:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:225:1*/	}
- /*line forum_posts.mygo:251:3*/	if section == "likes" {
-		var __mygo_expr_0 int
-		if request.Method == "POST" {
-			__mygo_expr_0 = 1
-		} else {
-			__mygo_expr_0 = 0
- /*line zz_forum_posts.gen.go:232:1*/		}
- /*line forum_posts.mygo:251:3*/		score_1 := __mygo_expr_0
- /*line forum_posts.mygo:257:5*/		Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score_1))
- /*line forum_posts.mygo:251:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:237:1*/	}
- /*line forum_posts.mygo:260:3*/	if section == "import" && request.Method == "POST" {
-		posts := storage.PostRepository{DB: db, SiteID: site.ID}
-		imported := storage.MygoIN14PostRepositoryM6Import(posts, request.Context(), id, identity, false)
- /*line forum_posts.mygo:266:5*/		if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](imported) {
- /*line forum_posts.mygo:267:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](imported))
- /*line forum_posts.mygo:266:5*/		} else {
- /*line forum_posts.mygo:269:7*/			WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](imported))
- /*line zz_forum_posts.gen.go:245:1*/		}
- /*line forum_posts.mygo:260:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:248:1*/	}
- /*line forum_posts.mygo:282:6*/	if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") {
- /*line forum_posts.mygo:282:3*/		feed := storage.FeedRepository{DB: db, SiteID: site.ID}
-		hidden := storage.MygoIN14FeedRepositoryM9SetHidden(feed, request.Context(), id, request.Method == "POST", identity)
- /*line forum_posts.mygo:285:5*/		Settle(w, hidden)
- /*line forum_posts.mygo:282:3*/		return
-	} else {
- /*line zz_forum_posts.gen.go:255:1*/	}
- /*line forum_posts.mygo:288:3*/	WriteErrorJSON(w, 404, "not found")
-	return
- /*line zz_forum_posts.gen.go:258:1*/}
- /*line forum_posts.mygo:291:1*/func ReplyRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
+ /*line forum_posts.mygo:235:5*/		if section == "likes" {
+			var __mygo_expr_1 int
+			if request.Method == "POST" {
+				__mygo_expr_1 = 1
+			} else {
+				__mygo_expr_1 = 0
+ /*line zz_forum_posts.gen.go:228:1*/			}
+ /*line forum_posts.mygo:235:5*/			score_1 := __mygo_expr_1
+ /*line forum_posts.mygo:237:7*/			Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score_1))
+ /*line forum_posts.mygo:238:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:232:1*/			}{})
+ /*line forum_posts.mygo:235:5*/		} else {
+ /*line zz_forum_posts.gen.go:234:1*/		}
+ /*line forum_posts.mygo:240:5*/		if section == "import" && request.Method == "POST" {
+			posts := storage.PostRepository{DB: db, SiteID: site.ID}
+			imported := storage.MygoIN14PostRepositoryM6Import(posts, request.Context(), id, identity, false)
+ /*line forum_posts.mygo:243:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](imported) {
+ /*line forum_posts.mygo:244:16*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](imported))
+ /*line forum_posts.mygo:243:7*/			} else {
+ /*line zz_forum_posts.gen.go:241:1*/			}
+ /*line forum_posts.mygo:246:7*/			WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](imported))
+ /*line forum_posts.mygo:247:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:244:1*/			}{})
+ /*line forum_posts.mygo:240:5*/		} else {
+ /*line zz_forum_posts.gen.go:246:1*/		}
+ /*line forum_posts.mygo:249:8*/		if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") {
+ /*line forum_posts.mygo:249:5*/			feed := storage.FeedRepository{DB: db, SiteID: site.ID}
+ /*line forum_posts.mygo:251:7*/			Settle(w, storage.MygoIN14FeedRepositoryM9SetHidden(feed, request.Context(), id, request.Method == "POST", identity))
+ /*line forum_posts.mygo:252:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:251:1*/			}{})
+ /*line forum_posts.mygo:249:5*/		} else {
+ /*line zz_forum_posts.gen.go:253:1*/		}
+ /*line forum_posts.mygo:254:5*/		WriteErrorJSON(w, 404, "not found")
+ /*line forum_posts.mygo:255:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_forum_posts.gen.go:256:1*/		}{})
+	})
+ /*line forum_posts.mygo:197:3*/	return
+ /*line zz_forum_posts.gen.go:259:1*/}
+ /*line forum_posts.mygo:259:1*/func ReplyRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
 	feed := storage.FeedRepository{DB: db, SiteID: site.ID}
- /*line forum_posts.mygo:300:3*/	if request.Method == "GET" {
+ /*line forum_posts.mygo:268:3*/	if request.Method == "GET" {
 		BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
 		return
 	} else {
- /*line forum_posts.mygo:303:5*/		if request.Method == "POST" {
+ /*line forum_posts.mygo:271:5*/		if request.Method == "POST" {
 			actor := RequireMutation(settings, db, site, request)
- /*line forum_posts.mygo:305:7*/			if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](actor) {
- /*line forum_posts.mygo:306:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](actor))
+ /*line forum_posts.mygo:273:7*/			if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](actor) {
+ /*line forum_posts.mygo:274:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](actor))
+ /*line forum_posts.mygo:273:7*/				return
+			} else {
+ /*line zz_forum_posts.gen.go:272:1*/			}
+ /*line forum_posts.mygo:271:5*/			parent := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), false)
+ /*line forum_posts.mygo:278:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](parent) {
+ /*line forum_posts.mygo:279:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](parent))
+ /*line forum_posts.mygo:278:7*/				return
+			} else {
+ /*line zz_forum_posts.gen.go:278:1*/			}
+ /*line forum_posts.mygo:271:5*/			communityBan := storage.ActiveCommunityBan(request.Context(), db, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI, time.Now())
+			siteBan := storage.ActiveSiteBan(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI, time.Now())
+ /*line forum_posts.mygo:290:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](communityBan) || MygoIN6ResultM5IsErr[bool, failure.Failure](siteBan) {
+ /*line forum_posts.mygo:291:9*/				Fail(w, "moderation unavailable")
+ /*line forum_posts.mygo:290:7*/				return
+			} else {
+ /*line zz_forum_posts.gen.go:285:1*/			}
+ /*line forum_posts.mygo:294:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](communityBan) || MygoIN6ResultM6Unwrap[bool, failure.Failure](siteBan) {
+ /*line forum_posts.mygo:295:9*/				Fail(w, "forbidden")
+ /*line forum_posts.mygo:294:7*/				return
+			} else {
+ /*line zz_forum_posts.gen.go:290:1*/			}
+ /*line forum_posts.mygo:271:5*/			blocked := storage.IsInteractionBlocked(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).AuthorActorURI, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI)
+ /*line forum_posts.mygo:305:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line forum_posts.mygo:306:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
  /*line forum_posts.mygo:305:7*/				return
 			} else {
- /*line zz_forum_posts.gen.go:271:1*/			}
- /*line forum_posts.mygo:303:5*/			parent := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), false)
- /*line forum_posts.mygo:310:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](parent) {
- /*line forum_posts.mygo:311:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](parent))
- /*line forum_posts.mygo:310:7*/				return
+ /*line zz_forum_posts.gen.go:296:1*/			}
+ /*line forum_posts.mygo:309:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
+ /*line forum_posts.mygo:310:9*/				Fail(w, "forbidden")
+ /*line forum_posts.mygo:309:7*/				return
 			} else {
- /*line zz_forum_posts.gen.go:277:1*/			}
- /*line forum_posts.mygo:303:5*/			communityBan := storage.ActiveCommunityBan(request.Context(), db, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI, time.Now())
-			siteBan := storage.ActiveSiteBan(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI, time.Now())
- /*line forum_posts.mygo:322:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](communityBan) || MygoIN6ResultM5IsErr[bool, failure.Failure](siteBan) {
- /*line forum_posts.mygo:323:9*/				Fail(w, "moderation unavailable")
- /*line forum_posts.mygo:322:7*/				return
-			} else {
- /*line zz_forum_posts.gen.go:284:1*/			}
- /*line forum_posts.mygo:326:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](communityBan) || MygoIN6ResultM6Unwrap[bool, failure.Failure](siteBan) {
- /*line forum_posts.mygo:327:9*/				Fail(w, "forbidden")
- /*line forum_posts.mygo:326:7*/				return
-			} else {
- /*line zz_forum_posts.gen.go:289:1*/			}
- /*line forum_posts.mygo:303:5*/			blocked := storage.IsInteractionBlocked(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).AuthorActorURI, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor).ActorURI)
- /*line forum_posts.mygo:337:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
- /*line forum_posts.mygo:338:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
- /*line forum_posts.mygo:337:7*/				return
-			} else {
- /*line zz_forum_posts.gen.go:295:1*/			}
- /*line forum_posts.mygo:341:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
- /*line forum_posts.mygo:342:9*/				Fail(w, "forbidden")
- /*line forum_posts.mygo:341:7*/				return
-			} else {
- /*line zz_forum_posts.gen.go:300:1*/			}
- /*line forum_posts.mygo:303:5*/			input := Zero[ReplyInput]()
+ /*line zz_forum_posts.gen.go:301:1*/			}
+ /*line forum_posts.mygo:271:5*/			input := Zero[ReplyInput]()
 			decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
- /*line forum_posts.mygo:347:7*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](decoded) {
- /*line forum_posts.mygo:348:9*/				WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](decoded)))
- /*line forum_posts.mygo:347:7*/				return
+ /*line forum_posts.mygo:315:7*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](decoded) {
+ /*line forum_posts.mygo:316:9*/				WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](decoded)))
+ /*line forum_posts.mygo:315:7*/				return
 			} else {
- /*line zz_forum_posts.gen.go:307:1*/			}
- /*line forum_posts.mygo:303:5*/			mentions := ResolvePostMentions(request.Context(), settings, db, site, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, input.Body, input.ContentFormat, false)
- /*line forum_posts.mygo:362:7*/			if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, failure.Failure](mentions) {
- /*line forum_posts.mygo:363:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, failure.Failure](mentions))
- /*line forum_posts.mygo:362:7*/				return
+ /*line zz_forum_posts.gen.go:308:1*/			}
+ /*line forum_posts.mygo:271:5*/			mentions := ResolvePostMentions(request.Context(), settings, db, site, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, input.Body, input.ContentFormat, false)
+ /*line forum_posts.mygo:330:7*/			if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, failure.Failure](mentions) {
+ /*line forum_posts.mygo:331:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, failure.Failure](mentions))
+ /*line forum_posts.mygo:330:7*/				return
 			} else {
- /*line zz_forum_posts.gen.go:313:1*/			}
- /*line forum_posts.mygo:303:5*/			published := PublishForumPost(settings, db, request.Context(), site, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI, ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, failure.Failure](mentions)})
- /*line forum_posts.mygo:384:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](published) {
- /*line forum_posts.mygo:385:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](published))
+ /*line zz_forum_posts.gen.go:314:1*/			}
+ /*line forum_posts.mygo:271:5*/			published := PublishForumPost(settings, db, request.Context(), site, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), false, storage.PublishInput{Title: "", Body: input.Body, ParentID: id, ContextURI: input.ContextURI, ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, failure.Failure](mentions)})
+ /*line forum_posts.mygo:352:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](published) {
+ /*line forum_posts.mygo:353:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](published))
 				return
- /*line forum_posts.mygo:384:7*/			} else {
- /*line forum_posts.mygo:387:9*/				WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](published))
+ /*line forum_posts.mygo:352:7*/			} else {
+ /*line forum_posts.mygo:355:9*/				WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](published))
 				return
- /*line zz_forum_posts.gen.go:321:1*/			}
- /*line forum_posts.mygo:303:5*/		} else {
- /*line forum_posts.mygo:399:7*/			MethodNotAllowed(w, "GET, POST")
+ /*line zz_forum_posts.gen.go:322:1*/			}
+ /*line forum_posts.mygo:271:5*/		} else {
+ /*line forum_posts.mygo:367:7*/			MethodNotAllowed(w, "GET, POST")
 			return
- /*line zz_forum_posts.gen.go:325:1*/		}
+ /*line zz_forum_posts.gen.go:326:1*/		}
 	}
 }
- /*line forum_posts.mygo:404:1*/func Settle(w http.ResponseWriter, result Result[struct {
+ /*line forum_posts.mygo:372:1*/func Settle(w http.ResponseWriter, result Result[struct {
 }, failure.Failure]) {
- /*line forum_posts.mygo:405:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
- /*line forum_posts.mygo:406:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line forum_posts.mygo:373:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line forum_posts.mygo:374:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
 		return
- /*line forum_posts.mygo:405:3*/	} else {
- /*line forum_posts.mygo:408:5*/		w.WriteHeader(204)
+ /*line forum_posts.mygo:373:3*/	} else {
+ /*line forum_posts.mygo:376:5*/		w.WriteHeader(204)
 		return
- /*line zz_forum_posts.gen.go:336:1*/	}
+ /*line zz_forum_posts.gen.go:337:1*/	}
 }

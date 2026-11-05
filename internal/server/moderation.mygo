@@ -234,42 +234,29 @@ func ResolveReportRoute(
     MethodNotAllowed(w, "POST")
     return true
   end
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    FailFailure(w, session.UnwrapErr())
-    return true
-  end
-  if !AuthorizeMutation(settings, session.Unwrap(), request) then
-    WriteErrorJSON(w, 403, "CSRF denied")
-    return true
-  end
-  let id = strconv.ParseInt(rawID, 10, 64)
-  if id.IsErr() || id.Unwrap() <= 0i64 then
-    WriteErrorJSON(w, 400, "invalid report")
-    return true
-  end
-  var input = Zero[ReportResolveInput]()
-  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid report")
-    return true
-  end
-  let resolution = ParseReportResolutionState(input.State)
-  if resolution.IsErr() then
-    WriteErrorJSON(w, 400, "invalid report state")
-    return true
-  end
-  Settle(
-    w,
-    storage.ResolveReport(
-      request.Context(),
-      db,
-      site.ID,
-      session.Unwrap().Identity,
-      id.Unwrap(),
-      input.State,
-      input.Note
-    )
-  )
+  WithSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+    if !AuthorizeMutation(settings, session, request) then
+      WriteErrorJSON(w, 403, "CSRF denied")
+      return Ok(())
+    end
+    let id = strconv.ParseInt(rawID, 10, 64)
+    if id.IsErr() || id.Unwrap() <= 0i64 then
+      WriteErrorJSON(w, 400, "invalid report")
+      return Ok(())
+    end
+    var input = Zero[ReportResolveInput]()
+    if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+      WriteErrorJSON(w, 400, "invalid report")
+      return Ok(())
+    end
+    let resolution = ParseReportResolutionState(input.State)
+    if resolution.IsErr() then
+      WriteErrorJSON(w, 400, "invalid report state")
+      return Ok(())
+    end
+    Settle(w, storage.ResolveReport(request.Context(), db, site.ID, session.Identity, id.Unwrap(), input.State, input.Note))
+    Ok(())
+  end)
   true
 end
 
@@ -284,38 +271,28 @@ func AdminBanRoute(
     MethodNotAllowed(w, "POST, DELETE")
     return true
   end
-  let session = Authenticated(db, site, request)
-  if session.IsErr() then
-    FailFailure(w, session.UnwrapErr())
-    return true
-  end
-  if !AuthorizeMutation(settings, session.Unwrap(), request) then
-    WriteErrorJSON(w, 403, "CSRF denied")
-    return true
-  end
-  var input = Zero[BanInput]()
-  if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
-    WriteErrorJSON(w, 400, "invalid ban")
-    return true
-  end
-  let expiry = ParseBanExpiry(input.ExpiresAt)
-  if expiry.IsErr() then
-    WriteErrorJSON(w, 400, "invalid ban")
-    return true
-  end
-  let result = if request.Method == "POST" then
-    storage.BanSite(
-      request.Context(),
-      db,
-      site.ID,
-      session.Unwrap().Identity,
-      input.Actor,
-      input.Reason,
-      expiry.Unwrap()
-    )
-  else
-    storage.UnbanSite(request.Context(), db, site.ID, session.Unwrap().Identity, input.Actor)
-  end
-  Settle(w, result)
+  WithSession(db, site, w, request, func(session: storage.AuthenticatedSession) -> Result[(), failure.Failure]
+    if !AuthorizeMutation(settings, session, request) then
+      WriteErrorJSON(w, 403, "CSRF denied")
+      return Ok(())
+    end
+    var input = Zero[BanInput]()
+    if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+      WriteErrorJSON(w, 400, "invalid ban")
+      return Ok(())
+    end
+    let expiry = ParseBanExpiry(input.ExpiresAt)
+    if expiry.IsErr() then
+      WriteErrorJSON(w, 400, "invalid ban")
+      return Ok(())
+    end
+    let result = if request.Method == "POST" then
+      storage.BanSite(request.Context(), db, site.ID, session.Identity, input.Actor, input.Reason, expiry.Unwrap())
+    else
+      storage.UnbanSite(request.Context(), db, site.ID, session.Identity, input.Actor)
+    end
+    Settle(w, result)
+    Ok(())
+  end)
   true
 end
