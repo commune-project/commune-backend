@@ -94,7 +94,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line browser_routes.mygo:104:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
  /*line browser_routes.mygo:103:5*/		} else {
 			outputs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views), func(view storage.CommunityView) CommunityOutput {
- /*line browser_routes.mygo:107:9*/				return BrowserCommunityDTO(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
+ /*line browser_routes.mygo:107:9*/				return MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
  /*line zz_browser_routes.gen.go:98:1*/			})
  /*line browser_routes.mygo:103:5*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
  /*line zz_browser_routes.gen.go:100:1*/		}
@@ -152,7 +152,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line browser_routes.mygo:201:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
 		return
  /*line browser_routes.mygo:200:3*/	} else {
- /*line browser_routes.mygo:203:5*/		WriteJSON(w, 200, BrowserCommunityDTO(request.Context(), repository, view, viewer))
+ /*line browser_routes.mygo:203:5*/		WriteJSON(w, 200, MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, viewer))
 		return
  /*line zz_browser_routes.gen.go:157:1*/	}
 }

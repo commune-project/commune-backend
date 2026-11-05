@@ -16,8 +16,10 @@ struct SiteVoteSettingsPatch
   DownvotesEnabled: json.RawMessage `json:"downvotes_enabled"`
 end
 
-func SiteVoteSettingsDTO(up: Bool, down: Bool) -> SiteVoteSettingsOutput
-  SiteVoteSettingsOutput{UpvotesEnabled: up, DownvotesEnabled: down}
+impl SiteVoteSettingsOutput
+  func FromFlags(up: Bool, down: Bool) -> SiteVoteSettingsOutput
+    SiteVoteSettingsOutput { UpvotesEnabled: up, DownvotesEnabled: down }
+  end
 end
 
 func SiteVoteRoute(
@@ -43,7 +45,7 @@ func SiteVoteRoute(
     end
     let up = storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
     let down = storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
-    WriteJSON(w, 200, SiteVoteSettingsDTO(up, down))
+    WriteJSON(w, 200, SiteVoteSettingsOutput.FromFlags(up, down))
     return true
   end
   if request.Method != "PUT" then
@@ -91,7 +93,7 @@ func SiteVoteRoute(
   else
     let savedUp = storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
     let savedDown = storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
-    WriteJSON(w, 200, SiteVoteSettingsDTO(savedUp, savedDown))
+    WriteJSON(w, 200, SiteVoteSettingsOutput.FromFlags(savedUp, savedDown))
   end
   true
 end

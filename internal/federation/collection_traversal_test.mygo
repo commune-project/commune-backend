@@ -19,3 +19,27 @@ func TestCollectionTraversal(t: Ref[testing.T]) -> ()
     t.Fatal("a non-collection document was accepted for traversal")
   end
 end
+
+func TestCollectionKinds(t: Ref[testing.T]) -> ()
+  let cases: Slice[(String, String)] = [
+    ("Collection", "items"),
+    ("OrderedCollection", "orderedItems"),
+    ("CollectionPage", "items"),
+    ("OrderedCollectionPage", "orderedItems"),
+  ]
+  cases.Each(func(item: (String, String)) -> ()
+    let (kind, field) = item
+    let payload = "{\"id\":\"https://peer.example/c/1\",\"type\":\"" + kind + "\",\"" + field + "\":[\"https://peer.example/objects/1\"]}"
+    let parsed = ParseCollectionTraversal(payload as Slice[Byte])
+    if parsed.IsErr() then
+      t.Fatalf("collection kind %s was rejected", kind)
+    end
+    if parsed.Unwrap().Items.Len() != 1 then
+      t.Fatalf("collection kind %s lost its items", kind)
+    end
+  end)
+  if ParseCollectionTraversal("{\"type\":\"Note\",\"items\":[]}" as Slice[Byte]).IsOk() then
+    t.Fatal("a non-collection document was accepted")
+  end
+end
+

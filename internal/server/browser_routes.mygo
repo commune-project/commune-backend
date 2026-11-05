@@ -104,7 +104,7 @@ func BrowserReadRoute(
       FailFailure(w, views.UnwrapErr())
     else
       let outputs = views.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
-        BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
+        CommunityOutput.FromView(request.Context(), repository, view, viewer.Unwrap())
       end)
       WriteJSON(
         w,
@@ -200,7 +200,7 @@ func BrowserCommunityRead(
   if audit.IsErr() then
     FailFailure(w, audit.UnwrapErr())
   else
-    WriteJSON(w, 200, BrowserCommunityDTO(request.Context(), repository, view, viewer))
+    WriteJSON(w, 200, CommunityOutput.FromView(request.Context(), repository, view, viewer))
   end
 end
 

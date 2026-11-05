@@ -48,7 +48,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line search.mygo:53:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](rows))
  /*line search.mygo:44:3*/		} else {
 			outputs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](rows), func(view storage.CommunityView) CommunityOutput {
- /*line search.mygo:56:9*/				return BrowserCommunityDTO(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
+ /*line search.mygo:56:9*/				return MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
  /*line zz_search.gen.go:52:1*/			})
  /*line search.mygo:44:3*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
  /*line zz_search.gen.go:54:1*/		}

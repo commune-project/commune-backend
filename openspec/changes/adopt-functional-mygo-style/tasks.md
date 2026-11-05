@@ -26,7 +26,7 @@
 
 ## 4. Federation layer
 
-- [ ] 4.1 Convert collection parsing and traversal to switches over a collection-kind ADT with guards, and verify traversal tests cover collection, ordered collection, page, and invalid documents.
+- [x] 4.1 Convert collection parsing and traversal to switches over a collection-kind ADT with guards, and verify traversal tests cover collection, ordered collection, page, and invalid documents.
 - [ ] 4.2 Rewrite context, representation, and profile parsing to `Result` pipelines and prelude combinators, and verify the federation unit suite passes.
 - [ ] 4.3 Reshape signature and key-assert code with exhaustive switches while keeping crypto and PEM handling in Go FFI, and verify signature and keyassert tests pass.
 - [ ] 4.4 Rewrite fetch and media-fetch result handling without nested early returns, and verify media fetch and fetch tests pass.
@@ -36,13 +36,13 @@
 - [x] 5.1 Convert the route dispatchers (`Handler`, `ForumRoute`, `CommunityRoute`, `PostRoute`) to switch-with-guards over segment tuples, and verify routing tests plus method-not-allowed tests pass.
 - [ ] 5.2 Convert every handler to `WithActor`/`WithJSON`/`Complete` and delete the remaining `FailStatus` string comparisons, and verify the server suite passes with no `IsErr()` pyramid above two levels.
 - [x] 5.3 Replace `SortThread` with a stable `SortedBy` comparator over a `ThreadSortMode` ADT, and verify the four ordering-mode tests produce identical orderings.
-- [ ] 5.4 Refactor `BrowserPosts` and `BrowserThread` to keyed lookups and `ZipWith`, and verify browser feed, thread depth, and media rendering tests pass.
-- [ ] 5.5 Move projections into `impl`/static constructors that live beside their DTOs, and verify JSON golden-shape tests are unchanged.
+- [x] 5.4 Refactor `BrowserPosts` and `BrowserThread` to keyed lookups and `ZipWith`, and verify browser feed, thread depth, and media rendering tests pass.
+- [x] 5.5 Move projections into `impl`/static constructors that live beside their DTOs, and verify JSON golden-shape tests are unchanged.
 - [ ] 5.6 Convert notifications, moderation, search, votes, and federation handlers to the same shape, and verify their focused test files pass.
 
 ## 6. Entry point and verification
 
-- [ ] 6.1 Convert `cmd/commune/main.mygo` to the same conventions, and verify `mygo build cmd/commune` succeeds with regenerated output.
+- [x] 6.1 Convert `cmd/commune/main.mygo` to the same conventions, and verify `mygo build cmd/commune` succeeds with regenerated output.
 - [x] 6.2 Record the ADT boundary rules and the current compiler constraints in `docs/compiler-migration-issues.md`, and verify the notes match the shipped code.
 - [ ] 6.3 Run `make test` and verify all packages pass with regenerated `zz_*.gen.go` files.
 - [ ] 6.4 Run `make test-postgres` and verify the PostgreSQL-specific suites pass.

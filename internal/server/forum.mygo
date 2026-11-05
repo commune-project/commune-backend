@@ -78,69 +78,72 @@ struct PostPage
   Offset: Int `json:"offset"`
 end
 
-func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
-  CommunityOutput {
-    ID: record.ID,
-    Name: record.Name,
-    Title: record.Title,
-    Description: record.Description,
-    FederationMode: record.FederationMode,
-    ReadPolicy: record.ReadPolicy,
-    PostPolicy: record.PostPolicy,
-    FollowPolicy: record.FollowPolicy,
-    FollowerCount: 0i64,
-    ActorURI: record.ActorURI.String,
-    HostSiteID: record.HostSiteID,
-    Viewer: Zero[CommunityViewerOutput](),
-    Permissions: Zero[CommunityPermissions](),
-  }
+impl CommunityOutput
+  func FromRecord(record: storage.CommunityRecord) -> CommunityOutput
+    CommunityOutput {
+      ID: record.ID,
+      Name: record.Name,
+      Title: record.Title,
+      Description: record.Description,
+      FederationMode: record.FederationMode,
+      ReadPolicy: record.ReadPolicy,
+      PostPolicy: record.PostPolicy,
+      FollowPolicy: record.FollowPolicy,
+      FollowerCount: 0i64,
+      ActorURI: record.ActorURI.String,
+      HostSiteID: record.HostSiteID,
+      Viewer: Zero[CommunityViewerOutput](),
+      Permissions: Zero[CommunityPermissions](),
+    }
+  end
 end
-
-func PostDTO(sanitizer: content.Sanitizer, record: storage.PostRecord) -> PostOutput
-  PostOutput {
-    Version: record.Version,
-    ID: record.ID,
-    CommunityID: record.CommunityID,
-    ObjectType: record.ObjectType,
-    Title: content.RenderText(record.Title.String),
-    Body: content.RenderText(record.Body),
-    BodyHTML: content.RenderRich(
-      sanitizer,
-      record.Body,
-      if record.ContentFormat == "" || record.ContentFormat == "legacy" then
-        "text"
+impl PostOutput
+  func FromRecord(sanitizer: content.Sanitizer, record: storage.PostRecord) -> PostOutput
+    PostOutput {
+      Version: record.Version,
+      ID: record.ID,
+      CommunityID: record.CommunityID,
+      ObjectType: record.ObjectType,
+      Title: content.RenderText(record.Title.String),
+      Body: content.RenderText(record.Body),
+      BodyHTML: content.RenderRich(
+        sanitizer,
+        record.Body,
+        if record.ContentFormat == "" || record.ContentFormat == "legacy" then
+          "text"
+        else
+          record.ContentFormat
+        end
+      ).UnwrapOr(""),
+      ContentFormat: if record.ContentFormat == "" then
+        "legacy"
       else
         record.ContentFormat
-      end
-    ).UnwrapOr(""),
-    ContentFormat: if record.ContentFormat == "" then
-      "legacy"
-    else
-      record.ContentFormat
-    end,
-    AttachmentIDs: [],
-    Attachments: [],
-    AuthorActorURI: record.AuthorActorURI,
-    Author: Zero[AuthorOutput](),
-    ParentID: record.ParentID.String,
-    AuthoredAt: record.AuthoredAt,
-    UpdatedAt: record.UpdatedAt,
-    Deleted: record.DeletedAt.Valid,
-    Score: 0i64,
-    Upvotes: 0i64,
-    Downvotes: 0i64,
-    VotedByMe: 0i64,
-    LikeCount: 0i64,
-    LikedByMe: false,
-    ReplyCount: 0i64,
-    SavedByMe: false,
-    ReadByMe: false,
-    HiddenByMe: false,
-    Depth: 0,
-    ChildCount: 0,
-    Children: [],
-    Permissions: Zero[PostPermissions](),
-  }
+      end,
+      AttachmentIDs: [],
+      Attachments: [],
+      AuthorActorURI: record.AuthorActorURI,
+      Author: Zero[AuthorOutput](),
+      ParentID: record.ParentID.String,
+      AuthoredAt: record.AuthoredAt,
+      UpdatedAt: record.UpdatedAt,
+      Deleted: record.DeletedAt.Valid,
+      Score: 0i64,
+      Upvotes: 0i64,
+      Downvotes: 0i64,
+      VotedByMe: 0i64,
+      LikeCount: 0i64,
+      LikedByMe: false,
+      ReplyCount: 0i64,
+      SavedByMe: false,
+      ReadByMe: false,
+      HiddenByMe: false,
+      Depth: 0,
+      ChildCount: 0,
+      Children: [],
+      Permissions: Zero[PostPermissions](),
+    }
+  end
 end
 
 func WriteJSON[T](w: http.ResponseWriter, status: Int, value: T) -> ()

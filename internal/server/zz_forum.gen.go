@@ -76,51 +76,51 @@ import . "github.com/mygo-lang/mygo/prelude"
 	Offset int          "json:\"offset\""
  /*line zz_forum.gen.go:77:1*/}
 
- /*line forum.mygo:81:1*/func CommunityDTO(record storage.CommunityRecord) CommunityOutput {
- /*line forum.mygo:82:3*/	return CommunityOutput{ID: record.ID, Name: record.Name, Title: record.Title, Description: record.Description, FederationMode: record.FederationMode, ReadPolicy: record.ReadPolicy, PostPolicy: record.PostPolicy, FollowPolicy: record.FollowPolicy, FollowerCount: int64(0), ActorURI: record.ActorURI.String, HostSiteID: record.HostSiteID, Viewer: Zero[CommunityViewerOutput](), Permissions: Zero[CommunityPermissions]()}
+ /*line forum.mygo:81:1*/func MygoIN15CommunityOutputM10FromRecord(record storage.CommunityRecord) CommunityOutput {
+ /*line forum.mygo:83:5*/	return CommunityOutput{ID: record.ID, Name: record.Name, Title: record.Title, Description: record.Description, FederationMode: record.FederationMode, ReadPolicy: record.ReadPolicy, PostPolicy: record.PostPolicy, FollowPolicy: record.FollowPolicy, FollowerCount: int64(0), ActorURI: record.ActorURI.String, HostSiteID: record.HostSiteID, Viewer: Zero[CommunityViewerOutput](), Permissions: Zero[CommunityPermissions]()}
  /*line zz_forum.gen.go:81:1*/}
- /*line forum.mygo:99:1*/func PostDTO(sanitizer content.Sanitizer, record storage.PostRecord) PostOutput {
- /*line forum.mygo:110:7*/	var __mygo_expr_0 string
+ /*line forum.mygo:100:1*/func MygoIN10PostOutputM10FromRecord(sanitizer content.Sanitizer, record storage.PostRecord) PostOutput {
+ /*line forum.mygo:112:9*/	var __mygo_expr_0 string
 	if record.ContentFormat == "" || record.ContentFormat == "legacy" {
 		__mygo_expr_0 = "text"
 	} else {
 		__mygo_expr_0 = record.ContentFormat
  /*line zz_forum.gen.go:88:1*/	}
- /*line forum.mygo:116:20*/	var __mygo_expr_1 string
+ /*line forum.mygo:118:22*/	var __mygo_expr_1 string
 	if record.ContentFormat == "" {
 		__mygo_expr_1 = "legacy"
 	} else {
 		__mygo_expr_1 = record.ContentFormat
  /*line zz_forum.gen.go:94:1*/	}
- /*line forum.mygo:100:3*/	return PostOutput{Version: record.Version, ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), BodyHTML: MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(sanitizer, record.Body, __mygo_expr_0), ""), ContentFormat: __mygo_expr_1, AttachmentIDs: []string{}, Attachments: []PostAttachmentOutput{}, AuthorActorURI: record.AuthorActorURI, Author: Zero[AuthorOutput](), ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid, Score: int64(0), Upvotes: int64(0), Downvotes: int64(0), VotedByMe: int64(0), LikeCount: int64(0), LikedByMe: false, ReplyCount: int64(0), SavedByMe: false, ReadByMe: false, HiddenByMe: false, Depth: 0, ChildCount: 0, Children: []PostOutput{}, Permissions: Zero[PostPermissions]()}
+ /*line forum.mygo:102:5*/	return PostOutput{Version: record.Version, ID: record.ID, CommunityID: record.CommunityID, ObjectType: record.ObjectType, Title: content.RenderText(record.Title.String), Body: content.RenderText(record.Body), BodyHTML: MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(sanitizer, record.Body, __mygo_expr_0), ""), ContentFormat: __mygo_expr_1, AttachmentIDs: []string{}, Attachments: []PostAttachmentOutput{}, AuthorActorURI: record.AuthorActorURI, Author: Zero[AuthorOutput](), ParentID: record.ParentID.String, AuthoredAt: record.AuthoredAt, UpdatedAt: record.UpdatedAt, Deleted: record.DeletedAt.Valid, Score: int64(0), Upvotes: int64(0), Downvotes: int64(0), VotedByMe: int64(0), LikeCount: int64(0), LikedByMe: false, ReplyCount: int64(0), SavedByMe: false, ReadByMe: false, HiddenByMe: false, Depth: 0, ChildCount: 0, Children: []PostOutput{}, Permissions: Zero[PostPermissions]()}
  /*line zz_forum.gen.go:96:1*/}
- /*line forum.mygo:146:1*/func WriteJSON[T any](w http.ResponseWriter, status int, value T) {
- /*line forum.mygo:147:3*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line forum.mygo:149:1*/func WriteJSON[T any](w http.ResponseWriter, status int, value T) {
+ /*line forum.mygo:150:3*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := json.Marshal(value)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_forum.gen.go:104:1*/	}
- /*line forum.mygo:147:3*/	__mygo_expr_3 := __mygo_expr_1
+ /*line forum.mygo:150:3*/	__mygo_expr_3 := __mygo_expr_1
 	if _, ok := __mygo_expr_3.(Result__Err[[]byte, error]); ok {
 		http.Error(w, "response unavailable", 500)
  /*line zz_forum.gen.go:108:1*/	} else {
- /*line forum.mygo:147:3*/		if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
- /*line forum.mygo:150:7*/			w.Header().Set("Content-Type", "application/json")
- /*line forum.mygo:151:7*/			w.WriteHeader(status)
- /*line forum.mygo:152:15*/			w.Write(__mygo_match___mygo_expr_4.F0)
- /*line forum.mygo:147:3*/		} else {
+ /*line forum.mygo:150:3*/		if __mygo_match___mygo_expr_4, ok := __mygo_expr_3.(Result__Ok[[]byte, error]); ok {
+ /*line forum.mygo:153:7*/			w.Header().Set("Content-Type", "application/json")
+ /*line forum.mygo:154:7*/			w.WriteHeader(status)
+ /*line forum.mygo:155:15*/			w.Write(__mygo_match___mygo_expr_4.F0)
+ /*line forum.mygo:150:3*/		} else {
  /*line zz_forum.gen.go:114:1*/		}
 	}
- /*line forum.mygo:147:3*/	return
+ /*line forum.mygo:150:3*/	return
  /*line zz_forum.gen.go:117:1*/}
- /*line forum.mygo:157:1*/func WriteErrorJSON(w http.ResponseWriter, status int, message string) {
- /*line forum.mygo:158:3*/	WriteJSON(w, status, ErrorOutput{Error: message})
+ /*line forum.mygo:160:1*/func WriteErrorJSON(w http.ResponseWriter, status int, message string) {
+ /*line forum.mygo:161:3*/	WriteJSON(w, status, ErrorOutput{Error: message})
 	return
  /*line zz_forum.gen.go:121:1*/}
- /*line forum.mygo:163:1*/func FailStatus(reason string) int {
- /*line forum.mygo:164:3*/	__mygo_expr_0 := failure.Parse(reason)
+ /*line forum.mygo:166:1*/func FailStatus(reason string) int {
+ /*line forum.mygo:167:3*/	__mygo_expr_0 := failure.Parse(reason)
 	var __mygo_expr_1 int
 	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[failure.Failure, string]); ok {
 		__mygo_expr_1 = failure.MygoIN7FailureM6Status(__mygo_match___mygo_expr_2.F0)
@@ -130,43 +130,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_forum.gen.go:131:1*/		}
 	}
- /*line forum.mygo:164:3*/	return __mygo_expr_1
+ /*line forum.mygo:167:3*/	return __mygo_expr_1
  /*line zz_forum.gen.go:134:1*/}
- /*line forum.mygo:170:1*/func Fail(w http.ResponseWriter, reason string) {
- /*line forum.mygo:171:3*/	FailFailure(w, Classify(reason))
+ /*line forum.mygo:173:1*/func Fail(w http.ResponseWriter, reason string) {
+ /*line forum.mygo:174:3*/	FailFailure(w, Classify(reason))
 	return
  /*line zz_forum.gen.go:138:1*/}
- /*line forum.mygo:174:1*/func Segments(path string) []string {
- /*line forum.mygo:175:3*/	return MygoIN6StringM5Split(MygoIN6StringM4Trim(path, "/"), "/")
+ /*line forum.mygo:177:1*/func Segments(path string) []string {
+ /*line forum.mygo:178:3*/	return MygoIN6StringM5Split(MygoIN6StringM4Trim(path, "/"), "/")
  /*line zz_forum.gen.go:141:1*/}
- /*line forum.mygo:178:1*/func RequestSegments(request *http.Request) []string {
- /*line forum.mygo:179:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(Segments(request.URL.EscapedPath()), func(segment string) string {
- /*line forum.mygo:180:5*/		var __mygo_expr_1 Result[string, error]
+ /*line forum.mygo:181:1*/func RequestSegments(request *http.Request) []string {
+ /*line forum.mygo:182:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(Segments(request.URL.EscapedPath()), func(segment string) string {
+ /*line forum.mygo:183:5*/		var __mygo_expr_1 Result[string, error]
 		__mygo_expr_2, __mygo_expr_0 := url.PathUnescape(segment)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[string, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[string, error](__mygo_expr_2)
  /*line zz_forum.gen.go:150:1*/		}
- /*line forum.mygo:180:5*/		return MygoIN6ResultM8UnwrapOr[string, error](__mygo_expr_1, segment)
+ /*line forum.mygo:183:5*/		return MygoIN6ResultM8UnwrapOr[string, error](__mygo_expr_1, segment)
  /*line zz_forum.gen.go:152:1*/	})
 }
- /*line forum.mygo:184:1*/func DecodeJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T) Result[struct {
+ /*line forum.mygo:187:1*/func DecodeJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T) Result[struct {
 }, failure.Failure] {
- /*line forum.mygo:190:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6StringM5Split(request.Header.Get("Content-Type"), ";"), 0), "") != "application/json" {
- /*line forum.mygo:191:12*/		return Err[struct{}, failure.Failure](Of("expected application/json"))
- /*line forum.mygo:190:3*/	} else {
+ /*line forum.mygo:193:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6StringM5Split(request.Header.Get("Content-Type"), ";"), 0), "") != "application/json" {
+ /*line forum.mygo:194:12*/		return Err[struct{}, failure.Failure](Of("expected application/json"))
+ /*line forum.mygo:193:3*/	} else {
  /*line zz_forum.gen.go:159:1*/	}
- /*line forum.mygo:184:1*/	reader := http.MaxBytesReader(w, request.Body, int64(maxBytes))
+ /*line forum.mygo:187:1*/	reader := http.MaxBytesReader(w, request.Body, int64(maxBytes))
 	result := DecodeJSONBody(io.ReadCloser(reader), target)
 	reader.Close()
- /*line forum.mygo:196:3*/	return result
+ /*line forum.mygo:199:3*/	return result
  /*line zz_forum.gen.go:164:1*/}
- /*line forum.mygo:199:1*/func DecodeJSONBody[T any](reader io.ReadCloser, target *T) Result[struct {
+ /*line forum.mygo:202:1*/func DecodeJSONBody[T any](reader io.ReadCloser, target *T) Result[struct {
 }, failure.Failure] {
 	decoder := json.NewDecoder(io.Reader(reader))
- /*line forum.mygo:201:3*/	decoder.DisallowUnknownFields()
- /*line forum.mygo:202:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line forum.mygo:204:3*/	decoder.DisallowUnknownFields()
+ /*line forum.mygo:205:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := decoder.Decode(target)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -174,12 +174,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_forum.gen.go:175:1*/		}{})
 	}
- /*line forum.mygo:202:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line forum.mygo:203:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
- /*line forum.mygo:202:3*/	} else {
+ /*line forum.mygo:205:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line forum.mygo:206:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
+ /*line forum.mygo:205:3*/	} else {
  /*line zz_forum.gen.go:180:1*/	}
- /*line forum.mygo:199:1*/	extra := json.RawMessage{}
- /*line forum.mygo:206:18*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line forum.mygo:202:1*/	extra := json.RawMessage{}
+ /*line forum.mygo:209:18*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := decoder.Decode(&extra)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
@@ -187,118 +187,118 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[struct{}, error](struct {
  /*line zz_forum.gen.go:188:1*/		}{})
 	}
- /*line forum.mygo:199:1*/	trailing := __mygo_expr_3
- /*line forum.mygo:207:3*/	if MygoIN6ResultM4IsOk[struct{}, error](trailing) || !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](trailing), io.EOF) {
- /*line forum.mygo:208:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
- /*line forum.mygo:207:3*/	} else {
+ /*line forum.mygo:202:1*/	trailing := __mygo_expr_3
+ /*line forum.mygo:210:3*/	if MygoIN6ResultM4IsOk[struct{}, error](trailing) || !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](trailing), io.EOF) {
+ /*line forum.mygo:211:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
+ /*line forum.mygo:210:3*/	} else {
  /*line zz_forum.gen.go:194:1*/	}
- /*line forum.mygo:210:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line forum.mygo:213:3*/	return Ok[struct{}, failure.Failure](struct {
  /*line zz_forum.gen.go:196:1*/	}{})
 }
- /*line forum.mygo:213:1*/func PageFromQuery(settings config.Config, request *http.Request) Result[storage.Page, failure.Failure] {
+ /*line forum.mygo:216:1*/func PageFromQuery(settings config.Config, request *http.Request) Result[storage.Page, failure.Failure] {
 	query := request.URL.Query()
 	limit := 20
 	offset := 0
- /*line forum.mygo:220:3*/	if query.Get("limit") != "" {
- /*line forum.mygo:221:18*/		var __mygo_expr_1 Result[int, error]
+ /*line forum.mygo:223:3*/	if query.Get("limit") != "" {
+ /*line forum.mygo:224:18*/		var __mygo_expr_1 Result[int, error]
 		__mygo_expr_2, __mygo_expr_0 := strconv.Atoi(query.Get("limit"))
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[int, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[int, error](__mygo_expr_2)
  /*line zz_forum.gen.go:209:1*/		}
- /*line forum.mygo:220:3*/		parsed := __mygo_expr_1
- /*line forum.mygo:222:5*/		if MygoIN6ResultM5IsErr[int, error](parsed) {
- /*line forum.mygo:223:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
- /*line forum.mygo:222:5*/		} else {
+ /*line forum.mygo:223:3*/		parsed := __mygo_expr_1
+ /*line forum.mygo:225:5*/		if MygoIN6ResultM5IsErr[int, error](parsed) {
+ /*line forum.mygo:226:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
+ /*line forum.mygo:225:5*/		} else {
  /*line zz_forum.gen.go:214:1*/		}
- /*line forum.mygo:220:3*/		limit = MygoIN6ResultM6Unwrap[int, error](parsed)
+ /*line forum.mygo:223:3*/		limit = MygoIN6ResultM6Unwrap[int, error](parsed)
 	} else {
  /*line zz_forum.gen.go:217:1*/	}
- /*line forum.mygo:227:3*/	if query.Get("offset") != "" {
- /*line forum.mygo:228:18*/		var __mygo_expr_4 Result[int, error]
+ /*line forum.mygo:230:3*/	if query.Get("offset") != "" {
+ /*line forum.mygo:231:18*/		var __mygo_expr_4 Result[int, error]
 		__mygo_expr_5, __mygo_expr_3 := strconv.Atoi(query.Get("offset"))
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[int, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[int, error](__mygo_expr_5)
  /*line zz_forum.gen.go:225:1*/		}
- /*line forum.mygo:227:3*/		parsed_1 := __mygo_expr_4
- /*line forum.mygo:229:5*/		if MygoIN6ResultM5IsErr[int, error](parsed_1) {
- /*line forum.mygo:230:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
- /*line forum.mygo:229:5*/		} else {
+ /*line forum.mygo:230:3*/		parsed_1 := __mygo_expr_4
+ /*line forum.mygo:232:5*/		if MygoIN6ResultM5IsErr[int, error](parsed_1) {
+ /*line forum.mygo:233:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
+ /*line forum.mygo:232:5*/		} else {
  /*line zz_forum.gen.go:230:1*/		}
- /*line forum.mygo:227:3*/		offset = MygoIN6ResultM6Unwrap[int, error](parsed_1)
+ /*line forum.mygo:230:3*/		offset = MygoIN6ResultM6Unwrap[int, error](parsed_1)
 	} else {
  /*line zz_forum.gen.go:233:1*/	}
- /*line forum.mygo:213:1*/	page := storage.Page{Limit: limit, Offset: offset}
- /*line forum.mygo:235:3*/	if !storage.MygoIN4PageM5Valid(page, settings.Runtime.MaxPageSize) {
- /*line forum.mygo:236:12*/		return Err[storage.Page, failure.Failure](Of("invalid page"))
- /*line forum.mygo:235:3*/	} else {
+ /*line forum.mygo:216:1*/	page := storage.Page{Limit: limit, Offset: offset}
+ /*line forum.mygo:238:3*/	if !storage.MygoIN4PageM5Valid(page, settings.Runtime.MaxPageSize) {
+ /*line forum.mygo:239:12*/		return Err[storage.Page, failure.Failure](Of("invalid page"))
+ /*line forum.mygo:238:3*/	} else {
  /*line zz_forum.gen.go:238:1*/	}
- /*line forum.mygo:238:3*/	return Ok[storage.Page, failure.Failure](page)
+ /*line forum.mygo:241:3*/	return Ok[storage.Page, failure.Failure](page)
  /*line zz_forum.gen.go:240:1*/}
- /*line forum.mygo:241:1*/func Authenticated(db *gorm.DB, site config.Site, request *http.Request) Result[storage.AuthenticatedSession, failure.Failure] {
+ /*line forum.mygo:244:1*/func Authenticated(db *gorm.DB, site config.Site, request *http.Request) Result[storage.AuthenticatedSession, failure.Failure] {
 	token := ReadSession(request)
- /*line forum.mygo:247:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](token) {
- /*line forum.mygo:248:12*/		return Err[storage.AuthenticatedSession, failure.Failure](Of("unauthenticated"))
- /*line forum.mygo:247:3*/	} else {
+ /*line forum.mygo:250:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](token) {
+ /*line forum.mygo:251:12*/		return Err[storage.AuthenticatedSession, failure.Failure](Of("unauthenticated"))
+ /*line forum.mygo:250:3*/	} else {
  /*line zz_forum.gen.go:246:1*/	}
- /*line forum.mygo:241:1*/	sessions := storage.SessionRepository{DB: db}
- /*line forum.mygo:251:3*/	return storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, failure.Failure](token), time.Now())
+ /*line forum.mygo:244:1*/	sessions := storage.SessionRepository{DB: db}
+ /*line forum.mygo:254:3*/	return storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, failure.Failure](token), time.Now())
  /*line zz_forum.gen.go:249:1*/}
- /*line forum.mygo:254:1*/func AuthorizeMutation(settings config.Config, session storage.AuthenticatedSession, request *http.Request) bool {
- /*line forum.mygo:259:3*/	return SameOrigin(settings, request) && storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, request.Header.Get("X-CSRF-Token"))
+ /*line forum.mygo:257:1*/func AuthorizeMutation(settings config.Config, session storage.AuthenticatedSession, request *http.Request) bool {
+ /*line forum.mygo:262:3*/	return SameOrigin(settings, request) && storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, request.Header.Get("X-CSRF-Token"))
  /*line zz_forum.gen.go:252:1*/}
- /*line forum.mygo:262:1*/func ForumRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
+ /*line forum.mygo:265:1*/func ForumRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	parts := RequestSegments(request)
- /*line forum.mygo:270:3*/	if ParticipationRoute(settings, db, site, w, request, parts) {
+ /*line forum.mygo:273:3*/	if ParticipationRoute(settings, db, site, w, request, parts) {
 		return
 	} else {
  /*line zz_forum.gen.go:258:1*/	}
- /*line forum.mygo:273:3*/	if BrowserReadRoute(settings, db, site, w, request, parts) {
+ /*line forum.mygo:276:3*/	if BrowserReadRoute(settings, db, site, w, request, parts) {
 		return
 	} else {
  /*line zz_forum.gen.go:262:1*/	}
- /*line forum.mygo:262:1*/	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
- /*line forum.mygo:277:3*/	__mygo_expr_0 := struct {
- /*line forum.mygo:277:10*/		F0 int
+ /*line forum.mygo:265:1*/	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
+ /*line forum.mygo:280:3*/	__mygo_expr_0 := struct {
+ /*line forum.mygo:280:10*/		F0 int
 		F1 string
 	}{F0: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts), F1: resource}
- /*line forum.mygo:277:3*/	__mygo_switch_matched___mygo_expr_1 := false
+ /*line forum.mygo:280:3*/	__mygo_switch_matched___mygo_expr_1 := false
 	if !__mygo_switch_matched___mygo_expr_1 {
 		if __mygo_expr_0.F1 == "communities" {
 			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 3 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) <= 6 {
 				__mygo_switch_matched___mygo_expr_1 = true
 				CommunityRoute(settings, db, site, w, request, parts)
  /*line zz_forum.gen.go:274:1*/			}
- /*line forum.mygo:277:3*/		} else {
+ /*line forum.mygo:280:3*/		} else {
  /*line zz_forum.gen.go:276:1*/		}
 	}
- /*line forum.mygo:277:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+ /*line forum.mygo:280:3*/	if !__mygo_switch_matched___mygo_expr_1 {
 		if __mygo_expr_0.F1 == "posts" {
 			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 4 && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) <= 5 {
 				__mygo_switch_matched___mygo_expr_1 = true
 				PostRoute(settings, db, site, w, request, parts)
  /*line zz_forum.gen.go:283:1*/			}
- /*line forum.mygo:277:3*/		} else {
+ /*line forum.mygo:280:3*/		} else {
  /*line zz_forum.gen.go:285:1*/		}
 	}
- /*line forum.mygo:277:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+ /*line forum.mygo:280:3*/	if !__mygo_switch_matched___mygo_expr_1 {
 		if __mygo_expr_0.F0 == 5 {
 			if __mygo_expr_0.F1 == "contexts" {
 				if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "backfill" {
 					__mygo_switch_matched___mygo_expr_1 = true
 					ContextBackfillRoute(settings, db, site, w, request, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), ""))
  /*line zz_forum.gen.go:293:1*/				}
- /*line forum.mygo:277:3*/			} else {
+ /*line forum.mygo:280:3*/			} else {
  /*line zz_forum.gen.go:295:1*/			}
- /*line forum.mygo:277:3*/		} else {
+ /*line forum.mygo:280:3*/		} else {
  /*line zz_forum.gen.go:297:1*/		}
 	}
- /*line forum.mygo:277:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+ /*line forum.mygo:280:3*/	if !__mygo_switch_matched___mygo_expr_1 {
 		__mygo_switch_matched___mygo_expr_1 = true
 		WriteErrorJSON(w, 404, "not found")
  /*line zz_forum.gen.go:302:1*/	}
- /*line forum.mygo:277:3*/	return
+ /*line forum.mygo:280:3*/	return
  /*line zz_forum.gen.go:304:1*/}

@@ -29,3 +29,56 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line zz_collection_traversal.gen_test.go:30:1*/	}
 }
+ /*line collection_traversal_test.mygo:23:1*/func TestCollectionKinds(t *testing.T) {
+	var cases []struct {
+		F0 string
+		F1 string
+ /*line collection_traversal_test.mygo:24:40*/	} = []struct {
+		F0 string
+		F1 string
+ /*line collection_traversal_test.mygo:25:5*/	}{struct {
+		F0 string
+		F1 string
+	}{F0: "Collection", F1: "items"}, struct {
+ /*line collection_traversal_test.mygo:26:5*/		F0 string
+		F1 string
+	}{F0: "OrderedCollection", F1: "orderedItems"}, struct {
+ /*line collection_traversal_test.mygo:27:5*/		F0 string
+		F1 string
+	}{F0: "CollectionPage", F1: "items"}, struct {
+ /*line collection_traversal_test.mygo:28:5*/		F0 string
+		F1 string
+	}{F0: "OrderedCollectionPage", F1: "orderedItems"}}
+ /*line collection_traversal_test.mygo:30:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(item struct {
+ /*line collection_traversal_test.mygo:30:14*/		F0 string
+		F1 string
+	}) {
+		var __mygo_expr_0 struct {
+			F0 string
+			F1 string
+ /*line zz_collection_traversal.gen_test.go:59:1*/		}
+ /*line collection_traversal_test.mygo:30:14*/		__mygo_expr_0 = item
+		var kind string
+		kind = __mygo_expr_0.F0
+		var field string
+		field = __mygo_expr_0.F1
+		payload := "{\"id\":\"https://peer.example/c/1\",\"type\":\"" + kind + "\",\"" + field + "\":[\"https://peer.example/objects/1\"]}"
+		parsed := ParseCollectionTraversal([]byte(payload))
+ /*line collection_traversal_test.mygo:34:5*/		if MygoIN6ResultM5IsErr[CollectionTraversal, failure.Failure](parsed) {
+ /*line collection_traversal_test.mygo:35:7*/			t.Fatalf("collection kind %s was rejected", kind)
+ /*line collection_traversal_test.mygo:34:5*/		} else {
+ /*line zz_collection_traversal.gen_test.go:70:1*/		}
+ /*line collection_traversal_test.mygo:37:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[CollectionTraversal, failure.Failure](parsed).Items) != 1 {
+ /*line collection_traversal_test.mygo:38:7*/			t.Fatalf("collection kind %s lost its items", kind)
+			return
+ /*line collection_traversal_test.mygo:37:5*/		} else {
+			return
+ /*line zz_collection_traversal.gen_test.go:76:1*/		}
+	})
+ /*line collection_traversal_test.mygo:41:3*/	if MygoIN6ResultM4IsOk[CollectionTraversal, failure.Failure](ParseCollectionTraversal([]byte("{\"type\":\"Note\",\"items\":[]}"))) {
+ /*line collection_traversal_test.mygo:42:5*/		t.Fatal("a non-collection document was accepted")
+		return
+ /*line collection_traversal_test.mygo:41:3*/	} else {
+		return
+ /*line zz_collection_traversal.gen_test.go:83:1*/	}
+}

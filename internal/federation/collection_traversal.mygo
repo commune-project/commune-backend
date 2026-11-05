@@ -24,6 +24,45 @@ struct CollectionItemView
   Href: String `json:"href"`
 end
 
+# ActivityPub collection shapes. The wire value stays a string; traversal only
+# needs to know which field holds the items and whether the order is explicit.
+enum CollectionKind
+  Collection
+  OrderedCollection
+  Page
+  OrderedPage
+end
+
+impl CollectionKind
+  func Parse(raw: String) -> Result[CollectionKind, failure.Failure]
+    switch raw
+      case "Collection" => Ok(CollectionKind.Collection)
+      case "OrderedCollection" => Ok(CollectionKind.OrderedCollection)
+      case "CollectionPage" => Ok(CollectionKind.Page)
+      case "OrderedCollectionPage" => Ok(CollectionKind.OrderedPage)
+      case _ => Err(Of("not a collection"))
+    end
+  end
+
+  func Render(self: CollectionKind) -> String
+    switch self
+      case Collection => "Collection"
+      case OrderedCollection => "OrderedCollection"
+      case Page => "CollectionPage"
+      case OrderedPage => "OrderedCollectionPage"
+    end
+  end
+
+  func IsOrdered(self: CollectionKind) -> Bool
+    switch self
+      case OrderedCollection => true
+      case OrderedPage => true
+      case Collection => false
+      case Page => false
+    end
+  end
+end
+
 # Collection traversal returns only canonical item identities. Callers fetch each
 # object from its advertised URI so that the object body's id can be verified.
 func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversal, failure.Failure]
@@ -31,10 +70,26 @@ func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversa
   if json.Unmarshal(payload, Ref.new(document)).IsErr() then
     return Err(Of("invalid collection"))
   end
-  if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" then
+  let parsedKind = CollectionKind.Parse(document.Type)
+  if parsedKind.IsErr() then
     return Err(Of("not a collection"))
   end
-  let rawItems = if (document.OrderedItems as Slice[Byte]).Len() > 0 then document.OrderedItems else document.Items end
+  let kind = parsedKind.Unwrap()
+  # Prefer the field the declared kind promises, then fall back to the other one
+  # so producers that send both shapes still traverse.
+  let preferred = switch kind
+    case OrderedCollection => document.OrderedItems
+    case OrderedPage => document.OrderedItems
+    case Collection => document.Items
+    case Page => document.Items
+  end
+  let fallback = switch kind
+    case OrderedCollection => document.Items
+    case OrderedPage => document.Items
+    case Collection => document.OrderedItems
+    case Page => document.OrderedItems
+  end
+  let rawItems = if (preferred as Slice[Byte]).Len() > 0 => preferred else fallback
   var items: Slice[String] = []
   if (rawItems as Slice[Byte]).Len() > 0 then
     var elements: Slice[json.RawMessage] = []

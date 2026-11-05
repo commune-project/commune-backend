@@ -53,7 +53,7 @@ func SearchRoute(
       FailFailure(w, rows.UnwrapErr())
     else
       let outputs = rows.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
-        BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
+        CommunityOutput.FromView(request.Context(), repository, view, viewer.Unwrap())
       end)
       WriteJSON(
         w,

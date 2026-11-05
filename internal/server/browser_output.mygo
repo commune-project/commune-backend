@@ -53,58 +53,60 @@ struct RosterPage
   Offset: Int `json:"offset"`
 end
 
-func BrowserCommunityDTO(
-  ctx: context.Context,
-  repository: storage.BrowserRepository,
-  view: storage.CommunityView,
-  viewer: storage.BrowserViewer
-) -> CommunityOutput
-  var output = CommunityDTO(view.Record)
-  let access = repository.Access(view, viewer)
-  let managed = access.Authority.Allows("manage-community")
-  let state = if view.FollowState.Valid then
-    view.FollowState.String
-  else
-    "none"
+impl CommunityOutput
+  func FromView(
+    ctx: context.Context,
+    repository: storage.BrowserRepository,
+    view: storage.CommunityView,
+    viewer: storage.BrowserViewer
+  ) -> CommunityOutput
+    var output = CommunityOutput.FromRecord(view.Record)
+    let access = repository.Access(view, viewer)
+    let managed = access.Authority.Allows("manage-community")
+    let state = if view.FollowState.Valid then
+      view.FollowState.String
+    else
+      "none"
+    end
+    let loadedRule = storage.LoadCommunityFollowRule(ctx, repository.DB, view.Record.ID)
+    let policy = if loadedRule.IsErr() then
+      "open"
+    else
+      loadedRule.Unwrap()
+    end
+    let accepted = state == "accepted"
+    let pending = state == "pending"
+    let canFollow = viewer.Verified &&
+      !accepted &&
+      !pending &&
+      (policy == "open" ||
+        (policy == "approval" && !view.Member && !view.Manager) ||
+        (policy == "members" && (view.Member || view.Manager)))
+    output.Viewer = CommunityViewerOutput {
+      IsMember: viewer.Verified && view.Member,
+      IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI,
+      IsManager: viewer.Verified && view.Manager,
+      ManagementScope: access.Authority.Scope,
+      IsFollowing: accepted,
+      FollowState: state,
+      CanFollow: canFollow,
+    }
+    output.FollowPolicy = policy
+    output.FollowerCount = if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) then
+      view.FollowerCount
+    else
+      0i64
+    end
+    output.Permissions = CommunityPermissions {
+      CanPost: view.Record.HostSiteID == repository.SiteID &&
+        viewer.Identity.BelongsTo(repository.SiteID) &&
+        access.CanPost(),
+      CanManage: managed,
+      CanManageMembers: managed,
+      CanManageManagers: managed,
+    }
+    output
   end
-  let loadedRule = storage.LoadCommunityFollowRule(ctx, repository.DB, view.Record.ID)
-  let policy = if loadedRule.IsErr() then
-    "open"
-  else
-    loadedRule.Unwrap()
-  end
-  let accepted = state == "accepted"
-  let pending = state == "pending"
-  let canFollow = viewer.Verified &&
-    !accepted &&
-    !pending &&
-    (policy == "open" ||
-      (policy == "approval" && !view.Member && !view.Manager) ||
-      (policy == "members" && (view.Member || view.Manager)))
-  output.Viewer = CommunityViewerOutput {
-    IsMember: viewer.Verified && view.Member,
-    IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI,
-    IsManager: viewer.Verified && view.Manager,
-    ManagementScope: access.Authority.Scope,
-    IsFollowing: accepted,
-    FollowState: state,
-    CanFollow: canFollow,
-  }
-  output.FollowPolicy = policy
-  output.FollowerCount = if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) then
-    view.FollowerCount
-  else
-    0i64
-  end
-  output.Permissions = CommunityPermissions {
-    CanPost: view.Record.HostSiteID == repository.SiteID &&
-      viewer.Identity.BelongsTo(repository.SiteID) &&
-      access.CanPost(),
-    CanManage: managed,
-    CanManageMembers: managed,
-    CanManageManagers: managed,
-  }
-  output
 end
 
 func BrowserPostAuthor(state: storage.PostRichState) -> AuthorOutput
@@ -193,7 +195,7 @@ func BrowserPosts(
     let hosted = access.Community.HostSiteID == repository.SiteID
     let active = !record.DeletedAt.Valid
     let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
-    var output = PostDTO(sanitizer, record)
+    var output = PostOutput.FromRecord(sanitizer, record)
     let rich = richById.Get(record.ID)
     if rich.IsNone() then
       return Err(Of("post content unavailable"))
@@ -320,20 +322,18 @@ func BrowserThread(
   parentID: String,
   mode: ThreadSortMode
 ) -> Result[Slice[PostOutput], failure.Failure]
-  let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord row.Post end)
+  let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord
+    row.Post
+  end)
   let outputs = BrowserPosts(sanitizer, ctx, repository, viewer, records)
   if outputs.IsErr() then
     return Err(outputs.UnwrapErr())
   end
-  let all = outputs.Unwrap()
-  var adjusted: Slice[PostOutput] = []
-  var index = 0
-  while index < all.Len()
-    var item = all.Get(index).Unwrap()
-    item.Depth = rows.Get(index).Unwrap().Depth
-    adjusted = adjusted.Append(item)
-    index = index + 1
-  end
+  let adjusted = outputs.Unwrap().ZipWith(rows, func(item: PostOutput, row: storage.ThreadRow) -> PostOutput
+    var updated = item
+    updated.Depth = row.Depth
+    updated
+  end)
   Ok(ThreadChildren(adjusted, parentID, mode))
 end
 
@@ -385,7 +385,7 @@ func WriteBrowserCommunity(
     WriteJSON(
       w,
       status,
-      BrowserCommunityDTO(request.Context(), repository, views.Unwrap().Get(0).Unwrap(), viewer.Unwrap())
+      CommunityOutput.FromView(request.Context(), repository, views.Unwrap().Get(0).Unwrap(), viewer.Unwrap())
     )
   end
 end
