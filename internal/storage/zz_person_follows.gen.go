@@ -42,9 +42,5 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line person_follows.mygo:84:1*/func LoadActivityKind(ctx context.Context, db *gorm.DB, uri string) Result[string, string] {
 	kind := ""
 	query := db.WithContext(ctx).Raw("SELECT kind FROM activities WHERE uri = ?", uri).Scan(&kind)
- /*line person_follows.mygo:87:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line person_follows.mygo:88:12*/		return Err[string, string]("activity unavailable")
- /*line person_follows.mygo:87:3*/	} else {
- /*line zz_person_follows.gen.go:48:1*/	}
- /*line person_follows.mygo:90:3*/	return Ok[string, string](kind)
- /*line zz_person_follows.gen.go:50:1*/}
+	return Required(query, kind, "activity unavailable")
+ /*line zz_person_follows.gen.go:46:1*/}

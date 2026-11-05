@@ -78,7 +78,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_edit.mygo:144:20*/				return Err[struct{}, string]("post content unavailable")
  /*line post_edit.mygo:143:11*/			} else {
  /*line zz_post_edit.gen.go:80:1*/			}
- /*line post_edit.mygo:141:9*/			media := PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)))
+ /*line post_edit.mygo:141:9*/			media := MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)))
  /*line post_edit.mygo:147:11*/			if MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {
  /*line post_edit.mygo:148:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]content.RichMedia, string](media))
  /*line post_edit.mygo:147:11*/			} else {

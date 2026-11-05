@@ -51,10 +51,7 @@ impl SessionRepository
       identity.ActorURI,
       now
     )
-    if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-      return Err("session issuance failed")
-    end
-    Ok(tokens)
+    return Required(query, tokens, "session issuance failed")
   end
   func Resolve(
     self: SessionRepository,

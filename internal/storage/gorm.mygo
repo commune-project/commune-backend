@@ -93,3 +93,22 @@ func RunTransaction(ctx: context.Context, db: Ref[gorm.DB], work: func(Ref[gorm.
   if !completed then return Err(reason) end
   Ok(())
 end
+
+# Query helpers keep gorm state in Result form so callers compose instead of
+# inspecting the same handle twice.
+func Mutation(query: Ref[gorm.DB], reason: String) -> Result[(), String]
+  if QueryFailed(query) then
+    Err(reason)
+  else
+    Ok(())
+  end
+end
+
+# Single-row lookup where a failure and an empty result share one reason.
+func Required[T](query: Ref[gorm.DB], record: T, reason: String) -> Result[T, String]
+  if QueryFailed(query) || query.RowsAffected != 1i64 then
+    Err(reason)
+  else
+    Ok(record)
+  end
+end

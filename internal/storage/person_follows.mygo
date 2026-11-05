@@ -84,8 +84,5 @@ end
 func LoadActivityKind(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[String, String]
   let kind = ""
   let query = db.WithContext(ctx).Raw("SELECT kind FROM activities WHERE uri = ?", uri).Scan(Ref.new(kind))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("activity unavailable")
-  end
-  Ok(kind)
+  return Required(query, kind, "activity unavailable")
 end

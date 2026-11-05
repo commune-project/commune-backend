@@ -139,7 +139,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     content.DefaultSanitizer
   ).Unwrap()
   let state = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
-  let media = PostRichMedia(state).Unwrap()
+  let media = state.RichMedia().Unwrap()
   let rendered = RenderStoredPost(content.DefaultSanitizer, saved, state, false).Unwrap()
   if saved.Body != illustrated ||
     media.Len() != 1 ||
@@ -188,7 +188,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
   let afterState = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
   if after.Body != illustrated ||
     after.Version != saved.Version ||
-    PostRichMedia(afterState).Unwrap().Get(0).Unwrap().UploadID != "owned" ||
+    afterState.RichMedia().Unwrap().Get(0).Unwrap().UploadID != "owned" ||
     afterState.MentionsJSON != state.MentionsJSON then
     t.Fatal("failed edit leaked body or binding changes")
   end
@@ -222,12 +222,12 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     content.DefaultSanitizer
   ).Unwrap()
   if beforeDelete.ContentFormat != "markdown" ||
-    PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() !=
+    LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap().RichMedia().Unwrap().Len() !=
       1 then
     t.Fatal("legacy edit API cleared format/attachments")
   end
   let _ = posts.Delete(ctx, post.ID, alice, false).Unwrap()
-  if PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() !=
+  if LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap().RichMedia().Unwrap().Len() !=
     0 then
     t.Fatal("deletion left readable bindings")
   end

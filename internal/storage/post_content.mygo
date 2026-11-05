@@ -55,12 +55,14 @@ func LoadPostRichStates(
   Ok(states)
 end
 
-func PostRichMedia(state: PostRichState) -> Result[Slice[content.RichMedia], String]
-  var media: Slice[content.RichMedia] = []
-  if json.Unmarshal(state.MediaJSON as Slice[Byte], Ref.new(media)).IsErr() then
-    return Err("post content unavailable")
+impl PostRichState
+  func RichMedia(self: PostRichState) -> Result[Slice[content.RichMedia], String]
+    var media: Slice[content.RichMedia] = []
+    if json.Unmarshal(self.MediaJSON as Slice[Byte], Ref.new(media)).IsErr() then
+      return Err("post content unavailable")
+    end
+    Ok(media)
   end
-  Ok(media)
 end
 
 func RenderStoredPost(
@@ -69,7 +71,7 @@ func RenderStoredPost(
   state: PostRichState,
   strict: Bool
 ) -> Result[String, String]
-  let media = PostRichMedia(state)
+  let media = state.RichMedia()
   var mentions: Slice[content.RichMention] = []
   if media.IsErr() ||
     json.Unmarshal(state.MentionsJSON as Slice[Byte], Ref.new(mentions)).IsErr() then

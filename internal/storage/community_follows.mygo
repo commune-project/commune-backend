@@ -21,19 +21,13 @@ end
 func CommunityFollowState(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String) -> Result[String, String]
   let state = ""
   let query = db.WithContext(ctx).Raw("SELECT state FROM follows WHERE community_id = ? AND actor_uri = ?", communityID, actorURI).Scan(Ref.new(state))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("not subscribed")
-  end
-  Ok(state)
+  return Required(query, state, "not subscribed")
 end
 
 func CommunityFollowURI(ctx: context.Context, db: Ref[gorm.DB], communityID: String, actorURI: String) -> Result[String, String]
   let uri = ""
   let query = db.WithContext(ctx).Raw("SELECT follow_uri FROM follows WHERE community_id = ? AND actor_uri = ?", communityID, actorURI).Scan(Ref.new(uri))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("not subscribed")
-  end
-  Ok(uri)
+  return Required(query, uri, "not subscribed")
 end
 
 struct FollowRequestRecord

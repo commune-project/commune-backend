@@ -131,3 +131,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line gorm.mygo:94:3*/	return Ok[struct{}, string](struct {
  /*line zz_gorm.gen.go:132:1*/	}{})
 }
+ /*line gorm.mygo:99:1*/func Mutation(query *gorm.DB, reason string) Result[struct {
+}, string] {
+ /*line gorm.mygo:100:3*/	if QueryFailed(query) {
+ /*line gorm.mygo:101:5*/		return Err[struct{}, string](reason)
+ /*line gorm.mygo:100:3*/	} else {
+ /*line gorm.mygo:103:5*/		return Ok[struct{}, string](struct {
+ /*line zz_gorm.gen.go:140:1*/		}{})
+	}
+}
+ /*line gorm.mygo:108:1*/func Required[T any](query *gorm.DB, record T, reason string) Result[T, string] {
+ /*line gorm.mygo:109:3*/	if QueryFailed(query) || query.RowsAffected != int64(1) {
+ /*line gorm.mygo:110:5*/		return Err[T, string](reason)
+ /*line gorm.mygo:109:3*/	} else {
+ /*line gorm.mygo:112:5*/		return Ok[T, string](record)
+ /*line zz_gorm.gen.go:148:1*/	}
+}

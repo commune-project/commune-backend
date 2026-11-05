@@ -24,10 +24,7 @@ func EnsureContextStub(ctx: context.Context, db: Ref[gorm.DB], contextURI: Strin
   end
   let resolved = ""
   let query = db.WithContext(ctx).Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", contextURI).Scan(Ref.new(resolved))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("context creation failed")
-  end
-  Ok(resolved)
+  return Required(query, resolved, "context creation failed")
 end
 
 # Deduplicates recipients before expansion so a context authority that is also a

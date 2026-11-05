@@ -67,7 +67,11 @@ func BrowserCommunityDTO(
     "none"
   end
   let loadedRule = storage.LoadCommunityFollowRule(ctx, repository.DB, view.Record.ID)
-  let policy = if loadedRule.IsErr() then "open" else loadedRule.Unwrap() end
+  let policy = if loadedRule.IsErr() then
+    "open"
+  else
+    loadedRule.Unwrap()
+  end
   let accepted = state == "accepted"
   let pending = state == "pending"
   let canFollow = viewer.Verified &&
@@ -86,7 +90,11 @@ func BrowserCommunityDTO(
     CanFollow: canFollow,
   }
   output.FollowPolicy = policy
-  output.FollowerCount = if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) then view.FollowerCount else 0i64 end
+  output.FollowerCount = if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) then
+    view.FollowerCount
+  else
+    0i64
+  end
   output.Permissions = CommunityPermissions {
     CanPost: view.Record.HostSiteID == repository.SiteID &&
       viewer.Identity.BelongsTo(repository.SiteID) &&
@@ -138,16 +146,46 @@ func BrowserPosts(
   if views.IsErr() || stats.IsErr() || richStates.IsErr() then
     return Err("feed unavailable")
   end
+  # Index the joined rows once; the projection below is per-record.
+  let viewList = views.Unwrap()
+  let statList = stats.Unwrap()
+  let richList = richStates.Unwrap()
+  let viewsById = viewList.Fold(
+    {} as Map[String, storage.CommunityView],
+    func(acc: Map[String, storage.CommunityView], view: storage.CommunityView) -> Map[String, storage.CommunityView]
+      let _ = acc.Set(view.Record.ID, view)
+      acc
+    end
+  )
+  let statsById = statList.Fold(
+    {} as Map[String, storage.PostStats],
+    func(acc: Map[String, storage.PostStats], stat: storage.PostStats) -> Map[String, storage.PostStats]
+      let _ = acc.Set(stat.ID, stat)
+      acc
+    end
+  )
+  let richById = richList.Fold(
+    {} as Map[String, storage.PostRichState],
+    func(acc: Map[String, storage.PostRichState], state: storage.PostRichState) -> Map[String, storage.PostRichState]
+      let _ = acc.Set(state.ID, state)
+      acc
+    end
+  )
+  if viewsById.Len() != viewList.Len() ||
+    statsById.Len() != statList.Len() ||
+    richById.Len() != richList.Len() then
+    return Err("feed unavailable")
+  end
   var index: Int = 0
   while index < records.Len()
     let record = records.Get(index).Unwrap()
     index = index + 1
-    let found = views.Unwrap().Filter(func(view: storage.CommunityView) -> Bool view.Record.ID == record.CommunityID end)
-    let counts = stats.Unwrap().Filter(func(stat: storage.PostStats) -> Bool stat.ID == record.ID end)
-    if found.Len() != 1 || counts.Len() != 1 then
+    let found = viewsById.Get(record.CommunityID)
+    let counts = statsById.Get(record.ID)
+    if found.IsNone() || counts.IsNone() then
       return Err("feed unavailable")
     end
-    let access = repository.Access(found.Get(0).Unwrap(), viewer)
+    let access = repository.Access(found.Unwrap(), viewer)
     if !access.CanRead() then
       return Err("not found")
     end
@@ -155,28 +193,25 @@ func BrowserPosts(
     let active = !record.DeletedAt.Valid
     let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
     var output = PostDTO(sanitizer, record)
-    let rich = richStates.Unwrap().Filter(func(state: storage.PostRichState) -> Bool
-      state.ID == record.ID
-    end)
-    if rich.Len() != 1 then
+    let rich = richById.Get(record.ID)
+    if rich.IsNone() then
       return Err("post content unavailable")
     end
-    output.Author = BrowserPostAuthor(rich.Get(0).Unwrap())
-    let rendered = storage.RenderStoredPost(sanitizer, record, rich.Get(0).Unwrap(), false)
-    let media = storage.PostRichMedia(rich.Get(0).Unwrap())
+    let richState = rich.Unwrap()
+    output.Author = BrowserPostAuthor(richState)
+    let rendered = storage.RenderStoredPost(sanitizer, record, richState, false)
+    let media = richState.RichMedia()
     if rendered.IsErr() || media.IsErr() then
       return Err("post content unavailable")
     end
     output.BodyHTML = rendered.Unwrap()
-    output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String
-      item.UploadID
-    end)
+    output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String item.UploadID end)
     let attachments = BrowserPostMedia(sanitizer, record, media.Unwrap(), access.Community.ReadPolicy == "members", cached, output)
     if attachments.IsErr() then
       return Err(attachments.UnwrapErr())
     end
     output = attachments.Unwrap()
-    let stat = counts.Get(0).Unwrap()
+    let stat = counts.Unwrap()
     output.Score = stat.Score
     output.Upvotes = stat.Upvotes
     output.Downvotes = stat.Downvotes

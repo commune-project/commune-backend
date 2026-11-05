@@ -35,10 +35,7 @@ func CommunityActorURI(
     "SELECT coalesce(actor_uri,'') FROM communities WHERE id = ?",
     communityID
   ).Scan(Ref.new(uri))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("community unavailable")
-  end
-  Ok(uri)
+  return Required(query, uri, "community unavailable")
 end
 
 func PostCommunityID(
@@ -48,8 +45,5 @@ func PostCommunityID(
 ) -> Result[String, String]
   let community = ""
   let query = db.WithContext(ctx).Raw("SELECT community_id FROM posts WHERE id = ?", postID).Scan(Ref.new(community))
-  if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("post unavailable")
-  end
-  Ok(community)
+  return Required(query, community, "post unavailable")
 end

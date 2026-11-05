@@ -16,79 +16,75 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line protected_delivery.mygo:13:1*/func CommunityReadPolicy(ctx context.Context, db *gorm.DB, communityID string) Result[string, string] {
 	policy := ""
 	query := db.WithContext(ctx).Raw("SELECT read_policy FROM communities WHERE id = ?", communityID).Scan(&policy)
- /*line protected_delivery.mygo:16:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line protected_delivery.mygo:17:12*/		return Err[string, string]("community unavailable")
- /*line protected_delivery.mygo:16:3*/	} else {
- /*line zz_protected_delivery.gen.go:22:1*/	}
- /*line protected_delivery.mygo:19:3*/	return Ok[string, string](policy)
- /*line zz_protected_delivery.gen.go:24:1*/}
- /*line protected_delivery.mygo:22:1*/func ProtectedMembers(ctx context.Context, db *gorm.DB, communityID string) Result[[]string, string] {
+	return Required(query, policy, "community unavailable")
+ /*line zz_protected_delivery.gen.go:20:1*/}
+ /*line protected_delivery.mygo:19:1*/func ProtectedMembers(ctx context.Context, db *gorm.DB, communityID string) Result[[]string, string] {
 	var members []string = []string{}
 	query := db.WithContext(ctx).Table("community_members").Select("actor_uri").Where("community_id = ? AND revoked_at IS NULL", communityID).Order("actor_uri").Find(&members)
- /*line protected_delivery.mygo:25:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line protected_delivery.mygo:26:12*/		return Err[[]string, string]("recipient expansion failed")
- /*line protected_delivery.mygo:25:3*/	} else {
- /*line zz_protected_delivery.gen.go:31:1*/	}
- /*line protected_delivery.mygo:28:3*/	return Ok[[]string, string](members)
- /*line zz_protected_delivery.gen.go:33:1*/}
- /*line protected_delivery.mygo:35:1*/func PlanRestrictedDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, communityID string) Result[PlanResult, string] {
+ /*line protected_delivery.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
+ /*line protected_delivery.mygo:23:12*/		return Err[[]string, string]("recipient expansion failed")
+ /*line protected_delivery.mygo:22:3*/	} else {
+ /*line zz_protected_delivery.gen.go:27:1*/	}
+ /*line protected_delivery.mygo:25:3*/	return Ok[[]string, string](members)
+ /*line zz_protected_delivery.gen.go:29:1*/}
+ /*line protected_delivery.mygo:32:1*/func PlanRestrictedDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, communityID string) Result[PlanResult, string] {
 	excluded := IsLocalOnlyActivity(ctx, db, activityURI)
- /*line protected_delivery.mygo:37:3*/	if MygoIN6ResultM5IsErr[bool, string](excluded) {
- /*line protected_delivery.mygo:38:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[bool, string](excluded))
+ /*line protected_delivery.mygo:34:3*/	if MygoIN6ResultM5IsErr[bool, string](excluded) {
+ /*line protected_delivery.mygo:35:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[bool, string](excluded))
+ /*line protected_delivery.mygo:34:3*/	} else {
+ /*line zz_protected_delivery.gen.go:35:1*/	}
+ /*line protected_delivery.mygo:37:3*/	if MygoIN6ResultM6Unwrap[bool, string](excluded) {
+ /*line protected_delivery.mygo:38:12*/		return Ok[PlanResult, string](PlanResult{Receipts: 0, Jobs: 0})
  /*line protected_delivery.mygo:37:3*/	} else {
  /*line zz_protected_delivery.gen.go:39:1*/	}
- /*line protected_delivery.mygo:40:3*/	if MygoIN6ResultM6Unwrap[bool, string](excluded) {
- /*line protected_delivery.mygo:41:12*/		return Ok[PlanResult, string](PlanResult{Receipts: 0, Jobs: 0})
- /*line protected_delivery.mygo:40:3*/	} else {
- /*line zz_protected_delivery.gen.go:43:1*/	}
- /*line protected_delivery.mygo:35:1*/	members := ProtectedMembers(ctx, db, communityID)
- /*line protected_delivery.mygo:44:3*/	if MygoIN6ResultM5IsErr[[]string, string](members) {
- /*line protected_delivery.mygo:45:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[[]string, string](members))
- /*line protected_delivery.mygo:44:3*/	} else {
- /*line zz_protected_delivery.gen.go:48:1*/	}
- /*line protected_delivery.mygo:35:1*/	receipts := int64(0)
+ /*line protected_delivery.mygo:32:1*/	members := ProtectedMembers(ctx, db, communityID)
+ /*line protected_delivery.mygo:41:3*/	if MygoIN6ResultM5IsErr[[]string, string](members) {
+ /*line protected_delivery.mygo:42:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[[]string, string](members))
+ /*line protected_delivery.mygo:41:3*/	} else {
+ /*line zz_protected_delivery.gen.go:44:1*/	}
+ /*line protected_delivery.mygo:32:1*/	receipts := int64(0)
 	jobs := int64(0)
 	failed := false
- /*line protected_delivery.mygo:50:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]string, string](members), func(member string) {
- /*line protected_delivery.mygo:50:25*/		actor := LoadActor(ctx, db, member)
- /*line protected_delivery.mygo:52:5*/		if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) || MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
+ /*line protected_delivery.mygo:47:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]string, string](members), func(member string) {
+ /*line protected_delivery.mygo:47:25*/		actor := LoadActor(ctx, db, member)
+ /*line protected_delivery.mygo:49:5*/		if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) || MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
 			failed = true
 			return
 		} else {
- /*line zz_protected_delivery.gen.go:58:1*/		}
- /*line protected_delivery.mygo:50:25*/		record := MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor))
- /*line protected_delivery.mygo:57:5*/		if record.LocalSiteID.Valid {
+ /*line zz_protected_delivery.gen.go:54:1*/		}
+ /*line protected_delivery.mygo:47:25*/		record := MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor))
+ /*line protected_delivery.mygo:54:5*/		if record.LocalSiteID.Valid {
 			inserted := db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, record.LocalSiteID.String, member)
- /*line protected_delivery.mygo:59:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
+ /*line protected_delivery.mygo:56:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
 				failed = true
 			} else {
 				receipts = receipts + inserted.RowsAffected
- /*line zz_protected_delivery.gen.go:66:1*/			}
- /*line protected_delivery.mygo:57:5*/			return
+ /*line zz_protected_delivery.gen.go:62:1*/			}
+ /*line protected_delivery.mygo:54:5*/			return
 		} else {
- /*line zz_protected_delivery.gen.go:69:1*/		}
- /*line protected_delivery.mygo:50:25*/		capable := PeerSupportsProtectedReads(ctx, db, member)
- /*line protected_delivery.mygo:67:5*/		if MygoIN6ResultM5IsErr[bool, string](capable) {
+ /*line zz_protected_delivery.gen.go:65:1*/		}
+ /*line protected_delivery.mygo:47:25*/		capable := PeerSupportsProtectedReads(ctx, db, member)
+ /*line protected_delivery.mygo:64:5*/		if MygoIN6ResultM5IsErr[bool, string](capable) {
 			failed = true
 			return
 		} else {
- /*line zz_protected_delivery.gen.go:75:1*/		}
- /*line protected_delivery.mygo:71:5*/		if !MygoIN6ResultM6Unwrap[bool, string](capable) {
+ /*line zz_protected_delivery.gen.go:71:1*/		}
+ /*line protected_delivery.mygo:68:5*/		if !MygoIN6ResultM6Unwrap[bool, string](capable) {
 			return
 		} else {
- /*line zz_protected_delivery.gen.go:79:1*/		}
- /*line protected_delivery.mygo:50:25*/		queued := EnqueueDelivery(ctx, db, activityURI, signingActorURI, member, member+"/inbox", communityID)
- /*line protected_delivery.mygo:75:5*/		if MygoIN6ResultM5IsErr[int64, string](queued) {
+ /*line zz_protected_delivery.gen.go:75:1*/		}
+ /*line protected_delivery.mygo:47:25*/		queued := EnqueueDelivery(ctx, db, activityURI, signingActorURI, member, member+"/inbox", communityID)
+ /*line protected_delivery.mygo:72:5*/		if MygoIN6ResultM5IsErr[int64, string](queued) {
 			failed = true
 			return
 		} else {
 			jobs = jobs + MygoIN6ResultM6Unwrap[int64, string](queued)
 			return
- /*line zz_protected_delivery.gen.go:87:1*/		}
+ /*line zz_protected_delivery.gen.go:83:1*/		}
 	})
- /*line protected_delivery.mygo:81:3*/	if failed {
- /*line protected_delivery.mygo:82:12*/		return Err[PlanResult, string]("recipient expansion failed")
- /*line protected_delivery.mygo:81:3*/	} else {
- /*line zz_protected_delivery.gen.go:92:1*/	}
- /*line protected_delivery.mygo:84:3*/	return Ok[PlanResult, string](PlanResult{Receipts: receipts, Jobs: jobs})
- /*line zz_protected_delivery.gen.go:94:1*/}
+ /*line protected_delivery.mygo:78:3*/	if failed {
+ /*line protected_delivery.mygo:79:12*/		return Err[PlanResult, string]("recipient expansion failed")
+ /*line protected_delivery.mygo:78:3*/	} else {
+ /*line zz_protected_delivery.gen.go:88:1*/	}
+ /*line protected_delivery.mygo:81:3*/	return Ok[PlanResult, string](PlanResult{Receipts: receipts, Jobs: jobs})
+ /*line zz_protected_delivery.gen.go:90:1*/}

@@ -143,7 +143,7 @@ impl PostRepository
           if states.IsErr() || states.Unwrap().Len() != 1 then
             return Err("post content unavailable")
           end
-          let media = PostRichMedia(states.Unwrap().Get(0).Unwrap())
+          let media = states.Unwrap().Get(0).Unwrap().RichMedia()
           if media.IsErr() then
             return Err(media.UnwrapErr())
           end

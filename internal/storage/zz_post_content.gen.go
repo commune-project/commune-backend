@@ -49,26 +49,26 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_post_content.gen.go:49:1*/	}
  /*line post_content.mygo:55:3*/	return Ok[[]PostRichState, string](states)
  /*line zz_post_content.gen.go:51:1*/}
- /*line post_content.mygo:58:1*/func PostRichMedia(state PostRichState) Result[[]content.RichMedia, string] {
+ /*line post_content.mygo:58:1*/func MygoIN13PostRichStateM9RichMedia(self PostRichState) Result[[]content.RichMedia, string] {
 	var media []content.RichMedia = []content.RichMedia{}
- /*line post_content.mygo:60:6*/	var __mygo_expr_1 Result[struct{}, error]
-	__mygo_expr_0 := json.Unmarshal([]byte(state.MediaJSON), &media)
+ /*line post_content.mygo:61:8*/	var __mygo_expr_1 Result[struct{}, error]
+	__mygo_expr_0 := json.Unmarshal([]byte(self.MediaJSON), &media)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_post_content.gen.go:60:1*/		}{})
 	}
- /*line post_content.mygo:60:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line post_content.mygo:61:12*/		return Err[[]content.RichMedia, string]("post content unavailable")
- /*line post_content.mygo:60:3*/	} else {
+ /*line post_content.mygo:61:5*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line post_content.mygo:62:14*/		return Err[[]content.RichMedia, string]("post content unavailable")
+ /*line post_content.mygo:61:5*/	} else {
  /*line zz_post_content.gen.go:65:1*/	}
- /*line post_content.mygo:63:3*/	return Ok[[]content.RichMedia, string](media)
+ /*line post_content.mygo:64:5*/	return Ok[[]content.RichMedia, string](media)
  /*line zz_post_content.gen.go:67:1*/}
- /*line post_content.mygo:66:1*/func RenderStoredPost(sanitizer content.Sanitizer, post PostRecord, state PostRichState, strict bool) Result[string, string] {
-	media := PostRichMedia(state)
+ /*line post_content.mygo:68:1*/func RenderStoredPost(sanitizer content.Sanitizer, post PostRecord, state PostRichState, strict bool) Result[string, string] {
+	media := MygoIN13PostRichStateM9RichMedia(state)
 	var mentions []content.RichMention = []content.RichMention{}
- /*line post_content.mygo:75:5*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line post_content.mygo:77:5*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal([]byte(state.MentionsJSON), &mentions)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -76,37 +76,37 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_post_content.gen.go:77:1*/		}{})
 	}
- /*line post_content.mygo:74:3*/	if MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line post_content.mygo:76:12*/		return Err[string, string]("post content unavailable")
- /*line post_content.mygo:74:3*/	} else {
+ /*line post_content.mygo:76:3*/	if MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line post_content.mygo:78:12*/		return Err[string, string]("post content unavailable")
+ /*line post_content.mygo:76:3*/	} else {
  /*line zz_post_content.gen.go:82:1*/	}
- /*line post_content.mygo:81:5*/	var __mygo_expr_2 string
+ /*line post_content.mygo:83:5*/	var __mygo_expr_2 string
 	if post.ContentFormat == "" {
 		__mygo_expr_2 = "legacy"
 	} else {
 		__mygo_expr_2 = post.ContentFormat
  /*line zz_post_content.gen.go:88:1*/	}
- /*line post_content.mygo:78:3*/	return content.RenderPostRich(sanitizer, post.Body, __mygo_expr_2, mentions, state.Origin, MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), strict)
+ /*line post_content.mygo:80:3*/	return content.RenderPostRich(sanitizer, post.Body, __mygo_expr_2, mentions, state.Origin, MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), strict)
  /*line zz_post_content.gen.go:90:1*/}
- /*line post_content.mygo:95:1*/func SetPostMentionsTx(ctx context.Context, tx *gorm.DB, siteID string, post PostRecord, resolved []ResolvedPostMention) Result[struct {
+ /*line post_content.mygo:97:1*/func SetPostMentionsTx(ctx context.Context, tx *gorm.DB, siteID string, post PostRecord, resolved []ResolvedPostMention) Result[struct {
 }, string] {
 	parsed := content.ExtractMentionCandidates(post.Body, post.ContentFormat)
- /*line post_content.mygo:103:3*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](parsed) {
- /*line post_content.mygo:104:12*/		return Err[struct{}, string]("invalid post input")
- /*line post_content.mygo:103:3*/	} else {
+ /*line post_content.mygo:105:3*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](parsed) {
+ /*line post_content.mygo:106:12*/		return Err[struct{}, string]("invalid post input")
+ /*line post_content.mygo:105:3*/	} else {
  /*line zz_post_content.gen.go:97:1*/	}
- /*line post_content.mygo:95:1*/	repository := CommunityRepository{DB: tx, SiteID: siteID}
+ /*line post_content.mygo:97:1*/	repository := CommunityRepository{DB: tx, SiteID: siteID}
 	loaded := MygoIN19CommunityRepositoryM4Load(repository, ctx, post.CommunityID, false)
- /*line post_content.mygo:108:3*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line post_content.mygo:109:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line post_content.mygo:108:3*/	} else {
+ /*line post_content.mygo:110:3*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
+ /*line post_content.mygo:111:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
+ /*line post_content.mygo:110:3*/	} else {
  /*line zz_post_content.gen.go:103:1*/	}
- /*line post_content.mygo:95:1*/	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded)
+ /*line post_content.mygo:97:1*/	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded)
 	var next []content.RichMention = []content.RichMention{}
 	var seen []string = []string{}
 	index := 0
- /*line post_content.mygo:115:9*/	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed)) {
- /*line post_content.mygo:95:1*/		candidate := MygoIN6OptionM6Unwrap[content.MentionCandidate](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed), index))
+ /*line post_content.mygo:117:9*/	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed)) {
+ /*line post_content.mygo:97:1*/		candidate := MygoIN6OptionM6Unwrap[content.MentionCandidate](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed), index))
 		index = index + 1
 		uri := ""
 		inbox := ""
@@ -116,247 +116,247 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
 			__mygo_expr_0 = QueryExists(tx.WithContext(ctx).Table("site_authorities").Where("site_id=? AND authority=?", siteID, candidate.Domain))
  /*line zz_post_content.gen.go:118:1*/		}
- /*line post_content.mygo:95:1*/		localDomain := __mygo_expr_0
+ /*line post_content.mygo:97:1*/		localDomain := __mygo_expr_0
 		if MygoIN6ResultM5IsErr[bool, string](localDomain) {
- /*line post_content.mygo:130:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](localDomain))
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:132:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](localDomain))
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:123:1*/		}
- /*line post_content.mygo:95:1*/		if MygoIN6ResultM6Unwrap[bool, string](localDomain) {
+ /*line post_content.mygo:97:1*/		if MygoIN6ResultM6Unwrap[bool, string](localDomain) {
 			actor := LoadLocalPerson(ctx, tx, siteID, strings.ToLower(candidate.Username))
- /*line post_content.mygo:134:7*/			if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) {
- /*line post_content.mygo:135:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor))
- /*line post_content.mygo:134:7*/			} else {
+ /*line post_content.mygo:136:7*/			if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) {
+ /*line post_content.mygo:137:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor))
+ /*line post_content.mygo:136:7*/			} else {
  /*line zz_post_content.gen.go:129:1*/			}
- /*line post_content.mygo:95:1*/			if MygoIN6OptionM6IsSome[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
+ /*line post_content.mygo:97:1*/			if MygoIN6OptionM6IsSome[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
 				uri = MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)).URI
 			} else {
  /*line zz_post_content.gen.go:133:1*/			}
- /*line post_content.mygo:95:1*/		} else {
- /*line post_content.mygo:141:7*/			if community.FederationMode != "federated" {
+ /*line post_content.mygo:97:1*/		} else {
+ /*line post_content.mygo:143:7*/			if community.FederationMode != "federated" {
 				continue
 			} else {
  /*line zz_post_content.gen.go:138:1*/			}
- /*line post_content.mygo:95:1*/			matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(resolved, func(item ResolvedPostMention) bool {
- /*line post_content.mygo:145:9*/				return item.Start == candidate.Start && item.End == candidate.End && strings.EqualFold(item.Username, candidate.Username) && strings.EqualFold(item.Domain, candidate.Domain)
+ /*line post_content.mygo:97:1*/			matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(resolved, func(item ResolvedPostMention) bool {
+ /*line post_content.mygo:147:9*/				return item.Start == candidate.Start && item.End == candidate.End && strings.EqualFold(item.Username, candidate.Username) && strings.EqualFold(item.Domain, candidate.Domain)
  /*line zz_post_content.gen.go:141:1*/			})
- /*line post_content.mygo:95:1*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) > 0 {
+ /*line post_content.mygo:97:1*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) > 0 {
 				uri = MygoIN6OptionM6Unwrap[ResolvedPostMention](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).ActorURI
 				inbox = MygoIN6OptionM6Unwrap[ResolvedPostMention](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).InboxURI
 			} else {
  /*line zz_post_content.gen.go:146:1*/			}
 		}
- /*line post_content.mygo:95:1*/		if uri == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, uri, MygoIT2EqFN6StringGN6StringEM6Equals) || !CanonicalObjectURI(uri) {
+ /*line post_content.mygo:97:1*/		if uri == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, uri, MygoIT2EqFN6StringGN6StringEM6Equals) || !CanonicalObjectURI(uri) {
 			continue
 		} else {
  /*line zz_post_content.gen.go:151:1*/		}
- /*line post_content.mygo:95:1*/		policy := SiteRepository{DB: tx, SiteID: siteID}
+ /*line post_content.mygo:97:1*/		policy := SiteRepository{DB: tx, SiteID: siteID}
 		blocked := MygoIN14SiteRepositoryM9IsBlocked(policy, ctx, uri)
 		if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line post_content.mygo:161:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:163:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:157:1*/		}
- /*line post_content.mygo:95:1*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line post_content.mygo:97:1*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
 			continue
 		} else {
  /*line zz_post_content.gen.go:161:1*/		}
- /*line post_content.mygo:95:1*/		interactionBlocked := IsInteractionBlocked(ctx, tx, siteID, post.AuthorActorURI, uri)
+ /*line post_content.mygo:97:1*/		interactionBlocked := IsInteractionBlocked(ctx, tx, siteID, post.AuthorActorURI, uri)
 		if MygoIN6ResultM5IsErr[bool, string](interactionBlocked) {
- /*line post_content.mygo:168:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](interactionBlocked))
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:170:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](interactionBlocked))
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:166:1*/		}
- /*line post_content.mygo:95:1*/		if MygoIN6ResultM6Unwrap[bool, string](interactionBlocked) {
- /*line post_content.mygo:171:14*/			return Err[struct{}, string]("forbidden")
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:97:1*/		if MygoIN6ResultM6Unwrap[bool, string](interactionBlocked) {
+ /*line post_content.mygo:173:14*/			return Err[struct{}, string]("forbidden")
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:170:1*/		}
- /*line post_content.mygo:95:1*/		if candidate.Domain != "" {
+ /*line post_content.mygo:97:1*/		if candidate.Domain != "" {
 			accountBlocked := MygoIN14SiteRepositoryM9IsBlocked(policy, ctx, "https://"+candidate.Domain+"/")
- /*line post_content.mygo:175:7*/			if MygoIN6ResultM5IsErr[bool, string](accountBlocked) {
- /*line post_content.mygo:176:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](accountBlocked))
- /*line post_content.mygo:175:7*/			} else {
+ /*line post_content.mygo:177:7*/			if MygoIN6ResultM5IsErr[bool, string](accountBlocked) {
+ /*line post_content.mygo:178:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](accountBlocked))
+ /*line post_content.mygo:177:7*/			} else {
  /*line zz_post_content.gen.go:176:1*/			}
- /*line post_content.mygo:95:1*/			if MygoIN6ResultM6Unwrap[bool, string](accountBlocked) {
+ /*line post_content.mygo:97:1*/			if MygoIN6ResultM6Unwrap[bool, string](accountBlocked) {
 				continue
 			} else {
  /*line zz_post_content.gen.go:180:1*/			}
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:182:1*/		}
- /*line post_content.mygo:95:1*/		member := QueryExists(tx.WithContext(ctx).Table("community_members").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", community.ID, uri))
+ /*line post_content.mygo:97:1*/		member := QueryExists(tx.WithContext(ctx).Table("community_members").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL", community.ID, uri))
 		if MygoIN6ResultM5IsErr[bool, string](member) {
- /*line post_content.mygo:184:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:186:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:187:1*/		}
- /*line post_content.mygo:95:1*/		account := Zero[AccountRecord]()
+ /*line post_content.mygo:97:1*/		account := Zero[AccountRecord]()
 		accountQuery := tx.WithContext(ctx).Table("accounts").Where("actor_uri=?", uri).Limit(1).Find(&account)
 		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(accountQuery)) {
- /*line post_content.mygo:189:14*/			return Err[struct{}, string]("post content unavailable")
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:191:14*/			return Err[struct{}, string]("post content unavailable")
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:193:1*/		}
- /*line post_content.mygo:95:1*/		if accountQuery.RowsAffected > int64(0) && account.Disabled {
+ /*line post_content.mygo:97:1*/		if accountQuery.RowsAffected > int64(0) && account.Disabled {
 			continue
 		} else {
  /*line zz_post_content.gen.go:197:1*/		}
- /*line post_content.mygo:95:1*/		subject := auth.AccessSubject{SiteID: account.SiteID, AccountID: account.ID, ActorURI: uri, Verified: true, Member: MygoIN6ResultM6Unwrap[bool, string](member), Blocked: false}
- /*line post_content.mygo:202:19*/		__mygo_expr_1 := MygoIN15CommunityRecordM6Policy(community)
+ /*line post_content.mygo:97:1*/		subject := auth.AccessSubject{SiteID: account.SiteID, AccountID: account.ID, ActorURI: uri, Verified: true, Member: MygoIN6ResultM6Unwrap[bool, string](member), Blocked: false}
+ /*line post_content.mygo:204:19*/		__mygo_expr_1 := MygoIN15CommunityRecordM6Policy(community)
 		var __mygo_expr_2 bool
 		if _, ok := __mygo_expr_1.(Result__Err[auth.CommunityPolicy, string]); ok {
 			__mygo_expr_2 = false
  /*line zz_post_content.gen.go:203:1*/		} else {
- /*line post_content.mygo:202:19*/			if __mygo_match___mygo_expr_3, ok := __mygo_expr_1.(Result__Ok[auth.CommunityPolicy, string]); ok {
+ /*line post_content.mygo:204:19*/			if __mygo_match___mygo_expr_3, ok := __mygo_expr_1.(Result__Ok[auth.CommunityPolicy, string]); ok {
 				__mygo_expr_2 = auth.MygoIN15CommunityPolicyM7CanRead(__mygo_match___mygo_expr_3.F0, subject)
 			} else {
  /*line zz_post_content.gen.go:207:1*/			}
 		}
- /*line post_content.mygo:95:1*/		canRead := __mygo_expr_2
+ /*line post_content.mygo:97:1*/		canRead := __mygo_expr_2
 		if !canRead {
 			continue
 		} else {
  /*line zz_post_content.gen.go:213:1*/		}
- /*line post_content.mygo:95:1*/		if candidate.Domain != "" && accountQuery.RowsAffected == int64(0) {
- /*line post_content.mygo:210:7*/			if !CanonicalObjectURI(inbox) {
+ /*line post_content.mygo:97:1*/		if candidate.Domain != "" && accountQuery.RowsAffected == int64(0) {
+ /*line post_content.mygo:212:7*/			if !CanonicalObjectURI(inbox) {
 				continue
 			} else {
  /*line zz_post_content.gen.go:218:1*/			}
- /*line post_content.mygo:213:7*/			if community.ReadPolicy == "members" {
+ /*line post_content.mygo:215:7*/			if community.ReadPolicy == "members" {
 				capable := PeerSupportsProtectedReads(ctx, tx, uri)
- /*line post_content.mygo:215:9*/				if MygoIN6ResultM5IsErr[bool, string](capable) {
- /*line post_content.mygo:216:18*/					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](capable))
- /*line post_content.mygo:215:9*/				} else {
+ /*line post_content.mygo:217:9*/				if MygoIN6ResultM5IsErr[bool, string](capable) {
+ /*line post_content.mygo:218:18*/					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](capable))
+ /*line post_content.mygo:217:9*/				} else {
  /*line zz_post_content.gen.go:224:1*/				}
- /*line post_content.mygo:213:7*/				if !MygoIN6ResultM6Unwrap[bool, string](capable) {
+ /*line post_content.mygo:215:7*/				if !MygoIN6ResultM6Unwrap[bool, string](capable) {
 					continue
 				} else {
  /*line zz_post_content.gen.go:228:1*/				}
- /*line post_content.mygo:213:7*/			} else {
+ /*line post_content.mygo:215:7*/			} else {
  /*line zz_post_content.gen.go:230:1*/			}
- /*line post_content.mygo:95:1*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person',?) ON CONFLICT(uri) DO NOTHING", uri, inbox))) {
- /*line post_content.mygo:227:16*/				return Err[struct{}, string]("post content unavailable")
- /*line post_content.mygo:95:1*/			} else {
+ /*line post_content.mygo:97:1*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person',?) ON CONFLICT(uri) DO NOTHING", uri, inbox))) {
+ /*line post_content.mygo:229:16*/				return Err[struct{}, string]("post content unavailable")
+ /*line post_content.mygo:97:1*/			} else {
  /*line zz_post_content.gen.go:234:1*/			}
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:236:1*/		}
- /*line post_content.mygo:95:1*/		actor_1 := LoadActor(ctx, tx, uri)
+ /*line post_content.mygo:97:1*/		actor_1 := LoadActor(ctx, tx, uri)
 		if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor_1) {
- /*line post_content.mygo:232:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor_1))
- /*line post_content.mygo:95:1*/		} else {
+ /*line post_content.mygo:234:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor_1))
+ /*line post_content.mygo:97:1*/		} else {
  /*line zz_post_content.gen.go:241:1*/		}
- /*line post_content.mygo:95:1*/		if MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor_1)) || MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor_1)).Kind != "Person" {
+ /*line post_content.mygo:97:1*/		if MygoIN6OptionM6IsNone[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor_1)) || MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor_1)).Kind != "Person" {
 			continue
 		} else {
  /*line zz_post_content.gen.go:245:1*/		}
- /*line post_content.mygo:95:1*/		next = MygoIN5SliceM6Append(next, content.RichMention{ActorURI: uri, Start: candidate.Start, End: candidate.End})
+ /*line post_content.mygo:97:1*/		next = MygoIN5SliceM6Append(next, content.RichMention{ActorURI: uri, Start: candidate.Start, End: candidate.End})
 		seen = MygoIN5SliceM6Append(seen, uri)
  /*line zz_post_content.gen.go:248:1*/	}
- /*line post_content.mygo:95:1*/	var active []PostMentionRecord = []PostMentionRecord{}
- /*line post_content.mygo:245:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&active))) {
- /*line post_content.mygo:249:12*/		return Err[struct{}, string]("post content unavailable")
- /*line post_content.mygo:245:3*/	} else {
+ /*line post_content.mygo:97:1*/	var active []PostMentionRecord = []PostMentionRecord{}
+ /*line post_content.mygo:247:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&active))) {
+ /*line post_content.mygo:251:12*/		return Err[struct{}, string]("post content unavailable")
+ /*line post_content.mygo:247:3*/	} else {
  /*line zz_post_content.gen.go:253:1*/	}
- /*line post_content.mygo:95:1*/	failure := false
- /*line post_content.mygo:252:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(active, func(old PostMentionRecord) {
- /*line post_content.mygo:253:5*/		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, old.ActorURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
- /*line post_content.mygo:254:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE id=?", old.ID))) {
+ /*line post_content.mygo:97:1*/	failure := false
+ /*line post_content.mygo:254:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(active, func(old PostMentionRecord) {
+ /*line post_content.mygo:255:5*/		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, old.ActorURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line post_content.mygo:256:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE id=?", old.ID))) {
 				failure = true
 				return
 			} else {
- /*line post_content.mygo:254:7*/				return
+ /*line post_content.mygo:256:7*/				return
  /*line zz_post_content.gen.go:262:1*/			}
- /*line post_content.mygo:253:5*/		} else {
+ /*line post_content.mygo:255:5*/		} else {
 			return
  /*line zz_post_content.gen.go:265:1*/		}
 	})
- /*line post_content.mygo:259:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(next, func(mention content.RichMention) {
- /*line post_content.mygo:259:13*/		old_1 := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(active, func(row PostMentionRecord) bool {
- /*line post_content.mygo:260:66*/			return row.ActorURI == mention.ActorURI
+ /*line post_content.mygo:261:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(next, func(mention content.RichMention) {
+ /*line post_content.mygo:261:13*/		old_1 := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(active, func(row PostMentionRecord) bool {
+ /*line post_content.mygo:262:66*/			return row.ActorURI == mention.ActorURI
  /*line zz_post_content.gen.go:270:1*/		})
- /*line post_content.mygo:259:13*/		var __mygo_expr_4 *gorm.DB
+ /*line post_content.mygo:261:13*/		var __mygo_expr_4 *gorm.DB
 		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(old_1) == 0 {
 			__mygo_expr_4 = tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,source_start,source_end) VALUES (?,?,?,?,?)", rand.Text(), post.ID, mention.ActorURI, mention.Start, mention.End)
 		} else {
 			__mygo_expr_4 = tx.Exec("UPDATE post_mentions SET source_start=?,source_end=? WHERE id=?", mention.Start, mention.End, MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(old_1, 0)).ID)
  /*line zz_post_content.gen.go:276:1*/		}
- /*line post_content.mygo:259:13*/		changed := __mygo_expr_4
- /*line post_content.mygo:278:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(changed)) {
+ /*line post_content.mygo:261:13*/		changed := __mygo_expr_4
+ /*line post_content.mygo:280:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(changed)) {
 			failure = true
 			return
 		} else {
 			return
  /*line zz_post_content.gen.go:283:1*/		}
 	})
- /*line post_content.mygo:282:3*/	if failure {
- /*line post_content.mygo:283:12*/		return Err[struct{}, string]("post content unavailable")
- /*line post_content.mygo:282:3*/	} else {
+ /*line post_content.mygo:284:3*/	if failure {
+ /*line post_content.mygo:285:12*/		return Err[struct{}, string]("post content unavailable")
+ /*line post_content.mygo:284:3*/	} else {
  /*line zz_post_content.gen.go:288:1*/	}
- /*line post_content.mygo:285:3*/	return Ok[struct{}, string](struct {
+ /*line post_content.mygo:287:3*/	return Ok[struct{}, string](struct {
  /*line zz_post_content.gen.go:290:1*/	}{})
 }
- /*line post_content.mygo:288:1*/func ValidatePostContentTx(ctx context.Context, tx *gorm.DB, sanitizer content.Sanitizer, siteID string, identity auth.Identity, post PostRecord, ids []string, mentions []ResolvedPostMention) Result[struct {
+ /*line post_content.mygo:290:1*/func ValidatePostContentTx(ctx context.Context, tx *gorm.DB, sanitizer content.Sanitizer, siteID string, identity auth.Identity, post PostRecord, ids []string, mentions []ResolvedPostMention) Result[struct {
 }, string] {
 	media := BindPostMedia(ctx, tx, siteID, identity, post.ID, ids)
- /*line post_content.mygo:299:3*/	if MygoIN6ResultM5IsErr[[]string, string](media) {
- /*line post_content.mygo:300:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](media))
- /*line post_content.mygo:299:3*/	} else {
+ /*line post_content.mygo:301:3*/	if MygoIN6ResultM5IsErr[[]string, string](media) {
+ /*line post_content.mygo:302:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](media))
+ /*line post_content.mygo:301:3*/	} else {
  /*line zz_post_content.gen.go:298:1*/	}
- /*line post_content.mygo:288:1*/	set := SetPostMentionsTx(ctx, tx, siteID, post, mentions)
- /*line post_content.mygo:303:3*/	if MygoIN6ResultM5IsErr[struct{}, string](set) {
- /*line post_content.mygo:304:12*/		return set
- /*line post_content.mygo:303:3*/	} else {
+ /*line post_content.mygo:290:1*/	set := SetPostMentionsTx(ctx, tx, siteID, post, mentions)
+ /*line post_content.mygo:305:3*/	if MygoIN6ResultM5IsErr[struct{}, string](set) {
+ /*line post_content.mygo:306:12*/		return set
+ /*line post_content.mygo:305:3*/	} else {
  /*line zz_post_content.gen.go:303:1*/	}
- /*line post_content.mygo:288:1*/	states := LoadPostRichStates(ctx, tx, []string{post.ID})
- /*line post_content.mygo:307:3*/	if MygoIN6ResultM5IsErr[[]PostRichState, string](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRichState, string](states)) != 1 {
- /*line post_content.mygo:308:12*/		return Err[struct{}, string]("post content unavailable")
- /*line post_content.mygo:307:3*/	} else {
+ /*line post_content.mygo:290:1*/	states := LoadPostRichStates(ctx, tx, []string{post.ID})
+ /*line post_content.mygo:309:3*/	if MygoIN6ResultM5IsErr[[]PostRichState, string](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRichState, string](states)) != 1 {
+ /*line post_content.mygo:310:12*/		return Err[struct{}, string]("post content unavailable")
+ /*line post_content.mygo:309:3*/	} else {
  /*line zz_post_content.gen.go:308:1*/	}
- /*line post_content.mygo:288:1*/	rendered := RenderStoredPost(sanitizer, post, MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)), true)
- /*line post_content.mygo:311:3*/	if MygoIN6ResultM5IsErr[string, string](rendered) {
- /*line post_content.mygo:312:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](rendered))
- /*line post_content.mygo:311:3*/	} else {
+ /*line post_content.mygo:290:1*/	rendered := RenderStoredPost(sanitizer, post, MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)), true)
+ /*line post_content.mygo:313:3*/	if MygoIN6ResultM5IsErr[string, string](rendered) {
+ /*line post_content.mygo:314:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](rendered))
+ /*line post_content.mygo:313:3*/	} else {
  /*line zz_post_content.gen.go:313:1*/	}
- /*line post_content.mygo:314:3*/	return Ok[struct{}, string](struct {
+ /*line post_content.mygo:316:3*/	return Ok[struct{}, string](struct {
  /*line zz_post_content.gen.go:315:1*/	}{})
 }
- /*line post_content.mygo:320:1*/func RetainPostMentionsTx(ctx context.Context, tx *gorm.DB, previous PostRecord, source string, format string, incoming []ResolvedPostMention) Result[[]ResolvedPostMention, string] {
+ /*line post_content.mygo:322:1*/func RetainPostMentionsTx(ctx context.Context, tx *gorm.DB, previous PostRecord, source string, format string, incoming []ResolvedPostMention) Result[[]ResolvedPostMention, string] {
 	resolved := incoming
- /*line post_content.mygo:329:3*/	if previous.ContentFormat != "markdown" || format != "markdown" {
- /*line post_content.mygo:330:12*/		return Ok[[]ResolvedPostMention, string](resolved)
- /*line post_content.mygo:329:3*/	} else {
+ /*line post_content.mygo:331:3*/	if previous.ContentFormat != "markdown" || format != "markdown" {
+ /*line post_content.mygo:332:12*/		return Ok[[]ResolvedPostMention, string](resolved)
+ /*line post_content.mygo:331:3*/	} else {
  /*line zz_post_content.gen.go:322:1*/	}
- /*line post_content.mygo:320:1*/	parsed := content.ExtractMentionCandidates(source, format)
- /*line post_content.mygo:333:3*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](parsed) {
- /*line post_content.mygo:334:12*/		return Err[[]ResolvedPostMention, string]("invalid post input")
- /*line post_content.mygo:333:3*/	} else {
+ /*line post_content.mygo:322:1*/	parsed := content.ExtractMentionCandidates(source, format)
+ /*line post_content.mygo:335:3*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](parsed) {
+ /*line post_content.mygo:336:12*/		return Err[[]ResolvedPostMention, string]("invalid post input")
+ /*line post_content.mygo:335:3*/	} else {
  /*line zz_post_content.gen.go:327:1*/	}
- /*line post_content.mygo:320:1*/	var existing []PostMentionRecord = []PostMentionRecord{}
- /*line post_content.mygo:337:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", previous.ID).Find(&existing))) {
- /*line post_content.mygo:341:12*/		return Err[[]ResolvedPostMention, string]("post content unavailable")
- /*line post_content.mygo:337:3*/	} else {
+ /*line post_content.mygo:322:1*/	var existing []PostMentionRecord = []PostMentionRecord{}
+ /*line post_content.mygo:339:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", previous.ID).Find(&existing))) {
+ /*line post_content.mygo:343:12*/		return Err[[]ResolvedPostMention, string]("post content unavailable")
+ /*line post_content.mygo:339:3*/	} else {
  /*line zz_post_content.gen.go:332:1*/	}
- /*line post_content.mygo:320:1*/	index := 0
+ /*line post_content.mygo:322:1*/	index := 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed)) {
 		candidate := MygoIN6OptionM6Unwrap[content.MentionCandidate](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](parsed), index))
 		index = index + 1
 		if candidate.Domain == "" || MygoIN5SliceM3Any(resolved, func(item ResolvedPostMention) bool {
- /*line post_content.mygo:349:9*/			return item.Start == candidate.Start && item.End == candidate.End
- /*line post_content.mygo:320:1*/		}) {
+ /*line post_content.mygo:351:9*/			return item.Start == candidate.Start && item.End == candidate.End
+ /*line post_content.mygo:322:1*/		}) {
 			continue
 		} else {
  /*line zz_post_content.gen.go:342:1*/		}
- /*line post_content.mygo:320:1*/		spelling := string(MygoIN6OptionM6Unwrap[[]byte](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), candidate.Start, candidate.End)))
+ /*line post_content.mygo:322:1*/		spelling := string(MygoIN6OptionM6Unwrap[[]byte](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(source), candidate.Start, candidate.End)))
 		matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(existing, func(row PostMentionRecord) bool {
- /*line post_content.mygo:354:35*/			old := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(previous.Body), row.SourceStart, row.SourceEnd), []byte{}))
- /*line post_content.mygo:356:7*/			return strings.EqualFold(old, spelling)
+ /*line post_content.mygo:356:35*/			old := string(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM5Slice([]byte(previous.Body), row.SourceStart, row.SourceEnd), []byte{}))
+ /*line post_content.mygo:358:7*/			return strings.EqualFold(old, spelling)
  /*line zz_post_content.gen.go:347:1*/		})
- /*line post_content.mygo:320:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) == 1 {
+ /*line post_content.mygo:322:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) == 1 {
 			actor := LoadActor(ctx, tx, MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).ActorURI)
- /*line post_content.mygo:360:7*/			if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) {
- /*line post_content.mygo:361:16*/				return Err[[]ResolvedPostMention, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor))
- /*line post_content.mygo:360:7*/			} else {
+ /*line post_content.mygo:362:7*/			if MygoIN6ResultM5IsErr[Option[ActorRecord], string](actor) {
+ /*line post_content.mygo:363:16*/				return Err[[]ResolvedPostMention, string](MygoIN6ResultM9UnwrapErr[Option[ActorRecord], string](actor))
+ /*line post_content.mygo:362:7*/			} else {
  /*line zz_post_content.gen.go:353:1*/			}
- /*line post_content.mygo:320:1*/			if MygoIN6OptionM6IsSome[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
+ /*line post_content.mygo:322:1*/			if MygoIN6OptionM6IsSome[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)) {
 				resolved = MygoIN5SliceM6Append(resolved, ResolvedPostMention{ActorURI: MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor)).URI, InboxURI: MygoIN11ActorRecordM5Inbox(MygoIN6OptionM6Unwrap[ActorRecord](MygoIN6ResultM6Unwrap[Option[ActorRecord], string](actor))), Username: candidate.Username, Domain: candidate.Domain, Start: candidate.Start, End: candidate.End})
 			} else {
  /*line zz_post_content.gen.go:357:1*/			}
- /*line post_content.mygo:320:1*/		} else {
+ /*line post_content.mygo:322:1*/		} else {
  /*line zz_post_content.gen.go:359:1*/		}
 	}
- /*line post_content.mygo:375:3*/	return Ok[[]ResolvedPostMention, string](resolved)
+ /*line post_content.mygo:377:3*/	return Ok[[]ResolvedPostMention, string](resolved)
  /*line zz_post_content.gen.go:362:1*/}

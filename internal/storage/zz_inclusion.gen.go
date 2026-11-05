@@ -17,18 +17,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line inclusion.mygo:28:1*/func CommunityActorURI(ctx context.Context, db *gorm.DB, communityID string) Result[string, string] {
 	uri := ""
 	query := db.WithContext(ctx).Raw("SELECT coalesce(actor_uri,'') FROM communities WHERE id = ?", communityID).Scan(&uri)
- /*line inclusion.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line inclusion.mygo:39:12*/		return Err[string, string]("community unavailable")
- /*line inclusion.mygo:38:3*/	} else {
- /*line zz_inclusion.gen.go:23:1*/	}
- /*line inclusion.mygo:41:3*/	return Ok[string, string](uri)
- /*line zz_inclusion.gen.go:25:1*/}
- /*line inclusion.mygo:44:1*/func PostCommunityID(ctx context.Context, db *gorm.DB, postID string) Result[string, string] {
+	return Required(query, uri, "community unavailable")
+ /*line zz_inclusion.gen.go:21:1*/}
+ /*line inclusion.mygo:41:1*/func PostCommunityID(ctx context.Context, db *gorm.DB, postID string) Result[string, string] {
 	community := ""
 	query := db.WithContext(ctx).Raw("SELECT community_id FROM posts WHERE id = ?", postID).Scan(&community)
- /*line inclusion.mygo:51:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line inclusion.mygo:52:12*/		return Err[string, string]("post unavailable")
- /*line inclusion.mygo:51:3*/	} else {
- /*line zz_inclusion.gen.go:32:1*/	}
- /*line inclusion.mygo:54:3*/	return Ok[string, string](community)
- /*line zz_inclusion.gen.go:34:1*/}
+	return Required(query, community, "post unavailable")
+ /*line zz_inclusion.gen.go:26:1*/}

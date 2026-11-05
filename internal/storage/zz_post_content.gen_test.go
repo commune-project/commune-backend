@@ -73,7 +73,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	illustrated := "![图](/api/v1/media/owned) @bob"
 	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	state := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
-	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(state))
+	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(state))
 	rendered := MygoIN6ResultM6Unwrap[string, string](RenderStoredPost(content.DefaultSanitizer, saved, state, false))
  /*line post_content_test.mygo:144:3*/	if saved.Body != illustrated || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(media) != 1 || !strings.Contains(rendered, "/api/v1/media/"+MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(media, 0)).BindingID+"/preview") || strings.Contains(rendered, "src=\"/api/v1/media/owned\"") {
  /*line post_content_test.mygo:148:5*/		t.Fatal("display binding rewrite changed source or missed safe preview")
@@ -91,7 +91,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_post_content.gen_test.go:91:1*/	}
  /*line post_content_test.mygo:12:1*/	after := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID)))
 	afterState := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
- /*line post_content_test.mygo:189:3*/	if after.Body != illustrated || after.Version != saved.Version || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(afterState)), 0)).UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON {
+ /*line post_content_test.mygo:189:3*/	if after.Body != illustrated || after.Version != saved.Version || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(afterState)), 0)).UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON {
  /*line post_content_test.mygo:193:5*/		t.Fatal("failed edit leaked body or binding changes")
  /*line post_content_test.mygo:189:3*/	} else {
  /*line zz_post_content.gen_test.go:97:1*/	}
@@ -106,12 +106,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_content_test.mygo:200:3*/	} else {
  /*line zz_post_content.gen_test.go:107:1*/	}
  /*line post_content_test.mygo:12:1*/	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
- /*line post_content_test.mygo:224:3*/	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
+ /*line post_content_test.mygo:224:3*/	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
  /*line post_content_test.mygo:227:5*/		t.Fatal("legacy edit API cleared format/attachments")
  /*line post_content_test.mygo:224:3*/	} else {
  /*line zz_post_content.gen_test.go:112:1*/	}
  /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, post.ID, alice, false))
- /*line post_content_test.mygo:230:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](PostRichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 0 {
+ /*line post_content_test.mygo:230:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 0 {
  /*line post_content_test.mygo:232:5*/		t.Fatal("deletion left readable bindings")
 		return
  /*line post_content_test.mygo:230:3*/	} else {
