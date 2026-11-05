@@ -136,51 +136,51 @@ import . "github.com/mygo-lang/mygo/prelude"
 	lower := strings.ToLower(name)
  /*line participation.mygo:145:3*/	return lower != "style" && lower != "srcset" && !strings.HasPrefix(lower, "on") && attributeNamePattern.MatchString(lower)
  /*line zz_participation.gen.go:138:1*/}
- /*line participation.mygo:148:1*/func BuildRendering(rendering Rendering) Result[Rendering, string] {
+ /*line participation.mygo:151:1*/func BuildRendering(rendering Rendering) Result[Rendering, string] {
 	var flags []Result[bool, string] = []Result[bool, string]{MygoIN6ResultM6MapErr[bool](OptionalBool(rendering.Markdown.HardWraps, true), func(_ string) string {
- /*line participation.mygo:151:7*/		return "rendering.markdown.hard_wraps must be a boolean"
- /*line participation.mygo:153:5*/	}), MygoIN6ResultM6MapErr[bool](OptionalBool(rendering.Markdown.AllowRawHTML, false), func(__1 string) string {
- /*line participation.mygo:154:7*/		return "rendering.markdown.allow_raw_html must be a boolean"
- /*line participation.mygo:156:5*/	}), MygoIN6ResultM6MapErr[bool](OptionalBool(rendering.Sanitize.AllowRelativeURLs, true), func(__2 string) string {
- /*line participation.mygo:157:7*/		return "rendering.sanitize.allow_relative_urls must be a boolean"
+ /*line participation.mygo:154:7*/		return "rendering.markdown.hard_wraps must be a boolean"
+ /*line participation.mygo:156:5*/	}), MygoIN6ResultM6MapErr[bool](OptionalBool(rendering.Markdown.AllowRawHTML, false), func(__1 string) string {
+ /*line participation.mygo:157:7*/		return "rendering.markdown.allow_raw_html must be a boolean"
+ /*line participation.mygo:159:5*/	}), MygoIN6ResultM6MapErr[bool](OptionalBool(rendering.Sanitize.AllowRelativeURLs, true), func(__2 string) string {
+ /*line participation.mygo:160:7*/		return "rendering.sanitize.allow_relative_urls must be a boolean"
  /*line zz_participation.gen.go:146:1*/	})}
- /*line participation.mygo:148:1*/	parsed := functional.Sequence(flags)
- /*line participation.mygo:161:3*/	if MygoIN6ResultM5IsErr[[]bool, string](parsed) {
- /*line participation.mygo:162:12*/		return Err[Rendering, string](MygoIN6ResultM9UnwrapErr[[]bool, string](parsed))
- /*line participation.mygo:161:3*/	} else {
+ /*line participation.mygo:151:1*/	parsed := functional.Sequence(flags)
+ /*line participation.mygo:164:3*/	if MygoIN6ResultM5IsErr[[]bool, string](parsed) {
+ /*line participation.mygo:165:12*/		return Err[Rendering, string](MygoIN6ResultM9UnwrapErr[[]bool, string](parsed))
+ /*line participation.mygo:164:3*/	} else {
  /*line zz_participation.gen.go:151:1*/	}
- /*line participation.mygo:148:1*/	values := MygoIN6ResultM6Unwrap[[]bool, string](parsed)
+ /*line participation.mygo:151:1*/	values := MygoIN6ResultM6Unwrap[[]bool, string](parsed)
 	hardWraps := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(values, 0), true)
 	rawHTML := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(values, 1), false)
 	relative := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(values, 2), true)
- /*line participation.mygo:168:3*/	if !RenderingAllowlistValid(rendering.Sanitize) {
- /*line participation.mygo:169:12*/		return Err[Rendering, string]("rendering sanitize allowlist is invalid")
- /*line participation.mygo:168:3*/	} else {
+ /*line participation.mygo:171:3*/	if !RenderingAllowlistValid(rendering.Sanitize) {
+ /*line participation.mygo:172:12*/		return Err[Rendering, string]("rendering sanitize allowlist is invalid")
+ /*line participation.mygo:171:3*/	} else {
  /*line zz_participation.gen.go:159:1*/	}
- /*line participation.mygo:148:1*/	attributes := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(rendering.Sanitize.Attributes, func(item SanitizeAttribute) content.SanitizerAttribute {
- /*line participation.mygo:172:5*/		return content.SanitizerAttribute{Element: item.Element, Names: item.Names}
+ /*line participation.mygo:151:1*/	attributes := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(rendering.Sanitize.Attributes, func(item SanitizeAttribute) content.SanitizerAttribute {
+ /*line participation.mygo:175:5*/		return content.SanitizerAttribute{Element: item.Element, Names: item.Names}
  /*line zz_participation.gen.go:162:1*/	})
- /*line participation.mygo:148:1*/	output := rendering
+ /*line participation.mygo:151:1*/	output := rendering
 	output.Sanitizer = content.NewSanitizer(content.SanitizerConfig{HardWraps: hardWraps, AllowRawHTML: rawHTML, Elements: rendering.Sanitize.Elements, Attributes: attributes, URLSchemes: rendering.Sanitize.URLSchemes, AllowRelativeURLs: relative})
- /*line participation.mygo:183:3*/	return Ok[Rendering, string](output)
+ /*line participation.mygo:186:3*/	return Ok[Rendering, string](output)
  /*line zz_participation.gen.go:166:1*/}
- /*line participation.mygo:186:1*/func RenderingAllowlistValid(sanitize Sanitize) bool {
+ /*line participation.mygo:189:1*/func RenderingAllowlistValid(sanitize Sanitize) bool {
 	elementsClean := MygoIN5SliceM3All(sanitize.Elements, func(name string) bool {
- /*line participation.mygo:188:5*/		return tagNamePattern.MatchString(name) && !BlockedMarkupElement(name)
+ /*line participation.mygo:191:5*/		return tagNamePattern.MatchString(name) && !BlockedMarkupElement(name)
  /*line zz_participation.gen.go:170:1*/	})
- /*line participation.mygo:186:1*/	attributesClean := MygoIN5SliceM3All(sanitize.Attributes, func(item SanitizeAttribute) bool {
- /*line participation.mygo:191:5*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(sanitize.Elements, item.Element, MygoIT2EqFN6StringGN6StringEM6Equals) && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(item.Names) > 0 && MygoIN5SliceM3All(item.Names, func(name_1 string) bool {
- /*line participation.mygo:194:9*/			return ValidMarkupAttribute(name_1)
+ /*line participation.mygo:189:1*/	attributesClean := MygoIN5SliceM3All(sanitize.Attributes, func(item SanitizeAttribute) bool {
+ /*line participation.mygo:194:5*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(sanitize.Elements, item.Element, MygoIT2EqFN6StringGN6StringEM6Equals) && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(item.Names) > 0 && MygoIN5SliceM3All(item.Names, func(name_1 string) bool {
+ /*line participation.mygo:197:9*/			return ValidMarkupAttribute(name_1)
  /*line zz_participation.gen.go:174:1*/		})
 	})
- /*line participation.mygo:186:1*/	schemesClean := MygoIN5SliceM3All(sanitize.URLSchemes, func(scheme string) bool {
- /*line participation.mygo:197:46*/		lower := strings.ToLower(scheme)
- /*line participation.mygo:199:5*/		return lower == "http" || lower == "https" || lower == "mailto" || lower == "tel"
+ /*line participation.mygo:189:1*/	schemesClean := MygoIN5SliceM3All(sanitize.URLSchemes, func(scheme string) bool {
+ /*line participation.mygo:200:46*/		lower := strings.ToLower(scheme)
+ /*line participation.mygo:202:5*/		return lower == "http" || lower == "https" || lower == "mailto" || lower == "tel"
  /*line zz_participation.gen.go:179:1*/	})
- /*line participation.mygo:201:3*/	return elementsClean && attributesClean && schemesClean
+ /*line participation.mygo:204:3*/	return elementsClean && attributesClean && schemesClean
  /*line zz_participation.gen.go:181:1*/}
 
- /*line participation.mygo:204:1*/type ParticipationWorkers struct {
+ /*line participation.mygo:207:1*/type ParticipationWorkers struct {
 	Enabled             bool "json:\"enabled\""
 	MailWorkers         int  "json:\"mail_workers\""
 	NotificationWorkers int  "json:\"notification_workers\""
@@ -194,32 +194,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 	RetryMaxSeconds     int  "json:\"retry_max_seconds\""
  /*line zz_participation.gen.go:195:1*/}
 
- /*line participation.mygo:218:1*/func OrDefault(value int, fallback int) int {
- /*line participation.mygo:219:3*/	if value == 0 {
- /*line participation.mygo:219:22*/		return fallback
- /*line participation.mygo:219:3*/	} else {
- /*line participation.mygo:219:36*/		return value
+ /*line participation.mygo:221:1*/func OrDefault(value int, fallback int) int {
+ /*line participation.mygo:222:3*/	if value == 0 {
+ /*line participation.mygo:223:5*/		return fallback
+ /*line participation.mygo:222:3*/	} else {
+ /*line participation.mygo:225:5*/		return value
  /*line zz_participation.gen.go:202:1*/	}
 }
- /*line participation.mygo:222:1*/func RegistrationDefaults(value Registration) Registration {
- /*line participation.mygo:223:3*/	return Registration{OutboxSecret: value.OutboxSecret, OutboxSecretEnv: value.OutboxSecretEnv, TokenTTLSeconds: OrDefault(value.TokenTTLSeconds, 86400), RateWindowSeconds: OrDefault(value.RateWindowSeconds, 3600), IPLimit: OrDefault(value.IPLimit, 20), EmailLimit: OrDefault(value.EmailLimit, 3)}
+ /*line participation.mygo:229:1*/func RegistrationDefaults(value Registration) Registration {
+ /*line participation.mygo:230:3*/	return Registration{OutboxSecret: value.OutboxSecret, OutboxSecretEnv: value.OutboxSecretEnv, TokenTTLSeconds: OrDefault(value.TokenTTLSeconds, 86400), RateWindowSeconds: OrDefault(value.RateWindowSeconds, 3600), IPLimit: OrDefault(value.IPLimit, 20), EmailLimit: OrDefault(value.EmailLimit, 3)}
  /*line zz_participation.gen.go:206:1*/}
- /*line participation.mygo:233:1*/func SMTPDefaults(value SMTP) SMTP {
- /*line participation.mygo:239:14*/	var __mygo_expr_0 string
+ /*line participation.mygo:240:1*/func SMTPDefaults(value SMTP) SMTP {
+ /*line participation.mygo:246:14*/	var __mygo_expr_0 string
 	if value.TLSMode == "" {
 		__mygo_expr_0 = "starttls"
 	} else {
 		__mygo_expr_0 = value.TLSMode
  /*line zz_participation.gen.go:213:1*/	}
- /*line participation.mygo:234:3*/	return SMTP{Host: value.Host, Username: value.Username, Password: value.Password, From: value.From, TLSMode: __mygo_expr_0, Port: OrDefault(value.Port, 587), TimeoutSeconds: OrDefault(value.TimeoutSeconds, 10)}
+ /*line participation.mygo:241:3*/	return SMTP{Host: value.Host, Username: value.Username, Password: value.Password, From: value.From, TLSMode: __mygo_expr_0, Port: OrDefault(value.Port, 587), TimeoutSeconds: OrDefault(value.TimeoutSeconds, 10)}
  /*line zz_participation.gen.go:215:1*/}
- /*line participation.mygo:245:1*/func MediaDefaults(value Media) Media {
- /*line participation.mygo:246:3*/	return Media{Enabled: value.Enabled, Root: value.Root, MaxFileBytes: OrDefault(value.MaxFileBytes, 26214400), MaxImageBytes: OrDefault(value.MaxImageBytes, 10485760), MaxImagePixels: OrDefault(value.MaxImagePixels, 20000000), MaxImageDimension: OrDefault(value.MaxImageDimension, 16384), PreviewDimension: OrDefault(value.PreviewDimension, 1024), AccountQuotaBytes: OrDefault(value.AccountQuotaBytes, 1073741824), SiteQuotaBytes: OrDefault(value.SiteQuotaBytes, 10737418240), TemporaryRetentionSeconds: OrDefault(value.TemporaryRetentionSeconds, 86400), PrivateCacheRetentionSeconds: OrDefault(value.PrivateCacheRetentionSeconds, 604800), CleanupIntervalSeconds: OrDefault(value.CleanupIntervalSeconds, 3600)}
+ /*line participation.mygo:252:1*/func MediaDefaults(value Media) Media {
+ /*line participation.mygo:253:3*/	return Media{Enabled: value.Enabled, Root: value.Root, MaxFileBytes: OrDefault(value.MaxFileBytes, 26214400), MaxImageBytes: OrDefault(value.MaxImageBytes, 10485760), MaxImagePixels: OrDefault(value.MaxImagePixels, 20000000), MaxImageDimension: OrDefault(value.MaxImageDimension, 16384), PreviewDimension: OrDefault(value.PreviewDimension, 1024), AccountQuotaBytes: OrDefault(value.AccountQuotaBytes, 1073741824), SiteQuotaBytes: OrDefault(value.SiteQuotaBytes, 10737418240), TemporaryRetentionSeconds: OrDefault(value.TemporaryRetentionSeconds, 86400), PrivateCacheRetentionSeconds: OrDefault(value.PrivateCacheRetentionSeconds, 604800), CleanupIntervalSeconds: OrDefault(value.CleanupIntervalSeconds, 3600)}
  /*line zz_participation.gen.go:218:1*/}
- /*line participation.mygo:262:1*/func RenderingDefaults(value Rendering) Rendering {
- /*line participation.mygo:263:3*/	return Rendering{MaxSourceBytes: OrDefault(value.MaxSourceBytes, 1048576), MaxDisplayNameLength: OrDefault(value.MaxDisplayNameLength, 100), MaxBiographyLength: OrDefault(value.MaxBiographyLength, 5000), MaxMentions: OrDefault(value.MaxMentions, 20), MaxRemoteDiscoveries: OrDefault(value.MaxRemoteDiscoveries, 10), MentionTimeoutSeconds: OrDefault(value.MentionTimeoutSeconds, 10), Markdown: value.Markdown, Sanitize: SanitizeDefaults(value.Sanitize), Sanitizer: value.Sanitizer}
+ /*line participation.mygo:269:1*/func RenderingDefaults(value Rendering) Rendering {
+ /*line participation.mygo:270:3*/	return Rendering{MaxSourceBytes: OrDefault(value.MaxSourceBytes, 1048576), MaxDisplayNameLength: OrDefault(value.MaxDisplayNameLength, 100), MaxBiographyLength: OrDefault(value.MaxBiographyLength, 5000), MaxMentions: OrDefault(value.MaxMentions, 20), MaxRemoteDiscoveries: OrDefault(value.MaxRemoteDiscoveries, 10), MentionTimeoutSeconds: OrDefault(value.MentionTimeoutSeconds, 10), Markdown: value.Markdown, Sanitize: SanitizeDefaults(value.Sanitize), Sanitizer: value.Sanitizer}
  /*line zz_participation.gen.go:221:1*/}
- /*line participation.mygo:276:1*/func SanitizeDefaults(value Sanitize) Sanitize {
+ /*line participation.mygo:283:1*/func SanitizeDefaults(value Sanitize) Sanitize {
 	defaults := content.DefaultSanitizerConfig
 	var __mygo_expr_0 []string
 	if OptionalSliceMissing(value.Elements) {
@@ -227,230 +227,230 @@ import . "github.com/mygo-lang/mygo/prelude"
 	} else {
 		__mygo_expr_0 = value.Elements
  /*line zz_participation.gen.go:229:1*/	}
- /*line participation.mygo:276:1*/	elements := __mygo_expr_0
+ /*line participation.mygo:283:1*/	elements := __mygo_expr_0
 	var __mygo_expr_1 []SanitizeAttribute
 	if OptionalSliceMissing(value.Attributes) {
 		__mygo_expr_1 = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(defaults.Attributes, func(item content.SanitizerAttribute) SanitizeAttribute {
- /*line participation.mygo:281:7*/			return SanitizeAttribute{Element: item.Element, Names: item.Names}
+ /*line participation.mygo:292:7*/			return SanitizeAttribute{Element: item.Element, Names: item.Names}
  /*line zz_participation.gen.go:235:1*/		})
- /*line participation.mygo:276:1*/	} else {
+ /*line participation.mygo:283:1*/	} else {
 		__mygo_expr_1 = value.Attributes
  /*line zz_participation.gen.go:238:1*/	}
- /*line participation.mygo:276:1*/	attributes := __mygo_expr_1
+ /*line participation.mygo:283:1*/	attributes := __mygo_expr_1
 	var __mygo_expr_2 []string
 	if OptionalSliceMissing(value.URLSchemes) {
 		__mygo_expr_2 = defaults.URLSchemes
 	} else {
 		__mygo_expr_2 = value.URLSchemes
  /*line zz_participation.gen.go:245:1*/	}
- /*line participation.mygo:276:1*/	schemes := __mygo_expr_2
- /*line participation.mygo:287:3*/	return Sanitize{Elements: elements, Attributes: attributes, URLSchemes: schemes, AllowRelativeURLs: value.AllowRelativeURLs}
+ /*line participation.mygo:283:1*/	schemes := __mygo_expr_2
+ /*line participation.mygo:302:3*/	return Sanitize{Elements: elements, Attributes: attributes, URLSchemes: schemes, AllowRelativeURLs: value.AllowRelativeURLs}
  /*line zz_participation.gen.go:248:1*/}
- /*line participation.mygo:295:1*/func WorkerDefaults(value ParticipationWorkers) ParticipationWorkers {
- /*line participation.mygo:296:3*/	return ParticipationWorkers{Enabled: value.Enabled, MailWorkers: OrDefault(value.MailWorkers, 1), NotificationWorkers: OrDefault(value.NotificationWorkers, 1), MediaWorkers: OrDefault(value.MediaWorkers, 1), ActorWorkers: OrDefault(value.ActorWorkers, 1), BatchSize: OrDefault(value.BatchSize, 100), PollIntervalSeconds: OrDefault(value.PollIntervalSeconds, 5), LeaseSeconds: OrDefault(value.LeaseSeconds, 60), MaxAttempts: OrDefault(value.MaxAttempts, 8), RetryBaseSeconds: OrDefault(value.RetryBaseSeconds, 30), RetryMaxSeconds: OrDefault(value.RetryMaxSeconds, 3600)}
+ /*line participation.mygo:310:1*/func WorkerDefaults(value ParticipationWorkers) ParticipationWorkers {
+ /*line participation.mygo:311:3*/	return ParticipationWorkers{Enabled: value.Enabled, MailWorkers: OrDefault(value.MailWorkers, 1), NotificationWorkers: OrDefault(value.NotificationWorkers, 1), MediaWorkers: OrDefault(value.MediaWorkers, 1), ActorWorkers: OrDefault(value.ActorWorkers, 1), BatchSize: OrDefault(value.BatchSize, 100), PollIntervalSeconds: OrDefault(value.PollIntervalSeconds, 5), LeaseSeconds: OrDefault(value.LeaseSeconds, 60), MaxAttempts: OrDefault(value.MaxAttempts, 8), RetryBaseSeconds: OrDefault(value.RetryBaseSeconds, 30), RetryMaxSeconds: OrDefault(value.RetryMaxSeconds, 3600)}
  /*line zz_participation.gen.go:251:1*/}
- /*line participation.mygo:311:1*/func ParticipationDefaults(input Input) Input {
- /*line participation.mygo:312:3*/	return Input{Registration: RegistrationDefaults(input.Registration), SMTP: SMTPDefaults(input.SMTP), Media: MediaDefaults(input.Media), Rendering: RenderingDefaults(input.Rendering), ParticipationWorkers: WorkerDefaults(input.ParticipationWorkers), Sites: input.Sites, DatabaseURL: input.DatabaseURL, TrustedProxies: input.TrustedProxies, Runtime: input.Runtime, Federation: input.Federation}
+ /*line participation.mygo:326:1*/func ParticipationDefaults(input Input) Input {
+ /*line participation.mygo:327:3*/	return Input{Registration: RegistrationDefaults(input.Registration), SMTP: SMTPDefaults(input.SMTP), Media: MediaDefaults(input.Media), Rendering: RenderingDefaults(input.Rendering), ParticipationWorkers: WorkerDefaults(input.ParticipationWorkers), Sites: input.Sites, DatabaseURL: input.DatabaseURL, TrustedProxies: input.TrustedProxies, Runtime: input.Runtime, Federation: input.Federation}
  /*line zz_participation.gen.go:254:1*/}
- /*line participation.mygo:326:1*/func ValidateParticipation(input Input) Result[struct {
+ /*line participation.mygo:341:1*/func ValidateParticipation(input Input) Result[struct {
 }, string] {
- /*line participation.mygo:327:3*/	if input.Registration.TokenTTLSeconds < 60 || input.Registration.TokenTTLSeconds > 604800 {
- /*line participation.mygo:328:12*/		return Err[struct{}, string]("registration.token_ttl_seconds is out of range")
- /*line participation.mygo:327:3*/	} else {
- /*line zz_participation.gen.go:260:1*/	}
- /*line participation.mygo:330:3*/	if input.Registration.RateWindowSeconds < 60 || input.Registration.RateWindowSeconds > 86400 {
- /*line participation.mygo:331:12*/		return Err[struct{}, string]("registration.rate_window_seconds is out of range")
- /*line participation.mygo:330:3*/	} else {
- /*line zz_participation.gen.go:264:1*/	}
- /*line participation.mygo:333:3*/	if input.Registration.IPLimit < 1 || input.Registration.IPLimit > 10000 {
- /*line participation.mygo:334:12*/		return Err[struct{}, string]("registration.ip_limit is out of range")
- /*line participation.mygo:333:3*/	} else {
- /*line zz_participation.gen.go:268:1*/	}
- /*line participation.mygo:336:3*/	if input.Registration.EmailLimit < 1 || input.Registration.EmailLimit > 100 {
- /*line participation.mygo:337:12*/		return Err[struct{}, string]("registration.email_limit is out of range")
- /*line participation.mygo:336:3*/	} else {
- /*line zz_participation.gen.go:272:1*/	}
- /*line participation.mygo:339:3*/	if input.SMTP.Port < 1 || input.SMTP.Port > 65535 {
- /*line participation.mygo:340:12*/		return Err[struct{}, string]("smtp.port is out of range")
- /*line participation.mygo:339:3*/	} else {
- /*line zz_participation.gen.go:276:1*/	}
- /*line participation.mygo:342:3*/	if input.SMTP.TimeoutSeconds < 1 || input.SMTP.TimeoutSeconds > 60 {
- /*line participation.mygo:343:12*/		return Err[struct{}, string]("smtp.timeout_seconds is out of range")
+ /*line participation.mygo:342:3*/	if input.Registration.TokenTTLSeconds < 60 || input.Registration.TokenTTLSeconds > 604800 {
+ /*line participation.mygo:343:12*/		return Err[struct{}, string]("registration.token_ttl_seconds is out of range")
  /*line participation.mygo:342:3*/	} else {
- /*line zz_participation.gen.go:280:1*/	}
- /*line participation.mygo:345:3*/	if input.Media.MaxFileBytes < 1024 || input.Media.MaxFileBytes > 1073741824 {
- /*line participation.mygo:346:12*/		return Err[struct{}, string]("media.max_file_bytes is out of range")
+ /*line zz_participation.gen.go:260:1*/	}
+ /*line participation.mygo:345:3*/	if input.Registration.RateWindowSeconds < 60 || input.Registration.RateWindowSeconds > 86400 {
+ /*line participation.mygo:346:12*/		return Err[struct{}, string]("registration.rate_window_seconds is out of range")
  /*line participation.mygo:345:3*/	} else {
- /*line zz_participation.gen.go:284:1*/	}
- /*line participation.mygo:348:3*/	if input.Media.MaxImageBytes < 1024 || input.Media.MaxImageBytes > 1073741824 {
- /*line participation.mygo:349:12*/		return Err[struct{}, string]("media.max_image_bytes is out of range")
+ /*line zz_participation.gen.go:264:1*/	}
+ /*line participation.mygo:348:3*/	if input.Registration.IPLimit < 1 || input.Registration.IPLimit > 10000 {
+ /*line participation.mygo:349:12*/		return Err[struct{}, string]("registration.ip_limit is out of range")
  /*line participation.mygo:348:3*/	} else {
- /*line zz_participation.gen.go:288:1*/	}
- /*line participation.mygo:351:3*/	if input.Media.MaxImagePixels < 1 || input.Media.MaxImagePixels > 100000000 {
- /*line participation.mygo:352:12*/		return Err[struct{}, string]("media.max_image_pixels is out of range")
+ /*line zz_participation.gen.go:268:1*/	}
+ /*line participation.mygo:351:3*/	if input.Registration.EmailLimit < 1 || input.Registration.EmailLimit > 100 {
+ /*line participation.mygo:352:12*/		return Err[struct{}, string]("registration.email_limit is out of range")
  /*line participation.mygo:351:3*/	} else {
- /*line zz_participation.gen.go:292:1*/	}
- /*line participation.mygo:354:3*/	if input.Media.MaxImageDimension < 1 || input.Media.MaxImageDimension > 65536 {
- /*line participation.mygo:355:12*/		return Err[struct{}, string]("media.max_image_dimension is out of range")
+ /*line zz_participation.gen.go:272:1*/	}
+ /*line participation.mygo:354:3*/	if input.SMTP.Port < 1 || input.SMTP.Port > 65535 {
+ /*line participation.mygo:355:12*/		return Err[struct{}, string]("smtp.port is out of range")
  /*line participation.mygo:354:3*/	} else {
- /*line zz_participation.gen.go:296:1*/	}
- /*line participation.mygo:357:3*/	if input.Media.PreviewDimension < 1 || input.Media.PreviewDimension > 4096 {
- /*line participation.mygo:358:12*/		return Err[struct{}, string]("media.preview_dimension is out of range")
+ /*line zz_participation.gen.go:276:1*/	}
+ /*line participation.mygo:357:3*/	if input.SMTP.TimeoutSeconds < 1 || input.SMTP.TimeoutSeconds > 60 {
+ /*line participation.mygo:358:12*/		return Err[struct{}, string]("smtp.timeout_seconds is out of range")
  /*line participation.mygo:357:3*/	} else {
- /*line zz_participation.gen.go:300:1*/	}
- /*line participation.mygo:360:3*/	if input.Media.AccountQuotaBytes < 1024 || input.Media.AccountQuotaBytes > 1099511627776 {
- /*line participation.mygo:361:12*/		return Err[struct{}, string]("media.account_quota_bytes is out of range")
+ /*line zz_participation.gen.go:280:1*/	}
+ /*line participation.mygo:360:3*/	if input.Media.MaxFileBytes < 1024 || input.Media.MaxFileBytes > 1073741824 {
+ /*line participation.mygo:361:12*/		return Err[struct{}, string]("media.max_file_bytes is out of range")
  /*line participation.mygo:360:3*/	} else {
- /*line zz_participation.gen.go:304:1*/	}
- /*line participation.mygo:363:3*/	if input.Media.SiteQuotaBytes < 1024 || input.Media.SiteQuotaBytes > 1099511627776 {
- /*line participation.mygo:364:12*/		return Err[struct{}, string]("media.site_quota_bytes is out of range")
+ /*line zz_participation.gen.go:284:1*/	}
+ /*line participation.mygo:363:3*/	if input.Media.MaxImageBytes < 1024 || input.Media.MaxImageBytes > 1073741824 {
+ /*line participation.mygo:364:12*/		return Err[struct{}, string]("media.max_image_bytes is out of range")
  /*line participation.mygo:363:3*/	} else {
- /*line zz_participation.gen.go:308:1*/	}
- /*line participation.mygo:366:3*/	if input.Media.TemporaryRetentionSeconds < 60 || input.Media.TemporaryRetentionSeconds > 2592000 {
- /*line participation.mygo:367:12*/		return Err[struct{}, string]("media.temporary_retention_seconds is out of range")
+ /*line zz_participation.gen.go:288:1*/	}
+ /*line participation.mygo:366:3*/	if input.Media.MaxImagePixels < 1 || input.Media.MaxImagePixels > 100000000 {
+ /*line participation.mygo:367:12*/		return Err[struct{}, string]("media.max_image_pixels is out of range")
  /*line participation.mygo:366:3*/	} else {
- /*line zz_participation.gen.go:312:1*/	}
- /*line participation.mygo:369:3*/	if input.Media.PrivateCacheRetentionSeconds < 60 || input.Media.PrivateCacheRetentionSeconds > 31536000 {
- /*line participation.mygo:370:12*/		return Err[struct{}, string]("media.private_cache_retention_seconds is out of range")
+ /*line zz_participation.gen.go:292:1*/	}
+ /*line participation.mygo:369:3*/	if input.Media.MaxImageDimension < 1 || input.Media.MaxImageDimension > 65536 {
+ /*line participation.mygo:370:12*/		return Err[struct{}, string]("media.max_image_dimension is out of range")
  /*line participation.mygo:369:3*/	} else {
- /*line zz_participation.gen.go:316:1*/	}
- /*line participation.mygo:372:3*/	if input.Media.CleanupIntervalSeconds < 1 || input.Media.CleanupIntervalSeconds > 86400 {
- /*line participation.mygo:373:12*/		return Err[struct{}, string]("media.cleanup_interval_seconds is out of range")
+ /*line zz_participation.gen.go:296:1*/	}
+ /*line participation.mygo:372:3*/	if input.Media.PreviewDimension < 1 || input.Media.PreviewDimension > 4096 {
+ /*line participation.mygo:373:12*/		return Err[struct{}, string]("media.preview_dimension is out of range")
  /*line participation.mygo:372:3*/	} else {
- /*line zz_participation.gen.go:320:1*/	}
- /*line participation.mygo:375:3*/	if input.Rendering.MaxSourceBytes < 1 || input.Rendering.MaxSourceBytes > 16777216 {
- /*line participation.mygo:376:12*/		return Err[struct{}, string]("rendering.max_source_bytes is out of range")
+ /*line zz_participation.gen.go:300:1*/	}
+ /*line participation.mygo:375:3*/	if input.Media.AccountQuotaBytes < 1024 || input.Media.AccountQuotaBytes > 1099511627776 {
+ /*line participation.mygo:376:12*/		return Err[struct{}, string]("media.account_quota_bytes is out of range")
  /*line participation.mygo:375:3*/	} else {
- /*line zz_participation.gen.go:324:1*/	}
- /*line participation.mygo:378:3*/	if input.Rendering.MaxDisplayNameLength < 1 || input.Rendering.MaxDisplayNameLength > 1000 {
- /*line participation.mygo:379:12*/		return Err[struct{}, string]("rendering.max_display_name_length is out of range")
+ /*line zz_participation.gen.go:304:1*/	}
+ /*line participation.mygo:378:3*/	if input.Media.SiteQuotaBytes < 1024 || input.Media.SiteQuotaBytes > 1099511627776 {
+ /*line participation.mygo:379:12*/		return Err[struct{}, string]("media.site_quota_bytes is out of range")
  /*line participation.mygo:378:3*/	} else {
- /*line zz_participation.gen.go:328:1*/	}
- /*line participation.mygo:381:3*/	if input.Rendering.MaxBiographyLength < 1 || input.Rendering.MaxBiographyLength > 100000 {
- /*line participation.mygo:382:12*/		return Err[struct{}, string]("rendering.max_biography_length is out of range")
+ /*line zz_participation.gen.go:308:1*/	}
+ /*line participation.mygo:381:3*/	if input.Media.TemporaryRetentionSeconds < 60 || input.Media.TemporaryRetentionSeconds > 2592000 {
+ /*line participation.mygo:383:12*/		return Err[struct{}, string]("media.temporary_retention_seconds is out of range")
  /*line participation.mygo:381:3*/	} else {
+ /*line zz_participation.gen.go:312:1*/	}
+ /*line participation.mygo:385:3*/	if input.Media.PrivateCacheRetentionSeconds < 60 || input.Media.PrivateCacheRetentionSeconds > 31536000 {
+ /*line participation.mygo:387:12*/		return Err[struct{}, string]("media.private_cache_retention_seconds is out of range")
+ /*line participation.mygo:385:3*/	} else {
+ /*line zz_participation.gen.go:316:1*/	}
+ /*line participation.mygo:389:3*/	if input.Media.CleanupIntervalSeconds < 1 || input.Media.CleanupIntervalSeconds > 86400 {
+ /*line participation.mygo:390:12*/		return Err[struct{}, string]("media.cleanup_interval_seconds is out of range")
+ /*line participation.mygo:389:3*/	} else {
+ /*line zz_participation.gen.go:320:1*/	}
+ /*line participation.mygo:392:3*/	if input.Rendering.MaxSourceBytes < 1 || input.Rendering.MaxSourceBytes > 16777216 {
+ /*line participation.mygo:393:12*/		return Err[struct{}, string]("rendering.max_source_bytes is out of range")
+ /*line participation.mygo:392:3*/	} else {
+ /*line zz_participation.gen.go:324:1*/	}
+ /*line participation.mygo:395:3*/	if input.Rendering.MaxDisplayNameLength < 1 || input.Rendering.MaxDisplayNameLength > 1000 {
+ /*line participation.mygo:396:12*/		return Err[struct{}, string]("rendering.max_display_name_length is out of range")
+ /*line participation.mygo:395:3*/	} else {
+ /*line zz_participation.gen.go:328:1*/	}
+ /*line participation.mygo:398:3*/	if input.Rendering.MaxBiographyLength < 1 || input.Rendering.MaxBiographyLength > 100000 {
+ /*line participation.mygo:399:12*/		return Err[struct{}, string]("rendering.max_biography_length is out of range")
+ /*line participation.mygo:398:3*/	} else {
  /*line zz_participation.gen.go:332:1*/	}
- /*line participation.mygo:384:3*/	if input.Rendering.MaxMentions < 1 || input.Rendering.MaxMentions > 100 {
- /*line participation.mygo:385:12*/		return Err[struct{}, string]("rendering.max_mentions is out of range")
- /*line participation.mygo:384:3*/	} else {
+ /*line participation.mygo:401:3*/	if input.Rendering.MaxMentions < 1 || input.Rendering.MaxMentions > 100 {
+ /*line participation.mygo:402:12*/		return Err[struct{}, string]("rendering.max_mentions is out of range")
+ /*line participation.mygo:401:3*/	} else {
  /*line zz_participation.gen.go:336:1*/	}
- /*line participation.mygo:387:3*/	if input.Rendering.MaxRemoteDiscoveries < 1 || input.Rendering.MaxRemoteDiscoveries > 100 {
- /*line participation.mygo:388:12*/		return Err[struct{}, string]("rendering.max_remote_discoveries is out of range")
- /*line participation.mygo:387:3*/	} else {
+ /*line participation.mygo:404:3*/	if input.Rendering.MaxRemoteDiscoveries < 1 || input.Rendering.MaxRemoteDiscoveries > 100 {
+ /*line participation.mygo:405:12*/		return Err[struct{}, string]("rendering.max_remote_discoveries is out of range")
+ /*line participation.mygo:404:3*/	} else {
  /*line zz_participation.gen.go:340:1*/	}
- /*line participation.mygo:390:3*/	if input.Rendering.MentionTimeoutSeconds < 1 || input.Rendering.MentionTimeoutSeconds > 60 {
- /*line participation.mygo:391:12*/		return Err[struct{}, string]("rendering.mention_timeout_seconds is out of range")
- /*line participation.mygo:390:3*/	} else {
+ /*line participation.mygo:407:3*/	if input.Rendering.MentionTimeoutSeconds < 1 || input.Rendering.MentionTimeoutSeconds > 60 {
+ /*line participation.mygo:408:12*/		return Err[struct{}, string]("rendering.mention_timeout_seconds is out of range")
+ /*line participation.mygo:407:3*/	} else {
  /*line zz_participation.gen.go:344:1*/	}
- /*line participation.mygo:393:3*/	if input.ParticipationWorkers.MailWorkers < 1 || input.ParticipationWorkers.MailWorkers > 32 {
- /*line participation.mygo:394:12*/		return Err[struct{}, string]("participation_workers.mail_workers is out of range")
- /*line participation.mygo:393:3*/	} else {
+ /*line participation.mygo:410:3*/	if input.ParticipationWorkers.MailWorkers < 1 || input.ParticipationWorkers.MailWorkers > 32 {
+ /*line participation.mygo:411:12*/		return Err[struct{}, string]("participation_workers.mail_workers is out of range")
+ /*line participation.mygo:410:3*/	} else {
  /*line zz_participation.gen.go:348:1*/	}
- /*line participation.mygo:396:3*/	if input.ParticipationWorkers.NotificationWorkers < 1 || input.ParticipationWorkers.NotificationWorkers > 32 {
- /*line participation.mygo:397:12*/		return Err[struct{}, string]("participation_workers.notification_workers is out of range")
- /*line participation.mygo:396:3*/	} else {
+ /*line participation.mygo:413:3*/	if input.ParticipationWorkers.NotificationWorkers < 1 || input.ParticipationWorkers.NotificationWorkers > 32 {
+ /*line participation.mygo:415:12*/		return Err[struct{}, string]("participation_workers.notification_workers is out of range")
+ /*line participation.mygo:413:3*/	} else {
  /*line zz_participation.gen.go:352:1*/	}
- /*line participation.mygo:399:3*/	if input.ParticipationWorkers.MediaWorkers < 1 || input.ParticipationWorkers.MediaWorkers > 32 {
- /*line participation.mygo:400:12*/		return Err[struct{}, string]("participation_workers.media_workers is out of range")
- /*line participation.mygo:399:3*/	} else {
- /*line zz_participation.gen.go:356:1*/	}
- /*line participation.mygo:402:3*/	if input.ParticipationWorkers.ActorWorkers < 1 || input.ParticipationWorkers.ActorWorkers > 32 {
- /*line participation.mygo:403:12*/		return Err[struct{}, string]("participation_workers.actor_workers is out of range")
- /*line participation.mygo:402:3*/	} else {
- /*line zz_participation.gen.go:360:1*/	}
- /*line participation.mygo:405:3*/	if input.ParticipationWorkers.BatchSize < 1 || input.ParticipationWorkers.BatchSize > 1000 {
- /*line participation.mygo:406:12*/		return Err[struct{}, string]("participation_workers.batch_size is out of range")
- /*line participation.mygo:405:3*/	} else {
- /*line zz_participation.gen.go:364:1*/	}
- /*line participation.mygo:408:3*/	if input.ParticipationWorkers.PollIntervalSeconds < 1 || input.ParticipationWorkers.PollIntervalSeconds > 300 {
- /*line participation.mygo:409:12*/		return Err[struct{}, string]("participation_workers.poll_interval_seconds is out of range")
- /*line participation.mygo:408:3*/	} else {
- /*line zz_participation.gen.go:368:1*/	}
- /*line participation.mygo:411:3*/	if input.ParticipationWorkers.LeaseSeconds < 1 || input.ParticipationWorkers.LeaseSeconds > 3600 {
- /*line participation.mygo:412:12*/		return Err[struct{}, string]("participation_workers.lease_seconds is out of range")
- /*line participation.mygo:411:3*/	} else {
- /*line zz_participation.gen.go:372:1*/	}
- /*line participation.mygo:414:3*/	if input.ParticipationWorkers.MaxAttempts < 1 || input.ParticipationWorkers.MaxAttempts > 100 {
- /*line participation.mygo:415:12*/		return Err[struct{}, string]("participation_workers.max_attempts is out of range")
- /*line participation.mygo:414:3*/	} else {
- /*line zz_participation.gen.go:376:1*/	}
- /*line participation.mygo:417:3*/	if input.ParticipationWorkers.RetryBaseSeconds < 1 || input.ParticipationWorkers.RetryBaseSeconds > 3600 {
- /*line participation.mygo:418:12*/		return Err[struct{}, string]("participation_workers.retry_base_seconds is out of range")
+ /*line participation.mygo:417:3*/	if input.ParticipationWorkers.MediaWorkers < 1 || input.ParticipationWorkers.MediaWorkers > 32 {
+ /*line participation.mygo:419:12*/		return Err[struct{}, string]("participation_workers.media_workers is out of range")
  /*line participation.mygo:417:3*/	} else {
+ /*line zz_participation.gen.go:356:1*/	}
+ /*line participation.mygo:421:3*/	if input.ParticipationWorkers.ActorWorkers < 1 || input.ParticipationWorkers.ActorWorkers > 32 {
+ /*line participation.mygo:423:12*/		return Err[struct{}, string]("participation_workers.actor_workers is out of range")
+ /*line participation.mygo:421:3*/	} else {
+ /*line zz_participation.gen.go:360:1*/	}
+ /*line participation.mygo:425:3*/	if input.ParticipationWorkers.BatchSize < 1 || input.ParticipationWorkers.BatchSize > 1000 {
+ /*line participation.mygo:426:12*/		return Err[struct{}, string]("participation_workers.batch_size is out of range")
+ /*line participation.mygo:425:3*/	} else {
+ /*line zz_participation.gen.go:364:1*/	}
+ /*line participation.mygo:428:3*/	if input.ParticipationWorkers.PollIntervalSeconds < 1 || input.ParticipationWorkers.PollIntervalSeconds > 300 {
+ /*line participation.mygo:430:12*/		return Err[struct{}, string]("participation_workers.poll_interval_seconds is out of range")
+ /*line participation.mygo:428:3*/	} else {
+ /*line zz_participation.gen.go:368:1*/	}
+ /*line participation.mygo:432:3*/	if input.ParticipationWorkers.LeaseSeconds < 1 || input.ParticipationWorkers.LeaseSeconds > 3600 {
+ /*line participation.mygo:434:12*/		return Err[struct{}, string]("participation_workers.lease_seconds is out of range")
+ /*line participation.mygo:432:3*/	} else {
+ /*line zz_participation.gen.go:372:1*/	}
+ /*line participation.mygo:436:3*/	if input.ParticipationWorkers.MaxAttempts < 1 || input.ParticipationWorkers.MaxAttempts > 100 {
+ /*line participation.mygo:437:12*/		return Err[struct{}, string]("participation_workers.max_attempts is out of range")
+ /*line participation.mygo:436:3*/	} else {
+ /*line zz_participation.gen.go:376:1*/	}
+ /*line participation.mygo:439:3*/	if input.ParticipationWorkers.RetryBaseSeconds < 1 || input.ParticipationWorkers.RetryBaseSeconds > 3600 {
+ /*line participation.mygo:441:12*/		return Err[struct{}, string]("participation_workers.retry_base_seconds is out of range")
+ /*line participation.mygo:439:3*/	} else {
  /*line zz_participation.gen.go:380:1*/	}
- /*line participation.mygo:420:3*/	if input.ParticipationWorkers.RetryMaxSeconds < 1 || input.ParticipationWorkers.RetryMaxSeconds > 86400 {
- /*line participation.mygo:421:12*/		return Err[struct{}, string]("participation_workers.retry_max_seconds is out of range")
- /*line participation.mygo:420:3*/	} else {
+ /*line participation.mygo:443:3*/	if input.ParticipationWorkers.RetryMaxSeconds < 1 || input.ParticipationWorkers.RetryMaxSeconds > 86400 {
+ /*line participation.mygo:445:12*/		return Err[struct{}, string]("participation_workers.retry_max_seconds is out of range")
+ /*line participation.mygo:443:3*/	} else {
  /*line zz_participation.gen.go:384:1*/	}
- /*line participation.mygo:423:3*/	if input.Media.MaxImageBytes > input.Media.MaxFileBytes || input.Media.AccountQuotaBytes < input.Media.MaxFileBytes || input.Media.SiteQuotaBytes < input.Media.AccountQuotaBytes || input.Media.PreviewDimension > input.Media.MaxImageDimension {
- /*line participation.mygo:424:12*/		return Err[struct{}, string]("media limits are inconsistent")
- /*line participation.mygo:423:3*/	} else {
+ /*line participation.mygo:447:3*/	if input.Media.MaxImageBytes > input.Media.MaxFileBytes || input.Media.AccountQuotaBytes < input.Media.MaxFileBytes || input.Media.SiteQuotaBytes < input.Media.AccountQuotaBytes || input.Media.PreviewDimension > input.Media.MaxImageDimension {
+ /*line participation.mygo:451:12*/		return Err[struct{}, string]("media limits are inconsistent")
+ /*line participation.mygo:447:3*/	} else {
  /*line zz_participation.gen.go:388:1*/	}
- /*line participation.mygo:426:3*/	if input.ParticipationWorkers.RetryBaseSeconds > input.ParticipationWorkers.RetryMaxSeconds || input.ParticipationWorkers.LeaseSeconds <= input.SMTP.TimeoutSeconds {
- /*line participation.mygo:427:12*/		return Err[struct{}, string]("worker retry or lease limits are inconsistent")
- /*line participation.mygo:426:3*/	} else {
+ /*line participation.mygo:453:3*/	if input.ParticipationWorkers.RetryBaseSeconds > input.ParticipationWorkers.RetryMaxSeconds || input.ParticipationWorkers.LeaseSeconds <= input.SMTP.TimeoutSeconds {
+ /*line participation.mygo:455:12*/		return Err[struct{}, string]("worker retry or lease limits are inconsistent")
+ /*line participation.mygo:453:3*/	} else {
  /*line zz_participation.gen.go:392:1*/	}
- /*line participation.mygo:429:3*/	if input.Media.Root != "" || input.Media.Enabled {
+ /*line participation.mygo:457:3*/	if input.Media.Root != "" || input.Media.Enabled {
 		if !filepath.IsAbs(input.Media.Root) || filepath.Clean(input.Media.Root) != input.Media.Root || input.Media.Root == "/" || strings.IndexByte(input.Media.Root, byte(0)) >= 0 {
- /*line participation.mygo:431:14*/			return Err[struct{}, string]("media root must be a clean absolute non-root path")
- /*line participation.mygo:429:3*/		} else {
+ /*line participation.mygo:462:14*/			return Err[struct{}, string]("media root must be a clean absolute non-root path")
+ /*line participation.mygo:457:3*/		} else {
  /*line zz_participation.gen.go:397:1*/		}
- /*line participation.mygo:429:3*/	} else {
+ /*line participation.mygo:457:3*/	} else {
  /*line zz_participation.gen.go:399:1*/	}
- /*line participation.mygo:434:3*/	if input.SMTP.TLSMode != "starttls" && input.SMTP.TLSMode != "tls" && input.SMTP.TLSMode != "test" {
- /*line participation.mygo:435:12*/		return Err[struct{}, string]("invalid SMTP TLS mode")
- /*line participation.mygo:434:3*/	} else {
+ /*line participation.mygo:465:3*/	if input.SMTP.TLSMode != "starttls" && input.SMTP.TLSMode != "tls" && input.SMTP.TLSMode != "test" {
+ /*line participation.mygo:468:12*/		return Err[struct{}, string]("invalid SMTP TLS mode")
+ /*line participation.mygo:465:3*/	} else {
  /*line zz_participation.gen.go:403:1*/	}
- /*line participation.mygo:437:6*/	if input.SMTP.TLSMode == "test" && (input.SMTP.Username != "" || input.SMTP.Password != "") {
- /*line participation.mygo:438:12*/		return Err[struct{}, string]("test SMTP transport cannot carry credentials")
- /*line participation.mygo:437:3*/	} else {
+ /*line participation.mygo:470:6*/	if input.SMTP.TLSMode == "test" && (input.SMTP.Username != "" || input.SMTP.Password != "") {
+ /*line participation.mygo:471:12*/		return Err[struct{}, string]("test SMTP transport cannot carry credentials")
+ /*line participation.mygo:470:3*/	} else {
  /*line zz_participation.gen.go:407:1*/	}
- /*line participation.mygo:326:1*/	enabled := false
- /*line participation.mygo:441:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(input.Sites, func(site Site) {
- /*line participation.mygo:442:5*/		if site.RegistrationEnabled {
+ /*line participation.mygo:341:1*/	enabled := false
+ /*line participation.mygo:474:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(input.Sites, func(site Site) {
+ /*line participation.mygo:475:5*/		if site.RegistrationEnabled {
 			enabled = true
 			return
 		} else {
 			return
  /*line zz_participation.gen.go:415:1*/		}
 	})
- /*line participation.mygo:446:3*/	if input.Registration.OutboxSecret != "" || enabled {
- /*line participation.mygo:447:19*/		var __mygo_expr_1 Result[[]byte, error]
+ /*line participation.mygo:479:3*/	if input.Registration.OutboxSecret != "" || enabled {
+ /*line participation.mygo:480:19*/		var __mygo_expr_1 Result[[]byte, error]
 		__mygo_expr_2, __mygo_expr_0 := base64.StdEncoding.DecodeString(input.Registration.OutboxSecret)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_participation.gen.go:424:1*/		}
- /*line participation.mygo:446:3*/		decoded := __mygo_expr_1
- /*line participation.mygo:448:5*/		if MygoIN6ResultM5IsErr[[]byte, error](decoded) {
- /*line participation.mygo:449:14*/			return Err[struct{}, string]("registration requires a base64-encoded 32-byte outbox secret")
- /*line participation.mygo:448:5*/		} else {
+ /*line participation.mygo:479:3*/		decoded := __mygo_expr_1
+ /*line participation.mygo:481:5*/		if MygoIN6ResultM5IsErr[[]byte, error](decoded) {
+ /*line participation.mygo:482:14*/			return Err[struct{}, string]("registration requires a base64-encoded 32-byte outbox secret")
+ /*line participation.mygo:481:5*/		} else {
  /*line zz_participation.gen.go:429:1*/		}
- /*line participation.mygo:446:3*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](decoded)) != 32 {
- /*line participation.mygo:452:14*/			return Err[struct{}, string]("registration requires a base64-encoded 32-byte outbox secret")
- /*line participation.mygo:446:3*/		} else {
+ /*line participation.mygo:479:3*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](decoded)) != 32 {
+ /*line participation.mygo:485:14*/			return Err[struct{}, string]("registration requires a base64-encoded 32-byte outbox secret")
+ /*line participation.mygo:479:3*/		} else {
  /*line zz_participation.gen.go:433:1*/		}
- /*line participation.mygo:446:3*/	} else {
+ /*line participation.mygo:479:3*/	} else {
  /*line zz_participation.gen.go:435:1*/	}
- /*line participation.mygo:455:6*/	if enabled {
- /*line participation.mygo:456:97*/		var __mygo_expr_4 Result[*mail.Address, error]
+ /*line participation.mygo:488:6*/	if enabled {
+ /*line participation.mygo:491:7*/		var __mygo_expr_4 Result[*mail.Address, error]
 		__mygo_expr_5, __mygo_expr_3 := mail.ParseAddress(input.SMTP.From)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[*mail.Address, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[*mail.Address, error](__mygo_expr_5)
  /*line zz_participation.gen.go:443:1*/		}
- /*line participation.mygo:456:5*/		if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(input.SMTP.Host)) || strings.Contains(input.SMTP.Host, ":") || MygoIN6ResultM5IsErr[*mail.Address, error](__mygo_expr_4) {
- /*line participation.mygo:457:14*/			return Err[struct{}, string]("registration requires an SMTP host and valid sender")
- /*line participation.mygo:456:5*/		} else {
+ /*line participation.mygo:489:5*/		if MygoIN6ResultM5IsErr[string, string](NormalizeAuthority(input.SMTP.Host)) || strings.Contains(input.SMTP.Host, ":") || MygoIN6ResultM5IsErr[*mail.Address, error](__mygo_expr_4) {
+ /*line participation.mygo:492:14*/			return Err[struct{}, string]("registration requires an SMTP host and valid sender")
+ /*line participation.mygo:489:5*/		} else {
  /*line zz_participation.gen.go:447:1*/		}
- /*line participation.mygo:459:8*/		if input.SMTP.Username == "" != (input.SMTP.Password == "") {
- /*line participation.mygo:460:14*/			return Err[struct{}, string]("SMTP username and password must be supplied together")
- /*line participation.mygo:455:3*/		} else {
+ /*line participation.mygo:494:8*/		if input.SMTP.Username == "" != (input.SMTP.Password == "") {
+ /*line participation.mygo:495:14*/			return Err[struct{}, string]("SMTP username and password must be supplied together")
+ /*line participation.mygo:488:3*/		} else {
  /*line zz_participation.gen.go:451:1*/		}
- /*line participation.mygo:455:3*/	} else {
+ /*line participation.mygo:488:3*/	} else {
  /*line zz_participation.gen.go:453:1*/	}
- /*line participation.mygo:463:3*/	return Ok[struct{}, string](struct {
+ /*line participation.mygo:498:3*/	return Ok[struct{}, string](struct {
  /*line zz_participation.gen.go:455:1*/	}{})
 }

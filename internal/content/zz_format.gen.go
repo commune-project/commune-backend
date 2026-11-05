@@ -64,7 +64,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line format.mygo:14:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:65:1*/}
  /*line format.mygo:12:1*/func MygoIN13ContentFormatM6Render(self ContentFormat) string {
- /*line format.mygo:24:5*/	var __mygo_expr_0 string
+ /*line format.mygo:23:5*/	var __mygo_expr_0 string
 	if _, ok := self.(ContentFormat__Markdown); ok {
 		__mygo_expr_0 = "markdown"
 	} else {
@@ -81,19 +81,19 @@ import . "github.com/mygo-lang/mygo/prelude"
 			}
 		}
 	}
- /*line format.mygo:24:5*/	return __mygo_expr_0
+ /*line format.mygo:23:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:85:1*/}
  /*line format.mygo:12:1*/func MygoIN13ContentFormatM10IsMarkdown(self ContentFormat) bool {
- /*line format.mygo:33:5*/	var __mygo_expr_0 bool
+ /*line format.mygo:31:5*/	var __mygo_expr_0 bool
 	if _, ok := self.(ContentFormat__Markdown); ok {
 		__mygo_expr_0 = true
 	} else {
 		__mygo_expr_0 = false
  /*line zz_format.gen.go:92:1*/	}
- /*line format.mygo:33:5*/	return __mygo_expr_0
+ /*line format.mygo:31:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:94:1*/}
  /*line format.mygo:12:1*/func MygoIN13ContentFormatM11IsPlainText(self ContentFormat) bool {
- /*line format.mygo:40:5*/	var __mygo_expr_0 bool
+ /*line format.mygo:37:5*/	var __mygo_expr_0 bool
 	if _, ok := self.(ContentFormat__Legacy); ok {
 		__mygo_expr_0 = true
 	} else {
@@ -103,31 +103,31 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_0 = false
  /*line zz_format.gen.go:104:1*/		}
 	}
- /*line format.mygo:40:5*/	return __mygo_expr_0
+ /*line format.mygo:37:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:107:1*/}
 
- /*line format.mygo:48:1*/type ObjectType interface {
+ /*line format.mygo:45:1*/type ObjectType interface {
 	isObjectType()
  /*line zz_format.gen.go:111:1*/}
- /*line format.mygo:48:1*/type ObjectType__Page struct {
+ /*line format.mygo:45:1*/type ObjectType__Page struct {
  /*line zz_format.gen.go:113:1*/}
 
- /*line format.mygo:48:1*/func (ObjectType__Page) isObjectType() {
+ /*line format.mygo:45:1*/func (ObjectType__Page) isObjectType() {
  /*line zz_format.gen.go:116:1*/}
- /*line format.mygo:48:1*/func ObjectType__Page__Ctor() ObjectType {
+ /*line format.mygo:45:1*/func ObjectType__Page__Ctor() ObjectType {
 	return ObjectType__Page{}
  /*line zz_format.gen.go:119:1*/}
 
- /*line format.mygo:48:1*/type ObjectType__Note struct {
+ /*line format.mygo:45:1*/type ObjectType__Note struct {
  /*line zz_format.gen.go:122:1*/}
 
- /*line format.mygo:48:1*/func (ObjectType__Note) isObjectType() {
+ /*line format.mygo:45:1*/func (ObjectType__Note) isObjectType() {
  /*line zz_format.gen.go:125:1*/}
- /*line format.mygo:48:1*/func ObjectType__Note__Ctor() ObjectType {
+ /*line format.mygo:45:1*/func ObjectType__Note__Ctor() ObjectType {
 	return ObjectType__Note{}
  /*line zz_format.gen.go:128:1*/}
- /*line format.mygo:53:1*/func MygoIN10ObjectTypeM5Parse(raw string) Result[ObjectType, string] {
- /*line format.mygo:55:5*/	var __mygo_expr_0 Result[ObjectType, string]
+ /*line format.mygo:50:1*/func MygoIN10ObjectTypeM5Parse(raw string) Result[ObjectType, string] {
+ /*line format.mygo:52:5*/	var __mygo_expr_0 Result[ObjectType, string]
 	if raw == "Page" {
 		__mygo_expr_0 = Ok[ObjectType, string](ObjectType__Page__Ctor())
 	} else {
@@ -137,10 +137,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_0 = Err[ObjectType, string]("unsupported object type")
  /*line zz_format.gen.go:138:1*/		}
 	}
- /*line format.mygo:55:5*/	return __mygo_expr_0
+ /*line format.mygo:52:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:141:1*/}
- /*line format.mygo:53:1*/func MygoIN10ObjectTypeM6Render(self ObjectType) string {
- /*line format.mygo:63:5*/	var __mygo_expr_0 string
+ /*line format.mygo:50:1*/func MygoIN10ObjectTypeM6Render(self ObjectType) string {
+ /*line format.mygo:59:5*/	var __mygo_expr_0 string
 	if _, ok := self.(ObjectType__Page); ok {
 		__mygo_expr_0 = "Page"
 	} else {
@@ -149,5 +149,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_format.gen.go:150:1*/		}
 	}
- /*line format.mygo:63:5*/	return __mygo_expr_0
+ /*line format.mygo:59:5*/	return __mygo_expr_0
  /*line zz_format.gen.go:153:1*/}
