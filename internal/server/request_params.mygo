@@ -38,8 +38,16 @@ func ParseTopicSort(request: Ref[http.Request]) -> Result[String, String]
   ParseSort(request.URL.Query().Get("sort"), "new", true)
 end
 
-func ParseThreadSort(request: Ref[http.Request]) -> Result[String, String]
-  ParseSort(request.URL.Query().Get("sort"), "old", false)
+func ParseThreadSort(request: Ref[http.Request]) -> Result[ThreadSortMode, String]
+  switch ParseSort(request.URL.Query().Get("sort"), "old", false)
+    case Err(reason) => Err(reason)
+    case Ok(value) then
+      switch ThreadSortMode.Parse(value)
+        case Err(_) => Err("invalid sort")
+        case Ok(mode) => Ok(mode)
+      end
+    end
+  end
 end
 
 func ParseThreadDepth(request: Ref[http.Request]) -> Result[Int, String]

@@ -187,8 +187,7 @@ func DecodeJSON[T](
   maxBytes: Int,
   target: Ref[T]
 ) -> Result[(), String]
-  if request.Header.Get("Content-Type").Split(";").Get(0).UnwrapOr("") !=
-    "application/json" then
+  if request.Header.Get("Content-Type").Split(";").Get(0).UnwrapOr("") != "application/json" then
     return Err("expected application/json")
   end
   let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
@@ -232,7 +231,7 @@ func PageFromQuery(
     end
     offset = parsed.Unwrap()
   end
-  let page = storage.Page{Limit: limit, Offset: offset}
+  let page = storage.Page { Limit: limit, Offset: offset }
   if !page.Valid(settings.Runtime.MaxPageSize) then
     return Err("invalid page")
   end
@@ -248,7 +247,7 @@ func Authenticated(
   if token.IsErr() then
     return Err("unauthenticated")
   end
-  let sessions = storage.SessionRepository{DB: db}
+  let sessions = storage.SessionRepository { DB: db }
   sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
 end
 
@@ -274,19 +273,17 @@ func ForumRoute(
   if BrowserReadRoute(settings, db, site, w, request, parts) then
     return
   end
-  if parts.Len() >= 3 && parts.Len() <= 6 && parts.Get(2).Unwrap() == "communities" then
-    CommunityRoute(settings, db, site, w, request, parts)
-  else
-    if parts.Len() >= 4 && parts.Len() <= 5 && parts.Get(2).Unwrap() == "posts" then
-      PostRoute(settings, db, site, w, request, parts)
-    else
-      if parts.Len() == 5 &&
-        parts.Get(2).Unwrap() == "contexts" &&
-        parts.Get(4).Unwrap() == "backfill" then
-        ContextBackfillRoute(settings, db, site, w, request, parts.Get(3).Unwrap())
-      else
-        WriteErrorJSON(w, 404, "not found")
-      end
+  let resource = parts.Get(2).UnwrapOr("")
+  switch (parts.Len(), resource)
+    case (_, "communities") if parts.Len() >= 3 && parts.Len() <= 6 then
+      CommunityRoute(settings, db, site, w, request, parts)
     end
+    case (_, "posts") if parts.Len() >= 4 && parts.Len() <= 5 then
+      PostRoute(settings, db, site, w, request, parts)
+    end
+    case (5, "contexts") if parts.Get(4).UnwrapOr("") == "backfill" then
+      ContextBackfillRoute(settings, db, site, w, request, parts.Get(3).UnwrapOr(""))
+    end
+    case _ => WriteErrorJSON(w, 404, "not found")
   end
 end

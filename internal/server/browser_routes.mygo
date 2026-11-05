@@ -350,7 +350,7 @@ func BrowserTopicRead(
         page,
         max,
         threadDepth.Unwrap(),
-        threadSort.Unwrap()
+        threadSort.Unwrap().Render()
       )
       if rows.IsErr() then
         Fail(w, rows.UnwrapErr())

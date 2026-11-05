@@ -45,83 +45,103 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line request_params.mygo:37:1*/func ParseTopicSort(request *http.Request) Result[string, string] {
  /*line request_params.mygo:38:3*/	return ParseSort(request.URL.Query().Get("sort"), "new", true)
  /*line zz_request_params.gen.go:47:1*/}
- /*line request_params.mygo:41:1*/func ParseThreadSort(request *http.Request) Result[string, string] {
- /*line request_params.mygo:42:3*/	return ParseSort(request.URL.Query().Get("sort"), "old", false)
- /*line zz_request_params.gen.go:50:1*/}
- /*line request_params.mygo:45:1*/func ParseThreadDepth(request *http.Request) Result[int, string] {
+ /*line request_params.mygo:41:1*/func ParseThreadSort(request *http.Request) Result[ThreadSortMode, string] {
+ /*line request_params.mygo:42:3*/	__mygo_expr_0 := ParseSort(request.URL.Query().Get("sort"), "old", false)
+	var __mygo_expr_1 Result[ThreadSortMode, string]
+	if __mygo_match___mygo_expr_6, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
+		__mygo_expr_1 = Err[ThreadSortMode, string](__mygo_match___mygo_expr_6.F0)
+ /*line zz_request_params.gen.go:53:1*/	} else {
+ /*line request_params.mygo:42:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
+ /*line request_params.mygo:45:7*/			__mygo_expr_3 := MygoIN14ThreadSortModeM5Parse(__mygo_match___mygo_expr_2.F0)
+			var __mygo_expr_4 Result[ThreadSortMode, string]
+			if _, ok := __mygo_expr_3.(Result__Err[ThreadSortMode, string]); ok {
+				__mygo_expr_4 = Err[ThreadSortMode, string]("invalid sort")
+ /*line zz_request_params.gen.go:59:1*/			} else {
+ /*line request_params.mygo:45:7*/				if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[ThreadSortMode, string]); ok {
+					__mygo_expr_4 = Ok[ThreadSortMode, string](__mygo_match___mygo_expr_5.F0)
+				} else {
+ /*line zz_request_params.gen.go:63:1*/				}
+			}
+ /*line request_params.mygo:42:3*/			__mygo_expr_1 = __mygo_expr_4
+		} else {
+ /*line zz_request_params.gen.go:67:1*/		}
+	}
+ /*line request_params.mygo:42:3*/	return __mygo_expr_1
+ /*line zz_request_params.gen.go:70:1*/}
+ /*line request_params.mygo:53:1*/func ParseThreadDepth(request *http.Request) Result[int, string] {
 	view := request.URL.Query().Get("view")
- /*line request_params.mygo:47:3*/	if view != "" && view != "tree" && view != "flat" {
- /*line request_params.mygo:48:12*/		return Err[int, string]("invalid view")
- /*line request_params.mygo:47:3*/	} else {
- /*line zz_request_params.gen.go:56:1*/	}
- /*line request_params.mygo:50:3*/	if view == "flat" {
- /*line request_params.mygo:51:12*/		return Ok[int, string](1)
- /*line request_params.mygo:50:3*/	} else {
- /*line zz_request_params.gen.go:60:1*/	}
- /*line request_params.mygo:45:1*/	raw := request.URL.Query().Get("max_depth")
- /*line request_params.mygo:54:3*/	if raw == "" {
- /*line request_params.mygo:55:12*/		return Ok[int, string](6)
- /*line request_params.mygo:54:3*/	} else {
- /*line zz_request_params.gen.go:65:1*/	}
- /*line request_params.mygo:57:16*/	var __mygo_expr_1 Result[int, error]
+ /*line request_params.mygo:55:3*/	if view != "" && view != "tree" && view != "flat" {
+ /*line request_params.mygo:56:12*/		return Err[int, string]("invalid view")
+ /*line request_params.mygo:55:3*/	} else {
+ /*line zz_request_params.gen.go:76:1*/	}
+ /*line request_params.mygo:58:3*/	if view == "flat" {
+ /*line request_params.mygo:59:12*/		return Ok[int, string](1)
+ /*line request_params.mygo:58:3*/	} else {
+ /*line zz_request_params.gen.go:80:1*/	}
+ /*line request_params.mygo:53:1*/	raw := request.URL.Query().Get("max_depth")
+ /*line request_params.mygo:62:3*/	if raw == "" {
+ /*line request_params.mygo:63:12*/		return Ok[int, string](6)
+ /*line request_params.mygo:62:3*/	} else {
+ /*line zz_request_params.gen.go:85:1*/	}
+ /*line request_params.mygo:65:16*/	var __mygo_expr_1 Result[int, error]
 	__mygo_expr_2, __mygo_expr_0 := strconv.Atoi(raw)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[int, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[int, error](__mygo_expr_2)
- /*line zz_request_params.gen.go:72:1*/	}
- /*line request_params.mygo:45:1*/	parsed := __mygo_expr_1
- /*line request_params.mygo:58:3*/	if MygoIN6ResultM5IsErr[int, error](parsed) || MygoIN6ResultM6Unwrap[int, error](parsed) < 1 || MygoIN6ResultM6Unwrap[int, error](parsed) > 8 {
- /*line request_params.mygo:59:12*/		return Err[int, string]("invalid depth")
- /*line request_params.mygo:58:3*/	} else {
- /*line zz_request_params.gen.go:77:1*/	}
- /*line request_params.mygo:61:3*/	return Ok[int, string](MygoIN6ResultM6Unwrap[int, error](parsed))
- /*line zz_request_params.gen.go:79:1*/}
- /*line request_params.mygo:64:1*/func ParseBlockKind(value string) Result[string, string] {
- /*line request_params.mygo:65:3*/	if value != "person" && value != "community" && value != "instance" {
- /*line request_params.mygo:66:12*/		return Err[string, string]("invalid block")
- /*line request_params.mygo:65:3*/	} else {
- /*line zz_request_params.gen.go:84:1*/	}
- /*line request_params.mygo:68:3*/	return Ok[string, string](value)
- /*line zz_request_params.gen.go:86:1*/}
- /*line request_params.mygo:71:1*/func ParseReportState(value string, allowEmpty bool) Result[string, string] {
- /*line request_params.mygo:72:3*/	if value == "" {
- /*line request_params.mygo:73:5*/		if allowEmpty {
- /*line request_params.mygo:74:14*/			return Ok[string, string](value)
- /*line request_params.mygo:73:5*/		} else {
- /*line zz_request_params.gen.go:92:1*/		}
- /*line request_params.mygo:76:12*/		return Err[string, string]("invalid report state")
- /*line request_params.mygo:72:3*/	} else {
- /*line zz_request_params.gen.go:95:1*/	}
- /*line request_params.mygo:78:3*/	if value != "open" && value != "resolved" && value != "rejected" {
- /*line request_params.mygo:79:12*/		return Err[string, string]("invalid report state")
- /*line request_params.mygo:78:3*/	} else {
- /*line zz_request_params.gen.go:99:1*/	}
- /*line request_params.mygo:81:3*/	return Ok[string, string](value)
- /*line zz_request_params.gen.go:101:1*/}
- /*line request_params.mygo:84:1*/func ParseReportResolutionState(value string) Result[string, string] {
- /*line request_params.mygo:85:3*/	if value != "resolved" && value != "rejected" {
- /*line request_params.mygo:86:12*/		return Err[string, string]("invalid report state")
- /*line request_params.mygo:85:3*/	} else {
- /*line zz_request_params.gen.go:106:1*/	}
- /*line request_params.mygo:88:3*/	return Ok[string, string](value)
- /*line zz_request_params.gen.go:108:1*/}
- /*line request_params.mygo:91:1*/func ParseBanExpiry(value string) Result[sql.NullTime, string] {
- /*line request_params.mygo:92:3*/	if value == "" {
- /*line request_params.mygo:93:12*/		return Ok[sql.NullTime, string](Zero[sql.NullTime]())
- /*line request_params.mygo:92:3*/	} else {
- /*line zz_request_params.gen.go:113:1*/	}
- /*line request_params.mygo:95:16*/	var __mygo_expr_1 Result[time.Time, error]
+ /*line zz_request_params.gen.go:92:1*/	}
+ /*line request_params.mygo:53:1*/	parsed := __mygo_expr_1
+ /*line request_params.mygo:66:3*/	if MygoIN6ResultM5IsErr[int, error](parsed) || MygoIN6ResultM6Unwrap[int, error](parsed) < 1 || MygoIN6ResultM6Unwrap[int, error](parsed) > 8 {
+ /*line request_params.mygo:67:12*/		return Err[int, string]("invalid depth")
+ /*line request_params.mygo:66:3*/	} else {
+ /*line zz_request_params.gen.go:97:1*/	}
+ /*line request_params.mygo:69:3*/	return Ok[int, string](MygoIN6ResultM6Unwrap[int, error](parsed))
+ /*line zz_request_params.gen.go:99:1*/}
+ /*line request_params.mygo:72:1*/func ParseBlockKind(value string) Result[string, string] {
+ /*line request_params.mygo:73:3*/	if value != "person" && value != "community" && value != "instance" {
+ /*line request_params.mygo:74:12*/		return Err[string, string]("invalid block")
+ /*line request_params.mygo:73:3*/	} else {
+ /*line zz_request_params.gen.go:104:1*/	}
+ /*line request_params.mygo:76:3*/	return Ok[string, string](value)
+ /*line zz_request_params.gen.go:106:1*/}
+ /*line request_params.mygo:79:1*/func ParseReportState(value string, allowEmpty bool) Result[string, string] {
+ /*line request_params.mygo:80:3*/	if value == "" {
+ /*line request_params.mygo:81:5*/		if allowEmpty {
+ /*line request_params.mygo:82:14*/			return Ok[string, string](value)
+ /*line request_params.mygo:81:5*/		} else {
+ /*line zz_request_params.gen.go:112:1*/		}
+ /*line request_params.mygo:84:12*/		return Err[string, string]("invalid report state")
+ /*line request_params.mygo:80:3*/	} else {
+ /*line zz_request_params.gen.go:115:1*/	}
+ /*line request_params.mygo:86:3*/	if value != "open" && value != "resolved" && value != "rejected" {
+ /*line request_params.mygo:87:12*/		return Err[string, string]("invalid report state")
+ /*line request_params.mygo:86:3*/	} else {
+ /*line zz_request_params.gen.go:119:1*/	}
+ /*line request_params.mygo:89:3*/	return Ok[string, string](value)
+ /*line zz_request_params.gen.go:121:1*/}
+ /*line request_params.mygo:92:1*/func ParseReportResolutionState(value string) Result[string, string] {
+ /*line request_params.mygo:93:3*/	if value != "resolved" && value != "rejected" {
+ /*line request_params.mygo:94:12*/		return Err[string, string]("invalid report state")
+ /*line request_params.mygo:93:3*/	} else {
+ /*line zz_request_params.gen.go:126:1*/	}
+ /*line request_params.mygo:96:3*/	return Ok[string, string](value)
+ /*line zz_request_params.gen.go:128:1*/}
+ /*line request_params.mygo:99:1*/func ParseBanExpiry(value string) Result[sql.NullTime, string] {
+ /*line request_params.mygo:100:3*/	if value == "" {
+ /*line request_params.mygo:101:12*/		return Ok[sql.NullTime, string](Zero[sql.NullTime]())
+ /*line request_params.mygo:100:3*/	} else {
+ /*line zz_request_params.gen.go:133:1*/	}
+ /*line request_params.mygo:103:16*/	var __mygo_expr_1 Result[time.Time, error]
 	__mygo_expr_2, __mygo_expr_0 := time.Parse(time.RFC3339, value)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[time.Time, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[time.Time, error](__mygo_expr_2)
- /*line zz_request_params.gen.go:120:1*/	}
- /*line request_params.mygo:91:1*/	parsed := __mygo_expr_1
- /*line request_params.mygo:96:3*/	if MygoIN6ResultM5IsErr[time.Time, error](parsed) {
- /*line request_params.mygo:97:12*/		return Err[sql.NullTime, string]("invalid ban")
- /*line request_params.mygo:96:3*/	} else {
- /*line zz_request_params.gen.go:125:1*/	}
- /*line request_params.mygo:99:3*/	return Ok[sql.NullTime, string](sql.NullTime{Time: MygoIN6ResultM6Unwrap[time.Time, error](parsed), Valid: true})
- /*line zz_request_params.gen.go:127:1*/}
+ /*line zz_request_params.gen.go:140:1*/	}
+ /*line request_params.mygo:99:1*/	parsed := __mygo_expr_1
+ /*line request_params.mygo:104:3*/	if MygoIN6ResultM5IsErr[time.Time, error](parsed) {
+ /*line request_params.mygo:105:12*/		return Err[sql.NullTime, string]("invalid ban")
+ /*line request_params.mygo:104:3*/	} else {
+ /*line zz_request_params.gen.go:145:1*/	}
+ /*line request_params.mygo:107:3*/	return Ok[sql.NullTime, string](sql.NullTime{Time: MygoIN6ResultM6Unwrap[time.Time, error](parsed), Valid: true})
+ /*line zz_request_params.gen.go:147:1*/}

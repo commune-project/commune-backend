@@ -7,6 +7,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct CreateCommunityInput
   Name: String `json:"name"`
@@ -83,23 +84,15 @@ func CommunityRoute(
   parts: Slice[String]
 ) -> ()
   let communities = storage.CommunityRepository { DB: db, SiteID: site.ID }
-  if parts.Len() == 3 then
-    if request.Method != "POST" then
-      MethodNotAllowed(w, "GET, POST")
-    else
-      let actor = RequireMutation(settings, db, site, request)
-      if actor.IsErr() then
-        Fail(w, actor.UnwrapErr())
-      else
-        let input = Zero[CreateCommunityInput]()
-        let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
-        if decoded.IsErr() then
-          WriteErrorJSON(w, 400, decoded.UnwrapErr())
-        else
-          let created = communities.CreateWithFollow(
+  switch (parts.Len(), request.Method)
+    case (3, "POST") then
+      var input = Zero[CreateCommunityInput]()
+      WithActor(settings, db, site, w, request, func(actor: auth.Identity) -> Result[(), failure.Failure]
+        WithJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input), func() -> Result[(), failure.Failure]
+          switch communities.CreateWithFollow(
             request.Context(),
             site,
-            actor.Unwrap(),
+            actor,
             input.Name,
             input.Title,
             input.Mode,
@@ -107,24 +100,20 @@ func CommunityRoute(
             input.PostPolicy,
             input.FollowPolicy
           )
-          if created.IsErr() then
-            Fail(w, created.UnwrapErr())
-          else
-            WriteBrowserCommunity(db, site, w, request, 201, actor.Unwrap(), created.Unwrap())
+            case Err(reason) => Err(Classify(reason))
+            case Ok(created) then
+              WriteBrowserCommunity(db, site, w, request, 201, actor, created)
+              Ok(())
+            end
           end
-        end
-      end
+        end)
+        Ok(())
+      end)
     end
-  else
-    if parts.Len() == 4 then
-      if request.Method != "GET" then
-        MethodNotAllowed(w, "GET")
-      else
-        let _ = BrowserReadRoute(settings, db, site, w, request, parts)
-      end
-    else
-      CommunityMemberRoute(settings, db, site, w, request, parts)
-    end
+    case (3, _) => MethodNotAllowed(w, "GET, POST")
+    case (4, "GET") => let _ = BrowserReadRoute(settings, db, site, w, request, parts)
+    case (4, _) => MethodNotAllowed(w, "GET")
+    case _ => CommunityMemberRoute(settings, db, site, w, request, parts)
   end
 end
 
@@ -138,7 +127,7 @@ func CommunityMemberRoute(
 ) -> ()
   let id = parts.Get(3).Unwrap()
   let section = parts.Get(4).Unwrap()
-  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let communities = storage.CommunityRepository { DB: db, SiteID: site.ID }
   if section == "topics" then
     CommunityTopicRoute(settings, db, site, w, request, id)
     return
@@ -167,7 +156,11 @@ func CommunityMemberRoute(
     if rows.IsErr() then
       Fail(w, rows.UnwrapErr())
     else
-      WriteJSON(w, 200, FollowRequestPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
+      WriteJSON(w, 200, FollowRequestPage {
+        Items: rows.Unwrap(),
+        Limit: page.Unwrap().Limit,
+        Offset: page.Unwrap().Offset
+      })
     end
     return
   end
@@ -298,7 +291,10 @@ func CommunityMemberRoute(
         storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
           let previous = storage.IsCurrentMember(request.Context(), tx, id, input.Actor)
           if previous.IsErr() then return Err(previous.UnwrapErr()) end
-          let changed = storage.CommunityRepository{DB: tx, SiteID: site.ID}.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
+          let changed = storage.CommunityRepository {
+            DB: tx,
+            SiteID: site.ID
+          }.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
           if changed.IsErr() then return changed end
           if request.Method == "DELETE" && previous.Unwrap() then return QueueMemberRevocation(request.Context(), tx, site, id, input.Actor) end
           Ok(())

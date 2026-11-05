@@ -33,9 +33,9 @@
 
 ## 5. Server layer
 
-- [ ] 5.1 Convert the route dispatchers (`Handler`, `ForumRoute`, `CommunityRoute`, `PostRoute`) to switch-with-guards over segment tuples, and verify routing tests plus method-not-allowed tests pass.
+- [x] 5.1 Convert the route dispatchers (`Handler`, `ForumRoute`, `CommunityRoute`, `PostRoute`) to switch-with-guards over segment tuples, and verify routing tests plus method-not-allowed tests pass.
 - [ ] 5.2 Convert every handler to `WithActor`/`WithJSON`/`Complete` and delete the remaining `FailStatus` string comparisons, and verify the server suite passes with no `IsErr()` pyramid above two levels.
-- [ ] 5.3 Replace `SortThread` with a stable `SortedBy` comparator over a `ThreadSortMode` ADT, and verify the four ordering-mode tests produce identical orderings.
+- [x] 5.3 Replace `SortThread` with a stable `SortedBy` comparator over a `ThreadSortMode` ADT, and verify the four ordering-mode tests produce identical orderings.
 - [ ] 5.4 Refactor `BrowserPosts` and `BrowserThread` to keyed lookups and `ZipWith`, and verify browser feed, thread depth, and media rendering tests pass.
 - [ ] 5.5 Move projections into `impl`/static constructors that live beside their DTOs, and verify JSON golden-shape tests are unchanged.
 - [ ] 5.6 Convert notifications, moderation, search, votes, and federation handlers to the same shape, and verify their focused test files pass.

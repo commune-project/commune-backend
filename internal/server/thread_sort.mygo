@@ -1,0 +1,31 @@
+package server
+
+# Thread sorting is a closed set of modes; the query string is the boundary.
+enum ThreadSortMode
+  New
+  Old
+  Top
+  Controversial
+end
+
+impl ThreadSortMode
+  func Parse(raw: String) -> Result[ThreadSortMode, String]
+    switch raw
+      case "new" => Ok(ThreadSortMode.New)
+      case "old" => Ok(ThreadSortMode.Old)
+      case "top" => Ok(ThreadSortMode.Top)
+      case "controversial" => Ok(ThreadSortMode.Controversial)
+      case _ => Err("invalid sort")
+    end
+  end
+
+  func Render(self: ThreadSortMode) -> String
+    switch self
+      case New => "new"
+      case Old => "old"
+      case Top => "top"
+      case Controversial => "controversial"
+    end
+  end
+end
+

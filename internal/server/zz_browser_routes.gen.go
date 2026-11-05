@@ -245,8 +245,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 			} else {
  /*line zz_browser_routes.gen.go:246:1*/			}
  /*line browser_routes.mygo:320:3*/			threadSort := ParseThreadSort(request)
- /*line browser_routes.mygo:334:7*/			if MygoIN6ResultM5IsErr[string, string](threadSort) {
- /*line browser_routes.mygo:335:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[string, string](threadSort))
+ /*line browser_routes.mygo:334:7*/			if MygoIN6ResultM5IsErr[ThreadSortMode, string](threadSort) {
+ /*line browser_routes.mygo:335:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[ThreadSortMode, string](threadSort))
  /*line browser_routes.mygo:334:7*/				return
 			} else {
  /*line zz_browser_routes.gen.go:252:1*/			}
@@ -257,13 +257,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 			} else {
  /*line zz_browser_routes.gen.go:258:1*/			}
  /*line browser_routes.mygo:320:3*/			readCommunityID = MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID
-			rows := storage.MygoIN14FeedRepositoryM6Thread(feed, request.Context(), MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID, id, viewer.Identity, false, page, max, MygoIN6ResultM6Unwrap[int, string](threadDepth), MygoIN6ResultM6Unwrap[string, string](threadSort))
+			rows := storage.MygoIN14FeedRepositoryM6Thread(feed, request.Context(), MygoIN6ResultM6Unwrap[storage.PostRecord, string](parent).CommunityID, id, viewer.Identity, false, page, max, MygoIN6ResultM6Unwrap[int, string](threadDepth), MygoIN14ThreadSortModeM6Render(MygoIN6ResultM6Unwrap[ThreadSortMode, string](threadSort)))
  /*line browser_routes.mygo:355:7*/			if MygoIN6ResultM5IsErr[[]storage.ThreadRow, string](rows) {
  /*line browser_routes.mygo:356:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ThreadRow, string](rows))
  /*line browser_routes.mygo:355:7*/				return
 			} else {
  /*line zz_browser_routes.gen.go:265:1*/			}
- /*line browser_routes.mygo:320:3*/			outputs := BrowserThread(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.ThreadRow, string](rows), id, MygoIN6ResultM6Unwrap[string, string](threadSort))
+ /*line browser_routes.mygo:320:3*/			outputs := BrowserThread(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.ThreadRow, string](rows), id, MygoIN6ResultM6Unwrap[ThreadSortMode, string](threadSort))
  /*line browser_routes.mygo:360:7*/			if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
  /*line browser_routes.mygo:361:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
  /*line browser_routes.mygo:360:7*/			} else {

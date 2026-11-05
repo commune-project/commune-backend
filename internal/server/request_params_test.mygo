@@ -21,28 +21,39 @@ func TestSharedRequestParsers(t: Ref[testing.T]) -> ()
       t.Fatal("invalid vote was accepted or not mapped to 400")
     end
   end)
-
   let topicRequest = httptest.NewRequest("GET", "https://a.example/api/v1/topics?sort=hot", empty)
   if ParseTopicSort(topicRequest).Unwrap() != "hot" then
     t.Fatal("topic hot sort was rejected")
   end
-  let threadHot = httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?sort=hot", empty)
+  let threadHot = httptest.NewRequest(
+    "GET",
+    "https://a.example/api/v1/posts/x/replies?sort=hot",
+    empty
+  )
   if ParseThreadSort(threadHot).IsOk() || FailStatus("invalid sort") != 400 then
     t.Fatal("thread hot sort was accepted or not mapped to 400")
   end
   let defaultThread = httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies", empty)
-  if ParseThreadSort(defaultThread).Unwrap() != "old" || ParseThreadDepth(defaultThread).Unwrap() != 6 then
+  if ParseThreadSort(defaultThread).Unwrap().Render() != "old" ||
+    ParseThreadDepth(defaultThread).Unwrap() != 6 then
     t.Fatal("thread defaults changed")
   end
-  let flat = httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?view=flat&max_depth=8", empty)
+  let flat = httptest.NewRequest(
+    "GET",
+    "https://a.example/api/v1/posts/x/replies?view=flat&max_depth=8",
+    empty
+  )
   if ParseThreadDepth(flat).Unwrap() != 1 then
     t.Fatal("flat alias did not force depth one")
   end
-  let invalidDepth = httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?max_depth=9", empty)
+  let invalidDepth = httptest.NewRequest(
+    "GET",
+    "https://a.example/api/v1/posts/x/replies?max_depth=9",
+    empty
+  )
   if ParseThreadDepth(invalidDepth).IsOk() || FailStatus("invalid depth") != 400 then
     t.Fatal("invalid depth was accepted or not mapped to 400")
   end
-
   let kinds: Slice[String] = ["person", "community", "instance"]
   kinds.Each(func(kind: String) -> ()
     if ParseBlockKind(kind).Unwrap() != kind then
@@ -52,16 +63,19 @@ func TestSharedRequestParsers(t: Ref[testing.T]) -> ()
   if ParseBlockKind("domain").IsOk() || FailStatus("invalid block") != 400 then
     t.Fatal("invalid block kind was accepted or not mapped to 400")
   end
-  if ParseReportState("open", true).Unwrap() != "open" || ParseReportState("", true).Unwrap() != "" then
+  if ParseReportState("open", true).Unwrap() != "open" ||
+    ParseReportState("", true).Unwrap() != "" then
     t.Fatal("valid report filter was rejected")
   end
   if ParseReportState("pending", true).IsOk() || FailStatus("invalid report state") != 400 then
     t.Fatal("invalid report state was accepted or not mapped to 400")
   end
-  if ParseReportResolutionState("open").IsOk() || ParseReportResolutionState("resolved").Unwrap() != "resolved" then
+  if ParseReportResolutionState("open").IsOk() ||
+    ParseReportResolutionState("resolved").Unwrap() != "resolved" then
     t.Fatal("report resolution state validation failed")
   end
-  if ParseBanExpiry("").Unwrap().Valid || ParseBanExpiry("2027-01-02T03:04:05Z").Unwrap().Valid != true then
+  if ParseBanExpiry("").Unwrap().Valid ||
+    ParseBanExpiry("2027-01-02T03:04:05Z").Unwrap().Valid != true then
     t.Fatal("ban expiry parsing failed")
   end
   if ParseBanExpiry("tomorrow").IsOk() || FailStatus("invalid ban") != 400 then

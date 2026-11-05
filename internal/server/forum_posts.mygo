@@ -36,23 +36,18 @@ func PostRoute(
   request: Ref[http.Request],
   parts: Slice[String]
 ) -> ()
-  let id = parts.Get(3).Unwrap()
-  if parts.Len() == 4 then
-    if request.Method == "GET" then
-      let _ = BrowserReadRoute(settings, db, site, w, request, parts)
-    else
-      let actor = RequireMutation(settings, db, site, request)
-      if actor.IsErr() then
-        Fail(w, actor.UnwrapErr())
-      else
-        PostMutation(settings, db, site, w, request, id, actor.Unwrap())
+  let id = parts.Get(3).UnwrapOr("")
+  switch (parts.Len(), request.Method)
+    case (4, "GET") => let _ = BrowserReadRoute(settings, db, site, w, request, parts)
+    case (4, _) then
+      switch RequireMutation(settings, db, site, request)
+        case Err(reason) => Fail(w, reason)
+        case Ok(actor) => PostMutation(settings, db, site, w, request, id, actor)
       end
     end
-  else
-    PostSectionRoute(settings, db, site, w, request, parts, id)
+    case _ => PostSectionRoute(settings, db, site, w, request, parts, id)
   end
 end
-
 func PostMutation(
   settings: config.Config,
   db: Ref[gorm.DB],
@@ -72,7 +67,10 @@ func PostMutation(
         WriteErrorJSON(w, 400, "invalid expected version")
         return
       end
-      let existing = storage.FeedRepository{DB: db, SiteID: site.ID}.ReadObject(request.Context(), id, identity, false)
+      let existing = storage.FeedRepository {
+        DB: db,
+        SiteID: site.ID,
+      }.ReadObject(request.Context(), id, identity, false)
       if existing.IsErr() then
         Fail(w, existing.UnwrapErr())
         return
@@ -106,7 +104,7 @@ func PostMutation(
         request.Context(),
         db,
         func(tx: Ref[gorm.DB]) -> Result[(), String]
-          let result = storage.PostRepository{
+          let result = storage.PostRepository {
             DB: tx,
             SiteID: site.ID,
           }.EditResolvedContent(
@@ -204,7 +202,10 @@ func PostSectionRoute(
   if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
     (section == "read" && request.Method == "POST") ||
     (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
-    let readable = storage.FeedRepository{DB: db, SiteID: site.ID}.ReadObject(request.Context(), id, identity, false)
+    let readable = storage.FeedRepository {
+      DB: db,
+      SiteID: site.ID
+    }.ReadObject(request.Context(), id, identity, false)
     if readable.IsErr() then
       Fail(w, readable.UnwrapErr())
       return
@@ -213,7 +214,7 @@ func PostSectionRoute(
       Fail(w, "not found")
       return
     end
-    let state = storage.ContentStateRepository{
+    let state = storage.ContentStateRepository {
       DB: db,
       SiteID: site.ID,
       AccountID: identity.AccountID,
@@ -256,7 +257,7 @@ func PostSectionRoute(
     return
   end
   if section == "import" && request.Method == "POST" then
-    let posts = storage.PostRepository{
+    let posts = storage.PostRepository {
       DB: db,
       SiteID: site.ID,
     }
@@ -278,7 +279,7 @@ func PostSectionRoute(
     return
   end
   if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
-    let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+    let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
     let hidden = feed.SetHidden(request.Context(), id, request.Method == "POST", identity)
     Settle(w, hidden)
     return
@@ -294,7 +295,7 @@ func ReplyRoute(
   request: Ref[http.Request],
   id: String
 ) -> ()
-  let feed = storage.FeedRepository{DB: db, SiteID: site.ID}
+  let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
   if request.Method == "GET" then
     let _ = BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
   else
@@ -369,7 +370,7 @@ func ReplyRoute(
         parent.Unwrap().CommunityID,
         actor.Unwrap(),
         false,
-        storage.PublishInput{
+        storage.PublishInput {
           Title: "",
           Body: input.Body,
           ParentID: id,

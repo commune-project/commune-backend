@@ -16,54 +16,63 @@ func Handler(settings: config.Config, db: Ref[gorm.DB]) -> http.HandlerFunc
     let site = config.ResolveRequest(settings, request)
     if site.IsErr() then
       http.NotFound(w, request)
-    else
-      w.Header().Set("Cache-Control", "no-store")
-      w.Header().Set("X-Content-Type-Options", "nosniff")
-      if PasswordResetRoute(settings, db, site.Unwrap(), w, request) then
-        return
-      end
-      if RegistrationRoute(settings, db, site.Unwrap(), w, request) then
-        return
-      end
-      if request.URL.Path == "/api/v1/auth/login" ||
-        request.URL.Path == "/api/v1/auth/session" ||
-        request.URL.Path == "/api/v1/auth/logout" then
-        AuthenticationRoute(settings, db, site.Unwrap(), w, request)
-      else
+      return
+    end
+    let resolved = site.Unwrap()
+    w.Header().Set("Cache-Control", "no-store")
+    w.Header().Set("X-Content-Type-Options", "nosniff")
+    if PasswordResetRoute(settings, db, resolved, w, request) then
+      return
+    end
+    if RegistrationRoute(settings, db, resolved, w, request) then
+      return
+    end
+    switch AuthenticationPath(request.URL.Path)
+      case true => AuthenticationRoute(settings, db, resolved, w, request)
+      case false then
         if FederationPath(request.URL.Path) then
-          FederationRoute(settings, db, site.Unwrap(), w, request)
+          FederationRoute(settings, db, resolved, w, request)
+        elsif strings.HasPrefix(request.URL.Path, "/api/v1/") then
+          ForumRoute(settings, db, resolved, w, request)
+        elsif request.Method != "GET" then
+          w.Header().Set("Allow", "GET")
+          http.Error(w, "method not allowed", 405)
         else
-          if strings.HasPrefix(request.URL.Path, "/api/v1/") then
-            ForumRoute(settings, db, site.Unwrap(), w, request)
-          else
-            if request.Method != "GET" then
-              w.Header().Set("Allow", "GET")
-              http.Error(w, "method not allowed", 405)
-            else
-              switch request.URL.Path
-                case "/health/live" => w.WriteHeader(204)
-                case "/health/ready" then
-                  let (ctx, cancel) = context.WithTimeout(request.Context(), 3 as time.Duration * time.Second)
-                  let pool = db.DB()
-                  let ready = !pool.IsErr() &&
-                    pool.Unwrap().PingContext(ctx).IsOk() &&
-                    storage.CheckGORM(ctx, db).IsOk()
-                  cancel()
-                  if !ready then
-                    http.Error(w, "not ready", 503)
-                  else
-                    w.WriteHeader(204)
-                  end
-                end
-                case _ => http.NotFound(w, request)
-              end
-            end
-          end
+          HealthRoute(db, w, request)
         end
       end
     end
   end
   callback as http.HandlerFunc
+end
+
+func AuthenticationPath(path: String) -> Bool
+  switch path
+    case "/api/v1/auth/login" => true
+    case "/api/v1/auth/session" => true
+    case "/api/v1/auth/logout" => true
+    case _ => false
+  end
+end
+
+func HealthRoute(db: Ref[gorm.DB], w: http.ResponseWriter, request: Ref[http.Request]) -> ()
+  switch request.URL.Path
+    case "/health/live" => w.WriteHeader(204)
+    case "/health/ready" then
+      let (ctx, cancel) = context.WithTimeout(request.Context(), 3 as time.Duration * time.Second)
+      let pool = db.DB()
+      let ready = !pool.IsErr() &&
+        pool.Unwrap().PingContext(ctx).IsOk() &&
+        storage.CheckGORM(ctx, db).IsOk()
+      cancel()
+      if !ready then
+        http.Error(w, "not ready", 503)
+      else
+        w.WriteHeader(204)
+      end
+    end
+    case _ => http.NotFound(w, request)
+  end
 end
 
 func NewHTTPServer(settings: config.Config, db: Ref[gorm.DB]) -> Ref[http.Server]

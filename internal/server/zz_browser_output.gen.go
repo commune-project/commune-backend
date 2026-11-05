@@ -75,107 +75,107 @@ import . "github.com/mygo-lang/mygo/prelude"
 	canFollow := viewer.Verified && !accepted && !pending && (policy == "open" || policy == "approval" && !view.Member && !view.Manager || policy == "members" && (view.Member || view.Manager))
 	output.Viewer = CommunityViewerOutput{IsMember: viewer.Verified && view.Member, IsCreator: viewer.Verified && view.Record.CreatorActorURI == viewer.Identity.ActorURI, IsManager: viewer.Verified && view.Manager, ManagementScope: access.Authority.Scope, IsFollowing: accepted, FollowState: state, CanFollow: canFollow}
 	output.FollowPolicy = policy
- /*line browser_output.mygo:89:26*/	var __mygo_expr_2 int64
- /*line browser_output.mygo:89:29*/	if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) {
- /*line browser_output.mygo:89:26*/		__mygo_expr_2 = view.FollowerCount
+ /*line browser_output.mygo:93:26*/	var __mygo_expr_2 int64
+ /*line browser_output.mygo:93:29*/	if viewer.Verified && (view.Record.ReadPolicy != "members" || managed) {
+ /*line browser_output.mygo:93:26*/		__mygo_expr_2 = view.FollowerCount
 	} else {
 		__mygo_expr_2 = int64(0)
  /*line zz_browser_output.gen.go:83:1*/	}
  /*line browser_output.mygo:55:1*/	output.FollowerCount = __mygo_expr_2
 	output.Permissions = CommunityPermissions{CanPost: view.Record.HostSiteID == repository.SiteID && auth.MygoIN8IdentityM9BelongsTo(viewer.Identity, repository.SiteID) && storage.MygoIN15CommunityAccessM7CanPost(access), CanManage: managed, CanManageMembers: managed, CanManageManagers: managed}
- /*line browser_output.mygo:98:3*/	return output
+ /*line browser_output.mygo:106:3*/	return output
  /*line zz_browser_output.gen.go:87:1*/}
- /*line browser_output.mygo:101:1*/func BrowserPostAuthor(state storage.PostRichState) AuthorOutput {
- /*line browser_output.mygo:102:3*/	if state.AuthorUsername != "" && strings.HasPrefix(state.Origin, "https://") {
- /*line browser_output.mygo:103:12*/		return AuthorOutput{Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"), DisplayName: state.AuthorDisplayName}
- /*line browser_output.mygo:102:3*/	} else {
+ /*line browser_output.mygo:109:1*/func BrowserPostAuthor(state storage.PostRichState) AuthorOutput {
+ /*line browser_output.mygo:110:3*/	if state.AuthorUsername != "" && strings.HasPrefix(state.Origin, "https://") {
+ /*line browser_output.mygo:111:12*/		return AuthorOutput{Acct: state.AuthorUsername + "@" + strings.TrimPrefix(state.Origin, "https://"), DisplayName: state.AuthorDisplayName}
+ /*line browser_output.mygo:110:3*/	} else {
  /*line zz_browser_output.gen.go:92:1*/	}
- /*line browser_output.mygo:108:3*/	return AuthorOutput{Acct: state.AuthorAcct, DisplayName: state.AuthorDisplayName}
+ /*line browser_output.mygo:116:3*/	return AuthorOutput{Acct: state.AuthorAcct, DisplayName: state.AuthorDisplayName}
  /*line zz_browser_output.gen.go:94:1*/}
- /*line browser_output.mygo:111:1*/func BrowserPosts(sanitizer content.Sanitizer, ctx context.Context, repository storage.BrowserRepository, viewer storage.BrowserViewer, records []storage.PostRecord) Result[[]PostOutput, string] {
+ /*line browser_output.mygo:119:1*/func BrowserPosts(sanitizer content.Sanitizer, ctx context.Context, repository storage.BrowserRepository, viewer storage.BrowserViewer, records []storage.PostRecord) Result[[]PostOutput, string] {
 	var outputs []PostOutput = []PostOutput{}
 	ids := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(records, func(post storage.PostRecord) string {
- /*line browser_output.mygo:120:5*/		return post.ID
+ /*line browser_output.mygo:128:5*/		return post.ID
  /*line zz_browser_output.gen.go:99:1*/	})
- /*line browser_output.mygo:111:1*/	communityIDs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(records, func(post_1 storage.PostRecord) string {
- /*line browser_output.mygo:123:5*/		return post_1.CommunityID
+ /*line browser_output.mygo:119:1*/	communityIDs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(records, func(post_1 storage.PostRecord) string {
+ /*line browser_output.mygo:131:5*/		return post_1.CommunityID
  /*line zz_browser_output.gen.go:102:1*/	})
- /*line browser_output.mygo:111:1*/	views := storage.MygoIN17BrowserRepositoryM5Views(repository, ctx, viewer, communityIDs)
+ /*line browser_output.mygo:119:1*/	views := storage.MygoIN17BrowserRepositoryM5Views(repository, ctx, viewer, communityIDs)
 	stats := storage.MygoIN17BrowserRepositoryM5Stats(repository, ctx, viewer, ids)
 	richStates := storage.LoadPostRichStates(ctx, repository.DB, ids)
 	var cached []storage.PrivateMediaCache = []storage.PrivateMediaCache{}
 	remoteMedia := MygoIN5SliceM3Any(records, func(post_2 storage.PostRecord) bool {
- /*line browser_output.mygo:129:72*/		return post_2.RichMetadata != ""
+ /*line browser_output.mygo:137:72*/		return post_2.RichMetadata != ""
  /*line zz_browser_output.gen.go:109:1*/	})
- /*line browser_output.mygo:130:3*/	if remoteMedia && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where("site_id=? AND post_id IN ? AND error_state<>'invalidated'", repository.SiteID, ids).Find(&cached))) {
- /*line browser_output.mygo:136:12*/		return Err[[]PostOutput, string]("media unavailable")
- /*line browser_output.mygo:130:3*/	} else {
- /*line zz_browser_output.gen.go:113:1*/	}
- /*line browser_output.mygo:138:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIN6ResultM5IsErr[[]storage.PostStats, string](stats) || MygoIN6ResultM5IsErr[[]storage.PostRichState, string](richStates) {
- /*line browser_output.mygo:139:12*/		return Err[[]PostOutput, string]("feed unavailable")
+ /*line browser_output.mygo:138:3*/	if remoteMedia && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(repository.DB.WithContext(ctx).Table("media_private_cache").Where("site_id=? AND post_id IN ? AND error_state<>'invalidated'", repository.SiteID, ids).Find(&cached))) {
+ /*line browser_output.mygo:144:12*/		return Err[[]PostOutput, string]("media unavailable")
  /*line browser_output.mygo:138:3*/	} else {
+ /*line zz_browser_output.gen.go:113:1*/	}
+ /*line browser_output.mygo:146:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIN6ResultM5IsErr[[]storage.PostStats, string](stats) || MygoIN6ResultM5IsErr[[]storage.PostRichState, string](richStates) {
+ /*line browser_output.mygo:147:12*/		return Err[[]PostOutput, string]("feed unavailable")
+ /*line browser_output.mygo:146:3*/	} else {
  /*line zz_browser_output.gen.go:117:1*/	}
- /*line browser_output.mygo:111:1*/	viewList := MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views)
+ /*line browser_output.mygo:119:1*/	viewList := MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views)
 	statList := MygoIN6ResultM6Unwrap[[]storage.PostStats, string](stats)
 	richList := MygoIN6ResultM6Unwrap[[]storage.PostRichState, string](richStates)
 	viewsById := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(viewList, map[string]storage.CommunityView(map[string]storage.CommunityView{}), func(acc map[string]storage.CommunityView, view storage.CommunityView) map[string]storage.CommunityView {
- /*line browser_output.mygo:145:75*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc, view.Record.ID, view)
- /*line browser_output.mygo:147:5*/		return acc
+ /*line browser_output.mygo:155:5*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc, view.Record.ID, view)
+ /*line browser_output.mygo:157:7*/		return acc
  /*line zz_browser_output.gen.go:124:1*/	})
- /*line browser_output.mygo:111:1*/	statsById := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(statList, map[string]storage.PostStats(map[string]storage.PostStats{}), func(acc_1 map[string]storage.PostStats, stat storage.PostStats) map[string]storage.PostStats {
- /*line browser_output.mygo:149:71*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc_1, stat.ID, stat)
- /*line browser_output.mygo:151:5*/		return acc_1
+ /*line browser_output.mygo:119:1*/	statsById := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(statList, map[string]storage.PostStats(map[string]storage.PostStats{}), func(acc_1 map[string]storage.PostStats, stat storage.PostStats) map[string]storage.PostStats {
+ /*line browser_output.mygo:162:5*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc_1, stat.ID, stat)
+ /*line browser_output.mygo:164:7*/		return acc_1
  /*line zz_browser_output.gen.go:128:1*/	})
- /*line browser_output.mygo:111:1*/	richById := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(richList, map[string]storage.PostRichState(map[string]storage.PostRichState{}), func(acc_2 map[string]storage.PostRichState, state storage.PostRichState) map[string]storage.PostRichState {
- /*line browser_output.mygo:153:74*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc_2, state.ID, state)
- /*line browser_output.mygo:155:5*/		return acc_2
+ /*line browser_output.mygo:119:1*/	richById := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(richList, map[string]storage.PostRichState(map[string]storage.PostRichState{}), func(acc_2 map[string]storage.PostRichState, state storage.PostRichState) map[string]storage.PostRichState {
+ /*line browser_output.mygo:169:5*/		MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Set(acc_2, state.ID, state)
+ /*line browser_output.mygo:171:7*/		return acc_2
  /*line zz_browser_output.gen.go:132:1*/	})
- /*line browser_output.mygo:157:3*/	if MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(viewsById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(viewList) || MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(statsById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(statList) || MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(richById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(richList) {
- /*line browser_output.mygo:158:12*/		return Err[[]PostOutput, string]("feed unavailable")
- /*line browser_output.mygo:157:3*/	} else {
+ /*line browser_output.mygo:174:3*/	if MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(viewsById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(viewList) || MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(statsById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(statList) || MygoIT11IEnumerableFN14MapIEnumerableGN1KN1VEGN3MapGN1KN1VEN1VEM3Len(richById) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(richList) {
+ /*line browser_output.mygo:177:12*/		return Err[[]PostOutput, string]("feed unavailable")
+ /*line browser_output.mygo:174:3*/	} else {
  /*line zz_browser_output.gen.go:136:1*/	}
- /*line browser_output.mygo:111:1*/	var index int = 0
- /*line browser_output.mygo:161:9*/	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(records) {
- /*line browser_output.mygo:111:1*/		record := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, index))
+ /*line browser_output.mygo:119:1*/	var index int = 0
+ /*line browser_output.mygo:180:9*/	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(records) {
+ /*line browser_output.mygo:119:1*/		record := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, index))
 		index = index + 1
 		found := MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Get(viewsById, record.CommunityID)
 		counts := MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Get(statsById, record.ID)
 		if MygoIN6OptionM6IsNone[storage.CommunityView](found) || MygoIN6OptionM6IsNone[storage.PostStats](counts) {
- /*line browser_output.mygo:167:14*/			return Err[[]PostOutput, string]("feed unavailable")
- /*line browser_output.mygo:111:1*/		} else {
+ /*line browser_output.mygo:186:14*/			return Err[[]PostOutput, string]("feed unavailable")
+ /*line browser_output.mygo:119:1*/		} else {
  /*line zz_browser_output.gen.go:146:1*/		}
- /*line browser_output.mygo:111:1*/		access := storage.MygoIN17BrowserRepositoryM6Access(repository, MygoIN6OptionM6Unwrap[storage.CommunityView](found), viewer)
+ /*line browser_output.mygo:119:1*/		access := storage.MygoIN17BrowserRepositoryM6Access(repository, MygoIN6OptionM6Unwrap[storage.CommunityView](found), viewer)
 		if !storage.MygoIN15CommunityAccessM7CanRead(access) {
- /*line browser_output.mygo:171:14*/			return Err[[]PostOutput, string]("not found")
- /*line browser_output.mygo:111:1*/		} else {
+ /*line browser_output.mygo:190:14*/			return Err[[]PostOutput, string]("not found")
+ /*line browser_output.mygo:119:1*/		} else {
  /*line zz_browser_output.gen.go:151:1*/		}
- /*line browser_output.mygo:111:1*/		hosted := access.Community.HostSiteID == repository.SiteID
+ /*line browser_output.mygo:119:1*/		hosted := access.Community.HostSiteID == repository.SiteID
 		active := !record.DeletedAt.Valid
 		edit := hosted && active && storage.MygoIN15CommunityAccessM11CanEditBody(access, record.AuthorActorURI)
 		output := PostDTO(sanitizer, record)
 		rich := MygoIT11IAssignableFN3MapGN1KN1VEGN3MapGN1KN1VEN1KN1VEM3Get(richById, record.ID)
 		if MygoIN6OptionM6IsNone[storage.PostRichState](rich) {
- /*line browser_output.mygo:179:14*/			return Err[[]PostOutput, string]("post content unavailable")
- /*line browser_output.mygo:111:1*/		} else {
+ /*line browser_output.mygo:198:14*/			return Err[[]PostOutput, string]("post content unavailable")
+ /*line browser_output.mygo:119:1*/		} else {
  /*line zz_browser_output.gen.go:160:1*/		}
- /*line browser_output.mygo:111:1*/		richState := MygoIN6OptionM6Unwrap[storage.PostRichState](rich)
+ /*line browser_output.mygo:119:1*/		richState := MygoIN6OptionM6Unwrap[storage.PostRichState](rich)
 		output.Author = BrowserPostAuthor(richState)
 		rendered := storage.RenderStoredPost(sanitizer, record, richState, false)
 		media := storage.MygoIN13PostRichStateM9RichMedia(richState)
 		if MygoIN6ResultM5IsErr[string, string](rendered) || MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {
- /*line browser_output.mygo:186:14*/			return Err[[]PostOutput, string]("post content unavailable")
- /*line browser_output.mygo:111:1*/		} else {
+ /*line browser_output.mygo:205:14*/			return Err[[]PostOutput, string]("post content unavailable")
+ /*line browser_output.mygo:119:1*/		} else {
  /*line zz_browser_output.gen.go:168:1*/		}
- /*line browser_output.mygo:111:1*/		output.BodyHTML = MygoIN6ResultM6Unwrap[string, string](rendered)
+ /*line browser_output.mygo:119:1*/		output.BodyHTML = MygoIN6ResultM6Unwrap[string, string](rendered)
 		output.AttachmentIDs = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), func(item content.RichMedia) string {
- /*line browser_output.mygo:190:7*/			return item.UploadID
+ /*line browser_output.mygo:208:87*/			return item.UploadID
  /*line zz_browser_output.gen.go:172:1*/		})
- /*line browser_output.mygo:111:1*/		attachments := BrowserPostMedia(sanitizer, record, MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), access.Community.ReadPolicy == "members", cached, output)
+ /*line browser_output.mygo:119:1*/		attachments := BrowserPostMedia(sanitizer, record, MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), access.Community.ReadPolicy == "members", cached, output)
 		if MygoIN6ResultM5IsErr[PostOutput, string](attachments) {
- /*line browser_output.mygo:194:14*/			return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[PostOutput, string](attachments))
- /*line browser_output.mygo:111:1*/		} else {
+ /*line browser_output.mygo:211:14*/			return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[PostOutput, string](attachments))
+ /*line browser_output.mygo:119:1*/		} else {
  /*line zz_browser_output.gen.go:177:1*/		}
- /*line browser_output.mygo:111:1*/		output = MygoIN6ResultM6Unwrap[PostOutput, string](attachments)
+ /*line browser_output.mygo:119:1*/		output = MygoIN6ResultM6Unwrap[PostOutput, string](attachments)
 		stat_1 := MygoIN6OptionM6Unwrap[storage.PostStats](counts)
 		output.Score = stat_1.Score
 		output.Upvotes = stat_1.Upvotes
@@ -193,109 +193,90 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
 			__mygo_expr_0 = true
  /*line zz_browser_output.gen.go:195:1*/		}
- /*line browser_output.mygo:111:1*/		up := __mygo_expr_0
+ /*line browser_output.mygo:119:1*/		up := __mygo_expr_0
 		var __mygo_expr_1 bool
 		if viewer.VoteSettingsLoaded {
 			__mygo_expr_1 = viewer.DownvotesEnabled
 		} else {
 			__mygo_expr_1 = true
  /*line zz_browser_output.gen.go:202:1*/		}
- /*line browser_output.mygo:111:1*/		down := __mygo_expr_1
- /*line browser_output.mygo:218:5*/		output.Permissions = PostPermissions{CanEdit: edit, CanDelete: edit, CanLike: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && up, CanVote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && (up || down), CanUpvote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && up, CanDownvote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && down, CanReply: hosted && active && auth.MygoIN8IdentityM9BelongsTo(viewer.Identity, repository.SiteID) && storage.MygoIN15CommunityAccessM7CanPost(access), CanHide: viewer.Roles.SiteAdministrator || viewer.Roles.DeploymentSuperadministrator, CanSave: viewer.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && active, CanHideForMe: viewer.Verified && active, CanModerate: hosted && auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community")}
- /*line browser_output.mygo:111:1*/		outputs = MygoIN5SliceM6Append(outputs, output)
+ /*line browser_output.mygo:119:1*/		down := __mygo_expr_1
+ /*line browser_output.mygo:235:5*/		output.Permissions = PostPermissions{CanEdit: edit, CanDelete: edit, CanLike: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && up, CanVote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && (up || down), CanUpvote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && up, CanDownvote: hosted && active && access.Subject.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && down, CanReply: hosted && active && auth.MygoIN8IdentityM9BelongsTo(viewer.Identity, repository.SiteID) && storage.MygoIN15CommunityAccessM7CanPost(access), CanHide: viewer.Roles.SiteAdministrator || viewer.Roles.DeploymentSuperadministrator, CanSave: viewer.Verified && storage.MygoIN15CommunityAccessM7CanRead(access) && active, CanHideForMe: viewer.Verified && active, CanModerate: hosted && auth.MygoIN19ManagementAuthorityM6Allows(access.Authority, "manage-community")}
+ /*line browser_output.mygo:119:1*/		outputs = MygoIN5SliceM6Append(outputs, output)
  /*line zz_browser_output.gen.go:206:1*/	}
- /*line browser_output.mygo:111:1*/	audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, ctx, viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views))
- /*line browser_output.mygo:234:3*/	if MygoIN6ResultM5IsErr[struct{}, string](audit) {
- /*line browser_output.mygo:235:12*/		return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audit))
- /*line browser_output.mygo:234:3*/	} else {
+ /*line browser_output.mygo:119:1*/	audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, ctx, viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views))
+ /*line browser_output.mygo:251:3*/	if MygoIN6ResultM5IsErr[struct{}, string](audit) {
+ /*line browser_output.mygo:252:12*/		return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audit))
+ /*line browser_output.mygo:251:3*/	} else {
  /*line zz_browser_output.gen.go:211:1*/	}
- /*line browser_output.mygo:237:3*/	return Ok[[]PostOutput, string](outputs)
+ /*line browser_output.mygo:254:3*/	return Ok[[]PostOutput, string](outputs)
  /*line zz_browser_output.gen.go:213:1*/}
- /*line browser_output.mygo:240:1*/func ThreadBefore(left PostOutput, right PostOutput, mode string) bool {
- /*line browser_output.mygo:241:3*/	if mode == "new" {
+ /*line browser_output.mygo:257:1*/func ThreadBefore(left PostOutput, right PostOutput, mode ThreadSortMode) bool {
+ /*line browser_output.mygo:258:3*/	if _, ok := mode.(ThreadSortMode__New); ok {
 		if !left.AuthoredAt.Equal(right.AuthoredAt) {
- /*line browser_output.mygo:243:14*/			return left.AuthoredAt.After(right.AuthoredAt)
- /*line browser_output.mygo:241:3*/		} else {
+ /*line browser_output.mygo:261:16*/			return left.AuthoredAt.After(right.AuthoredAt)
+ /*line browser_output.mygo:258:3*/		} else {
  /*line zz_browser_output.gen.go:219:1*/		}
- /*line browser_output.mygo:241:3*/	} else {
-		if mode == "top" {
- /*line browser_output.mygo:247:7*/			if left.Score != right.Score {
- /*line browser_output.mygo:248:16*/				return left.Score > right.Score
- /*line browser_output.mygo:247:7*/			} else {
+ /*line browser_output.mygo:258:3*/	} else {
+		if _, ok := mode.(ThreadSortMode__Top); ok {
+ /*line browser_output.mygo:265:7*/			if left.Score != right.Score {
+ /*line browser_output.mygo:266:16*/				return left.Score > right.Score
+ /*line browser_output.mygo:265:7*/			} else {
  /*line zz_browser_output.gen.go:225:1*/			}
- /*line browser_output.mygo:241:3*/			if !left.AuthoredAt.Equal(right.AuthoredAt) {
- /*line browser_output.mygo:251:16*/				return left.AuthoredAt.After(right.AuthoredAt)
- /*line browser_output.mygo:241:3*/			} else {
+ /*line browser_output.mygo:258:3*/			if !left.AuthoredAt.Equal(right.AuthoredAt) {
+ /*line browser_output.mygo:269:16*/				return left.AuthoredAt.After(right.AuthoredAt)
+ /*line browser_output.mygo:258:3*/			} else {
  /*line zz_browser_output.gen.go:229:1*/			}
- /*line browser_output.mygo:241:3*/		} else {
-			if mode == "controversial" {
+ /*line browser_output.mygo:258:3*/		} else {
+			if _, ok := mode.(ThreadSortMode__Controversial); ok {
 				var __mygo_expr_0 int64
 				if left.Upvotes < left.Downvotes {
 					__mygo_expr_0 = left.Upvotes
 				} else {
 					__mygo_expr_0 = left.Downvotes
  /*line zz_browser_output.gen.go:237:1*/				}
- /*line browser_output.mygo:241:3*/				leftBalance := __mygo_expr_0
+ /*line browser_output.mygo:258:3*/				leftBalance := __mygo_expr_0
 				var __mygo_expr_1 int64
 				if right.Upvotes < right.Downvotes {
 					__mygo_expr_1 = right.Upvotes
 				} else {
 					__mygo_expr_1 = right.Downvotes
  /*line zz_browser_output.gen.go:244:1*/				}
- /*line browser_output.mygo:241:3*/				rightBalance := __mygo_expr_1
- /*line browser_output.mygo:265:9*/				if leftBalance != rightBalance {
- /*line browser_output.mygo:266:18*/					return leftBalance > rightBalance
- /*line browser_output.mygo:265:9*/				} else {
+ /*line browser_output.mygo:258:3*/				rightBalance := __mygo_expr_1
+ /*line browser_output.mygo:275:7*/				if leftBalance != rightBalance {
+ /*line browser_output.mygo:276:16*/					return leftBalance > rightBalance
+ /*line browser_output.mygo:275:7*/				} else {
  /*line zz_browser_output.gen.go:249:1*/				}
- /*line browser_output.mygo:268:9*/				if left.Score != right.Score {
- /*line browser_output.mygo:269:18*/					return left.Score < right.Score
- /*line browser_output.mygo:268:9*/				} else {
+ /*line browser_output.mygo:278:7*/				if left.Score != right.Score {
+ /*line browser_output.mygo:279:16*/					return left.Score < right.Score
+ /*line browser_output.mygo:278:7*/				} else {
  /*line zz_browser_output.gen.go:253:1*/				}
- /*line browser_output.mygo:241:3*/				if !left.AuthoredAt.Equal(right.AuthoredAt) {
- /*line browser_output.mygo:272:18*/					return left.AuthoredAt.After(right.AuthoredAt)
- /*line browser_output.mygo:241:3*/				} else {
+ /*line browser_output.mygo:258:3*/				if !left.AuthoredAt.Equal(right.AuthoredAt) {
+ /*line browser_output.mygo:282:16*/					return left.AuthoredAt.After(right.AuthoredAt)
+ /*line browser_output.mygo:258:3*/				} else {
  /*line zz_browser_output.gen.go:257:1*/				}
- /*line browser_output.mygo:241:3*/			} else {
-				if !left.AuthoredAt.Equal(right.AuthoredAt) {
- /*line browser_output.mygo:276:18*/					return left.AuthoredAt.Before(right.AuthoredAt)
- /*line browser_output.mygo:241:3*/				} else {
- /*line zz_browser_output.gen.go:262:1*/				}
+ /*line browser_output.mygo:258:3*/			} else {
+				if _, ok := mode.(ThreadSortMode__Old); ok {
+					if !left.AuthoredAt.Equal(right.AuthoredAt) {
+ /*line browser_output.mygo:287:16*/						return left.AuthoredAt.Before(right.AuthoredAt)
+ /*line browser_output.mygo:258:3*/					} else {
+ /*line zz_browser_output.gen.go:263:1*/					}
+ /*line browser_output.mygo:258:3*/				} else {
+ /*line zz_browser_output.gen.go:265:1*/				}
 			}
 		}
 	}
- /*line browser_output.mygo:281:3*/	return left.ID < right.ID
- /*line zz_browser_output.gen.go:267:1*/}
- /*line browser_output.mygo:284:1*/func SortThread(items []PostOutput, mode string) []PostOutput {
-	remaining := items
-	var output []PostOutput = []PostOutput{}
-	for MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(remaining) > 0 {
-		best := 0
-		index := 1
-		for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(remaining) {
-			if ThreadBefore(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(remaining, index)), MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(remaining, best)), mode) {
-				best = index
-			} else {
- /*line zz_browser_output.gen.go:278:1*/			}
- /*line browser_output.mygo:284:1*/			index = index + 1
- /*line zz_browser_output.gen.go:280:1*/		}
- /*line browser_output.mygo:284:1*/		output = MygoIN5SliceM6Append(output, MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(remaining, best)))
-		var next []PostOutput = []PostOutput{}
-		index = 0
-		for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(remaining) {
-			if index != best {
-				next = MygoIN5SliceM6Append(next, MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(remaining, index)))
-			} else {
- /*line zz_browser_output.gen.go:288:1*/			}
- /*line browser_output.mygo:284:1*/			index = index + 1
- /*line zz_browser_output.gen.go:290:1*/		}
- /*line browser_output.mygo:284:1*/		remaining = next
- /*line zz_browser_output.gen.go:292:1*/	}
- /*line browser_output.mygo:307:3*/	return output
- /*line zz_browser_output.gen.go:294:1*/}
- /*line browser_output.mygo:310:1*/func ThreadChildren(all []PostOutput, parentID string, mode string) []PostOutput {
+ /*line browser_output.mygo:291:3*/	return left.ID < right.ID
+ /*line zz_browser_output.gen.go:270:1*/}
+ /*line browser_output.mygo:294:1*/func SortThread(items []PostOutput, mode ThreadSortMode) []PostOutput {
+ /*line browser_output.mygo:295:3*/	return MygoIT8IOrderedFN13SliceIOrderedGN1TEGN5SliceGN1TEN1TEM8SortedBy(items, func(left PostOutput, right PostOutput) bool {
+ /*line browser_output.mygo:296:5*/		return ThreadBefore(left, right, mode)
+ /*line zz_browser_output.gen.go:274:1*/	})
+}
+ /*line browser_output.mygo:300:1*/func ThreadChildren(all []PostOutput, parentID string, mode ThreadSortMode) []PostOutput {
 	var children []PostOutput = []PostOutput{}
- /*line browser_output.mygo:312:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(all, func(item PostOutput) {
- /*line browser_output.mygo:313:5*/		if item.ParentID == parentID {
+ /*line browser_output.mygo:302:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(all, func(item PostOutput) {
+ /*line browser_output.mygo:303:5*/		if item.ParentID == parentID {
 			child := item
 			child.Children = ThreadChildren(all, item.ID, mode)
 			child.ChildCount = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(child.Children)
@@ -303,20 +284,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
 		} else {
 			return
- /*line zz_browser_output.gen.go:306:1*/		}
+ /*line zz_browser_output.gen.go:287:1*/		}
 	})
- /*line browser_output.mygo:320:3*/	return SortThread(children, mode)
- /*line zz_browser_output.gen.go:309:1*/}
- /*line browser_output.mygo:323:1*/func BrowserThread(sanitizer content.Sanitizer, ctx context.Context, repository storage.BrowserRepository, viewer storage.BrowserViewer, rows []storage.ThreadRow, parentID string, mode string) Result[[]PostOutput, string] {
+ /*line browser_output.mygo:310:3*/	return SortThread(children, mode)
+ /*line zz_browser_output.gen.go:290:1*/}
+ /*line browser_output.mygo:313:1*/func BrowserThread(sanitizer content.Sanitizer, ctx context.Context, repository storage.BrowserRepository, viewer storage.BrowserViewer, rows []storage.ThreadRow, parentID string, mode ThreadSortMode) Result[[]PostOutput, string] {
 	records := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(rows, func(row storage.ThreadRow) storage.PostRecord {
- /*line browser_output.mygo:332:77*/		return row.Post
- /*line zz_browser_output.gen.go:313:1*/	})
- /*line browser_output.mygo:323:1*/	outputs := BrowserPosts(sanitizer, ctx, repository, viewer, records)
- /*line browser_output.mygo:334:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
- /*line browser_output.mygo:335:12*/		return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
- /*line browser_output.mygo:334:3*/	} else {
- /*line zz_browser_output.gen.go:318:1*/	}
- /*line browser_output.mygo:323:1*/	all := MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs)
+ /*line browser_output.mygo:322:77*/		return row.Post
+ /*line zz_browser_output.gen.go:294:1*/	})
+ /*line browser_output.mygo:313:1*/	outputs := BrowserPosts(sanitizer, ctx, repository, viewer, records)
+ /*line browser_output.mygo:324:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
+ /*line browser_output.mygo:325:12*/		return Err[[]PostOutput, string](MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
+ /*line browser_output.mygo:324:3*/	} else {
+ /*line zz_browser_output.gen.go:299:1*/	}
+ /*line browser_output.mygo:313:1*/	all := MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs)
 	var adjusted []PostOutput = []PostOutput{}
 	index := 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(all) {
@@ -324,42 +305,42 @@ import . "github.com/mygo-lang/mygo/prelude"
 		item.Depth = MygoIN6OptionM6Unwrap[storage.ThreadRow](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rows, index)).Depth
 		adjusted = MygoIN5SliceM6Append(adjusted, item)
 		index = index + 1
- /*line zz_browser_output.gen.go:327:1*/	}
- /*line browser_output.mygo:346:3*/	return Ok[[]PostOutput, string](ThreadChildren(adjusted, parentID, mode))
- /*line zz_browser_output.gen.go:329:1*/}
- /*line browser_output.mygo:349:1*/func WriteBrowserPost(sanitizer content.Sanitizer, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, status int, identity auth.Identity, record storage.PostRecord) {
+ /*line zz_browser_output.gen.go:308:1*/	}
+ /*line browser_output.mygo:336:3*/	return Ok[[]PostOutput, string](ThreadChildren(adjusted, parentID, mode))
+ /*line zz_browser_output.gen.go:310:1*/}
+ /*line browser_output.mygo:339:1*/func WriteBrowserPost(sanitizer content.Sanitizer, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, status int, identity auth.Identity, record storage.PostRecord) {
 	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), identity)
- /*line browser_output.mygo:361:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
- /*line browser_output.mygo:362:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
- /*line browser_output.mygo:361:3*/		return
+ /*line browser_output.mygo:351:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+ /*line browser_output.mygo:352:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
+ /*line browser_output.mygo:351:3*/		return
 	} else {
- /*line zz_browser_output.gen.go:337:1*/	}
- /*line browser_output.mygo:349:1*/	var records []storage.PostRecord = []storage.PostRecord{record}
+ /*line zz_browser_output.gen.go:318:1*/	}
+ /*line browser_output.mygo:339:1*/	var records []storage.PostRecord = []storage.PostRecord{record}
 	outputs := BrowserPosts(sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), records)
- /*line browser_output.mygo:367:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
- /*line browser_output.mygo:368:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
+ /*line browser_output.mygo:357:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
+ /*line browser_output.mygo:358:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
 		return
- /*line browser_output.mygo:367:3*/	} else {
- /*line browser_output.mygo:370:5*/		WriteJSON(w, status, MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs), 0)))
+ /*line browser_output.mygo:357:3*/	} else {
+ /*line browser_output.mygo:360:5*/		WriteJSON(w, status, MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs), 0)))
 		return
- /*line zz_browser_output.gen.go:346:1*/	}
+ /*line zz_browser_output.gen.go:327:1*/	}
 }
- /*line browser_output.mygo:374:1*/func WriteBrowserCommunity(db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, status int, identity auth.Identity, record storage.CommunityRecord) {
+ /*line browser_output.mygo:364:1*/func WriteBrowserCommunity(db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, status int, identity auth.Identity, record storage.CommunityRecord) {
 	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), identity)
- /*line browser_output.mygo:385:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
- /*line browser_output.mygo:386:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
- /*line browser_output.mygo:385:3*/		return
+ /*line browser_output.mygo:375:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+ /*line browser_output.mygo:376:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
+ /*line browser_output.mygo:375:3*/		return
 	} else {
- /*line zz_browser_output.gen.go:355:1*/	}
- /*line browser_output.mygo:374:1*/	var ids []string = []string{record.ID}
+ /*line zz_browser_output.gen.go:336:1*/	}
+ /*line browser_output.mygo:364:1*/	var ids []string = []string{record.ID}
 	views := storage.MygoIN17BrowserRepositoryM5Views(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), ids)
- /*line browser_output.mygo:391:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views)) != 1 {
- /*line browser_output.mygo:392:5*/		Fail(w, "community unavailable")
+ /*line browser_output.mygo:381:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](views) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views)) != 1 {
+ /*line browser_output.mygo:382:5*/		Fail(w, "community unavailable")
 		return
- /*line browser_output.mygo:391:3*/	} else {
- /*line browser_output.mygo:394:5*/		WriteJSON(w, status, BrowserCommunityDTO(request.Context(), repository, MygoIN6OptionM6Unwrap[storage.CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views), 0)), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer)))
+ /*line browser_output.mygo:381:3*/	} else {
+ /*line browser_output.mygo:384:5*/		WriteJSON(w, status, BrowserCommunityDTO(request.Context(), repository, MygoIN6OptionM6Unwrap[storage.CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](views), 0)), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer)))
 		return
- /*line zz_browser_output.gen.go:364:1*/	}
+ /*line zz_browser_output.gen.go:345:1*/	}
 }

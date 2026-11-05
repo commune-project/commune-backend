@@ -254,77 +254,50 @@ func BrowserPosts(
   Ok(outputs)
 end
 
-func ThreadBefore(left: PostOutput, right: PostOutput, mode: String) -> Bool
-  if mode == "new" then
-    if !left.AuthoredAt.Equal(right.AuthoredAt) then
-      return left.AuthoredAt.After(right.AuthoredAt)
+func ThreadBefore(left: PostOutput, right: PostOutput, mode: ThreadSortMode) -> Bool
+  switch mode
+    case New then
+      if !left.AuthoredAt.Equal(right.AuthoredAt) then
+        return left.AuthoredAt.After(right.AuthoredAt)
+      end
     end
-  else
-    if mode == "top" then
+    case Top then
       if left.Score != right.Score then
         return left.Score > right.Score
       end
       if !left.AuthoredAt.Equal(right.AuthoredAt) then
         return left.AuthoredAt.After(right.AuthoredAt)
       end
-    else
-      if mode == "controversial" then
-        let leftBalance = if left.Upvotes < left.Downvotes then
-          left.Upvotes
-        else
-          left.Downvotes
-        end
-        let rightBalance = if right.Upvotes < right.Downvotes then
-          right.Upvotes
-        else
-          right.Downvotes
-        end
-        if leftBalance != rightBalance then
-          return leftBalance > rightBalance
-        end
-        if left.Score != right.Score then
-          return left.Score < right.Score
-        end
-        if !left.AuthoredAt.Equal(right.AuthoredAt) then
-          return left.AuthoredAt.After(right.AuthoredAt)
-        end
-      else
-        if !left.AuthoredAt.Equal(right.AuthoredAt) then
-          return left.AuthoredAt.Before(right.AuthoredAt)
-        end
+    end
+    case Controversial then
+      let leftBalance = if left.Upvotes < left.Downvotes then left.Upvotes else left.Downvotes end
+      let rightBalance = if right.Upvotes < right.Downvotes then right.Upvotes else right.Downvotes end
+      if leftBalance != rightBalance then
+        return leftBalance > rightBalance
+      end
+      if left.Score != right.Score then
+        return left.Score < right.Score
+      end
+      if !left.AuthoredAt.Equal(right.AuthoredAt) then
+        return left.AuthoredAt.After(right.AuthoredAt)
+      end
+    end
+    case Old then
+      if !left.AuthoredAt.Equal(right.AuthoredAt) then
+        return left.AuthoredAt.Before(right.AuthoredAt)
       end
     end
   end
   left.ID < right.ID
 end
 
-func SortThread(items: Slice[PostOutput], mode: String) -> Slice[PostOutput]
-  var remaining = items
-  var output: Slice[PostOutput] = []
-  while remaining.Len() > 0
-    var best = 0
-    var index = 1
-    while index < remaining.Len()
-      if ThreadBefore(remaining.Get(index).Unwrap(), remaining.Get(best).Unwrap(), mode) then
-        best = index
-      end
-      index = index + 1
-    end
-    output = output.Append(remaining.Get(best).Unwrap())
-    var next: Slice[PostOutput] = []
-    index = 0
-    while index < remaining.Len()
-      if index != best then
-        next = next.Append(remaining.Get(index).Unwrap())
-      end
-      index = index + 1
-    end
-    remaining = next
-  end
-  output
+func SortThread(items: Slice[PostOutput], mode: ThreadSortMode) -> Slice[PostOutput]
+  items.SortedBy(func(left: PostOutput, right: PostOutput) -> Bool
+    ThreadBefore(left, right, mode)
+  end)
 end
 
-func ThreadChildren(all: Slice[PostOutput], parentID: String, mode: String) -> Slice[PostOutput]
+func ThreadChildren(all: Slice[PostOutput], parentID: String, mode: ThreadSortMode) -> Slice[PostOutput]
   var children: Slice[PostOutput] = []
   all.Each(func(item: PostOutput) -> ()
     if item.ParentID == parentID then
@@ -344,7 +317,7 @@ func BrowserThread(
   viewer: storage.BrowserViewer,
   rows: Slice[storage.ThreadRow],
   parentID: String,
-  mode: String
+  mode: ThreadSortMode
 ) -> Result[Slice[PostOutput], String]
   let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord row.Post end)
   let outputs = BrowserPosts(sanitizer, ctx, repository, viewer, records)

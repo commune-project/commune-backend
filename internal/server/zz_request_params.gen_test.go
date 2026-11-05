@@ -39,63 +39,63 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_request_params.gen_test.go:39:1*/		}
 	})
  /*line request_params_test.mygo:9:1*/	topicRequest := httptest.NewRequest("GET", "https://a.example/api/v1/topics?sort=hot", empty)
- /*line request_params_test.mygo:26:3*/	if MygoIN6ResultM6Unwrap[string, string](ParseTopicSort(topicRequest)) != "hot" {
- /*line request_params_test.mygo:27:5*/		t.Fatal("topic hot sort was rejected")
- /*line request_params_test.mygo:26:3*/	} else {
+ /*line request_params_test.mygo:25:3*/	if MygoIN6ResultM6Unwrap[string, string](ParseTopicSort(topicRequest)) != "hot" {
+ /*line request_params_test.mygo:26:5*/		t.Fatal("topic hot sort was rejected")
+ /*line request_params_test.mygo:25:3*/	} else {
  /*line zz_request_params.gen_test.go:45:1*/	}
  /*line request_params_test.mygo:9:1*/	threadHot := httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?sort=hot", empty)
- /*line request_params_test.mygo:30:3*/	if MygoIN6ResultM4IsOk[string, string](ParseThreadSort(threadHot)) || FailStatus("invalid sort") != 400 {
- /*line request_params_test.mygo:31:5*/		t.Fatal("thread hot sort was accepted or not mapped to 400")
- /*line request_params_test.mygo:30:3*/	} else {
+ /*line request_params_test.mygo:33:3*/	if MygoIN6ResultM4IsOk[ThreadSortMode, string](ParseThreadSort(threadHot)) || FailStatus("invalid sort") != 400 {
+ /*line request_params_test.mygo:34:5*/		t.Fatal("thread hot sort was accepted or not mapped to 400")
+ /*line request_params_test.mygo:33:3*/	} else {
  /*line zz_request_params.gen_test.go:50:1*/	}
  /*line request_params_test.mygo:9:1*/	defaultThread := httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies", empty)
- /*line request_params_test.mygo:34:3*/	if MygoIN6ResultM6Unwrap[string, string](ParseThreadSort(defaultThread)) != "old" || MygoIN6ResultM6Unwrap[int, string](ParseThreadDepth(defaultThread)) != 6 {
- /*line request_params_test.mygo:35:5*/		t.Fatal("thread defaults changed")
- /*line request_params_test.mygo:34:3*/	} else {
+ /*line request_params_test.mygo:37:3*/	if MygoIN14ThreadSortModeM6Render(MygoIN6ResultM6Unwrap[ThreadSortMode, string](ParseThreadSort(defaultThread))) != "old" || MygoIN6ResultM6Unwrap[int, string](ParseThreadDepth(defaultThread)) != 6 {
+ /*line request_params_test.mygo:39:5*/		t.Fatal("thread defaults changed")
+ /*line request_params_test.mygo:37:3*/	} else {
  /*line zz_request_params.gen_test.go:55:1*/	}
  /*line request_params_test.mygo:9:1*/	flat := httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?view=flat&max_depth=8", empty)
- /*line request_params_test.mygo:38:3*/	if MygoIN6ResultM6Unwrap[int, string](ParseThreadDepth(flat)) != 1 {
- /*line request_params_test.mygo:39:5*/		t.Fatal("flat alias did not force depth one")
- /*line request_params_test.mygo:38:3*/	} else {
+ /*line request_params_test.mygo:46:3*/	if MygoIN6ResultM6Unwrap[int, string](ParseThreadDepth(flat)) != 1 {
+ /*line request_params_test.mygo:47:5*/		t.Fatal("flat alias did not force depth one")
+ /*line request_params_test.mygo:46:3*/	} else {
  /*line zz_request_params.gen_test.go:60:1*/	}
  /*line request_params_test.mygo:9:1*/	invalidDepth := httptest.NewRequest("GET", "https://a.example/api/v1/posts/x/replies?max_depth=9", empty)
- /*line request_params_test.mygo:42:3*/	if MygoIN6ResultM4IsOk[int, string](ParseThreadDepth(invalidDepth)) || FailStatus("invalid depth") != 400 {
- /*line request_params_test.mygo:43:5*/		t.Fatal("invalid depth was accepted or not mapped to 400")
- /*line request_params_test.mygo:42:3*/	} else {
+ /*line request_params_test.mygo:54:3*/	if MygoIN6ResultM4IsOk[int, string](ParseThreadDepth(invalidDepth)) || FailStatus("invalid depth") != 400 {
+ /*line request_params_test.mygo:55:5*/		t.Fatal("invalid depth was accepted or not mapped to 400")
+ /*line request_params_test.mygo:54:3*/	} else {
  /*line zz_request_params.gen_test.go:65:1*/	}
  /*line request_params_test.mygo:9:1*/	var kinds []string = []string{"person", "community", "instance"}
- /*line request_params_test.mygo:47:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(kinds, func(kind string) {
- /*line request_params_test.mygo:48:5*/		if MygoIN6ResultM6Unwrap[string, string](ParseBlockKind(kind)) != kind {
- /*line request_params_test.mygo:49:7*/			t.Fatal("valid block kind was rejected")
+ /*line request_params_test.mygo:58:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(kinds, func(kind string) {
+ /*line request_params_test.mygo:59:5*/		if MygoIN6ResultM6Unwrap[string, string](ParseBlockKind(kind)) != kind {
+ /*line request_params_test.mygo:60:7*/			t.Fatal("valid block kind was rejected")
 			return
- /*line request_params_test.mygo:48:5*/		} else {
+ /*line request_params_test.mygo:59:5*/		} else {
 			return
  /*line zz_request_params.gen_test.go:73:1*/		}
 	})
- /*line request_params_test.mygo:52:3*/	if MygoIN6ResultM4IsOk[string, string](ParseBlockKind("domain")) || FailStatus("invalid block") != 400 {
- /*line request_params_test.mygo:53:5*/		t.Fatal("invalid block kind was accepted or not mapped to 400")
- /*line request_params_test.mygo:52:3*/	} else {
+ /*line request_params_test.mygo:63:3*/	if MygoIN6ResultM4IsOk[string, string](ParseBlockKind("domain")) || FailStatus("invalid block") != 400 {
+ /*line request_params_test.mygo:64:5*/		t.Fatal("invalid block kind was accepted or not mapped to 400")
+ /*line request_params_test.mygo:63:3*/	} else {
  /*line zz_request_params.gen_test.go:78:1*/	}
- /*line request_params_test.mygo:55:3*/	if MygoIN6ResultM6Unwrap[string, string](ParseReportState("open", true)) != "open" || MygoIN6ResultM6Unwrap[string, string](ParseReportState("", true)) != "" {
- /*line request_params_test.mygo:56:5*/		t.Fatal("valid report filter was rejected")
- /*line request_params_test.mygo:55:3*/	} else {
+ /*line request_params_test.mygo:66:3*/	if MygoIN6ResultM6Unwrap[string, string](ParseReportState("open", true)) != "open" || MygoIN6ResultM6Unwrap[string, string](ParseReportState("", true)) != "" {
+ /*line request_params_test.mygo:68:5*/		t.Fatal("valid report filter was rejected")
+ /*line request_params_test.mygo:66:3*/	} else {
  /*line zz_request_params.gen_test.go:82:1*/	}
- /*line request_params_test.mygo:58:3*/	if MygoIN6ResultM4IsOk[string, string](ParseReportState("pending", true)) || FailStatus("invalid report state") != 400 {
- /*line request_params_test.mygo:59:5*/		t.Fatal("invalid report state was accepted or not mapped to 400")
- /*line request_params_test.mygo:58:3*/	} else {
+ /*line request_params_test.mygo:70:3*/	if MygoIN6ResultM4IsOk[string, string](ParseReportState("pending", true)) || FailStatus("invalid report state") != 400 {
+ /*line request_params_test.mygo:71:5*/		t.Fatal("invalid report state was accepted or not mapped to 400")
+ /*line request_params_test.mygo:70:3*/	} else {
  /*line zz_request_params.gen_test.go:86:1*/	}
- /*line request_params_test.mygo:61:3*/	if MygoIN6ResultM4IsOk[string, string](ParseReportResolutionState("open")) || MygoIN6ResultM6Unwrap[string, string](ParseReportResolutionState("resolved")) != "resolved" {
- /*line request_params_test.mygo:62:5*/		t.Fatal("report resolution state validation failed")
- /*line request_params_test.mygo:61:3*/	} else {
+ /*line request_params_test.mygo:73:3*/	if MygoIN6ResultM4IsOk[string, string](ParseReportResolutionState("open")) || MygoIN6ResultM6Unwrap[string, string](ParseReportResolutionState("resolved")) != "resolved" {
+ /*line request_params_test.mygo:75:5*/		t.Fatal("report resolution state validation failed")
+ /*line request_params_test.mygo:73:3*/	} else {
  /*line zz_request_params.gen_test.go:90:1*/	}
- /*line request_params_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[sql.NullTime, string](ParseBanExpiry("")).Valid || MygoIN6ResultM6Unwrap[sql.NullTime, string](ParseBanExpiry("2027-01-02T03:04:05Z")).Valid != true {
- /*line request_params_test.mygo:65:5*/		t.Fatal("ban expiry parsing failed")
- /*line request_params_test.mygo:64:3*/	} else {
+ /*line request_params_test.mygo:77:3*/	if MygoIN6ResultM6Unwrap[sql.NullTime, string](ParseBanExpiry("")).Valid || MygoIN6ResultM6Unwrap[sql.NullTime, string](ParseBanExpiry("2027-01-02T03:04:05Z")).Valid != true {
+ /*line request_params_test.mygo:79:5*/		t.Fatal("ban expiry parsing failed")
+ /*line request_params_test.mygo:77:3*/	} else {
  /*line zz_request_params.gen_test.go:94:1*/	}
- /*line request_params_test.mygo:67:3*/	if MygoIN6ResultM4IsOk[sql.NullTime, string](ParseBanExpiry("tomorrow")) || FailStatus("invalid ban") != 400 {
- /*line request_params_test.mygo:68:5*/		t.Fatal("invalid ban expiry was accepted or not mapped to 400")
+ /*line request_params_test.mygo:81:3*/	if MygoIN6ResultM4IsOk[sql.NullTime, string](ParseBanExpiry("tomorrow")) || FailStatus("invalid ban") != 400 {
+ /*line request_params_test.mygo:82:5*/		t.Fatal("invalid ban expiry was accepted or not mapped to 400")
 		return
- /*line request_params_test.mygo:67:3*/	} else {
+ /*line request_params_test.mygo:81:3*/	} else {
 		return
  /*line zz_request_params.gen_test.go:100:1*/	}
 }
