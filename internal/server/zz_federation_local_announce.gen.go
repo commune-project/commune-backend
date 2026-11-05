@@ -22,34 +22,34 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_local_announce.gen.go:22:1*/}
 
  /*line federation_local_announce.mygo:21:1*/func PublishForumPost(settings config.Config, db *gorm.DB, ctx context.Context, site config.Site, communityID string, identity auth.Identity, remoteVerified bool, input storage.PublishInput) Result[storage.PostRecord, string] {
-	post := storage.PostRecord{}
+	post := Zero[storage.PostRecord]()
 	result := storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
  /*line federation_local_announce.mygo:23:48*/		published := storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, site, communityID, identity, remoteVerified, input)
- /*line federation_local_announce.mygo:25:8*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
+ /*line federation_local_announce.mygo:25:5*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
  /*line federation_local_announce.mygo:25:38*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
- /*line federation_local_announce.mygo:25:8*/		} else {
+ /*line federation_local_announce.mygo:25:5*/		} else {
  /*line zz_federation_local_announce.gen.go:31:1*/		}
  /*line federation_local_announce.mygo:23:48*/		post = MygoIN6ResultM6Unwrap[storage.PostRecord, string](published)
  /*line federation_local_announce.mygo:27:5*/		return QueuePostMutation(ctx, settings, tx, site, post, "Create")
  /*line zz_federation_local_announce.gen.go:34:1*/	})
- /*line federation_local_announce.mygo:29:6*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line federation_local_announce.mygo:29:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
  /*line federation_local_announce.mygo:29:33*/		return Err[storage.PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line federation_local_announce.mygo:29:6*/	} else {
+ /*line federation_local_announce.mygo:29:3*/	} else {
  /*line zz_federation_local_announce.gen.go:38:1*/	}
  /*line federation_local_announce.mygo:30:3*/	return Ok[storage.PostRecord, string](post)
  /*line zz_federation_local_announce.gen.go:40:1*/}
  /*line federation_local_announce.mygo:33:1*/func QueuePostMutation(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, post storage.PostRecord, kind string) Result[struct {
 }, string] {
 	loaded := storage.LoadCommunityByID(ctx, db, post.CommunityID)
- /*line federation_local_announce.mygo:35:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
+ /*line federation_local_announce.mygo:35:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
  /*line federation_local_announce.mygo:35:61*/		return Err[struct{}, string]("community unavailable")
- /*line federation_local_announce.mygo:35:6*/	} else {
+ /*line federation_local_announce.mygo:35:3*/	} else {
  /*line zz_federation_local_announce.gen.go:47:1*/	}
  /*line federation_local_announce.mygo:33:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
- /*line federation_local_announce.mygo:37:6*/	if !federation.FederatedCommunity(community) {
+ /*line federation_local_announce.mygo:37:3*/	if !federation.FederatedCommunity(community) {
  /*line federation_local_announce.mygo:37:60*/		return Ok[struct{}, string](struct {
  /*line zz_federation_local_announce.gen.go:51:1*/		}{})
- /*line federation_local_announce.mygo:37:6*/	} else {
+ /*line federation_local_announce.mygo:37:3*/	} else {
  /*line zz_federation_local_announce.gen.go:53:1*/	}
  /*line federation_local_announce.mygo:38:3*/	return AnnounceLocalMutation(ctx, settings, db, site, community, post, kind)
  /*line zz_federation_local_announce.gen.go:55:1*/}
@@ -60,9 +60,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_local_announce.mygo:48:1*/func AnnounceLocalMutation(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, community storage.CommunityRecord, post storage.PostRecord, kind string) Result[struct {
 }, string] {
 	contextURIs := storage.PostContextURIs(ctx, db, post.ID)
- /*line federation_local_announce.mygo:50:6*/	if MygoIN6ResultM5IsErr[[]string, string](contextURIs) {
+ /*line federation_local_announce.mygo:50:3*/	if MygoIN6ResultM5IsErr[[]string, string](contextURIs) {
  /*line federation_local_announce.mygo:51:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](contextURIs))
- /*line federation_local_announce.mygo:50:6*/	} else {
+ /*line federation_local_announce.mygo:50:3*/	} else {
  /*line zz_federation_local_announce.gen.go:66:1*/	}
  /*line federation_local_announce.mygo:48:1*/	declared := MygoIN6ResultM6Unwrap[[]string, string](contextURIs)
 	var __mygo_expr_0 string
@@ -72,10 +72,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = ""
  /*line zz_federation_local_announce.gen.go:73:1*/	}
  /*line federation_local_announce.mygo:48:1*/	primary := __mygo_expr_0
-	object := BuildRichObject(ctx, db, post, community, primary)
- /*line federation_local_announce.mygo:56:6*/	if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](object) {
+	object := BuildRichObject(settings.Rendering.Sanitizer, ctx, db, post, community, primary)
+ /*line federation_local_announce.mygo:56:3*/	if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](object) {
  /*line federation_local_announce.mygo:56:33*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ObjectRepresentation, string](object))
- /*line federation_local_announce.mygo:56:6*/	} else {
+ /*line federation_local_announce.mygo:56:3*/	} else {
  /*line zz_federation_local_announce.gen.go:79:1*/	}
  /*line federation_local_announce.mygo:57:17*/	var __mygo_expr_2 Result[[]byte, error]
 	__mygo_expr_3, __mygo_expr_1 := json.Marshal(MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](object))
@@ -85,9 +85,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_2 = Ok[[]byte, error](__mygo_expr_3)
  /*line zz_federation_local_announce.gen.go:86:1*/	}
  /*line federation_local_announce.mygo:48:1*/	encoded := __mygo_expr_2
- /*line federation_local_announce.mygo:58:6*/	if MygoIN6ResultM5IsErr[[]byte, error](encoded) {
+ /*line federation_local_announce.mygo:58:3*/	if MygoIN6ResultM5IsErr[[]byte, error](encoded) {
  /*line federation_local_announce.mygo:59:12*/		return Err[struct{}, string]("announce payload failed")
- /*line federation_local_announce.mygo:58:6*/	} else {
+ /*line federation_local_announce.mygo:58:3*/	} else {
  /*line zz_federation_local_announce.gen.go:91:1*/	}
  /*line federation_local_announce.mygo:48:1*/	createURI := site.Origin + "/activities/" + rand.Text()
 	var __mygo_expr_7 Result[[]byte, error]
@@ -104,9 +104,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = encoded
  /*line zz_federation_local_announce.gen.go:105:1*/	}
  /*line federation_local_announce.mygo:48:1*/	representation := __mygo_expr_7
- /*line federation_local_announce.mygo:63:6*/	if MygoIN6ResultM5IsErr[[]byte, error](representation) {
+ /*line federation_local_announce.mygo:63:3*/	if MygoIN6ResultM5IsErr[[]byte, error](representation) {
  /*line federation_local_announce.mygo:63:41*/		return Err[struct{}, string]("announce payload failed")
- /*line federation_local_announce.mygo:63:6*/	} else {
+ /*line federation_local_announce.mygo:63:3*/	} else {
  /*line zz_federation_local_announce.gen.go:110:1*/	}
  /*line federation_local_announce.mygo:64:18*/	var __mygo_expr_9 Result[[]byte, error]
 	__mygo_expr_10, __mygo_expr_8 := json.Marshal(LocalPostActivity{Context: "https://www.w3.org/ns/activitystreams", ID: createURI, Type: kind, Actor: post.AuthorActorURI, Object: json.RawMessage(MygoIN6ResultM6Unwrap[[]byte, error](representation))})
@@ -116,36 +116,36 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_9 = Ok[[]byte, error](__mygo_expr_10)
  /*line zz_federation_local_announce.gen.go:117:1*/	}
  /*line federation_local_announce.mygo:48:1*/	activity := __mygo_expr_9
- /*line federation_local_announce.mygo:65:6*/	if MygoIN6ResultM5IsErr[[]byte, error](activity) {
+ /*line federation_local_announce.mygo:65:3*/	if MygoIN6ResultM5IsErr[[]byte, error](activity) {
  /*line federation_local_announce.mygo:65:35*/		return Err[struct{}, string]("announce payload failed")
- /*line federation_local_announce.mygo:65:6*/	} else {
+ /*line federation_local_announce.mygo:65:3*/	} else {
  /*line zz_federation_local_announce.gen.go:122:1*/	}
  /*line federation_local_announce.mygo:48:1*/	stored := storage.InsertActivityPayload(ctx, db, createURI, post.AuthorActorURI, kind, MygoIN6ResultM6Unwrap[[]byte, error](activity), community.ID)
- /*line federation_local_announce.mygo:67:6*/	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
+ /*line federation_local_announce.mygo:67:3*/	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
  /*line federation_local_announce.mygo:67:33*/		return stored
- /*line federation_local_announce.mygo:67:6*/	} else {
+ /*line federation_local_announce.mygo:67:3*/	} else {
  /*line zz_federation_local_announce.gen.go:127:1*/	}
  /*line federation_local_announce.mygo:48:1*/	extras := ResolveContextAuthoritiesFromURIs(ctx, settings, declared, site.Origin)
 	var recipients []string = []string{}
- /*line federation_local_announce.mygo:70:6*/	if storage.QueryFailed(db.WithContext(ctx).Raw("SELECT m.actor_uri FROM post_mentions m JOIN actors a ON a.uri=m.actor_uri WHERE m.post_id=? AND m.active AND a.local_site_id IS NULL", post.ID).Scan(&recipients)) {
+ /*line federation_local_announce.mygo:70:3*/	if storage.QueryFailed(db.WithContext(ctx).Raw("SELECT m.actor_uri FROM post_mentions m JOIN actors a ON a.uri=m.actor_uri WHERE m.post_id=? AND m.active AND a.local_site_id IS NULL", post.ID).Scan(&recipients)) {
  /*line federation_local_announce.mygo:70:235*/		return Err[struct{}, string]("mentions unavailable")
- /*line federation_local_announce.mygo:70:6*/	} else {
+ /*line federation_local_announce.mygo:70:3*/	} else {
  /*line zz_federation_local_announce.gen.go:133:1*/	}
  /*line federation_local_announce.mygo:71:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(recipients, func(uri string) {
- /*line federation_local_announce.mygo:71:46*/		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(extras, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line federation_local_announce.mygo:71:43*/		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(extras, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			extras = MygoIN5SliceM6Append(extras, uri)
 			return
 		} else {
- /*line federation_local_announce.mygo:71:43*/			return
+			return
  /*line zz_federation_local_announce.gen.go:140:1*/		}
 	})
  /*line federation_local_announce.mygo:72:3*/	return PublishGroupAnnouncementTo(ctx, db, site, community, MygoIN6ResultM6Unwrap[[]byte, error](activity), extras)
  /*line zz_federation_local_announce.gen.go:143:1*/}
  /*line federation_local_announce.mygo:75:1*/func ResolveContextAuthorities(ctx context.Context, settings config.Config, db *gorm.DB, postID string, origin string) []string {
 	uris := storage.PostContextURIs(ctx, db, postID)
- /*line federation_local_announce.mygo:77:6*/	if MygoIN6ResultM5IsErr[[]string, string](uris) {
+ /*line federation_local_announce.mygo:77:3*/	if MygoIN6ResultM5IsErr[[]string, string](uris) {
  /*line federation_local_announce.mygo:78:12*/		return []string{}
- /*line federation_local_announce.mygo:77:6*/	} else {
+ /*line federation_local_announce.mygo:77:3*/	} else {
  /*line zz_federation_local_announce.gen.go:149:1*/	}
  /*line federation_local_announce.mygo:80:3*/	return ResolveContextAuthoritiesFromURIs(ctx, settings, MygoIN6ResultM6Unwrap[[]string, string](uris), origin)
  /*line zz_federation_local_announce.gen.go:151:1*/}
@@ -153,21 +153,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var authorities []string = []string{}
 	limits := FetchLimitsFrom(settings)
  /*line federation_local_announce.mygo:86:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(uris, func(uri string) {
- /*line federation_local_announce.mygo:87:8*/		if uri == "" || strings.HasPrefix(uri, origin+"/") {
+ /*line federation_local_announce.mygo:87:5*/		if uri == "" || strings.HasPrefix(uri, origin+"/") {
 			return
 		} else {
  /*line zz_federation_local_announce.gen.go:159:1*/		}
  /*line federation_local_announce.mygo:86:13*/		fetched := federation.Fetch(ctx, uri, limits)
- /*line federation_local_announce.mygo:91:8*/		if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) {
+ /*line federation_local_announce.mygo:91:5*/		if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) {
 			return
 		} else {
  /*line zz_federation_local_announce.gen.go:164:1*/		}
  /*line federation_local_announce.mygo:86:13*/		authority := federation.ContextAuthorityURI(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Body)
- /*line federation_local_announce.mygo:95:8*/		if authority != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(authorities, authority, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line federation_local_announce.mygo:95:5*/		if authority != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(authorities, authority, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			authorities = MygoIN5SliceM6Append(authorities, authority)
 			return
 		} else {
- /*line federation_local_announce.mygo:95:5*/			return
+			return
  /*line zz_federation_local_announce.gen.go:171:1*/		}
 	})
  /*line federation_local_announce.mygo:99:3*/	return authorities

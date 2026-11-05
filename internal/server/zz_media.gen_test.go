@@ -72,9 +72,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:47:1*/	request_1 := mediaMultipartRequest(site.Origin, "post", "<html><script>alert(1)</script></html>", "payload.html", "text/html", false)
 	anonymous := httptest.NewRecorder()
  /*line media_test.mygo:66:3*/	handler.ServeHTTP(http.ResponseWriter(anonymous), request_1)
- /*line media_test.mygo:67:6*/	if anonymous.Code != 401 {
+ /*line media_test.mygo:67:3*/	if anonymous.Code != 401 {
  /*line media_test.mygo:67:33*/		t.Fatal("upload did not require session")
- /*line media_test.mygo:67:6*/	} else {
+ /*line media_test.mygo:67:3*/	} else {
  /*line zz_media.gen_test.go:78:1*/	}
  /*line media_test.mygo:47:1*/	missingCSRF := mediaMultipartRequest(site.Origin, "post", "file", "name.pdf", "application/pdf", false)
  /*line media_test.mygo:69:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cookies, func(cookie http.Cookie) {
@@ -83,9 +83,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen_test.go:83:1*/	})
  /*line media_test.mygo:47:1*/	denied := httptest.NewRecorder()
  /*line media_test.mygo:71:3*/	handler.ServeHTTP(http.ResponseWriter(denied), missingCSRF)
- /*line media_test.mygo:72:6*/	if denied.Code != 403 {
+ /*line media_test.mygo:72:3*/	if denied.Code != 403 {
  /*line media_test.mygo:72:30*/		t.Fatal("upload accepted missing CSRF")
- /*line media_test.mygo:72:6*/	} else {
+ /*line media_test.mygo:72:3*/	} else {
  /*line zz_media.gen_test.go:89:1*/	}
  /*line media_test.mygo:47:1*/	crossOrigin := mediaMultipartRequest(site.Origin, "post", "file", "name.pdf", "application/pdf", false)
  /*line media_test.mygo:74:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cookies, func(cookie_1 http.Cookie) {
@@ -96,9 +96,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:76:3*/	crossOrigin.Header.Set("Origin", "https://evil.example")
  /*line media_test.mygo:47:1*/	crossed := httptest.NewRecorder()
  /*line media_test.mygo:78:3*/	handler.ServeHTTP(http.ResponseWriter(crossed), crossOrigin)
- /*line media_test.mygo:79:6*/	if crossed.Code != 403 {
+ /*line media_test.mygo:79:3*/	if crossed.Code != 403 {
  /*line media_test.mygo:79:31*/		t.Fatal("cross-origin upload accepted")
- /*line media_test.mygo:79:6*/	} else {
+ /*line media_test.mygo:79:3*/	} else {
  /*line zz_media.gen_test.go:102:1*/	}
  /*line media_test.mygo:47:1*/	uploadRequest := mediaMultipartRequest(site.Origin, "post", "<html><script>alert(1)</script></html>", "payload.html", "text/html", false)
  /*line media_test.mygo:81:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cookies, func(cookie_2 http.Cookie) {
@@ -108,11 +108,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:82:3*/	uploadRequest.Header.Set("X-CSRF-Token", tokens.CSRF)
  /*line media_test.mygo:47:1*/	uploaded := httptest.NewRecorder()
  /*line media_test.mygo:84:3*/	handler.ServeHTTP(http.ResponseWriter(uploaded), uploadRequest)
- /*line media_test.mygo:85:6*/	if uploaded.Code != 201 {
+ /*line media_test.mygo:85:3*/	if uploaded.Code != 201 {
  /*line media_test.mygo:85:32*/		t.Fatalf("upload failed: %d %s", uploaded.Code, uploaded.Body.String())
- /*line media_test.mygo:85:6*/	} else {
+ /*line media_test.mygo:85:3*/	} else {
  /*line zz_media.gen_test.go:114:1*/	}
- /*line media_test.mygo:47:1*/	output := MediaOutput{}
+ /*line media_test.mygo:47:1*/	output := Zero[MediaOutput]()
  /*line media_test.mygo:87:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(uploaded.Body.Bytes(), &output)
 	if __mygo_expr_3 != nil {
@@ -122,9 +122,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen_test.go:122:1*/		}{})
 	}
  /*line media_test.mygo:47:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line media_test.mygo:88:6*/	if output.Size <= int64(0) || output.MediaType != "text/html; charset=utf-8" || output.PreviewURL != "" {
+ /*line media_test.mygo:88:3*/	if output.Size <= int64(0) || output.MediaType != "text/html; charset=utf-8" || output.PreviewURL != "" {
  /*line media_test.mygo:88:108*/		t.Fatal("upload metadata incorrect")
- /*line media_test.mygo:88:6*/	} else {
+ /*line media_test.mygo:88:3*/	} else {
  /*line zz_media.gen_test.go:128:1*/	}
  /*line media_test.mygo:47:1*/	fileFirst := mediaMultipartRequest(site.Origin, "post", "<svg onload='alert(1)'/>", "vector.svg", "image/svg+xml", true)
  /*line media_test.mygo:90:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cookies, func(cookie_3 http.Cookie) {
@@ -134,15 +134,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:91:3*/	fileFirst.Header.Set("X-CSRF-Token", tokens.CSRF)
  /*line media_test.mygo:47:1*/	fileFirstOutput := httptest.NewRecorder()
  /*line media_test.mygo:93:3*/	handler.ServeHTTP(http.ResponseWriter(fileFirstOutput), fileFirst)
- /*line media_test.mygo:94:6*/	if fileFirstOutput.Code != 201 {
+ /*line media_test.mygo:94:3*/	if fileFirstOutput.Code != 201 {
  /*line media_test.mygo:94:39*/		t.Fatalf("file-first multipart failed: %s", fileFirstOutput.Body.String())
- /*line media_test.mygo:94:6*/	} else {
+ /*line media_test.mygo:94:3*/	} else {
  /*line zz_media.gen_test.go:140:1*/	}
  /*line media_test.mygo:47:1*/	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "private", "Private", "federated", "members", "members"))
-	published := storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body"})
- /*line media_test.mygo:97:6*/	if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
+	published := storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}})
+ /*line media_test.mygo:97:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
  /*line media_test.mygo:97:29*/		t.Fatalf("media fixture post publish failed: %s", MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
- /*line media_test.mygo:97:6*/	} else {
+ /*line media_test.mygo:97:3*/	} else {
  /*line zz_media.gen_test.go:146:1*/	}
  /*line media_test.mygo:47:1*/	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](published)
 	var path string = ""
@@ -159,9 +159,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen_test.go:159:1*/	})
  /*line media_test.mygo:47:1*/	served := httptest.NewRecorder()
  /*line media_test.mygo:108:3*/	handler.ServeHTTP(http.ResponseWriter(served), get)
- /*line media_test.mygo:109:6*/	if served.Code != 200 || !strings.HasPrefix(served.Header().Get("Content-Disposition"), "attachment;") || served.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.Contains(served.Header().Get("Content-Security-Policy"), "sandbox") {
+ /*line media_test.mygo:109:3*/	if served.Code != 200 || !strings.HasPrefix(served.Header().Get("Content-Disposition"), "attachment;") || served.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.Contains(served.Header().Get("Content-Security-Policy"), "sandbox") {
  /*line media_test.mygo:110:5*/		t.Fatal("active ordinary file served unsafely")
- /*line media_test.mygo:109:6*/	} else {
+ /*line media_test.mygo:109:3*/	} else {
  /*line zz_media.gen_test.go:165:1*/	}
  /*line media_test.mygo:47:1*/	etag := served.Header().Get("ETag")
 	var methods []string = []string{"GET", "HEAD"}
@@ -171,9 +171,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:117:5*/		conditional.Header.Set("Range", "bytes=0-1")
  /*line media_test.mygo:114:16*/		hidden := httptest.NewRecorder()
  /*line media_test.mygo:119:5*/		handler.ServeHTTP(http.ResponseWriter(hidden), conditional)
- /*line media_test.mygo:120:8*/		if hidden.Code != 404 || hidden.Header().Get("ETag") != "" || hidden.Header().Get("Content-Range") != "" {
+ /*line media_test.mygo:120:5*/		if hidden.Code != 404 || hidden.Header().Get("ETag") != "" || hidden.Header().Get("Content-Range") != "" {
  /*line media_test.mygo:120:115*/			t.Fatal("unauthorized conditional/range leaked metadata")
- /*line media_test.mygo:120:8*/		} else {
+ /*line media_test.mygo:120:5*/		} else {
  /*line zz_media.gen_test.go:177:1*/		}
  /*line media_test.mygo:121:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cookies, func(cookie_5 http.Cookie) {
  /*line media_test.mygo:121:50*/			conditional.AddCookie(&cookie_5)
@@ -181,11 +181,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen_test.go:181:1*/		})
  /*line media_test.mygo:114:16*/		allowed := httptest.NewRecorder()
  /*line media_test.mygo:123:5*/		handler.ServeHTTP(http.ResponseWriter(allowed), conditional)
- /*line media_test.mygo:124:8*/		if allowed.Code != 304 {
+ /*line media_test.mygo:124:5*/		if allowed.Code != 304 {
  /*line media_test.mygo:124:33*/			t.Fatal("authorized conditional read failed")
 			return
- /*line media_test.mygo:124:8*/		} else {
- /*line media_test.mygo:124:5*/			return
+ /*line media_test.mygo:124:5*/		} else {
+			return
  /*line zz_media.gen_test.go:189:1*/		}
 	})
  /*line media_test.mygo:47:1*/	rangeRequest := httptest.NewRequest("GET", site.Origin+path, io.Reader(strings.NewReader("")))
@@ -196,17 +196,17 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:128:3*/	rangeRequest.Header.Set("Range", "bytes=0-1")
  /*line media_test.mygo:47:1*/	partial := httptest.NewRecorder()
  /*line media_test.mygo:130:3*/	handler.ServeHTTP(http.ResponseWriter(partial), rangeRequest)
- /*line media_test.mygo:131:6*/	if partial.Code != 206 || partial.Body.String() != "<h" {
+ /*line media_test.mygo:131:3*/	if partial.Code != 206 || partial.Body.String() != "<h" {
  /*line media_test.mygo:131:64*/		t.Fatal("authorized single range failed")
- /*line media_test.mygo:131:6*/	} else {
+ /*line media_test.mygo:131:3*/	} else {
  /*line zz_media.gen_test.go:202:1*/	}
  /*line media_test.mygo:47:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=? WHERE post_id=? AND site_id=?", time.Now(), post.ID, site.ID)))
 	noLonger := httptest.NewRecorder()
  /*line media_test.mygo:134:3*/	handler.ServeHTTP(http.ResponseWriter(noLonger), rangeRequest)
- /*line media_test.mygo:135:6*/	if noLonger.Code != 404 || noLonger.Header().Get("ETag") != "" {
+ /*line media_test.mygo:135:3*/	if noLonger.Code != 404 || noLonger.Header().Get("ETag") != "" {
  /*line media_test.mygo:135:71*/		t.Fatal("hidden post range read succeeded")
 		return
- /*line media_test.mygo:135:6*/	} else {
- /*line media_test.mygo:135:3*/		return
+ /*line media_test.mygo:135:3*/	} else {
+		return
  /*line zz_media.gen_test.go:211:1*/	}
 }

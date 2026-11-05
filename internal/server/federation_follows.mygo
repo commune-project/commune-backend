@@ -6,12 +6,13 @@ import rand "go:crypto/rand"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 let activityContext = "https://www.w3.org/ns/activitystreams"
 
 # Ordinary object Announcing is recorded as a receipt only: ingesting a boost must
 # never create community membership or group approval.
-func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[Bool, String]
+func ApplyActivity(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[Bool, String]
   let excluded = storage.IsLocalOnlyObject(ctx, db, activity.ObjectURI)
   if excluded.IsErr() then
     return Err(excluded.UnwrapErr())
@@ -47,32 +48,32 @@ func ApplyActivity(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, ac
   end
   if activity.Type == "Update" then
     if activity.Embedded.IsSome() && activity.Embedded.Unwrap().Type == "Person" then
-      let applied = federation.ApplyPersonUpdate(ctx, db, site, payload)
+      let applied = federation.ApplyPersonUpdate(sanitizer, ctx, db, site, payload)
       if applied.IsErr() then
         return Err(applied.UnwrapErr())
       end
       return Ok(false)
     end
     if activity.Embedded.IsSome() && (activity.Embedded.Unwrap().Type == "Page" || activity.Embedded.Unwrap().Type == "Note") then
-      let applied = ApplyRichMutation(ctx, db, site, activity, payload)
+      let applied = ApplyRichMutation(sanitizer, ctx, db, site, activity, payload)
       if applied.IsErr() then return Err(applied.UnwrapErr()) end
       return Ok(false)
     end
     return ApplyCommunityState(ctx, db, payload)
   end
   if activity.Type == "Delete" then
-    let applied = ApplyRichMutation(ctx, db, site, activity, payload)
+    let applied = ApplyRichMutation(sanitizer, ctx, db, site, activity, payload)
     if applied.IsErr() then return Err(applied.UnwrapErr()) end
     return Ok(false)
   end
   if activity.Type == "Create" then
-    let applied = ApplyCreateSubmission(ctx, db, site, activity, payload, addressed)
+    let applied = ApplyCreateSubmission(sanitizer, ctx, db, site, activity, payload, addressed)
     if applied.IsErr() then
       return Err(applied.UnwrapErr())
     end
   end
   if activity.Type == "Announce" then
-    let received = ReceiveRichAnnounce(ctx, db, site, activity, payload)
+    let received = ReceiveRichAnnounce(sanitizer, ctx, db, site, activity, payload)
     if received.IsErr() then return Err(received.UnwrapErr()) end
     let applied = ApplyAnnounce(ctx, db, site, activity)
     if applied.IsErr() then

@@ -155,7 +155,7 @@ func ObjectHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     WriteActivity(w, 200, federation.BuildTombstoneRepresentation(post))
   else
     let contextURI = storage.PrimaryPostContextURI(request.Context(), db, post.ID)
-    let enriched = BuildRichObject(request.Context(), db, post, community, contextURI)
+    let enriched = BuildRichObject(settings.Rendering.Sanitizer, request.Context(), db, post, community, contextURI)
     if enriched.IsErr() then
       http.NotFound(w, request)
     else

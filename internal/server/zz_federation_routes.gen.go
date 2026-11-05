@@ -17,77 +17,77 @@ import . "github.com/mygo-lang/mygo/prelude"
 	kind := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0))
 	name := strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
 	section := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2))
- /*line federation_routes.mygo:18:6*/	if kind == "users" && IsActorSection(section) {
+ /*line federation_routes.mygo:18:3*/	if kind == "users" && IsActorSection(section) {
 		person := storage.LoadLocalPerson(request.Context(), db, site.ID, name)
- /*line federation_routes.mygo:20:8*/		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
+ /*line federation_routes.mygo:20:5*/		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
  /*line federation_routes.mygo:21:7*/			http.NotFound(w, request)
- /*line federation_routes.mygo:20:8*/			return
+ /*line federation_routes.mygo:20:5*/			return
 		} else {
  /*line zz_federation_routes.gen.go:26:1*/		}
  /*line federation_routes.mygo:24:5*/		ActorSection(settings, db, site, w, request, section, MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)).URI, "", false)
- /*line federation_routes.mygo:18:6*/		return
+ /*line federation_routes.mygo:18:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:30:1*/	}
- /*line federation_routes.mygo:27:6*/	if kind == "communities" && IsActorSection(section) {
+ /*line federation_routes.mygo:27:3*/	if kind == "communities" && IsActorSection(section) {
 		found := storage.LoadCommunityByName(request.Context(), db, site.ID, name)
- /*line federation_routes.mygo:29:8*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))) {
+ /*line federation_routes.mygo:29:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))) {
  /*line federation_routes.mygo:30:7*/			http.NotFound(w, request)
- /*line federation_routes.mygo:29:8*/			return
+ /*line federation_routes.mygo:29:5*/			return
 		} else {
  /*line zz_federation_routes.gen.go:37:1*/		}
- /*line federation_routes.mygo:27:6*/		community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
+ /*line federation_routes.mygo:27:3*/		community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
 		membersOnly := community.ReadPolicy == "members"
- /*line federation_routes.mygo:35:8*/		if membersOnly && section != "inbox" {
+ /*line federation_routes.mygo:35:5*/		if membersOnly && section != "inbox" {
 			allowed := MemberReadAllowed(db, settings, request, site, community)
 			if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
  /*line federation_routes.mygo:38:9*/				http.NotFound(w, request)
- /*line federation_routes.mygo:35:8*/				return
+ /*line federation_routes.mygo:35:5*/				return
 			} else {
  /*line zz_federation_routes.gen.go:46:1*/			}
- /*line federation_routes.mygo:35:8*/		} else {
+ /*line federation_routes.mygo:35:5*/		} else {
  /*line zz_federation_routes.gen.go:48:1*/		}
  /*line federation_routes.mygo:42:5*/		ActorSection(settings, db, site, w, request, section, community.ActorURI.String, community.ID, membersOnly)
- /*line federation_routes.mygo:27:6*/		return
+ /*line federation_routes.mygo:27:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:52:1*/	}
- /*line federation_routes.mygo:45:6*/	if kind == "objects" && section == "replies" {
+ /*line federation_routes.mygo:45:3*/	if kind == "objects" && section == "replies" {
  /*line federation_routes.mygo:46:5*/		RepliesHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line federation_routes.mygo:45:6*/		return
+ /*line federation_routes.mygo:45:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:57:1*/	}
- /*line federation_routes.mygo:49:6*/	if kind == "communities" && section == "moderators" {
+ /*line federation_routes.mygo:49:3*/	if kind == "communities" && section == "moderators" {
 		found_1 := storage.LoadCommunityByName(request.Context(), db, site.ID, name)
- /*line federation_routes.mygo:51:8*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found_1) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1))) {
+ /*line federation_routes.mygo:51:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found_1) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1))) {
  /*line federation_routes.mygo:52:7*/			http.NotFound(w, request)
- /*line federation_routes.mygo:51:8*/			return
+ /*line federation_routes.mygo:51:5*/			return
 		} else {
  /*line zz_federation_routes.gen.go:64:1*/		}
- /*line federation_routes.mygo:49:6*/		community_1 := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1))
- /*line federation_routes.mygo:56:8*/		if community_1.ReadPolicy == "members" {
+ /*line federation_routes.mygo:49:3*/		community_1 := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found_1))
+ /*line federation_routes.mygo:56:5*/		if community_1.ReadPolicy == "members" {
 			allowed_1 := MemberReadAllowed(db, settings, request, site, community_1)
 			if MygoIN6ResultM5IsErr[struct{}, string](allowed_1) {
  /*line federation_routes.mygo:59:9*/				http.NotFound(w, request)
- /*line federation_routes.mygo:56:8*/				return
+ /*line federation_routes.mygo:56:5*/				return
 			} else {
  /*line zz_federation_routes.gen.go:72:1*/			}
- /*line federation_routes.mygo:56:8*/		} else {
+ /*line federation_routes.mygo:56:5*/		} else {
  /*line zz_federation_routes.gen.go:74:1*/		}
  /*line federation_routes.mygo:63:5*/		ModeratorsHandler(settings, db, site, w, request, community_1.ID)
- /*line federation_routes.mygo:49:6*/		return
+ /*line federation_routes.mygo:49:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:78:1*/	}
  /*line federation_routes.mygo:66:3*/	http.NotFound(w, request)
 	return
  /*line zz_federation_routes.gen.go:81:1*/}
  /*line federation_routes.mygo:69:1*/func ActorSection(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, section string, actorURI string, communityID string, membersOnly bool) {
- /*line federation_routes.mygo:70:6*/	if section == "inbox" {
+ /*line federation_routes.mygo:70:3*/	if section == "inbox" {
  /*line federation_routes.mygo:71:5*/		WriteActivity(w, 200, federation.BuildInbox(actorURI))
- /*line federation_routes.mygo:70:6*/		return
+ /*line federation_routes.mygo:70:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:87:1*/	}
- /*line federation_routes.mygo:74:6*/	if section == "outbox" {
+ /*line federation_routes.mygo:74:3*/	if section == "outbox" {
  /*line federation_routes.mygo:75:5*/		OutboxHandler(settings, db, site, w, request, actorURI, communityID, membersOnly)
- /*line federation_routes.mygo:74:6*/		return
+ /*line federation_routes.mygo:74:3*/		return
 	} else {
  /*line zz_federation_routes.gen.go:92:1*/	}
  /*line federation_routes.mygo:78:3*/	FollowersHandler(settings, db, site, w, request, actorURI, communityID)

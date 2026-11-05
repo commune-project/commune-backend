@@ -10,105 +10,105 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "os"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_rich_media.mygo:11:1*/func FederationMediaHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
- /*line federation_rich_media.mygo:12:3*/	w.Header().Set("Cache-Control", "no-store")
- /*line federation_rich_media.mygo:13:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
- /*line federation_rich_media.mygo:14:6*/	if !settings.Media.Enabled || !storage.MediaFileID(id) {
- /*line federation_rich_media.mygo:15:5*/		http.NotFound(w, request)
- /*line federation_rich_media.mygo:14:6*/		return
+ /*line federation_rich_media.mygo:10:1*/func FederationMediaHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
+ /*line federation_rich_media.mygo:18:3*/	w.Header().Set("Cache-Control", "no-store")
+ /*line federation_rich_media.mygo:19:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
+ /*line federation_rich_media.mygo:20:3*/	if !settings.Media.Enabled || !storage.MediaFileID(id) {
+ /*line federation_rich_media.mygo:21:5*/		http.NotFound(w, request)
+ /*line federation_rich_media.mygo:20:3*/		return
 	} else {
  /*line zz_federation_rich_media.gen.go:20:1*/	}
- /*line federation_rich_media.mygo:18:6*/	if request.Method != "GET" && request.Method != "HEAD" {
- /*line federation_rich_media.mygo:19:5*/		MethodNotAllowed(w, "GET, HEAD")
- /*line federation_rich_media.mygo:18:6*/		return
+ /*line federation_rich_media.mygo:24:3*/	if request.Method != "GET" && request.Method != "HEAD" {
+ /*line federation_rich_media.mygo:25:5*/		MethodNotAllowed(w, "GET, HEAD")
+ /*line federation_rich_media.mygo:24:3*/		return
 	} else {
  /*line zz_federation_rich_media.gen.go:25:1*/	}
- /*line federation_rich_media.mygo:11:1*/	files := storage.OpenMediaFiles(settings.Media)
- /*line federation_rich_media.mygo:23:6*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
- /*line federation_rich_media.mygo:24:5*/		http.NotFound(w, request)
- /*line federation_rich_media.mygo:23:6*/		return
+ /*line federation_rich_media.mygo:10:1*/	files := storage.OpenMediaFiles(settings.Media)
+ /*line federation_rich_media.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
+ /*line federation_rich_media.mygo:30:5*/		http.NotFound(w, request)
+ /*line federation_rich_media.mygo:29:3*/		return
 	} else {
  /*line zz_federation_rich_media.gen.go:31:1*/	}
- /*line federation_rich_media.mygo:11:1*/	root := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files).Root
- /*line federation_rich_media.mygo:28:3*/	defer root.Close()
- /*line federation_rich_media.mygo:11:1*/	result := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line federation_rich_media.mygo:29:62*/		binding := storage.MediaBinding{}
+ /*line federation_rich_media.mygo:10:1*/	root := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files).Root
+ /*line federation_rich_media.mygo:34:3*/	defer root.Close()
+ /*line federation_rich_media.mygo:10:1*/	result := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line federation_rich_media.mygo:38:5*/		binding := Zero[storage.MediaBinding]()
 		found := tx.Raw("SELECT * FROM media_bindings WHERE id=? AND site_id=? AND purpose='post' AND active FOR SHARE", id, site.ID).Scan(&binding)
- /*line federation_rich_media.mygo:32:8*/		if storage.QueryFailed(found) || found.RowsAffected != int64(1) {
- /*line federation_rich_media.mygo:32:77*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:32:8*/		} else {
+ /*line federation_rich_media.mygo:45:7*/		if storage.QueryFailed(found) || found.RowsAffected != int64(1) {
+ /*line federation_rich_media.mygo:46:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:45:7*/		} else {
  /*line zz_federation_rich_media.gen.go:40:1*/		}
- /*line federation_rich_media.mygo:29:62*/		loaded := storage.LoadObjectByID(request.Context(), tx, binding.PostID)
- /*line federation_rich_media.mygo:34:8*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
- /*line federation_rich_media.mygo:34:63*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:34:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		loaded := storage.LoadObjectByID(request.Context(), tx, binding.PostID)
+ /*line federation_rich_media.mygo:49:7*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
+ /*line federation_rich_media.mygo:50:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:49:7*/		} else {
  /*line zz_federation_rich_media.gen.go:45:1*/		}
- /*line federation_rich_media.mygo:29:62*/		post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded))
- /*line federation_rich_media.mygo:36:8*/		if post.FederationMode != "federated" || post.DeletedAt.Valid {
- /*line federation_rich_media.mygo:36:79*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:36:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded))
+ /*line federation_rich_media.mygo:53:7*/		if post.FederationMode != "federated" || post.DeletedAt.Valid {
+ /*line federation_rich_media.mygo:54:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:53:7*/		} else {
  /*line zz_federation_rich_media.gen.go:50:1*/		}
- /*line federation_rich_media.mygo:29:62*/		community := storage.LoadCommunityByID(request.Context(), tx, post.CommunityID)
- /*line federation_rich_media.mygo:38:8*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
- /*line federation_rich_media.mygo:38:69*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:38:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		community := storage.LoadCommunityByID(request.Context(), tx, post.CommunityID)
+ /*line federation_rich_media.mygo:57:7*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
+ /*line federation_rich_media.mygo:58:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:57:7*/		} else {
  /*line zz_federation_rich_media.gen.go:55:1*/		}
- /*line federation_rich_media.mygo:29:62*/		current := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))
- /*line federation_rich_media.mygo:40:8*/		if current.FederationMode != "federated" || current.HostSiteID != site.ID {
- /*line federation_rich_media.mygo:40:91*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:40:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		current := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))
+ /*line federation_rich_media.mygo:61:7*/		if current.FederationMode != "federated" || current.HostSiteID != site.ID {
+ /*line federation_rich_media.mygo:62:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:61:7*/		} else {
  /*line zz_federation_rich_media.gen.go:60:1*/		}
- /*line federation_rich_media.mygo:29:62*/		identity := auth.Identity{}
- /*line federation_rich_media.mygo:42:8*/		if current.ReadPolicy == "members" {
+ /*line federation_rich_media.mygo:38:5*/		identity := Zero[auth.Identity]()
+ /*line federation_rich_media.mygo:65:7*/		if current.ReadPolicy == "members" {
 			signer := SignedRequester(tx, settings, request)
- /*line federation_rich_media.mygo:44:10*/			if MygoIN6ResultM5IsErr[auth.Identity, string](signer) {
- /*line federation_rich_media.mygo:44:37*/				return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:44:10*/			} else {
+ /*line federation_rich_media.mygo:67:9*/			if MygoIN6ResultM5IsErr[auth.Identity, string](signer) {
+ /*line federation_rich_media.mygo:68:18*/				return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:67:9*/			} else {
  /*line zz_federation_rich_media.gen.go:67:1*/			}
- /*line federation_rich_media.mygo:42:8*/			identity = MygoIN6ResultM6Unwrap[auth.Identity, string](signer)
+ /*line federation_rich_media.mygo:65:7*/			identity = MygoIN6ResultM6Unwrap[auth.Identity, string](signer)
 			actor := storage.LoadActor(request.Context(), tx, identity.ActorURI)
- /*line federation_rich_media.mygo:47:10*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
- /*line federation_rich_media.mygo:47:107*/				return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:47:10*/			} else {
+ /*line federation_rich_media.mygo:72:9*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
+ /*line federation_rich_media.mygo:73:18*/				return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:72:9*/			} else {
  /*line zz_federation_rich_media.gen.go:73:1*/			}
- /*line federation_rich_media.mygo:42:8*/			capable := storage.PeerSupportsProtectedReads(request.Context(), tx, identity.ActorURI)
+ /*line federation_rich_media.mygo:65:7*/			capable := storage.PeerSupportsProtectedReads(request.Context(), tx, identity.ActorURI)
 			if MygoIN6ResultM5IsErr[bool, string](capable) || !MygoIN6ResultM6Unwrap[bool, string](capable) {
- /*line federation_rich_media.mygo:49:59*/				return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:42:8*/			} else {
+ /*line federation_rich_media.mygo:77:18*/				return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:65:7*/			} else {
  /*line zz_federation_rich_media.gen.go:78:1*/			}
- /*line federation_rich_media.mygo:42:8*/		} else {
+ /*line federation_rich_media.mygo:65:7*/		} else {
  /*line zz_federation_rich_media.gen.go:80:1*/		}
- /*line federation_rich_media.mygo:29:62*/		allowed := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: tx, SiteID: site.ID}, request.Context(), post.ID, identity, identity.ActorURI != "")
- /*line federation_rich_media.mygo:52:8*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](allowed) {
- /*line federation_rich_media.mygo:52:36*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:52:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		allowed := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: tx, SiteID: site.ID}, request.Context(), post.ID, identity, identity.ActorURI != "")
+ /*line federation_rich_media.mygo:86:7*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](allowed) {
+ /*line federation_rich_media.mygo:87:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:86:7*/		} else {
  /*line zz_federation_rich_media.gen.go:85:1*/		}
- /*line federation_rich_media.mygo:29:62*/		excluded := storage.QueryExists(tx.Table("collection_memberships").Where("post_id=? AND community_id=? AND state IN ('removed','rejected')", post.ID, post.CommunityID))
- /*line federation_rich_media.mygo:54:8*/		if MygoIN6ResultM5IsErr[bool, string](excluded) || MygoIN6ResultM6Unwrap[bool, string](excluded) {
- /*line federation_rich_media.mygo:54:58*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:54:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		excluded := storage.QueryExists(tx.Table("collection_memberships").Where("post_id=? AND community_id=? AND state IN ('removed','rejected')", post.ID, post.CommunityID))
+ /*line federation_rich_media.mygo:94:7*/		if MygoIN6ResultM5IsErr[bool, string](excluded) || MygoIN6ResultM6Unwrap[bool, string](excluded) {
+ /*line federation_rich_media.mygo:95:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:94:7*/		} else {
  /*line zz_federation_rich_media.gen.go:90:1*/		}
- /*line federation_rich_media.mygo:29:62*/		upload := storage.MediaUpload{}
+ /*line federation_rich_media.mygo:38:5*/		upload := Zero[storage.MediaUpload]()
 		queried := tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", binding.UploadID).Scan(&upload)
- /*line federation_rich_media.mygo:57:8*/		if storage.QueryFailed(queried) || queried.RowsAffected != int64(1) {
- /*line federation_rich_media.mygo:57:81*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:57:8*/		} else {
+ /*line federation_rich_media.mygo:99:7*/		if storage.QueryFailed(queried) || queried.RowsAffected != int64(1) {
+ /*line federation_rich_media.mygo:100:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:99:7*/		} else {
  /*line zz_federation_rich_media.gen.go:96:1*/		}
- /*line federation_rich_media.mygo:29:62*/		file := storage.MygoIN10MediaFilesM4Open(MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files), "local", upload.ID)
- /*line federation_rich_media.mygo:59:8*/		if MygoIN6ResultM5IsErr[*os.File, string](file) {
- /*line federation_rich_media.mygo:59:33*/			return Err[struct{}, string]("not found")
- /*line federation_rich_media.mygo:59:8*/		} else {
+ /*line federation_rich_media.mygo:38:5*/		file := storage.MygoIN10MediaFilesM4Open(MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files), "local", upload.ID)
+ /*line federation_rich_media.mygo:103:7*/		if MygoIN6ResultM5IsErr[*os.File, string](file) {
+ /*line federation_rich_media.mygo:104:16*/			return Err[struct{}, string]("not found")
+ /*line federation_rich_media.mygo:103:7*/		} else {
  /*line zz_federation_rich_media.gen.go:101:1*/		}
- /*line federation_rich_media.mygo:29:62*/		opened := MygoIN6ResultM6Unwrap[*os.File, string](file)
- /*line federation_rich_media.mygo:61:5*/		defer opened.Close()
- /*line federation_rich_media.mygo:62:5*/		ServeMedia(w, request, upload, opened, false)
- /*line federation_rich_media.mygo:63:5*/		return Ok[struct{}, string](struct {
+ /*line federation_rich_media.mygo:38:5*/		opened := MygoIN6ResultM6Unwrap[*os.File, string](file)
+ /*line federation_rich_media.mygo:107:7*/		defer opened.Close()
+ /*line federation_rich_media.mygo:108:7*/		ServeMedia(w, request, upload, opened, false)
+ /*line federation_rich_media.mygo:109:7*/		return Ok[struct{}, string](struct {
  /*line zz_federation_rich_media.gen.go:106:1*/		}{})
 	})
- /*line federation_rich_media.mygo:65:6*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line federation_rich_media.mygo:65:26*/		http.NotFound(w, request)
+ /*line federation_rich_media.mygo:112:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line federation_rich_media.mygo:113:5*/		http.NotFound(w, request)
 		return
- /*line federation_rich_media.mygo:65:6*/	} else {
- /*line federation_rich_media.mygo:65:3*/		return
+ /*line federation_rich_media.mygo:112:3*/	} else {
+		return
  /*line zz_federation_rich_media.gen.go:113:1*/	}
 }

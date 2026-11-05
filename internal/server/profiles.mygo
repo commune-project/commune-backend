@@ -153,7 +153,7 @@ func ProfileRoute(
           utf8.RuneCountInString(biography) > settings.Rendering.MaxBiographyLength then
           return Err("invalid profile input")
         end
-        let rendered = content.RenderRich(biography, "markdown")
+        let rendered = content.RenderRich(settings.Rendering.Sanitizer, biography, "markdown")
         if rendered.IsErr() then
           return Err("invalid profile input")
         end

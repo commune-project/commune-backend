@@ -8,6 +8,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresFeedAccessEnforcement(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -147,7 +148,7 @@ func TestPostgresFeedAccessEnforcement(t: Ref[testing.T]) -> ()
     DeletedAt: Zero[sql.NullTime](),
   }
   let receiver = PostRepository{DB: db, SiteID: "b"}
-  let received = receiver.Receive(ctx, incoming, author).Unwrap()
+  let received = receiver.Receive(ctx, incoming, author, content.DefaultSanitizer()).Unwrap()
   if feed.ReadObject(ctx, received.ID, alice, false).IsOk() then
     t.Fatal("site A exposed an object it had not received")
   end

@@ -46,41 +46,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 	add := func(id string, target storage.CommunityRecord, member string) string {
  /*line federation_remote_admin_test.mygo:35:5*/		return "{\"id\":\"https://peer.example/activities/" + id + "\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + target.ActorURI.String + "\",\"object\":\"" + member + "\",\"commune:role\":\"member\"}"
  /*line zz_federation_remote_admin.gen_test.go:48:1*/	}
- /*line federation_remote_admin_test.mygo:37:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", add("a1", community, first), manager, managerKey, date).Code != 202 {
+ /*line federation_remote_admin_test.mygo:37:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", add("a1", community, first), manager, managerKey, date).Code != 202 {
  /*line federation_remote_admin_test.mygo:38:5*/		t.Fatal("remote authorized management failed")
- /*line federation_remote_admin_test.mygo:37:6*/	} else {
+ /*line federation_remote_admin_test.mygo:37:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:52:1*/	}
- /*line federation_remote_admin_test.mygo:40:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, first)) {
+ /*line federation_remote_admin_test.mygo:40:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, first)) {
  /*line federation_remote_admin_test.mygo:41:5*/		t.Fatal("the remote manager's change was not applied")
- /*line federation_remote_admin_test.mygo:40:6*/	} else {
+ /*line federation_remote_admin_test.mygo:40:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:56:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
- /*line federation_remote_admin_test.mygo:45:6*/	if count != int64(1) {
+ /*line federation_remote_admin_test.mygo:45:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:46:5*/		t.Fatal("an accepted management action was not announced")
- /*line federation_remote_admin_test.mygo:45:6*/	} else {
+ /*line federation_remote_admin_test.mygo:45:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:62:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", subscriber).Count(&count)))
- /*line federation_remote_admin_test.mygo:49:6*/	if count != int64(1) {
+ /*line federation_remote_admin_test.mygo:49:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:50:5*/		t.Fatal("the management announcement was not delivered to eligible followers")
- /*line federation_remote_admin_test.mygo:49:6*/	} else {
+ /*line federation_remote_admin_test.mygo:49:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:67:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE moderators SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, manager)))
 	signedPost(handler, a.Origin, "/users/alice/inbox", add("a2", community, second), manager, managerKey, date)
- /*line federation_remote_admin_test.mygo:54:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, second)) {
+ /*line federation_remote_admin_test.mygo:54:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, second)) {
  /*line federation_remote_admin_test.mygo:55:5*/		t.Fatal("a revoked remote manager still changed membership")
- /*line federation_remote_admin_test.mygo:54:6*/	} else {
+ /*line federation_remote_admin_test.mygo:54:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:73:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
- /*line federation_remote_admin_test.mygo:58:6*/	if count != int64(1) {
+ /*line federation_remote_admin_test.mygo:58:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:59:5*/		t.Fatal("a revoked manager's action was announced")
- /*line federation_remote_admin_test.mygo:58:6*/	} else {
+ /*line federation_remote_admin_test.mygo:58:3*/	} else {
  /*line zz_federation_remote_admin.gen_test.go:78:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", add("a3", other, manager), manager, managerKey, date)
- /*line federation_remote_admin_test.mygo:62:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, other.ID, manager)) || MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityManager(ctx, db, other.ID, manager)) {
+ /*line federation_remote_admin_test.mygo:62:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, other.ID, manager)) || MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityManager(ctx, db, other.ID, manager)) {
  /*line federation_remote_admin_test.mygo:63:5*/		t.Fatal("remote management leaked into another community")
 		return
- /*line federation_remote_admin_test.mygo:62:6*/	} else {
- /*line federation_remote_admin_test.mygo:62:3*/		return
+ /*line federation_remote_admin_test.mygo:62:3*/	} else {
+		return
  /*line zz_federation_remote_admin.gen_test.go:85:1*/	}
 }

@@ -57,39 +57,39 @@ import . "github.com/mygo-lang/mygo/prelude"
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	announce := "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
- /*line federation_inclusion_test.mygo:48:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, group, groupKey, date).Code != 202 {
+ /*line federation_inclusion_test.mygo:48:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, group, groupKey, date).Code != 202 {
  /*line federation_inclusion_test.mygo:49:5*/		t.Fatal("a verified group announce was rejected")
- /*line federation_inclusion_test.mygo:48:6*/	} else {
+ /*line federation_inclusion_test.mygo:48:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:63:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted' AND authority_actor_uri=?", group).Count(&count)))
- /*line federation_inclusion_test.mygo:53:6*/	if count != int64(1) {
+ /*line federation_inclusion_test.mygo:53:3*/	if count != int64(1) {
  /*line federation_inclusion_test.mygo:54:5*/		t.Fatal("a verified inclusion was not recorded")
- /*line federation_inclusion_test.mygo:53:6*/	} else {
+ /*line federation_inclusion_test.mygo:53:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:69:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
 	jobsAfterFirst := count
 	replay := "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
- /*line federation_inclusion_test.mygo:59:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", replay, group, groupKey, date).Code != 202 {
+ /*line federation_inclusion_test.mygo:59:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", replay, group, groupKey, date).Code != 202 {
  /*line federation_inclusion_test.mygo:60:5*/		t.Fatal("replaying an announce was not idempotent")
- /*line federation_inclusion_test.mygo:59:6*/	} else {
+ /*line federation_inclusion_test.mygo:59:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:76:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted'").Count(&count)))
- /*line federation_inclusion_test.mygo:63:6*/	if count != int64(1) {
+ /*line federation_inclusion_test.mygo:63:3*/	if count != int64(1) {
  /*line federation_inclusion_test.mygo:64:5*/		t.Fatal("replay duplicated the inclusion record")
- /*line federation_inclusion_test.mygo:63:6*/	} else {
+ /*line federation_inclusion_test.mygo:63:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:81:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
- /*line federation_inclusion_test.mygo:67:6*/	if count != jobsAfterFirst {
+ /*line federation_inclusion_test.mygo:67:3*/	if count != jobsAfterFirst {
  /*line federation_inclusion_test.mygo:68:5*/		t.Fatal("replay caused duplicate fan-out")
- /*line federation_inclusion_test.mygo:67:6*/	} else {
+ /*line federation_inclusion_test.mygo:67:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:86:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	unrelated := "{\"id\":\"https://other.example/activities/announce-2\",\"actor\":\"" + otherGroup + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", unrelated, otherGroup, otherKey, date)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("authority_actor_uri=?", otherGroup).Count(&count)))
- /*line federation_inclusion_test.mygo:73:6*/	if count != int64(0) {
+ /*line federation_inclusion_test.mygo:73:3*/	if count != int64(0) {
  /*line federation_inclusion_test.mygo:74:5*/		t.Fatal("an unrelated announcing actor approved another community's content")
- /*line federation_inclusion_test.mygo:73:6*/	} else {
+ /*line federation_inclusion_test.mygo:73:3*/	} else {
  /*line zz_federation_inclusion.gen_test.go:93:1*/	}
  /*line federation_inclusion_test.mygo:76:3*/	peer.Close()
 	return

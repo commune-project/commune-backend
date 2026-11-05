@@ -21,5 +21,53 @@
     "max_fetch_bytes": 1048576,
     "max_redirects": 5,
     "clock_skew_seconds": 300
+  },
+  "rendering": {
+    "max_source_bytes": 1048576,
+    "max_display_name_length": 100,
+    "max_biography_length": 5000,
+    "max_mentions": 20,
+    "max_remote_discoveries": 10,
+    "mention_timeout_seconds": 10,
+    "markdown": {
+      "hard_wraps": true,
+      "allow_raw_html": false
+    },
+    "sanitize": {
+      "elements": [
+        "p",
+        "br",
+        "hr",
+        "em",
+        "strong",
+        "del",
+        "ul",
+        "ol",
+        "li",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "blockquote",
+        "pre",
+        "code",
+        "a",
+        "img",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td"
+      ],
+      "attributes": [
+        {"element": "a", "names": ["href", "title"]},
+        {"element": "img", "names": ["src", "alt", "title", "referrerpolicy"]}
+      ],
+      "url_schemes": ["http", "https"],
+      "allow_relative_urls": true
+    }
   }
 }

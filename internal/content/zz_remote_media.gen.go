@@ -11,10 +11,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	URL    string
  /*line zz_remote_media.gen.go:12:1*/}
 
- /*line remote_media.mygo:13:1*/func RewritePrivateMedia(rendered string, references []RemoteMediaReference) string {
- /*line remote_media.mygo:14:3*/	return RewriteMediaReferences(rendered, references, true)
+ /*line remote_media.mygo:13:1*/func RewritePrivateMedia(sanitizer Sanitizer, rendered string, references []RemoteMediaReference) string {
+ /*line remote_media.mygo:18:3*/	return RewriteMediaReferences(sanitizer, rendered, references, true)
  /*line zz_remote_media.gen.go:16:1*/}
- /*line remote_media.mygo:17:1*/func RewriteMediaReferences(rendered string, references []RemoteMediaReference, restrictImages bool) string {
+ /*line remote_media.mygo:21:1*/func RewriteMediaReferences(sanitizer Sanitizer, rendered string, references []RemoteMediaReference, restrictImages bool) string {
 	tokenizer := html.NewTokenizer(strings.NewReader(rendered))
 	output := strings.Builder{}
 	done := false
@@ -24,29 +24,29 @@ import . "github.com/mygo-lang/mygo/prelude"
 			done = true
 		} else {
 			token := tokenizer.Token()
- /*line remote_media.mygo:27:7*/			if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
+ /*line remote_media.mygo:36:7*/			if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
 				token.Attr = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(token.Attr, func(attr html.Attribute) html.Attribute {
- /*line remote_media.mygo:29:11*/					if attr.Key != "src" && attr.Key != "href" {
- /*line remote_media.mygo:29:66*/						return attr
- /*line remote_media.mygo:29:11*/					} else {
+ /*line remote_media.mygo:38:11*/					if attr.Key != "src" && attr.Key != "href" {
+ /*line remote_media.mygo:39:20*/						return attr
+ /*line remote_media.mygo:38:11*/					} else {
  /*line zz_remote_media.gen.go:32:1*/					}
- /*line remote_media.mygo:28:37*/					matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(references, func(item RemoteMediaReference) bool {
- /*line remote_media.mygo:30:84*/						return item.Origin == attr.Val
+ /*line remote_media.mygo:37:37*/					matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(references, func(item RemoteMediaReference) bool {
+ /*line remote_media.mygo:42:13*/						return item.Origin == attr.Val
  /*line zz_remote_media.gen.go:35:1*/					})
- /*line remote_media.mygo:31:11*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) == 1 {
- /*line remote_media.mygo:31:45*/						return html.Attribute{Namespace: "", Key: attr.Key, Val: MygoIN6OptionM6Unwrap[RemoteMediaReference](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).URL}
- /*line remote_media.mygo:31:11*/					} else {
+ /*line remote_media.mygo:44:11*/					if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) == 1 {
+ /*line remote_media.mygo:45:20*/						return html.Attribute{Namespace: "", Key: attr.Key, Val: MygoIN6OptionM6Unwrap[RemoteMediaReference](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).URL}
+ /*line remote_media.mygo:44:11*/					} else {
  /*line zz_remote_media.gen.go:39:1*/					}
- /*line remote_media.mygo:32:11*/					if restrictImages && token.Data == "img" && attr.Key == "src" {
- /*line remote_media.mygo:32:85*/						return html.Attribute{Namespace: "", Key: "src", Val: ""}
- /*line remote_media.mygo:32:11*/					} else {
+ /*line remote_media.mygo:47:11*/					if restrictImages && token.Data == "img" && attr.Key == "src" {
+ /*line remote_media.mygo:48:20*/						return html.Attribute{Namespace: "", Key: "src", Val: ""}
+ /*line remote_media.mygo:47:11*/					} else {
  /*line zz_remote_media.gen.go:43:1*/					}
- /*line remote_media.mygo:33:11*/					return attr
+ /*line remote_media.mygo:54:11*/					return attr
  /*line zz_remote_media.gen.go:45:1*/				})
- /*line remote_media.mygo:27:7*/			} else {
+ /*line remote_media.mygo:36:7*/			} else {
  /*line zz_remote_media.gen.go:47:1*/			}
- /*line remote_media.mygo:17:1*/			output.WriteString(token.String())
+ /*line remote_media.mygo:21:1*/			output.WriteString(token.String())
  /*line zz_remote_media.gen.go:49:1*/		}
 	}
- /*line remote_media.mygo:39:3*/	return SanitizeRichHTML(output.String())
+ /*line remote_media.mygo:60:3*/	return SanitizeRichHTML(sanitizer, output.String())
  /*line zz_remote_media.gen.go:52:1*/}

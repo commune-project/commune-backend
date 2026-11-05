@@ -17,13 +17,14 @@ end
 # Only callers that completed the object's access boundary may use this builder.
 # Remote source is metadata; rendered content never comes from source metadata.
 func BuildRichObject(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   db: Ref[gorm.DB],
   post: storage.PostRecord,
   community: storage.CommunityRecord,
   contextURI: String
 ) -> Result[federation.ObjectRepresentation, String]
-  var output = federation.BuildObjectRepresentationWithContext(post, community, contextURI)
+  var output = federation.BuildObjectRepresentationWithContext(sanitizer, post, community, contextURI)
   if post.ParentID.Valid then
     let parent = storage.LoadObjectByID(ctx, db, post.ParentID.String)
     if parent.IsErr() || parent.Unwrap().IsNone() then
@@ -61,7 +62,7 @@ func BuildRichObject(
     if states.IsErr() || states.Unwrap().Len() != 1 then
       return Err("post content unavailable")
     end
-    let rendered = storage.RenderStoredPost(post, states.Unwrap().Get(0).Unwrap(), false)
+    let rendered = storage.RenderStoredPost(sanitizer, post, states.Unwrap().Get(0).Unwrap(), false)
     if rendered.IsErr() then
       return Err(rendered.UnwrapErr())
     end
@@ -77,7 +78,7 @@ func BuildRichObject(
         URL: target,
       })
     end)
-    output.Content = content.RewriteMediaReferences(rendered.Unwrap(), references, false)
+    output.Content = content.RewriteMediaReferences(sanitizer, rendered.Unwrap(), references, false)
   end
   var mentions: Slice[storage.PostMentionRecord] = []
   if storage.MutationResult(db.WithContext(ctx).Table("post_mentions").Where(

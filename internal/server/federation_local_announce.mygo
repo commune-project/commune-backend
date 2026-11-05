@@ -52,7 +52,7 @@ func AnnounceLocalMutation(ctx: context.Context, settings: config.Config, db: Re
   end
   let declared = contextURIs.Unwrap()
   let primary = if declared.Len() > 0 then declared.Get(0).Unwrap() else "" end
-  let object = BuildRichObject(ctx, db, post, community, primary)
+  let object = BuildRichObject(settings.Rendering.Sanitizer, ctx, db, post, community, primary)
   if object.IsErr() then return Err(object.UnwrapErr()) end
   let encoded = json.Marshal(object.Unwrap())
   if encoded.IsErr() then

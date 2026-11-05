@@ -76,7 +76,7 @@ func SearchRoute(
     if rows.IsErr() then
       Fail(w, rows.UnwrapErr())
     else
-      let outputs = BrowserPosts(request.Context(), repository, viewer.Unwrap(), rows.Unwrap())
+      let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), rows.Unwrap())
       if outputs.IsErr() then
         Fail(w, outputs.UnwrapErr())
       else

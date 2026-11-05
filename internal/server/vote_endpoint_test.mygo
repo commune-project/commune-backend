@@ -24,7 +24,7 @@ func TestPostgresVoteEndpointContract(t: Ref[testing.T]) -> ()
   let private = communities.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
   let posts = storage.PostRepository{DB: db, SiteID: site.ID}
   let post = posts.Publish(ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
-  let hidden = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let _ = posts.Publish(ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")
   let csrf = csrfOf(cookies)

@@ -5,6 +5,7 @@ import context "go:context"
 import strings "go:strings"
 import time "go:time"
 import config "github.com/commune-project/commune-backend/internal/config"
+import content "github.com/commune-project/commune-backend/internal/content"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 
@@ -69,7 +70,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "prefix " + source,
     "",
     [],
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   var unchanged = Zero[PostMentionRecord]()
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(unchanged))).Unwrap()
@@ -86,7 +88,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "removed",
     "",
     [],
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   let retired: Int64 = 0i64
   let _ = MutationResult(db.Table("notification_events").Where(
@@ -105,7 +108,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     source,
     "",
     [],
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   let reintroduced = Zero[PostMentionRecord]()
   let _ = MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(Ref.new(reintroduced))).Unwrap()
@@ -131,11 +135,12 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     illustrated,
     "markdown",
     ["owned"],
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   let state = LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()
   let media = PostRichMedia(state).Unwrap()
-  let rendered = RenderStoredPost(saved, state, false).Unwrap()
+  let rendered = RenderStoredPost(content.DefaultSanitizer(), saved, state, false).Unwrap()
   if saved.Body != illustrated ||
     media.Len() != 1 ||
     !strings.Contains(rendered, "/api/v1/media/" + media.Get(0).Unwrap().BindingID + "/preview") ||
@@ -159,7 +164,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "![new](/api/v1/media/replacement)",
     "markdown",
     ["replacement"],
-    saved.Version - 1i64
+    saved.Version - 1i64,
+    content.DefaultSanitizer()
   )
   if stale.IsOk() || stale.UnwrapErr() != "edit_conflict" then
     t.Fatal("stale attachment save did not conflict")
@@ -173,7 +179,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "![foreign](/api/v1/media/foreign)",
     "markdown",
     ["replacement"],
-    saved.Version
+    saved.Version,
+    content.DefaultSanitizer()
   ).IsOk() then
     t.Fatal("unbound source reference accepted")
   end
@@ -199,7 +206,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     "stolen",
     "markdown",
     ["owned"],
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).IsOk() then
     t.Fatal("foreign owner edited content/bindings")
   end
@@ -210,7 +218,8 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     false,
     "Topic",
     illustrated,
-    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version
+    LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   if beforeDelete.ContentFormat != "markdown" ||
     PostRichMedia(LoadPostRichStates(ctx, db, [post.ID]).Unwrap().Get(0).Unwrap()).Unwrap().Len() !=

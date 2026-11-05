@@ -17,17 +17,17 @@ import transport "github.com/commune-project/commune-backend/internal/testtransp
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line password_reset_http_test.mygo:17:1*/func resetHTTPToken(t *testing.T, db *gorm.DB, siteID string, origin string) string {
-	job := storage.ResetMailJob{}
+	job := Zero[storage.ResetMailJob]()
 	query := db.Table("password_reset_mail_jobs AS j").Select("j.*").Joins("JOIN password_reset_tokens t ON t.id=j.reset_id").Where("t.site_id=? AND t.consumed_at IS NULL", siteID).Order("t.created_at DESC").Limit(1).Find(&job)
- /*line password_reset_http_test.mygo:22:6*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line password_reset_http_test.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(query)) || query.RowsAffected != int64(1) {
  /*line password_reset_http_test.mygo:23:5*/		t.Fatal("reset mail job missing")
- /*line password_reset_http_test.mygo:22:6*/	} else {
+ /*line password_reset_http_test.mygo:22:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:25:1*/	}
  /*line password_reset_http_test.mygo:17:1*/	key := []byte(strings.Repeat("k", 32))
 	link := auth.OpenPasswordReset(key, job.EncryptedPayload)
- /*line password_reset_http_test.mygo:27:6*/	if MygoIN6ResultM5IsErr[string, string](link) {
+ /*line password_reset_http_test.mygo:27:3*/	if MygoIN6ResultM5IsErr[string, string](link) {
  /*line password_reset_http_test.mygo:28:5*/		t.Fatal("reset mail payload could not be opened")
- /*line password_reset_http_test.mygo:27:6*/	} else {
+ /*line password_reset_http_test.mygo:27:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:31:1*/	}
  /*line password_reset_http_test.mygo:30:3*/	return strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, string](link), origin+"/reset-password#token=")
  /*line zz_password_reset_http.gen_test.go:33:1*/}
@@ -58,14 +58,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 	resetPath := "/api/v1/auth/password/reset"
 	known := registrationRequest(handler, site_1.Origin, resetPath, "{\"email\":\" Alice@Example.org \"}", "198.51.100.30:1234", "")
 	unknown := registrationRequest(handler, site_1.Origin, resetPath, "{\"email\":\"unknown@example.org\"}", "198.51.100.30:1234", "")
- /*line password_reset_http_test.mygo:53:6*/	if known.Code != 202 || unknown.Code != 202 || known.Body.String() != unknown.Body.String() || known.Header().Get("Cache-Control") != "no-store" {
+ /*line password_reset_http_test.mygo:53:3*/	if known.Code != 202 || unknown.Code != 202 || known.Body.String() != unknown.Body.String() || known.Header().Get("Cache-Control") != "no-store" {
  /*line password_reset_http_test.mygo:55:5*/		t.Fatal("reset request was not generic or no-store")
- /*line password_reset_http_test.mygo:53:6*/	} else {
+ /*line password_reset_http_test.mygo:53:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:64:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	invalid := registrationRequest(handler, site_1.Origin, resetPath, "{\"email\":\"not-an-email\"}", "198.51.100.30:1234", "")
- /*line password_reset_http_test.mygo:58:6*/	if invalid.Code != 400 {
+ /*line password_reset_http_test.mygo:58:3*/	if invalid.Code != 400 {
  /*line password_reset_http_test.mygo:59:5*/		t.Fatal("invalid reset address was accepted")
- /*line password_reset_http_test.mygo:58:6*/	} else {
+ /*line password_reset_http_test.mygo:58:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:69:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	request := httptest.NewRequest("POST", site_1.Origin+resetPath, io.Reader(strings.NewReader("{\"email\":\"alice@example.org\"}")))
  /*line password_reset_http_test.mygo:62:3*/	request.Header.Set("Origin", "https://foreign.example")
@@ -73,57 +73,57 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line password_reset_http_test.mygo:33:1*/	request.RemoteAddr = "198.51.100.30:1234"
 	foreign := httptest.NewRecorder()
  /*line password_reset_http_test.mygo:66:3*/	handler.ServeHTTP(http.ResponseWriter(foreign), request)
- /*line password_reset_http_test.mygo:67:6*/	if foreign.Code != 403 {
+ /*line password_reset_http_test.mygo:67:3*/	if foreign.Code != 403 {
  /*line password_reset_http_test.mygo:68:5*/		t.Fatal("foreign-origin reset request was accepted")
- /*line password_reset_http_test.mygo:67:6*/	} else {
+ /*line password_reset_http_test.mygo:67:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:79:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	token := resetHTTPToken(t, db, site_1.ID, site_1.Origin)
- /*line password_reset_http_test.mygo:71:6*/	if token == "" {
+ /*line password_reset_http_test.mygo:71:3*/	if token == "" {
  /*line password_reset_http_test.mygo:71:23*/		t.Fatal("reset token extraction failed")
- /*line password_reset_http_test.mygo:71:6*/	} else {
+ /*line password_reset_http_test.mygo:71:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:84:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	confirmPath := "/api/v1/auth/password/reset/confirm"
- /*line password_reset_http_test.mygo:73:6*/	if registrationRequest(handler, other.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 400 {
+ /*line password_reset_http_test.mygo:73:3*/	if registrationRequest(handler, other.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:74:5*/		t.Fatal("cross-site reset token was accepted")
- /*line password_reset_http_test.mygo:73:6*/	} else {
+ /*line password_reset_http_test.mygo:73:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:89:1*/	}
- /*line password_reset_http_test.mygo:76:6*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"short\"}", "198.51.100.30:1234", "").Code != 400 {
+ /*line password_reset_http_test.mygo:76:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"short\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:77:5*/		t.Fatal("invalid reset password was accepted")
- /*line password_reset_http_test.mygo:76:6*/	} else {
+ /*line password_reset_http_test.mygo:76:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:93:1*/	}
- /*line password_reset_http_test.mygo:79:6*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 204 {
+ /*line password_reset_http_test.mygo:79:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 204 {
  /*line password_reset_http_test.mygo:80:5*/		t.Fatal("valid reset confirmation failed")
- /*line password_reset_http_test.mygo:79:6*/	} else {
+ /*line password_reset_http_test.mygo:79:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:97:1*/	}
- /*line password_reset_http_test.mygo:82:6*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"second-password\"}", "198.51.100.30:1234", "").Code != 400 {
+ /*line password_reset_http_test.mygo:82:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"second-password\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:83:5*/		t.Fatal("consumed reset token was reused")
- /*line password_reset_http_test.mygo:82:6*/	} else {
+ /*line password_reset_http_test.mygo:82:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:101:1*/	}
- /*line password_reset_http_test.mygo:85:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Source: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}"}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Source: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"new-password\"}"}).Code != 200 {
+ /*line password_reset_http_test.mygo:85:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 200 {
  /*line password_reset_http_test.mygo:87:5*/		t.Fatal("reset did not replace the login password")
- /*line password_reset_http_test.mygo:85:6*/	} else {
+ /*line password_reset_http_test.mygo:85:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:105:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	bobCookies := login(handler, site_1.Origin, "bob", "bob-password")
 	bobCSRF := csrfOf(bobCookies)
 	otherBob := login(handler, site_1.Origin, "bob", "bob-password")
 	changePath := "/api/v1/auth/password/change"
- /*line password_reset_http_test.mygo:93:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"wrong\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 400 {
+ /*line password_reset_http_test.mygo:93:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"wrong\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 400 {
  /*line password_reset_http_test.mygo:94:5*/		t.Fatal("wrong current password was accepted")
- /*line password_reset_http_test.mygo:93:6*/	} else {
+ /*line password_reset_http_test.mygo:93:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:113:1*/	}
- /*line password_reset_http_test.mygo:96:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, Source: site_1.Origin}).Code != 403 {
+ /*line password_reset_http_test.mygo:96:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: "", Source: site_1.Origin}).Code != 403 {
  /*line password_reset_http_test.mygo:97:5*/		t.Fatal("password change without CSRF was accepted")
- /*line password_reset_http_test.mygo:96:6*/	} else {
+ /*line password_reset_http_test.mygo:96:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:117:1*/	}
- /*line password_reset_http_test.mygo:99:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 204 {
+ /*line password_reset_http_test.mygo:99:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 204 {
  /*line password_reset_http_test.mygo:100:5*/		t.Fatal("authenticated password change failed")
- /*line password_reset_http_test.mygo:99:6*/	} else {
+ /*line password_reset_http_test.mygo:99:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:121:1*/	}
- /*line password_reset_http_test.mygo:102:6*/	if doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Cookies: bobCookies}).Code != 200 || doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Cookies: otherBob}).Code != 401 {
+ /*line password_reset_http_test.mygo:102:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: bobCookies, CSRF: "", Source: ""}).Code != 200 || doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: otherBob, CSRF: "", Source: ""}).Code != 401 {
  /*line password_reset_http_test.mygo:104:5*/		t.Fatal("password change did not preserve only the current session")
 		return
- /*line password_reset_http_test.mygo:102:6*/	} else {
- /*line password_reset_http_test.mygo:102:3*/		return
+ /*line password_reset_http_test.mygo:102:3*/	} else {
+		return
  /*line zz_password_reset_http.gen_test.go:127:1*/	}
 }
  /*line password_reset_http_test.mygo:108:1*/func TestPostgresPasswordResetHTTPRateLimit(t *testing.T) {
@@ -148,10 +148,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	path := "/api/v1/auth/password/reset"
 	first := registrationRequest(handler, site.Origin, path, "{\"email\":\"alice@example.org\"}", "198.51.100.40:1234", "")
 	limited := registrationRequest(handler, site.Origin, path, "{\"email\":\"alice@example.org\"}", "198.51.100.40:1234", "")
- /*line password_reset_http_test.mygo:123:6*/	if first.Code != 202 || limited.Code != 429 || limited.Header().Get("Retry-After") != "90" {
+ /*line password_reset_http_test.mygo:123:3*/	if first.Code != 202 || limited.Code != 429 || limited.Header().Get("Retry-After") != "90" {
  /*line password_reset_http_test.mygo:124:5*/		t.Fatal("reset IP rate limit or Retry-After was incorrect")
 		return
- /*line password_reset_http_test.mygo:123:6*/	} else {
- /*line password_reset_http_test.mygo:123:3*/		return
+ /*line password_reset_http_test.mygo:123:3*/	} else {
+		return
  /*line zz_password_reset_http.gen_test.go:156:1*/	}
 }

@@ -41,19 +41,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line notifications_test.mygo:30:12*/	}), 0)).Value
  /*line notifications_test.mygo:15:1*/	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	parent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body"}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{ParentID: parent.ID, Body: "reply"}))
+	parent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Parent", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Title: "", Body: "reply", ParentID: parent.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProjectNotifications(ctx, db, 100))
 	handler := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
  /*line notifications_test.mygo:36:17*/		NotificationRoute(settings, db, site, w, request, Segments(request.URL.Path))
 		return
  /*line zz_notifications.gen_test.go:50:1*/	})
- /*line notifications_test.mygo:15:1*/	initial := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
- /*line notifications_test.mygo:40:6*/	if initial.Code != 200 || initial.Header().Get("Cache-Control") != "no-store" {
+ /*line notifications_test.mygo:15:1*/	initial := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:40:3*/	if initial.Code != 200 || initial.Header().Get("Cache-Control") != "no-store" {
  /*line notifications_test.mygo:41:5*/		t.Fatalf("notification list failed: %d %s", initial.Code, initial.Body.String())
- /*line notifications_test.mygo:40:6*/	} else {
+ /*line notifications_test.mygo:40:3*/	} else {
  /*line zz_notifications.gen_test.go:55:1*/	}
- /*line notifications_test.mygo:15:1*/	page := storage.NotificationPage{}
+ /*line notifications_test.mygo:15:1*/	page := Zero[storage.NotificationPage]()
  /*line notifications_test.mygo:44:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(initial.Body.Bytes(), &page)
 	if __mygo_expr_3 != nil {
@@ -63,9 +63,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_notifications.gen_test.go:63:1*/		}{})
 	}
  /*line notifications_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line notifications_test.mygo:45:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 1 || page.ThroughCursor == "" {
+ /*line notifications_test.mygo:45:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 1 || page.ThroughCursor == "" {
  /*line notifications_test.mygo:46:5*/		t.Fatal("missing item or snapshot")
- /*line notifications_test.mygo:45:6*/	} else {
+ /*line notifications_test.mygo:45:3*/	} else {
  /*line zz_notifications.gen_test.go:69:1*/	}
  /*line notifications_test.mygo:15:1*/	singlePath := "/api/v1/notifications/" + strconv.FormatInt(MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ID, 10) + "/read"
 	bobIssued := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](storage.MygoIN17SessionRepositoryM5Issue(storage.SessionRepository{DB: db}, ctx, bob, time.Now()))
@@ -75,25 +75,25 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line notifications_test.mygo:15:1*/	bobCSRF := MygoIN6OptionM6Unwrap[*http.Cookie](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(bobCookies, func(cookie_3 *http.Cookie) bool {
  /*line notifications_test.mygo:54:5*/		return cookie_3.Name == "__Host-commune_csrf"
  /*line notifications_test.mygo:55:12*/	}), 0)).Value
- /*line notifications_test.mygo:15:1*/	crossAccount := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
- /*line notifications_test.mygo:57:6*/	if crossAccount.Code != 404 || crossAccount.Header().Get("Cache-Control") != "no-store" {
+ /*line notifications_test.mygo:15:1*/	crossAccount := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Payload: "", Cookies: bobCookies, CSRF: bobCSRF, Source: site.Origin})
+ /*line notifications_test.mygo:57:3*/	if crossAccount.Code != 404 || crossAccount.Header().Get("Cache-Control") != "no-store" {
  /*line notifications_test.mygo:58:5*/		t.Fatal("another account could read or discover a notification")
- /*line notifications_test.mygo:57:6*/	} else {
+ /*line notifications_test.mygo:57:3*/	} else {
  /*line zz_notifications.gen_test.go:82:1*/	}
- /*line notifications_test.mygo:15:1*/	badPage := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications?limit=0", Cookies: cookies})
- /*line notifications_test.mygo:61:6*/	if badPage.Code != 400 {
+ /*line notifications_test.mygo:15:1*/	badPage := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications?limit=0", Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:61:3*/	if badPage.Code != 400 {
  /*line notifications_test.mygo:62:5*/		t.Fatal("unbounded notification page accepted")
- /*line notifications_test.mygo:61:6*/	} else {
+ /*line notifications_test.mygo:61:3*/	} else {
  /*line zz_notifications.gen_test.go:87:1*/	}
- /*line notifications_test.mygo:15:1*/	unauthenticated := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications"})
- /*line notifications_test.mygo:65:6*/	if unauthenticated.Code != 401 || unauthenticated.Header().Get("Cache-Control") != "no-store" {
+ /*line notifications_test.mygo:15:1*/	unauthenticated := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:65:3*/	if unauthenticated.Code != 401 || unauthenticated.Header().Get("Cache-Control") != "no-store" {
  /*line notifications_test.mygo:66:5*/		t.Fatal("notification authentication/no-store failed")
- /*line notifications_test.mygo:65:6*/	} else {
+ /*line notifications_test.mygo:65:3*/	} else {
  /*line zz_notifications.gen_test.go:92:1*/	}
- /*line notifications_test.mygo:15:1*/	method := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
- /*line notifications_test.mygo:69:6*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
+ /*line notifications_test.mygo:15:1*/	method := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/notifications", Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:69:3*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
  /*line notifications_test.mygo:70:5*/		t.Fatal("notification method contract failed")
- /*line notifications_test.mygo:69:6*/	} else {
+ /*line notifications_test.mygo:69:3*/	} else {
  /*line zz_notifications.gen_test.go:97:1*/	}
  /*line notifications_test.mygo:72:17*/	var __mygo_expr_6 Result[[]byte, error]
 	__mygo_expr_7, __mygo_expr_5 := json.Marshal(NotificationReadAllInput{ThroughCursor: page.ThroughCursor})
@@ -103,43 +103,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Ok[[]byte, error](__mygo_expr_7)
  /*line zz_notifications.gen_test.go:104:1*/	}
  /*line notifications_test.mygo:15:1*/	payload := string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_6))
-	missingCSRF := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, Source: site.Origin})
+	missingCSRF := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, CSRF: "", Source: site.Origin})
 	foreignOrigin := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, CSRF: csrf, Source: "https://foreign.example"})
- /*line notifications_test.mygo:75:6*/	if missingCSRF.Code != 403 || foreignOrigin.Code != 403 {
+ /*line notifications_test.mygo:75:3*/	if missingCSRF.Code != 403 || foreignOrigin.Code != 403 {
  /*line notifications_test.mygo:76:5*/		t.Fatal("notification mutation lacked CSRF/origin protection")
- /*line notifications_test.mygo:75:6*/	} else {
+ /*line notifications_test.mygo:75:3*/	} else {
  /*line zz_notifications.gen_test.go:111:1*/	}
  /*line notifications_test.mygo:15:1*/	var invalid []string = []string{"{}", "{\"through_cursor\":\"garbage\"}", "{\"through_cursor\":\"\",\"unknown\":true}"}
  /*line notifications_test.mygo:79:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(body string) {
  /*line notifications_test.mygo:79:16*/		response := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: body, Cookies: cookies, CSRF: csrf, Source: site.Origin})
- /*line notifications_test.mygo:81:8*/		if response.Code != 400 {
+ /*line notifications_test.mygo:81:5*/		if response.Code != 400 {
  /*line notifications_test.mygo:82:7*/			t.Fatal("invalid read-all body accepted")
 			return
- /*line notifications_test.mygo:81:8*/		} else {
- /*line notifications_test.mygo:81:5*/			return
+ /*line notifications_test.mygo:81:5*/		} else {
+			return
  /*line zz_notifications.gen_test.go:120:1*/		}
 	})
  /*line notifications_test.mygo:15:1*/	var repeats []int = []int{1, 2}
  /*line notifications_test.mygo:86:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(repeats, func(attempt int) {
- /*line notifications_test.mygo:86:16*/		single := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Cookies: cookies, CSRF: csrf, Source: site.Origin})
- /*line notifications_test.mygo:88:8*/		if single.Code != 204 || single.Header().Get("Cache-Control") != "no-store" {
+ /*line notifications_test.mygo:86:16*/		single := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: singlePath, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin})
+ /*line notifications_test.mygo:88:5*/		if single.Code != 204 || single.Header().Get("Cache-Control") != "no-store" {
  /*line notifications_test.mygo:89:7*/			t.Fatalf("single-read attempt %d failed: %d", attempt, single.Code)
 			return
- /*line notifications_test.mygo:88:8*/		} else {
- /*line notifications_test.mygo:88:5*/			return
+ /*line notifications_test.mygo:88:5*/		} else {
+			return
  /*line zz_notifications.gen_test.go:130:1*/		}
 	})
  /*line notifications_test.mygo:15:1*/	read := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/notifications/read-all", Payload: payload, Cookies: cookies, CSRF: csrf, Source: site.Origin})
- /*line notifications_test.mygo:93:6*/	if read.Code != 204 {
+ /*line notifications_test.mygo:93:3*/	if read.Code != 204 {
  /*line notifications_test.mygo:94:5*/		t.Fatalf("read-all failed: %d %s", read.Code, read.Body.String())
- /*line notifications_test.mygo:93:6*/	} else {
+ /*line notifications_test.mygo:93:3*/	} else {
  /*line zz_notifications.gen_test.go:136:1*/	}
- /*line notifications_test.mygo:15:1*/	unread := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications/unread-count", Cookies: cookies})
- /*line notifications_test.mygo:97:6*/	if unread.Code != 200 || unread.Body.String() != "{\"count\":0}" {
+ /*line notifications_test.mygo:15:1*/	unread := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications/unread-count", Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:97:3*/	if unread.Code != 200 || unread.Body.String() != "{\"count\":0}" {
  /*line notifications_test.mygo:98:5*/		t.Fatalf("unread count failed: %d %s", unread.Code, unread.Body.String())
 		return
- /*line notifications_test.mygo:97:6*/	} else {
- /*line notifications_test.mygo:97:3*/		return
+ /*line notifications_test.mygo:97:3*/	} else {
+		return
  /*line zz_notifications.gen_test.go:143:1*/	}
 }
  /*line notifications_test.mygo:102:1*/func TestNotificationUnavailableAuthentication(t *testing.T) {
@@ -170,10 +170,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line notifications_test.mygo:102:1*/	cookies := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(auth.MygoIN13SessionTokensM7Cookies(auth.NewSessionTokens(), time.Now().Add(time.Hour)), func(cookie http.Cookie) *http.Cookie {
  /*line notifications_test.mygo:113:5*/		return &cookie
  /*line zz_notifications.gen_test.go:172:1*/	})
- /*line notifications_test.mygo:102:1*/	response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Cookies: cookies})
- /*line notifications_test.mygo:116:6*/	if response.Code != 503 || response.Header().Get("Cache-Control") != "no-store" {
+ /*line notifications_test.mygo:102:1*/	response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/notifications", Payload: "", Cookies: cookies, CSRF: "", Source: ""})
+ /*line notifications_test.mygo:116:3*/	if response.Code != 503 || response.Header().Get("Cache-Control") != "no-store" {
  /*line notifications_test.mygo:117:5*/		t.Fatal("notification storage outage was hidden")
- /*line notifications_test.mygo:116:6*/	} else {
+ /*line notifications_test.mygo:116:3*/	} else {
  /*line zz_notifications.gen_test.go:177:1*/	}
  /*line notifications_test.mygo:119:3*/	var __mygo_expr_7 Result[struct{}, error]
 	__mygo_expr_6 := fixture.Mock.ExpectationsWereMet()

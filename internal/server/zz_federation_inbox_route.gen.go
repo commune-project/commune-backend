@@ -11,37 +11,37 @@ import "github.com/commune-project/commune-backend/internal/federation"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_inbox_route.mygo:10:1*/func InboxRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
- /*line federation_inbox_route.mygo:11:6*/	if request.URL.Path == "/inbox" {
+ /*line federation_inbox_route.mygo:11:3*/	if request.URL.Path == "/inbox" {
  /*line federation_inbox_route.mygo:12:5*/		InboxHandler(settings, db, site, w, request, "")
- /*line federation_inbox_route.mygo:11:6*/		return
+ /*line federation_inbox_route.mygo:11:3*/		return
 	} else {
  /*line zz_federation_inbox_route.gen.go:18:1*/	}
  /*line federation_inbox_route.mygo:10:1*/	parts := Segments(request.URL.Path)
- /*line federation_inbox_route.mygo:16:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "inbox" {
+ /*line federation_inbox_route.mygo:16:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "inbox" {
 		name := strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line federation_inbox_route.mygo:18:8*/		if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "users" {
+ /*line federation_inbox_route.mygo:18:5*/		if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "users" {
 			person := storage.LoadLocalPerson(request.Context(), db, site.ID, name)
- /*line federation_inbox_route.mygo:20:10*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
+ /*line federation_inbox_route.mygo:20:7*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
  /*line federation_inbox_route.mygo:21:9*/				http.NotFound(w, request)
- /*line federation_inbox_route.mygo:20:10*/				return
+ /*line federation_inbox_route.mygo:20:7*/				return
 			} else {
  /*line zz_federation_inbox_route.gen.go:28:1*/			}
  /*line federation_inbox_route.mygo:24:7*/			InboxHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)).URI)
- /*line federation_inbox_route.mygo:18:8*/			return
+ /*line federation_inbox_route.mygo:18:5*/			return
 		} else {
  /*line zz_federation_inbox_route.gen.go:32:1*/		}
- /*line federation_inbox_route.mygo:16:6*/		if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "communities" {
+ /*line federation_inbox_route.mygo:16:3*/		if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "communities" {
 			found := storage.LoadCommunityByName(request.Context(), db, site.ID, name)
- /*line federation_inbox_route.mygo:29:10*/			if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))) {
+ /*line federation_inbox_route.mygo:29:7*/			if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))) {
  /*line federation_inbox_route.mygo:30:9*/				http.NotFound(w, request)
- /*line federation_inbox_route.mygo:29:10*/				return
+ /*line federation_inbox_route.mygo:29:7*/				return
 			} else {
  /*line zz_federation_inbox_route.gen.go:39:1*/			}
  /*line federation_inbox_route.mygo:33:7*/			InboxHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)).ActorURI.String)
- /*line federation_inbox_route.mygo:16:6*/			return
+ /*line federation_inbox_route.mygo:16:3*/			return
 		} else {
  /*line zz_federation_inbox_route.gen.go:43:1*/		}
- /*line federation_inbox_route.mygo:16:6*/	} else {
+ /*line federation_inbox_route.mygo:16:3*/	} else {
  /*line zz_federation_inbox_route.gen.go:45:1*/	}
  /*line federation_inbox_route.mygo:37:3*/	http.NotFound(w, request)
 	return

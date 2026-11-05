@@ -109,6 +109,7 @@ func BrowserPostAuthor(state: storage.PostRichState) -> AuthorOutput
 end
 
 func BrowserPosts(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
@@ -153,7 +154,7 @@ func BrowserPosts(
     let hosted = access.Community.HostSiteID == repository.SiteID
     let active = !record.DeletedAt.Valid
     let edit = hosted && active && access.CanEditBody(record.AuthorActorURI)
-    var output = PostDTO(record)
+    var output = PostDTO(sanitizer, record)
     let rich = richStates.Unwrap().Filter(func(state: storage.PostRichState) -> Bool
       state.ID == record.ID
     end)
@@ -161,7 +162,7 @@ func BrowserPosts(
       return Err("post content unavailable")
     end
     output.Author = BrowserPostAuthor(rich.Get(0).Unwrap())
-    let rendered = storage.RenderStoredPost(record, rich.Get(0).Unwrap(), false)
+    let rendered = storage.RenderStoredPost(sanitizer, record, rich.Get(0).Unwrap(), false)
     let media = storage.PostRichMedia(rich.Get(0).Unwrap())
     if rendered.IsErr() || media.IsErr() then
       return Err("post content unavailable")
@@ -170,7 +171,7 @@ func BrowserPosts(
     output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String
       item.UploadID
     end)
-    let attachments = BrowserPostMedia(record, media.Unwrap(), access.Community.ReadPolicy == "members", cached, output)
+    let attachments = BrowserPostMedia(sanitizer, record, media.Unwrap(), access.Community.ReadPolicy == "members", cached, output)
     if attachments.IsErr() then
       return Err(attachments.UnwrapErr())
     end
@@ -302,6 +303,7 @@ func ThreadChildren(all: Slice[PostOutput], parentID: String, mode: String) -> S
 end
 
 func BrowserThread(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
@@ -310,7 +312,7 @@ func BrowserThread(
   mode: String
 ) -> Result[Slice[PostOutput], String]
   let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord row.Post end)
-  let outputs = BrowserPosts(ctx, repository, viewer, records)
+  let outputs = BrowserPosts(sanitizer, ctx, repository, viewer, records)
   if outputs.IsErr() then
     return Err(outputs.UnwrapErr())
   end
@@ -327,6 +329,7 @@ func BrowserThread(
 end
 
 func WriteBrowserPost(
+  sanitizer: content.Sanitizer,
   db: Ref[gorm.DB],
   site: config.Site,
   w: http.ResponseWriter,
@@ -342,7 +345,7 @@ func WriteBrowserPost(
     return
   end
   let records: Slice[storage.PostRecord] = [record]
-  let outputs = BrowserPosts(request.Context(), repository, viewer.Unwrap(), records)
+  let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer.Unwrap(), records)
   if outputs.IsErr() then
     Fail(w, outputs.UnwrapErr())
   else

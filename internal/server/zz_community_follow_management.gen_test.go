@@ -46,18 +46,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 	thirdCookies := login(handler, site.Origin, "third", "third-password")
 	thirdCSRF := csrfOf(thirdCookies)
 	follow := func(id string, cookies []*http.Cookie, token string) int {
- /*line community_follow_management_test.mygo:37:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + id + "/follow", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
+ /*line community_follow_management_test.mygo:37:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
  /*line zz_community_follow_management.gen_test.go:50:1*/	}
- /*line community_follow_management_test.mygo:39:6*/	if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 {
+ /*line community_follow_management_test.mygo:39:3*/	if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 {
  /*line community_follow_management_test.mygo:40:5*/		t.Fatal("pending follows failed")
- /*line community_follow_management_test.mygo:39:6*/	} else {
+ /*line community_follow_management_test.mygo:39:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:54:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	requestsPath := "/api/v1/communities/" + approval.ID + "/follow-requests"
- /*line community_follow_management_test.mygo:43:6*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: requestsPath, Cookies: firstCookies}).Code != 403 {
+ /*line community_follow_management_test.mygo:43:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: requestsPath, Payload: "", Cookies: firstCookies, CSRF: "", Source: ""}).Code != 403 {
  /*line community_follow_management_test.mygo:44:5*/		t.Fatal("ordinary member read pending follow roster")
- /*line community_follow_management_test.mygo:43:6*/	} else {
+ /*line community_follow_management_test.mygo:43:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:59:1*/	}
- /*line community_follow_management_test.mygo:13:1*/	roster := FollowRequestPage{}
+ /*line community_follow_management_test.mygo:13:1*/	roster := Zero[FollowRequestPage]()
 	rosterResponse := browserGet(t, handler, site.Origin, requestsPath+"?limit=1", creatorCookies, 200)
  /*line community_follow_management_test.mygo:48:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(rosterResponse.Body.Bytes(), &roster)
@@ -68,50 +68,50 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_management.gen_test.go:68:1*/		}{})
 	}
  /*line community_follow_management_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line community_follow_management_test.mygo:49:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(roster.Items) != 1 || roster.Limit != 1 {
+ /*line community_follow_management_test.mygo:49:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(roster.Items) != 1 || roster.Limit != 1 {
  /*line community_follow_management_test.mygo:50:5*/		t.Fatal("pending follow roster was not paginated")
- /*line community_follow_management_test.mygo:49:6*/	} else {
+ /*line community_follow_management_test.mygo:49:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:74:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	decisionPath := requestsPath + "/" + url.PathEscape(first.ActorURI)
 	accept := forumCall{Method: "POST", Origin: site.Origin, Path: decisionPath, Payload: "{\"state\":\"accepted\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
- /*line community_follow_management_test.mygo:54:6*/	if doForum(handler, accept).Code != 204 || doForum(handler, accept).Code != 204 {
+ /*line community_follow_management_test.mygo:54:3*/	if doForum(handler, accept).Code != 204 || doForum(handler, accept).Code != 204 {
  /*line community_follow_management_test.mygo:55:5*/		t.Fatal("follow approval was not idempotent")
- /*line community_follow_management_test.mygo:54:6*/	} else {
+ /*line community_follow_management_test.mygo:54:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:80:1*/	}
- /*line community_follow_management_test.mygo:57:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, first.ActorURI)) != "accepted" || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, first.ActorURI)) {
+ /*line community_follow_management_test.mygo:57:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, first.ActorURI)) != "accepted" || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, first.ActorURI)) {
  /*line community_follow_management_test.mygo:59:5*/		t.Fatal("follow approval did not grant membership atomically")
- /*line community_follow_management_test.mygo:57:6*/	} else {
+ /*line community_follow_management_test.mygo:57:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:84:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	rejectPath := requestsPath + "/" + url.PathEscape(second.ActorURI)
 	reject := forumCall{Method: "POST", Origin: site.Origin, Path: rejectPath, Payload: "{\"state\":\"rejected\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
- /*line community_follow_management_test.mygo:63:6*/	if doForum(handler, reject).Code != 204 || doForum(handler, reject).Code != 204 {
+ /*line community_follow_management_test.mygo:63:3*/	if doForum(handler, reject).Code != 204 || doForum(handler, reject).Code != 204 {
  /*line community_follow_management_test.mygo:64:5*/		t.Fatal("follow rejection was not idempotent")
- /*line community_follow_management_test.mygo:63:6*/	} else {
+ /*line community_follow_management_test.mygo:63:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:90:1*/	}
- /*line community_follow_management_test.mygo:66:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, second.ActorURI)) != "rejected" || MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, second.ActorURI)) {
+ /*line community_follow_management_test.mygo:66:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, approval.ID, second.ActorURI)) != "rejected" || MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, approval.ID, second.ActorURI)) {
  /*line community_follow_management_test.mygo:68:5*/		t.Fatal("follow rejection created membership")
- /*line community_follow_management_test.mygo:66:6*/	} else {
+ /*line community_follow_management_test.mygo:66:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:94:1*/	}
- /*line community_follow_management_test.mygo:70:6*/	if follow(approval.ID, thirdCookies, thirdCSRF) != 204 {
+ /*line community_follow_management_test.mygo:70:3*/	if follow(approval.ID, thirdCookies, thirdCSRF) != 204 {
  /*line community_follow_management_test.mygo:71:5*/		t.Fatal("third pending follow failed")
- /*line community_follow_management_test.mygo:70:6*/	} else {
+ /*line community_follow_management_test.mygo:70:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:98:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	policyPath := "/api/v1/communities/" + approval.ID + "/policy"
 	policy := forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"disabled\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
- /*line community_follow_management_test.mygo:75:6*/	if doForum(handler, policy).Code != 204 {
+ /*line community_follow_management_test.mygo:75:3*/	if doForum(handler, policy).Code != 204 {
  /*line community_follow_management_test.mygo:76:5*/		t.Fatal("policy update with follow policy failed")
- /*line community_follow_management_test.mygo:75:6*/	} else {
+ /*line community_follow_management_test.mygo:75:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:104:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	thirdDecision := forumCall{Method: "POST", Origin: site.Origin, Path: requestsPath + "/" + url.PathEscape(third.ActorURI), Payload: "{\"state\":\"accepted\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}
- /*line community_follow_management_test.mygo:79:6*/	if doForum(handler, thirdDecision).Code != 204 {
+ /*line community_follow_management_test.mygo:79:3*/	if doForum(handler, thirdDecision).Code != 204 {
  /*line community_follow_management_test.mygo:80:5*/		t.Fatal("pending follow could not be reviewed after policy change")
- /*line community_follow_management_test.mygo:79:6*/	} else {
+ /*line community_follow_management_test.mygo:79:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:109:1*/	}
- /*line community_follow_management_test.mygo:82:6*/	if follow(approval.ID, secondCookies, secondCSRF) != 403 {
+ /*line community_follow_management_test.mygo:82:3*/	if follow(approval.ID, secondCookies, secondCSRF) != 403 {
  /*line community_follow_management_test.mygo:83:5*/		t.Fatal("disabled policy accepted a new follow")
- /*line community_follow_management_test.mygo:82:6*/	} else {
+ /*line community_follow_management_test.mygo:82:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:113:1*/	}
- /*line community_follow_management_test.mygo:13:1*/	accepted := CommunityOutput{}
+ /*line community_follow_management_test.mygo:13:1*/	accepted := Zero[CommunityOutput]()
  /*line community_follow_management_test.mygo:86:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+approval.ID, firstCookies, 200).Body.Bytes(), &accepted)
 	if __mygo_expr_5 != nil {
@@ -121,26 +121,26 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_management.gen_test.go:121:1*/		}{})
 	}
  /*line community_follow_management_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line community_follow_management_test.mygo:87:6*/	if accepted.FollowPolicy != "disabled" || accepted.Viewer.FollowState != "accepted" || accepted.FollowerCount != int64(2) {
+ /*line community_follow_management_test.mygo:87:3*/	if accepted.FollowPolicy != "disabled" || accepted.Viewer.FollowState != "accepted" || accepted.FollowerCount != int64(2) {
  /*line community_follow_management_test.mygo:88:5*/		t.Fatal("policy change did not preserve existing follows")
- /*line community_follow_management_test.mygo:87:6*/	} else {
+ /*line community_follow_management_test.mygo:87:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:127:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	audits := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("audit_events").Where("scope_kind='community' AND scope_id=? AND action='review-follow'", approval.ID).Count(&audits)))
- /*line community_follow_management_test.mygo:92:6*/	if audits < int64(3) {
+ /*line community_follow_management_test.mygo:92:3*/	if audits < int64(3) {
  /*line community_follow_management_test.mygo:93:5*/		t.Fatal("follow review actions were not audited")
- /*line community_follow_management_test.mygo:92:6*/	} else {
+ /*line community_follow_management_test.mygo:92:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:133:1*/	}
- /*line community_follow_management_test.mygo:95:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 {
+ /*line community_follow_management_test.mygo:95:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 {
  /*line community_follow_management_test.mygo:96:5*/		t.Fatal("invalid follow policy was accepted")
- /*line community_follow_management_test.mygo:95:6*/	} else {
+ /*line community_follow_management_test.mygo:95:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:137:1*/	}
- /*line community_follow_management_test.mygo:98:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"open\"}", Cookies: firstCookies, CSRF: firstCSRF, Source: site.Origin}).Code != 403 {
+ /*line community_follow_management_test.mygo:98:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: policyPath, Payload: "{\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"open\"}", Cookies: firstCookies, CSRF: firstCSRF, Source: site.Origin}).Code != 403 {
  /*line community_follow_management_test.mygo:99:5*/		t.Fatal("non-manager changed follow policy")
- /*line community_follow_management_test.mygo:98:6*/	} else {
+ /*line community_follow_management_test.mygo:98:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:141:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	createdOpen := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omitted\",\"title\":\"Omitted\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-	openDTO := CommunityOutput{}
+	openDTO := Zero[CommunityOutput]()
  /*line community_follow_management_test.mygo:103:6*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(createdOpen.Body.Bytes(), &openDTO)
 	if __mygo_expr_7 != nil {
@@ -149,12 +149,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_8 = Ok[struct{}, error](struct {
  /*line zz_community_follow_management.gen_test.go:150:1*/		}{})
 	}
- /*line community_follow_management_test.mygo:103:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || openDTO.FollowPolicy != "open" {
+ /*line community_follow_management_test.mygo:103:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_8) || openDTO.FollowPolicy != "open" {
  /*line community_follow_management_test.mygo:104:5*/		t.Fatal("creation did not derive open follow policy")
- /*line community_follow_management_test.mygo:103:6*/	} else {
+ /*line community_follow_management_test.mygo:103:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:155:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	createdMembers := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"omittedmembers\",\"title\":\"Omitted Members\",\"mode\":\"federated\",\"read_policy\":\"members\",\"post_policy\":\"members\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-	membersDTO := CommunityOutput{}
+	membersDTO := Zero[CommunityOutput]()
  /*line community_follow_management_test.mygo:108:6*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(createdMembers.Body.Bytes(), &membersDTO)
 	if __mygo_expr_9 != nil {
@@ -163,12 +163,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Ok[struct{}, error](struct {
  /*line zz_community_follow_management.gen_test.go:164:1*/		}{})
 	}
- /*line community_follow_management_test.mygo:108:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || membersDTO.FollowPolicy != "members" {
+ /*line community_follow_management_test.mygo:108:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || membersDTO.FollowPolicy != "members" {
  /*line community_follow_management_test.mygo:109:5*/		t.Fatal("creation did not derive members follow policy")
- /*line community_follow_management_test.mygo:108:6*/	} else {
+ /*line community_follow_management_test.mygo:108:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:169:1*/	}
  /*line community_follow_management_test.mygo:13:1*/	explicit := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"explicit\",\"title\":\"Explicit\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"approval\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin})
-	explicitDTO := CommunityOutput{}
+	explicitDTO := Zero[CommunityOutput]()
  /*line community_follow_management_test.mygo:113:6*/	var __mygo_expr_12 Result[struct{}, error]
 	__mygo_expr_11 := json.Unmarshal(explicit.Body.Bytes(), &explicitDTO)
 	if __mygo_expr_11 != nil {
@@ -177,14 +177,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_12 = Ok[struct{}, error](struct {
  /*line zz_community_follow_management.gen_test.go:178:1*/		}{})
 	}
- /*line community_follow_management_test.mygo:113:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) || explicitDTO.FollowPolicy != "approval" {
+ /*line community_follow_management_test.mygo:113:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) || explicitDTO.FollowPolicy != "approval" {
  /*line community_follow_management_test.mygo:114:5*/		t.Fatal("explicit creation follow policy failed")
- /*line community_follow_management_test.mygo:113:6*/	} else {
+ /*line community_follow_management_test.mygo:113:3*/	} else {
  /*line zz_community_follow_management.gen_test.go:183:1*/	}
- /*line community_follow_management_test.mygo:116:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"invalid\",\"title\":\"Invalid\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 {
+ /*line community_follow_management_test.mygo:116:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities", Payload: "{\"name\":\"invalid\",\"title\":\"Invalid\",\"mode\":\"federated\",\"read_policy\":\"eligible_users\",\"post_policy\":\"eligible_users\",\"follow_policy\":\"sometimes\"}", Cookies: creatorCookies, CSRF: creatorCSRF, Source: site.Origin}).Code != 400 {
  /*line community_follow_management_test.mygo:117:5*/		t.Fatal("invalid creation follow policy was accepted")
 		return
- /*line community_follow_management_test.mygo:116:6*/	} else {
- /*line community_follow_management_test.mygo:116:3*/		return
+ /*line community_follow_management_test.mygo:116:3*/	} else {
+		return
  /*line zz_community_follow_management.gen_test.go:189:1*/	}
 }

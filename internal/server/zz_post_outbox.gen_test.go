@@ -29,39 +29,39 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "outbox", "Outbox", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "**before**", ContentFormat: "markdown"}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "**before**", ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")))
-	failure := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}"})
+	failure := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
 	failedPost := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
- /*line post_outbox_test.mygo:27:6*/	if failure.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version {
+ /*line post_outbox_test.mygo:27:3*/	if failure.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version {
  /*line post_outbox_test.mygo:27:104*/		t.Fatal("outbox failure committed post mutation or revision")
- /*line post_outbox_test.mygo:27:6*/	} else {
+ /*line post_outbox_test.mygo:27:3*/	} else {
  /*line zz_post_outbox.gen_test.go:42:1*/	}
  /*line post_outbox_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")))
-	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}"})
- /*line post_outbox_test.mygo:30:6*/	if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") {
+	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_outbox_test.mygo:30:3*/	if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") {
  /*line post_outbox_test.mygo:30:112*/		t.Fatal("rich update failed after outbox recovery")
- /*line post_outbox_test.mygo:30:6*/	} else {
+ /*line post_outbox_test.mygo:30:3*/	} else {
  /*line zz_post_outbox.gen_test.go:48:1*/	}
- /*line post_outbox_test.mygo:11:1*/	stale := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"old draft\"}"})
- /*line post_outbox_test.mygo:32:6*/	if stale.Code != 409 {
+ /*line post_outbox_test.mygo:11:1*/	stale := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_outbox_test.mygo:32:3*/	if stale.Code != 409 {
  /*line post_outbox_test.mygo:32:29*/		t.Fatal("stale federated edit did not conflict")
- /*line post_outbox_test.mygo:32:6*/	} else {
+ /*line post_outbox_test.mygo:32:3*/	} else {
  /*line zz_post_outbox.gen_test.go:53:1*/	}
- /*line post_outbox_test.mygo:11:1*/	removed := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies)})
- /*line post_outbox_test.mygo:34:6*/	if removed.Code != 204 {
+ /*line post_outbox_test.mygo:11:1*/	removed := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_outbox_test.mygo:34:3*/	if removed.Code != 204 {
  /*line post_outbox_test.mygo:34:31*/		t.Fatal("rich delete failed")
- /*line post_outbox_test.mygo:34:6*/	} else {
+ /*line post_outbox_test.mygo:34:3*/	} else {
  /*line zz_post_outbox.gen_test.go:58:1*/	}
  /*line post_outbox_test.mygo:11:1*/	var kinds []string = []string{}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT kind FROM activities WHERE actor_uri=? ORDER BY CASE kind WHEN 'Create' THEN 1 WHEN 'Update' THEN 2 WHEN 'Delete' THEN 3 ELSE 4 END", alice.ActorURI).Scan(&kinds)))
- /*line post_outbox_test.mygo:37:6*/	if strings.Join(kinds, ",") != "Create,Update,Delete" {
+ /*line post_outbox_test.mygo:37:3*/	if strings.Join(kinds, ",") != "Create,Update,Delete" {
  /*line post_outbox_test.mygo:37:62*/		t.Fatalf("missing durable post lifecycle activities: %v", kinds)
 		return
- /*line post_outbox_test.mygo:37:6*/	} else {
- /*line post_outbox_test.mygo:37:3*/		return
+ /*line post_outbox_test.mygo:37:3*/	} else {
+		return
  /*line zz_post_outbox.gen_test.go:66:1*/	}
 }

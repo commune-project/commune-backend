@@ -10,259 +10,260 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_rich.mygo:12:1*/type RichActivityObject struct {
+ /*line federation_rich.mygo:13:1*/type RichActivityObject struct {
 	Object json.RawMessage "json:\"object\""
- /*line zz_federation_rich.gen.go:17:1*/}
+ /*line zz_federation_rich.gen.go:18:1*/}
 
- /*line federation_rich.mygo:18:1*/func ReceiveRichAnnounce(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte) Result[struct {
+ /*line federation_rich.mygo:19:1*/func ReceiveRichAnnounce(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte) Result[struct {
 }, string] {
- /*line federation_rich.mygo:25:6*/	if MygoIN6OptionM6IsNone[federation.EmbeddedActivity](activity.Embedded) {
- /*line federation_rich.mygo:26:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:23:1*/		}{})
- /*line federation_rich.mygo:25:6*/	} else {
- /*line zz_federation_rich.gen.go:25:1*/	}
- /*line federation_rich.mygo:18:1*/	community := storage.LoadReplicaCommunity(ctx, db, activity.Actor)
- /*line federation_rich.mygo:29:6*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](community) {
- /*line federation_rich.mygo:30:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ReplicaCommunity], string](community))
- /*line federation_rich.mygo:29:6*/	} else {
- /*line zz_federation_rich.gen.go:30:1*/	}
- /*line federation_rich.mygo:32:6*/	if MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](community)) {
- /*line federation_rich.mygo:33:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:33:1*/		}{})
- /*line federation_rich.mygo:32:6*/	} else {
- /*line zz_federation_rich.gen.go:35:1*/	}
- /*line federation_rich.mygo:18:1*/	envelope := RichActivityObject{}
- /*line federation_rich.mygo:36:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line federation_rich.mygo:27:3*/	if MygoIN6OptionM6IsNone[federation.EmbeddedActivity](activity.Embedded) {
+ /*line federation_rich.mygo:28:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:24:1*/		}{})
+ /*line federation_rich.mygo:27:3*/	} else {
+ /*line zz_federation_rich.gen.go:26:1*/	}
+ /*line federation_rich.mygo:19:1*/	community := storage.LoadReplicaCommunity(ctx, db, activity.Actor)
+ /*line federation_rich.mygo:31:3*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](community) {
+ /*line federation_rich.mygo:32:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ReplicaCommunity], string](community))
+ /*line federation_rich.mygo:31:3*/	} else {
+ /*line zz_federation_rich.gen.go:31:1*/	}
+ /*line federation_rich.mygo:34:3*/	if MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](community)) {
+ /*line federation_rich.mygo:35:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:34:1*/		}{})
+ /*line federation_rich.mygo:34:3*/	} else {
+ /*line zz_federation_rich.gen.go:36:1*/	}
+ /*line federation_rich.mygo:19:1*/	envelope := Zero[RichActivityObject]()
+ /*line federation_rich.mygo:38:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &envelope)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_federation_rich.gen.go:43:1*/		}{})
+ /*line zz_federation_rich.gen.go:44:1*/		}{})
 	}
- /*line federation_rich.mygo:36:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line federation_rich.mygo:37:12*/		return Err[struct{}, string]("invalid announce")
- /*line federation_rich.mygo:36:6*/	} else {
- /*line zz_federation_rich.gen.go:48:1*/	}
- /*line federation_rich.mygo:18:1*/	inner := federation.ParseActivity([]byte(envelope.Object))
- /*line federation_rich.mygo:40:6*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](inner) {
- /*line federation_rich.mygo:41:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ParsedActivity, string](inner))
- /*line federation_rich.mygo:40:6*/	} else {
- /*line zz_federation_rich.gen.go:53:1*/	}
- /*line federation_rich.mygo:18:1*/	current := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](inner)
- /*line federation_rich.mygo:44:6*/	if current.Type != "Create" && current.Type != "Update" && current.Type != "Delete" {
- /*line federation_rich.mygo:45:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:57:1*/		}{})
- /*line federation_rich.mygo:44:6*/	} else {
- /*line zz_federation_rich.gen.go:59:1*/	}
- /*line federation_rich.mygo:47:6*/	if current.Type != "Delete" && MygoIN6OptionM6IsNone[federation.EmbeddedActivity](current.Embedded) {
- /*line federation_rich.mygo:48:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:62:1*/		}{})
- /*line federation_rich.mygo:47:6*/	} else {
- /*line zz_federation_rich.gen.go:64:1*/	}
- /*line federation_rich.mygo:50:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line federation_rich.mygo:53:5*/		stored := storage.LoadActivityPayload(ctx, tx, current.ID)
- /*line federation_rich.mygo:55:10*/		if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](stored) {
- /*line federation_rich.mygo:56:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ActivityPayloadRecord], string](stored))
- /*line federation_rich.mygo:55:10*/		} else {
- /*line zz_federation_rich.gen.go:70:1*/		}
- /*line federation_rich.mygo:58:10*/		if MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](stored)) {
+ /*line federation_rich.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line federation_rich.mygo:39:12*/		return Err[struct{}, string]("invalid announce")
+ /*line federation_rich.mygo:38:3*/	} else {
+ /*line zz_federation_rich.gen.go:49:1*/	}
+ /*line federation_rich.mygo:19:1*/	inner := federation.ParseActivity([]byte(envelope.Object))
+ /*line federation_rich.mygo:42:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](inner) {
+ /*line federation_rich.mygo:43:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ParsedActivity, string](inner))
+ /*line federation_rich.mygo:42:3*/	} else {
+ /*line zz_federation_rich.gen.go:54:1*/	}
+ /*line federation_rich.mygo:19:1*/	current := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](inner)
+ /*line federation_rich.mygo:46:3*/	if current.Type != "Create" && current.Type != "Update" && current.Type != "Delete" {
+ /*line federation_rich.mygo:47:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:58:1*/		}{})
+ /*line federation_rich.mygo:46:3*/	} else {
+ /*line zz_federation_rich.gen.go:60:1*/	}
+ /*line federation_rich.mygo:49:3*/	if current.Type != "Delete" && MygoIN6OptionM6IsNone[federation.EmbeddedActivity](current.Embedded) {
+ /*line federation_rich.mygo:50:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:63:1*/		}{})
+ /*line federation_rich.mygo:49:3*/	} else {
+ /*line zz_federation_rich.gen.go:65:1*/	}
+ /*line federation_rich.mygo:52:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line federation_rich.mygo:55:5*/		stored := storage.LoadActivityPayload(ctx, tx, current.ID)
+ /*line federation_rich.mygo:57:7*/		if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](stored) {
+ /*line federation_rich.mygo:58:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ActivityPayloadRecord], string](stored))
+ /*line federation_rich.mygo:57:7*/		} else {
+ /*line zz_federation_rich.gen.go:71:1*/		}
+ /*line federation_rich.mygo:60:7*/		if MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](stored)) {
 			saved := storage.InsertActivityPayload(ctx, tx, current.ID, current.Actor, current.Type, []byte(envelope.Object), MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](community)).ID)
 			if MygoIN6ResultM5IsErr[struct{}, string](saved) {
- /*line federation_rich.mygo:69:18*/				return saved
- /*line federation_rich.mygo:58:10*/			} else {
- /*line zz_federation_rich.gen.go:76:1*/			}
- /*line federation_rich.mygo:58:10*/		} else {
- /*line zz_federation_rich.gen.go:78:1*/		}
- /*line federation_rich.mygo:72:10*/		if current.Type == "Delete" {
- /*line federation_rich.mygo:73:16*/			return ApplyRichMutation(ctx, tx, site, current, []byte(envelope.Object))
- /*line federation_rich.mygo:72:10*/		} else {
- /*line zz_federation_rich.gen.go:82:1*/		}
- /*line federation_rich.mygo:75:7*/		return ReceiveRichActivity(ctx, tx, site, current, []byte(envelope.Object), MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](community)).ID)
- /*line zz_federation_rich.gen.go:84:1*/	})
+ /*line federation_rich.mygo:71:18*/				return saved
+ /*line federation_rich.mygo:60:7*/			} else {
+ /*line zz_federation_rich.gen.go:77:1*/			}
+ /*line federation_rich.mygo:60:7*/		} else {
+ /*line zz_federation_rich.gen.go:79:1*/		}
+ /*line federation_rich.mygo:74:7*/		if current.Type == "Delete" {
+ /*line federation_rich.mygo:75:16*/			return ApplyRichMutation(sanitizer, ctx, tx, site, current, []byte(envelope.Object))
+ /*line federation_rich.mygo:74:7*/		} else {
+ /*line zz_federation_rich.gen.go:83:1*/		}
+ /*line federation_rich.mygo:77:7*/		return ReceiveRichActivity(sanitizer, ctx, tx, site, current, []byte(envelope.Object), MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](community)).ID)
+ /*line zz_federation_rich.gen.go:85:1*/	})
 }
- /*line federation_rich.mygo:89:1*/func ReceiveRichActivity(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte, communityID string) Result[struct {
+ /*line federation_rich.mygo:92:1*/func ReceiveRichActivity(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte, communityID string) Result[struct {
 }, string] {
-	envelope := RichActivityObject{}
- /*line federation_rich.mygo:98:6*/	var __mygo_expr_1 Result[struct{}, error]
+	envelope := Zero[RichActivityObject]()
+ /*line federation_rich.mygo:102:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &envelope)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_federation_rich.gen.go:95:1*/		}{})
+ /*line zz_federation_rich.gen.go:96:1*/		}{})
 	}
- /*line federation_rich.mygo:98:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line federation_rich.mygo:99:12*/		return Err[struct{}, string]("invalid activity")
- /*line federation_rich.mygo:98:6*/	} else {
- /*line zz_federation_rich.gen.go:100:1*/	}
- /*line federation_rich.mygo:89:1*/	parsed := federation.ParseRichObject([]byte(envelope.Object))
- /*line federation_rich.mygo:102:6*/	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsed) {
- /*line federation_rich.mygo:103:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.RichObject, string](parsed))
- /*line federation_rich.mygo:102:6*/	} else {
- /*line zz_federation_rich.gen.go:105:1*/	}
- /*line federation_rich.mygo:89:1*/	object := MygoIN6ResultM6Unwrap[federation.RichObject, string](parsed)
- /*line federation_rich.mygo:106:6*/	if object.ID != activity.ObjectURI || object.AttributedTo != activity.Actor {
- /*line federation_rich.mygo:107:12*/		return Err[struct{}, string]("forged author")
- /*line federation_rich.mygo:106:6*/	} else {
- /*line zz_federation_rich.gen.go:110:1*/	}
- /*line federation_rich.mygo:109:6*/	if object.Published.IsZero() {
+ /*line federation_rich.mygo:102:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line federation_rich.mygo:103:12*/		return Err[struct{}, string]("invalid activity")
+ /*line federation_rich.mygo:102:3*/	} else {
+ /*line zz_federation_rich.gen.go:101:1*/	}
+ /*line federation_rich.mygo:92:1*/	parsed := federation.ParseRichObject(sanitizer, []byte(envelope.Object))
+ /*line federation_rich.mygo:106:3*/	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsed) {
+ /*line federation_rich.mygo:107:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.RichObject, string](parsed))
+ /*line federation_rich.mygo:106:3*/	} else {
+ /*line zz_federation_rich.gen.go:106:1*/	}
+ /*line federation_rich.mygo:92:1*/	object := MygoIN6ResultM6Unwrap[federation.RichObject, string](parsed)
+ /*line federation_rich.mygo:110:3*/	if object.ID != activity.ObjectURI || object.AttributedTo != activity.Actor {
+ /*line federation_rich.mygo:111:12*/		return Err[struct{}, string]("forged author")
+ /*line federation_rich.mygo:110:3*/	} else {
+ /*line zz_federation_rich.gen.go:111:1*/	}
+ /*line federation_rich.mygo:113:3*/	if object.Published.IsZero() {
 		previous := storage.LoadObjectByURI(ctx, db, object.ID)
- /*line federation_rich.mygo:111:8*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](previous) {
- /*line federation_rich.mygo:112:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](previous))
- /*line federation_rich.mygo:111:8*/		} else {
- /*line zz_federation_rich.gen.go:116:1*/		}
- /*line federation_rich.mygo:114:27*/		var __mygo_expr_2 time.Time
+ /*line federation_rich.mygo:115:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](previous) {
+ /*line federation_rich.mygo:116:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](previous))
+ /*line federation_rich.mygo:115:5*/		} else {
+ /*line zz_federation_rich.gen.go:117:1*/		}
+ /*line federation_rich.mygo:118:24*/		var __mygo_expr_2 time.Time
 		if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](previous)) {
 			__mygo_expr_2 = MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](previous)).AuthoredAt
 		} else {
 			__mygo_expr_2 = time.Now().UTC().Truncate(time.Microsecond)
- /*line zz_federation_rich.gen.go:122:1*/		}
- /*line federation_rich.mygo:109:6*/		object.Published = __mygo_expr_2
+ /*line zz_federation_rich.gen.go:123:1*/		}
+ /*line federation_rich.mygo:113:3*/		object.Published = __mygo_expr_2
 	} else {
- /*line zz_federation_rich.gen.go:125:1*/	}
- /*line federation_rich.mygo:89:1*/	blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: site.ID}, ctx, activity.Actor)
- /*line federation_rich.mygo:121:6*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line federation_rich.mygo:122:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line federation_rich.mygo:121:6*/	} else {
- /*line zz_federation_rich.gen.go:130:1*/	}
- /*line federation_rich.mygo:124:6*/	if MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line federation_rich.mygo:125:12*/		return Err[struct{}, string]("forbidden")
- /*line federation_rich.mygo:124:6*/	} else {
- /*line zz_federation_rich.gen.go:134:1*/	}
- /*line federation_rich.mygo:89:1*/	community := storage.LoadCommunityByID(ctx, db, communityID)
- /*line federation_rich.mygo:128:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
- /*line federation_rich.mygo:129:12*/		return Err[struct{}, string]("unknown community")
- /*line federation_rich.mygo:128:6*/	} else {
- /*line zz_federation_rich.gen.go:139:1*/	}
- /*line federation_rich.mygo:131:6*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).FederationMode != "federated" {
- /*line federation_rich.mygo:132:12*/		return Err[struct{}, string]("forbidden")
- /*line federation_rich.mygo:131:6*/	} else {
- /*line zz_federation_rich.gen.go:143:1*/	}
- /*line federation_rich.mygo:89:1*/	publicAudience := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.To, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.CC, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals)
- /*line federation_rich.mygo:139:6*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).ReadPolicy != "members" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.To)+MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.CC) > 0 && !publicAudience {
- /*line federation_rich.mygo:141:12*/		return Err[struct{}, string]("restricted audience expansion")
- /*line federation_rich.mygo:139:6*/	} else {
- /*line zz_federation_rich.gen.go:148:1*/	}
- /*line federation_rich.mygo:143:6*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).ReadPolicy == "members" && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.To, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.CC, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals)) {
+ /*line zz_federation_rich.gen.go:126:1*/	}
+ /*line federation_rich.mygo:92:1*/	blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: site.ID}, ctx, activity.Actor)
+ /*line federation_rich.mygo:125:3*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
+ /*line federation_rich.mygo:126:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
+ /*line federation_rich.mygo:125:3*/	} else {
+ /*line zz_federation_rich.gen.go:131:1*/	}
+ /*line federation_rich.mygo:128:3*/	if MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line federation_rich.mygo:129:12*/		return Err[struct{}, string]("forbidden")
+ /*line federation_rich.mygo:128:3*/	} else {
+ /*line zz_federation_rich.gen.go:135:1*/	}
+ /*line federation_rich.mygo:92:1*/	community := storage.LoadCommunityByID(ctx, db, communityID)
+ /*line federation_rich.mygo:132:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
+ /*line federation_rich.mygo:133:12*/		return Err[struct{}, string]("unknown community")
+ /*line federation_rich.mygo:132:3*/	} else {
+ /*line zz_federation_rich.gen.go:140:1*/	}
+ /*line federation_rich.mygo:135:3*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).FederationMode != "federated" {
+ /*line federation_rich.mygo:136:12*/		return Err[struct{}, string]("forbidden")
+ /*line federation_rich.mygo:135:3*/	} else {
+ /*line zz_federation_rich.gen.go:144:1*/	}
+ /*line federation_rich.mygo:92:1*/	publicAudience := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.To, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.CC, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals)
+ /*line federation_rich.mygo:143:3*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).ReadPolicy != "members" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.To)+MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.CC) > 0 && !publicAudience {
  /*line federation_rich.mygo:146:12*/		return Err[struct{}, string]("restricted audience expansion")
- /*line federation_rich.mygo:143:6*/	} else {
- /*line zz_federation_rich.gen.go:152:1*/	}
- /*line federation_rich.mygo:89:1*/	parent := sql.NullString{}
- /*line federation_rich.mygo:149:6*/	if object.InReplyTo != "" {
+ /*line federation_rich.mygo:143:3*/	} else {
+ /*line zz_federation_rich.gen.go:149:1*/	}
+ /*line federation_rich.mygo:148:6*/	if MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)).ReadPolicy == "members" && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.To, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(object.CC, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals)) {
+ /*line federation_rich.mygo:151:12*/		return Err[struct{}, string]("restricted audience expansion")
+ /*line federation_rich.mygo:148:3*/	} else {
+ /*line zz_federation_rich.gen.go:153:1*/	}
+ /*line federation_rich.mygo:92:1*/	parent := Zero[sql.NullString]()
+ /*line federation_rich.mygo:154:3*/	if object.InReplyTo != "" {
 		loaded := storage.LoadObjectByURI(ctx, db, object.InReplyTo)
- /*line federation_rich.mygo:151:8*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
- /*line federation_rich.mygo:152:14*/			return Err[struct{}, string]("unknown parent")
- /*line federation_rich.mygo:151:8*/		} else {
- /*line zz_federation_rich.gen.go:159:1*/		}
- /*line federation_rich.mygo:154:8*/		if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)).CommunityID != communityID {
- /*line federation_rich.mygo:155:14*/			return Err[struct{}, string]("invalid parent")
- /*line federation_rich.mygo:154:8*/		} else {
- /*line zz_federation_rich.gen.go:163:1*/		}
- /*line federation_rich.mygo:149:6*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)).ID, Valid: true}
+ /*line federation_rich.mygo:156:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
+ /*line federation_rich.mygo:157:14*/			return Err[struct{}, string]("unknown parent")
+ /*line federation_rich.mygo:156:5*/		} else {
+ /*line zz_federation_rich.gen.go:160:1*/		}
+ /*line federation_rich.mygo:159:5*/		if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)).CommunityID != communityID {
+ /*line federation_rich.mygo:160:14*/			return Err[struct{}, string]("invalid parent")
+ /*line federation_rich.mygo:159:5*/		} else {
+ /*line zz_federation_rich.gen.go:164:1*/		}
+ /*line federation_rich.mygo:154:3*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)).ID, Valid: true}
 	} else {
- /*line zz_federation_rich.gen.go:166:1*/	}
- /*line federation_rich.mygo:159:18*/	var __mygo_expr_4 Result[[]byte, error]
+ /*line zz_federation_rich.gen.go:167:1*/	}
+ /*line federation_rich.mygo:164:18*/	var __mygo_expr_4 Result[[]byte, error]
 	__mygo_expr_5, __mygo_expr_3 := json.Marshal(federation.RichMetadata{Source: object.Source, Attachment: object.Attachment, Tag: object.Tag})
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
- /*line zz_federation_rich.gen.go:173:1*/	}
- /*line federation_rich.mygo:89:1*/	metadata := __mygo_expr_4
- /*line federation_rich.mygo:164:6*/	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
- /*line federation_rich.mygo:165:12*/		return Err[struct{}, string]("invalid rich metadata")
- /*line federation_rich.mygo:164:6*/	} else {
- /*line zz_federation_rich.gen.go:178:1*/	}
- /*line federation_rich.mygo:175:23*/	var __mygo_expr_6 string
+ /*line zz_federation_rich.gen.go:174:1*/	}
+ /*line federation_rich.mygo:92:1*/	metadata := __mygo_expr_4
+ /*line federation_rich.mygo:169:3*/	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
+ /*line federation_rich.mygo:170:12*/		return Err[struct{}, string]("invalid rich metadata")
+ /*line federation_rich.mygo:169:3*/	} else {
+ /*line zz_federation_rich.gen.go:179:1*/	}
+ /*line federation_rich.mygo:181:20*/	var __mygo_expr_6 string
 	if object.MediaType == "text/plain" {
 		__mygo_expr_6 = "legacy"
 	} else {
 		__mygo_expr_6 = "html"
- /*line zz_federation_rich.gen.go:184:1*/	}
- /*line federation_rich.mygo:183:19*/	var __mygo_expr_7 time.Time
+ /*line zz_federation_rich.gen.go:185:1*/	}
+ /*line federation_rich.mygo:190:16*/	var __mygo_expr_7 time.Time
 	if object.Updated.IsZero() {
 		__mygo_expr_7 = object.Published
 	} else {
 		__mygo_expr_7 = object.Updated
- /*line zz_federation_rich.gen.go:190:1*/	}
- /*line federation_rich.mygo:89:1*/	incoming := storage.PostRecord{ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: sql.NullString{String: object.Name, Valid: object.Name != ""}, Body: object.Content, ContentFormat: __mygo_expr_6, RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: __mygo_expr_7}
- /*line federation_rich.mygo:189:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line federation_rich.mygo:192:5*/		actor := storage.EnsureRemoteActor(ctx, tx, activity.Actor, "Person")
- /*line federation_rich.mygo:194:10*/		if MygoIN6ResultM5IsErr[struct{}, string](actor) {
- /*line federation_rich.mygo:195:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](actor))
- /*line federation_rich.mygo:194:10*/		} else {
- /*line zz_federation_rich.gen.go:197:1*/		}
- /*line federation_rich.mygo:192:5*/		received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, incoming, activity.Actor)
- /*line federation_rich.mygo:198:10*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
- /*line federation_rich.mygo:199:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
- /*line federation_rich.mygo:198:10*/		} else {
- /*line zz_federation_rich.gen.go:202:1*/		}
- /*line federation_rich.mygo:192:5*/		stored := MygoIN6ResultM6Unwrap[storage.PostRecord, string](received)
- /*line federation_rich.mygo:203:10*/		if stored.DeletedAt.Valid || !stored.UpdatedAt.Equal(incoming.UpdatedAt.UTC().Truncate(time.Microsecond)) {
- /*line federation_rich.mygo:205:16*/			return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:206:1*/			}{})
- /*line federation_rich.mygo:203:10*/		} else {
- /*line zz_federation_rich.gen.go:208:1*/		}
- /*line federation_rich.mygo:192:5*/		media := ReconcileRemoteMedia(ctx, tx, site.ID, stored, stored.UpdatedAt.UTC().Format(time.RFC3339Nano), object.Attachment)
- /*line federation_rich.mygo:215:10*/		if MygoIN6ResultM5IsErr[[]string, string](media) {
- /*line federation_rich.mygo:216:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](media))
- /*line federation_rich.mygo:215:10*/		} else {
- /*line zz_federation_rich.gen.go:213:1*/		}
- /*line federation_rich.mygo:218:7*/		return ReconcileRichMentions(ctx, tx, site, stored, object.Tag, MergeAddresses(object.To, object.CC))
- /*line zz_federation_rich.gen.go:215:1*/	})
+ /*line zz_federation_rich.gen.go:191:1*/	}
+ /*line federation_rich.mygo:92:1*/	incoming := storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: sql.NullString{String: object.Name, Valid: object.Name != ""}, Body: object.Content, ContentFormat: __mygo_expr_6, SearchText: "", RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: __mygo_expr_7, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
+ /*line federation_rich.mygo:198:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line federation_rich.mygo:201:5*/		actor := storage.EnsureRemoteActor(ctx, tx, activity.Actor, "Person")
+ /*line federation_rich.mygo:203:7*/		if MygoIN6ResultM5IsErr[struct{}, string](actor) {
+ /*line federation_rich.mygo:204:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](actor))
+ /*line federation_rich.mygo:203:7*/		} else {
+ /*line zz_federation_rich.gen.go:198:1*/		}
+ /*line federation_rich.mygo:201:5*/		received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, incoming, activity.Actor, sanitizer)
+ /*line federation_rich.mygo:212:7*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
+ /*line federation_rich.mygo:213:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
+ /*line federation_rich.mygo:212:7*/		} else {
+ /*line zz_federation_rich.gen.go:203:1*/		}
+ /*line federation_rich.mygo:201:5*/		stored := MygoIN6ResultM6Unwrap[storage.PostRecord, string](received)
+ /*line federation_rich.mygo:217:7*/		if stored.DeletedAt.Valid || !stored.UpdatedAt.Equal(incoming.UpdatedAt.UTC().Truncate(time.Microsecond)) {
+ /*line federation_rich.mygo:219:16*/			return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:207:1*/			}{})
+ /*line federation_rich.mygo:217:7*/		} else {
+ /*line zz_federation_rich.gen.go:209:1*/		}
+ /*line federation_rich.mygo:201:5*/		media := ReconcileRemoteMedia(ctx, tx, site.ID, stored, stored.UpdatedAt.UTC().Format(time.RFC3339Nano), object.Attachment)
+ /*line federation_rich.mygo:229:7*/		if MygoIN6ResultM5IsErr[[]string, string](media) {
+ /*line federation_rich.mygo:230:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](media))
+ /*line federation_rich.mygo:229:7*/		} else {
+ /*line zz_federation_rich.gen.go:214:1*/		}
+ /*line federation_rich.mygo:232:7*/		return ReconcileRichMentions(ctx, tx, site, stored, object.Tag, MergeAddresses(object.To, object.CC))
+ /*line zz_federation_rich.gen.go:216:1*/	})
 }
- /*line federation_rich.mygo:223:1*/func ApplyRichMutation(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte) Result[struct {
+ /*line federation_rich.mygo:237:1*/func ApplyRichMutation(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte) Result[struct {
 }, string] {
 	found := storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
- /*line federation_rich.mygo:231:6*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) {
- /*line federation_rich.mygo:232:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](found))
- /*line federation_rich.mygo:231:6*/	} else {
- /*line zz_federation_rich.gen.go:223:1*/	}
- /*line federation_rich.mygo:234:6*/	if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
- /*line federation_rich.mygo:235:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:226:1*/		}{})
- /*line federation_rich.mygo:234:6*/	} else {
- /*line zz_federation_rich.gen.go:228:1*/	}
- /*line federation_rich.mygo:223:1*/	post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found))
- /*line federation_rich.mygo:238:6*/	if post.AuthorActorURI != activity.Actor || post.FederationMode != "federated" {
- /*line federation_rich.mygo:239:12*/		return Err[struct{}, string]("forged mutation")
- /*line federation_rich.mygo:238:6*/	} else {
- /*line zz_federation_rich.gen.go:233:1*/	}
- /*line federation_rich.mygo:241:6*/	if post.DeletedAt.Valid {
- /*line federation_rich.mygo:242:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_rich.gen.go:236:1*/		}{})
- /*line federation_rich.mygo:241:6*/	} else {
- /*line zz_federation_rich.gen.go:238:1*/	}
- /*line federation_rich.mygo:244:6*/	if activity.Type == "Update" {
- /*line federation_rich.mygo:245:12*/		return ReceiveRichActivity(ctx, db, site, activity, payload, post.CommunityID)
- /*line federation_rich.mygo:244:6*/	} else {
- /*line zz_federation_rich.gen.go:242:1*/	}
- /*line federation_rich.mygo:223:1*/	post.Body = ""
+ /*line federation_rich.mygo:246:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) {
+ /*line federation_rich.mygo:247:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](found))
+ /*line federation_rich.mygo:246:3*/	} else {
+ /*line zz_federation_rich.gen.go:224:1*/	}
+ /*line federation_rich.mygo:249:3*/	if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
+ /*line federation_rich.mygo:250:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:227:1*/		}{})
+ /*line federation_rich.mygo:249:3*/	} else {
+ /*line zz_federation_rich.gen.go:229:1*/	}
+ /*line federation_rich.mygo:237:1*/	post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found))
+ /*line federation_rich.mygo:253:3*/	if post.AuthorActorURI != activity.Actor || post.FederationMode != "federated" {
+ /*line federation_rich.mygo:254:12*/		return Err[struct{}, string]("forged mutation")
+ /*line federation_rich.mygo:253:3*/	} else {
+ /*line zz_federation_rich.gen.go:234:1*/	}
+ /*line federation_rich.mygo:256:3*/	if post.DeletedAt.Valid {
+ /*line federation_rich.mygo:257:12*/		return Ok[struct{}, string](struct {
+ /*line zz_federation_rich.gen.go:237:1*/		}{})
+ /*line federation_rich.mygo:256:3*/	} else {
+ /*line zz_federation_rich.gen.go:239:1*/	}
+ /*line federation_rich.mygo:259:3*/	if activity.Type == "Update" {
+ /*line federation_rich.mygo:260:12*/		return ReceiveRichActivity(sanitizer, ctx, db, site, activity, payload, post.CommunityID)
+ /*line federation_rich.mygo:259:3*/	} else {
+ /*line zz_federation_rich.gen.go:243:1*/	}
+ /*line federation_rich.mygo:237:1*/	post.Body = ""
 	post.RichMetadata = ""
 	post.UpdatedAt = time.Now().UTC()
- /*line federation_rich.mygo:250:6*/	if !post.UpdatedAt.After(post.AuthoredAt) {
+ /*line federation_rich.mygo:265:3*/	if !post.UpdatedAt.After(post.AuthoredAt) {
 		post.UpdatedAt = post.AuthoredAt.Add(time.Microsecond)
 	} else {
- /*line zz_federation_rich.gen.go:249:1*/	}
- /*line federation_rich.mygo:223:1*/	post.DeletedAt = sql.NullTime{Time: post.UpdatedAt, Valid: true}
- /*line federation_rich.mygo:254:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line federation_rich.mygo:257:5*/		received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, post, activity.Actor)
- /*line federation_rich.mygo:259:10*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
- /*line federation_rich.mygo:260:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
- /*line federation_rich.mygo:259:10*/		} else {
- /*line zz_federation_rich.gen.go:256:1*/		}
- /*line federation_rich.mygo:262:10*/		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID))) {
- /*line federation_rich.mygo:263:16*/			return Err[struct{}, string]("media unavailable")
- /*line federation_rich.mygo:262:10*/		} else {
- /*line zz_federation_rich.gen.go:260:1*/		}
- /*line federation_rich.mygo:257:5*/		invalidated := storage.MygoIN15MediaRepositoryM22InvalidatePrivateCache(storage.MediaRepository{DB: tx, SiteID: site.ID}, ctx, tx, post.ID, "")
- /*line federation_rich.mygo:266:10*/		if MygoIN6ResultM5IsErr[struct{}, string](invalidated) {
- /*line federation_rich.mygo:267:16*/			return invalidated
- /*line federation_rich.mygo:266:10*/		} else {
- /*line zz_federation_rich.gen.go:265:1*/		}
- /*line federation_rich.mygo:269:7*/		return storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))
- /*line zz_federation_rich.gen.go:267:1*/	})
+ /*line zz_federation_rich.gen.go:250:1*/	}
+ /*line federation_rich.mygo:237:1*/	post.DeletedAt = sql.NullTime{Time: post.UpdatedAt, Valid: true}
+ /*line federation_rich.mygo:269:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
+ /*line federation_rich.mygo:272:5*/		received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: tx, SiteID: site.ID}, ctx, post, activity.Actor, sanitizer)
+ /*line federation_rich.mygo:279:7*/		if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
+ /*line federation_rich.mygo:280:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
+ /*line federation_rich.mygo:279:7*/		} else {
+ /*line zz_federation_rich.gen.go:257:1*/		}
+ /*line federation_rich.mygo:282:7*/		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID))) {
+ /*line federation_rich.mygo:283:16*/			return Err[struct{}, string]("media unavailable")
+ /*line federation_rich.mygo:282:7*/		} else {
+ /*line zz_federation_rich.gen.go:261:1*/		}
+ /*line federation_rich.mygo:272:5*/		invalidated := storage.MygoIN15MediaRepositoryM22InvalidatePrivateCache(storage.MediaRepository{DB: tx, SiteID: site.ID, Files: Zero[storage.MediaFiles](), Settings: Zero[config.Media]()}, ctx, tx, post.ID, "")
+ /*line federation_rich.mygo:296:7*/		if MygoIN6ResultM5IsErr[struct{}, string](invalidated) {
+ /*line federation_rich.mygo:297:16*/			return invalidated
+ /*line federation_rich.mygo:296:7*/		} else {
+ /*line zz_federation_rich.gen.go:266:1*/		}
+ /*line federation_rich.mygo:299:7*/		return storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))
+ /*line zz_federation_rich.gen.go:268:1*/	})
 }

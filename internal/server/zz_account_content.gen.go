@@ -61,7 +61,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_content.mygo:55:12*/		return true
  /*line account_content.mygo:53:3*/	} else {
  /*line zz_account_content.gen.go:63:1*/	}
- /*line account_content.mygo:8:1*/	outputs := BrowserPosts(request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](records))
+ /*line account_content.mygo:8:1*/	outputs := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](records))
  /*line account_content.mygo:58:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
  /*line account_content.mygo:59:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
  /*line account_content.mygo:58:3*/	} else {

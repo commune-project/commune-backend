@@ -5,6 +5,7 @@ import context "go:context"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -19,7 +20,7 @@ func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
   let posts = PostRepository{DB: db, SiteID: site.ID}
   let community = communities.Create(ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users").Unwrap()
   let topic = posts.Publish(ctx, site, community.ID, alice, false, testPublishInput("Topic", "Original")).Unwrap()
-  if posts.Edit(ctx, topic.ID, bob, false, "Topic", "Hijacked", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).IsOk() then
+  if posts.Edit(ctx, topic.ID, bob, false, "Topic", "Hijacked", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() then
     t.Fatal("non-author edited a post")
   end
   if posts.Delete(ctx, topic.ID, bob, false).IsOk() then
@@ -30,15 +31,15 @@ func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
   if stored.Body != "Original" then
     t.Fatal("unauthorized mutation changed the shared body")
   end
-  let edited = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).Unwrap()
+  let edited = posts.Edit(ctx, topic.ID, alice, false, "Topic", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).Unwrap()
   if edited.Body != "Edited" || edited.ID != topic.ID || edited.UpdatedAt.Before(edited.AuthoredAt) then
     t.Fatal("author edit failed or moved identity")
   end
-  if posts.Edit(ctx, topic.ID, alice, false, "", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).IsOk() || posts.Edit(ctx, topic.ID, alice, false, "Topic", "", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).IsOk() then
+  if posts.Edit(ctx, topic.ID, alice, false, "", "Edited", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() || posts.Edit(ctx, topic.ID, alice, false, "Topic", "", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() then
     t.Fatal("edit accepted a shape change or empty body")
   end
   let reply = posts.Publish(ctx, site, community.ID, alice, false, PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: [], Mentions: []}).Unwrap()
-  if posts.Edit(ctx, reply.ID, alice, false, "Title", "Body", LoadObjectByID(ctx, db, reply.ID).Unwrap().Unwrap().Version).IsOk() then
+  if posts.Edit(ctx, reply.ID, alice, false, "Title", "Body", LoadObjectByID(ctx, db, reply.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() then
     t.Fatal("reply edit added a title")
   end
   let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
@@ -47,7 +48,7 @@ func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
   if !tombstone.DeletedAt.Valid || tombstone.Body != "" then
     t.Fatal("author deletion did not tombstone the post")
   end
-  if posts.Edit(ctx, topic.ID, alice, false, "Topic", "Resurrected", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version).IsOk() then
+  if posts.Edit(ctx, topic.ID, alice, false, "Topic", "Resurrected", LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() then
     t.Fatal("edit restored a tombstoned body")
   end
   if posts.Delete(ctx, topic.ID, alice, false).IsErr() then
@@ -55,7 +56,7 @@ func TestPostgresAuthorEditAndTombstone(t: Ref[testing.T]) -> ()
   end
   let member = communities.Create(ctx, site, alice, "memberonly", "Member", "local_only", "members", "members").Unwrap()
   let hidden = posts.Publish(ctx, site, member.ID, alice, false, testPublishInput("Hidden", "Body")).Unwrap()
-  if posts.Edit(ctx, hidden.ID, bob, false, "Hidden", "Nope", LoadObjectByID(ctx, db, hidden.ID).Unwrap().Unwrap().Version).IsOk() || posts.Delete(ctx, hidden.ID, bob, false).IsOk() then
+  if posts.Edit(ctx, hidden.ID, bob, false, "Hidden", "Nope", LoadObjectByID(ctx, db, hidden.ID).Unwrap().Unwrap().Version, content.DefaultSanitizer()).IsOk() || posts.Delete(ctx, hidden.ID, bob, false).IsOk() then
     t.Fatal("non-member mutated a member-only post")
   end
 end

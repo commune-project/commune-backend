@@ -48,7 +48,7 @@ end
 
 # source is retained only as metadata. Display always interprets content using
 # its declared media type; optional source cannot smuggle executable Markdown.
-func ParseRichObject(payload: Slice[Byte]) -> Result[RichObject, String]
+func ParseRichObject(sanitizer: content.Sanitizer, payload: Slice[Byte]) -> Result[RichObject, String]
   let object = Zero[RichObject]()
   if HasDuplicateKeys(payload) || json.Unmarshal(payload, Ref.new(object)).IsErr() then
     return Err("invalid rich object")
@@ -65,7 +65,7 @@ func ParseRichObject(payload: Slice[Byte]) -> Result[RichObject, String]
   if (object.Source.Content as Slice[Byte]).Len() > 1048576 then
     return Err("invalid source")
   end
-  if content.RenderRich(object.Content, if object.MediaType == "text/plain" then "legacy" else "html" end).IsErr() then
+  if content.RenderRich(sanitizer, object.Content, if object.MediaType == "text/plain" then "legacy" else "html" end).IsErr() then
     return Err("invalid object content")
   end
   var valid: Bool = true

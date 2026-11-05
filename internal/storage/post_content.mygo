@@ -64,6 +64,7 @@ func PostRichMedia(state: PostRichState) -> Result[Slice[content.RichMedia], Str
 end
 
 func RenderStoredPost(
+  sanitizer: content.Sanitizer,
   post: PostRecord,
   state: PostRichState,
   strict: Bool
@@ -75,6 +76,7 @@ func RenderStoredPost(
     return Err("post content unavailable")
   end
   content.RenderPostRich(
+    sanitizer,
     post.Body,
     if post.ContentFormat == "" then
       "legacy"
@@ -282,6 +284,7 @@ end
 func ValidatePostContentTx(
   ctx: context.Context,
   tx: Ref[gorm.DB],
+  sanitizer: content.Sanitizer,
   siteID: String,
   identity: auth.Identity,
   post: PostRecord,
@@ -300,7 +303,7 @@ func ValidatePostContentTx(
   if states.IsErr() || states.Unwrap().Len() != 1 then
     return Err("post content unavailable")
   end
-  let rendered = RenderStoredPost(post, states.Unwrap().Get(0).Unwrap(), true)
+  let rendered = RenderStoredPost(sanitizer, post, states.Unwrap().Get(0).Unwrap(), true)
   if rendered.IsErr() then
     return Err(rendered.UnwrapErr())
   end

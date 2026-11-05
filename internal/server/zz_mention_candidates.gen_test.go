@@ -22,11 +22,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mention_candidates_test.mygo:16:12*/	}), 0)
  /*line zz_mention_candidates.gen_test.go:23:1*/}
  /*line mention_candidates_test.mygo:19:1*/func assertMentionCandidateHeaders(t *testing.T, response *httptest.ResponseRecorder) {
- /*line mention_candidates_test.mygo:20:6*/	if response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("Referrer-Policy") != "no-referrer" {
+ /*line mention_candidates_test.mygo:20:3*/	if response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("Referrer-Policy") != "no-referrer" {
  /*line mention_candidates_test.mygo:22:5*/		t.Fatal("mention candidate response headers missing")
 		return
- /*line mention_candidates_test.mygo:20:6*/	} else {
- /*line mention_candidates_test.mygo:20:3*/		return
+ /*line mention_candidates_test.mygo:20:3*/	} else {
+		return
  /*line zz_mention_candidates.gen_test.go:30:1*/	}
 }
  /*line mention_candidates_test.mygo:26:1*/func TestMentionCandidatesRoute(t *testing.T) {
@@ -58,26 +58,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
-	anonymous := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:49:6*/	if anonymous.Code != 401 {
+	anonymous := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:49:3*/	if anonymous.Code != 401 {
  /*line mention_candidates_test.mygo:50:5*/		t.Fatalf("anonymous candidate lookup returned %d", anonymous.Code)
- /*line mention_candidates_test.mygo:49:6*/	} else {
+ /*line mention_candidates_test.mygo:49:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:65:1*/	}
  /*line mention_candidates_test.mygo:52:3*/	assertMentionCandidateHeaders(t, anonymous)
  /*line mention_candidates_test.mygo:26:1*/	var invalid []string = []string{"/api/v1/mentions/candidates?q=a", "/api/v1/mentions/candidates?q=" + strings.Repeat("a", 65), "/api/v1/mentions/candidates?q=bo&limit=0", "/api/v1/mentions/candidates?q=bo&limit=21", "/api/v1/mentions/candidates?q=bo&limit=abc"}
  /*line mention_candidates_test.mygo:60:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(path string) {
- /*line mention_candidates_test.mygo:60:16*/		response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:62:8*/		if response.Code != 400 {
+ /*line mention_candidates_test.mygo:60:16*/		response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:62:5*/		if response.Code != 400 {
  /*line mention_candidates_test.mygo:63:7*/			t.Fatalf("invalid candidate request %s returned %d", path, response.Code)
- /*line mention_candidates_test.mygo:62:8*/		} else {
+ /*line mention_candidates_test.mygo:62:5*/		} else {
  /*line zz_mention_candidates.gen_test.go:73:1*/		}
  /*line mention_candidates_test.mygo:65:5*/		assertMentionCandidateHeaders(t, response)
 		return
  /*line zz_mention_candidates.gen_test.go:76:1*/	})
- /*line mention_candidates_test.mygo:26:1*/	method := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
- /*line mention_candidates_test.mygo:68:6*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
+ /*line mention_candidates_test.mygo:26:1*/	method := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line mention_candidates_test.mygo:68:3*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
  /*line mention_candidates_test.mygo:69:5*/		t.Fatalf("candidate method validation returned %d", method.Code)
- /*line mention_candidates_test.mygo:68:6*/	} else {
+ /*line mention_candidates_test.mygo:68:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:81:1*/	}
  /*line mention_candidates_test.mygo:71:3*/	assertMentionCandidateHeaders(t, method)
  /*line mention_candidates_test.mygo:26:1*/	var jobsBefore int64 = int64(0)
@@ -86,13 +86,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("notification_events").Count(&notificationsBefore)))
 	var deliveriesBefore int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesBefore)))
-	valid := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:79:6*/	if valid.Code != 200 {
+	valid := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:79:3*/	if valid.Code != 200 {
  /*line mention_candidates_test.mygo:80:5*/		t.Fatalf("candidate lookup returned %d: %s", valid.Code, valid.Body.String())
- /*line mention_candidates_test.mygo:79:6*/	} else {
+ /*line mention_candidates_test.mygo:79:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:93:1*/	}
  /*line mention_candidates_test.mygo:82:3*/	assertMentionCandidateHeaders(t, valid)
- /*line mention_candidates_test.mygo:26:1*/	page := MentionCandidatePage{}
+ /*line mention_candidates_test.mygo:26:1*/	page := Zero[MentionCandidatePage]()
  /*line mention_candidates_test.mygo:84:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(valid.Body.Bytes(), &page)
 	if __mygo_expr_3 != nil {
@@ -102,26 +102,26 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_mention_candidates.gen_test.go:102:1*/		}{})
 	}
  /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line mention_candidates_test.mygo:85:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 3 || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ActorURI != bob.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 1)).ActorURI != carol.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 2)).ActorURI != rainbow.ActorURI {
+ /*line mention_candidates_test.mygo:85:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 3 || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ActorURI != bob.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 1)).ActorURI != carol.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 2)).ActorURI != rainbow.ActorURI {
  /*line mention_candidates_test.mygo:89:5*/		t.Fatalf("candidate projection or ordering failed: %s", valid.Body.String())
- /*line mention_candidates_test.mygo:85:6*/	} else {
+ /*line mention_candidates_test.mygo:85:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:108:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	bobOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(page.Items, bob.ActorURI))
- /*line mention_candidates_test.mygo:92:6*/	if bobOutput.Acct != "bob@forum-a.example" || bobOutput.DisplayName != "Bobby" || bobOutput.Avatar != "https://forum-a.example/avatar/bob.png" {
+ /*line mention_candidates_test.mygo:92:3*/	if bobOutput.Acct != "bob@forum-a.example" || bobOutput.DisplayName != "Bobby" || bobOutput.Avatar != "https://forum-a.example/avatar/bob.png" {
  /*line mention_candidates_test.mygo:93:5*/		t.Fatal("local candidate DTO failed")
- /*line mention_candidates_test.mygo:92:6*/	} else {
+ /*line mention_candidates_test.mygo:92:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:113:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	carolOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(page.Items, carol.ActorURI))
- /*line mention_candidates_test.mygo:96:6*/	if carolOutput.Acct != "carol@forum-b.example" || carolOutput.DisplayName != "Bonnie" {
+ /*line mention_candidates_test.mygo:96:3*/	if carolOutput.Acct != "carol@forum-b.example" || carolOutput.DisplayName != "Bonnie" {
  /*line mention_candidates_test.mygo:97:5*/		t.Fatal("colocated candidate DTO failed")
- /*line mention_candidates_test.mygo:96:6*/	} else {
+ /*line mention_candidates_test.mygo:96:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:118:1*/	}
- /*line mention_candidates_test.mygo:26:1*/	remote := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=rem", Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:100:6*/	if remote.Code != 200 {
+ /*line mention_candidates_test.mygo:26:1*/	remote := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=rem", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:100:3*/	if remote.Code != 200 {
  /*line mention_candidates_test.mygo:101:5*/		t.Fatalf("remote candidate lookup returned %d", remote.Code)
- /*line mention_candidates_test.mygo:100:6*/	} else {
+ /*line mention_candidates_test.mygo:100:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:123:1*/	}
- /*line mention_candidates_test.mygo:26:1*/	remotePage := MentionCandidatePage{}
+ /*line mention_candidates_test.mygo:26:1*/	remotePage := Zero[MentionCandidatePage]()
  /*line mention_candidates_test.mygo:104:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(remote.Body.Bytes(), &remotePage)
 	if __mygo_expr_5 != nil {
@@ -132,20 +132,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
 	remyOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(remotePage.Items, remyURI))
- /*line mention_candidates_test.mygo:106:6*/	if remyOutput.Acct != "remy@remote.example" || remyOutput.DisplayName != "Remy" || remyOutput.Avatar != "https://remote.example/avatar/remy.png" {
+ /*line mention_candidates_test.mygo:106:3*/	if remyOutput.Acct != "remy@remote.example" || remyOutput.DisplayName != "Remy" || remyOutput.Avatar != "https://remote.example/avatar/remy.png" {
  /*line mention_candidates_test.mygo:107:5*/		t.Fatal("remote candidate DTO failed")
- /*line mention_candidates_test.mygo:106:6*/	} else {
+ /*line mention_candidates_test.mygo:106:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:138:1*/	}
- /*line mention_candidates_test.mygo:26:1*/	withoutCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Cookies: cookies, CSRF: "", Source: site.Origin})
-	withCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo&community_id=missing", Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:111:6*/	if withCommunity.Code != 200 || withCommunity.Body.String() != withoutCommunity.Body.String() {
+ /*line mention_candidates_test.mygo:26:1*/	withoutCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+	withCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo&community_id=missing", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:111:3*/	if withCommunity.Code != 200 || withCommunity.Body.String() != withoutCommunity.Body.String() {
  /*line mention_candidates_test.mygo:112:5*/		t.Fatal("optional community_id changed candidate results")
- /*line mention_candidates_test.mygo:111:6*/	} else {
+ /*line mention_candidates_test.mygo:111:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:144:1*/	}
- /*line mention_candidates_test.mygo:26:1*/	empty := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=zzzz", Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:115:6*/	if empty.Code != 200 || !strings.Contains(empty.Body.String(), "\"items\":[]") {
+ /*line mention_candidates_test.mygo:26:1*/	empty := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=zzzz", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:115:3*/	if empty.Code != 200 || !strings.Contains(empty.Body.String(), "\"items\":[]") {
  /*line mention_candidates_test.mygo:116:5*/		t.Fatalf("empty candidate response failed: %s", empty.Body.String())
- /*line mention_candidates_test.mygo:115:6*/	} else {
+ /*line mention_candidates_test.mygo:115:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:149:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	var jobsAfter int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Count(&jobsAfter)))
@@ -153,15 +153,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("notification_events").Count(&notificationsAfter)))
 	var deliveriesAfter int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesAfter)))
- /*line mention_candidates_test.mygo:124:6*/	if jobsAfter != jobsBefore || notificationsAfter != notificationsBefore || deliveriesAfter != deliveriesBefore {
+ /*line mention_candidates_test.mygo:124:3*/	if jobsAfter != jobsBefore || notificationsAfter != notificationsBefore || deliveriesAfter != deliveriesBefore {
  /*line mention_candidates_test.mygo:125:5*/		t.Fatal("candidate route wrote federation or notification state")
- /*line mention_candidates_test.mygo:124:6*/	} else {
+ /*line mention_candidates_test.mygo:124:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:159:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE profiles CASCADE")))
-	unavailable := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Cookies: cookies, CSRF: "", Source: site.Origin})
- /*line mention_candidates_test.mygo:129:6*/	if unavailable.Code != 503 {
+	unavailable := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
+ /*line mention_candidates_test.mygo:129:3*/	if unavailable.Code != 503 {
  /*line mention_candidates_test.mygo:130:5*/		t.Fatalf("candidate storage failure returned %d", unavailable.Code)
- /*line mention_candidates_test.mygo:129:6*/	} else {
+ /*line mention_candidates_test.mygo:129:3*/	} else {
  /*line zz_mention_candidates.gen_test.go:165:1*/	}
  /*line mention_candidates_test.mygo:132:3*/	assertMentionCandidateHeaders(t, unavailable)
 	return

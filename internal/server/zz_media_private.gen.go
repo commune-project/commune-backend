@@ -13,202 +13,203 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "strings"
 import "net/url"
+import "time"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line media_private.mygo:15:1*/func FetchAuthorizedPrivateMedia(ctx context.Context, settings config.Config, db *gorm.DB, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, string] {
 	post := storage.LoadObjectByID(ctx, db, row.PostID)
- /*line media_private.mygo:17:6*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](post) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)) {
- /*line media_private.mygo:17:57*/		return Err[io.ReadCloser, string]("not found")
- /*line media_private.mygo:17:6*/	} else {
- /*line zz_media_private.gen.go:23:1*/	}
+ /*line media_private.mygo:23:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](post) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)) {
+ /*line media_private.mygo:24:12*/		return Err[io.ReadCloser, string]("not found")
+ /*line media_private.mygo:23:3*/	} else {
+ /*line zz_media_private.gen.go:24:1*/	}
  /*line media_private.mygo:15:1*/	community := storage.LoadCommunityByID(ctx, db, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).CommunityID)
- /*line media_private.mygo:19:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
- /*line media_private.mygo:19:67*/		return Err[io.ReadCloser, string]("not found")
- /*line media_private.mygo:19:6*/	} else {
- /*line zz_media_private.gen.go:28:1*/	}
+ /*line media_private.mygo:27:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
+ /*line media_private.mygo:28:12*/		return Err[io.ReadCloser, string]("not found")
+ /*line media_private.mygo:27:3*/	} else {
+ /*line zz_media_private.gen.go:29:1*/	}
  /*line media_private.mygo:15:1*/	current := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))
 	compatible := storage.PeerSupportsProtectedReads(ctx, db, row.OriginURI)
- /*line media_private.mygo:22:6*/	if MygoIN6ResultM5IsErr[bool, string](compatible) || !MygoIN6ResultM6Unwrap[bool, string](compatible) || current.ReadPolicy != "members" {
- /*line media_private.mygo:22:96*/		return Err[io.ReadCloser, string]("incompatible protected peer")
- /*line media_private.mygo:22:6*/	} else {
- /*line zz_media_private.gen.go:34:1*/	}
- /*line media_private.mygo:23:16*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line media_private.mygo:32:3*/	if MygoIN6ResultM5IsErr[bool, string](compatible) || !MygoIN6ResultM6Unwrap[bool, string](compatible) || current.ReadPolicy != "members" {
+ /*line media_private.mygo:33:12*/		return Err[io.ReadCloser, string]("incompatible protected peer")
+ /*line media_private.mygo:32:3*/	} else {
+ /*line zz_media_private.gen.go:35:1*/	}
+ /*line media_private.mygo:35:16*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(row.OriginURI)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_media_private.gen.go:41:1*/	}
+ /*line zz_media_private.gen.go:42:1*/	}
  /*line media_private.mygo:15:1*/	target := __mygo_expr_1
- /*line media_private.mygo:24:15*/	var __mygo_expr_4 Result[*url.URL, error]
+ /*line media_private.mygo:36:15*/	var __mygo_expr_4 Result[*url.URL, error]
 	__mygo_expr_5, __mygo_expr_3 := url.Parse(MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)).ObjectURI.String)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*url.URL, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*url.URL, error](__mygo_expr_5)
- /*line zz_media_private.gen.go:49:1*/	}
+ /*line zz_media_private.gen.go:50:1*/	}
  /*line media_private.mygo:15:1*/	owner := __mygo_expr_4
- /*line media_private.mygo:25:15*/	var __mygo_expr_7 Result[*url.URL, error]
+ /*line media_private.mygo:37:15*/	var __mygo_expr_7 Result[*url.URL, error]
 	__mygo_expr_8, __mygo_expr_6 := url.Parse(current.ActorURI.String)
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[*url.URL, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[*url.URL, error](__mygo_expr_8)
- /*line zz_media_private.gen.go:57:1*/	}
+ /*line zz_media_private.gen.go:58:1*/	}
  /*line media_private.mygo:15:1*/	group := __mygo_expr_7
- /*line media_private.mygo:26:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](target) || MygoIN6ResultM5IsErr[*url.URL, error](owner) || MygoIN6ResultM5IsErr[*url.URL, error](group) {
- /*line media_private.mygo:26:67*/		return Err[io.ReadCloser, string]("protected media origin mismatch")
- /*line media_private.mygo:26:6*/	} else {
- /*line zz_media_private.gen.go:62:1*/	}
+ /*line media_private.mygo:38:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](target) || MygoIN6ResultM5IsErr[*url.URL, error](owner) || MygoIN6ResultM5IsErr[*url.URL, error](group) {
+ /*line media_private.mygo:39:12*/		return Err[io.ReadCloser, string]("protected media origin mismatch")
+ /*line media_private.mygo:38:3*/	} else {
+ /*line zz_media_private.gen.go:63:1*/	}
  /*line media_private.mygo:15:1*/	authorOrigin := MygoIN6ResultM6Unwrap[*url.URL, error](target).Scheme == MygoIN6ResultM6Unwrap[*url.URL, error](owner).Scheme && MygoIN6ResultM6Unwrap[*url.URL, error](target).Host == MygoIN6ResultM6Unwrap[*url.URL, error](owner).Host
 	groupOrigin := MygoIN6ResultM6Unwrap[*url.URL, error](target).Scheme == MygoIN6ResultM6Unwrap[*url.URL, error](group).Scheme && MygoIN6ResultM6Unwrap[*url.URL, error](target).Host == MygoIN6ResultM6Unwrap[*url.URL, error](group).Host
- /*line media_private.mygo:29:6*/	if !authorOrigin && !groupOrigin {
- /*line media_private.mygo:29:48*/		return Err[io.ReadCloser, string]("protected media origin mismatch")
- /*line media_private.mygo:29:6*/	} else {
- /*line zz_media_private.gen.go:68:1*/	}
+ /*line media_private.mygo:45:3*/	if !authorOrigin && !groupOrigin {
+ /*line media_private.mygo:46:12*/		return Err[io.ReadCloser, string]("protected media origin mismatch")
+ /*line media_private.mygo:45:3*/	} else {
+ /*line zz_media_private.gen.go:69:1*/	}
  /*line media_private.mygo:15:1*/	key := storage.LoadLocalPrivateKey(ctx, db, identity.ActorURI)
- /*line media_private.mygo:31:6*/	if MygoIN6ResultM5IsErr[string, string](key) {
- /*line media_private.mygo:31:30*/		return Err[io.ReadCloser, string]("media signing unavailable")
- /*line media_private.mygo:31:6*/	} else {
- /*line zz_media_private.gen.go:73:1*/	}
+ /*line media_private.mygo:49:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
+ /*line media_private.mygo:50:12*/		return Err[io.ReadCloser, string]("media signing unavailable")
+ /*line media_private.mygo:49:3*/	} else {
+ /*line zz_media_private.gen.go:74:1*/	}
  /*line media_private.mygo:15:1*/	limits := federation.FetchLimits{TimeoutSeconds: settings.Federation.FetchTimeoutSeconds, MaxBytes: settings.Media.MaxFileBytes, MaxRedirects: settings.Federation.MaxRedirects, AllowPrivate: settings.Federation.AllowPrivateNetwork}
 	received := federation.FetchPrivateMedia(ctx, row.OriginURI, identity.ActorURI, MygoIN6ResultM6Unwrap[string, string](key), limits)
- /*line media_private.mygo:34:6*/	if MygoIN6ResultM5IsErr[[]byte, string](received) {
- /*line media_private.mygo:34:35*/		return Err[io.ReadCloser, string](MygoIN6ResultM9UnwrapErr[[]byte, string](received))
- /*line media_private.mygo:34:6*/	} else {
- /*line zz_media_private.gen.go:79:1*/	}
- /*line media_private.mygo:35:3*/	return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader(string(MygoIN6ResultM6Unwrap[[]byte, string](received))))))
- /*line zz_media_private.gen.go:81:1*/}
- /*line media_private.mygo:39:1*/func PrivateMediaRoute(settings config.Config, db *gorm.DB, site config.Site, files storage.MediaFiles, w http.ResponseWriter, request *http.Request, parts []string, fetch func(context.Context, auth.Identity, storage.PrivateMediaCache) Result[io.ReadCloser, string]) bool {
- /*line media_private.mygo:40:7*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 5 && !(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 6 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 5), "") == "preview") || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "private" {
- /*line media_private.mygo:40:184*/		return false
- /*line media_private.mygo:40:6*/	} else {
- /*line zz_media_private.gen.go:86:1*/	}
- /*line media_private.mygo:41:6*/	if !settings.Media.Enabled {
- /*line media_private.mygo:42:5*/		http.NotFound(w, request)
- /*line media_private.mygo:43:12*/		return true
- /*line media_private.mygo:41:6*/	} else {
- /*line zz_media_private.gen.go:91:1*/	}
- /*line media_private.mygo:39:1*/	session := Authenticated(db, site, request)
- /*line media_private.mygo:46:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line media_private.mygo:47:5*/		w.Header().Set("Cache-Control", "no-store")
- /*line media_private.mygo:48:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line media_private.mygo:49:12*/		return true
- /*line media_private.mygo:46:6*/	} else {
- /*line zz_media_private.gen.go:98:1*/	}
- /*line media_private.mygo:51:3*/	ServePrivateMedia(storage.MediaRepository{DB: db, SiteID: site.ID, Files: files, Settings: settings.Media}, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), ""), w, request, fetch)
- /*line media_private.mygo:52:3*/	return true
- /*line zz_media_private.gen.go:101:1*/}
- /*line media_private.mygo:58:1*/func ReconcileRemoteMedia(ctx context.Context, tx *gorm.DB, siteID string, post storage.PostRecord, version string, attachments []federation.RichAttachment) Result[[]string, string] {
+ /*line media_private.mygo:65:3*/	if MygoIN6ResultM5IsErr[[]byte, string](received) {
+ /*line media_private.mygo:66:12*/		return Err[io.ReadCloser, string](MygoIN6ResultM9UnwrapErr[[]byte, string](received))
+ /*line media_private.mygo:65:3*/	} else {
+ /*line zz_media_private.gen.go:80:1*/	}
+ /*line media_private.mygo:68:3*/	return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader(string(MygoIN6ResultM6Unwrap[[]byte, string](received))))))
+ /*line zz_media_private.gen.go:82:1*/}
+ /*line media_private.mygo:72:1*/func PrivateMediaRoute(settings config.Config, db *gorm.DB, site config.Site, files storage.MediaFiles, w http.ResponseWriter, request *http.Request, parts []string, fetch func(context.Context, auth.Identity, storage.PrivateMediaCache) Result[io.ReadCloser, string]) bool {
+ /*line media_private.mygo:82:7*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 5 && !(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 6 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 5), "") == "preview") || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "private" {
+ /*line media_private.mygo:85:12*/		return false
+ /*line media_private.mygo:82:3*/	} else {
+ /*line zz_media_private.gen.go:87:1*/	}
+ /*line media_private.mygo:87:3*/	if !settings.Media.Enabled {
+ /*line media_private.mygo:88:5*/		http.NotFound(w, request)
+ /*line media_private.mygo:89:12*/		return true
+ /*line media_private.mygo:87:3*/	} else {
+ /*line zz_media_private.gen.go:92:1*/	}
+ /*line media_private.mygo:72:1*/	session := Authenticated(db, site, request)
+ /*line media_private.mygo:92:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line media_private.mygo:93:5*/		w.Header().Set("Cache-Control", "no-store")
+ /*line media_private.mygo:94:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line media_private.mygo:95:12*/		return true
+ /*line media_private.mygo:92:3*/	} else {
+ /*line zz_media_private.gen.go:99:1*/	}
+ /*line media_private.mygo:97:3*/	ServePrivateMedia(storage.MediaRepository{DB: db, SiteID: site.ID, Files: files, Settings: settings.Media}, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), ""), w, request, fetch)
+ /*line media_private.mygo:110:3*/	return true
+ /*line zz_media_private.gen.go:102:1*/}
+ /*line media_private.mygo:116:1*/func ReconcileRemoteMedia(ctx context.Context, tx *gorm.DB, siteID string, post storage.PostRecord, version string, attachments []federation.RichAttachment) Result[[]string, string] {
 	community := storage.LoadCommunityByID(ctx, tx, post.CommunityID)
- /*line media_private.mygo:60:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
- /*line media_private.mygo:60:67*/		return Err[[]string, string]("not found")
- /*line media_private.mygo:60:6*/	} else {
- /*line zz_media_private.gen.go:107:1*/	}
- /*line media_private.mygo:58:1*/	current := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))
-	repository := storage.MediaRepository{DB: tx, SiteID: siteID}
+ /*line media_private.mygo:125:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
+ /*line media_private.mygo:126:12*/		return Err[[]string, string]("not found")
+ /*line media_private.mygo:125:3*/	} else {
+ /*line zz_media_private.gen.go:108:1*/	}
+ /*line media_private.mygo:116:1*/	current := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))
+	repository := storage.MediaRepository{DB: tx, SiteID: siteID, Files: Zero[storage.MediaFiles](), Settings: Zero[config.Media]()}
 	origins := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(attachments, func(item federation.RichAttachment) string {
- /*line media_private.mygo:63:81*/		return item.URL
- /*line zz_media_private.gen.go:112:1*/	})
- /*line media_private.mygo:58:1*/	var __mygo_expr_0 Result[struct{}, string]
+ /*line media_private.mygo:135:81*/		return item.URL
+ /*line zz_media_private.gen.go:113:1*/	})
+ /*line media_private.mygo:116:1*/	var __mygo_expr_0 Result[struct{}, string]
 	if current.ReadPolicy != "members" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(origins) == 0 {
 		__mygo_expr_0 = storage.MygoIN15MediaRepositoryM22InvalidatePrivateCache(repository, ctx, tx, post.ID, "")
 	} else {
 		__mygo_expr_0 = storage.MutationResult(tx.WithContext(ctx).Exec("UPDATE media_private_cache SET state='deleting',lease_until=now(),error_state='invalidated' WHERE site_id=? AND post_id=? AND (origin_version<>? OR origin_uri NOT IN ?)", siteID, post.ID, version, origins))
- /*line zz_media_private.gen.go:118:1*/	}
- /*line media_private.mygo:58:1*/	invalidated := __mygo_expr_0
- /*line media_private.mygo:69:6*/	if MygoIN6ResultM5IsErr[struct{}, string](invalidated) {
- /*line media_private.mygo:69:38*/		return Err[[]string, string](MygoIN6ResultM9UnwrapErr[struct{}, string](invalidated))
- /*line media_private.mygo:69:6*/	} else {
- /*line zz_media_private.gen.go:123:1*/	}
- /*line media_private.mygo:58:1*/	var urls []string = []string{}
+ /*line zz_media_private.gen.go:119:1*/	}
+ /*line media_private.mygo:116:1*/	invalidated := __mygo_expr_0
+ /*line media_private.mygo:147:3*/	if MygoIN6ResultM5IsErr[struct{}, string](invalidated) {
+ /*line media_private.mygo:148:12*/		return Err[[]string, string](MygoIN6ResultM9UnwrapErr[struct{}, string](invalidated))
+ /*line media_private.mygo:147:3*/	} else {
+ /*line zz_media_private.gen.go:124:1*/	}
+ /*line media_private.mygo:116:1*/	var urls []string = []string{}
 	var failure string = ""
- /*line media_private.mygo:72:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(attachments, func(attachment federation.RichAttachment) {
- /*line media_private.mygo:73:8*/		if failure == "" {
- /*line media_private.mygo:74:10*/			if current.ReadPolicy != "members" {
+ /*line media_private.mygo:152:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(attachments, func(attachment federation.RichAttachment) {
+ /*line media_private.mygo:153:5*/		if failure == "" {
+ /*line media_private.mygo:154:7*/			if current.ReadPolicy != "members" {
 				urls = MygoIN5SliceM6Append(urls, attachment.URL)
 				return
 			} else {
 				registered := storage.RegisterPrivateMedia(ctx, tx, siteID, post.ID, attachment.URL, version)
- /*line media_private.mygo:79:12*/				if MygoIN6ResultM5IsErr[storage.PrivateMediaCache, string](registered) {
+ /*line media_private.mygo:159:9*/				if MygoIN6ResultM5IsErr[storage.PrivateMediaCache, string](registered) {
 					failure = MygoIN6ResultM9UnwrapErr[storage.PrivateMediaCache, string](registered)
 					return
 				} else {
 					urls = MygoIN5SliceM6Append(urls, "/api/v1/media/private/"+MygoIN6ResultM6Unwrap[storage.PrivateMediaCache, string](registered).ID)
 					return
- /*line zz_media_private.gen.go:139:1*/				}
+ /*line zz_media_private.gen.go:140:1*/				}
 			}
- /*line media_private.mygo:73:8*/		} else {
- /*line media_private.mygo:73:5*/			return
- /*line zz_media_private.gen.go:143:1*/		}
+ /*line media_private.mygo:153:5*/		} else {
+			return
+ /*line zz_media_private.gen.go:144:1*/		}
 	})
- /*line media_private.mygo:87:6*/	if failure != "" {
- /*line media_private.mygo:87:32*/		return Err[[]string, string](failure)
- /*line media_private.mygo:87:6*/	} else {
- /*line zz_media_private.gen.go:148:1*/	}
- /*line media_private.mygo:88:3*/	return Ok[[]string, string](urls)
- /*line zz_media_private.gen.go:150:1*/}
- /*line media_private.mygo:94:1*/func ServePrivateMedia(repository storage.MediaRepository, identity auth.Identity, id string, w http.ResponseWriter, request *http.Request, fetch func(context.Context, auth.Identity, storage.PrivateMediaCache) Result[io.ReadCloser, string]) {
- /*line media_private.mygo:95:3*/	w.Header().Set("Cache-Control", "no-store")
- /*line media_private.mygo:96:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
- /*line media_private.mygo:97:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
- /*line media_private.mygo:98:6*/	if request.Method != "GET" && request.Method != "HEAD" {
- /*line media_private.mygo:99:5*/		MethodNotAllowed(w, "GET, HEAD")
- /*line media_private.mygo:98:6*/		return
+ /*line media_private.mygo:167:3*/	if failure != "" {
+ /*line media_private.mygo:168:12*/		return Err[[]string, string](failure)
+ /*line media_private.mygo:167:3*/	} else {
+ /*line zz_media_private.gen.go:149:1*/	}
+ /*line media_private.mygo:170:3*/	return Ok[[]string, string](urls)
+ /*line zz_media_private.gen.go:151:1*/}
+ /*line media_private.mygo:176:1*/func ServePrivateMedia(repository storage.MediaRepository, identity auth.Identity, id string, w http.ResponseWriter, request *http.Request, fetch func(context.Context, auth.Identity, storage.PrivateMediaCache) Result[io.ReadCloser, string]) {
+ /*line media_private.mygo:184:3*/	w.Header().Set("Cache-Control", "no-store")
+ /*line media_private.mygo:185:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
+ /*line media_private.mygo:186:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
+ /*line media_private.mygo:187:3*/	if request.Method != "GET" && request.Method != "HEAD" {
+ /*line media_private.mygo:188:5*/		MethodNotAllowed(w, "GET, HEAD")
+ /*line media_private.mygo:187:3*/		return
 	} else {
- /*line zz_media_private.gen.go:159:1*/	}
- /*line media_private.mygo:102:6*/	if !storage.MediaFileID(id) {
- /*line media_private.mygo:103:5*/		http.NotFound(w, request)
- /*line media_private.mygo:102:6*/		return
+ /*line zz_media_private.gen.go:160:1*/	}
+ /*line media_private.mygo:191:3*/	if !storage.MediaFileID(id) {
+ /*line media_private.mygo:192:5*/		http.NotFound(w, request)
+ /*line media_private.mygo:191:3*/		return
 	} else {
- /*line zz_media_private.gen.go:164:1*/	}
- /*line media_private.mygo:94:1*/	transfer := func(row storage.PrivateMediaCache, file *os.File) Result[struct{}, string] {
- /*line media_private.mygo:107:8*/		if strings.HasSuffix(request.URL.Path, "/preview") {
+ /*line zz_media_private.gen.go:165:1*/	}
+ /*line media_private.mygo:176:1*/	transfer := func(row storage.PrivateMediaCache, file *os.File) Result[struct{}, string] {
+ /*line media_private.mygo:196:5*/		if strings.HasSuffix(request.URL.Path, "/preview") {
 			preview := storage.MygoIN10MediaFilesM4Open(repository.Files, "previews", row.Generation)
- /*line media_private.mygo:109:10*/			if MygoIN6ResultM5IsErr[*os.File, string](preview) {
- /*line media_private.mygo:109:38*/				return Err[struct{}, string]("not found")
- /*line media_private.mygo:109:10*/			} else {
- /*line zz_media_private.gen.go:171:1*/			}
- /*line media_private.mygo:107:8*/			opened := MygoIN6ResultM6Unwrap[*os.File, string](preview)
- /*line media_private.mygo:111:7*/			defer opened.Close()
- /*line media_private.mygo:112:7*/			ServeMedia(w, request, storage.MediaUpload{ID: row.Generation, MediaType: "image/png", OriginalName: "preview.png", CreatedAt: row.FetchedAt.Time}, opened, true)
- /*line media_private.mygo:113:14*/			return Ok[struct{}, string](struct {
- /*line zz_media_private.gen.go:176:1*/			}{})
- /*line media_private.mygo:107:8*/		} else {
- /*line zz_media_private.gen.go:178:1*/		}
- /*line media_private.mygo:116:5*/		ServeMedia(w, request, storage.MediaUpload{ID: row.Generation, MediaType: "application/octet-stream", OriginalName: "attachment", CreatedAt: row.FetchedAt.Time}, file, false)
- /*line media_private.mygo:117:5*/		return Ok[struct{}, string](struct {
- /*line zz_media_private.gen.go:181:1*/		}{})
+ /*line media_private.mygo:198:7*/			if MygoIN6ResultM5IsErr[*os.File, string](preview) {
+ /*line media_private.mygo:199:16*/				return Err[struct{}, string]("not found")
+ /*line media_private.mygo:198:7*/			} else {
+ /*line zz_media_private.gen.go:172:1*/			}
+ /*line media_private.mygo:196:5*/			opened := MygoIN6ResultM6Unwrap[*os.File, string](preview)
+ /*line media_private.mygo:202:7*/			defer opened.Close()
+ /*line media_private.mygo:203:7*/			ServeMedia(w, request, storage.MediaUpload{ID: row.Generation, SiteID: "", OwnerAccountID: int64(0), Purpose: "post", State: "ready", ReservedBytes: int64(0), SizeBytes: int64(0), PreviewBytes: int64(0), MediaType: "image/png", OriginalName: "preview.png", CreatedAt: row.FetchedAt.Time, ExpiresAt: Zero[time.Time](), LeaseToken: "", LeaseUntil: Zero[time.Time]()}, opened, true)
+ /*line media_private.mygo:225:14*/			return Ok[struct{}, string](struct {
+ /*line zz_media_private.gen.go:177:1*/			}{})
+ /*line media_private.mygo:196:5*/		} else {
+ /*line zz_media_private.gen.go:179:1*/		}
+ /*line media_private.mygo:228:5*/		ServeMedia(w, request, storage.MediaUpload{ID: row.Generation, SiteID: "", OwnerAccountID: int64(0), Purpose: "post", State: "ready", ReservedBytes: int64(0), SizeBytes: int64(0), PreviewBytes: int64(0), MediaType: "application/octet-stream", OriginalName: "attachment", CreatedAt: row.FetchedAt.Time, ExpiresAt: Zero[time.Time](), LeaseToken: "", LeaseUntil: Zero[time.Time]()}, file, false)
+ /*line media_private.mygo:250:5*/		return Ok[struct{}, string](struct {
+ /*line zz_media_private.gen.go:182:1*/		}{})
 	}
- /*line media_private.mygo:94:1*/	read := storage.MygoIN15MediaRepositoryM16ReadPrivateCache(repository, request.Context(), identity, id, transfer)
- /*line media_private.mygo:120:6*/	if MygoIN6ResultM5IsErr[bool, string](read) {
- /*line media_private.mygo:121:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[bool, string](read))
- /*line media_private.mygo:120:6*/		return
+ /*line media_private.mygo:176:1*/	read := storage.MygoIN15MediaRepositoryM16ReadPrivateCache(repository, request.Context(), identity, id, transfer)
+ /*line media_private.mygo:253:3*/	if MygoIN6ResultM5IsErr[bool, string](read) {
+ /*line media_private.mygo:254:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[bool, string](read))
+ /*line media_private.mygo:253:3*/		return
 	} else {
- /*line zz_media_private.gen.go:188:1*/	}
- /*line media_private.mygo:124:6*/	if MygoIN6ResultM6Unwrap[bool, string](read) {
+ /*line zz_media_private.gen.go:189:1*/	}
+ /*line media_private.mygo:257:3*/	if MygoIN6ResultM6Unwrap[bool, string](read) {
 		return
 	} else {
- /*line zz_media_private.gen.go:192:1*/	}
- /*line media_private.mygo:94:1*/	fetched := storage.MygoIN15MediaRepositoryM17FetchPrivateCache(repository, request.Context(), identity, id, fetch)
- /*line media_private.mygo:128:6*/	if MygoIN6ResultM5IsErr[struct{}, string](fetched) {
- /*line media_private.mygo:129:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, string](fetched))
- /*line media_private.mygo:128:6*/		return
+ /*line zz_media_private.gen.go:193:1*/	}
+ /*line media_private.mygo:176:1*/	fetched := storage.MygoIN15MediaRepositoryM17FetchPrivateCache(repository, request.Context(), identity, id, fetch)
+ /*line media_private.mygo:263:3*/	if MygoIN6ResultM5IsErr[struct{}, string](fetched) {
+ /*line media_private.mygo:264:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, string](fetched))
+ /*line media_private.mygo:263:3*/		return
 	} else {
- /*line zz_media_private.gen.go:198:1*/	}
- /*line media_private.mygo:94:1*/	refreshed := storage.MygoIN15MediaRepositoryM16ReadPrivateCache(repository, request.Context(), identity, id, transfer)
- /*line media_private.mygo:133:6*/	if MygoIN6ResultM5IsErr[bool, string](refreshed) {
- /*line media_private.mygo:134:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[bool, string](refreshed))
- /*line media_private.mygo:133:6*/		return
+ /*line zz_media_private.gen.go:199:1*/	}
+ /*line media_private.mygo:176:1*/	refreshed := storage.MygoIN15MediaRepositoryM16ReadPrivateCache(repository, request.Context(), identity, id, transfer)
+ /*line media_private.mygo:268:3*/	if MygoIN6ResultM5IsErr[bool, string](refreshed) {
+ /*line media_private.mygo:269:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[bool, string](refreshed))
+ /*line media_private.mygo:268:3*/		return
 	} else {
- /*line zz_media_private.gen.go:204:1*/	}
- /*line media_private.mygo:137:6*/	if !MygoIN6ResultM6Unwrap[bool, string](refreshed) {
- /*line media_private.mygo:137:31*/		MediaFailure(w, "media unavailable")
+ /*line zz_media_private.gen.go:205:1*/	}
+ /*line media_private.mygo:272:3*/	if !MygoIN6ResultM6Unwrap[bool, string](refreshed) {
+ /*line media_private.mygo:273:5*/		MediaFailure(w, "media unavailable")
 		return
- /*line media_private.mygo:137:6*/	} else {
- /*line media_private.mygo:137:3*/		return
- /*line zz_media_private.gen.go:210:1*/	}
+ /*line media_private.mygo:272:3*/	} else {
+		return
+ /*line zz_media_private.gen.go:211:1*/	}
 }
- /*line media_private.mygo:142:1*/func PrivateMediaUnavailable(ctx context.Context, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, string] {
- /*line media_private.mygo:143:3*/	return Err[io.ReadCloser, string]("protected media fetch unavailable")
- /*line zz_media_private.gen.go:214:1*/}
+ /*line media_private.mygo:279:1*/func PrivateMediaUnavailable(ctx context.Context, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, string] {
+ /*line media_private.mygo:284:3*/	return Err[io.ReadCloser, string]("protected media fetch unavailable")
+ /*line zz_media_private.gen.go:215:1*/}

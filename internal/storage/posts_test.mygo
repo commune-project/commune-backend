@@ -8,6 +8,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -65,7 +66,7 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
     concurrency.Spawn(func() -> ()
       ready.Send(())
       let _ = start.Receive()
-      results.Send(repository.Receive(ctx, post, author))
+      results.Send(repository.Receive(ctx, post, author, content.DefaultSanitizer()))
     end)
   end)
   let _ = ready.Receive()
@@ -89,7 +90,8 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   let distinct = first.Receive(
     ctx,
     makePost("https://remote.example/objects/two", author, "same text", authored, false),
-    author
+    author,
+    content.DefaultSanitizer()
   ).Unwrap()
   if distinct.ID == a.ID then
     t.Fatal("identical text merged different canonical URIs")
@@ -98,26 +100,28 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   if first.Receive(
     ctx,
     makePost(uri, "https://remote.example/users/bob", "forged", newer, false),
-    "https://remote.example/users/bob"
+    "https://remote.example/users/bob",
+    content.DefaultSanitizer()
   ).IsOk() then
     t.Fatal("unrelated authenticated author reused another object's URI")
   end
-  if first.Receive(ctx, makePost(uri, author, "forged", authored, false), author).IsOk() then
+  if first.Receive(ctx, makePost(uri, author, "forged", authored, false), author, content.DefaultSanitizer()).IsOk() then
     t.Fatal("conflicting body reused the same version")
   end
-  let update = first.Receive(ctx, makePost(uri, author, "updated", newer, false), author).Unwrap()
+  let update = first.Receive(ctx, makePost(uri, author, "updated", newer, false), author, content.DefaultSanitizer()).Unwrap()
   if update.ID != a.ID || update.Body != "updated" || update.Version != 2i64 then
     t.Fatal("authoritative update replaced identity or failed to update body")
   end
-  let late = second.Receive(ctx, post, author).Unwrap()
+  let late = second.Receive(ctx, post, author, content.DefaultSanitizer()).Unwrap()
   if late.Body != "updated" || late.Version != 2i64 then
     t.Fatal("late original version replaced a newer body")
   end
-  let deleted = first.Receive(ctx, makePost(uri, author, "", newer.Add(time.Second), true), author).Unwrap()
+  let deleted = first.Receive(ctx, makePost(uri, author, "", newer.Add(time.Second), true), author, content.DefaultSanitizer()).Unwrap()
   let replay = second.Receive(
     ctx,
     makePost(uri, author, "resurrected", newer.Add(2 as time.Duration * time.Second), false),
-    author
+    author,
+    content.DefaultSanitizer()
   ).Unwrap()
   if !deleted.DeletedAt.Valid ||
     !replay.DeletedAt.Valid ||
@@ -130,7 +134,8 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   if missing.Receive(
     ctx,
     makePost("https://remote.example/objects/rollback", author, "body", authored, false),
-    author
+    author,
+    content.DefaultSanitizer()
   ).IsOk() then
     t.Fatal("missing site accepted reception")
   end

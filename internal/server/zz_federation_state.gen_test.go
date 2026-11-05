@@ -45,56 +45,56 @@ import . "github.com/mygo-lang/mygo/prelude"
 	date := time.Now().UTC().Format(http.TimeFormat)
 	state := "{\"id\":\"https://host.example/activities/state-1\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"members\",\"post\":\"members\"},\"commune:members\":[\"" + kept + "\"]}}"
 	applied := signedPost(handler, a.Origin, "/users/alice/inbox", state, group, groupKey, date)
- /*line federation_state_test.mygo:36:6*/	if applied.Code != 202 || !strings.Contains(applied.Body.String(), "cannot be recalled") {
+ /*line federation_state_test.mygo:36:3*/	if applied.Code != 202 || !strings.Contains(applied.Body.String(), "cannot be recalled") {
  /*line federation_state_test.mygo:37:5*/		t.Fatalf("host state was not applied or did not disclose the recall limit: %d %s", applied.Code, applied.Body.String())
- /*line federation_state_test.mygo:36:6*/	} else {
+ /*line federation_state_test.mygo:36:3*/	} else {
  /*line zz_federation_state.gen_test.go:51:1*/	}
- /*line federation_state_test.mygo:39:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line federation_state_test.mygo:39:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:40:5*/		t.Fatal("replica read policy was not updated from the host state")
- /*line federation_state_test.mygo:39:6*/	} else {
+ /*line federation_state_test.mygo:39:3*/	} else {
  /*line zz_federation_state.gen_test.go:55:1*/	}
- /*line federation_state_test.mygo:42:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) {
+ /*line federation_state_test.mygo:42:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) {
  /*line federation_state_test.mygo:43:5*/		t.Fatal("the authority's approved member was not recorded")
- /*line federation_state_test.mygo:42:6*/	} else {
+ /*line federation_state_test.mygo:42:3*/	} else {
  /*line zz_federation_state.gen_test.go:59:1*/	}
- /*line federation_state_test.mygo:45:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) {
+ /*line federation_state_test.mygo:45:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) {
  /*line federation_state_test.mygo:46:5*/		t.Fatal("a member the authority removed remained authorized")
- /*line federation_state_test.mygo:45:6*/	} else {
+ /*line federation_state_test.mygo:45:3*/	} else {
  /*line zz_federation_state.gen_test.go:63:1*/	}
  /*line federation_state_test.mygo:13:1*/	rivalState := "{\"id\":\"https://rival.example/activities/state-2\",\"actor\":\"" + rival + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[\"" + rival + "\"]}}"
 	forged := signedPost(handler, a.Origin, "/users/alice/inbox", rivalState, rival, rivalKey, date)
- /*line federation_state_test.mygo:50:6*/	if forged.Code != 403 {
+ /*line federation_state_test.mygo:50:3*/	if forged.Code != 403 {
  /*line federation_state_test.mygo:51:5*/		t.Fatalf("a peer rewrote another community's authorization: %d %s", forged.Code, forged.Body.String())
- /*line federation_state_test.mygo:50:6*/	} else {
+ /*line federation_state_test.mygo:50:3*/	} else {
  /*line zz_federation_state.gen_test.go:69:1*/	}
- /*line federation_state_test.mygo:53:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line federation_state_test.mygo:53:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:54:5*/		t.Fatal("a forged state change altered the replica policy")
- /*line federation_state_test.mygo:53:6*/	} else {
+ /*line federation_state_test.mygo:53:3*/	} else {
  /*line zz_federation_state.gen_test.go:73:1*/	}
- /*line federation_state_test.mygo:56:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", rival)) {
+ /*line federation_state_test.mygo:56:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", rival)) {
  /*line federation_state_test.mygo:57:5*/		t.Fatal("a forged state change added an unauthorized member")
- /*line federation_state_test.mygo:56:6*/	} else {
+ /*line federation_state_test.mygo:56:3*/	} else {
  /*line zz_federation_state.gen_test.go:77:1*/	}
  /*line federation_state_test.mygo:13:1*/	relaxed := "{\"id\":\"https://host.example/activities/state-3\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[]}}"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id='replica' AND actor_uri=?", dropped)))
 	revocation := "{\"id\":\"https://host.example/activities/revocation\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:revoked\":[\"" + kept + "\"]}}"
- /*line federation_state_test.mygo:62:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", revocation, group, groupKey, date).Code != 202 {
+ /*line federation_state_test.mygo:62:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", revocation, group, groupKey, date).Code != 202 {
  /*line federation_state_test.mygo:63:5*/		t.Fatal("host targeted revocation rejected")
- /*line federation_state_test.mygo:62:6*/	} else {
+ /*line federation_state_test.mygo:62:3*/	} else {
  /*line zz_federation_state.gen_test.go:84:1*/	}
- /*line federation_state_test.mygo:65:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) || MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line federation_state_test.mygo:65:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) || MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:66:5*/		t.Fatal("targeted revocation altered unrelated membership or policy")
- /*line federation_state_test.mygo:65:6*/	} else {
+ /*line federation_state_test.mygo:65:3*/	} else {
  /*line zz_federation_state.gen_test.go:88:1*/	}
  /*line federation_state_test.mygo:13:1*/	relaxedResult := signedPost(handler, a.Origin, "/users/alice/inbox", relaxed, group, groupKey, date)
- /*line federation_state_test.mygo:69:6*/	if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") {
+ /*line federation_state_test.mygo:69:3*/	if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") {
  /*line federation_state_test.mygo:70:5*/		t.Fatal("a non-tightening update wrongly disclosed a recall limitation")
- /*line federation_state_test.mygo:69:6*/	} else {
+ /*line federation_state_test.mygo:69:3*/	} else {
  /*line zz_federation_state.gen_test.go:93:1*/	}
- /*line federation_state_test.mygo:72:6*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "eligible_users" {
+ /*line federation_state_test.mygo:72:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "eligible_users" {
  /*line federation_state_test.mygo:73:5*/		t.Fatal("a later host state was not applied")
 		return
- /*line federation_state_test.mygo:72:6*/	} else {
- /*line federation_state_test.mygo:72:3*/		return
+ /*line federation_state_test.mygo:72:3*/	} else {
+		return
  /*line zz_federation_state.gen_test.go:99:1*/	}
 }

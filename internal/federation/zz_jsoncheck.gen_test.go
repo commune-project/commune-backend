@@ -9,30 +9,30 @@ import . "github.com/mygo-lang/mygo/prelude"
 	text := "{\"a\":1}"
 	first := int(MygoIN6OptionM6Unwrap[byte](MygoIT10IIndexableFN15StringByteIndexGN6StringN3IntN4ByteEM3Get(text, 0)))
 	quote := int(MygoIN6OptionM6Unwrap[byte](MygoIT10IIndexableFN15StringByteIndexGN6StringN3IntN4ByteEM3Get(text, 1)))
- /*line jsoncheck_test.mygo:9:6*/	if first != 123 || quote != 34 {
+ /*line jsoncheck_test.mygo:9:3*/	if first != 123 || quote != 34 {
  /*line jsoncheck_test.mygo:10:5*/		t.Fatalf("byte indexing is wrong: %d %d", first, quote)
- /*line jsoncheck_test.mygo:9:6*/	} else {
+ /*line jsoncheck_test.mygo:9:3*/	} else {
  /*line zz_jsoncheck.gen_test.go:15:1*/	}
- /*line jsoncheck_test.mygo:12:6*/	if JsonKeysDup("{\"id\":\"a\",\"actor\":\"b\"}") {
+ /*line jsoncheck_test.mygo:12:3*/	if JsonKeysDup("{\"id\":\"a\",\"actor\":\"b\"}") {
  /*line jsoncheck_test.mygo:13:5*/		t.Fatal("valid payload reported duplicate keys")
- /*line jsoncheck_test.mygo:12:6*/	} else {
+ /*line jsoncheck_test.mygo:12:3*/	} else {
  /*line zz_jsoncheck.gen_test.go:19:1*/	}
- /*line jsoncheck_test.mygo:15:6*/	if !JsonKeysDup("{\"id\":\"a\",\"id\":\"b\"}") {
+ /*line jsoncheck_test.mygo:15:3*/	if !JsonKeysDup("{\"id\":\"a\",\"id\":\"b\"}") {
  /*line jsoncheck_test.mygo:16:5*/		t.Fatal("duplicate top-level key was not detected")
- /*line jsoncheck_test.mygo:15:6*/	} else {
+ /*line jsoncheck_test.mygo:15:3*/	} else {
  /*line zz_jsoncheck.gen_test.go:23:1*/	}
- /*line jsoncheck_test.mygo:18:6*/	if JsonKeysDup("{\"a\":{\"x\":1},\"b\":{\"x\":2}}") {
+ /*line jsoncheck_test.mygo:18:3*/	if JsonKeysDup("{\"a\":{\"x\":1},\"b\":{\"x\":2}}") {
  /*line jsoncheck_test.mygo:19:5*/		t.Fatal("sibling objects reusing a key were wrongly rejected")
- /*line jsoncheck_test.mygo:18:6*/	} else {
+ /*line jsoncheck_test.mygo:18:3*/	} else {
  /*line zz_jsoncheck.gen_test.go:27:1*/	}
- /*line jsoncheck_test.mygo:21:6*/	if !JsonKeysDup("{\"o\":{\"x\":1,\"x\":2}}") {
+ /*line jsoncheck_test.mygo:21:3*/	if !JsonKeysDup("{\"o\":{\"x\":1,\"x\":2}}") {
  /*line jsoncheck_test.mygo:22:5*/		t.Fatal("duplicate nested key was not detected")
- /*line jsoncheck_test.mygo:21:6*/	} else {
+ /*line jsoncheck_test.mygo:21:3*/	} else {
  /*line zz_jsoncheck.gen_test.go:31:1*/	}
- /*line jsoncheck_test.mygo:24:6*/	if JsonKeysDup("{\"note\":\"quote \\\" and brace {\"}") {
+ /*line jsoncheck_test.mygo:24:3*/	if JsonKeysDup("{\"note\":\"quote \\\" and brace {\"}") {
  /*line jsoncheck_test.mygo:25:5*/		t.Fatal("escaped content was misparsed")
 		return
- /*line jsoncheck_test.mygo:24:6*/	} else {
- /*line jsoncheck_test.mygo:24:3*/		return
+ /*line jsoncheck_test.mygo:24:3*/	} else {
+		return
  /*line zz_jsoncheck.gen_test.go:37:1*/	}
 }

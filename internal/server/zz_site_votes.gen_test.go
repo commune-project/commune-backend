@@ -16,8 +16,8 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line site_votes_test.mygo:13:1*/func decodeVoteSettings(t *testing.T, response *httptest.ResponseRecorder) SiteVoteSettingsOutput {
-	output := SiteVoteSettingsOutput{}
- /*line site_votes_test.mygo:15:30*/	var __mygo_expr_1 Result[struct{}, error]
+	output := Zero[SiteVoteSettingsOutput]()
+ /*line site_votes_test.mygo:18:30*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(response.Body.Bytes(), &output)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -25,21 +25,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_site_votes.gen_test.go:26:1*/		}{})
 	}
- /*line site_votes_test.mygo:15:6*/	if response.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line site_votes_test.mygo:16:5*/		t.Fatalf("invalid vote settings response: %d %s", response.Code, response.Body.String())
- /*line site_votes_test.mygo:15:6*/	} else {
+ /*line site_votes_test.mygo:18:3*/	if response.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line site_votes_test.mygo:19:5*/		t.Fatalf("invalid vote settings response: %d %s", response.Code, response.Body.String())
+ /*line site_votes_test.mygo:18:3*/	} else {
  /*line zz_site_votes.gen_test.go:31:1*/	}
- /*line site_votes_test.mygo:18:3*/	return output
+ /*line site_votes_test.mygo:21:3*/	return output
  /*line zz_site_votes.gen_test.go:33:1*/}
- /*line site_votes_test.mygo:21:1*/func TestPostgresSiteVoteSettingsHTTP(t *testing.T) {
- /*line site_votes_test.mygo:22:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line site_votes_test.mygo:24:1*/func TestPostgresSiteVoteSettingsHTTP(t *testing.T) {
+ /*line site_votes_test.mygo:25:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_site_votes.gen_test.go:41:1*/	}
- /*line site_votes_test.mygo:21:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line site_votes_test.mygo:24:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -56,52 +56,52 @@ import . "github.com/mygo-lang/mygo/prelude"
 	ordinaryCookies := login(handler, a.Origin, "ordinary", "ordinary-password")
 	ordinaryCSRF := csrfOf(ordinaryCookies)
 	var anonymous []*http.Cookie = []*http.Cookie{}
-	initial := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
- /*line site_votes_test.mygo:41:6*/	if !initial.UpvotesEnabled || !initial.DownvotesEnabled {
- /*line site_votes_test.mygo:42:5*/		t.Fatal("default vote settings were not enabled")
- /*line site_votes_test.mygo:41:6*/	} else {
+	initial := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Payload: "", Cookies: anonymous, CSRF: "", Source: ""}))
+ /*line site_votes_test.mygo:57:3*/	if !initial.UpvotesEnabled || !initial.DownvotesEnabled {
+ /*line site_votes_test.mygo:58:5*/		t.Fatal("default vote settings were not enabled")
+ /*line site_votes_test.mygo:57:3*/	} else {
  /*line zz_site_votes.gen_test.go:63:1*/	}
- /*line site_votes_test.mygo:21:1*/	update := doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"downvotes_enabled\":false}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin})
+ /*line site_votes_test.mygo:24:1*/	update := doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"downvotes_enabled\":false}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin})
 	first := decodeVoteSettings(t, update)
- /*line site_votes_test.mygo:57:6*/	if !first.UpvotesEnabled || first.DownvotesEnabled {
- /*line site_votes_test.mygo:58:5*/		t.Fatal("downvote setting was not disabled")
- /*line site_votes_test.mygo:57:6*/	} else {
+ /*line site_votes_test.mygo:73:3*/	if !first.UpvotesEnabled || first.DownvotesEnabled {
+ /*line site_votes_test.mygo:74:5*/		t.Fatal("downvote setting was not disabled")
+ /*line site_votes_test.mygo:73:3*/	} else {
  /*line zz_site_votes.gen_test.go:69:1*/	}
- /*line site_votes_test.mygo:21:1*/	siteA := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
-	siteB := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Cookies: anonymous}))
- /*line site_votes_test.mygo:62:6*/	if siteA.DownvotesEnabled || !siteB.DownvotesEnabled || !siteB.UpvotesEnabled {
- /*line site_votes_test.mygo:63:5*/		t.Fatal("vote settings were not site scoped")
- /*line site_votes_test.mygo:62:6*/	} else {
+ /*line site_votes_test.mygo:24:1*/	siteA := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: a.Origin, Path: "/api/v1/site/vote-settings", Payload: "", Cookies: anonymous, CSRF: "", Source: ""}))
+	siteB := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Payload: "", Cookies: anonymous, CSRF: "", Source: ""}))
+ /*line site_votes_test.mygo:106:3*/	if siteA.DownvotesEnabled || !siteB.DownvotesEnabled || !siteB.UpvotesEnabled {
+ /*line site_votes_test.mygo:107:5*/		t.Fatal("vote settings were not site scoped")
+ /*line site_votes_test.mygo:106:3*/	} else {
  /*line zz_site_votes.gen_test.go:75:1*/	}
- /*line site_votes_test.mygo:21:1*/	partial := decodeVoteSettings(t, doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":false}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}))
- /*line site_votes_test.mygo:80:6*/	if partial.UpvotesEnabled || partial.DownvotesEnabled {
- /*line site_votes_test.mygo:81:5*/		t.Fatal("partial update did not preserve the prior downvote value")
- /*line site_votes_test.mygo:80:6*/	} else {
+ /*line site_votes_test.mygo:24:1*/	partial := decodeVoteSettings(t, doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":false}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}))
+ /*line site_votes_test.mygo:124:3*/	if partial.UpvotesEnabled || partial.DownvotesEnabled {
+ /*line site_votes_test.mygo:125:5*/		t.Fatal("partial update did not preserve the prior downvote value")
+ /*line site_votes_test.mygo:124:3*/	} else {
  /*line zz_site_votes.gen_test.go:80:1*/	}
- /*line site_votes_test.mygo:83:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":true}", Cookies: ordinaryCookies, CSRF: ordinaryCSRF, Source: a.Origin}).Code != 403 {
- /*line site_votes_test.mygo:95:5*/		t.Fatal("ordinary account updated vote settings")
- /*line site_votes_test.mygo:83:6*/	} else {
+ /*line site_votes_test.mygo:127:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":true}", Cookies: ordinaryCookies, CSRF: ordinaryCSRF, Source: a.Origin}).Code != 403 {
+ /*line site_votes_test.mygo:140:5*/		t.Fatal("ordinary account updated vote settings")
+ /*line site_votes_test.mygo:127:3*/	} else {
  /*line zz_site_votes.gen_test.go:84:1*/	}
- /*line site_votes_test.mygo:97:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}).Code != 400 {
- /*line site_votes_test.mygo:109:5*/		t.Fatal("empty vote settings update was accepted")
- /*line site_votes_test.mygo:97:6*/	} else {
+ /*line site_votes_test.mygo:142:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}).Code != 400 {
+ /*line site_votes_test.mygo:155:5*/		t.Fatal("empty vote settings update was accepted")
+ /*line site_votes_test.mygo:142:3*/	} else {
  /*line zz_site_votes.gen_test.go:88:1*/	}
- /*line site_votes_test.mygo:111:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":\"yes\"}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}).Code != 400 {
- /*line site_votes_test.mygo:123:5*/		t.Fatal("non-boolean vote setting was accepted")
+ /*line site_votes_test.mygo:157:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: "{\"upvotes_enabled\":\"yes\"}", Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin}).Code != 400 {
+ /*line site_votes_test.mygo:170:5*/		t.Fatal("non-boolean vote setting was accepted")
 		return
- /*line site_votes_test.mygo:111:6*/	} else {
- /*line site_votes_test.mygo:111:3*/		return
+ /*line site_votes_test.mygo:157:3*/	} else {
+		return
  /*line zz_site_votes.gen_test.go:94:1*/	}
 }
- /*line site_votes_test.mygo:127:1*/func TestPostgresVoteSettingsHistoricalRestore(t *testing.T) {
- /*line site_votes_test.mygo:128:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line site_votes_test.mygo:174:1*/func TestPostgresVoteSettingsHistoricalRestore(t *testing.T) {
+ /*line site_votes_test.mygo:175:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
  /*line zz_site_votes.gen_test.go:103:1*/	}
- /*line site_votes_test.mygo:127:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line site_votes_test.mygo:174:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -120,39 +120,39 @@ import . "github.com/mygo-lang/mygo/prelude"
 	communityB := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: b.ID}, ctx, b, authorB, "open-b", "Open B", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
 	postsB := storage.PostRepository{DB: db, SiteID: b.ID}
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, author, false, storage.PublishInput{Title: "Historical", Body: "vote"}))
-	postB := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(postsB, ctx, b, communityB.ID, authorB, false, storage.PublishInput{Title: "Other site", Body: "vote"}))
- /*line site_votes_test.mygo:149:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(storage.ReactionRepository{DB: db, SiteID: a.ID}, ctx, post.ID, viewer, false, -1, ""))
- /*line site_votes_test.mygo:150:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(storage.ReactionRepository{DB: db, SiteID: b.ID}, ctx, postB.ID, viewerB, false, -1, ""))
- /*line site_votes_test.mygo:127:1*/	handler := Handler(settings, db)
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, author, false, storage.PublishInput{Title: "Historical", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	postB := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(postsB, ctx, b, communityB.ID, authorB, false, storage.PublishInput{Title: "Other site", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+ /*line site_votes_test.mygo:244:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(storage.ReactionRepository{DB: db, SiteID: a.ID}, ctx, post.ID, viewer, false, -1, ""))
+ /*line site_votes_test.mygo:245:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(storage.ReactionRepository{DB: db, SiteID: b.ID}, ctx, postB.ID, viewerB, false, -1, ""))
+ /*line site_votes_test.mygo:174:1*/	handler := Handler(settings, db)
 	adminCookies := login(handler, a.Origin, "admin", "administrator-password")
 	adminCSRF := csrfOf(adminCookies)
 	viewerCookies := login(handler, a.Origin, "viewer", "viewer-password")
 	update := func(payload string) *httptest.ResponseRecorder {
- /*line site_votes_test.mygo:156:5*/		return doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: payload, Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin})
+ /*line site_votes_test.mygo:258:5*/		return doForum(handler, forumCall{Method: "PUT", Origin: a.Origin, Path: "/api/v1/admin/vote-settings", Payload: payload, Cookies: adminCookies, CSRF: adminCSRF, Source: a.Origin})
  /*line zz_site_votes.gen_test.go:133:1*/	}
- /*line site_votes_test.mygo:127:1*/	decodeVoteSettings(t, update("{\"downvotes_enabled\":false}"))
+ /*line site_votes_test.mygo:174:1*/	decodeVoteSettings(t, update("{\"downvotes_enabled\":false}"))
 	disabled := browserPost(t, browserGet(t, handler, a.Origin, "/api/v1/posts/"+post.ID, viewerCookies, 200))
- /*line site_votes_test.mygo:160:6*/	if disabled.Downvotes != int64(0) || disabled.VotedByMe != int64(0) || disabled.Permissions.CanDownvote {
- /*line site_votes_test.mygo:161:5*/		t.Fatal("disabled downvote remained visible in post projection")
- /*line site_votes_test.mygo:160:6*/	} else {
+ /*line site_votes_test.mygo:276:3*/	if disabled.Downvotes != int64(0) || disabled.VotedByMe != int64(0) || disabled.Permissions.CanDownvote {
+ /*line site_votes_test.mygo:279:5*/		t.Fatal("disabled downvote remained visible in post projection")
+ /*line site_votes_test.mygo:276:3*/	} else {
  /*line zz_site_votes.gen_test.go:139:1*/	}
- /*line site_votes_test.mygo:127:1*/	siteB := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Cookies: []*http.Cookie{}}))
- /*line site_votes_test.mygo:164:6*/	if !siteB.DownvotesEnabled {
- /*line site_votes_test.mygo:165:5*/		t.Fatal("site A disabled site B downvotes")
- /*line site_votes_test.mygo:164:6*/	} else {
+ /*line site_votes_test.mygo:174:1*/	siteB := decodeVoteSettings(t, doForum(handler, forumCall{Method: "GET", Origin: b.Origin, Path: "/api/v1/site/vote-settings", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""}))
+ /*line site_votes_test.mygo:296:3*/	if !siteB.DownvotesEnabled {
+ /*line site_votes_test.mygo:297:5*/		t.Fatal("site A disabled site B downvotes")
+ /*line site_votes_test.mygo:296:3*/	} else {
  /*line zz_site_votes.gen_test.go:144:1*/	}
- /*line site_votes_test.mygo:127:1*/	other := browserPost(t, browserGet(t, handler, b.Origin, "/api/v1/posts/"+postB.ID, login(handler, b.Origin, "viewer-b", "viewer-b-password"), 200))
- /*line site_votes_test.mygo:168:6*/	if other.Downvotes != int64(1) || other.VotedByMe != int64(-1) {
- /*line site_votes_test.mygo:169:5*/		t.Fatal("cross-site historical vote state was not isolated")
- /*line site_votes_test.mygo:168:6*/	} else {
+ /*line site_votes_test.mygo:174:1*/	other := browserPost(t, browserGet(t, handler, b.Origin, "/api/v1/posts/"+postB.ID, login(handler, b.Origin, "viewer-b", "viewer-b-password"), 200))
+ /*line site_votes_test.mygo:310:6*/	if other.Downvotes != int64(1) || other.VotedByMe != int64(-1) {
+ /*line site_votes_test.mygo:311:5*/		t.Fatal("cross-site historical vote state was not isolated")
+ /*line site_votes_test.mygo:310:3*/	} else {
  /*line zz_site_votes.gen_test.go:149:1*/	}
- /*line site_votes_test.mygo:127:1*/	decodeVoteSettings(t, update("{\"downvotes_enabled\":true}"))
+ /*line site_votes_test.mygo:174:1*/	decodeVoteSettings(t, update("{\"downvotes_enabled\":true}"))
 	restored := browserPost(t, browserGet(t, handler, a.Origin, "/api/v1/posts/"+post.ID, viewerCookies, 200))
- /*line site_votes_test.mygo:173:6*/	if restored.Downvotes != int64(1) || restored.VotedByMe != int64(-1) || restored.Score != int64(-1) {
- /*line site_votes_test.mygo:174:5*/		t.Fatal("historical downvote did not return after re-enable")
+ /*line site_votes_test.mygo:318:6*/	if restored.Downvotes != int64(1) || restored.VotedByMe != int64(-1) || restored.Score != int64(-1) {
+ /*line site_votes_test.mygo:319:5*/		t.Fatal("historical downvote did not return after re-enable")
 		return
- /*line site_votes_test.mygo:173:6*/	} else {
- /*line site_votes_test.mygo:173:3*/		return
+ /*line site_votes_test.mygo:318:3*/	} else {
+		return
  /*line zz_site_votes.gen_test.go:157:1*/	}
 }

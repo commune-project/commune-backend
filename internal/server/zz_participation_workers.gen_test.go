@@ -36,19 +36,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line participation_workers_test.mygo:23:3*/	defer pool.Close()
  /*line participation_workers_test.mygo:19:1*/	ctx, cancel := context.WithCancel(context.Background())
  /*line participation_workers_test.mygo:25:3*/	cancel()
- /*line participation_workers_test.mygo:26:6*/	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
+ /*line participation_workers_test.mygo:26:3*/	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
  /*line participation_workers_test.mygo:27:5*/		t.Fatal("disabled workers did not immediately stop")
- /*line participation_workers_test.mygo:26:6*/	} else {
+ /*line participation_workers_test.mygo:26:3*/	} else {
  /*line zz_participation_workers.gen_test.go:42:1*/	}
  /*line participation_workers_test.mygo:19:1*/	settings.ParticipationWorkers.Enabled = true
 	settings.ParticipationWorkers.MailWorkers = 2
 	settings.ParticipationWorkers.NotificationWorkers = 2
 	settings.ParticipationWorkers.MediaWorkers = 2
 	settings.ParticipationWorkers.ActorWorkers = 2
- /*line participation_workers_test.mygo:34:6*/	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
+ /*line participation_workers_test.mygo:34:3*/	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
  /*line participation_workers_test.mygo:35:5*/		t.Fatal("cancelled workers leaked or ignored shutdown context")
 		return
- /*line participation_workers_test.mygo:34:6*/	} else {
- /*line participation_workers_test.mygo:34:3*/		return
+ /*line participation_workers_test.mygo:34:3*/	} else {
+		return
  /*line zz_participation_workers.gen_test.go:53:1*/	}
 }

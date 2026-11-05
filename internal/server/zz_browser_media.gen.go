@@ -16,7 +16,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	PreviewURL string "json:\"preview_url,omitempty\""
  /*line zz_browser_media.gen.go:17:1*/}
 
- /*line browser_media.mygo:16:1*/func BrowserPostMedia(post storage.PostRecord, local []content.RichMedia, restricted bool, cached []storage.PrivateMediaCache, output PostOutput) Result[PostOutput, string] {
+ /*line browser_media.mygo:16:1*/func BrowserPostMedia(sanitizer content.Sanitizer, post storage.PostRecord, local []content.RichMedia, restricted bool, cached []storage.PrivateMediaCache, output PostOutput) Result[PostOutput, string] {
 	result := output
 	result.Attachments = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(local, func(item content.RichMedia) PostAttachmentOutput {
  /*line browser_media.mygo:19:115*/		var __mygo_expr_0 string
@@ -82,7 +82,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_browser_media.gen.go:82:1*/		}
 	})
  /*line browser_media.mygo:37:3*/	if restricted {
-		result.BodyHTML = content.RewritePrivateMedia(result.BodyHTML, references)
+		result.BodyHTML = content.RewritePrivateMedia(sanitizer, result.BodyHTML, references)
 	} else {
  /*line zz_browser_media.gen.go:87:1*/	}
  /*line browser_media.mygo:38:3*/	return Ok[PostOutput, string](result)

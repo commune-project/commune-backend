@@ -6,6 +6,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func FindHostedGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, addressed: Slice[String]) -> Result[Option[storage.CommunityRecord], String]
   var found: Option[storage.CommunityRecord] = None
@@ -32,7 +33,7 @@ end
 # in an Announce by that Group. The original Create bytes are embedded verbatim so
 # unknown properties and proofs survive forwarding. A blocked author or a
 # disallowed posting policy produces no announcement at all.
-func ApplyCreateSubmission(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[(), String]
+func ApplyCreateSubmission(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[(), String]
   let group = FindHostedGroup(ctx, db, site, addressed)
   if group.IsErr() then
     return Err(group.UnwrapErr())
@@ -64,7 +65,7 @@ func ApplyCreateSubmission(ctx: context.Context, db: Ref[gorm.DB], site: config.
     end
   end
   if activity.Embedded.IsSome() && (activity.Embedded.Unwrap().Type == "Page" || activity.Embedded.Unwrap().Type == "Note") then
-    let received = ReceiveRichActivity(ctx, db, site, activity, payload, community.ID)
+    let received = ReceiveRichActivity(sanitizer, ctx, db, site, activity, payload, community.ID)
     if received.IsErr() then return Err(received.UnwrapErr()) end
   end
   PublishGroupAnnouncement(ctx, db, site, community, payload)

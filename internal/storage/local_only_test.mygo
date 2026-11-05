@@ -5,6 +5,7 @@ import context "go:context"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -113,7 +114,8 @@ func TestPostgresLocalOnlyOperationWithoutArtifacts(t: Ref[testing.T]) -> ()
       false,
       "Topic",
       "Edited",
-      LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version
+      LoadObjectByID(ctx, db, topic.ID).Unwrap().Unwrap().Version,
+      content.DefaultSanitizer()
     ).Unwrap()
     let _ = posts.Delete(ctx, topic.ID, alice, false).Unwrap()
     let _ = communities.SetPolicy(ctx, community.ID, alice, false, read, post).Unwrap()

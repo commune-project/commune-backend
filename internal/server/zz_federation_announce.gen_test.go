@@ -41,43 +41,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	create := "{\"id\":\"https://peer.example/activities/create-1\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + community.ActorURI.String + "\",\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"https://peer.example/objects/1\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"extension\":{\"custom\":[1,2]},\"proof\":{\"type\":\"RsaSignature2017\",\"value\":\"abc\"}}}"
- /*line federation_announce_test.mygo:32:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", create, author, authorKey, date).Code != 202 {
+ /*line federation_announce_test.mygo:32:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", create, author, authorKey, date).Code != 202 {
  /*line federation_announce_test.mygo:33:5*/		t.Fatal("a valid community submission was rejected")
- /*line federation_announce_test.mygo:32:6*/	} else {
+ /*line federation_announce_test.mygo:32:3*/	} else {
  /*line zz_federation_announce.gen_test.go:47:1*/	}
  /*line federation_announce_test.mygo:13:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
- /*line federation_announce_test.mygo:37:6*/	if count != int64(1) {
+ /*line federation_announce_test.mygo:37:3*/	if count != int64(1) {
  /*line federation_announce_test.mygo:38:5*/		t.Fatal("an accepted submission was not announced by the Group")
- /*line federation_announce_test.mygo:37:6*/	} else {
+ /*line federation_announce_test.mygo:37:3*/	} else {
  /*line zz_federation_announce.gen_test.go:53:1*/	}
  /*line federation_announce_test.mygo:13:1*/	announceURI := ""
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Select("uri").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Limit(1).Scan(&announceURI)))
 	stored := MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](storage.LoadActivityPayload(ctx, db, announceURI))).Payload
 	text := string(stored)
- /*line federation_announce_test.mygo:44:6*/	if !strings.Contains(text, "\"extension\":{\"custom\":[1,2]}") || !strings.Contains(text, "\"proof\":{\"type\":\"RsaSignature2017\",\"value\":\"abc\"}") {
+ /*line federation_announce_test.mygo:44:3*/	if !strings.Contains(text, "\"extension\":{\"custom\":[1,2]}") || !strings.Contains(text, "\"proof\":{\"type\":\"RsaSignature2017\",\"value\":\"abc\"}") {
  /*line federation_announce_test.mygo:45:5*/		t.Fatalf("unknown properties or proofs were not preserved verbatim: %s", text)
- /*line federation_announce_test.mygo:44:6*/	} else {
+ /*line federation_announce_test.mygo:44:3*/	} else {
  /*line zz_federation_announce.gen_test.go:61:1*/	}
  /*line federation_announce_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", subscriber).Count(&count)))
- /*line federation_announce_test.mygo:48:6*/	if count != int64(1) {
+ /*line federation_announce_test.mygo:48:3*/	if count != int64(1) {
  /*line federation_announce_test.mygo:49:5*/		t.Fatal("the announcement was not fanned out to the subscriber")
- /*line federation_announce_test.mygo:48:6*/	} else {
+ /*line federation_announce_test.mygo:48:3*/	} else {
  /*line zz_federation_announce.gen_test.go:66:1*/	}
  /*line federation_announce_test.mygo:13:1*/	duplicate := "{\"id\":\"https://peer.example/activities/dup\",\"id\":\"https://peer.example/activities/dup2\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/objects/2\"}"
 	duplicateResult := signedPost(handler, a.Origin, "/users/alice/inbox", duplicate, author, authorKey, date)
- /*line federation_announce_test.mygo:53:6*/	if duplicateResult.Code != 400 || !strings.Contains(duplicateResult.Body.String(), "ambiguous") {
+ /*line federation_announce_test.mygo:53:3*/	if duplicateResult.Code != 400 || !strings.Contains(duplicateResult.Body.String(), "ambiguous") {
  /*line federation_announce_test.mygo:54:5*/		t.Fatalf("a duplicate-key payload was accepted: %d %s", duplicateResult.Code, duplicateResult.Body.String())
- /*line federation_announce_test.mygo:53:6*/	} else {
+ /*line federation_announce_test.mygo:53:3*/	} else {
  /*line zz_federation_announce.gen_test.go:72:1*/	}
  /*line federation_announce_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", a.ID, author)))
 	blocked := "{\"id\":\"https://peer.example/activities/create-2\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"to\":[\"" + community.ActorURI.String + "\",\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"https://peer.example/objects/3\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\"}}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", blocked, author, authorKey, date)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
- /*line federation_announce_test.mygo:60:6*/	if count != int64(1) {
+ /*line federation_announce_test.mygo:60:3*/	if count != int64(1) {
  /*line federation_announce_test.mygo:61:5*/		t.Fatal("a blocked submission was still announced")
 		return
- /*line federation_announce_test.mygo:60:6*/	} else {
- /*line federation_announce_test.mygo:60:3*/		return
+ /*line federation_announce_test.mygo:60:3*/	} else {
+		return
  /*line zz_federation_announce.gen_test.go:82:1*/	}
 }

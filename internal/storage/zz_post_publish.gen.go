@@ -45,7 +45,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_publish.mygo:54:14*/		return Err[PostRecord, string]("forbidden")
  /*line post_publish.mygo:53:5*/	} else {
  /*line zz_post_publish.gen.go:47:1*/	}
- /*line post_publish.mygo:23:1*/	plain := content.PlainRichText(body, format)
+ /*line post_publish.mygo:23:1*/	plain := content.PlainRichText(site.Sanitizer, body, format)
  /*line post_publish.mygo:57:5*/	if MygoIN6ResultM5IsErr[string, string](plain) {
  /*line post_publish.mygo:58:14*/		return Err[PostRecord, string]("invalid post input")
  /*line post_publish.mygo:57:5*/	} else {
@@ -137,7 +137,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_publish.mygo:158:18*/			return Err[struct{}, string]("post creation failed")
  /*line post_publish.mygo:157:9*/		} else {
  /*line zz_post_publish.gen.go:139:1*/		}
- /*line post_publish.mygo:64:7*/		rich := ValidatePostContentTx(ctx, tx, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
+ /*line post_publish.mygo:64:7*/		rich := ValidatePostContentTx(ctx, tx, site.Sanitizer, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
  /*line post_publish.mygo:161:9*/		if MygoIN6ResultM5IsErr[struct{}, string](rich) {
  /*line post_publish.mygo:162:18*/			return rich
  /*line post_publish.mygo:161:9*/		} else {

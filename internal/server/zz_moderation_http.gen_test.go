@@ -9,6 +9,7 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "net/http"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
@@ -20,7 +21,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_moderation_http.gen_test.go:23:1*/	}
+ /*line zz_moderation_http.gen_test.go:24:1*/	}
  /*line moderation_http_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
@@ -36,8 +37,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	private := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, author, "private", "Private", "federated", "members", "members"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body"}))
-	privatePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, author, false, storage.PublishInput{Title: "Private", Body: "private"}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Reported", Body: "body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	privatePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, author, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	authorCookies := login(handler, site.Origin, "author", "author-password")
 	authorCSRF := csrfOf(authorCookies)
@@ -48,41 +49,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 	adminCookies := login(handler, site.Origin, "admin", "administrator-password")
 	adminCSRF := csrfOf(adminCookies)
 	reportPayload := "{\"target_kind\":\"post\",\"target_id\":\"" + post.ID + "\",\"community_id\":\"" + community.ID + "\",\"reason\":\"spam\"}"
- /*line moderation_http_test.mygo:39:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Source: site.Origin}).Code != 401 {
+ /*line moderation_http_test.mygo:39:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin}).Code != 401 {
  /*line moderation_http_test.mygo:40:5*/		t.Fatal("anonymous report was accepted")
- /*line moderation_http_test.mygo:39:6*/	} else {
- /*line zz_moderation_http.gen_test.go:54:1*/	}
- /*line moderation_http_test.mygo:42:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, Source: site.Origin}).Code != 403 {
+ /*line moderation_http_test.mygo:39:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:55:1*/	}
+ /*line moderation_http_test.mygo:42:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: "", Source: site.Origin}).Code != 403 {
  /*line moderation_http_test.mygo:43:5*/		t.Fatal("report without CSRF was accepted")
- /*line moderation_http_test.mygo:42:6*/	} else {
- /*line zz_moderation_http.gen_test.go:58:1*/	}
- /*line moderation_http_test.mygo:45:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"missing\",\"reason\":\"spam\"}", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 404 {
+ /*line moderation_http_test.mygo:42:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:59:1*/	}
+ /*line moderation_http_test.mygo:45:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"missing\",\"reason\":\"spam\"}", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 404 {
  /*line moderation_http_test.mygo:46:5*/		t.Fatal("report of missing post was accepted")
- /*line moderation_http_test.mygo:45:6*/	} else {
- /*line zz_moderation_http.gen_test.go:62:1*/	}
- /*line moderation_http_test.mygo:48:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"" + privatePost.ID + "\",\"reason\":\"spam\"}", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 404 {
+ /*line moderation_http_test.mygo:45:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:63:1*/	}
+ /*line moderation_http_test.mygo:48:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"" + privatePost.ID + "\",\"reason\":\"spam\"}", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 404 {
  /*line moderation_http_test.mygo:49:5*/		t.Fatal("report of unreadable post was accepted")
- /*line moderation_http_test.mygo:48:6*/	} else {
- /*line zz_moderation_http.gen_test.go:66:1*/	}
+ /*line moderation_http_test.mygo:48:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:67:1*/	}
  /*line moderation_http_test.mygo:11:1*/	selfReport := "{\"target_kind\":\"post\",\"target_id\":\"" + post.ID + "\",\"reason\":\"self\"}"
- /*line moderation_http_test.mygo:52:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: selfReport, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 400 {
+ /*line moderation_http_test.mygo:52:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: selfReport, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 400 {
  /*line moderation_http_test.mygo:53:5*/		t.Fatal("self report was accepted")
- /*line moderation_http_test.mygo:52:6*/	} else {
- /*line zz_moderation_http.gen_test.go:71:1*/	}
+ /*line moderation_http_test.mygo:52:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:72:1*/	}
  /*line moderation_http_test.mygo:11:1*/	created := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin})
- /*line moderation_http_test.mygo:56:6*/	if created.Code != 201 {
+ /*line moderation_http_test.mygo:56:3*/	if created.Code != 201 {
  /*line moderation_http_test.mygo:57:5*/		t.Fatalf("report creation returned %d: %s", created.Code, created.Body.String())
- /*line moderation_http_test.mygo:56:6*/	} else {
- /*line zz_moderation_http.gen_test.go:76:1*/	}
- /*line moderation_http_test.mygo:59:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 200 {
+ /*line moderation_http_test.mygo:56:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:77:1*/	}
+ /*line moderation_http_test.mygo:59:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: reportPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 200 {
  /*line moderation_http_test.mygo:60:5*/		t.Fatal("duplicate open report was not idempotent")
- /*line moderation_http_test.mygo:59:6*/	} else {
- /*line zz_moderation_http.gen_test.go:80:1*/	}
- /*line moderation_http_test.mygo:62:6*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/reports", Cookies: reporterCookies}).Code != 403 {
+ /*line moderation_http_test.mygo:59:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:81:1*/	}
+ /*line moderation_http_test.mygo:62:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/reports", Payload: "", Cookies: reporterCookies, CSRF: "", Source: ""}).Code != 403 {
  /*line moderation_http_test.mygo:63:5*/		t.Fatal("ordinary reader listed reports")
- /*line moderation_http_test.mygo:62:6*/	} else {
- /*line zz_moderation_http.gen_test.go:84:1*/	}
- /*line moderation_http_test.mygo:11:1*/	reports := ReportPage{}
+ /*line moderation_http_test.mygo:62:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:85:1*/	}
+ /*line moderation_http_test.mygo:11:1*/	reports := Zero[ReportPage]()
 	reportsResponse := browserGet(t, handler, site.Origin, "/api/v1/reports?state=open&community_id="+community.ID, authorCookies, 200)
  /*line moderation_http_test.mygo:67:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(reportsResponse.Body.Bytes(), &reports)
@@ -90,25 +91,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_moderation_http.gen_test.go:93:1*/		}{})
+ /*line zz_moderation_http.gen_test.go:94:1*/		}{})
 	}
  /*line moderation_http_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line moderation_http_test.mygo:68:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reports.Items) != 1 {
+ /*line moderation_http_test.mygo:68:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reports.Items) != 1 {
  /*line moderation_http_test.mygo:69:5*/		t.Fatal("manager report listing was incorrect")
- /*line moderation_http_test.mygo:68:6*/	} else {
- /*line zz_moderation_http.gen_test.go:99:1*/	}
+ /*line moderation_http_test.mygo:68:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:100:1*/	}
  /*line moderation_http_test.mygo:11:1*/	reportID := MygoIN6OptionM6Unwrap[storage.ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports.Items, 0)).ID
 	resolvePath := "/api/v1/reports/" + MygoIT8ToStringFN5Int64GN5Int64EM8ToString(reportID) + "/resolve"
 	resolve := forumCall{Method: "POST", Origin: site.Origin, Path: resolvePath, Payload: "{\"state\":\"resolved\",\"note\":\"handled\"}", Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}
- /*line moderation_http_test.mygo:74:6*/	if doForum(handler, resolve).Code != 204 || doForum(handler, resolve).Code != 204 {
+ /*line moderation_http_test.mygo:74:3*/	if doForum(handler, resolve).Code != 204 || doForum(handler, resolve).Code != 204 {
  /*line moderation_http_test.mygo:75:5*/		t.Fatal("report resolution was not idempotent")
- /*line moderation_http_test.mygo:74:6*/	} else {
- /*line zz_moderation_http.gen_test.go:106:1*/	}
- /*line moderation_http_test.mygo:77:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: resolvePath, Payload: "{\"state\":\"rejected\",\"note\":\"changed\"}", Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 409 {
+ /*line moderation_http_test.mygo:74:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:107:1*/	}
+ /*line moderation_http_test.mygo:77:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: resolvePath, Payload: "{\"state\":\"rejected\",\"note\":\"changed\"}", Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 409 {
  /*line moderation_http_test.mygo:78:5*/		t.Fatal("conflicting report resolution did not return 409")
- /*line moderation_http_test.mygo:77:6*/	} else {
- /*line zz_moderation_http.gen_test.go:110:1*/	}
- /*line moderation_http_test.mygo:11:1*/	modlog := ModlogPage{}
+ /*line moderation_http_test.mygo:77:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:111:1*/	}
+ /*line moderation_http_test.mygo:11:1*/	modlog := Zero[ModlogPage]()
 	modlogResponse := browserGet(t, handler, site.Origin, "/api/v1/modlog?community_id="+community.ID, authorCookies, 200)
  /*line moderation_http_test.mygo:82:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(modlogResponse.Body.Bytes(), &modlog)
@@ -116,50 +117,50 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_moderation_http.gen_test.go:119:1*/		}{})
+ /*line zz_moderation_http.gen_test.go:120:1*/		}{})
 	}
  /*line moderation_http_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line moderation_http_test.mygo:83:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(modlog.Items) == 0 || MygoIN6OptionM6Unwrap[storage.ModerationLogRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(modlog.Items, 0)).Action != "resolve-report" {
+ /*line moderation_http_test.mygo:83:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(modlog.Items) == 0 || MygoIN6OptionM6Unwrap[storage.ModerationLogRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(modlog.Items, 0)).Action != "resolve-report" {
  /*line moderation_http_test.mygo:84:5*/		t.Fatal("report resolution did not appear in the modlog")
- /*line moderation_http_test.mygo:83:6*/	} else {
- /*line zz_moderation_http.gen_test.go:125:1*/	}
+ /*line moderation_http_test.mygo:83:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:126:1*/	}
  /*line moderation_http_test.mygo:11:1*/	banPath := "/api/v1/communities/" + community.ID + "/bans"
 	banPayload := "{\"actor\":\"" + target.ActorURI + "\",\"reason\":\"abuse\"}"
- /*line moderation_http_test.mygo:88:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_http_test.mygo:88:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 {
  /*line moderation_http_test.mygo:90:5*/		t.Fatal("community ban was not idempotent")
- /*line moderation_http_test.mygo:88:6*/	} else {
- /*line zz_moderation_http.gen_test.go:131:1*/	}
- /*line moderation_http_test.mygo:11:1*/	bannedPost := storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, storage.PublishInput{Title: "Banned", Body: "banned"})
- /*line moderation_http_test.mygo:93:6*/	if MygoIN6ResultM4IsOk[storage.PostRecord, string](bannedPost) {
+ /*line moderation_http_test.mygo:88:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:132:1*/	}
+ /*line moderation_http_test.mygo:11:1*/	bannedPost := storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, target, false, storage.PublishInput{Title: "Banned", Body: "banned", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}})
+ /*line moderation_http_test.mygo:93:3*/	if MygoIN6ResultM4IsOk[storage.PostRecord, string](bannedPost) {
  /*line moderation_http_test.mygo:94:5*/		t.Fatal("community-banned account could publish")
- /*line moderation_http_test.mygo:93:6*/	} else {
- /*line zz_moderation_http.gen_test.go:136:1*/	}
- /*line moderation_http_test.mygo:96:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID + "/vote", Payload: "{\"score\":1}", Cookies: targetCookies, CSRF: targetCSRF, Source: site.Origin}).Code != 403 {
+ /*line moderation_http_test.mygo:93:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:137:1*/	}
+ /*line moderation_http_test.mygo:96:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"score\":1}", Cookies: targetCookies, CSRF: targetCSRF, Source: site.Origin}).Code != 403 {
  /*line moderation_http_test.mygo:97:5*/		t.Fatal("community-banned account could vote")
- /*line moderation_http_test.mygo:96:6*/	} else {
- /*line zz_moderation_http.gen_test.go:140:1*/	}
- /*line moderation_http_test.mygo:99:6*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_http_test.mygo:96:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:141:1*/	}
+ /*line moderation_http_test.mygo:99:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: authorCookies, CSRF: authorCSRF, Source: site.Origin}).Code != 204 {
  /*line moderation_http_test.mygo:100:5*/		t.Fatal("community unban failed")
- /*line moderation_http_test.mygo:99:6*/	} else {
- /*line zz_moderation_http.gen_test.go:144:1*/	}
+ /*line moderation_http_test.mygo:99:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:145:1*/	}
  /*line moderation_http_test.mygo:11:1*/	siteBanPath := "/api/v1/admin/bans"
 	siteBanPayload := "{\"actor\":\"" + target.ActorURI + "\",\"reason\":\"site abuse\"}"
- /*line moderation_http_test.mygo:104:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 403 {
+ /*line moderation_http_test.mygo:104:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin}).Code != 403 {
  /*line moderation_http_test.mygo:105:5*/		t.Fatal("ordinary account created a site ban")
- /*line moderation_http_test.mygo:104:6*/	} else {
- /*line zz_moderation_http.gen_test.go:150:1*/	}
- /*line moderation_http_test.mygo:107:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_http_test.mygo:104:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:151:1*/	}
+ /*line moderation_http_test.mygo:107:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
  /*line moderation_http_test.mygo:108:5*/		t.Fatal("site administrator ban failed")
- /*line moderation_http_test.mygo:107:6*/	} else {
- /*line zz_moderation_http.gen_test.go:154:1*/	}
- /*line moderation_http_test.mygo:110:6*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/auth/session", Cookies: targetCookies}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Source: site.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"target\",\"password\":\"target-password\"}"}).Code != 401 {
+ /*line moderation_http_test.mygo:107:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:155:1*/	}
+ /*line moderation_http_test.mygo:110:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: targetCookies, CSRF: "", Source: ""}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"target\",\"password\":\"target-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin}).Code != 401 {
  /*line moderation_http_test.mygo:112:5*/		t.Fatal("site ban did not revoke session or block login")
- /*line moderation_http_test.mygo:110:6*/	} else {
- /*line zz_moderation_http.gen_test.go:158:1*/	}
- /*line moderation_http_test.mygo:114:6*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Source: site.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"target\",\"password\":\"target-password\"}"}).Code != 200 {
+ /*line moderation_http_test.mygo:110:3*/	} else {
+ /*line zz_moderation_http.gen_test.go:159:1*/	}
+ /*line moderation_http_test.mygo:114:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: siteBanPath, Payload: siteBanPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"target\",\"password\":\"target-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin}).Code != 200 {
  /*line moderation_http_test.mygo:116:5*/		t.Fatal("site unban did not restore login")
 		return
- /*line moderation_http_test.mygo:114:6*/	} else {
- /*line moderation_http_test.mygo:114:3*/		return
- /*line zz_moderation_http.gen_test.go:164:1*/	}
+ /*line moderation_http_test.mygo:114:3*/	} else {
+		return
+ /*line zz_moderation_http.gen_test.go:165:1*/	}
 }

@@ -9,6 +9,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -60,7 +61,8 @@ func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
       DeletedAt: Zero[sql.NullTime](),
       Version: 0i64,
     },
-    remoteAuthor
+    remoteAuthor,
+    content.DefaultSanitizer()
   ).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "bob", "bob-password")
@@ -178,7 +180,7 @@ func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
     "eligible_users",
     "eligible_users"
   ).Unwrap()
-  let localPost = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(
+  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(
     ctx,
     site,
     localCommunity.ID,

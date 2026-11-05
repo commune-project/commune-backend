@@ -13,9 +13,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_rich_mentions.mygo:12:1*/func ReconcileRichMentions(ctx context.Context, tx *gorm.DB, site config.Site, post storage.PostRecord, tags []federation.RichMention, addressed []string) Result[struct {
 }, string] {
 	loaded := storage.LoadCommunityByID(ctx, tx, post.CommunityID)
- /*line federation_rich_mentions.mygo:14:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
+ /*line federation_rich_mentions.mygo:14:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
  /*line federation_rich_mentions.mygo:14:61*/		return Err[struct{}, string]("community unavailable")
- /*line federation_rich_mentions.mygo:14:6*/	} else {
+ /*line federation_rich_mentions.mygo:14:3*/	} else {
  /*line zz_federation_rich_mentions.gen.go:19:1*/	}
  /*line federation_rich_mentions.mygo:12:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
 	var eligible []string = []string{}
@@ -60,29 +60,29 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_rich_mentions.gen.go:60:1*/		}
  /*line federation_rich_mentions.mygo:12:1*/		eligible = MygoIN5SliceM6Append(eligible, tag.Href)
  /*line zz_federation_rich_mentions.gen.go:62:1*/	}
- /*line federation_rich_mentions.mygo:34:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(eligible) == 0 {
+ /*line federation_rich_mentions.mygo:34:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(eligible) == 0 {
 		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))) {
  /*line federation_rich_mentions.mygo:35:137*/			return Err[struct{}, string]("mentions unavailable")
- /*line federation_rich_mentions.mygo:34:6*/		} else {
+ /*line federation_rich_mentions.mygo:34:3*/		} else {
  /*line zz_federation_rich_mentions.gen.go:67:1*/		}
- /*line federation_rich_mentions.mygo:34:6*/	} else {
+ /*line federation_rich_mentions.mygo:34:3*/	} else {
 		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active AND actor_uri NOT IN ?", post.ID, eligible))) {
  /*line federation_rich_mentions.mygo:37:170*/			return Err[struct{}, string]("mentions unavailable")
- /*line federation_rich_mentions.mygo:34:6*/		} else {
+ /*line federation_rich_mentions.mygo:34:3*/		} else {
  /*line zz_federation_rich_mentions.gen.go:72:1*/		}
 	}
  /*line federation_rich_mentions.mygo:12:1*/	var failure string = ""
  /*line federation_rich_mentions.mygo:40:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(eligible, func(uri string) {
- /*line federation_rich_mentions.mygo:41:8*/		if failure == "" && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) WHERE active DO NOTHING", rand.Text(), post.ID, uri))) {
+ /*line federation_rich_mentions.mygo:41:5*/		if failure == "" && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) WHERE active DO NOTHING", rand.Text(), post.ID, uri))) {
 			failure = "mentions unavailable"
 			return
 		} else {
- /*line federation_rich_mentions.mygo:41:5*/			return
+			return
  /*line zz_federation_rich_mentions.gen.go:81:1*/		}
 	})
- /*line federation_rich_mentions.mygo:45:6*/	if failure != "" {
+ /*line federation_rich_mentions.mygo:45:3*/	if failure != "" {
  /*line federation_rich_mentions.mygo:45:32*/		return Err[struct{}, string](failure)
- /*line federation_rich_mentions.mygo:45:6*/	} else {
+ /*line federation_rich_mentions.mygo:45:3*/	} else {
  /*line zz_federation_rich_mentions.gen.go:86:1*/	}
  /*line federation_rich_mentions.mygo:46:3*/	return Ok[struct{}, string](struct {
  /*line zz_federation_rich_mentions.gen.go:88:1*/	}{})

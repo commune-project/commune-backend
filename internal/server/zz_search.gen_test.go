@@ -10,21 +10,22 @@ import "strings"
 import "context"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line search_test.mygo:15:1*/func TestPostgresSearchRoute(t *testing.T) {
- /*line search_test.mygo:16:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line search_test.mygo:16:1*/func TestPostgresSearchRoute(t *testing.T) {
+ /*line search_test.mygo:17:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_search.gen_test.go:26:1*/	}
- /*line search_test.mygo:15:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_search.gen_test.go:27:1*/	}
+ /*line search_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")))
@@ -32,68 +33,68 @@ import . "github.com/mygo-lang/mygo/prelude"
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	handler := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
- /*line search_test.mygo:23:17*/		var parts []string = []string{"api", "v1", "search"}
+ /*line search_test.mygo:24:17*/		var parts []string = []string{"api", "v1", "search"}
 		SearchRoute(settings, db, site, w, request, parts)
 		return
- /*line zz_search.gen_test.go:38:1*/	})
- /*line search_test.mygo:15:1*/	var invalid []string = []string{"", "?q=x", "?kind=wrong&q=x", "?kind=posts", "?kind=posts&q=x&limit=0", "?kind=posts&q=x&offset=-1", "?kind=posts&q=" + strings.Repeat("x", 201)}
- /*line search_test.mygo:28:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(query string) {
- /*line search_test.mygo:28:16*/		response := httptest.NewRecorder()
- /*line search_test.mygo:30:5*/		handler.ServeHTTP(http.ResponseWriter(response), httptest.NewRequest("GET", "/api/v1/search"+query, io.Reader(strings.NewReader(""))))
- /*line search_test.mygo:31:8*/		if response.Code != 400 || response.Header().Get("Cache-Control") != "no-store" {
- /*line search_test.mygo:32:7*/			t.Fatal("invalid search request accepted")
+ /*line zz_search.gen_test.go:39:1*/	})
+ /*line search_test.mygo:16:1*/	var invalid []string = []string{"", "?q=x", "?kind=wrong&q=x", "?kind=posts", "?kind=posts&q=x&limit=0", "?kind=posts&q=x&offset=-1", "?kind=posts&q=" + strings.Repeat("x", 201)}
+ /*line search_test.mygo:37:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(query string) {
+ /*line search_test.mygo:37:16*/		response := httptest.NewRecorder()
+ /*line search_test.mygo:39:5*/		handler.ServeHTTP(http.ResponseWriter(response), httptest.NewRequest("GET", "/api/v1/search"+query, io.Reader(strings.NewReader(""))))
+ /*line search_test.mygo:43:5*/		if response.Code != 400 || response.Header().Get("Cache-Control") != "no-store" {
+ /*line search_test.mygo:44:7*/			t.Fatal("invalid search request accepted")
 			return
- /*line search_test.mygo:31:8*/		} else {
- /*line search_test.mygo:31:5*/			return
- /*line zz_search.gen_test.go:48:1*/		}
-	})
- /*line search_test.mygo:15:1*/	var kinds []string = []string{"posts", "communities"}
- /*line search_test.mygo:36:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(kinds, func(kind string) {
- /*line search_test.mygo:36:14*/		response_1 := httptest.NewRecorder()
- /*line search_test.mygo:38:5*/		handler.ServeHTTP(http.ResponseWriter(response_1), httptest.NewRequest("GET", "/api/v1/search?kind="+kind+"&q=absent&offset=100", io.Reader(strings.NewReader(""))))
- /*line search_test.mygo:39:8*/		if response_1.Code != 200 || !strings.Contains(response_1.Body.String(), "\"items\":[]") {
- /*line search_test.mygo:40:7*/			t.Fatalf("empty page failed: %s", response_1.Body.String())
+ /*line search_test.mygo:43:5*/		} else {
 			return
- /*line search_test.mygo:39:8*/		} else {
- /*line search_test.mygo:39:5*/			return
- /*line zz_search.gen_test.go:59:1*/		}
+ /*line zz_search.gen_test.go:49:1*/		}
 	})
- /*line search_test.mygo:15:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+ /*line search_test.mygo:16:1*/	var kinds []string = []string{"posts", "communities"}
+ /*line search_test.mygo:48:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(kinds, func(kind string) {
+ /*line search_test.mygo:48:14*/		response_1 := httptest.NewRecorder()
+ /*line search_test.mygo:50:5*/		handler.ServeHTTP(http.ResponseWriter(response_1), httptest.NewRequest("GET", "/api/v1/search?kind="+kind+"&q=absent&offset=100", io.Reader(strings.NewReader(""))))
+ /*line search_test.mygo:58:5*/		if response_1.Code != 200 || !strings.Contains(response_1.Body.String(), "\"items\":[]") {
+ /*line search_test.mygo:59:7*/			t.Fatalf("empty page failed: %s", response_1.Body.String())
+			return
+ /*line search_test.mygo:58:5*/		} else {
+			return
+ /*line zz_search.gen_test.go:60:1*/		}
+	})
+ /*line search_test.mygo:16:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", community.ID, alice.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts", site.ID)))
 	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, auth.Identity{}))
-	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 1}, 50))
-	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 20}, 50))
+	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
+	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 1, Offset: 0}, 50))
+	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 20, Offset: 0}, 50))
 	probeOne := transport.NewQueryProbe(db)
 	probeTwenty := transport.NewQueryProbe(db)
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
- /*line search_test.mygo:55:6*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(3) {
- /*line search_test.mygo:56:5*/		t.Fatal("search enrichment queries grew with page size")
- /*line search_test.mygo:55:6*/	} else {
- /*line zz_search.gen_test.go:76:1*/	}
- /*line search_test.mygo:58:3*/	t.Logf("search enrichment queries one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
- /*line search_test.mygo:15:1*/	enriched := httptest.NewRecorder()
- /*line search_test.mygo:60:3*/	handler.ServeHTTP(http.ResponseWriter(enriched), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=Topic&limit=1", io.Reader(strings.NewReader(""))))
- /*line search_test.mygo:61:6*/	if enriched.Code != 200 || !strings.Contains(enriched.Body.String(), "\"like_count\":0") || !strings.Contains(enriched.Body.String(), "\"permissions\":") {
- /*line search_test.mygo:62:5*/		t.Fatalf("search DTO enrichment failed: %s", enriched.Body.String())
- /*line search_test.mygo:61:6*/	} else {
- /*line zz_search.gen_test.go:83:1*/	}
- /*line search_test.mygo:15:1*/	method := httptest.NewRecorder()
- /*line search_test.mygo:65:3*/	handler.ServeHTTP(http.ResponseWriter(method), httptest.NewRequest("POST", "/api/v1/search", io.Reader(strings.NewReader(""))))
- /*line search_test.mygo:66:6*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
- /*line search_test.mygo:67:5*/		t.Fatal("search method validation failed")
- /*line search_test.mygo:66:6*/	} else {
- /*line zz_search.gen_test.go:89:1*/	}
- /*line search_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE site_posts CASCADE")))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
+	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
+ /*line search_test.mygo:102:3*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(3) {
+ /*line search_test.mygo:103:5*/		t.Fatal("search enrichment queries grew with page size")
+ /*line search_test.mygo:102:3*/	} else {
+ /*line zz_search.gen_test.go:77:1*/	}
+ /*line search_test.mygo:105:3*/	t.Logf("search enrichment queries one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
+ /*line search_test.mygo:16:1*/	enriched := httptest.NewRecorder()
+ /*line search_test.mygo:107:3*/	handler.ServeHTTP(http.ResponseWriter(enriched), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=Topic&limit=1", io.Reader(strings.NewReader(""))))
+ /*line search_test.mygo:115:3*/	if enriched.Code != 200 || !strings.Contains(enriched.Body.String(), "\"like_count\":0") || !strings.Contains(enriched.Body.String(), "\"permissions\":") {
+ /*line search_test.mygo:118:5*/		t.Fatalf("search DTO enrichment failed: %s", enriched.Body.String())
+ /*line search_test.mygo:115:3*/	} else {
+ /*line zz_search.gen_test.go:84:1*/	}
+ /*line search_test.mygo:16:1*/	method := httptest.NewRecorder()
+ /*line search_test.mygo:121:3*/	handler.ServeHTTP(http.ResponseWriter(method), httptest.NewRequest("POST", "/api/v1/search", io.Reader(strings.NewReader(""))))
+ /*line search_test.mygo:125:3*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
+ /*line search_test.mygo:126:5*/		t.Fatal("search method validation failed")
+ /*line search_test.mygo:125:3*/	} else {
+ /*line zz_search.gen_test.go:90:1*/	}
+ /*line search_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE site_posts CASCADE")))
 	unavailable := httptest.NewRecorder()
- /*line search_test.mygo:71:3*/	handler.ServeHTTP(http.ResponseWriter(unavailable), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=x", io.Reader(strings.NewReader(""))))
- /*line search_test.mygo:72:6*/	if unavailable.Code != 503 {
- /*line search_test.mygo:73:5*/		t.Fatalf("storage failure became %d", unavailable.Code)
+ /*line search_test.mygo:130:3*/	handler.ServeHTTP(http.ResponseWriter(unavailable), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=x", io.Reader(strings.NewReader(""))))
+ /*line search_test.mygo:134:3*/	if unavailable.Code != 503 {
+ /*line search_test.mygo:135:5*/		t.Fatalf("storage failure became %d", unavailable.Code)
 		return
- /*line search_test.mygo:72:6*/	} else {
- /*line search_test.mygo:72:3*/		return
- /*line zz_search.gen_test.go:98:1*/	}
+ /*line search_test.mygo:134:3*/	} else {
+		return
+ /*line zz_search.gen_test.go:99:1*/	}
 }

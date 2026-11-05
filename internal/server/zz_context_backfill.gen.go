@@ -44,93 +44,93 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_backfill.gen.go:44:1*/}
 
  /*line context_backfill.mygo:35:1*/func ContextBackfillRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, contextID string) {
- /*line context_backfill.mygo:43:6*/	if request.Method != "POST" {
+ /*line context_backfill.mygo:43:3*/	if request.Method != "POST" {
  /*line context_backfill.mygo:44:5*/		MethodNotAllowed(w, "POST")
- /*line context_backfill.mygo:43:6*/		return
+ /*line context_backfill.mygo:43:3*/		return
 	} else {
  /*line zz_context_backfill.gen.go:51:1*/	}
  /*line context_backfill.mygo:35:1*/	actor := RequireMutation(settings, db, site, request)
- /*line context_backfill.mygo:48:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
+ /*line context_backfill.mygo:48:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
  /*line context_backfill.mygo:49:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](actor))
- /*line context_backfill.mygo:48:6*/		return
+ /*line context_backfill.mygo:48:3*/		return
 	} else {
  /*line zz_context_backfill.gen.go:57:1*/	}
  /*line context_backfill.mygo:35:1*/	result := BackfillDiscussion(request.Context(), settings, db, site, contextID, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), false, FetchBackfillPayload)
- /*line context_backfill.mygo:62:6*/	if MygoIN6ResultM5IsErr[BackfillResult, string](result) {
+ /*line context_backfill.mygo:62:3*/	if MygoIN6ResultM5IsErr[BackfillResult, string](result) {
  /*line context_backfill.mygo:63:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[BackfillResult, string](result))
 		return
- /*line context_backfill.mygo:62:6*/	} else {
+ /*line context_backfill.mygo:62:3*/	} else {
  /*line context_backfill.mygo:65:5*/		WriteJSON(w, 200, MygoIN6ResultM6Unwrap[BackfillResult, string](result))
 		return
  /*line zz_context_backfill.gen.go:65:1*/	}
 }
  /*line context_backfill.mygo:69:1*/func FetchBackfillPayload(ctx context.Context, settings config.Config, uri string) Result[[]byte, string] {
 	fetched := federation.Fetch(ctx, uri, FetchLimitsFrom(settings))
- /*line context_backfill.mygo:75:6*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) {
+ /*line context_backfill.mygo:75:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) {
  /*line context_backfill.mygo:76:12*/		return Err[[]byte, string](MygoIN6ResultM9UnwrapErr[federation.FetchResult, string](fetched))
- /*line context_backfill.mygo:75:6*/	} else {
+ /*line context_backfill.mygo:75:3*/	} else {
  /*line zz_context_backfill.gen.go:72:1*/	}
  /*line context_backfill.mygo:69:1*/	response := MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched)
- /*line context_backfill.mygo:79:6*/	if response.Status != 200 || !federation.WantsActivityJSON(response.ContentType) {
+ /*line context_backfill.mygo:79:3*/	if response.Status != 200 || !federation.WantsActivityJSON(response.ContentType) {
  /*line context_backfill.mygo:80:12*/		return Err[[]byte, string]("resource unavailable")
- /*line context_backfill.mygo:79:6*/	} else {
+ /*line context_backfill.mygo:79:3*/	} else {
  /*line zz_context_backfill.gen.go:77:1*/	}
  /*line context_backfill.mygo:82:3*/	return Ok[[]byte, string](response.Body)
  /*line zz_context_backfill.gen.go:79:1*/}
  /*line context_backfill.mygo:85:1*/func ResolveBackfillCommunity(ctx context.Context, db *gorm.DB, siteID string, authority string) Result[string, string] {
 	hosted := storage.LoadHostedCommunityByActor(ctx, db, siteID, authority)
- /*line context_backfill.mygo:92:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](hosted) {
+ /*line context_backfill.mygo:92:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](hosted) {
  /*line context_backfill.mygo:93:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[Option[storage.CommunityRecord], string](hosted))
- /*line context_backfill.mygo:92:6*/	} else {
+ /*line context_backfill.mygo:92:3*/	} else {
  /*line zz_context_backfill.gen.go:85:1*/	}
- /*line context_backfill.mygo:95:6*/	if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)) {
+ /*line context_backfill.mygo:95:3*/	if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)) {
  /*line context_backfill.mygo:96:12*/		return Ok[string, string](MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)).ID)
- /*line context_backfill.mygo:95:6*/	} else {
+ /*line context_backfill.mygo:95:3*/	} else {
  /*line zz_context_backfill.gen.go:89:1*/	}
  /*line context_backfill.mygo:85:1*/	replica := storage.LoadReplicaCommunity(ctx, db, authority)
- /*line context_backfill.mygo:99:6*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](replica) || MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
+ /*line context_backfill.mygo:99:3*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](replica) || MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
  /*line context_backfill.mygo:100:12*/		return Err[string, string]("not found")
- /*line context_backfill.mygo:99:6*/	} else {
+ /*line context_backfill.mygo:99:3*/	} else {
  /*line zz_context_backfill.gen.go:94:1*/	}
  /*line context_backfill.mygo:102:3*/	return Ok[string, string](MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)).ID)
  /*line zz_context_backfill.gen.go:96:1*/}
  /*line context_backfill.mygo:105:1*/func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, communityID string, contextID string, authority string, collectionURI string, objectURI string, fetcher func(context.Context, config.Config, string) Result[[]byte, string]) Result[int, string] {
 	existing := storage.LoadObjectByURI(ctx, db, objectURI)
- /*line context_backfill.mygo:118:6*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](existing) {
+ /*line context_backfill.mygo:118:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](existing) {
  /*line context_backfill.mygo:119:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](existing))
- /*line context_backfill.mygo:118:6*/	} else {
+ /*line context_backfill.mygo:118:3*/	} else {
  /*line zz_context_backfill.gen.go:102:1*/	}
- /*line context_backfill.mygo:121:6*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) && MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)).DeletedAt.Valid {
+ /*line context_backfill.mygo:121:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) && MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)).DeletedAt.Valid {
  /*line context_backfill.mygo:122:12*/		return Ok[int, string](2)
- /*line context_backfill.mygo:121:6*/	} else {
+ /*line context_backfill.mygo:121:3*/	} else {
  /*line zz_context_backfill.gen.go:106:1*/	}
  /*line context_backfill.mygo:105:1*/	payload := fetcher(ctx, settings, objectURI)
- /*line context_backfill.mygo:125:6*/	if MygoIN6ResultM5IsErr[[]byte, string](payload) {
+ /*line context_backfill.mygo:125:3*/	if MygoIN6ResultM5IsErr[[]byte, string](payload) {
  /*line context_backfill.mygo:126:12*/		return Ok[int, string](2)
- /*line context_backfill.mygo:125:6*/	} else {
+ /*line context_backfill.mygo:125:3*/	} else {
  /*line zz_context_backfill.gen.go:111:1*/	}
- /*line context_backfill.mygo:105:1*/	parsedRich := federation.ParseRichObject(MygoIN6ResultM6Unwrap[[]byte, string](payload))
- /*line context_backfill.mygo:129:6*/	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsedRich) {
+ /*line context_backfill.mygo:105:1*/	parsedRich := federation.ParseRichObject(settings.Rendering.Sanitizer, MygoIN6ResultM6Unwrap[[]byte, string](payload))
+ /*line context_backfill.mygo:129:3*/	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsedRich) {
  /*line context_backfill.mygo:129:37*/		return Ok[int, string](2)
- /*line context_backfill.mygo:129:6*/	} else {
+ /*line context_backfill.mygo:129:3*/	} else {
  /*line zz_context_backfill.gen.go:116:1*/	}
  /*line context_backfill.mygo:105:1*/	object := MygoIN6ResultM6Unwrap[federation.RichObject, string](parsedRich)
- /*line context_backfill.mygo:132:5*/	if object.ID != objectURI || object.Type != "Page" && object.Type != "Note" || object.AttributedTo == "" || object.Published.IsZero() {
+ /*line context_backfill.mygo:131:3*/	if object.ID != objectURI || object.Type != "Page" && object.Type != "Note" || object.AttributedTo == "" || object.Published.IsZero() {
  /*line context_backfill.mygo:136:12*/		return Ok[int, string](2)
- /*line context_backfill.mygo:132:5*/	} else {
+ /*line context_backfill.mygo:131:3*/	} else {
  /*line zz_context_backfill.gen.go:121:1*/	}
- /*line context_backfill.mygo:105:1*/	parent := sql.NullString{}
- /*line context_backfill.mygo:139:6*/	if object.InReplyTo != "" {
+ /*line context_backfill.mygo:105:1*/	parent := Zero[sql.NullString]()
+ /*line context_backfill.mygo:139:3*/	if object.InReplyTo != "" {
 		parentRecord := storage.LoadObjectByURI(ctx, db, object.InReplyTo)
- /*line context_backfill.mygo:141:8*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](parentRecord) {
+ /*line context_backfill.mygo:141:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](parentRecord) {
  /*line context_backfill.mygo:142:14*/			return Err[int, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](parentRecord))
- /*line context_backfill.mygo:141:8*/		} else {
+ /*line context_backfill.mygo:141:5*/		} else {
  /*line zz_context_backfill.gen.go:128:1*/		}
- /*line context_backfill.mygo:144:8*/		if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)) || MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).CommunityID != communityID {
+ /*line context_backfill.mygo:144:5*/		if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)) || MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).CommunityID != communityID {
  /*line context_backfill.mygo:145:14*/			return Ok[int, string](2)
- /*line context_backfill.mygo:144:8*/		} else {
+ /*line context_backfill.mygo:144:5*/		} else {
  /*line zz_context_backfill.gen.go:132:1*/		}
- /*line context_backfill.mygo:139:6*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).ID, Valid: true}
+ /*line context_backfill.mygo:139:3*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).ID, Valid: true}
 	} else {
  /*line zz_context_backfill.gen.go:135:1*/	}
  /*line context_backfill.mygo:105:1*/	var __mygo_expr_0 time.Time
@@ -140,14 +140,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = object.Updated
  /*line zz_context_backfill.gen.go:141:1*/	}
  /*line context_backfill.mygo:105:1*/	updated := __mygo_expr_0
- /*line context_backfill.mygo:154:6*/	if updated.Before(object.Published) {
+ /*line context_backfill.mygo:154:3*/	if updated.Before(object.Published) {
  /*line context_backfill.mygo:155:12*/		return Ok[int, string](2)
- /*line context_backfill.mygo:154:6*/	} else {
+ /*line context_backfill.mygo:154:3*/	} else {
  /*line zz_context_backfill.gen.go:146:1*/	}
  /*line context_backfill.mygo:105:1*/	insertedActor := storage.EnsureRemoteActor(ctx, db, object.AttributedTo, "Person")
- /*line context_backfill.mygo:158:6*/	if MygoIN6ResultM5IsErr[struct{}, string](insertedActor) {
+ /*line context_backfill.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, string](insertedActor) {
  /*line context_backfill.mygo:159:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[struct{}, string](insertedActor))
- /*line context_backfill.mygo:158:6*/	} else {
+ /*line context_backfill.mygo:158:3*/	} else {
  /*line zz_context_backfill.gen.go:151:1*/	}
  /*line context_backfill.mygo:105:1*/	title := sql.NullString{String: object.Name, Valid: object.Name != ""}
  /*line context_backfill.mygo:162:18*/	var __mygo_expr_2 Result[[]byte, error]
@@ -158,99 +158,99 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_2 = Ok[[]byte, error](__mygo_expr_3)
  /*line zz_context_backfill.gen.go:159:1*/	}
  /*line context_backfill.mygo:105:1*/	metadata := __mygo_expr_2
- /*line context_backfill.mygo:163:6*/	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
+ /*line context_backfill.mygo:163:3*/	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
  /*line context_backfill.mygo:163:35*/		return Err[int, string]("invalid rich metadata")
- /*line context_backfill.mygo:163:6*/	} else {
+ /*line context_backfill.mygo:163:3*/	} else {
  /*line zz_context_backfill.gen.go:164:1*/	}
- /*line context_backfill.mygo:172:23*/	var __mygo_expr_4 string
+ /*line context_backfill.mygo:173:20*/	var __mygo_expr_4 string
 	if object.MediaType == "text/plain" {
 		__mygo_expr_4 = "legacy"
 	} else {
 		__mygo_expr_4 = "html"
  /*line zz_context_backfill.gen.go:170:1*/	}
- /*line context_backfill.mygo:105:1*/	incoming := storage.PostRecord{ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: title, Body: object.Content, ContentFormat: __mygo_expr_4, RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: updated}
-	received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, incoming, object.AttributedTo)
- /*line context_backfill.mygo:183:6*/	if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
- /*line context_backfill.mygo:184:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
- /*line context_backfill.mygo:183:6*/	} else {
+ /*line context_backfill.mygo:105:1*/	incoming := storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: title, Body: object.Content, ContentFormat: __mygo_expr_4, SearchText: "", RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: updated, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
+	received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, incoming, object.AttributedTo, settings.Rendering.Sanitizer)
+ /*line context_backfill.mygo:188:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
+ /*line context_backfill.mygo:189:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
+ /*line context_backfill.mygo:188:3*/	} else {
  /*line zz_context_backfill.gen.go:176:1*/	}
  /*line context_backfill.mygo:105:1*/	included := storage.RecordCanonicalContextInclusion(ctx, db, MygoIN6ResultM6Unwrap[storage.PostRecord, string](received).ID, contextID, authority, collectionURI)
- /*line context_backfill.mygo:194:6*/	if MygoIN6ResultM5IsErr[int64, string](included) {
- /*line context_backfill.mygo:195:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[int64, string](included))
- /*line context_backfill.mygo:194:6*/	} else {
+ /*line context_backfill.mygo:199:3*/	if MygoIN6ResultM5IsErr[int64, string](included) {
+ /*line context_backfill.mygo:200:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[int64, string](included))
+ /*line context_backfill.mygo:199:3*/	} else {
  /*line zz_context_backfill.gen.go:181:1*/	}
- /*line context_backfill.mygo:197:6*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) {
- /*line context_backfill.mygo:198:12*/		return Ok[int, string](1)
- /*line context_backfill.mygo:197:6*/	} else {
+ /*line context_backfill.mygo:202:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) {
+ /*line context_backfill.mygo:203:12*/		return Ok[int, string](1)
+ /*line context_backfill.mygo:202:3*/	} else {
  /*line zz_context_backfill.gen.go:185:1*/	}
- /*line context_backfill.mygo:200:3*/	return Ok[int, string](0)
+ /*line context_backfill.mygo:205:3*/	return Ok[int, string](0)
  /*line zz_context_backfill.gen.go:187:1*/}
- /*line context_backfill.mygo:206:1*/func BackfillDiscussion(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, contextID string, identity auth.Identity, remoteVerified bool, fetcher func(context.Context, config.Config, string) Result[[]byte, string]) Result[BackfillResult, string] {
+ /*line context_backfill.mygo:211:1*/func BackfillDiscussion(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, contextID string, identity auth.Identity, remoteVerified bool, fetcher func(context.Context, config.Config, string) Result[[]byte, string]) Result[BackfillResult, string] {
 	loaded := storage.LoadDiscussionContext(ctx, db, contextID)
- /*line context_backfill.mygo:217:6*/	if MygoIN6ResultM5IsErr[Option[storage.DiscussionContextRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded)) {
- /*line context_backfill.mygo:218:12*/		return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:217:6*/	} else {
+ /*line context_backfill.mygo:222:3*/	if MygoIN6ResultM5IsErr[Option[storage.DiscussionContextRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded)) {
+ /*line context_backfill.mygo:223:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:222:3*/	} else {
  /*line zz_context_backfill.gen.go:193:1*/	}
- /*line context_backfill.mygo:206:1*/	existingContext := MygoIN6OptionM6Unwrap[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded))
- /*line context_backfill.mygo:221:6*/	if !existingContext.ContextURI.Valid || existingContext.ContextURI.String == "" {
- /*line context_backfill.mygo:222:12*/		return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:221:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	existingContext := MygoIN6OptionM6Unwrap[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded))
+ /*line context_backfill.mygo:226:3*/	if !existingContext.ContextURI.Valid || existingContext.ContextURI.String == "" {
+ /*line context_backfill.mygo:227:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:226:3*/	} else {
  /*line zz_context_backfill.gen.go:198:1*/	}
- /*line context_backfill.mygo:224:6*/	if existingContext.CommunityID.Valid {
+ /*line context_backfill.mygo:229:3*/	if existingContext.CommunityID.Valid {
 		existingCommunity := storage.LoadCommunityByID(ctx, db, existingContext.CommunityID.String)
- /*line context_backfill.mygo:226:8*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](existingCommunity) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity))) {
- /*line context_backfill.mygo:229:14*/			return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:226:8*/		} else {
+ /*line context_backfill.mygo:231:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](existingCommunity) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity))) {
+ /*line context_backfill.mygo:234:14*/			return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:231:5*/		} else {
  /*line zz_context_backfill.gen.go:204:1*/		}
- /*line context_backfill.mygo:224:6*/		allowed := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, existingContext.CommunityID.String, identity, remoteVerified)
+ /*line context_backfill.mygo:229:3*/		allowed := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, existingContext.CommunityID.String, identity, remoteVerified)
 		if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line context_backfill.mygo:238:14*/			return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:224:6*/		} else {
+ /*line context_backfill.mygo:243:14*/			return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:229:3*/		} else {
  /*line zz_context_backfill.gen.go:209:1*/		}
- /*line context_backfill.mygo:224:6*/	} else {
+ /*line context_backfill.mygo:229:3*/	} else {
  /*line zz_context_backfill.gen.go:211:1*/	}
- /*line context_backfill.mygo:206:1*/	rootURI := existingContext.ContextURI.String
+ /*line context_backfill.mygo:211:1*/	rootURI := existingContext.ContextURI.String
 	rootPayload := fetcher(ctx, settings, rootURI)
- /*line context_backfill.mygo:243:6*/	if MygoIN6ResultM5IsErr[[]byte, string](rootPayload) {
- /*line context_backfill.mygo:244:12*/		return Err[BackfillResult, string]("context unavailable")
- /*line context_backfill.mygo:243:6*/	} else {
+ /*line context_backfill.mygo:248:3*/	if MygoIN6ResultM5IsErr[[]byte, string](rootPayload) {
+ /*line context_backfill.mygo:249:12*/		return Err[BackfillResult, string]("context unavailable")
+ /*line context_backfill.mygo:248:3*/	} else {
  /*line zz_context_backfill.gen.go:217:1*/	}
- /*line context_backfill.mygo:206:1*/	rootBytes := MygoIN6ResultM6Unwrap[[]byte, string](rootPayload)
+ /*line context_backfill.mygo:211:1*/	rootBytes := MygoIN6ResultM6Unwrap[[]byte, string](rootPayload)
 	authority := federation.ContextAuthorityURI(rootBytes)
- /*line context_backfill.mygo:248:6*/	if authority == "" {
- /*line context_backfill.mygo:249:12*/		return Err[BackfillResult, string]("context authority unavailable")
- /*line context_backfill.mygo:248:6*/	} else {
+ /*line context_backfill.mygo:253:3*/	if authority == "" {
+ /*line context_backfill.mygo:254:12*/		return Err[BackfillResult, string]("context authority unavailable")
+ /*line context_backfill.mygo:253:3*/	} else {
  /*line zz_context_backfill.gen.go:223:1*/	}
- /*line context_backfill.mygo:206:1*/	communityID := ResolveBackfillCommunity(ctx, db, site.ID, authority)
- /*line context_backfill.mygo:252:6*/	if MygoIN6ResultM5IsErr[string, string](communityID) {
- /*line context_backfill.mygo:253:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[string, string](communityID))
- /*line context_backfill.mygo:252:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	communityID := ResolveBackfillCommunity(ctx, db, site.ID, authority)
+ /*line context_backfill.mygo:257:3*/	if MygoIN6ResultM5IsErr[string, string](communityID) {
+ /*line context_backfill.mygo:258:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[string, string](communityID))
+ /*line context_backfill.mygo:257:3*/	} else {
  /*line zz_context_backfill.gen.go:228:1*/	}
- /*line context_backfill.mygo:255:6*/	if existingContext.CommunityID.Valid && existingContext.CommunityID.String != MygoIN6ResultM6Unwrap[string, string](communityID) {
- /*line context_backfill.mygo:257:12*/		return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:255:6*/	} else {
+ /*line context_backfill.mygo:260:3*/	if existingContext.CommunityID.Valid && existingContext.CommunityID.String != MygoIN6ResultM6Unwrap[string, string](communityID) {
+ /*line context_backfill.mygo:262:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:260:3*/	} else {
  /*line zz_context_backfill.gen.go:232:1*/	}
- /*line context_backfill.mygo:206:1*/	community := storage.LoadCommunityByID(ctx, db, MygoIN6ResultM6Unwrap[string, string](communityID))
- /*line context_backfill.mygo:260:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))) {
- /*line context_backfill.mygo:263:12*/		return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:260:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	community := storage.LoadCommunityByID(ctx, db, MygoIN6ResultM6Unwrap[string, string](communityID))
+ /*line context_backfill.mygo:265:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))) {
+ /*line context_backfill.mygo:268:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:265:3*/	} else {
  /*line zz_context_backfill.gen.go:237:1*/	}
- /*line context_backfill.mygo:206:1*/	allowed_1 := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, MygoIN6ResultM6Unwrap[string, string](communityID), identity, remoteVerified)
- /*line context_backfill.mygo:271:6*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed_1) {
- /*line context_backfill.mygo:272:12*/		return Err[BackfillResult, string]("not found")
- /*line context_backfill.mygo:271:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	allowed_1 := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, MygoIN6ResultM6Unwrap[string, string](communityID), identity, remoteVerified)
+ /*line context_backfill.mygo:276:3*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed_1) {
+ /*line context_backfill.mygo:277:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:276:3*/	} else {
  /*line zz_context_backfill.gen.go:242:1*/	}
- /*line context_backfill.mygo:206:1*/	authorityActor := storage.EnsureRemoteActor(ctx, db, authority, "Group")
- /*line context_backfill.mygo:275:6*/	if MygoIN6ResultM5IsErr[struct{}, string](authorityActor) {
- /*line context_backfill.mygo:276:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](authorityActor))
- /*line context_backfill.mygo:275:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	authorityActor := storage.EnsureRemoteActor(ctx, db, authority, "Group")
+ /*line context_backfill.mygo:280:3*/	if MygoIN6ResultM5IsErr[struct{}, string](authorityActor) {
+ /*line context_backfill.mygo:281:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](authorityActor))
+ /*line context_backfill.mygo:280:3*/	} else {
  /*line zz_context_backfill.gen.go:247:1*/	}
- /*line context_backfill.mygo:206:1*/	resolved := storage.ResolveDiscussionContext(ctx, db, contextID, MygoIN6ResultM6Unwrap[string, string](communityID), authority, rootURI)
- /*line context_backfill.mygo:286:6*/	if MygoIN6ResultM5IsErr[struct{}, string](resolved) {
- /*line context_backfill.mygo:287:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](resolved))
- /*line context_backfill.mygo:286:6*/	} else {
+ /*line context_backfill.mygo:211:1*/	resolved := storage.ResolveDiscussionContext(ctx, db, contextID, MygoIN6ResultM6Unwrap[string, string](communityID), authority, rootURI)
+ /*line context_backfill.mygo:291:3*/	if MygoIN6ResultM5IsErr[struct{}, string](resolved) {
+ /*line context_backfill.mygo:292:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](resolved))
+ /*line context_backfill.mygo:291:3*/	} else {
  /*line zz_context_backfill.gen.go:252:1*/	}
- /*line context_backfill.mygo:206:1*/	var pending []string = []string{rootURI}
+ /*line context_backfill.mygo:211:1*/	var pending []string = []string{rootURI}
 	var seen []string = []string{}
 	cursor := 0
 	pages := 0
@@ -258,73 +258,73 @@ import . "github.com/mygo-lang/mygo/prelude"
 	imported := 0
 	updatedCount := 0
 	failure := ""
- /*line context_backfill.mygo:297:9*/	for cursor < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(pending) && pages < maxBackfillPages && examined < maxBackfillItems {
- /*line context_backfill.mygo:206:1*/		pageURI := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(pending, cursor))
+ /*line context_backfill.mygo:302:9*/	for cursor < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(pending) && pages < maxBackfillPages && examined < maxBackfillItems {
+ /*line context_backfill.mygo:211:1*/		pageURI := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(pending, cursor))
 		cursor = cursor + 1
 		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, pageURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:267:1*/		}
- /*line context_backfill.mygo:206:1*/		var __mygo_expr_0 Result[[]byte, string]
+ /*line context_backfill.mygo:211:1*/		var __mygo_expr_0 Result[[]byte, string]
 		if pageURI == rootURI {
 			__mygo_expr_0 = Ok[[]byte, string](rootBytes)
 		} else {
 			__mygo_expr_0 = fetcher(ctx, settings, pageURI)
  /*line zz_context_backfill.gen.go:273:1*/		}
- /*line context_backfill.mygo:206:1*/		pageBytes := __mygo_expr_0
+ /*line context_backfill.mygo:211:1*/		pageBytes := __mygo_expr_0
 		if MygoIN6ResultM5IsErr[[]byte, string](pageBytes) {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:278:1*/		}
- /*line context_backfill.mygo:206:1*/		parsed := federation.ParseCollectionTraversal(MygoIN6ResultM6Unwrap[[]byte, string](pageBytes))
+ /*line context_backfill.mygo:211:1*/		parsed := federation.ParseCollectionTraversal(MygoIN6ResultM6Unwrap[[]byte, string](pageBytes))
 		if MygoIN6ResultM5IsErr[federation.CollectionTraversal, string](parsed) {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:283:1*/		}
- /*line context_backfill.mygo:206:1*/		traversal := MygoIN6ResultM6Unwrap[federation.CollectionTraversal, string](parsed)
+ /*line context_backfill.mygo:211:1*/		traversal := MygoIN6ResultM6Unwrap[federation.CollectionTraversal, string](parsed)
 		if traversal.ID != "" && traversal.ID != pageURI {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:288:1*/		}
- /*line context_backfill.mygo:206:1*/		seen = MygoIN5SliceM6Append(seen, pageURI)
+ /*line context_backfill.mygo:211:1*/		seen = MygoIN5SliceM6Append(seen, pageURI)
 		pages = pages + 1
 		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(traversal.Items) == 0 && traversal.First != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, traversal.First, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			pending = MygoIN5SliceM6Append(pending, traversal.First)
 		} else {
  /*line zz_context_backfill.gen.go:294:1*/		}
- /*line context_backfill.mygo:324:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(traversal.Items, func(itemURI string) {
- /*line context_backfill.mygo:325:10*/			if failure == "" && examined < maxBackfillItems && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, itemURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line context_backfill.mygo:329:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(traversal.Items, func(itemURI string) {
+ /*line context_backfill.mygo:330:7*/			if failure == "" && examined < maxBackfillItems && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, itemURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
 				seen = MygoIN5SliceM6Append(seen, itemURI)
 				examined = examined + 1
 				result := ImportBackfilledObject(ctx, settings, db, site, MygoIN6ResultM6Unwrap[string, string](communityID), contextID, authority, rootURI, itemURI, fetcher)
- /*line context_backfill.mygo:340:12*/				if MygoIN6ResultM5IsErr[int, string](result) {
+ /*line context_backfill.mygo:345:9*/				if MygoIN6ResultM5IsErr[int, string](result) {
 					failure = MygoIN6ResultM9UnwrapErr[int, string](result)
 					return
 				} else {
- /*line context_backfill.mygo:343:14*/					if MygoIN6ResultM6Unwrap[int, string](result) == 0 {
+ /*line context_backfill.mygo:348:11*/					if MygoIN6ResultM6Unwrap[int, string](result) == 0 {
 						imported = imported + 1
 						return
 					} else {
- /*line context_backfill.mygo:346:16*/						if MygoIN6ResultM6Unwrap[int, string](result) == 1 {
+ /*line context_backfill.mygo:351:13*/						if MygoIN6ResultM6Unwrap[int, string](result) == 1 {
 							updatedCount = updatedCount + 1
 							return
 						} else {
- /*line context_backfill.mygo:346:13*/							return
+ /*line context_backfill.mygo:351:13*/							return
  /*line zz_context_backfill.gen.go:313:1*/						}
 					}
 				}
- /*line context_backfill.mygo:325:10*/			} else {
- /*line context_backfill.mygo:325:7*/				return
+ /*line context_backfill.mygo:330:7*/			} else {
+				return
  /*line zz_context_backfill.gen.go:318:1*/			}
 		})
- /*line context_backfill.mygo:206:1*/		if failure != "" {
- /*line context_backfill.mygo:354:14*/			return Err[BackfillResult, string](failure)
- /*line context_backfill.mygo:206:1*/		} else {
+ /*line context_backfill.mygo:211:1*/		if failure != "" {
+ /*line context_backfill.mygo:359:14*/			return Err[BackfillResult, string](failure)
+ /*line context_backfill.mygo:211:1*/		} else {
  /*line zz_context_backfill.gen.go:323:1*/		}
- /*line context_backfill.mygo:206:1*/		if traversal.Next != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, traversal.Next, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line context_backfill.mygo:211:1*/		if traversal.Next != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, traversal.Next, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			pending = MygoIN5SliceM6Append(pending, traversal.Next)
 		} else {
  /*line zz_context_backfill.gen.go:327:1*/		}
 	}
- /*line context_backfill.mygo:360:3*/	return Ok[BackfillResult, string](BackfillResult{Examined: examined, Imported: imported, Updated: updatedCount, Pages: pages})
+ /*line context_backfill.mygo:365:3*/	return Ok[BackfillResult, string](BackfillResult{Examined: examined, Imported: imported, Updated: updatedCount, Pages: pages})
  /*line zz_context_backfill.gen.go:330:1*/}

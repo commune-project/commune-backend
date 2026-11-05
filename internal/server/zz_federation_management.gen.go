@@ -17,82 +17,82 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_management.mygo:18:1*/func ApplyGroupManagement(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte) Result[struct {
 }, string] {
- /*line federation_management.mygo:19:6*/	if activity.Type != "Add" && activity.Type != "Remove" {
+ /*line federation_management.mygo:19:3*/	if activity.Type != "Add" && activity.Type != "Remove" {
  /*line federation_management.mygo:20:12*/		return Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:22:1*/		}{})
- /*line federation_management.mygo:19:6*/	} else {
+ /*line federation_management.mygo:19:3*/	} else {
  /*line zz_federation_management.gen.go:24:1*/	}
- /*line federation_management.mygo:22:6*/	if activity.Target == "" || activity.ObjectURI == "" {
+ /*line federation_management.mygo:22:3*/	if activity.Target == "" || activity.ObjectURI == "" {
  /*line federation_management.mygo:23:12*/		return Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:27:1*/		}{})
- /*line federation_management.mygo:22:6*/	} else {
+ /*line federation_management.mygo:22:3*/	} else {
  /*line zz_federation_management.gen.go:29:1*/	}
  /*line federation_management.mygo:18:1*/	found := storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.Target)
- /*line federation_management.mygo:26:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) {
+ /*line federation_management.mygo:26:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) {
  /*line federation_management.mygo:27:12*/		return Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:33:1*/		}{})
- /*line federation_management.mygo:26:6*/	} else {
+ /*line federation_management.mygo:26:3*/	} else {
  /*line zz_federation_management.gen.go:35:1*/	}
  /*line federation_management.mygo:18:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
- /*line federation_management.mygo:32:6*/	if activity.Type == "Remove" {
+ /*line federation_management.mygo:32:3*/	if activity.Type == "Remove" {
 		post := storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
 		if MygoIN6ResultM4IsOk[Option[storage.PostRecord], string](post) && MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)) {
 			record := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post))
 			if record.CommunityID == community.ID && activity.Actor == community.ActorURI.String {
 				removed := storage.RecordScopedRemoval(ctx, db, record.ID, community.ID, community.ActorURI.String, activity.ID)
- /*line federation_management.mygo:38:12*/				if MygoIN6ResultM5IsErr[int64, string](removed) {
+ /*line federation_management.mygo:38:9*/				if MygoIN6ResultM5IsErr[int64, string](removed) {
  /*line federation_management.mygo:39:18*/					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int64, string](removed))
- /*line federation_management.mygo:38:12*/				} else {
+ /*line federation_management.mygo:38:9*/				} else {
  /*line zz_federation_management.gen.go:46:1*/				}
  /*line federation_management.mygo:41:16*/				return PublishGroupAnnouncement(ctx, db, site, community, payload)
- /*line federation_management.mygo:32:6*/			} else {
+ /*line federation_management.mygo:32:3*/			} else {
  /*line zz_federation_management.gen.go:49:1*/			}
- /*line federation_management.mygo:32:6*/		} else {
+ /*line federation_management.mygo:32:3*/		} else {
  /*line zz_federation_management.gen.go:51:1*/		}
- /*line federation_management.mygo:32:6*/	} else {
+ /*line federation_management.mygo:32:3*/	} else {
  /*line zz_federation_management.gen.go:53:1*/	}
  /*line federation_management.mygo:18:1*/	repository := storage.CommunityRepository{DB: db, SiteID: site.ID}
-	identity := auth.Identity{ActorURI: activity.Actor}
+	identity := auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: activity.Actor, Username: ""}
 	access := storage.MygoIN19CommunityRepositoryM6Access(repository, ctx, community, identity, true)
- /*line federation_management.mygo:48:6*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
+ /*line federation_management.mygo:48:3*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
  /*line federation_management.mygo:49:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.CommunityAccess, string](access))
- /*line federation_management.mygo:48:6*/	} else {
+ /*line federation_management.mygo:48:3*/	} else {
  /*line zz_federation_management.gen.go:60:1*/	}
- /*line federation_management.mygo:51:6*/	if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access).Authority, "manage-community") {
+ /*line federation_management.mygo:51:3*/	if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access).Authority, "manage-community") {
  /*line federation_management.mygo:52:12*/		return Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:63:1*/		}{})
- /*line federation_management.mygo:51:6*/	} else {
+ /*line federation_management.mygo:51:3*/	} else {
  /*line zz_federation_management.gen.go:65:1*/	}
  /*line federation_management.mygo:18:1*/	role := "member"
-	extension := GroupRoleExtension{}
+	roleExtension := Zero[GroupRoleExtension]()
  /*line federation_management.mygo:56:6*/	var __mygo_expr_1 Result[struct{}, error]
-	__mygo_expr_0 := json.Unmarshal(payload, &extension)
+	__mygo_expr_0 := json.Unmarshal(payload, &roleExtension)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_federation_management.gen.go:74:1*/		}{})
 	}
- /*line federation_management.mygo:56:6*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) && extension.Role != "" {
-		role = extension.Role
+ /*line federation_management.mygo:56:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) && roleExtension.Role != "" {
+		role = roleExtension.Role
 	} else {
  /*line zz_federation_management.gen.go:79:1*/	}
- /*line federation_management.mygo:59:6*/	if role != "member" && role != "manager" {
+ /*line federation_management.mygo:59:3*/	if role != "member" && role != "manager" {
  /*line federation_management.mygo:60:12*/		return Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:82:1*/		}{})
- /*line federation_management.mygo:59:6*/	} else {
+ /*line federation_management.mygo:59:3*/	} else {
  /*line zz_federation_management.gen.go:84:1*/	}
  /*line federation_management.mygo:18:1*/	assigned := activity.Type == "Add"
 	var outcome Result[struct{}, string] = Ok[struct{}, string](struct {
  /*line zz_federation_management.gen.go:87:1*/	}{})
- /*line federation_management.mygo:64:6*/	if role == "manager" {
+ /*line federation_management.mygo:64:3*/	if role == "manager" {
 		outcome = storage.MygoIN19CommunityRepositoryM10SetManager(repository, ctx, community.ID, identity, true, activity.ObjectURI, assigned)
 	} else {
 		outcome = storage.MygoIN19CommunityRepositoryM9SetMember(repository, ctx, community.ID, identity, true, activity.ObjectURI, assigned)
  /*line zz_federation_management.gen.go:92:1*/	}
- /*line federation_management.mygo:69:6*/	if MygoIN6ResultM5IsErr[struct{}, string](outcome) {
+ /*line federation_management.mygo:69:3*/	if MygoIN6ResultM5IsErr[struct{}, string](outcome) {
  /*line federation_management.mygo:70:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](outcome))
- /*line federation_management.mygo:69:6*/	} else {
+ /*line federation_management.mygo:69:3*/	} else {
  /*line zz_federation_management.gen.go:96:1*/	}
  /*line federation_management.mygo:72:3*/	return PublishGroupAnnouncement(ctx, db, site, community, payload)
  /*line zz_federation_management.gen.go:98:1*/}

@@ -8,6 +8,7 @@ import strings "go:strings"
 import context "go:context"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
+import content "github.com/commune-project/commune-backend/internal/content"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
@@ -85,12 +86,14 @@ func TestPostgresSearchRoute(t: Ref[testing.T]) -> ()
   let probeOne = transport.NewQueryProbe(db)
   let probeTwenty = transport.NewQueryProbe(db)
   let _ = BrowserPosts(
+    content.DefaultSanitizer(),
     ctx,
     storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID},
     viewer,
     one
   ).Unwrap()
   let _ = BrowserPosts(
+    content.DefaultSanitizer(),
     ctx,
     storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID},
     viewer,

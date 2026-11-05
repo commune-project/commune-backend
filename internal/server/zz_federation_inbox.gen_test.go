@@ -65,76 +65,76 @@ import . "github.com/mygo-lang/mygo/prelude"
 	activityURI := "https://peer.example/activities/1"
 	body := "{\"id\":\"" + activityURI + "\",\"actor\":\"" + peerURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\",\"" + carol.ActorURI + "\"]}"
 	first := signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, date)
- /*line federation_inbox_test.mygo:57:6*/	if first.Code != 202 || !strings.Contains(first.Body.String(), "\"receipts\":1") {
+ /*line federation_inbox_test.mygo:57:3*/	if first.Code != 202 || !strings.Contains(first.Body.String(), "\"receipts\":1") {
  /*line federation_inbox_test.mygo:58:5*/		t.Fatalf("signed activity was not accepted: %d %s", first.Code, first.Body.String())
- /*line federation_inbox_test.mygo:57:6*/	} else {
+ /*line federation_inbox_test.mygo:57:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:71:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	replay := signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, date)
- /*line federation_inbox_test.mygo:61:6*/	if replay.Code != 202 || !strings.Contains(replay.Body.String(), "\"receipts\":0") {
+ /*line federation_inbox_test.mygo:61:3*/	if replay.Code != 202 || !strings.Contains(replay.Body.String(), "\"receipts\":0") {
  /*line federation_inbox_test.mygo:62:5*/		t.Fatal("duplicate activity created another receipt")
- /*line federation_inbox_test.mygo:61:6*/	} else {
+ /*line federation_inbox_test.mygo:61:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:76:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id='a'").Count(&count)))
- /*line federation_inbox_test.mygo:66:6*/	if count != int64(1) {
+ /*line federation_inbox_test.mygo:66:3*/	if count != int64(1) {
  /*line federation_inbox_test.mygo:67:5*/		t.Fatal("duplicate reception changed the receipt count")
- /*line federation_inbox_test.mygo:66:6*/	} else {
+ /*line federation_inbox_test.mygo:66:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:82:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	crossSite := signedPost(handler, b.Origin, "/inbox", body, peerURI, peerKey, date)
- /*line federation_inbox_test.mygo:70:6*/	if crossSite.Code != 202 || !strings.Contains(crossSite.Body.String(), "\"receipts\":1") {
+ /*line federation_inbox_test.mygo:70:3*/	if crossSite.Code != 202 || !strings.Contains(crossSite.Body.String(), "\"receipts\":1") {
  /*line federation_inbox_test.mygo:71:5*/		t.Fatalf("site B did not process its own eligible reception: %d %s", crossSite.Code, crossSite.Body.String())
- /*line federation_inbox_test.mygo:70:6*/	} else {
+ /*line federation_inbox_test.mygo:70:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:87:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	conflictingActor := "{\"id\":\"" + activityURI + "\",\"actor\":\"" + otherURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"]}"
- /*line federation_inbox_test.mygo:74:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingActor, otherURI, otherKey, date).Code != 409 {
+ /*line federation_inbox_test.mygo:74:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingActor, otherURI, otherKey, date).Code != 409 {
  /*line federation_inbox_test.mygo:75:5*/		t.Fatal("activity URI reuse by another actor was accepted")
- /*line federation_inbox_test.mygo:74:6*/	} else {
+ /*line federation_inbox_test.mygo:74:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:92:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	conflictingPayload := "{\"id\":\"" + activityURI + "\",\"actor\":\"" + peerURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{}}"
- /*line federation_inbox_test.mygo:78:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingPayload, peerURI, peerKey, date).Code != 409 {
+ /*line federation_inbox_test.mygo:78:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingPayload, peerURI, peerKey, date).Code != 409 {
  /*line federation_inbox_test.mygo:79:5*/		t.Fatal("conflicting payload reuse was accepted")
- /*line federation_inbox_test.mygo:78:6*/	} else {
+ /*line federation_inbox_test.mygo:78:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:97:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	stale := now.Add(time.Duration(0-2) * time.Hour).Format(http.TimeFormat)
- /*line federation_inbox_test.mygo:82:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, stale).Code != 401 {
+ /*line federation_inbox_test.mygo:82:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, stale).Code != 401 {
  /*line federation_inbox_test.mygo:83:5*/		t.Fatal("stale signed activity was accepted")
- /*line federation_inbox_test.mygo:82:6*/	} else {
+ /*line federation_inbox_test.mygo:82:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:102:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	wrongSigner := signedPost(handler, a.Origin, "/users/alice/inbox", body, otherURI, otherKey, date)
- /*line federation_inbox_test.mygo:86:6*/	if wrongSigner.Code != 401 {
+ /*line federation_inbox_test.mygo:86:3*/	if wrongSigner.Code != 401 {
  /*line federation_inbox_test.mygo:87:5*/		t.Fatal("activity signed by an unrelated key was accepted")
- /*line federation_inbox_test.mygo:86:6*/	} else {
+ /*line federation_inbox_test.mygo:86:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:107:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	unsigned := httptest.NewRequest("POST", a.Origin+"/users/alice/inbox", io.Reader(strings.NewReader(body)))
  /*line federation_inbox_test.mygo:90:3*/	unsigned.Header.Set("Content-Type", "application/activity+json")
  /*line federation_inbox_test.mygo:32:1*/	unsignedRecorder := httptest.NewRecorder()
  /*line federation_inbox_test.mygo:92:3*/	handler.ServeHTTP(http.ResponseWriter(unsignedRecorder), unsigned)
- /*line federation_inbox_test.mygo:93:6*/	if unsignedRecorder.Code != 401 {
+ /*line federation_inbox_test.mygo:93:3*/	if unsignedRecorder.Code != 401 {
  /*line federation_inbox_test.mygo:94:5*/		t.Fatal("unsigned activity was accepted")
- /*line federation_inbox_test.mygo:93:6*/	} else {
+ /*line federation_inbox_test.mygo:93:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:115:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
- /*line federation_inbox_test.mygo:97:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 2 {
+ /*line federation_inbox_test.mygo:97:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 2 {
  /*line federation_inbox_test.mygo:98:5*/		t.Fatalf("pending receipts were not claimed: %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed))
- /*line federation_inbox_test.mygo:97:6*/	} else {
+ /*line federation_inbox_test.mygo:97:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:120:1*/	}
- /*line federation_inbox_test.mygo:100:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))) != 0 {
+ /*line federation_inbox_test.mygo:100:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))) != 0 {
  /*line federation_inbox_test.mygo:101:5*/		t.Fatal("leased receipts were claimed twice")
- /*line federation_inbox_test.mygo:100:6*/	} else {
+ /*line federation_inbox_test.mygo:100:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:124:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE inbox_receipts SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
 	resumed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
- /*line federation_inbox_test.mygo:105:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resumed) != 2 {
+ /*line federation_inbox_test.mygo:105:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resumed) != 2 {
  /*line federation_inbox_test.mygo:106:5*/		t.Fatalf("expired leases were not reclaimed after restart: %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resumed))
- /*line federation_inbox_test.mygo:105:6*/	} else {
+ /*line federation_inbox_test.mygo:105:3*/	} else {
  /*line zz_federation_inbox.gen_test.go:130:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.SettleReceipt(ctx, db, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).ActivityURI, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).SiteID, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).RecipientActorURI, "accepted"))
 	var settledCount int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("state='accepted'").Count(&settledCount)))
- /*line federation_inbox_test.mygo:111:6*/	if settledCount != int64(1) {
+ /*line federation_inbox_test.mygo:111:3*/	if settledCount != int64(1) {
  /*line federation_inbox_test.mygo:112:5*/		t.Fatal("settled receipt did not persist its final state")
 		return
- /*line federation_inbox_test.mygo:111:6*/	} else {
- /*line federation_inbox_test.mygo:111:3*/		return
+ /*line federation_inbox_test.mygo:111:3*/	} else {
+		return
  /*line zz_federation_inbox.gen_test.go:139:1*/	}
 }

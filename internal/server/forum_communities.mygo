@@ -369,7 +369,7 @@ func CommunityTopicRoute(
         if published.IsErr() then
           Fail(w, published.UnwrapErr())
         else
-          WriteBrowserPost(db, site, w, request, 201, identity, published.Unwrap())
+          WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, published.Unwrap())
         end
       end
     else

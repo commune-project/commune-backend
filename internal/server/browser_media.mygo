@@ -13,7 +13,7 @@ struct PostAttachmentOutput
   PreviewURL: String `json:"preview_url,omitempty"`
 end
 
-func BrowserPostMedia(post: storage.PostRecord, local: Slice[content.RichMedia], restricted: Bool, cached: Slice[storage.PrivateMediaCache], output: PostOutput) -> Result[PostOutput, String]
+func BrowserPostMedia(sanitizer: content.Sanitizer, post: storage.PostRecord, local: Slice[content.RichMedia], restricted: Bool, cached: Slice[storage.PrivateMediaCache], output: PostOutput) -> Result[PostOutput, String]
   var result = output
   result.Attachments = local.Map(func(item: content.RichMedia) -> PostAttachmentOutput
     PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, Name: "", PreviewURL: if item.MediaType == "image/png" || item.MediaType == "image/jpeg" || item.MediaType == "image/gif" then "/api/v1/media/" + item.BindingID + "/preview" else "" end}
@@ -34,6 +34,6 @@ func BrowserPostMedia(post: storage.PostRecord, local: Slice[content.RichMedia],
       result.Attachments = result.Attachments.Append(PostAttachmentOutput{URL: target, MediaType: item.MediaType, Name: item.Name, PreviewURL: preview})
     end
   end)
-  if restricted then result.BodyHTML = content.RewritePrivateMedia(result.BodyHTML, references) end
+  if restricted then result.BodyHTML = content.RewritePrivateMedia(sanitizer, result.BodyHTML, references) end
   Ok(result)
 end

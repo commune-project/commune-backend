@@ -16,49 +16,49 @@ import . "github.com/mygo-lang/mygo/prelude"
 	header := request.Header.Get("Signature")
 	date := request.Header.Get("Date")
 	parsed := federation.ParseSignatureHeader(header)
- /*line federation_protected.mygo:18:6*/	if MygoIN6ResultM5IsErr[federation.SignatureParameters, string](parsed) {
+ /*line federation_protected.mygo:18:3*/	if MygoIN6ResultM5IsErr[federation.SignatureParameters, string](parsed) {
  /*line federation_protected.mygo:19:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line federation_protected.mygo:18:6*/	} else {
+ /*line federation_protected.mygo:18:3*/	} else {
  /*line zz_federation_protected.gen.go:22:1*/	}
  /*line federation_protected.mygo:14:1*/	keyID := MygoIN6ResultM6Unwrap[federation.SignatureParameters, string](parsed).KeyID
 	actorURI := strings.TrimSuffix(keyID, "#main-key")
- /*line federation_protected.mygo:23:6*/	if !federation.KeyOwnedByActor(keyID, actorURI) {
+ /*line federation_protected.mygo:23:3*/	if !federation.KeyOwnedByActor(keyID, actorURI) {
  /*line federation_protected.mygo:24:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line federation_protected.mygo:23:6*/	} else {
+ /*line federation_protected.mygo:23:3*/	} else {
  /*line zz_federation_protected.gen.go:28:1*/	}
  /*line federation_protected.mygo:14:1*/	actor := storage.LoadActor(request.Context(), db, actorURI)
- /*line federation_protected.mygo:27:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line federation_protected.mygo:27:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
  /*line federation_protected.mygo:28:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line federation_protected.mygo:27:6*/	} else {
+ /*line federation_protected.mygo:27:3*/	} else {
  /*line zz_federation_protected.gen.go:33:1*/	}
  /*line federation_protected.mygo:14:1*/	record := MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor))
- /*line federation_protected.mygo:31:6*/	if !record.PublicKeyPEM.Valid || record.PublicKeyPEM.String == "" {
+ /*line federation_protected.mygo:31:3*/	if !record.PublicKeyPEM.Valid || record.PublicKeyPEM.String == "" {
  /*line federation_protected.mygo:32:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line federation_protected.mygo:31:6*/	} else {
+ /*line federation_protected.mygo:31:3*/	} else {
  /*line zz_federation_protected.gen.go:38:1*/	}
  /*line federation_protected.mygo:14:1*/	verified := federation.VerifySignedGet(record.PublicKeyPEM.String, request.Method, request.URL.RequestURI(), request.Host, date, header, time.Now(), int64(settings.Federation.ClockSkewSeconds))
- /*line federation_protected.mygo:35:6*/	if MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) {
+ /*line federation_protected.mygo:35:3*/	if MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) {
  /*line federation_protected.mygo:36:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line federation_protected.mygo:35:6*/	} else {
+ /*line federation_protected.mygo:35:3*/	} else {
  /*line zz_federation_protected.gen.go:43:1*/	}
- /*line federation_protected.mygo:38:3*/	return Ok[auth.Identity, string](auth.Identity{ActorURI: actorURI})
+ /*line federation_protected.mygo:38:3*/	return Ok[auth.Identity, string](auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: actorURI, Username: ""})
  /*line zz_federation_protected.gen.go:45:1*/}
  /*line federation_protected.mygo:44:1*/func MemberReadAllowed(db *gorm.DB, settings config.Config, request *http.Request, site config.Site, community storage.CommunityRecord) Result[struct {
 }, string] {
 	identity := SignedRequester(db, settings, request)
- /*line federation_protected.mygo:46:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
+ /*line federation_protected.mygo:46:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
  /*line federation_protected.mygo:47:12*/		return Err[struct{}, string]("forbidden")
- /*line federation_protected.mygo:46:6*/	} else {
+ /*line federation_protected.mygo:46:3*/	} else {
  /*line zz_federation_protected.gen.go:52:1*/	}
  /*line federation_protected.mygo:44:1*/	repository := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	access := storage.MygoIN19CommunityRepositoryM6Access(repository, request.Context(), community, MygoIN6ResultM6Unwrap[auth.Identity, string](identity), true)
- /*line federation_protected.mygo:51:6*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
+ /*line federation_protected.mygo:51:3*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
  /*line federation_protected.mygo:52:12*/		return Err[struct{}, string]("forbidden")
- /*line federation_protected.mygo:51:6*/	} else {
+ /*line federation_protected.mygo:51:3*/	} else {
  /*line zz_federation_protected.gen.go:58:1*/	}
- /*line federation_protected.mygo:54:6*/	if !storage.MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access)) {
+ /*line federation_protected.mygo:54:3*/	if !storage.MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access)) {
  /*line federation_protected.mygo:55:12*/		return Err[struct{}, string]("forbidden")
- /*line federation_protected.mygo:54:6*/	} else {
+ /*line federation_protected.mygo:54:3*/	} else {
  /*line zz_federation_protected.gen.go:62:1*/	}
  /*line federation_protected.mygo:57:3*/	return Ok[struct{}, string](struct {
  /*line zz_federation_protected.gen.go:64:1*/	}{})

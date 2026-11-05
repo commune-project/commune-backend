@@ -20,13 +20,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_federation.gen.go:21:1*/	}
  /*line federation.mygo:11:1*/	encoded := __mygo_expr_1
- /*line federation.mygo:13:6*/	if MygoIN6ResultM5IsErr[[]byte, error](encoded) {
+ /*line federation.mygo:13:3*/	if MygoIN6ResultM5IsErr[[]byte, error](encoded) {
  /*line federation.mygo:14:5*/		http.Error(w, "not found", 404)
 		return
- /*line federation.mygo:13:6*/	} else {
+ /*line federation.mygo:13:3*/	} else {
  /*line federation.mygo:16:5*/		w.Header().Set("Content-Type", federation.ActivityJSONType())
  /*line federation.mygo:17:5*/		w.WriteHeader(status)
- /*line federation.mygo:13:6*/		w.Write(MygoIN6ResultM6Unwrap[[]byte, error](encoded))
+ /*line federation.mygo:13:3*/		w.Write(MygoIN6ResultM6Unwrap[[]byte, error](encoded))
 		return
  /*line zz_federation.gen.go:31:1*/	}
 }
@@ -35,97 +35,97 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation.gen.go:35:1*/}
  /*line federation.mygo:26:1*/func FederationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	path := request.URL.Path
- /*line federation.mygo:28:6*/	if strings.HasPrefix(path, "/federation-media/") {
+ /*line federation.mygo:28:3*/	if strings.HasPrefix(path, "/federation-media/") {
 		mediaParts := Segments(path)
- /*line federation.mygo:30:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mediaParts) == 2 {
+ /*line federation.mygo:30:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mediaParts) == 2 {
  /*line federation.mygo:31:7*/			FederationMediaHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mediaParts, 1)))
- /*line federation.mygo:30:8*/		} else {
+ /*line federation.mygo:30:5*/		} else {
  /*line federation.mygo:33:7*/			http.NotFound(w, request)
  /*line zz_federation.gen.go:44:1*/		}
- /*line federation.mygo:28:6*/		return
+ /*line federation.mygo:28:3*/		return
 	} else {
  /*line zz_federation.gen.go:47:1*/	}
- /*line federation.mygo:37:6*/	if request.Method == "POST" {
+ /*line federation.mygo:37:3*/	if request.Method == "POST" {
  /*line federation.mygo:38:5*/		InboxRoute(settings, db, site, w, request)
- /*line federation.mygo:37:6*/		return
+ /*line federation.mygo:37:3*/		return
 	} else {
  /*line zz_federation.gen.go:52:1*/	}
- /*line federation.mygo:41:6*/	if request.Method != "GET" {
+ /*line federation.mygo:41:3*/	if request.Method != "GET" {
  /*line federation.mygo:42:5*/		MethodNotAllowed(w, "GET, POST")
- /*line federation.mygo:41:6*/		return
+ /*line federation.mygo:41:3*/		return
 	} else {
  /*line zz_federation.gen.go:57:1*/	}
- /*line federation.mygo:45:6*/	if path == "/.well-known/webfinger" {
+ /*line federation.mygo:45:3*/	if path == "/.well-known/webfinger" {
  /*line federation.mygo:46:5*/		WebFingerHandler(db, site, w, request)
- /*line federation.mygo:45:6*/		return
+ /*line federation.mygo:45:3*/		return
 	} else {
  /*line zz_federation.gen.go:62:1*/	}
- /*line federation.mygo:49:6*/	if !federation.AcceptsActivityJSON(request.Header.Get("Accept")) {
+ /*line federation.mygo:49:3*/	if !federation.AcceptsActivityJSON(request.Header.Get("Accept")) {
  /*line federation.mygo:50:5*/		http.NotFound(w, request)
- /*line federation.mygo:49:6*/		return
+ /*line federation.mygo:49:3*/		return
 	} else {
  /*line zz_federation.gen.go:67:1*/	}
  /*line federation.mygo:26:1*/	parts := Segments(path)
- /*line federation.mygo:54:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "users" {
+ /*line federation.mygo:54:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "users" {
 		resolved := federation.ResolvePerson(request.Context(), db, site, strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1))))
- /*line federation.mygo:56:8*/		if MygoIN6ResultM5IsErr[federation.ActorRepresentation, string](resolved) {
+ /*line federation.mygo:56:5*/		if MygoIN6ResultM5IsErr[federation.ActorRepresentation, string](resolved) {
  /*line federation.mygo:57:7*/			http.NotFound(w, request)
- /*line federation.mygo:56:8*/		} else {
+ /*line federation.mygo:56:5*/		} else {
  /*line federation.mygo:59:7*/			WriteActivity(w, 200, MygoIN6ResultM6Unwrap[federation.ActorRepresentation, string](resolved))
  /*line zz_federation.gen.go:75:1*/		}
- /*line federation.mygo:54:6*/		return
+ /*line federation.mygo:54:3*/		return
 	} else {
  /*line zz_federation.gen.go:78:1*/	}
- /*line federation.mygo:63:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "communities" {
+ /*line federation.mygo:63:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "communities" {
 		resolved_1 := federation.ResolveGroup(request.Context(), db, site, strings.ToLower(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1))))
- /*line federation.mygo:65:8*/		if MygoIN6ResultM5IsErr[federation.ActorRepresentation, string](resolved_1) {
+ /*line federation.mygo:65:5*/		if MygoIN6ResultM5IsErr[federation.ActorRepresentation, string](resolved_1) {
  /*line federation.mygo:66:7*/			http.NotFound(w, request)
- /*line federation.mygo:65:8*/		} else {
+ /*line federation.mygo:65:5*/		} else {
  /*line federation.mygo:68:7*/			WriteActivity(w, 200, MygoIN6ResultM6Unwrap[federation.ActorRepresentation, string](resolved_1))
  /*line zz_federation.gen.go:85:1*/		}
- /*line federation.mygo:63:6*/		return
+ /*line federation.mygo:63:3*/		return
 	} else {
  /*line zz_federation.gen.go:88:1*/	}
- /*line federation.mygo:72:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "objects" {
+ /*line federation.mygo:72:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "objects" {
  /*line federation.mygo:73:5*/		ObjectHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line federation.mygo:72:6*/		return
+ /*line federation.mygo:72:3*/		return
 	} else {
  /*line zz_federation.gen.go:93:1*/	}
- /*line federation.mygo:76:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "activities" {
-		community := storage.CommunityRecord{}
+ /*line federation.mygo:76:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "activities" {
+		community := Zero[storage.CommunityRecord]()
 		scoped := db.WithContext(request.Context()).Raw("SELECT c.* FROM communities c JOIN activities a ON a.community_id=c.id WHERE a.uri=?", site.Origin+request.URL.Path).Scan(&community)
- /*line federation.mygo:79:8*/		if storage.QueryFailed(scoped) {
+ /*line federation.mygo:79:5*/		if storage.QueryFailed(scoped) {
  /*line federation.mygo:80:7*/			http.NotFound(w, request)
- /*line federation.mygo:79:8*/			return
+ /*line federation.mygo:79:5*/			return
 		} else {
  /*line zz_federation.gen.go:101:1*/		}
- /*line federation.mygo:83:8*/		if scoped.RowsAffected == int64(1) {
+ /*line federation.mygo:83:5*/		if scoped.RowsAffected == int64(1) {
 			if community.FederationMode != "federated" || community.ReadPolicy == "members" && MygoIN6ResultM5IsErr[struct{}, string](MemberReadAllowed(db, settings, request, site, community)) {
  /*line federation.mygo:85:9*/				http.NotFound(w, request)
- /*line federation.mygo:83:8*/				return
+ /*line federation.mygo:83:5*/				return
 			} else {
  /*line zz_federation.gen.go:107:1*/			}
- /*line federation.mygo:83:8*/		} else {
+ /*line federation.mygo:83:5*/		} else {
  /*line zz_federation.gen.go:109:1*/		}
- /*line federation.mygo:76:6*/		resolved_2 := federation.ResolveActivity(request.Context(), db, site, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line federation.mygo:90:8*/		if MygoIN6ResultM5IsErr[[]byte, string](resolved_2) {
+ /*line federation.mygo:76:3*/		resolved_2 := federation.ResolveActivity(request.Context(), db, site, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
+ /*line federation.mygo:90:5*/		if MygoIN6ResultM5IsErr[[]byte, string](resolved_2) {
  /*line federation.mygo:91:7*/			http.NotFound(w, request)
- /*line federation.mygo:90:8*/		} else {
+ /*line federation.mygo:90:5*/		} else {
  /*line federation.mygo:93:7*/			w.Header().Set("Content-Type", federation.ActivityJSONType())
  /*line federation.mygo:94:7*/			w.WriteHeader(200)
- /*line federation.mygo:90:8*/			w.Write(MygoIN6ResultM6Unwrap[[]byte, string](resolved_2))
+ /*line federation.mygo:90:5*/			w.Write(MygoIN6ResultM6Unwrap[[]byte, string](resolved_2))
  /*line zz_federation.gen.go:117:1*/		}
- /*line federation.mygo:76:6*/		return
+ /*line federation.mygo:76:3*/		return
 	} else {
  /*line zz_federation.gen.go:120:1*/	}
- /*line federation.mygo:99:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "contexts" {
+ /*line federation.mygo:99:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) >= 2 && MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0)) == "contexts" {
  /*line federation.mygo:100:5*/		ContextHandler(settings, db, site, w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1)))
- /*line federation.mygo:99:6*/		return
+ /*line federation.mygo:99:3*/		return
 	} else {
  /*line zz_federation.gen.go:125:1*/	}
- /*line federation.mygo:103:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line federation.mygo:103:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
  /*line federation.mygo:104:5*/		FederationCollectionRoute(settings, db, site, w, request, parts)
- /*line federation.mygo:103:6*/		return
+ /*line federation.mygo:103:3*/		return
 	} else {
  /*line zz_federation.gen.go:130:1*/	}
  /*line federation.mygo:107:3*/	http.NotFound(w, request)
@@ -133,22 +133,22 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation.gen.go:133:1*/}
  /*line federation.mygo:110:1*/func WebFingerHandler(db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) {
 	account := federation.ParseWebFingerResource(request.URL.Query().Get("resource"))
- /*line federation.mygo:112:6*/	if MygoIN6ResultM5IsErr[federation.Account, string](account) {
+ /*line federation.mygo:112:3*/	if MygoIN6ResultM5IsErr[federation.Account, string](account) {
  /*line federation.mygo:113:5*/		http.NotFound(w, request)
- /*line federation.mygo:112:6*/		return
+ /*line federation.mygo:112:3*/		return
 	} else {
  /*line zz_federation.gen.go:140:1*/	}
  /*line federation.mygo:110:1*/	person := storage.LoadLocalPerson(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[federation.Account, string](account).Username)
- /*line federation.mygo:117:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
+ /*line federation.mygo:117:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](person) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
  /*line federation.mygo:118:5*/		http.NotFound(w, request)
- /*line federation.mygo:117:6*/		return
+ /*line federation.mygo:117:3*/		return
 	} else {
  /*line zz_federation.gen.go:146:1*/	}
  /*line federation.mygo:110:1*/	document := federation.BuildWebFinger(site, MygoIN6ResultM6Unwrap[federation.Account, string](account), MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)).URI)
- /*line federation.mygo:122:6*/	if MygoIN6ResultM5IsErr[federation.WebFingerDocument, string](document) {
+ /*line federation.mygo:122:3*/	if MygoIN6ResultM5IsErr[federation.WebFingerDocument, string](document) {
  /*line federation.mygo:123:5*/		http.NotFound(w, request)
 		return
- /*line federation.mygo:122:6*/	} else {
+ /*line federation.mygo:122:3*/	} else {
  /*line federation.mygo:125:5*/		w.Header().Set("Content-Type", "application/jrd+json")
  /*line federation.mygo:126:5*/		WriteJSON(w, 200, MygoIN6ResultM6Unwrap[federation.WebFingerDocument, string](document))
 		return
@@ -156,43 +156,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 }
  /*line federation.mygo:130:1*/func ObjectHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
 	found := storage.LoadObjectByID(request.Context(), db, id)
- /*line federation.mygo:132:6*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
+ /*line federation.mygo:132:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](found) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found)) {
  /*line federation.mygo:133:5*/		http.NotFound(w, request)
- /*line federation.mygo:132:6*/		return
+ /*line federation.mygo:132:3*/		return
 	} else {
  /*line zz_federation.gen.go:163:1*/	}
  /*line federation.mygo:130:1*/	post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](found))
- /*line federation.mygo:137:6*/	if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin+"/") {
+ /*line federation.mygo:137:3*/	if post.FederationMode != "federated" || !post.ObjectURI.Valid || !strings.HasPrefix(post.ObjectURI.String, site.Origin+"/") {
  /*line federation.mygo:138:5*/		http.NotFound(w, request)
- /*line federation.mygo:137:6*/		return
+ /*line federation.mygo:137:3*/		return
 	} else {
  /*line zz_federation.gen.go:169:1*/	}
  /*line federation.mygo:130:1*/	loaded := storage.LoadCommunityByID(request.Context(), db, post.CommunityID)
- /*line federation.mygo:142:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))) {
+ /*line federation.mygo:142:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))) {
  /*line federation.mygo:143:5*/		http.NotFound(w, request)
- /*line federation.mygo:142:6*/		return
+ /*line federation.mygo:142:3*/		return
 	} else {
  /*line zz_federation.gen.go:175:1*/	}
  /*line federation.mygo:130:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
- /*line federation.mygo:147:6*/	if community.ReadPolicy == "members" {
+ /*line federation.mygo:147:3*/	if community.ReadPolicy == "members" {
 		allowed := MemberReadAllowed(db, settings, request, site, community)
 		if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
  /*line federation.mygo:150:7*/			http.NotFound(w, request)
- /*line federation.mygo:147:6*/			return
+ /*line federation.mygo:147:3*/			return
 		} else {
  /*line zz_federation.gen.go:183:1*/		}
- /*line federation.mygo:147:6*/	} else {
+ /*line federation.mygo:147:3*/	} else {
  /*line zz_federation.gen.go:185:1*/	}
- /*line federation.mygo:154:6*/	if post.DeletedAt.Valid {
+ /*line federation.mygo:154:3*/	if post.DeletedAt.Valid {
  /*line federation.mygo:155:5*/		WriteActivity(w, 200, federation.BuildTombstoneRepresentation(post))
 		return
- /*line federation.mygo:154:6*/	} else {
+ /*line federation.mygo:154:3*/	} else {
 		contextURI := storage.PrimaryPostContextURI(request.Context(), db, post.ID)
-		enriched := BuildRichObject(request.Context(), db, post, community, contextURI)
- /*line federation.mygo:159:8*/		if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](enriched) {
+		enriched := BuildRichObject(settings.Rendering.Sanitizer, request.Context(), db, post, community, contextURI)
+ /*line federation.mygo:159:5*/		if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](enriched) {
  /*line federation.mygo:160:7*/			http.NotFound(w, request)
 			return
- /*line federation.mygo:159:8*/		} else {
+ /*line federation.mygo:159:5*/		} else {
  /*line federation.mygo:162:7*/			WriteActivity(w, 200, MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](enriched))
 			return
  /*line zz_federation.gen.go:198:1*/		}

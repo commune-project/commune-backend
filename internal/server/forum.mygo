@@ -95,7 +95,7 @@ func CommunityDTO(record: storage.CommunityRecord) -> CommunityOutput
   }
 end
 
-func PostDTO(record: storage.PostRecord) -> PostOutput
+func PostDTO(sanitizer: content.Sanitizer, record: storage.PostRecord) -> PostOutput
   PostOutput {
     Version: record.Version,
     ID: record.ID,
@@ -104,6 +104,7 @@ func PostDTO(record: storage.PostRecord) -> PostOutput
     Title: content.RenderText(record.Title.String),
     Body: content.RenderText(record.Body),
     BodyHTML: content.RenderRich(
+      sanitizer,
       record.Body,
       if record.ContentFormat == "" || record.ContentFormat == "legacy" then
         "text"

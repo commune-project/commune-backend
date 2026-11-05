@@ -125,7 +125,7 @@ func ImportBackfilledObject(
   if payload.IsErr() then
     return Ok(2)
   end
-  let parsedRich = federation.ParseRichObject(payload.Unwrap())
+  let parsedRich = federation.ParseRichObject(settings.Rendering.Sanitizer, payload.Unwrap())
   if parsedRich.IsErr() then return Ok(2) end
   let object = parsedRich.Unwrap()
   if
@@ -182,7 +182,8 @@ func ImportBackfilledObject(
   let received = storage.PostRepository { DB: db, SiteID: site.ID }.Receive(
     ctx,
     incoming,
-    object.AttributedTo
+    object.AttributedTo,
+    settings.Rendering.Sanitizer
   )
   if received.IsErr() then
     return Err(received.UnwrapErr())

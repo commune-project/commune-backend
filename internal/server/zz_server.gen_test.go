@@ -42,9 +42,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_7 = Ok[struct{}, error](struct {
  /*line zz_server.gen_test.go:43:1*/			}{})
 		}
- /*line server_test.mygo:21:8*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_7) {
+ /*line server_test.mygo:21:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_7) {
  /*line server_test.mygo:22:7*/			t.Error("health SQL expectations were not met")
- /*line server_test.mygo:21:8*/		} else {
+ /*line server_test.mygo:21:5*/		} else {
  /*line zz_server.gen_test.go:48:1*/		}
  /*line server_test.mygo:20:13*/		fixture.DB.Close()
 		return
@@ -55,15 +55,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 	request := func(method string, url string, status int) {
  /*line server_test.mygo:29:17*/		recorder := httptest.NewRecorder()
  /*line server_test.mygo:31:5*/		handler.ServeHTTP(http.ResponseWriter(recorder), httptest.NewRequest(method, url, body))
- /*line server_test.mygo:32:8*/		if recorder.Code != status {
+ /*line server_test.mygo:32:5*/		if recorder.Code != status {
  /*line server_test.mygo:33:7*/			t.Fatalf("health returned %d, expected %d", recorder.Code, status)
- /*line server_test.mygo:32:8*/		} else {
+ /*line server_test.mygo:32:5*/		} else {
  /*line zz_server.gen_test.go:61:1*/		}
- /*line server_test.mygo:35:8*/		if strings.Contains(recorder.Body.String(), "secret") {
+ /*line server_test.mygo:35:5*/		if strings.Contains(recorder.Body.String(), "secret") {
  /*line server_test.mygo:36:7*/			t.Fatal("health response exposed database error")
 			return
- /*line server_test.mygo:35:8*/		} else {
- /*line server_test.mygo:35:5*/			return
+ /*line server_test.mygo:35:5*/		} else {
+			return
  /*line zz_server.gen_test.go:67:1*/		}
 	}
  /*line server_test.mygo:39:3*/	request("GET", "https://unknown.example/health/live", 404)
@@ -83,12 +83,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line zz_server.gen_test.go:84:1*/	})
  /*line server_test.mygo:16:1*/	fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
- /*line server_test.mygo:55:3*/	request("GET", origin+"/health/ready", 204)
+ /*line server_test.mygo:59:3*/	request("GET", origin+"/health/ready", 204)
  /*line server_test.mygo:16:1*/	server := NewHTTPServer(settings, db)
- /*line server_test.mygo:57:6*/	if server.MaxHeaderBytes != 32768 || server.Addr != settings.Runtime.Listen {
- /*line server_test.mygo:58:5*/		t.Fatal("server runtime limits were ignored")
+ /*line server_test.mygo:61:3*/	if server.MaxHeaderBytes != 32768 || server.Addr != settings.Runtime.Listen {
+ /*line server_test.mygo:62:5*/		t.Fatal("server runtime limits were ignored")
 		return
- /*line server_test.mygo:57:6*/	} else {
- /*line server_test.mygo:57:3*/		return
+ /*line server_test.mygo:61:3*/	} else {
+		return
  /*line zz_server.gen_test.go:93:1*/	}
 }

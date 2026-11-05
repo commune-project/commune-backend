@@ -11,19 +11,20 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/content"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line vote_outbox_test.mygo:13:1*/func TestPostgresLocalVoteOutbox(t *testing.T) {
- /*line vote_outbox_test.mygo:14:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line vote_outbox_test.mygo:14:1*/func TestPostgresLocalVoteOutbox(t *testing.T) {
+ /*line vote_outbox_test.mygo:15:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_vote_outbox.gen_test.go:25:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_vote_outbox.gen_test.go:26:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -37,71 +38,71 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','"+remoteGroup+"',?,'federated','eligible_users','eligible_users','remote','Remote')", remoteAuthor)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ObjectURI: sql.NullString{String: "https://peer.example/objects/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now}, remoteAuthor))
+	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0)}, remoteAuthor, content.DefaultSanitizer()))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "bob", "bob-password")
 	csrf := csrfOf(cookies)
 	votePath := "/api/v1/posts/" + remotePost.ID + "/vote"
- /*line vote_outbox_test.mygo:33:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
- /*line vote_outbox_test.mygo:34:5*/		t.Fatal("local upvote on federated remote post failed")
- /*line vote_outbox_test.mygo:33:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:48:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	likeJobs := int64(0)
+ /*line vote_outbox_test.mygo:71:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:83:5*/		t.Fatal("local upvote on federated remote post failed")
+ /*line vote_outbox_test.mygo:71:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:49:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	likeJobs := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri IN ?", bob.ActorURI, []string{"https://peer.example/users/writer", "https://peer.example/communities/news"}).Count(&likeJobs)))
- /*line vote_outbox_test.mygo:38:6*/	if likeJobs != int64(2) {
- /*line vote_outbox_test.mygo:39:5*/		t.Fatal("upvote did not queue Like for remote eligible recipients")
- /*line vote_outbox_test.mygo:38:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:54:1*/	}
- /*line vote_outbox_test.mygo:41:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
- /*line vote_outbox_test.mygo:42:5*/		t.Fatal("idempotent upvote failed")
- /*line vote_outbox_test.mygo:41:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:58:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	repeatedJobs := int64(0)
+ /*line vote_outbox_test.mygo:94:3*/	if likeJobs != int64(2) {
+ /*line vote_outbox_test.mygo:95:5*/		t.Fatal("upvote did not queue Like for remote eligible recipients")
+ /*line vote_outbox_test.mygo:94:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:55:1*/	}
+ /*line vote_outbox_test.mygo:97:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:109:5*/		t.Fatal("idempotent upvote failed")
+ /*line vote_outbox_test.mygo:97:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:59:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	repeatedJobs := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=?", bob.ActorURI).Count(&repeatedJobs)))
- /*line vote_outbox_test.mygo:46:6*/	if repeatedJobs != int64(2) {
- /*line vote_outbox_test.mygo:47:5*/		t.Fatal("repeating the same vote duplicated outbound jobs")
- /*line vote_outbox_test.mygo:46:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:64:1*/	}
- /*line vote_outbox_test.mygo:49:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
- /*line vote_outbox_test.mygo:50:5*/		t.Fatal("downvote change failed")
- /*line vote_outbox_test.mygo:49:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:68:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	reactionURI := ""
+ /*line vote_outbox_test.mygo:116:3*/	if repeatedJobs != int64(2) {
+ /*line vote_outbox_test.mygo:117:5*/		t.Fatal("repeating the same vote duplicated outbound jobs")
+ /*line vote_outbox_test.mygo:116:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:65:1*/	}
+ /*line vote_outbox_test.mygo:119:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:131:5*/		t.Fatal("downvote change failed")
+ /*line vote_outbox_test.mygo:119:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:69:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	reactionURI := ""
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT reaction_uri FROM reactions WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", remotePost.ID, bob.ActorURI).Scan(&reactionURI)))
- /*line vote_outbox_test.mygo:54:6*/	if reactionURI == "" {
- /*line vote_outbox_test.mygo:55:5*/		t.Fatal("outbound downvote did not store its activity identity")
- /*line vote_outbox_test.mygo:54:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:74:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	var kinds []string = []string{}
+ /*line vote_outbox_test.mygo:139:3*/	if reactionURI == "" {
+ /*line vote_outbox_test.mygo:140:5*/		t.Fatal("outbound downvote did not store its activity identity")
+ /*line vote_outbox_test.mygo:139:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:75:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	var kinds []string = []string{}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Order("created_at,uri").Pluck("kind", &kinds)))
- /*line vote_outbox_test.mygo:59:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(kinds) != 2 || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(kinds, 0)) != "Like" || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(kinds, 1)) != "Dislike" {
- /*line vote_outbox_test.mygo:60:5*/		t.Fatal("outbound vote activity kinds were incorrect")
- /*line vote_outbox_test.mygo:59:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:80:1*/	}
- /*line vote_outbox_test.mygo:62:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":0}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
- /*line vote_outbox_test.mygo:63:5*/		t.Fatal("vote clear failed")
- /*line vote_outbox_test.mygo:62:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:84:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	undoPayload := ""
+ /*line vote_outbox_test.mygo:147:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(kinds) != 2 || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(kinds, 0)) != "Like" || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(kinds, 1)) != "Dislike" {
+ /*line vote_outbox_test.mygo:148:5*/		t.Fatal("outbound vote activity kinds were incorrect")
+ /*line vote_outbox_test.mygo:147:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:81:1*/	}
+ /*line vote_outbox_test.mygo:150:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: votePath, Payload: "{\"score\":0}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:163:5*/		t.Fatal("vote clear failed")
+ /*line vote_outbox_test.mygo:150:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:85:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	undoPayload := ""
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT convert_from(p.original_payload,'UTF8') FROM activity_payloads p JOIN activities a ON a.uri=p.activity_uri WHERE a.actor_uri=? AND a.kind='Undo' LIMIT 1", bob.ActorURI).Scan(&undoPayload)))
- /*line vote_outbox_test.mygo:67:6*/	if !strings.Contains(undoPayload, reactionURI) {
- /*line vote_outbox_test.mygo:68:5*/		t.Fatal("vote clear did not queue Undo of the active reaction activity")
- /*line vote_outbox_test.mygo:67:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:90:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	localCommunity := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	localPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, localCommunity.ID, author, false, storage.PublishInput{Title: "Local", Body: "local"}))
+ /*line vote_outbox_test.mygo:170:3*/	if !strings.Contains(undoPayload, reactionURI) {
+ /*line vote_outbox_test.mygo:171:5*/		t.Fatal("vote clear did not queue Undo of the active reaction activity")
+ /*line vote_outbox_test.mygo:170:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:91:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	localCommunity := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "local", "Local", "local_only", "eligible_users", "eligible_users"))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, localCommunity.ID, author, false, storage.PublishInput{Title: "Local", Body: "local", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	beforeLocal := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Count(&beforeLocal)))
- /*line vote_outbox_test.mygo:74:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + localPost.ID + "/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
- /*line vote_outbox_test.mygo:75:5*/		t.Fatal("local-only vote failed")
- /*line vote_outbox_test.mygo:74:6*/	} else {
- /*line zz_vote_outbox.gen_test.go:98:1*/	}
- /*line vote_outbox_test.mygo:13:1*/	afterLocal := int64(0)
+ /*line vote_outbox_test.mygo:201:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:214:5*/		t.Fatal("local-only vote failed")
+ /*line vote_outbox_test.mygo:201:3*/	} else {
+ /*line zz_vote_outbox.gen_test.go:99:1*/	}
+ /*line vote_outbox_test.mygo:14:1*/	afterLocal := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Count(&afterLocal)))
- /*line vote_outbox_test.mygo:79:6*/	if afterLocal != beforeLocal {
- /*line vote_outbox_test.mygo:80:5*/		t.Fatal("local-only vote produced federation activity")
+ /*line vote_outbox_test.mygo:218:3*/	if afterLocal != beforeLocal {
+ /*line vote_outbox_test.mygo:219:5*/		t.Fatal("local-only vote produced federation activity")
 		return
- /*line vote_outbox_test.mygo:79:6*/	} else {
- /*line vote_outbox_test.mygo:79:3*/		return
- /*line zz_vote_outbox.gen_test.go:106:1*/	}
+ /*line vote_outbox_test.mygo:218:3*/	} else {
+		return
+ /*line zz_vote_outbox.gen_test.go:107:1*/	}
 }

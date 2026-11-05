@@ -51,8 +51,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
 	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
 	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	private := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Members", Body: "inside", ParentID: ""}))
-	public := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Open", Body: "outside", ParentID: ""}))
+	private := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Members", Body: "inside", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	public := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Open", Body: "outside", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	memberKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
 	outsiderKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
 	instanceKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
@@ -65,49 +65,49 @@ import . "github.com/mygo-lang/mygo/prelude"
 	date := time.Now().UTC().Format(http.TimeFormat)
 	privatePath := "/objects/" + private.ID
 	publicPath := "/objects/" + public.ID
- /*line federation_protected_test.mygo:57:6*/	if getAP(handler, a.Origin, privatePath, "application/activity+json").Code != 404 {
+ /*line federation_protected_test.mygo:57:3*/	if getAP(handler, a.Origin, privatePath, "application/activity+json").Code != 404 {
  /*line federation_protected_test.mygo:58:5*/		t.Fatal("an unsigned read reached a member-readable object")
- /*line federation_protected_test.mygo:57:6*/	} else {
+ /*line federation_protected_test.mygo:57:3*/	} else {
  /*line zz_federation_protected.gen_test.go:71:1*/	}
  /*line federation_protected_test.mygo:30:1*/	memberRead := signedGet(handler, a.Origin, privatePath, member, memberKey, date)
- /*line federation_protected_test.mygo:61:6*/	if memberRead.Code != 200 || !strings.Contains(memberRead.Body.String(), "inside") {
+ /*line federation_protected_test.mygo:61:3*/	if memberRead.Code != 200 || !strings.Contains(memberRead.Body.String(), "inside") {
  /*line federation_protected_test.mygo:62:5*/		t.Fatalf("a member could not read a member-readable object: %d %s", memberRead.Code, memberRead.Body.String())
- /*line federation_protected_test.mygo:61:6*/	} else {
+ /*line federation_protected_test.mygo:61:3*/	} else {
  /*line zz_federation_protected.gen_test.go:76:1*/	}
- /*line federation_protected_test.mygo:64:6*/	if signedGet(handler, a.Origin, privatePath, outsider, outsiderKey, date).Code != 404 {
+ /*line federation_protected_test.mygo:64:3*/	if signedGet(handler, a.Origin, privatePath, outsider, outsiderKey, date).Code != 404 {
  /*line federation_protected_test.mygo:65:5*/		t.Fatal("a signed non-member read reached a member-readable object")
- /*line federation_protected_test.mygo:64:6*/	} else {
+ /*line federation_protected_test.mygo:64:3*/	} else {
  /*line zz_federation_protected.gen_test.go:80:1*/	}
- /*line federation_protected_test.mygo:67:6*/	if signedGet(handler, a.Origin, privatePath, instance, instanceKey, date).Code != 404 {
+ /*line federation_protected_test.mygo:67:3*/	if signedGet(handler, a.Origin, privatePath, instance, instanceKey, date).Code != 404 {
  /*line federation_protected_test.mygo:68:5*/		t.Fatal("an instance key without member delegation reached a member-readable object")
- /*line federation_protected_test.mygo:67:6*/	} else {
+ /*line federation_protected_test.mygo:67:3*/	} else {
  /*line zz_federation_protected.gen_test.go:84:1*/	}
- /*line federation_protected_test.mygo:70:6*/	if signedGet(handler, a.Origin, privatePath, instance, memberKey, date).Code != 404 {
+ /*line federation_protected_test.mygo:70:3*/	if signedGet(handler, a.Origin, privatePath, instance, memberKey, date).Code != 404 {
  /*line federation_protected_test.mygo:71:5*/		t.Fatal("a key that does not belong to the named actor was accepted")
- /*line federation_protected_test.mygo:70:6*/	} else {
+ /*line federation_protected_test.mygo:70:3*/	} else {
  /*line zz_federation_protected.gen_test.go:88:1*/	}
- /*line federation_protected_test.mygo:73:6*/	if getAP(handler, a.Origin, publicPath, "application/activity+json").Code != 200 {
+ /*line federation_protected_test.mygo:73:3*/	if getAP(handler, a.Origin, publicPath, "application/activity+json").Code != 200 {
  /*line federation_protected_test.mygo:74:5*/		t.Fatal("an openly readable object required a signature")
- /*line federation_protected_test.mygo:73:6*/	} else {
+ /*line federation_protected_test.mygo:73:3*/	} else {
  /*line zz_federation_protected.gen_test.go:92:1*/	}
  /*line federation_protected_test.mygo:30:1*/	openPath := "/communities/restricted/outbox"
- /*line federation_protected_test.mygo:77:6*/	if getAP(handler, a.Origin, openPath, "application/activity+json").Code != 404 {
+ /*line federation_protected_test.mygo:77:3*/	if getAP(handler, a.Origin, openPath, "application/activity+json").Code != 404 {
  /*line federation_protected_test.mygo:78:5*/		t.Fatal("an unsigned read reached a member-readable collection")
- /*line federation_protected_test.mygo:77:6*/	} else {
+ /*line federation_protected_test.mygo:77:3*/	} else {
  /*line zz_federation_protected.gen_test.go:97:1*/	}
  /*line federation_protected_test.mygo:30:1*/	memberOutbox := signedGet(handler, a.Origin, openPath, member, memberKey, date)
- /*line federation_protected_test.mygo:81:6*/	if memberOutbox.Code != 200 || !strings.Contains(memberOutbox.Body.String(), "\"totalItems\":1") {
+ /*line federation_protected_test.mygo:81:3*/	if memberOutbox.Code != 200 || !strings.Contains(memberOutbox.Body.String(), "\"totalItems\":1") {
  /*line federation_protected_test.mygo:82:5*/		t.Fatalf("a member could not read the protected collection: %d %s", memberOutbox.Code, memberOutbox.Body.String())
- /*line federation_protected_test.mygo:81:6*/	} else {
+ /*line federation_protected_test.mygo:81:3*/	} else {
  /*line zz_federation_protected.gen_test.go:102:1*/	}
- /*line federation_protected_test.mygo:84:6*/	if signedGet(handler, a.Origin, openPath, outsider, outsiderKey, date).Code != 404 {
+ /*line federation_protected_test.mygo:84:3*/	if signedGet(handler, a.Origin, openPath, outsider, outsiderKey, date).Code != 404 {
  /*line federation_protected_test.mygo:85:5*/		t.Fatal("a signed non-member read reached a member-readable collection")
- /*line federation_protected_test.mygo:84:6*/	} else {
+ /*line federation_protected_test.mygo:84:3*/	} else {
  /*line zz_federation_protected.gen_test.go:106:1*/	}
- /*line federation_protected_test.mygo:87:6*/	if signedGet(handler, a.Origin, "/communities/open/outbox", member, memberKey, date).Code != 200 {
+ /*line federation_protected_test.mygo:87:3*/	if signedGet(handler, a.Origin, "/communities/open/outbox", member, memberKey, date).Code != 200 {
  /*line federation_protected_test.mygo:88:5*/		t.Fatal("an openly readable collection rejected a signed member read")
 		return
- /*line federation_protected_test.mygo:87:6*/	} else {
- /*line federation_protected_test.mygo:87:3*/		return
+ /*line federation_protected_test.mygo:87:3*/	} else {
+		return
  /*line zz_federation_protected.gen_test.go:112:1*/	}
 }

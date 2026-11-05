@@ -13,36 +13,37 @@ import "github.com/mygo-lang/mygo/lib/concurrency"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line notifications_test.mygo:15:1*/func TestNotificationCursor(t *testing.T) {
+ /*line notifications_test.mygo:16:1*/func TestNotificationCursor(t *testing.T) {
 	cursor := NotificationCursor{Time: time.Now().UTC().Truncate(time.Microsecond), ID: int64(73)}
 	parsed := MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(FormatNotificationCursor(cursor)))
- /*line notifications_test.mygo:18:3*/	if parsed.ID != cursor.ID || !parsed.Time.Equal(cursor.Time) {
- /*line notifications_test.mygo:19:5*/		t.Fatal("snapshot cursor failed round trip")
- /*line notifications_test.mygo:18:3*/	} else {
- /*line zz_notifications.gen_test.go:24:1*/	}
- /*line notifications_test.mygo:15:1*/	var invalid []string = []string{"", "garbage", "2020-01-01T00:00:00Z|-1", "2020-01-01T00:00:00Z|x", "2020-01-01T00:00:00Z|1|2", "2999-01-01T00:00:00Z|1"}
- /*line notifications_test.mygo:29:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(value string) {
- /*line notifications_test.mygo:30:5*/		if MygoIN6ResultM4IsOk[NotificationCursor, string](ParseNotificationCursor(value)) {
- /*line notifications_test.mygo:31:7*/			t.Fatal("invalid cursor accepted")
+ /*line notifications_test.mygo:19:3*/	if parsed.ID != cursor.ID || !parsed.Time.Equal(cursor.Time) {
+ /*line notifications_test.mygo:20:5*/		t.Fatal("snapshot cursor failed round trip")
+ /*line notifications_test.mygo:19:3*/	} else {
+ /*line zz_notifications.gen_test.go:25:1*/	}
+ /*line notifications_test.mygo:16:1*/	var invalid []string = []string{"", "garbage", "2020-01-01T00:00:00Z|-1", "2020-01-01T00:00:00Z|x", "2020-01-01T00:00:00Z|1|2", "2999-01-01T00:00:00Z|1"}
+ /*line notifications_test.mygo:30:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(value string) {
+ /*line notifications_test.mygo:31:5*/		if MygoIN6ResultM4IsOk[NotificationCursor, string](ParseNotificationCursor(value)) {
+ /*line notifications_test.mygo:32:7*/			t.Fatal("invalid cursor accepted")
 			return
- /*line notifications_test.mygo:30:5*/		} else {
+ /*line notifications_test.mygo:31:5*/		} else {
 			return
- /*line zz_notifications.gen_test.go:32:1*/		}
+ /*line zz_notifications.gen_test.go:33:1*/		}
 	})
- /*line notifications_test.mygo:29:3*/	return
- /*line zz_notifications.gen_test.go:35:1*/}
- /*line notifications_test.mygo:36:1*/func TestNotificationQueryUsesGormBuilder(t *testing.T) {
+ /*line notifications_test.mygo:30:3*/	return
+ /*line zz_notifications.gen_test.go:36:1*/}
+ /*line notifications_test.mygo:37:1*/func TestNotificationQueryUsesGormBuilder(t *testing.T) {
 	fixture := mockFixture(t)
- /*line notifications_test.mygo:38:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line notifications_test.mygo:39:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(fixture.DB)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_notifications.gen_test.go:44:1*/	}
- /*line notifications_test.mygo:36:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_notifications.gen_test.go:45:1*/	}
+ /*line notifications_test.mygo:37:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	repository := BrowserRepository{DB: db, SiteID: "a"}
 	viewer := BrowserViewer{Identity: auth.Identity{SiteID: "a", AccountID: int64(7), ActorURI: "https://a.example/users/alice", Username: "alice"}, Verified: true, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: true, DownvotesEnabled: true, VoteSettingsLoaded: true}
 	query := MygoIN17BrowserRepositoryM18NotificationsQuery(repository, context.Background(), viewer).Order("created_at DESC,id DESC").Limit(20).Offset(40)
@@ -51,41 +52,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 	session.DryRun = true
 	preview := query.Session(&session)
 	built := preview.Find(&rows)
- /*line notifications_test.mygo:63:3*/	if QueryFailed(built) {
- /*line notifications_test.mygo:64:5*/		t.Fatalf("notification query builder failed dry run: %v", built.Error)
- /*line notifications_test.mygo:63:3*/	} else {
- /*line zz_notifications.gen_test.go:57:1*/	}
- /*line notifications_test.mygo:36:1*/	sql := built.Statement.SQL.String()
- /*line notifications_test.mygo:67:3*/	if !strings.Contains(sql, "e.target_kind<>'report'") || !strings.Contains(sql, "ban:site") || !strings.Contains(sql, "e.kind<>'reply'") || strings.Contains(sql, "@site") || strings.Contains(sql, "@account") || !strings.Contains(sql, "ORDER BY created_at DESC,id DESC LIMIT") || !strings.Contains(sql, "OFFSET") {
- /*line notifications_test.mygo:74:5*/		t.Fatalf("notification query lost required GORM clauses: %s", sql)
+ /*line notifications_test.mygo:64:3*/	if QueryFailed(built) {
+ /*line notifications_test.mygo:65:5*/		t.Fatalf("notification query builder failed dry run: %v", built.Error)
+ /*line notifications_test.mygo:64:3*/	} else {
+ /*line zz_notifications.gen_test.go:58:1*/	}
+ /*line notifications_test.mygo:37:1*/	sql := built.Statement.SQL.String()
+ /*line notifications_test.mygo:68:3*/	if !strings.Contains(sql, "e.target_kind<>'report'") || !strings.Contains(sql, "ban:site") || !strings.Contains(sql, "e.kind<>'reply'") || strings.Contains(sql, "@site") || strings.Contains(sql, "@account") || !strings.Contains(sql, "ORDER BY created_at DESC,id DESC LIMIT") || !strings.Contains(sql, "OFFSET") {
+ /*line notifications_test.mygo:75:5*/		t.Fatalf("notification query lost required GORM clauses: %s", sql)
 		return
- /*line notifications_test.mygo:67:3*/	} else {
+ /*line notifications_test.mygo:68:3*/	} else {
 		return
- /*line zz_notifications.gen_test.go:64:1*/	}
+ /*line zz_notifications.gen_test.go:65:1*/	}
 }
 
- /*line notifications_test.mygo:78:1*/type NotificationTestFixture struct {
+ /*line notifications_test.mygo:79:1*/type NotificationTestFixture struct {
 	DB        *gorm.DB
 	Site      config.Site
 	Alice     auth.Identity
 	Bob       auth.Identity
 	Community CommunityRecord
 	Parent    PostRecord
- /*line zz_notifications.gen_test.go:74:1*/}
- /*line notifications_test.mygo:87:1*/type NotificationTargetRow struct {
+ /*line zz_notifications.gen_test.go:75:1*/}
+ /*line notifications_test.mygo:88:1*/type NotificationTargetRow struct {
 	TargetKind string "gorm:\"column:target_kind\""
 	TargetID   string "gorm:\"column:target_id\""
- /*line zz_notifications.gen_test.go:78:1*/}
+ /*line zz_notifications.gen_test.go:79:1*/}
 
- /*line notifications_test.mygo:92:1*/func notificationFixture(t *testing.T) NotificationTestFixture {
- /*line notifications_test.mygo:93:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line notifications_test.mygo:93:1*/func notificationFixture(t *testing.T) NotificationTestFixture {
+ /*line notifications_test.mygo:94:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_notifications.gen_test.go:87:1*/	}
- /*line notifications_test.mygo:92:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_notifications.gen_test.go:88:1*/	}
+ /*line notifications_test.mygo:93:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
@@ -94,107 +95,107 @@ import . "github.com/mygo-lang/mygo/prelude"
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
 	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
 	published := MygoIN14PostRepositoryM7Publish(PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, testPublishInput("Parent", "body"))
- /*line notifications_test.mygo:118:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](published) {
- /*line notifications_test.mygo:119:5*/		t.Fatalf("notification fixture publication failed: %s", MygoIN6ResultM9UnwrapErr[PostRecord, string](published))
- /*line notifications_test.mygo:118:3*/	} else {
- /*line zz_notifications.gen_test.go:100:1*/	}
- /*line notifications_test.mygo:92:1*/	parent := MygoIN6ResultM6Unwrap[PostRecord, string](published)
- /*line notifications_test.mygo:122:3*/	return NotificationTestFixture{DB: db, Site: site, Alice: alice, Bob: bob, Community: community, Parent: parent}
- /*line zz_notifications.gen_test.go:103:1*/}
- /*line notifications_test.mygo:132:1*/func TestPostgresNotificationTargetBackfill(t *testing.T) {
+ /*line notifications_test.mygo:119:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](published) {
+ /*line notifications_test.mygo:120:5*/		t.Fatalf("notification fixture publication failed: %s", MygoIN6ResultM9UnwrapErr[PostRecord, string](published))
+ /*line notifications_test.mygo:119:3*/	} else {
+ /*line zz_notifications.gen_test.go:101:1*/	}
+ /*line notifications_test.mygo:93:1*/	parent := MygoIN6ResultM6Unwrap[PostRecord, string](published)
+ /*line notifications_test.mygo:123:3*/	return NotificationTestFixture{DB: db, Site: site, Alice: alice, Bob: bob, Community: community, Parent: parent}
+ /*line zz_notifications.gen_test.go:104:1*/}
+ /*line notifications_test.mygo:133:1*/func TestPostgresNotificationTargetBackfill(t *testing.T) {
 	pool := testsupport.Postgres(t)
 	ctx := context.Background()
 	migrations := MygoIN6ResultM6Unwrap[[]Migration, string](MigrationCatalog())
 	options := sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}
- /*line notifications_test.mygo:137:12*/	var __mygo_expr_1 Result[*sql.Tx, error]
+ /*line notifications_test.mygo:138:12*/	var __mygo_expr_1 Result[*sql.Tx, error]
 	__mygo_expr_2, __mygo_expr_0 := pool.BeginTx(ctx, &options)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.Tx, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.Tx, error](__mygo_expr_2)
- /*line zz_notifications.gen_test.go:115:1*/	}
- /*line notifications_test.mygo:132:1*/	tx := MygoIN6ResultM6Unwrap[*sql.Tx, error](__mygo_expr_1)
+ /*line zz_notifications.gen_test.go:116:1*/	}
+ /*line notifications_test.mygo:133:1*/	tx := MygoIN6ResultM6Unwrap[*sql.Tx, error](__mygo_expr_1)
 	prepared := ApplyTransaction(ctx, tx, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(migrations, 20))
- /*line notifications_test.mygo:139:3*/	if MygoIN6ResultM5IsErr[struct{}, string](prepared) {
+ /*line notifications_test.mygo:140:3*/	if MygoIN6ResultM5IsErr[struct{}, string](prepared) {
 		tx.Rollback()
 		t.Fatalf("cannot prepare pre-target notification schema: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](prepared))
 	} else {
- /*line zz_notifications.gen_test.go:122:1*/	}
- /*line notifications_test.mygo:143:6*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line zz_notifications.gen_test.go:123:1*/	}
+ /*line notifications_test.mygo:144:6*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := tx.Commit()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_notifications.gen_test.go:129:1*/		}{})
+ /*line zz_notifications.gen_test.go:130:1*/		}{})
 	}
- /*line notifications_test.mygo:143:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
- /*line notifications_test.mygo:144:5*/		t.Fatal("cannot commit pre-target notification schema")
- /*line notifications_test.mygo:143:3*/	} else {
- /*line zz_notifications.gen_test.go:134:1*/	}
- /*line notifications_test.mygo:132:1*/	seed := "INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'); INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/users/alice',NULL,'Person'),('https://a.example/users/bob',NULL,'Person'),('https://a.example/communities/news','a','Group'); INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('news','a','https://a.example/communities/news','https://a.example/users/alice','federated','eligible_users','eligible_users','news','News'); INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('legacy-post','https://a.example/objects/legacy-post','news','federated','https://a.example/users/alice','Page','Legacy','body',now(),now()); INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','legacy-reply','legacy-post','https://a.example/users/bob','https://a.example/users/alice')"
- /*line notifications_test.mygo:147:16*/	var __mygo_expr_6 Result[sql.Result, error]
+ /*line notifications_test.mygo:144:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line notifications_test.mygo:145:5*/		t.Fatal("cannot commit pre-target notification schema")
+ /*line notifications_test.mygo:144:3*/	} else {
+ /*line zz_notifications.gen_test.go:135:1*/	}
+ /*line notifications_test.mygo:133:1*/	seed := "INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'); INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/users/alice',NULL,'Person'),('https://a.example/users/bob',NULL,'Person'),('https://a.example/communities/news','a','Group'); INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('news','a','https://a.example/communities/news','https://a.example/users/alice','federated','eligible_users','eligible_users','news','News'); INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('legacy-post','https://a.example/objects/legacy-post','news','federated','https://a.example/users/alice','Page','Legacy','body',now(),now()); INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','legacy-reply','legacy-post','https://a.example/users/bob','https://a.example/users/alice')"
+ /*line notifications_test.mygo:148:16*/	var __mygo_expr_6 Result[sql.Result, error]
 	__mygo_expr_7, __mygo_expr_5 := pool.ExecContext(ctx, seed)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[sql.Result, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[sql.Result, error](__mygo_expr_7)
- /*line zz_notifications.gen_test.go:142:1*/	}
- /*line notifications_test.mygo:132:1*/	seeded := __mygo_expr_6
- /*line notifications_test.mygo:148:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](seeded) {
- /*line notifications_test.mygo:149:5*/		t.Fatalf("cannot seed pre-target notification: %v", MygoIN6ResultM9UnwrapErr[sql.Result, error](seeded))
- /*line notifications_test.mygo:148:3*/	} else {
- /*line zz_notifications.gen_test.go:147:1*/	}
- /*line notifications_test.mygo:132:1*/	targetMigration := MygoIN6OptionM6Unwrap[Migration](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(migrations, 20))
- /*line notifications_test.mygo:152:39*/	var __mygo_expr_9 Result[sql.Result, error]
+ /*line zz_notifications.gen_test.go:143:1*/	}
+ /*line notifications_test.mygo:133:1*/	seeded := __mygo_expr_6
+ /*line notifications_test.mygo:149:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](seeded) {
+ /*line notifications_test.mygo:150:5*/		t.Fatalf("cannot seed pre-target notification: %v", MygoIN6ResultM9UnwrapErr[sql.Result, error](seeded))
+ /*line notifications_test.mygo:149:3*/	} else {
+ /*line zz_notifications.gen_test.go:148:1*/	}
+ /*line notifications_test.mygo:133:1*/	targetMigration := MygoIN6OptionM6Unwrap[Migration](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(migrations, 20))
+ /*line notifications_test.mygo:153:39*/	var __mygo_expr_9 Result[sql.Result, error]
 	__mygo_expr_10, __mygo_expr_8 := pool.ExecContext(ctx, targetMigration.SQL)
 	if __mygo_expr_8 != nil {
 		__mygo_expr_9 = Err[sql.Result, error](__mygo_expr_8)
 	} else {
 		__mygo_expr_9 = Ok[sql.Result, error](__mygo_expr_10)
- /*line zz_notifications.gen_test.go:155:1*/	}
- /*line notifications_test.mygo:152:3*/	if targetMigration.Version != 21 || MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_9) {
- /*line notifications_test.mygo:153:5*/		t.Fatal("notification target migration failed")
- /*line notifications_test.mygo:152:3*/	} else {
- /*line zz_notifications.gen_test.go:159:1*/	}
- /*line notifications_test.mygo:155:12*/	var __mygo_expr_12 Result[*gorm.DB, error]
+ /*line zz_notifications.gen_test.go:156:1*/	}
+ /*line notifications_test.mygo:153:3*/	if targetMigration.Version != 21 || MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_9) {
+ /*line notifications_test.mygo:154:5*/		t.Fatal("notification target migration failed")
+ /*line notifications_test.mygo:153:3*/	} else {
+ /*line zz_notifications.gen_test.go:160:1*/	}
+ /*line notifications_test.mygo:156:12*/	var __mygo_expr_12 Result[*gorm.DB, error]
 	__mygo_expr_13, __mygo_expr_11 := transport.ORM(pool)
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[*gorm.DB, error](__mygo_expr_11)
 	} else {
 		__mygo_expr_12 = Ok[*gorm.DB, error](__mygo_expr_13)
- /*line zz_notifications.gen_test.go:166:1*/	}
- /*line notifications_test.mygo:132:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_12)
+ /*line zz_notifications.gen_test.go:167:1*/	}
+ /*line notifications_test.mygo:133:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_12)
 	var rows []NotificationTargetRow = []NotificationTargetRow{}
 	var legacyOccurrences []string = []string{"legacy-reply"}
- /*line notifications_test.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Table("notification_events").Select("target_kind,target_id").Where("occurrence IN ?", legacyOccurrences).Order("occurrence").Scan(&rows))) {
- /*line notifications_test.mygo:162:5*/		t.Fatal("cannot inspect backfilled notification targets")
- /*line notifications_test.mygo:158:3*/	} else {
- /*line zz_notifications.gen_test.go:173:1*/	}
- /*line notifications_test.mygo:164:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rows) != 1 || MygoIN6OptionM6Unwrap[NotificationTargetRow](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rows, 0)).TargetKind != "post" || MygoIN6OptionM6Unwrap[NotificationTargetRow](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rows, 0)).TargetID != "legacy-post" {
- /*line notifications_test.mygo:167:5*/		t.Fatal("existing notification target was not backfilled")
- /*line notifications_test.mygo:164:3*/	} else {
- /*line zz_notifications.gen_test.go:177:1*/	}
- /*line notifications_test.mygo:169:6*/	var __mygo_expr_15 Result[sql.Result, error]
+ /*line notifications_test.mygo:159:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Table("notification_events").Select("target_kind,target_id").Where("occurrence IN ?", legacyOccurrences).Order("occurrence").Scan(&rows))) {
+ /*line notifications_test.mygo:163:5*/		t.Fatal("cannot inspect backfilled notification targets")
+ /*line notifications_test.mygo:159:3*/	} else {
+ /*line zz_notifications.gen_test.go:174:1*/	}
+ /*line notifications_test.mygo:165:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rows) != 1 || MygoIN6OptionM6Unwrap[NotificationTargetRow](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rows, 0)).TargetKind != "post" || MygoIN6OptionM6Unwrap[NotificationTargetRow](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(rows, 0)).TargetID != "legacy-post" {
+ /*line notifications_test.mygo:168:5*/		t.Fatal("existing notification target was not backfilled")
+ /*line notifications_test.mygo:165:3*/	} else {
+ /*line zz_notifications.gen_test.go:178:1*/	}
+ /*line notifications_test.mygo:170:6*/	var __mygo_expr_15 Result[sql.Result, error]
 	__mygo_expr_16, __mygo_expr_14 := pool.ExecContext(ctx, "INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','new-reply','legacy-post','https://a.example/users/bob','https://a.example/users/alice')")
 	if __mygo_expr_14 != nil {
 		__mygo_expr_15 = Err[sql.Result, error](__mygo_expr_14)
 	} else {
 		__mygo_expr_15 = Ok[sql.Result, error](__mygo_expr_16)
- /*line zz_notifications.gen_test.go:184:1*/	}
- /*line notifications_test.mygo:169:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_15) {
- /*line notifications_test.mygo:173:5*/		t.Fatal("cannot insert notification after target migration")
- /*line notifications_test.mygo:169:3*/	} else {
- /*line zz_notifications.gen_test.go:188:1*/	}
- /*line notifications_test.mygo:132:1*/	inserted := Zero[NotificationTargetRow]()
- /*line notifications_test.mygo:176:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Table("notification_events").Select("target_kind,target_id").Where("occurrence='new-reply'").Scan(&inserted))) || inserted.TargetKind != "post" || inserted.TargetID != "legacy-post" {
- /*line notifications_test.mygo:179:5*/		t.Fatal("new post notification did not receive its default target")
+ /*line zz_notifications.gen_test.go:185:1*/	}
+ /*line notifications_test.mygo:170:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_15) {
+ /*line notifications_test.mygo:174:5*/		t.Fatal("cannot insert notification after target migration")
+ /*line notifications_test.mygo:170:3*/	} else {
+ /*line zz_notifications.gen_test.go:189:1*/	}
+ /*line notifications_test.mygo:133:1*/	inserted := Zero[NotificationTargetRow]()
+ /*line notifications_test.mygo:177:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Table("notification_events").Select("target_kind,target_id").Where("occurrence='new-reply'").Scan(&inserted))) || inserted.TargetKind != "post" || inserted.TargetID != "legacy-post" {
+ /*line notifications_test.mygo:180:5*/		t.Fatal("new post notification did not receive its default target")
 		return
- /*line notifications_test.mygo:176:3*/	} else {
+ /*line notifications_test.mygo:177:3*/	} else {
 		return
- /*line zz_notifications.gen_test.go:195:1*/	}
+ /*line zz_notifications.gen_test.go:196:1*/	}
 }
- /*line notifications_test.mygo:183:1*/func TestPostgresNotificationsRemoteAndRevocation(t *testing.T) {
+ /*line notifications_test.mygo:184:1*/func TestPostgresNotificationsRemoteAndRevocation(t *testing.T) {
 	f := notificationFixture(t)
 	ctx := context.Background()
 	var author string = "https://remote.example/users/actor"
@@ -202,112 +203,112 @@ import . "github.com/mygo-lang/mygo/prelude"
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	posts := PostRepository{DB: f.DB, SiteID: f.Site.ID}
 	incoming := PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/objects/reply", Valid: true}, CommunityID: f.Community.ID, FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: sql.NullString{String: "", Valid: false}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: sql.NullString{String: f.Parent.ID, Valid: true}, AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
- /*line notifications_test.mygo:214:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, "https://forged.example/actor")) {
- /*line notifications_test.mygo:215:5*/		t.Fatal("unverified remote author accepted")
- /*line notifications_test.mygo:214:3*/	} else {
- /*line zz_notifications.gen_test.go:208:1*/	}
- /*line notifications_test.mygo:183:1*/	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author))
+ /*line notifications_test.mygo:215:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, "https://forged.example/actor", content.DefaultSanitizer())) {
+ /*line notifications_test.mygo:216:5*/		t.Fatal("unverified remote author accepted")
+ /*line notifications_test.mygo:215:3*/	} else {
+ /*line zz_notifications.gen_test.go:209:1*/	}
+ /*line notifications_test.mygo:184:1*/	received := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer()))
+	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, author, content.DefaultSanitizer()))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, f.DB, 100))
 	browser := BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
 	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, f.Alice))
- /*line notifications_test.mygo:222:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:223:5*/		t.Fatal("accepted remote reply was missing or duplicated")
- /*line notifications_test.mygo:222:3*/	} else {
- /*line zz_notifications.gen_test.go:217:1*/	}
- /*line notifications_test.mygo:183:1*/	snapshot := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 20, Offset: 0}, 50))
+ /*line notifications_test.mygo:223:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:224:5*/		t.Fatal("accepted remote reply was missing or duplicated")
+ /*line notifications_test.mygo:223:3*/	} else {
+ /*line zz_notifications.gen_test.go:218:1*/	}
+ /*line notifications_test.mygo:184:1*/	snapshot := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 20, Offset: 0}, 50))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("UPDATE site_posts SET hidden_at=clock_timestamp() WHERE post_id=?", received.ID)))
- /*line notifications_test.mygo:230:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
- /*line notifications_test.mygo:231:5*/		t.Fatal("hidden reception leaked notification count")
- /*line notifications_test.mygo:230:3*/	} else {
- /*line zz_notifications.gen_test.go:223:1*/	}
- /*line notifications_test.mygo:233:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, viewer, MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(snapshot.Items, 0)).ID)) {
- /*line notifications_test.mygo:234:5*/		t.Fatal("inaccessible target could be marked read")
- /*line notifications_test.mygo:233:3*/	} else {
- /*line zz_notifications.gen_test.go:227:1*/	}
- /*line notifications_test.mygo:183:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM20ReadAllNotifications(browser, ctx, viewer, MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(snapshot.ThroughCursor))))
+ /*line notifications_test.mygo:231:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
+ /*line notifications_test.mygo:232:5*/		t.Fatal("hidden reception leaked notification count")
+ /*line notifications_test.mygo:231:3*/	} else {
+ /*line zz_notifications.gen_test.go:224:1*/	}
+ /*line notifications_test.mygo:234:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, viewer, MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(snapshot.Items, 0)).ID)) {
+ /*line notifications_test.mygo:235:5*/		t.Fatal("inaccessible target could be marked read")
+ /*line notifications_test.mygo:234:3*/	} else {
+ /*line zz_notifications.gen_test.go:228:1*/	}
+ /*line notifications_test.mygo:184:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM20ReadAllNotifications(browser, ctx, viewer, MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(snapshot.ThroughCursor))))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", received.ID)))
- /*line notifications_test.mygo:245:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:246:5*/		t.Fatal("read-all changed an inaccessible notification")
- /*line notifications_test.mygo:245:3*/	} else {
- /*line zz_notifications.gen_test.go:233:1*/	}
- /*line notifications_test.mygo:183:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'remote.example')", f.Site.ID)))
- /*line notifications_test.mygo:252:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
- /*line notifications_test.mygo:254:5*/		t.Fatal("blocked remote domain leaked notification")
- /*line notifications_test.mygo:252:3*/	} else {
- /*line zz_notifications.gen_test.go:238:1*/	}
- /*line notifications_test.mygo:183:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("DELETE FROM site_domain_blocks")))
+ /*line notifications_test.mygo:246:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:247:5*/		t.Fatal("read-all changed an inaccessible notification")
+ /*line notifications_test.mygo:246:3*/	} else {
+ /*line zz_notifications.gen_test.go:234:1*/	}
+ /*line notifications_test.mygo:184:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'remote.example')", f.Site.ID)))
+ /*line notifications_test.mygo:253:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
+ /*line notifications_test.mygo:255:5*/		t.Fatal("blocked remote domain leaked notification")
+ /*line notifications_test.mygo:253:3*/	} else {
+ /*line zz_notifications.gen_test.go:239:1*/	}
+ /*line notifications_test.mygo:184:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("DELETE FROM site_domain_blocks")))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('public-bob',?,?)", f.Parent.ID, f.Bob.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, f.DB, 100))
 	bob := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, f.Bob))
- /*line notifications_test.mygo:264:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bob)) != int64(1) {
- /*line notifications_test.mygo:265:5*/		t.Fatal("eligible public mention was not projected")
- /*line notifications_test.mygo:264:3*/	} else {
- /*line zz_notifications.gen_test.go:246:1*/	}
- /*line notifications_test.mygo:183:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("UPDATE communities SET read_policy='members',post_policy='members' WHERE id=?", f.Community.ID)))
+ /*line notifications_test.mygo:265:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bob)) != int64(1) {
+ /*line notifications_test.mygo:266:5*/		t.Fatal("eligible public mention was not projected")
+ /*line notifications_test.mygo:265:3*/	} else {
+ /*line zz_notifications.gen_test.go:247:1*/	}
+ /*line notifications_test.mygo:184:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("UPDATE communities SET read_policy='members',post_policy='members' WHERE id=?", f.Community.ID)))
 	reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, f.Site, f.Community.ID, f.Alice, false, PublishInput{ParentID: f.Parent.ID, Body: "mention bob", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(f.DB.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('private-bob',?,?)", reply.ID, f.Bob.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, f.DB, 100))
- /*line notifications_test.mygo:293:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bob)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, bob, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
- /*line notifications_test.mygo:299:5*/		t.Fatal("outsider mention expanded private audience")
- /*line notifications_test.mygo:293:3*/	} else {
- /*line zz_notifications.gen_test.go:254:1*/	}
- /*line notifications_test.mygo:183:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, f.Parent.ID, f.Alice, false))
- /*line notifications_test.mygo:302:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
- /*line notifications_test.mygo:303:5*/		t.Fatal("deleted parent retained reply notification")
+ /*line notifications_test.mygo:294:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bob)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, bob, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
+ /*line notifications_test.mygo:300:5*/		t.Fatal("outsider mention expanded private audience")
+ /*line notifications_test.mygo:294:3*/	} else {
+ /*line zz_notifications.gen_test.go:255:1*/	}
+ /*line notifications_test.mygo:184:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, f.Parent.ID, f.Alice, false))
+ /*line notifications_test.mygo:303:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
+ /*line notifications_test.mygo:304:5*/		t.Fatal("deleted parent retained reply notification")
 		return
- /*line notifications_test.mygo:302:3*/	} else {
+ /*line notifications_test.mygo:303:3*/	} else {
 		return
- /*line zz_notifications.gen_test.go:261:1*/	}
+ /*line zz_notifications.gen_test.go:262:1*/	}
 }
- /*line notifications_test.mygo:307:1*/func TestPostgresNotificationsConcurrentProjectionSnapshot(t *testing.T) {
+ /*line notifications_test.mygo:308:1*/func TestPostgresNotificationsConcurrentProjectionSnapshot(t *testing.T) {
 	f := notificationFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(15)*time.Second)
- /*line notifications_test.mygo:310:3*/	t.Cleanup(cancel)
- /*line notifications_test.mygo:307:1*/	reactions := ReactionRepository{DB: f.DB, SiteID: f.Site.ID}
+ /*line notifications_test.mygo:311:3*/	t.Cleanup(cancel)
+ /*line notifications_test.mygo:308:1*/	reactions := ReactionRepository{DB: f.DB, SiteID: f.Site.ID}
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, f.Parent.ID, f.Bob, false, ""))
 	results := concurrency.MakeChan[Result[struct{}, string]](2)
 	var workers []int = []int{1, 2}
- /*line notifications_test.mygo:315:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(workers, func(worker int) {
- /*line notifications_test.mygo:316:5*/		concurrency.Spawn(func() {
- /*line notifications_test.mygo:317:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, ProjectNotifications(ctx, f.DB, worker))
+ /*line notifications_test.mygo:316:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(workers, func(worker int) {
+ /*line notifications_test.mygo:317:5*/		concurrency.Spawn(func() {
+ /*line notifications_test.mygo:318:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, ProjectNotifications(ctx, f.DB, worker))
 			return
- /*line zz_notifications.gen_test.go:275:1*/		})
- /*line notifications_test.mygo:316:5*/		return
- /*line zz_notifications.gen_test.go:277:1*/	})
- /*line notifications_test.mygo:307:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results)))
+ /*line zz_notifications.gen_test.go:276:1*/		})
+ /*line notifications_test.mygo:317:5*/		return
+ /*line zz_notifications.gen_test.go:278:1*/	})
+ /*line notifications_test.mygo:308:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results)))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results)))
 	browser := BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
 	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, f.Alice))
 	snapshot := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, Page{Limit: 1, Offset: 0}, 50))
- /*line notifications_test.mygo:325:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(snapshot.Items) != 1 {
- /*line notifications_test.mygo:326:5*/		t.Fatal("concurrent projectors duplicated or lost notification")
- /*line notifications_test.mygo:325:3*/	} else {
- /*line zz_notifications.gen_test.go:286:1*/	}
- /*line notifications_test.mygo:307:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, f.Parent.ID, f.Bob, false))
+ /*line notifications_test.mygo:326:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(snapshot.Items) != 1 {
+ /*line notifications_test.mygo:327:5*/		t.Fatal("concurrent projectors duplicated or lost notification")
+ /*line notifications_test.mygo:326:3*/	} else {
+ /*line zz_notifications.gen_test.go:287:1*/	}
+ /*line notifications_test.mygo:308:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, f.Parent.ID, f.Bob, false))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, f.Parent.ID, f.Bob, false, ""))
- /*line notifications_test.mygo:330:3*/	concurrency.Spawn(func() {
- /*line notifications_test.mygo:331:5*/		concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, ProjectNotifications(ctx, f.DB, 100))
+ /*line notifications_test.mygo:331:3*/	concurrency.Spawn(func() {
+ /*line notifications_test.mygo:332:5*/		concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, ProjectNotifications(ctx, f.DB, 100))
 		return
- /*line zz_notifications.gen_test.go:292:1*/	})
- /*line notifications_test.mygo:307:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM20ReadAllNotifications(browser, ctx, viewer, MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(snapshot.ThroughCursor))))
+ /*line zz_notifications.gen_test.go:293:1*/	})
+ /*line notifications_test.mygo:308:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM20ReadAllNotifications(browser, ctx, viewer, MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(snapshot.ThroughCursor))))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results)))
- /*line notifications_test.mygo:339:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:340:5*/		t.Fatal("concurrent arrival was marked by an older snapshot")
+ /*line notifications_test.mygo:340:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:341:5*/		t.Fatal("concurrent arrival was marked by an older snapshot")
 		return
- /*line notifications_test.mygo:339:3*/	} else {
+ /*line notifications_test.mygo:340:3*/	} else {
 		return
- /*line zz_notifications.gen_test.go:300:1*/	}
+ /*line zz_notifications.gen_test.go:301:1*/	}
 }
- /*line notifications_test.mygo:344:1*/func TestPostgresNotificationsOccurrenceAndPrivacy(t *testing.T) {
- /*line notifications_test.mygo:345:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line notifications_test.mygo:345:1*/func TestPostgresNotificationsOccurrenceAndPrivacy(t *testing.T) {
+ /*line notifications_test.mygo:346:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_notifications.gen_test.go:309:1*/	}
- /*line notifications_test.mygo:344:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_notifications.gen_test.go:310:1*/	}
+ /*line notifications_test.mygo:345:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
@@ -330,104 +331,104 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
 	var checkedRows []NotificationRecord = []NotificationRecord{}
 	checked := MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, viewer).Order("created_at DESC,id DESC").Scan(&checkedRows)
- /*line notifications_test.mygo:399:3*/	if QueryFailed(checked) {
- /*line notifications_test.mygo:400:5*/		t.Fatalf("notification SQL failed: %v", checked.Error)
- /*line notifications_test.mygo:399:3*/	} else {
- /*line zz_notifications.gen_test.go:336:1*/	}
- /*line notifications_test.mygo:344:1*/	initial := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50))
- /*line notifications_test.mygo:403:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(initial.Items) != 1 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(initial.Items, 0)).Kind != "reply" {
- /*line notifications_test.mygo:404:5*/		t.Fatal("reply not projected")
- /*line notifications_test.mygo:403:3*/	} else {
- /*line zz_notifications.gen_test.go:341:1*/	}
- /*line notifications_test.mygo:344:1*/	firstID := MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(initial.Items, 0)).ID
+ /*line notifications_test.mygo:400:3*/	if QueryFailed(checked) {
+ /*line notifications_test.mygo:401:5*/		t.Fatalf("notification SQL failed: %v", checked.Error)
+ /*line notifications_test.mygo:400:3*/	} else {
+ /*line zz_notifications.gen_test.go:337:1*/	}
+ /*line notifications_test.mygo:345:1*/	initial := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50))
+ /*line notifications_test.mygo:404:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(initial.Items) != 1 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(initial.Items, 0)).Kind != "reply" {
+ /*line notifications_test.mygo:405:5*/		t.Fatal("reply not projected")
+ /*line notifications_test.mygo:404:3*/	} else {
+ /*line zz_notifications.gen_test.go:342:1*/	}
+ /*line notifications_test.mygo:345:1*/	firstID := MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(initial.Items, 0)).ID
 	rollback := RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line notifications_test.mygo:411:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('rolled-back',?,?)", reply.ID, alice.ActorURI))) {
- /*line notifications_test.mygo:416:16*/			return Err[struct{}, string]("fixture failed")
- /*line notifications_test.mygo:411:7*/		} else {
- /*line zz_notifications.gen_test.go:347:1*/		}
- /*line notifications_test.mygo:418:7*/		return Err[struct{}, string]("deliberate rollback")
- /*line zz_notifications.gen_test.go:349:1*/	})
- /*line notifications_test.mygo:421:3*/	if MygoIN6ResultM4IsOk[struct{}, string](rollback) {
- /*line notifications_test.mygo:422:5*/		t.Fatal("failed action committed")
- /*line notifications_test.mygo:421:3*/	} else {
- /*line zz_notifications.gen_test.go:353:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
- /*line notifications_test.mygo:425:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:426:5*/		t.Fatal("rolled back action produced notification")
- /*line notifications_test.mygo:425:3*/	} else {
- /*line zz_notifications.gen_test.go:358:1*/	}
- /*line notifications_test.mygo:428:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, bobView, firstID)) {
- /*line notifications_test.mygo:429:5*/		t.Fatal("another account marked notification read")
- /*line notifications_test.mygo:428:3*/	} else {
- /*line zz_notifications.gen_test.go:362:1*/	}
- /*line notifications_test.mygo:344:1*/	cross := BrowserRepository{DB: db, SiteID: other.ID}
- /*line notifications_test.mygo:432:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(cross, ctx, MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(cross, ctx, outsider)), page, 50)).Items) != 0 {
- /*line notifications_test.mygo:434:5*/		t.Fatal("cross-site notification leaked")
- /*line notifications_test.mygo:432:3*/	} else {
- /*line zz_notifications.gen_test.go:367:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,active) VALUES ('mention-one',?,?,true)", reply.ID, alice.ActorURI)))
+ /*line notifications_test.mygo:412:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('rolled-back',?,?)", reply.ID, alice.ActorURI))) {
+ /*line notifications_test.mygo:417:16*/			return Err[struct{}, string]("fixture failed")
+ /*line notifications_test.mygo:412:7*/		} else {
+ /*line zz_notifications.gen_test.go:348:1*/		}
+ /*line notifications_test.mygo:419:7*/		return Err[struct{}, string]("deliberate rollback")
+ /*line zz_notifications.gen_test.go:350:1*/	})
+ /*line notifications_test.mygo:422:3*/	if MygoIN6ResultM4IsOk[struct{}, string](rollback) {
+ /*line notifications_test.mygo:423:5*/		t.Fatal("failed action committed")
+ /*line notifications_test.mygo:422:3*/	} else {
+ /*line zz_notifications.gen_test.go:354:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
+ /*line notifications_test.mygo:426:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:427:5*/		t.Fatal("rolled back action produced notification")
+ /*line notifications_test.mygo:426:3*/	} else {
+ /*line zz_notifications.gen_test.go:359:1*/	}
+ /*line notifications_test.mygo:429:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, bobView, firstID)) {
+ /*line notifications_test.mygo:430:5*/		t.Fatal("another account marked notification read")
+ /*line notifications_test.mygo:429:3*/	} else {
+ /*line zz_notifications.gen_test.go:363:1*/	}
+ /*line notifications_test.mygo:345:1*/	cross := BrowserRepository{DB: db, SiteID: other.ID}
+ /*line notifications_test.mygo:433:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(cross, ctx, MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(cross, ctx, outsider)), page, 50)).Items) != 0 {
+ /*line notifications_test.mygo:435:5*/		t.Fatal("cross-site notification leaked")
+ /*line notifications_test.mygo:433:3*/	} else {
+ /*line zz_notifications.gen_test.go:368:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,active) VALUES ('mention-one',?,?,true)", reply.ID, alice.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
 	mentioned := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50))
- /*line notifications_test.mygo:443:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mentioned.Items) != 1 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentioned.Items, 0)).Kind != "mention" {
- /*line notifications_test.mygo:444:5*/		t.Fatal("mention did not take precedence")
- /*line notifications_test.mygo:443:3*/	} else {
- /*line zz_notifications.gen_test.go:374:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE post_mentions SET active=false WHERE id='mention-one'")))
- /*line notifications_test.mygo:447:3*/	if MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items, 0)).Kind != "reply" {
- /*line notifications_test.mygo:449:5*/		t.Fatal("removed mention did not restore reply")
- /*line notifications_test.mygo:447:3*/	} else {
- /*line zz_notifications.gen_test.go:379:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('mention-two',?,?)", reply.ID, alice.ActorURI)))
+ /*line notifications_test.mygo:444:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mentioned.Items) != 1 || MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentioned.Items, 0)).Kind != "mention" {
+ /*line notifications_test.mygo:445:5*/		t.Fatal("mention did not take precedence")
+ /*line notifications_test.mygo:444:3*/	} else {
+ /*line zz_notifications.gen_test.go:375:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE post_mentions SET active=false WHERE id='mention-one'")))
+ /*line notifications_test.mygo:448:3*/	if MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items, 0)).Kind != "reply" {
+ /*line notifications_test.mygo:450:5*/		t.Fatal("removed mention did not restore reply")
+ /*line notifications_test.mygo:448:3*/	} else {
+ /*line zz_notifications.gen_test.go:380:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('mention-two',?,?)", reply.ID, alice.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
 	secondMention := MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items, 0))
- /*line notifications_test.mygo:458:3*/	if secondMention.Kind != "mention" || secondMention.ID == MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentioned.Items, 0)).ID {
- /*line notifications_test.mygo:459:5*/		t.Fatal("reintroduced mention reused an occurrence")
- /*line notifications_test.mygo:458:3*/	} else {
- /*line zz_notifications.gen_test.go:386:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM post_mentions WHERE id='mention-two'")))
+ /*line notifications_test.mygo:459:3*/	if secondMention.Kind != "mention" || secondMention.ID == MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentioned.Items, 0)).ID {
+ /*line notifications_test.mygo:460:5*/		t.Fatal("reintroduced mention reused an occurrence")
+ /*line notifications_test.mygo:459:3*/	} else {
+ /*line zz_notifications.gen_test.go:387:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM post_mentions WHERE id='mention-two'")))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(ReactionRepository{DB: db, SiteID: site.ID}, ctx, parent.ID, alice, false, ""))
 	reactions := ReactionRepository{DB: db, SiteID: site.ID}
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, parent.ID, bob, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, parent.ID, bob, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
- /*line notifications_test.mygo:468:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(2) {
- /*line notifications_test.mygo:469:5*/		t.Fatal("like or projector replay duplicated notifications")
- /*line notifications_test.mygo:468:3*/	} else {
- /*line zz_notifications.gen_test.go:397:1*/	}
- /*line notifications_test.mygo:344:1*/	snapshot := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50))
+ /*line notifications_test.mygo:469:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(2) {
+ /*line notifications_test.mygo:470:5*/		t.Fatal("like or projector replay duplicated notifications")
+ /*line notifications_test.mygo:469:3*/	} else {
+ /*line zz_notifications.gen_test.go:398:1*/	}
+ /*line notifications_test.mygo:345:1*/	snapshot := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Undo(reactions, ctx, parent.ID, bob, false))
- /*line notifications_test.mygo:473:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:474:5*/		t.Fatal("Undo did not immediately retire like")
- /*line notifications_test.mygo:473:3*/	} else {
- /*line zz_notifications.gen_test.go:403:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, viewer, firstID))
+ /*line notifications_test.mygo:474:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:475:5*/		t.Fatal("Undo did not immediately retire like")
+ /*line notifications_test.mygo:474:3*/	} else {
+ /*line zz_notifications.gen_test.go:404:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, viewer, firstID))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM16ReadNotification(browser, ctx, viewer, firstID))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, parent.ID, bob, false, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
 	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN17BrowserRepositoryM20ReadAllNotifications(browser, ctx, viewer, MygoIN6ResultM6Unwrap[NotificationCursor, string](ParseNotificationCursor(snapshot.ThroughCursor))))
- /*line notifications_test.mygo:485:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line notifications_test.mygo:486:5*/		t.Fatal("mark-all consumed a later re-like")
- /*line notifications_test.mygo:485:3*/	} else {
- /*line zz_notifications.gen_test.go:412:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(communities, ctx, community.ID, alice, false, bob.ActorURI, false))
+ /*line notifications_test.mygo:486:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line notifications_test.mygo:487:5*/		t.Fatal("mark-all consumed a later re-like")
+ /*line notifications_test.mygo:486:3*/	} else {
+ /*line zz_notifications.gen_test.go:413:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(communities, ctx, community.ID, alice, false, bob.ActorURI, false))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO post_mentions(id,post_id,actor_uri,active) VALUES ('ineligible',?,?,true)", parent.ID, bob.ActorURI)))
 	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
- /*line notifications_test.mygo:496:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bobView)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, bobView, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
- /*line notifications_test.mygo:502:5*/		t.Fatal("revoked member received notification")
- /*line notifications_test.mygo:496:3*/	} else {
- /*line zz_notifications.gen_test.go:419:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, bob.ActorURI)))
- /*line notifications_test.mygo:509:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items) != 0 {
- /*line notifications_test.mygo:511:5*/		t.Fatal("blocked author leaked through notification counts/page")
- /*line notifications_test.mygo:509:3*/	} else {
- /*line zz_notifications.gen_test.go:424:1*/	}
- /*line notifications_test.mygo:344:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM site_actor_blocks")))
+ /*line notifications_test.mygo:497:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, bobView)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, bobView, Page{Limit: 1, Offset: 0}, 50)).Items) != 0 {
+ /*line notifications_test.mygo:503:5*/		t.Fatal("revoked member received notification")
+ /*line notifications_test.mygo:497:3*/	} else {
+ /*line zz_notifications.gen_test.go:420:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, bob.ActorURI)))
+ /*line notifications_test.mygo:510:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items) != 0 {
+ /*line notifications_test.mygo:512:5*/		t.Fatal("blocked author leaked through notification counts/page")
+ /*line notifications_test.mygo:510:3*/	} else {
+ /*line zz_notifications.gen_test.go:425:1*/	}
+ /*line notifications_test.mygo:345:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM site_actor_blocks")))
 	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE actor_uri=?", bob.ActorURI)))
- /*line notifications_test.mygo:518:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items) != 0 {
- /*line notifications_test.mygo:520:5*/		t.Fatal("disabled author retained visible notifications")
+ /*line notifications_test.mygo:519:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, page, 50)).Items) != 0 {
+ /*line notifications_test.mygo:521:5*/		t.Fatal("disabled author retained visible notifications")
 		return
- /*line notifications_test.mygo:518:3*/	} else {
+ /*line notifications_test.mygo:519:3*/	} else {
 		return
- /*line zz_notifications.gen_test.go:432:1*/	}
+ /*line zz_notifications.gen_test.go:433:1*/	}
 }

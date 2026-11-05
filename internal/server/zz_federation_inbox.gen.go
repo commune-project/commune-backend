@@ -37,18 +37,18 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_inbox.gen.go:37:1*/	}
  /*line federation_inbox.mygo:27:1*/	body := __mygo_expr_1
 	reader.Close()
- /*line federation_inbox.mygo:32:6*/	if MygoIN6ResultM5IsErr[[]byte, error](body) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](body)) == 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](body)) > maxBytes {
+ /*line federation_inbox.mygo:32:3*/	if MygoIN6ResultM5IsErr[[]byte, error](body) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](body)) == 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](body)) > maxBytes {
  /*line federation_inbox.mygo:33:5*/		WriteErrorJSON(w, 400, "invalid activity")
- /*line federation_inbox.mygo:32:6*/		return
+ /*line federation_inbox.mygo:32:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:44:1*/	}
  /*line federation_inbox.mygo:27:1*/	payload := MygoIN6ResultM6Unwrap[[]byte, error](body)
- /*line federation_inbox.mygo:37:6*/	if federation.HasDuplicateKeys(payload) {
+ /*line federation_inbox.mygo:37:3*/	if federation.HasDuplicateKeys(payload) {
  /*line federation_inbox.mygo:38:5*/		WriteErrorJSON(w, 400, "ambiguous activity")
- /*line federation_inbox.mygo:37:6*/		return
+ /*line federation_inbox.mygo:37:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:50:1*/	}
- /*line federation_inbox.mygo:27:1*/	envelope := ActivityEnvelope{}
+ /*line federation_inbox.mygo:27:1*/	envelope := Zero[ActivityEnvelope]()
  /*line federation_inbox.mygo:42:6*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(payload, &envelope)
 	if __mygo_expr_3 != nil {
@@ -57,78 +57,78 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[struct{}, error](struct {
  /*line zz_federation_inbox.gen.go:58:1*/		}{})
 	}
- /*line federation_inbox.mygo:42:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || envelope.ID == "" || envelope.Actor == "" || !KnownActivityKind(envelope.Type) {
+ /*line federation_inbox.mygo:42:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || envelope.ID == "" || envelope.Actor == "" || !KnownActivityKind(envelope.Type) {
  /*line federation_inbox.mygo:43:5*/		WriteErrorJSON(w, 400, "invalid activity")
- /*line federation_inbox.mygo:42:6*/		return
+ /*line federation_inbox.mygo:42:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:64:1*/	}
  /*line federation_inbox.mygo:27:1*/	authorized := AuthorizeActivity(request, db, settings, payload, envelope.Actor)
- /*line federation_inbox.mygo:47:6*/	if MygoIN6ResultM5IsErr[struct{}, string](authorized) {
+ /*line federation_inbox.mygo:47:3*/	if MygoIN6ResultM5IsErr[struct{}, string](authorized) {
  /*line federation_inbox.mygo:48:5*/		slog.Warn("inbound signature rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", MygoIN6ResultM9UnwrapErr[struct{}, string](authorized))
  /*line federation_inbox.mygo:49:5*/		WriteErrorJSON(w, 401, MygoIN6ResultM9UnwrapErr[struct{}, string](authorized))
- /*line federation_inbox.mygo:47:6*/		return
+ /*line federation_inbox.mygo:47:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:71:1*/	}
  /*line federation_inbox.mygo:27:1*/	action := AuthorizeInbound(request.Context(), db, settings, site.ID, payload, envelope)
- /*line federation_inbox.mygo:53:6*/	if MygoIN6ResultM5IsErr[struct{}, string](action) {
+ /*line federation_inbox.mygo:53:3*/	if MygoIN6ResultM5IsErr[struct{}, string](action) {
  /*line federation_inbox.mygo:54:5*/		slog.Warn("inbound activity rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", MygoIN6ResultM9UnwrapErr[struct{}, string](action))
  /*line federation_inbox.mygo:55:5*/		WriteErrorJSON(w, 403, MygoIN6ResultM9UnwrapErr[struct{}, string](action))
- /*line federation_inbox.mygo:53:6*/		return
+ /*line federation_inbox.mygo:53:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:78:1*/	}
  /*line federation_inbox.mygo:27:1*/	addressed := MergeAddresses(envelope.To, envelope.CC)
 	recipients := storage.LocalActors(request.Context(), db, site.ID, addressed)
- /*line federation_inbox.mygo:60:6*/	if MygoIN6ResultM5IsErr[[]string, string](recipients) {
+ /*line federation_inbox.mygo:60:3*/	if MygoIN6ResultM5IsErr[[]string, string](recipients) {
  /*line federation_inbox.mygo:61:5*/		WriteErrorJSON(w, 503, "receipt unavailable")
- /*line federation_inbox.mygo:60:6*/		return
+ /*line federation_inbox.mygo:60:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:85:1*/	}
  /*line federation_inbox.mygo:27:1*/	accepted := MygoIN6ResultM6Unwrap[[]string, string](recipients)
- /*line federation_inbox.mygo:65:6*/	if ownerURI != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(accepted, ownerURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line federation_inbox.mygo:65:3*/	if ownerURI != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(accepted, ownerURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
 		owner := storage.LocalActors(request.Context(), db, site.ID, []string{ownerURI})
- /*line federation_inbox.mygo:67:8*/		if MygoIN6ResultM5IsErr[[]string, string](owner) {
+ /*line federation_inbox.mygo:67:5*/		if MygoIN6ResultM5IsErr[[]string, string](owner) {
  /*line federation_inbox.mygo:68:7*/			WriteErrorJSON(w, 503, "receipt unavailable")
- /*line federation_inbox.mygo:67:8*/			return
+ /*line federation_inbox.mygo:67:5*/			return
 		} else {
  /*line zz_federation_inbox.gen.go:93:1*/		}
- /*line federation_inbox.mygo:65:6*/		accepted = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]string, string](owner), accepted, func(acc []string, item string) []string {
+ /*line federation_inbox.mygo:65:3*/		accepted = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]string, string](owner), accepted, func(acc []string, item string) []string {
  /*line federation_inbox.mygo:72:7*/			return MygoIN5SliceM6Append(acc, item)
  /*line zz_federation_inbox.gen.go:96:1*/		})
- /*line federation_inbox.mygo:65:6*/	} else {
+ /*line federation_inbox.mygo:65:3*/	} else {
  /*line zz_federation_inbox.gen.go:98:1*/	}
- /*line federation_inbox.mygo:75:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accepted) == 0 {
+ /*line federation_inbox.mygo:75:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(accepted) == 0 {
  /*line federation_inbox.mygo:76:5*/		WriteErrorJSON(w, 400, "no local recipient")
- /*line federation_inbox.mygo:75:6*/		return
+ /*line federation_inbox.mygo:75:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:103:1*/	}
  /*line federation_inbox.mygo:27:1*/	received := storage.ReceiveActivity(request.Context(), db, site.ID, accepted, envelope.ID, envelope.Actor, envelope.Type, payload)
- /*line federation_inbox.mygo:80:6*/	if MygoIN6ResultM5IsErr[int64, string](received) {
+ /*line federation_inbox.mygo:80:3*/	if MygoIN6ResultM5IsErr[int64, string](received) {
 		reason := MygoIN6ResultM9UnwrapErr[int64, string](received)
  /*line federation_inbox.mygo:82:5*/		slog.Warn("inbound receipt rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", reason)
- /*line federation_inbox.mygo:83:8*/		if reason == "conflicting activity" {
+ /*line federation_inbox.mygo:83:5*/		if reason == "conflicting activity" {
  /*line federation_inbox.mygo:84:7*/			WriteErrorJSON(w, 409, reason)
- /*line federation_inbox.mygo:83:8*/		} else {
+ /*line federation_inbox.mygo:83:5*/		} else {
  /*line federation_inbox.mygo:86:7*/			WriteErrorJSON(w, 400, reason)
  /*line zz_federation_inbox.gen.go:112:1*/		}
- /*line federation_inbox.mygo:80:6*/		return
+ /*line federation_inbox.mygo:80:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:115:1*/	}
  /*line federation_inbox.mygo:27:1*/	parsedActivity := federation.ParseActivity(payload)
- /*line federation_inbox.mygo:91:6*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsedActivity) {
+ /*line federation_inbox.mygo:91:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsedActivity) {
  /*line federation_inbox.mygo:92:5*/		slog.Warn("inbound activity rejected", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", "invalid activity")
  /*line federation_inbox.mygo:93:5*/		WriteErrorJSON(w, 400, "invalid activity")
- /*line federation_inbox.mygo:91:6*/		return
+ /*line federation_inbox.mygo:91:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:122:1*/	}
- /*line federation_inbox.mygo:27:1*/	applied := ApplyActivity(request.Context(), db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsedActivity), payload, addressed)
- /*line federation_inbox.mygo:97:6*/	if MygoIN6ResultM5IsErr[bool, string](applied) {
+ /*line federation_inbox.mygo:27:1*/	applied := ApplyActivity(settings.Rendering.Sanitizer, request.Context(), db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsedActivity), payload, addressed)
+ /*line federation_inbox.mygo:97:3*/	if MygoIN6ResultM5IsErr[bool, string](applied) {
  /*line federation_inbox.mygo:98:5*/		slog.Warn("inbound activity failed", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", MygoIN6ResultM9UnwrapErr[bool, string](applied))
  /*line federation_inbox.mygo:99:5*/		WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[bool, string](applied))
- /*line federation_inbox.mygo:97:6*/		return
+ /*line federation_inbox.mygo:97:3*/		return
 	} else {
  /*line zz_federation_inbox.gen.go:129:1*/	}
  /*line federation_inbox.mygo:27:1*/	note := ""
- /*line federation_inbox.mygo:103:6*/	if MygoIN6ResultM6Unwrap[bool, string](applied) {
+ /*line federation_inbox.mygo:103:3*/	if MygoIN6ResultM6Unwrap[bool, string](applied) {
 		note = "previously delivered public copies cannot be recalled"
 	} else {
  /*line zz_federation_inbox.gen.go:134:1*/	}
@@ -147,105 +147,105 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_inbox.mygo:122:1*/func AuthorizeInbound(ctx context.Context, db *gorm.DB, settings config.Config, siteID string, payload []byte, envelope ActivityEnvelope) Result[struct {
 }, string] {
 	parsed := federation.ParseActivity(payload)
- /*line federation_inbox.mygo:124:6*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) {
+ /*line federation_inbox.mygo:124:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) {
  /*line federation_inbox.mygo:125:12*/		return Err[struct{}, string]("invalid activity")
- /*line federation_inbox.mygo:124:6*/	} else {
+ /*line federation_inbox.mygo:124:3*/	} else {
  /*line zz_federation_inbox.gen.go:153:1*/	}
  /*line federation_inbox.mygo:122:1*/	activity := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed)
- /*line federation_inbox.mygo:128:6*/	if activity.ID != envelope.ID || activity.Actor != envelope.Actor || activity.Type != envelope.Type {
+ /*line federation_inbox.mygo:128:3*/	if activity.ID != envelope.ID || activity.Actor != envelope.Actor || activity.Type != envelope.Type {
  /*line federation_inbox.mygo:129:12*/		return Err[struct{}, string]("inconsistent activity")
- /*line federation_inbox.mygo:128:6*/	} else {
+ /*line federation_inbox.mygo:128:3*/	} else {
  /*line zz_federation_inbox.gen.go:158:1*/	}
- /*line federation_inbox.mygo:131:6*/	if !federation.CreateAuthorMatches(activity) {
+ /*line federation_inbox.mygo:131:3*/	if !federation.CreateAuthorMatches(activity) {
  /*line federation_inbox.mygo:132:12*/		return Err[struct{}, string]("forged author")
- /*line federation_inbox.mygo:131:6*/	} else {
+ /*line federation_inbox.mygo:131:3*/	} else {
  /*line zz_federation_inbox.gen.go:162:1*/	}
- /*line federation_inbox.mygo:122:1*/	signer := federation.ForwardSigner{}
- /*line federation_inbox.mygo:135:6*/	if activity.Type == "Announce" {
+ /*line federation_inbox.mygo:122:1*/	signer := Zero[federation.ForwardSigner]()
+ /*line federation_inbox.mygo:135:3*/	if activity.Type == "Announce" {
 		group := storage.LoadReplicaCommunity(ctx, db, activity.Actor)
- /*line federation_inbox.mygo:137:8*/		if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](group) {
+ /*line federation_inbox.mygo:137:5*/		if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](group) {
  /*line federation_inbox.mygo:137:34*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ReplicaCommunity], string](group))
- /*line federation_inbox.mygo:137:8*/		} else {
+ /*line federation_inbox.mygo:137:5*/		} else {
  /*line zz_federation_inbox.gen.go:169:1*/		}
- /*line federation_inbox.mygo:135:6*/		if MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)) && MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)).ReadPolicy == "members" {
+ /*line federation_inbox.mygo:135:3*/		if MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)) && MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)).ReadPolicy == "members" {
 			supported := storage.PeerSupportsProtectedReads(ctx, db, activity.Actor)
- /*line federation_inbox.mygo:140:10*/			if MygoIN6ResultM5IsErr[bool, string](supported) || !MygoIN6ResultM6Unwrap[bool, string](supported) {
+ /*line federation_inbox.mygo:140:7*/			if MygoIN6ResultM5IsErr[bool, string](supported) || !MygoIN6ResultM6Unwrap[bool, string](supported) {
  /*line federation_inbox.mygo:140:63*/				return Err[struct{}, string]("unsupported restricted peer")
- /*line federation_inbox.mygo:140:10*/			} else {
+ /*line federation_inbox.mygo:140:7*/			} else {
  /*line zz_federation_inbox.gen.go:175:1*/			}
- /*line federation_inbox.mygo:135:6*/			var member string = ""
+ /*line federation_inbox.mygo:135:3*/			var member string = ""
 			found := db.WithContext(ctx).Raw("SELECT a.actor_uri FROM accounts a JOIN community_members m ON m.actor_uri=a.actor_uri WHERE a.site_id=? AND NOT a.disabled AND m.community_id=? AND m.revoked_at IS NULL ORDER BY a.id LIMIT 1", siteID, MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](group)).ID).Scan(&member)
- /*line federation_inbox.mygo:143:10*/			if storage.QueryFailed(found) || found.RowsAffected != int64(1) {
+ /*line federation_inbox.mygo:143:7*/			if storage.QueryFailed(found) || found.RowsAffected != int64(1) {
  /*line federation_inbox.mygo:143:79*/				return Err[struct{}, string]("no authorized member")
- /*line federation_inbox.mygo:143:10*/			} else {
+ /*line federation_inbox.mygo:143:7*/			} else {
  /*line zz_federation_inbox.gen.go:181:1*/			}
- /*line federation_inbox.mygo:144:10*/			if MygoIN6ResultM5IsErr[string, string](storage.EnsureLocalKey(ctx, db, member)) {
+ /*line federation_inbox.mygo:144:7*/			if MygoIN6ResultM5IsErr[string, string](storage.EnsureLocalKey(ctx, db, member)) {
  /*line federation_inbox.mygo:144:70*/				return Err[struct{}, string]("signing unavailable")
- /*line federation_inbox.mygo:144:10*/			} else {
+ /*line federation_inbox.mygo:144:7*/			} else {
  /*line zz_federation_inbox.gen.go:185:1*/			}
- /*line federation_inbox.mygo:135:6*/			key := storage.LoadLocalPrivateKey(ctx, db, member)
- /*line federation_inbox.mygo:146:10*/			if MygoIN6ResultM5IsErr[string, string](key) {
+ /*line federation_inbox.mygo:135:3*/			key := storage.LoadLocalPrivateKey(ctx, db, member)
+ /*line federation_inbox.mygo:146:7*/			if MygoIN6ResultM5IsErr[string, string](key) {
  /*line federation_inbox.mygo:146:34*/				return Err[struct{}, string]("signing unavailable")
- /*line federation_inbox.mygo:146:10*/			} else {
+ /*line federation_inbox.mygo:146:7*/			} else {
  /*line zz_federation_inbox.gen.go:190:1*/			}
- /*line federation_inbox.mygo:135:6*/			signer = federation.ForwardSigner{ActorURI: member, PrivateKey: MygoIN6ResultM6Unwrap[string, string](key)}
+ /*line federation_inbox.mygo:135:3*/			signer = federation.ForwardSigner{ActorURI: member, PrivateKey: MygoIN6ResultM6Unwrap[string, string](key)}
 		} else {
  /*line zz_federation_inbox.gen.go:193:1*/		}
- /*line federation_inbox.mygo:135:6*/	} else {
+ /*line federation_inbox.mygo:135:3*/	} else {
  /*line zz_federation_inbox.gen.go:195:1*/	}
  /*line federation_inbox.mygo:122:1*/	embedded := federation.VerifyEmbeddedActivity(ctx, activity, FetchLimitsFrom(settings), payload, signer)
- /*line federation_inbox.mygo:151:6*/	if MygoIN6ResultM5IsErr[struct{}, string](embedded) {
+ /*line federation_inbox.mygo:151:3*/	if MygoIN6ResultM5IsErr[struct{}, string](embedded) {
  /*line federation_inbox.mygo:152:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](embedded))
- /*line federation_inbox.mygo:151:6*/	} else {
+ /*line federation_inbox.mygo:151:3*/	} else {
  /*line zz_federation_inbox.gen.go:200:1*/	}
- /*line federation_inbox.mygo:154:6*/	if activity.Type == "Update" || activity.Type == "Delete" {
- /*line federation_inbox.mygo:155:8*/		if activity.ObjectURI == "" {
+ /*line federation_inbox.mygo:154:3*/	if activity.Type == "Update" || activity.Type == "Delete" {
+ /*line federation_inbox.mygo:155:5*/		if activity.ObjectURI == "" {
  /*line federation_inbox.mygo:156:14*/			return Err[struct{}, string]("invalid activity")
- /*line federation_inbox.mygo:155:8*/		} else {
+ /*line federation_inbox.mygo:155:5*/		} else {
  /*line zz_federation_inbox.gen.go:205:1*/		}
- /*line federation_inbox.mygo:158:8*/		if activity.Type == "Update" && MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Person" {
+ /*line federation_inbox.mygo:158:5*/		if activity.Type == "Update" && MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Person" {
 			profile := federation.PersonUpdateObject(payload)
- /*line federation_inbox.mygo:160:10*/			if MygoIN6ResultM5IsErr[federation.ProfileObject, string](profile) {
+ /*line federation_inbox.mygo:160:7*/			if MygoIN6ResultM5IsErr[federation.ProfileObject, string](profile) {
  /*line federation_inbox.mygo:161:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.ProfileObject, string](profile))
- /*line federation_inbox.mygo:160:10*/			} else {
+ /*line federation_inbox.mygo:160:7*/			} else {
  /*line zz_federation_inbox.gen.go:211:1*/			}
- /*line federation_inbox.mygo:158:8*/			actor := storage.LoadActor(ctx, db, activity.ObjectURI)
- /*line federation_inbox.mygo:164:10*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line federation_inbox.mygo:158:5*/			actor := storage.LoadActor(ctx, db, activity.ObjectURI)
+ /*line federation_inbox.mygo:164:7*/			if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
  /*line federation_inbox.mygo:165:16*/				return Err[struct{}, string]("unknown profile actor")
- /*line federation_inbox.mygo:164:10*/			} else {
+ /*line federation_inbox.mygo:164:7*/			} else {
  /*line zz_federation_inbox.gen.go:216:1*/			}
- /*line federation_inbox.mygo:167:10*/			if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
+ /*line federation_inbox.mygo:167:7*/			if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
  /*line federation_inbox.mygo:168:16*/				return Err[struct{}, string]("forbidden")
- /*line federation_inbox.mygo:167:10*/			} else {
+ /*line federation_inbox.mygo:167:7*/			} else {
  /*line zz_federation_inbox.gen.go:220:1*/			}
  /*line federation_inbox.mygo:170:14*/			return Ok[struct{}, string](struct {
  /*line zz_federation_inbox.gen.go:222:1*/			}{})
- /*line federation_inbox.mygo:158:8*/		} else {
+ /*line federation_inbox.mygo:158:5*/		} else {
  /*line zz_federation_inbox.gen.go:224:1*/		}
- /*line federation_inbox.mygo:154:6*/		replica := storage.LoadReplicaCommunity(ctx, db, activity.ObjectURI)
- /*line federation_inbox.mygo:173:8*/		if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](replica) {
+ /*line federation_inbox.mygo:154:3*/		replica := storage.LoadReplicaCommunity(ctx, db, activity.ObjectURI)
+ /*line federation_inbox.mygo:173:5*/		if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](replica) {
  /*line federation_inbox.mygo:174:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ReplicaCommunity], string](replica))
- /*line federation_inbox.mygo:173:8*/		} else {
+ /*line federation_inbox.mygo:173:5*/		} else {
  /*line zz_federation_inbox.gen.go:229:1*/		}
- /*line federation_inbox.mygo:176:8*/		if MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
- /*line federation_inbox.mygo:177:10*/			if activity.Actor != activity.ObjectURI {
+ /*line federation_inbox.mygo:176:5*/		if MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
+ /*line federation_inbox.mygo:177:7*/			if activity.Actor != activity.ObjectURI {
  /*line federation_inbox.mygo:178:16*/				return Err[struct{}, string]("forged mutation")
- /*line federation_inbox.mygo:177:10*/			} else {
+ /*line federation_inbox.mygo:177:7*/			} else {
  /*line zz_federation_inbox.gen.go:234:1*/			}
  /*line federation_inbox.mygo:180:14*/			return Ok[struct{}, string](struct {
  /*line zz_federation_inbox.gen.go:236:1*/			}{})
- /*line federation_inbox.mygo:176:8*/		} else {
+ /*line federation_inbox.mygo:176:5*/		} else {
  /*line zz_federation_inbox.gen.go:238:1*/		}
- /*line federation_inbox.mygo:154:6*/		stored := storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
- /*line federation_inbox.mygo:183:8*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](stored) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](stored)) {
+ /*line federation_inbox.mygo:154:3*/		stored := storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
+ /*line federation_inbox.mygo:183:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](stored) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](stored)) {
  /*line federation_inbox.mygo:184:14*/			return Err[struct{}, string]("unknown object")
- /*line federation_inbox.mygo:183:8*/		} else {
+ /*line federation_inbox.mygo:183:5*/		} else {
  /*line zz_federation_inbox.gen.go:243:1*/		}
- /*line federation_inbox.mygo:154:6*/		if !federation.AuthorObjectMutable(activity.Type, activity.Actor, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](stored)).AuthorActorURI) {
+ /*line federation_inbox.mygo:154:3*/		if !federation.AuthorObjectMutable(activity.Type, activity.Actor, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](stored)).AuthorActorURI) {
  /*line federation_inbox.mygo:187:14*/			return Err[struct{}, string]("forged mutation")
- /*line federation_inbox.mygo:154:6*/		} else {
+ /*line federation_inbox.mygo:154:3*/		} else {
  /*line zz_federation_inbox.gen.go:247:1*/		}
- /*line federation_inbox.mygo:154:6*/	} else {
+ /*line federation_inbox.mygo:154:3*/	} else {
  /*line zz_federation_inbox.gen.go:249:1*/	}
  /*line federation_inbox.mygo:190:3*/	return Ok[struct{}, string](struct {
  /*line zz_federation_inbox.gen.go:251:1*/	}{})
@@ -264,33 +264,33 @@ import . "github.com/mygo-lang/mygo/prelude"
 	digestHeader := request.Header.Get("Digest")
 	date := request.Header.Get("Date")
 	parsed := federation.ParseSignatureHeader(signatureHeader)
- /*line federation_inbox.mygo:209:6*/	if MygoIN6ResultM5IsErr[federation.SignatureParameters, string](parsed) {
+ /*line federation_inbox.mygo:209:3*/	if MygoIN6ResultM5IsErr[federation.SignatureParameters, string](parsed) {
  /*line federation_inbox.mygo:210:12*/		return Err[struct{}, string]("invalid signature header")
- /*line federation_inbox.mygo:209:6*/	} else {
+ /*line federation_inbox.mygo:209:3*/	} else {
  /*line zz_federation_inbox.gen.go:270:1*/	}
  /*line federation_inbox.mygo:204:1*/	keyID := MygoIN6ResultM6Unwrap[federation.SignatureParameters, string](parsed).KeyID
- /*line federation_inbox.mygo:213:6*/	if !federation.KeyOwnedByActor(keyID, actorURI) {
+ /*line federation_inbox.mygo:213:3*/	if !federation.KeyOwnedByActor(keyID, actorURI) {
  /*line federation_inbox.mygo:214:12*/		return Err[struct{}, string]("invalid signature")
- /*line federation_inbox.mygo:213:6*/	} else {
+ /*line federation_inbox.mygo:213:3*/	} else {
  /*line zz_federation_inbox.gen.go:275:1*/	}
- /*line federation_inbox.mygo:216:6*/	if digestHeader != federation.BodyDigest(payload) {
+ /*line federation_inbox.mygo:216:3*/	if digestHeader != federation.BodyDigest(payload) {
  /*line federation_inbox.mygo:217:12*/		return Err[struct{}, string]("invalid digest")
- /*line federation_inbox.mygo:216:6*/	} else {
+ /*line federation_inbox.mygo:216:3*/	} else {
  /*line zz_federation_inbox.gen.go:279:1*/	}
  /*line federation_inbox.mygo:204:1*/	actor := storage.LoadActor(request.Context(), db, actorURI)
- /*line federation_inbox.mygo:220:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line federation_inbox.mygo:220:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
  /*line federation_inbox.mygo:221:12*/		return Err[struct{}, string]("unknown signer")
- /*line federation_inbox.mygo:220:6*/	} else {
+ /*line federation_inbox.mygo:220:3*/	} else {
  /*line zz_federation_inbox.gen.go:284:1*/	}
  /*line federation_inbox.mygo:204:1*/	key := MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).PublicKeyPEM
- /*line federation_inbox.mygo:224:6*/	if !key.Valid || key.String == "" {
+ /*line federation_inbox.mygo:224:3*/	if !key.Valid || key.String == "" {
  /*line federation_inbox.mygo:225:12*/		return Err[struct{}, string]("unknown signer key")
- /*line federation_inbox.mygo:224:6*/	} else {
+ /*line federation_inbox.mygo:224:3*/	} else {
  /*line zz_federation_inbox.gen.go:289:1*/	}
  /*line federation_inbox.mygo:204:1*/	verified := federation.VerifyRequest(key.String, "POST", request.URL.Path, request.Host, date, digestHeader, signatureHeader, time.Now(), int64(settings.Federation.ClockSkewSeconds))
- /*line federation_inbox.mygo:228:6*/	if MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) {
+ /*line federation_inbox.mygo:228:3*/	if MygoIN6ResultM5IsErr[federation.VerifiedRequest, string](verified) {
  /*line federation_inbox.mygo:229:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[federation.VerifiedRequest, string](verified))
- /*line federation_inbox.mygo:228:6*/	} else {
+ /*line federation_inbox.mygo:228:3*/	} else {
  /*line zz_federation_inbox.gen.go:294:1*/	}
  /*line federation_inbox.mygo:231:3*/	return Ok[struct{}, string](struct {
  /*line zz_federation_inbox.gen.go:296:1*/	}{})

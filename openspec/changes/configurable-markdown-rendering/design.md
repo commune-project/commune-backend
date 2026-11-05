@@ -60,8 +60,11 @@ express an empty set unambiguously.
 `internal/content` defines an immutable `Sanitizer` value that wraps a built
 bluemonday policy and a constructed goldmark converter. `internal/config`
 decodes the policy data, validates it, and constructs the `Sanitizer` during
-`Validate`; `Config.Rendering` carries it to every caller. `content` does not
-import `config`, so the dependency direction stays one-way and there is no cycle.
+`Validate`; `Config.Rendering.Sanitizer` carries it, and `Validate` copies the
+same value into each `config.Site`. Storage and federation entry points that
+already receive a site use that value without another parameter. `content` does
+not import `config`, so the dependency direction stays one-way and there is no
+cycle.
 Alternatives considered: building the policy in each handler (easy to forget),
 and keeping a package-level singleton (hidden global state and untestable
 configuration variants).
@@ -71,10 +74,13 @@ values are safe for concurrent conversion, so one value can serve all requests.
 
 ### Rendering functions take the sanitizer explicitly
 
-`RenderRich` and `RenderPostRich` gain an explicit sanitizer parameter, and every
-call site passes the configured value. Keeping a default-policy overload would
-let a new call site silently bypass deployment configuration. Tests construct a
-default or intentionally restrictive sanitizer directly.
+`RenderRich` and `RenderPostRich` gain an explicit sanitizer parameter. Browser
+renderers pass the configured value explicitly, `Publish` uses `site.Sanitizer`,
+and remote post/profile ingestion uses the value propagated from the federation
+entry point. `Receive`, `Edit`, and `EditContent` also require the sanitizer;
+production call sites pass the deployment value and tests pass the built-in
+default or an intentionally restrictive sanitizer directly. No no-sanitizer
+overload remains.
 
 ### GFM is composed from individual extensions
 

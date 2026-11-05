@@ -120,6 +120,12 @@ URLs are not downloaded or cached by the server.
 
 ## Markdown and attachments
 
+Markdown rendering enables GitHub-flavored tables, strikethrough, autolinks,
+and task-list syntax. Task-list checkboxes are removed by the allowlist, and
+tables do not emit alignment markup. A single soft line break renders as a
+line break. Raw HTML is filtered through the same deployment allowlist as HTML
+content and is discarded unless `rendering.markdown.allow_raw_html` is enabled.
+
 Upload a file with `POST /api/v1/media` as multipart form-data, with one `file`
 and a `purpose` of `post` or `avatar`. Uploads require a valid session, Origin,
 and CSRF token. The response supplies the upload ID, media type, byte size,

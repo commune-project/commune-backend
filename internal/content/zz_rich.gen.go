@@ -6,114 +6,266 @@ import "bytes"
 import "io"
 import "strings"
 import "github.com/yuin/goldmark"
+import "github.com/yuin/goldmark/extension"
+import gmhtml "github.com/yuin/goldmark/renderer/html"
 import "github.com/microcosm-cc/bluemonday"
 import "golang.org/x/net/html"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line rich.mygo:11:1*/func RenderRich(source string, format string) Result[string, string] {
- /*line rich.mygo:12:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
- /*line rich.mygo:13:12*/		return Err[string, string]("content exceeds 1 MiB")
- /*line rich.mygo:12:3*/	} else {
- /*line zz_rich.gen.go:17:1*/	}
- /*line rich.mygo:15:3*/	if format == "legacy" || format == "text" {
- /*line rich.mygo:16:12*/		return Ok[string, string](RenderText(source))
- /*line rich.mygo:15:3*/	} else {
- /*line zz_rich.gen.go:21:1*/	}
- /*line rich.mygo:11:1*/	rendered := source
- /*line rich.mygo:19:3*/	if format == "markdown" {
+ /*line rich.mygo:11:1*/type SanitizerAttribute struct {
+	Element string
+	Names   []string
+ /*line zz_rich.gen.go:18:1*/}
+ /*line rich.mygo:16:1*/type SanitizerConfig struct {
+	HardWraps         bool
+	AllowRawHTML      bool
+	Elements          []string
+	Attributes        []SanitizerAttribute
+	URLSchemes        []string
+	AllowRelativeURLs bool
+ /*line zz_rich.gen.go:26:1*/}
+ /*line rich.mygo:25:1*/type Sanitizer struct {
+	Policy    *bluemonday.Policy
+	Converter goldmark.Markdown
+ /*line zz_rich.gen.go:30:1*/}
+
+ /*line rich.mygo:30:1*/func DefaultSanitizerConfig() SanitizerConfig {
+ /*line rich.mygo:31:3*/	return SanitizerConfig{HardWraps: true, AllowRawHTML: false, Elements: []string{"p", "br", "hr", "em", "strong", "del", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "img", "table", "thead", "tbody", "tr", "th", "td"}, Attributes: []SanitizerAttribute{SanitizerAttribute{Element: "a", Names: []string{"href", "title"}}, SanitizerAttribute{Element: "img", Names: []string{"src", "alt", "title", "referrerpolicy"}}}, URLSchemes: []string{"http", "https"}, AllowRelativeURLs: true}
+ /*line zz_rich.gen.go:34:1*/}
+ /*line rich.mygo:74:1*/func BuildRichConverter(hardWraps bool, allowRawHTML bool) goldmark.Markdown {
+ /*line rich.mygo:75:3*/	__mygo_expr_0 := struct {
+ /*line rich.mygo:75:10*/		F0 bool
+		F1 bool
+	}{F0: hardWraps, F1: allowRawHTML}
+ /*line rich.mygo:75:3*/	var __mygo_expr_1 goldmark.Markdown
+	if __mygo_expr_0.F0 == true {
+		if __mygo_expr_0.F1 == true {
+			__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithHardWraps(), gmhtml.WithUnsafe()))
+		} else {
+			if __mygo_expr_0.F0 == true {
+				if __mygo_expr_0.F1 == false {
+					__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithHardWraps()))
+				} else {
+					if __mygo_expr_0.F0 == false {
+						if __mygo_expr_0.F1 == true {
+							__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithUnsafe()))
+						} else {
+							if __mygo_expr_0.F0 == false {
+								if __mygo_expr_0.F1 == false {
+									__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+								} else {
+ /*line zz_rich.gen.go:57:1*/								}
+ /*line rich.mygo:75:3*/							} else {
+ /*line zz_rich.gen.go:59:1*/							}
+						}
+ /*line rich.mygo:75:3*/					} else {
+						if __mygo_expr_0.F0 == false {
+							if __mygo_expr_0.F1 == false {
+								__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+							} else {
+ /*line zz_rich.gen.go:66:1*/							}
+ /*line rich.mygo:75:3*/						} else {
+ /*line zz_rich.gen.go:68:1*/						}
+					}
+				}
+ /*line rich.mygo:75:3*/			} else {
+				if __mygo_expr_0.F0 == false {
+					if __mygo_expr_0.F1 == true {
+						__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithUnsafe()))
+					} else {
+						if __mygo_expr_0.F0 == false {
+							if __mygo_expr_0.F1 == false {
+								__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+							} else {
+ /*line zz_rich.gen.go:80:1*/							}
+ /*line rich.mygo:75:3*/						} else {
+ /*line zz_rich.gen.go:82:1*/						}
+					}
+ /*line rich.mygo:75:3*/				} else {
+					if __mygo_expr_0.F0 == false {
+						if __mygo_expr_0.F1 == false {
+							__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+						} else {
+ /*line zz_rich.gen.go:89:1*/						}
+ /*line rich.mygo:75:3*/					} else {
+ /*line zz_rich.gen.go:91:1*/					}
+				}
+			}
+		}
+ /*line rich.mygo:75:3*/	} else {
+		if __mygo_expr_0.F0 == true {
+			if __mygo_expr_0.F1 == false {
+				__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithHardWraps()))
+			} else {
+				if __mygo_expr_0.F0 == false {
+					if __mygo_expr_0.F1 == true {
+						__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithUnsafe()))
+					} else {
+						if __mygo_expr_0.F0 == false {
+							if __mygo_expr_0.F1 == false {
+								__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+							} else {
+ /*line zz_rich.gen.go:108:1*/							}
+ /*line rich.mygo:75:3*/						} else {
+ /*line zz_rich.gen.go:110:1*/						}
+					}
+ /*line rich.mygo:75:3*/				} else {
+					if __mygo_expr_0.F0 == false {
+						if __mygo_expr_0.F1 == false {
+							__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+						} else {
+ /*line zz_rich.gen.go:117:1*/						}
+ /*line rich.mygo:75:3*/					} else {
+ /*line zz_rich.gen.go:119:1*/					}
+				}
+			}
+ /*line rich.mygo:75:3*/		} else {
+			if __mygo_expr_0.F0 == false {
+				if __mygo_expr_0.F1 == true {
+					__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList), goldmark.WithRendererOptions(gmhtml.WithUnsafe()))
+				} else {
+					if __mygo_expr_0.F0 == false {
+						if __mygo_expr_0.F1 == false {
+							__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+						} else {
+ /*line zz_rich.gen.go:131:1*/						}
+ /*line rich.mygo:75:3*/					} else {
+ /*line zz_rich.gen.go:133:1*/					}
+				}
+ /*line rich.mygo:75:3*/			} else {
+				if __mygo_expr_0.F0 == false {
+					if __mygo_expr_0.F1 == false {
+						__mygo_expr_1 = goldmark.New(goldmark.WithExtensions(extension.Linkify, extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)), extension.Strikethrough, extension.TaskList))
+					} else {
+ /*line zz_rich.gen.go:140:1*/					}
+ /*line rich.mygo:75:3*/				} else {
+ /*line zz_rich.gen.go:142:1*/				}
+			}
+		}
+	}
+ /*line rich.mygo:75:3*/	return __mygo_expr_1
+ /*line zz_rich.gen.go:147:1*/}
+ /*line rich.mygo:120:1*/func NewSanitizer(config SanitizerConfig) Sanitizer {
+	policy := bluemonday.NewPolicy()
+	policy.RequireParseableURLs(true)
+	policy.RequireNoFollowOnLinks(true)
+	policy.RequireNoReferrerOnLinks(true)
+	policy.AllowRelativeURLs(config.AllowRelativeURLs)
+ /*line rich.mygo:126:3*/	policy.AllowElements(config.Elements...)
+ /*line rich.mygo:131:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(config.Attributes, func(item SanitizerAttribute) {
+ /*line rich.mygo:132:5*/		policy.AllowAttrs(item.Names...).OnElements(item.Element)
+ /*line zz_rich.gen.go:157:1*/	})
+ /*line rich.mygo:139:3*/	policy.AllowURLSchemes(config.URLSchemes...)
+ /*line rich.mygo:144:3*/	return Sanitizer{Policy: policy, Converter: BuildRichConverter(config.HardWraps, config.AllowRawHTML)}
+ /*line zz_rich.gen.go:160:1*/}
+ /*line rich.mygo:150:1*/func MygoIT7DefaultFN9SanitizerGN9SanitizerEM7Default() Sanitizer {
+ /*line rich.mygo:152:5*/	return NewSanitizer(DefaultSanitizerConfig())
+ /*line zz_rich.gen.go:163:1*/}
+
+ /*line rich.mygo:156:1*/var defaultSanitizer Sanitizer
+ /*line zz_rich.gen.go:166:1*/
+ /*line rich.mygo:156:1*/func init() {
+	defaultSanitizer = NewSanitizer(DefaultSanitizerConfig())
+ /*line zz_rich.gen.go:169:1*/}
+ /*line rich.mygo:158:1*/func DefaultSanitizer() Sanitizer {
+ /*line rich.mygo:159:3*/	return defaultSanitizer
+ /*line zz_rich.gen.go:172:1*/}
+ /*line rich.mygo:163:1*/func RenderRich(sanitizer Sanitizer, source string, format string) Result[string, string] {
+ /*line rich.mygo:164:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > 1048576 {
+ /*line rich.mygo:165:12*/		return Err[string, string]("content exceeds 1 MiB")
+ /*line rich.mygo:164:3*/	} else {
+ /*line zz_rich.gen.go:177:1*/	}
+ /*line rich.mygo:167:3*/	if format == "legacy" || format == "text" {
+ /*line rich.mygo:168:12*/		return Ok[string, string](RenderText(source))
+ /*line rich.mygo:167:3*/	} else {
+ /*line zz_rich.gen.go:181:1*/	}
+ /*line rich.mygo:163:1*/	rendered := source
+ /*line rich.mygo:171:3*/	if format == "markdown" {
 		output := bytes.Buffer{}
- /*line rich.mygo:22:8*/		var __mygo_expr_1 Result[struct{}, error]
-		__mygo_expr_0 := goldmark.New().Convert([]byte(source), io.Writer(&output))
+ /*line rich.mygo:175:8*/		var __mygo_expr_1 Result[struct{}, error]
+		__mygo_expr_0 := sanitizer.Converter.Convert([]byte(source), io.Writer(&output))
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_rich.gen.go:31:1*/			}{})
+ /*line zz_rich.gen.go:191:1*/			}{})
 		}
- /*line rich.mygo:22:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line rich.mygo:23:14*/			return Err[string, string]("Markdown rendering failed")
- /*line rich.mygo:22:5*/		} else {
- /*line zz_rich.gen.go:36:1*/		}
- /*line rich.mygo:19:3*/		rendered = output.String()
+ /*line rich.mygo:175:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line rich.mygo:176:14*/			return Err[string, string]("Markdown rendering failed")
+ /*line rich.mygo:175:5*/		} else {
+ /*line zz_rich.gen.go:196:1*/		}
+ /*line rich.mygo:171:3*/		rendered = output.String()
 	} else {
 		if format != "html" {
- /*line rich.mygo:28:14*/			return Err[string, string]("unsupported content format")
- /*line rich.mygo:19:3*/		} else {
- /*line zz_rich.gen.go:42:1*/		}
+ /*line rich.mygo:181:14*/			return Err[string, string]("unsupported content format")
+ /*line rich.mygo:171:3*/		} else {
+ /*line zz_rich.gen.go:202:1*/		}
 	}
- /*line rich.mygo:31:3*/	return Ok[string, string](SanitizeRichHTML(rendered))
- /*line zz_rich.gen.go:45:1*/}
- /*line rich.mygo:37:1*/func PlainRichText(source string, format string) Result[string, string] {
- /*line rich.mygo:38:3*/	__mygo_expr_0 := RenderRich(source, format)
+ /*line rich.mygo:184:3*/	return Ok[string, string](SanitizeRichHTML(sanitizer, rendered))
+ /*line zz_rich.gen.go:205:1*/}
+ /*line rich.mygo:190:1*/func PlainRichText(sanitizer Sanitizer, source string, format string) Result[string, string] {
+ /*line rich.mygo:191:3*/	__mygo_expr_0 := RenderRich(sanitizer, source, format)
 	var __mygo_expr_1 Result[string, string]
 	if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
 		__mygo_expr_1 = Err[string, string](__mygo_match___mygo_expr_3.F0)
- /*line zz_rich.gen.go:51:1*/	} else {
- /*line rich.mygo:38:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
- /*line rich.mygo:41:7*/			tokenizer := html.NewTokenizer(strings.NewReader(__mygo_match___mygo_expr_2.F0))
+ /*line zz_rich.gen.go:211:1*/	} else {
+ /*line rich.mygo:191:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
+ /*line rich.mygo:194:7*/			tokenizer := html.NewTokenizer(strings.NewReader(__mygo_match___mygo_expr_2.F0))
 			output := strings.Builder{}
 			done := false
- /*line rich.mygo:44:13*/			for !done {
- /*line rich.mygo:41:7*/				kind := tokenizer.Next()
- /*line rich.mygo:46:12*/				if kind == html.ErrorToken {
- /*line rich.mygo:41:7*/					done = true
- /*line zz_rich.gen.go:60:1*/				} else {
- /*line rich.mygo:41:7*/					token := tokenizer.Token()
- /*line rich.mygo:50:14*/					if kind == html.TextToken {
- /*line rich.mygo:41:7*/						output.WriteString(token.Data)
- /*line zz_rich.gen.go:64:1*/					} else {
- /*line rich.mygo:53:16*/						if token.Data == "img" {
- /*line rich.mygo:54:15*/							MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(token.Attr, func(attr html.Attribute) {
- /*line rich.mygo:55:17*/								if attr.Key == "alt" {
+ /*line rich.mygo:197:13*/			for !done {
+ /*line rich.mygo:194:7*/				kind := tokenizer.Next()
+ /*line rich.mygo:199:12*/				if kind == html.ErrorToken {
+ /*line rich.mygo:194:7*/					done = true
+ /*line zz_rich.gen.go:220:1*/				} else {
+ /*line rich.mygo:194:7*/					token := tokenizer.Token()
+ /*line rich.mygo:203:14*/					if kind == html.TextToken {
+ /*line rich.mygo:194:7*/						output.WriteString(token.Data)
+ /*line zz_rich.gen.go:224:1*/					} else {
+ /*line rich.mygo:206:16*/						if token.Data == "img" {
+ /*line rich.mygo:207:15*/							MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(token.Attr, func(attr html.Attribute) {
+ /*line rich.mygo:208:17*/								if attr.Key == "alt" {
 									output.WriteString(" " + attr.Val + " ")
 									return
 								} else {
 									return
- /*line zz_rich.gen.go:72:1*/								}
+ /*line zz_rich.gen.go:232:1*/								}
 							})
- /*line rich.mygo:41:7*/						} else {
+ /*line rich.mygo:194:7*/						} else {
 							if token.Data != "a" && token.Data != "em" && token.Data != "strong" && token.Data != "code" {
 								output.WriteString(" ")
 							} else {
- /*line zz_rich.gen.go:78:1*/							}
+ /*line zz_rich.gen.go:238:1*/							}
 						}
 					}
 				}
 			}
- /*line rich.mygo:38:3*/			__mygo_expr_1 = Ok[string, string](strings.Join(strings.Fields(output.String()), " "))
+ /*line rich.mygo:191:3*/			__mygo_expr_1 = Ok[string, string](strings.Join(strings.Fields(output.String()), " "))
 		} else {
- /*line zz_rich.gen.go:85:1*/		}
+ /*line zz_rich.gen.go:245:1*/		}
 	}
- /*line rich.mygo:38:3*/	return __mygo_expr_1
- /*line zz_rich.gen.go:88:1*/}
- /*line rich.mygo:74:1*/func SanitizeRichHTML(source string) string {
-	policy := bluemonday.NewPolicy()
-	policy.AllowElements("p", "br", "hr", "em", "strong", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "img")
-	policy.AllowAttrs("href", "title").OnElements("a")
-	policy.AllowAttrs("src", "alt", "title", "referrerpolicy").OnElements("img")
-	policy.AllowURLSchemes("http", "https")
-	policy.AllowRelativeURLs(true)
-	policy.RequireParseableURLs(true)
-	policy.RequireNoFollowOnLinks(true)
-	policy.RequireNoReferrerOnLinks(true)
+ /*line rich.mygo:191:3*/	return __mygo_expr_1
+ /*line zz_rich.gen.go:248:1*/}
+ /*line rich.mygo:231:1*/func SanitizeRichHTML(sanitizer Sanitizer, source string) string {
+	policy := sanitizer.Policy
 	clean := policy.Sanitize(source)
 	tokenizer := html.NewTokenizer(strings.NewReader(clean))
 	output := strings.Builder{}
 	done := false
- /*line rich.mygo:90:9*/	for !done {
- /*line rich.mygo:74:1*/		kind := tokenizer.Next()
- /*line rich.mygo:92:8*/		if kind == html.ErrorToken {
- /*line rich.mygo:74:1*/			done = true
- /*line zz_rich.gen.go:107:1*/		} else {
- /*line rich.mygo:74:1*/			token := tokenizer.Token()
- /*line rich.mygo:96:10*/			if (kind == html.StartTagToken || kind == html.SelfClosingTagToken) && token.Data == "img" {
- /*line rich.mygo:96:7*/				token.Attr = MygoIN5SliceM6Append(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(token.Attr, func(attr html.Attribute) bool {
- /*line rich.mygo:98:11*/					return attr.Key != "referrerpolicy"
- /*line rich.mygo:99:21*/				}), html.Attribute{Namespace: "", Key: "referrerpolicy", Val: "no-referrer"})
- /*line rich.mygo:96:7*/			} else {
- /*line zz_rich.gen.go:114:1*/			}
- /*line rich.mygo:74:1*/			output.WriteString(token.String())
- /*line zz_rich.gen.go:116:1*/		}
+ /*line rich.mygo:239:9*/	for !done {
+ /*line rich.mygo:231:1*/		kind := tokenizer.Next()
+ /*line rich.mygo:241:8*/		if kind == html.ErrorToken {
+ /*line rich.mygo:231:1*/			done = true
+ /*line zz_rich.gen.go:259:1*/		} else {
+ /*line rich.mygo:231:1*/			token := tokenizer.Token()
+ /*line rich.mygo:245:10*/			if (kind == html.StartTagToken || kind == html.SelfClosingTagToken) && token.Data == "img" {
+ /*line rich.mygo:245:7*/				token.Attr = MygoIN5SliceM6Append(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(token.Attr, func(attr html.Attribute) bool {
+ /*line rich.mygo:248:11*/					return attr.Key != "referrerpolicy"
+ /*line rich.mygo:249:21*/				}), html.Attribute{Namespace: "", Key: "referrerpolicy", Val: "no-referrer"})
+ /*line rich.mygo:245:7*/			} else {
+ /*line zz_rich.gen.go:266:1*/			}
+ /*line rich.mygo:231:1*/			output.WriteString(token.String())
+ /*line zz_rich.gen.go:268:1*/		}
 	}
- /*line rich.mygo:104:3*/	return policy.Sanitize(output.String())
- /*line zz_rich.gen.go:119:1*/}
+ /*line rich.mygo:254:3*/	return policy.Sanitize(output.String())
+ /*line zz_rich.gen.go:271:1*/}

@@ -37,19 +37,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line tokens.mygo:32:5*/	return TokenHash(self.Session)
  /*line zz_tokens.gen.go:38:1*/}
  /*line tokens.mygo:30:1*/func MygoIN13SessionTokensM8CSRFHash(self SessionTokens) []byte {
- /*line tokens.mygo:36:5*/	return TokenHash(self.CSRF)
+ /*line tokens.mygo:35:5*/	return TokenHash(self.CSRF)
  /*line zz_tokens.gen.go:41:1*/}
  /*line tokens.mygo:30:1*/func MygoIN13SessionTokensM7Cookies(self SessionTokens, expires time.Time) []http.Cookie {
- /*line tokens.mygo:40:5*/	return []http.Cookie{http.Cookie{Name: "__Host-commune_session", Value: self.Session, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}, http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}}
+ /*line tokens.mygo:38:5*/	return []http.Cookie{http.Cookie{Name: "__Host-commune_session", Value: self.Session, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}, http.Cookie{Name: "__Host-commune_csrf", Value: self.CSRF, Quoted: false, Path: "/", Domain: "", Expires: expires, RawExpires: "", MaxAge: 86400, Secure: true, HttpOnly: false, SameSite: http.SameSiteStrictMode, Partitioned: false, Raw: "", Unparsed: []string{}}}
  /*line zz_tokens.gen.go:44:1*/}
- /*line tokens.mygo:47:1*/func VerifyCSRF(expected []byte, supplied string) bool {
- /*line tokens.mygo:48:3*/	return ValidToken(supplied) && subtle.ConstantTimeCompare(expected, TokenHash(supplied)) == 1
+ /*line tokens.mygo:75:1*/func VerifyCSRF(expected []byte, supplied string) bool {
+ /*line tokens.mygo:76:3*/	return ValidToken(supplied) && subtle.ConstantTimeCompare(expected, TokenHash(supplied)) == 1
  /*line zz_tokens.gen.go:47:1*/}
- /*line tokens.mygo:51:1*/func ExpiredCookies() []http.Cookie {
+ /*line tokens.mygo:79:1*/func ExpiredCookies() []http.Cookie {
 	tokens := SessionTokens{Session: "", CSRF: ""}
- /*line tokens.mygo:53:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN13SessionTokensM7Cookies(tokens, time.Unix(1, 0)), func(cookie http.Cookie) http.Cookie {
- /*line tokens.mygo:53:39*/		expired := cookie
- /*line tokens.mygo:55:5*/		expired.MaxAge = -1
- /*line tokens.mygo:56:5*/		return expired
+ /*line tokens.mygo:81:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN13SessionTokensM7Cookies(tokens, time.Unix(1, 0)), func(cookie http.Cookie) http.Cookie {
+ /*line tokens.mygo:81:39*/		expired := cookie
+ /*line tokens.mygo:83:5*/		expired.MaxAge = -1
+ /*line tokens.mygo:84:5*/		return expired
  /*line zz_tokens.gen.go:54:1*/	})
 }

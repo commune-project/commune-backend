@@ -38,6 +38,8 @@ github.com/microcosm-cc/bluemonday v1.0.27 h1:MpEUotklkwCSLeH+Qdx1VJgNqLlpY2KXwX
 github.com/microcosm-cc/bluemonday v1.0.27/go.mod h1:jFi9vgW+H7c3V0lb6nR74Ib/DIB5OBs92Dimizgw2cA=
 github.com/mygo-lang/mygo v0.1.3 h1:cjyEG45z78xTt4dGsi78UlnNky6M4dzL4GjLrqCZx74=
 github.com/mygo-lang/mygo v0.1.3/go.mod h1:JNdJfqnKX5OLR9+7egPZyzzVlYzWKjLkl+MRcYbDEgU=
+github.com/mygo-lang/mygo v0.2.0-beta1 h1:pDpIhKmITq/sWmiAR2lo4gFTOsI5HMZOlofuqzF9kR8=
+github.com/mygo-lang/mygo v0.2.0-beta1/go.mod h1:JNdJfqnKX5OLR9+7egPZyzzVlYzWKjLkl+MRcYbDEgU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=

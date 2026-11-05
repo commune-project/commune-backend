@@ -15,24 +15,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 	key := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
 	publicKey := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(key))
 	handler := func(w http.ResponseWriter, request *http.Request) {
- /*line media_fetch_test.mygo:15:8*/		if MygoIN6ResultM5IsErr[VerifiedRequest, string](VerifySignedGet(publicKey, request.Method, request.URL.RequestURI(), request.Host, request.Header.Get("Date"), request.Header.Get("Signature"), time.Now(), int64(300))) {
- /*line media_fetch_test.mygo:16:7*/			w.WriteHeader(403)
- /*line media_fetch_test.mygo:15:8*/			return
+ /*line media_fetch_test.mygo:15:5*/		if MygoIN6ResultM5IsErr[VerifiedRequest, string](VerifySignedGet(publicKey, request.Method, request.URL.RequestURI(), request.Host, request.Header.Get("Date"), request.Header.Get("Signature"), time.Now(), int64(300))) {
+ /*line media_fetch_test.mygo:25:7*/			w.WriteHeader(403)
+ /*line media_fetch_test.mygo:15:5*/			return
 		} else {
  /*line zz_media_fetch.gen_test.go:22:1*/		}
- /*line media_fetch_test.mygo:19:8*/		if request.URL.Path == "/redirect" {
- /*line media_fetch_test.mygo:20:7*/			w.Header().Set("Location", "/ok")
- /*line media_fetch_test.mygo:21:7*/			w.WriteHeader(302)
- /*line media_fetch_test.mygo:19:8*/			return
+ /*line media_fetch_test.mygo:28:5*/		if request.URL.Path == "/redirect" {
+ /*line media_fetch_test.mygo:29:7*/			w.Header().Set("Location", "/ok")
+ /*line media_fetch_test.mygo:30:7*/			w.WriteHeader(302)
+ /*line media_fetch_test.mygo:28:5*/			return
 		} else {
  /*line zz_media_fetch.gen_test.go:28:1*/		}
- /*line media_fetch_test.mygo:24:8*/		if request.URL.Path == "/foreign" {
- /*line media_fetch_test.mygo:25:7*/			w.Header().Set("Location", "http://127.0.0.1:1/secret")
- /*line media_fetch_test.mygo:26:7*/			w.WriteHeader(302)
- /*line media_fetch_test.mygo:24:8*/			return
+ /*line media_fetch_test.mygo:33:5*/		if request.URL.Path == "/foreign" {
+ /*line media_fetch_test.mygo:34:7*/			w.Header().Set("Location", "http://127.0.0.1:1/secret")
+ /*line media_fetch_test.mygo:35:7*/			w.WriteHeader(302)
+ /*line media_fetch_test.mygo:33:5*/			return
 		} else {
  /*line zz_media_fetch.gen_test.go:34:1*/		}
- /*line media_fetch_test.mygo:29:44*/		var __mygo_expr_0 int
+ /*line media_fetch_test.mygo:40:7*/		var __mygo_expr_0 int
 		if request.URL.Path == "/large" {
 			__mygo_expr_0 = 1025
 		} else {
@@ -42,35 +42,35 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line zz_media_fetch.gen_test.go:43:1*/	}
  /*line media_fetch_test.mygo:11:1*/	peer := httptest.NewServer(http.HandlerFunc(handler))
- /*line media_fetch_test.mygo:32:3*/	t.Cleanup(func() {
- /*line media_fetch_test.mygo:32:26*/		peer.Close()
+ /*line media_fetch_test.mygo:44:3*/	t.Cleanup(func() {
+ /*line media_fetch_test.mygo:44:26*/		peer.Close()
 		return
  /*line zz_media_fetch.gen_test.go:48:1*/	})
  /*line media_fetch_test.mygo:11:1*/	limits := FetchLimits{AllowPrivate: true, MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2}
 	actor := "https://receiver.example/users/alice"
 	fetched := FetchPrivateMedia(context.Background(), peer.URL+"/redirect", actor, key, limits)
- /*line media_fetch_test.mygo:36:6*/	if MygoIN6ResultM5IsErr[[]byte, string](fetched) || string(MygoIN6ResultM6Unwrap[[]byte, string](fetched)) != "xxxx" {
- /*line media_fetch_test.mygo:36:69*/		t.Fatal("signed media redirect failed")
- /*line media_fetch_test.mygo:36:6*/	} else {
+ /*line media_fetch_test.mygo:48:3*/	if MygoIN6ResultM5IsErr[[]byte, string](fetched) || string(MygoIN6ResultM6Unwrap[[]byte, string](fetched)) != "xxxx" {
+ /*line media_fetch_test.mygo:49:5*/		t.Fatal("signed media redirect failed")
+ /*line media_fetch_test.mygo:48:3*/	} else {
  /*line zz_media_fetch.gen_test.go:55:1*/	}
- /*line media_fetch_test.mygo:37:6*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/large", actor, key, limits)) {
- /*line media_fetch_test.mygo:37:99*/		t.Fatal("oversized private media accepted")
- /*line media_fetch_test.mygo:37:6*/	} else {
+ /*line media_fetch_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/large", actor, key, limits)) {
+ /*line media_fetch_test.mygo:52:5*/		t.Fatal("oversized private media accepted")
+ /*line media_fetch_test.mygo:51:3*/	} else {
  /*line zz_media_fetch.gen_test.go:59:1*/	}
- /*line media_fetch_test.mygo:38:6*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/foreign", actor, key, limits)) {
- /*line media_fetch_test.mygo:38:101*/		t.Fatal("signature crossed origin redirect")
- /*line media_fetch_test.mygo:38:6*/	} else {
+ /*line media_fetch_test.mygo:54:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/foreign", actor, key, limits)) {
+ /*line media_fetch_test.mygo:55:5*/		t.Fatal("signature crossed origin redirect")
+ /*line media_fetch_test.mygo:54:3*/	} else {
  /*line zz_media_fetch.gen_test.go:63:1*/	}
  /*line media_fetch_test.mygo:11:1*/	ctx, cancel := context.WithCancel(context.Background())
- /*line media_fetch_test.mygo:40:3*/	cancel()
- /*line media_fetch_test.mygo:41:6*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(ctx, peer.URL+"/ok", actor, key, limits)) {
- /*line media_fetch_test.mygo:41:79*/		t.Fatal("canceled fetch continued")
- /*line media_fetch_test.mygo:41:6*/	} else {
+ /*line media_fetch_test.mygo:58:3*/	cancel()
+ /*line media_fetch_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(ctx, peer.URL+"/ok", actor, key, limits)) {
+ /*line media_fetch_test.mygo:60:5*/		t.Fatal("canceled fetch continued")
+ /*line media_fetch_test.mygo:59:3*/	} else {
  /*line zz_media_fetch.gen_test.go:69:1*/	}
- /*line media_fetch_test.mygo:42:6*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/ok", actor, key, FetchLimits{MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2})) {
- /*line media_fetch_test.mygo:42:153*/		t.Fatal("private address bypassed policy")
+ /*line media_fetch_test.mygo:62:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/ok", actor, key, FetchLimits{MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2, AllowPrivate: false})) {
+ /*line media_fetch_test.mygo:74:5*/		t.Fatal("private address bypassed policy")
 		return
- /*line media_fetch_test.mygo:42:6*/	} else {
- /*line media_fetch_test.mygo:42:3*/		return
+ /*line media_fetch_test.mygo:62:3*/	} else {
+		return
  /*line zz_media_fetch.gen_test.go:75:1*/	}
 }

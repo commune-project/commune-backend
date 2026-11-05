@@ -9,6 +9,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
 
 func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
@@ -149,7 +150,8 @@ func TestPostgresConditionalAuthorEdits(t: Ref[testing.T]) -> ()
     false,
     "Topic",
     after.Body,
-    after.Version
+    after.Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   if unchanged.Version != 4i64 then
     t.Fatal("accepted unchanged edit did not advance revision")

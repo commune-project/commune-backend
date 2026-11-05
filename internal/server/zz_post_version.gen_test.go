@@ -11,157 +11,158 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/mygo-lang/mygo/lib/concurrency"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line post_version_test.mygo:14:1*/func TestPostgresConditionalAuthorEdits(t *testing.T) {
+ /*line post_version_test.mygo:15:1*/func TestPostgresConditionalAuthorEdits(t *testing.T) {
 	ctx := context.Background()
 	pool := testsupport.Postgres(t)
- /*line post_version_test.mygo:17:3*/	pool.SetMaxOpenConns(8)
- /*line post_version_test.mygo:18:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line post_version_test.mygo:18:3*/	pool.SetMaxOpenConns(8)
+ /*line post_version_test.mygo:19:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(pool)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_post_version.gen_test.go:29:1*/	}
- /*line post_version_test.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_post_version.gen_test.go:30:1*/	}
+ /*line post_version_test.mygo:15:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "versions", "Versions", "local_only", "members", "members"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "original", ContentFormat: "markdown"}))
- /*line post_version_test.mygo:46:6*/	if post.Version != int64(1) {
- /*line post_version_test.mygo:47:5*/		t.Fatal("new post revision is not 1")
- /*line post_version_test.mygo:46:6*/	} else {
- /*line zz_post_version.gen_test.go:41:1*/	}
- /*line post_version_test.mygo:14:1*/	handler := Handler(settings, db)
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "original", ContentFormat: "markdown", ParentID: "", ContextURI: "", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+ /*line post_version_test.mygo:51:3*/	if post.Version != int64(1) {
+ /*line post_version_test.mygo:52:5*/		t.Fatal("new post revision is not 1")
+ /*line post_version_test.mygo:51:3*/	} else {
+ /*line zz_post_version.gen_test.go:42:1*/	}
+ /*line post_version_test.mygo:15:1*/	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
-	call := forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies)}
-	source := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: call.Path + "/source", Cookies: cookies})
-	editing := PostSource{}
- /*line post_version_test.mygo:70:5*/	var __mygo_expr_4 Result[struct{}, error]
+	call := forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: ""}
+	source := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: call.Path + "/source", Cookies: cookies, Payload: "", CSRF: "", Source: ""})
+	editing := Zero[PostSource]()
+ /*line post_version_test.mygo:79:5*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(source.Body.Bytes(), &editing)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_post_version.gen_test.go:53:1*/		}{})
+ /*line zz_post_version.gen_test.go:54:1*/		}{})
 	}
- /*line post_version_test.mygo:69:6*/	if source.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || editing.Version != post.Version || editing.Body != post.Body {
- /*line post_version_test.mygo:73:5*/		t.Fatal("source revision snapshot missing")
- /*line post_version_test.mygo:69:6*/	} else {
- /*line zz_post_version.gen_test.go:58:1*/	}
- /*line post_version_test.mygo:75:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"", ",\"expected_version\":null", ",\"expected_version\":0", ",\"expected_version\":-1", ",\"expected_version\":1.5", ",\"expected_version\":\"1\"", ",\"expected_version\":9223372036854775808"}, func(field string) {
- /*line post_version_test.mygo:83:10*/		invalid := call
+ /*line post_version_test.mygo:78:3*/	if source.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || editing.Version != post.Version || editing.Body != post.Body {
+ /*line post_version_test.mygo:82:5*/		t.Fatal("source revision snapshot missing")
+ /*line post_version_test.mygo:78:3*/	} else {
+ /*line zz_post_version.gen_test.go:59:1*/	}
+ /*line post_version_test.mygo:84:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"", ",\"expected_version\":null", ",\"expected_version\":0", ",\"expected_version\":-1", ",\"expected_version\":1.5", ",\"expected_version\":\"1\"", ",\"expected_version\":9223372036854775808"}, func(field string) {
+ /*line post_version_test.mygo:92:10*/		invalid := call
 		invalid.Payload = "{\"title\":\"Topic\",\"body\":\"invalid\"" + field + "}"
- /*line post_version_test.mygo:86:8*/		if doForum(handler, invalid).Code != 400 {
- /*line post_version_test.mygo:87:7*/			t.Fatalf("accepted invalid precondition: %s", field)
+ /*line post_version_test.mygo:95:5*/		if doForum(handler, invalid).Code != 400 {
+ /*line post_version_test.mygo:96:7*/			t.Fatalf("accepted invalid precondition: %s", field)
 			return
- /*line post_version_test.mygo:86:8*/		} else {
- /*line post_version_test.mygo:86:5*/			return
- /*line zz_post_version.gen_test.go:67:1*/		}
+ /*line post_version_test.mygo:95:5*/		} else {
+			return
+ /*line zz_post_version.gen_test.go:68:1*/		}
 	})
- /*line post_version_test.mygo:14:1*/	first := call
+ /*line post_version_test.mygo:15:1*/	first := call
 	first.Payload = "{\"title\":\"Topic\",\"body\":\"winner\",\"expected_version\":1}"
 	saved := doForum(handler, first)
- /*line post_version_test.mygo:93:6*/	if saved.Code != 200 || browserPost(t, saved).Version != int64(2) {
- /*line post_version_test.mygo:94:5*/		t.Fatalf("first edit failed: %s", saved.Body.String())
- /*line post_version_test.mygo:93:6*/	} else {
- /*line zz_post_version.gen_test.go:75:1*/	}
- /*line post_version_test.mygo:14:1*/	stale := first
+ /*line post_version_test.mygo:102:3*/	if saved.Code != 200 || browserPost(t, saved).Version != int64(2) {
+ /*line post_version_test.mygo:103:5*/		t.Fatalf("first edit failed: %s", saved.Body.String())
+ /*line post_version_test.mygo:102:3*/	} else {
+ /*line zz_post_version.gen_test.go:76:1*/	}
+ /*line post_version_test.mygo:15:1*/	stale := first
 	stale.Payload = "{\"title\":\"Topic\",\"body\":\"stale @alice\",\"attachment_ids\":[\"missing\"],\"expected_version\":1}"
 	conflict := doForum(handler, stale)
-	conflictError := ErrorOutput{}
- /*line post_version_test.mygo:101:5*/	var __mygo_expr_6 Result[struct{}, error]
+	conflictError := Zero[ErrorOutput]()
+ /*line post_version_test.mygo:110:5*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(conflict.Body.Bytes(), &conflictError)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_post_version.gen_test.go:86:1*/		}{})
+ /*line zz_post_version.gen_test.go:87:1*/		}{})
 	}
- /*line post_version_test.mygo:100:6*/	if conflict.Code != 409 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || conflictError.Error != "edit_conflict" || conflict.Header().Get("Cache-Control") != "no-store" {
- /*line post_version_test.mygo:104:5*/		t.Fatalf("wrong conflict response: %s", conflict.Body.String())
- /*line post_version_test.mygo:100:6*/	} else {
- /*line zz_post_version.gen_test.go:91:1*/	}
- /*line post_version_test.mygo:14:1*/	current := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
- /*line post_version_test.mygo:107:6*/	if current.Body != "winner" || current.Version != int64(2) {
- /*line post_version_test.mygo:108:5*/		t.Fatal("stale save changed content or revision")
- /*line post_version_test.mygo:107:6*/	} else {
- /*line zz_post_version.gen_test.go:96:1*/	}
- /*line post_version_test.mygo:14:1*/	ready := concurrency.MakeChan[struct{}](2)
+ /*line post_version_test.mygo:109:3*/	if conflict.Code != 409 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || conflictError.Error != "edit_conflict" || conflict.Header().Get("Cache-Control") != "no-store" {
+ /*line post_version_test.mygo:113:5*/		t.Fatalf("wrong conflict response: %s", conflict.Body.String())
+ /*line post_version_test.mygo:109:3*/	} else {
+ /*line zz_post_version.gen_test.go:92:1*/	}
+ /*line post_version_test.mygo:15:1*/	current := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
+ /*line post_version_test.mygo:116:3*/	if current.Body != "winner" || current.Version != int64(2) {
+ /*line post_version_test.mygo:117:5*/		t.Fatal("stale save changed content or revision")
+ /*line post_version_test.mygo:116:3*/	} else {
+ /*line zz_post_version.gen_test.go:97:1*/	}
+ /*line post_version_test.mygo:15:1*/	ready := concurrency.MakeChan[struct{}](2)
 	start := concurrency.MakeChan[struct{}](2)
 	results := concurrency.MakeChan[*httptest.ResponseRecorder](2)
- /*line post_version_test.mygo:114:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"A", "B"}, func(body string) {
- /*line post_version_test.mygo:115:5*/		concurrency.Spawn(func() {
- /*line post_version_test.mygo:115:23*/			attempt := call
+ /*line post_version_test.mygo:123:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"A", "B"}, func(body string) {
+ /*line post_version_test.mygo:124:5*/		concurrency.Spawn(func() {
+ /*line post_version_test.mygo:124:23*/			attempt := call
 			attempt.Payload = "{\"title\":\"Topic\",\"body\":\"" + body + "\",\"expected_version\":2}"
- /*line post_version_test.mygo:118:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
- /*line zz_post_version.gen_test.go:105:1*/			}{})
- /*line post_version_test.mygo:115:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
- /*line post_version_test.mygo:120:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, doForum(handler, attempt))
+ /*line post_version_test.mygo:127:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(ready, struct {
+ /*line zz_post_version.gen_test.go:106:1*/			}{})
+ /*line post_version_test.mygo:124:23*/			concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](start)
+ /*line post_version_test.mygo:129:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, doForum(handler, attempt))
 			return
- /*line zz_post_version.gen_test.go:109:1*/		})
- /*line post_version_test.mygo:115:5*/		return
- /*line zz_post_version.gen_test.go:111:1*/	})
- /*line post_version_test.mygo:14:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
+ /*line zz_post_version.gen_test.go:110:1*/		})
+ /*line post_version_test.mygo:124:5*/		return
+ /*line zz_post_version.gen_test.go:112:1*/	})
+ /*line post_version_test.mygo:15:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](ready)
- /*line post_version_test.mygo:125:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_post_version.gen_test.go:115:1*/	}{})
- /*line post_version_test.mygo:126:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
- /*line zz_post_version.gen_test.go:117:1*/	}{})
- /*line post_version_test.mygo:14:1*/	a := MygoIN6OptionM6Unwrap[*httptest.ResponseRecorder](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[*httptest.ResponseRecorder](results))
+ /*line post_version_test.mygo:134:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_post_version.gen_test.go:116:1*/	}{})
+ /*line post_version_test.mygo:135:3*/	concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(start, struct {
+ /*line zz_post_version.gen_test.go:118:1*/	}{})
+ /*line post_version_test.mygo:15:1*/	a := MygoIN6OptionM6Unwrap[*httptest.ResponseRecorder](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[*httptest.ResponseRecorder](results))
 	b := MygoIN6OptionM6Unwrap[*httptest.ResponseRecorder](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[*httptest.ResponseRecorder](results))
- /*line post_version_test.mygo:129:7*/	if !(a.Code == 200 && b.Code == 409 || a.Code == 409 && b.Code == 200) {
- /*line post_version_test.mygo:130:5*/		t.Fatalf("concurrent edits: %d %d", a.Code, b.Code)
- /*line post_version_test.mygo:129:6*/	} else {
- /*line zz_post_version.gen_test.go:123:1*/	}
- /*line post_version_test.mygo:132:32*/	var __mygo_expr_7 *httptest.ResponseRecorder
+ /*line post_version_test.mygo:138:7*/	if !(a.Code == 200 && b.Code == 409 || a.Code == 409 && b.Code == 200) {
+ /*line post_version_test.mygo:139:5*/		t.Fatalf("concurrent edits: %d %d", a.Code, b.Code)
+ /*line post_version_test.mygo:138:3*/	} else {
+ /*line zz_post_version.gen_test.go:124:1*/	}
+ /*line post_version_test.mygo:141:32*/	var __mygo_expr_7 *httptest.ResponseRecorder
 	if a.Code == 200 {
 		__mygo_expr_7 = a
 	} else {
 		__mygo_expr_7 = b
- /*line zz_post_version.gen_test.go:129:1*/	}
- /*line post_version_test.mygo:14:1*/	winning := browserPost(t, __mygo_expr_7)
+ /*line zz_post_version.gen_test.go:130:1*/	}
+ /*line post_version_test.mygo:15:1*/	winning := browserPost(t, __mygo_expr_7)
 	after := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
- /*line post_version_test.mygo:134:6*/	if after.Version != int64(3) || after.Body != winning.Body {
- /*line post_version_test.mygo:135:5*/		t.Fatal("concurrent save revision/content mismatch")
- /*line post_version_test.mygo:134:6*/	} else {
- /*line zz_post_version.gen_test.go:135:1*/	}
- /*line post_version_test.mygo:14:1*/	unchanged := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, "Topic", after.Body, after.Version))
- /*line post_version_test.mygo:146:6*/	if unchanged.Version != int64(4) {
- /*line post_version_test.mygo:147:5*/		t.Fatal("accepted unchanged edit did not advance revision")
- /*line post_version_test.mygo:146:6*/	} else {
- /*line zz_post_version.gen_test.go:140:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Like(storage.ReactionRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, ""))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Body: "Reply", ParentID: post.ID}))
- /*line post_version_test.mygo:168:6*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(4) {
- /*line post_version_test.mygo:169:5*/		t.Fatal("interaction advanced content revision")
- /*line post_version_test.mygo:168:6*/	} else {
- /*line zz_post_version.gen_test.go:146:1*/	}
- /*line post_version_test.mygo:14:1*/	noCSRF := first
+ /*line post_version_test.mygo:143:3*/	if after.Version != int64(3) || after.Body != winning.Body {
+ /*line post_version_test.mygo:144:5*/		t.Fatal("concurrent save revision/content mismatch")
+ /*line post_version_test.mygo:143:3*/	} else {
+ /*line zz_post_version.gen_test.go:136:1*/	}
+ /*line post_version_test.mygo:15:1*/	unchanged := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, "Topic", after.Body, after.Version, content.DefaultSanitizer()))
+ /*line post_version_test.mygo:156:3*/	if unchanged.Version != int64(4) {
+ /*line post_version_test.mygo:157:5*/		t.Fatal("accepted unchanged edit did not advance revision")
+ /*line post_version_test.mygo:156:3*/	} else {
+ /*line zz_post_version.gen_test.go:141:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Like(storage.ReactionRepository{DB: db, SiteID: site.ID}, ctx, post.ID, alice, false, ""))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Body: "Reply", ParentID: post.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+ /*line post_version_test.mygo:183:3*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(4) {
+ /*line post_version_test.mygo:184:5*/		t.Fatal("interaction advanced content revision")
+ /*line post_version_test.mygo:183:3*/	} else {
+ /*line zz_post_version.gen_test.go:147:1*/	}
+ /*line post_version_test.mygo:15:1*/	noCSRF := first
 	noCSRF.CSRF = ""
- /*line post_version_test.mygo:173:6*/	if doForum(handler, noCSRF).Code != 403 {
- /*line post_version_test.mygo:174:5*/		t.Fatal("stale save bypassed CSRF")
- /*line post_version_test.mygo:173:6*/	} else {
- /*line zz_post_version.gen_test.go:152:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, post.ID)))
- /*line post_version_test.mygo:181:6*/	if doForum(handler, first).Code != 404 {
- /*line post_version_test.mygo:182:5*/		t.Fatal("hidden stale save exposed conflict")
- /*line post_version_test.mygo:181:6*/	} else {
- /*line zz_post_version.gen_test.go:157:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE site_id=? AND post_id=?", site.ID, post.ID)))
+ /*line post_version_test.mygo:188:3*/	if doForum(handler, noCSRF).Code != 403 {
+ /*line post_version_test.mygo:189:5*/		t.Fatal("stale save bypassed CSRF")
+ /*line post_version_test.mygo:188:3*/	} else {
+ /*line zz_post_version.gen_test.go:153:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, post.ID)))
+ /*line post_version_test.mygo:196:3*/	if doForum(handler, first).Code != 404 {
+ /*line post_version_test.mygo:197:5*/		t.Fatal("hidden stale save exposed conflict")
+ /*line post_version_test.mygo:196:3*/	} else {
+ /*line zz_post_version.gen_test.go:158:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE site_id=? AND post_id=?", site.ID, post.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri=?", group.ID, alice.ActorURI)))
- /*line post_version_test.mygo:194:6*/	if doForum(handler, first).Code != 403 {
- /*line post_version_test.mygo:195:5*/		t.Fatal("revoked creator stale save did not retain read-only management access")
- /*line post_version_test.mygo:194:6*/	} else {
- /*line zz_post_version.gen_test.go:163:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id=? AND actor_uri=?", group.ID, alice.ActorURI)))
+ /*line post_version_test.mygo:209:3*/	if doForum(handler, first).Code != 403 {
+ /*line post_version_test.mygo:210:5*/		t.Fatal("revoked creator stale save did not retain read-only management access")
+ /*line post_version_test.mygo:209:3*/	} else {
+ /*line zz_post_version.gen_test.go:164:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id=? AND actor_uri=?", group.ID, alice.ActorURI)))
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, group.ID, alice, false, bob.ActorURI, true))
@@ -169,58 +170,58 @@ import . "github.com/mygo-lang/mygo/prelude"
 	foreign := first
 	foreign.Cookies = bobCookies
 	foreign.CSRF = csrfOf(bobCookies)
- /*line post_version_test.mygo:210:6*/	if doForum(handler, foreign).Code != 403 {
- /*line post_version_test.mygo:211:5*/		t.Fatal("non-author stale save exposed conflict")
- /*line post_version_test.mygo:210:6*/	} else {
- /*line zz_post_version.gen_test.go:175:1*/	}
- /*line post_version_test.mygo:14:1*/	bobPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, bob, false, storage.PublishInput{Title: "Bob", Body: "draft"}))
+ /*line post_version_test.mygo:225:3*/	if doForum(handler, foreign).Code != 403 {
+ /*line post_version_test.mygo:226:5*/		t.Fatal("non-author stale save exposed conflict")
+ /*line post_version_test.mygo:225:3*/	} else {
+ /*line zz_post_version.gen_test.go:176:1*/	}
+ /*line post_version_test.mygo:15:1*/	bobPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, bob, false, storage.PublishInput{Title: "Bob", Body: "draft", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	bobEdit := foreign
 	bobEdit.Path = "/api/v1/posts/" + bobPost.ID
 	bobEdit.Payload = "{\"title\":\"Bob\",\"body\":\"saved\",\"expected_version\":1}"
- /*line post_version_test.mygo:227:6*/	if doForum(handler, bobEdit).Code != 200 {
- /*line post_version_test.mygo:228:5*/		t.Fatal("ordinary author could not save")
- /*line post_version_test.mygo:227:6*/	} else {
- /*line zz_post_version.gen_test.go:183:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, group.ID, alice, false, bob.ActorURI, false))
- /*line post_version_test.mygo:231:6*/	if doForum(handler, bobEdit).Code != 404 {
- /*line post_version_test.mygo:232:5*/		t.Fatal("revoked ordinary author stale save exposed conflict")
- /*line post_version_test.mygo:231:6*/	} else {
- /*line zz_post_version.gen_test.go:188:1*/	}
- /*line post_version_test.mygo:14:1*/	invalidRich := call
+ /*line post_version_test.mygo:247:3*/	if doForum(handler, bobEdit).Code != 200 {
+ /*line post_version_test.mygo:248:5*/		t.Fatal("ordinary author could not save")
+ /*line post_version_test.mygo:247:3*/	} else {
+ /*line zz_post_version.gen_test.go:184:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, group.ID, alice, false, bob.ActorURI, false))
+ /*line post_version_test.mygo:251:3*/	if doForum(handler, bobEdit).Code != 404 {
+ /*line post_version_test.mygo:252:5*/		t.Fatal("revoked ordinary author stale save exposed conflict")
+ /*line post_version_test.mygo:251:3*/	} else {
+ /*line zz_post_version.gen_test.go:189:1*/	}
+ /*line post_version_test.mygo:15:1*/	invalidRich := call
 	invalidRich.Payload = "{\"title\":\"Changed\",\"body\":\"![x](/api/v1/media/missing)\",\"content_format\":\"markdown\",\"expected_version\":4}"
- /*line post_version_test.mygo:237:6*/	if doForum(handler, invalidRich).Code != 400 {
- /*line post_version_test.mygo:238:5*/		t.Fatal("invalid content accepted")
- /*line post_version_test.mygo:237:6*/	} else {
- /*line zz_post_version.gen_test.go:194:1*/	}
- /*line post_version_test.mygo:240:6*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(4) {
- /*line post_version_test.mygo:241:5*/		t.Fatal("failed validation consumed revision")
- /*line post_version_test.mygo:240:6*/	} else {
- /*line zz_post_version.gen_test.go:198:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET version=9223372036854775807 WHERE id=?", post.ID)))
+ /*line post_version_test.mygo:257:3*/	if doForum(handler, invalidRich).Code != 400 {
+ /*line post_version_test.mygo:258:5*/		t.Fatal("invalid content accepted")
+ /*line post_version_test.mygo:257:3*/	} else {
+ /*line zz_post_version.gen_test.go:195:1*/	}
+ /*line post_version_test.mygo:260:3*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(4) {
+ /*line post_version_test.mygo:261:5*/		t.Fatal("failed validation consumed revision")
+ /*line post_version_test.mygo:260:3*/	} else {
+ /*line zz_post_version.gen_test.go:199:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET version=9223372036854775807 WHERE id=?", post.ID)))
 	overflow := call
 	overflow.Payload = "{\"title\":\"Topic\",\"body\":\"overflow\",\"expected_version\":9223372036854775807}"
- /*line post_version_test.mygo:249:6*/	if doForum(handler, overflow).Code != 503 {
- /*line post_version_test.mygo:250:5*/		t.Fatal("revision overflow did not fail closed")
- /*line post_version_test.mygo:249:6*/	} else {
- /*line zz_post_version.gen_test.go:205:1*/	}
- /*line post_version_test.mygo:14:1*/	preserved := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
- /*line post_version_test.mygo:253:6*/	if preserved.Version != int64(9223372036854775807) || preserved.Body != after.Body {
- /*line post_version_test.mygo:254:5*/		t.Fatal("revision overflow committed changes")
- /*line post_version_test.mygo:253:6*/	} else {
- /*line zz_post_version.gen_test.go:210:1*/	}
- /*line post_version_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET version=4 WHERE id=?", post.ID)))
+ /*line post_version_test.mygo:269:3*/	if doForum(handler, overflow).Code != 503 {
+ /*line post_version_test.mygo:270:5*/		t.Fatal("revision overflow did not fail closed")
+ /*line post_version_test.mygo:269:3*/	} else {
+ /*line zz_post_version.gen_test.go:206:1*/	}
+ /*line post_version_test.mygo:15:1*/	preserved := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID)))
+ /*line post_version_test.mygo:273:3*/	if preserved.Version != int64(9223372036854775807) || preserved.Body != after.Body {
+ /*line post_version_test.mygo:274:5*/		t.Fatal("revision overflow committed changes")
+ /*line post_version_test.mygo:273:3*/	} else {
+ /*line zz_post_version.gen_test.go:211:1*/	}
+ /*line post_version_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET version=4 WHERE id=?", post.ID)))
 	repository := storage.PostRepository{DB: db, SiteID: site.ID}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(repository, ctx, post.ID, alice, false))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(repository, ctx, post.ID, alice, false))
- /*line post_version_test.mygo:260:6*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(5) {
- /*line post_version_test.mygo:261:5*/		t.Fatal("deletion revision not idempotent")
- /*line post_version_test.mygo:260:6*/	} else {
- /*line zz_post_version.gen_test.go:218:1*/	}
- /*line post_version_test.mygo:14:1*/	deleted := doForum(handler, first)
- /*line post_version_test.mygo:264:6*/	if deleted.Code != 404 || strings.Contains(deleted.Body.String(), "edit_conflict") {
- /*line post_version_test.mygo:265:5*/		t.Fatal("deleted stale save exposed conflict")
+ /*line post_version_test.mygo:280:3*/	if MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, post.ID))).Version != int64(5) {
+ /*line post_version_test.mygo:281:5*/		t.Fatal("deletion revision not idempotent")
+ /*line post_version_test.mygo:280:3*/	} else {
+ /*line zz_post_version.gen_test.go:219:1*/	}
+ /*line post_version_test.mygo:15:1*/	deleted := doForum(handler, first)
+ /*line post_version_test.mygo:284:3*/	if deleted.Code != 404 || strings.Contains(deleted.Body.String(), "edit_conflict") {
+ /*line post_version_test.mygo:285:5*/		t.Fatal("deleted stale save exposed conflict")
 		return
- /*line post_version_test.mygo:264:6*/	} else {
- /*line post_version_test.mygo:264:3*/		return
- /*line zz_post_version.gen_test.go:225:1*/	}
+ /*line post_version_test.mygo:284:3*/	} else {
+		return
+ /*line zz_post_version.gen_test.go:226:1*/	}
 }

@@ -53,7 +53,7 @@ impl PostRepository
     if remoteVerified then
       return Err("forbidden")
     end
-    let plain = content.PlainRichText(body, format)
+    let plain = content.PlainRichText(site.Sanitizer, body, format)
     if plain.IsErr() then
       return Err("invalid post input")
     end
@@ -157,7 +157,7 @@ impl PostRepository
         if MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID)).IsErr() then
           return Err("post creation failed")
         end
-        let rich = ValidatePostContentTx(ctx, tx, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
+        let rich = ValidatePostContentTx(ctx, tx, site.Sanitizer, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
         if rich.IsErr() then
           return rich
         end

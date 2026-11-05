@@ -127,13 +127,15 @@ func GroupRepresentation(
 end
 
 func BuildObjectRepresentation(
+  sanitizer: content.Sanitizer,
   record: storage.PostRecord,
   community: storage.CommunityRecord
 ) -> ObjectRepresentation
-  BuildObjectRepresentationWithContext(record, community, "")
+  BuildObjectRepresentationWithContext(sanitizer, record, community, "")
 end
 
 func BuildObjectRepresentationWithContext(
+  sanitizer: content.Sanitizer,
   record: storage.PostRecord,
   community: storage.CommunityRecord,
   discussionContext: String
@@ -152,7 +154,7 @@ func BuildObjectRepresentationWithContext(
   else
     record.ContentFormat
   end
-  let rendered = content.RenderRich(record.Body, format)
+  let rendered = content.RenderRich(sanitizer, record.Body, format)
   ObjectRepresentation{
     Context: activityStreamsContext,
     DiscussionContext: discussionContext,

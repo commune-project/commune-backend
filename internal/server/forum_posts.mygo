@@ -106,7 +106,10 @@ func PostMutation(
         request.Context(),
         db,
         func(tx: Ref[gorm.DB]) -> Result[(), String]
-          let result = storage.PostRepository{DB: tx, SiteID: site.ID}.EditResolvedContent(
+          let result = storage.PostRepository{
+            DB: tx,
+            SiteID: site.ID,
+          }.EditResolvedContent(
             request.Context(),
             id,
             identity,
@@ -117,7 +120,8 @@ func PostMutation(
             input.AttachmentIDs,
             mentions.Unwrap(),
             !PostAttachmentIDsMissing(input.AttachmentIDs),
-            input.ExpectedVersion
+            input.ExpectedVersion,
+            settings.Rendering.Sanitizer
           )
           if result.IsErr() then
             return Err(result.UnwrapErr())
@@ -126,15 +130,11 @@ func PostMutation(
           QueuePostMutation(request.Context(), settings, tx, site, updated, "Update")
         end
       )
-      let edited = if saved.IsErr() then
-        Err[storage.PostRecord, String](saved.UnwrapErr())
-      else
-        Ok[storage.PostRecord, String](updated)
-      end
+      let edited = saved.MapWithOk(updated)
       if edited.IsErr() then
         Fail(w, edited.UnwrapErr())
       else
-        WriteBrowserPost(db, site, w, request, 200, identity, edited.Unwrap())
+        WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 200, identity, edited.Unwrap())
       end
     end
   else
@@ -143,7 +143,15 @@ func PostMutation(
         request.Context(),
         db,
         func(tx: Ref[gorm.DB]) -> Result[(), String]
-          let removed = storage.PostRepository{DB: tx, SiteID: site.ID}.Delete(request.Context(), id, identity, false)
+          let removed = storage.PostRepository {
+            DB: tx,
+            SiteID: site.ID,
+          }.Delete(
+            request.Context(),
+            id,
+            identity,
+            false
+          )
           if removed.IsErr() then
             return removed
           end
@@ -205,15 +213,21 @@ func PostSectionRoute(
       Fail(w, "not found")
       return
     end
-    let state = storage.ContentStateRepository{DB: db, SiteID: site.ID, AccountID: identity.AccountID}
+    let state = storage.ContentStateRepository{
+      DB: db,
+      SiteID: site.ID,
+      AccountID: identity.AccountID,
+    }
     var result: Result[(), String] = Err("not found")
     if section == "save" then
       result = state.Save(request.Context(), id, request.Method == "POST")
-    else if section == "read" then
-      result = state.Read(request.Context(), id)
     else
-      result = state.Hide(request.Context(), id, request.Method == "POST")
-    end end
+      if section == "read" then
+        result = state.Read(request.Context(), id)
+      else
+        result = state.Hide(request.Context(), id, request.Method == "POST")
+      end
+    end
     Settle(w, result)
     return
   end
@@ -233,17 +247,33 @@ func PostSectionRoute(
     return
   end
   if section == "likes" then
-    let score = if request.Method == "POST" then 1 else 0 end
+    let score = if request.Method == "POST" then
+      1
+    else
+      0
+    end
     Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
     return
   end
   if section == "import" && request.Method == "POST" then
-    let posts = storage.PostRepository{DB: db, SiteID: site.ID}
+    let posts = storage.PostRepository{
+      DB: db,
+      SiteID: site.ID,
+    }
     let imported = posts.Import(request.Context(), id, identity, false)
     if imported.IsErr() then
       Fail(w, imported.UnwrapErr())
     else
-      WriteBrowserPost(db, site, w, request, 201, identity, imported.Unwrap())
+      WriteBrowserPost(
+        settings.Rendering.Sanitizer,
+        db,
+        site,
+        w,
+        request,
+        201,
+        identity,
+        imported.Unwrap()
+      )
     end
     return
   end
@@ -279,7 +309,13 @@ func ReplyRoute(
         Fail(w, parent.UnwrapErr())
         return
       end
-      let communityBan = storage.ActiveCommunityBan(request.Context(), db, parent.Unwrap().CommunityID, actor.Unwrap().ActorURI, time.Now())
+      let communityBan = storage.ActiveCommunityBan(
+        request.Context(),
+        db,
+        parent.Unwrap().CommunityID,
+        actor.Unwrap().ActorURI,
+        time.Now()
+      )
       let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.Unwrap().ActorURI, time.Now())
       if communityBan.IsErr() || siteBan.IsErr() then
         Fail(w, "moderation unavailable")
@@ -289,7 +325,13 @@ func ReplyRoute(
         Fail(w, "forbidden")
         return
       end
-      let blocked = storage.IsInteractionBlocked(request.Context(), db, site.ID, parent.Unwrap().AuthorActorURI, actor.Unwrap().ActorURI)
+      let blocked = storage.IsInteractionBlocked(
+        request.Context(),
+        db,
+        site.ID,
+        parent.Unwrap().AuthorActorURI,
+        actor.Unwrap().ActorURI
+      )
       if blocked.IsErr() then
         Fail(w, blocked.UnwrapErr())
         return
@@ -340,7 +382,16 @@ func ReplyRoute(
       if published.IsErr() then
         Fail(w, published.UnwrapErr())
       else
-        WriteBrowserPost(db, site, w, request, 201, actor.Unwrap(), published.Unwrap())
+        WriteBrowserPost(
+          settings.Rendering.Sanitizer,
+          db,
+          site,
+          w,
+          request,
+          201,
+          actor.Unwrap(),
+          published.Unwrap()
+        )
       end
     else
       MethodNotAllowed(w, "GET, POST")

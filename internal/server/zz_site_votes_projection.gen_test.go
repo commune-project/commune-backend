@@ -34,21 +34,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
 	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Projection", Body: "vote projection"}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Projection", Body: "vote projection", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	reactions := storage.ReactionRepository{DB: db, SiteID: site.ID}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, bob, false, 1, ""))
- /*line site_votes_projection_test.mygo:28:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, carol, false, -1, ""))
+ /*line site_votes_projection_test.mygo:52:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, carol, false, -1, ""))
  /*line site_votes_projection_test.mygo:12:1*/	handler := Handler(settings, db)
 	bobCookies := login(handler, site.Origin, "bob", "bob-password")
 	carolCookies := login(handler, site.Origin, "carol", "carol-password")
 	path := "/api/v1/posts/" + post.ID
 	detail := browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
- /*line site_votes_projection_test.mygo:34:6*/	if detail.Score != int64(0) || detail.Upvotes != int64(1) || detail.Downvotes != int64(1) || detail.VotedByMe != int64(1) || detail.LikeCount != int64(1) || !detail.LikedByMe || !detail.Permissions.CanVote || !detail.Permissions.CanUpvote || !detail.Permissions.CanDownvote {
- /*line site_votes_projection_test.mygo:37:5*/		t.Fatal("authenticated vote projection was inconsistent")
- /*line site_votes_projection_test.mygo:34:6*/	} else {
+ /*line site_votes_projection_test.mygo:58:3*/	if detail.Score != int64(0) || detail.Upvotes != int64(1) || detail.Downvotes != int64(1) || detail.VotedByMe != int64(1) || detail.LikeCount != int64(1) || !detail.LikedByMe || !detail.Permissions.CanVote || !detail.Permissions.CanUpvote || !detail.Permissions.CanDownvote {
+ /*line site_votes_projection_test.mygo:67:5*/		t.Fatal("authenticated vote projection was inconsistent")
+ /*line site_votes_projection_test.mygo:58:3*/	} else {
  /*line zz_site_votes_projection.gen_test.go:49:1*/	}
- /*line site_votes_projection_test.mygo:12:1*/	latest := PostPage{}
- /*line site_votes_projection_test.mygo:40:11*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line site_votes_projection_test.mygo:12:1*/	latest := Zero[PostPage]()
+ /*line site_votes_projection_test.mygo:70:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/topics", bobCookies, 200).Body.Bytes(), &latest)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
@@ -57,12 +57,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_site_votes_projection.gen_test.go:57:1*/		}{})
 	}
  /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line site_votes_projection_test.mygo:41:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(latest.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).VotedByMe != int64(1) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).LikeCount != int64(1) {
- /*line site_votes_projection_test.mygo:43:5*/		t.Fatal("latest list did not use the shared vote projection")
- /*line site_votes_projection_test.mygo:41:6*/	} else {
+ /*line site_votes_projection_test.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(latest.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).VotedByMe != int64(1) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).LikeCount != int64(1) {
+ /*line site_votes_projection_test.mygo:78:5*/		t.Fatal("latest list did not use the shared vote projection")
+ /*line site_votes_projection_test.mygo:74:3*/	} else {
  /*line zz_site_votes_projection.gen_test.go:63:1*/	}
- /*line site_votes_projection_test.mygo:12:1*/	search := PostPage{}
- /*line site_votes_projection_test.mygo:46:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line site_votes_projection_test.mygo:12:1*/	search := Zero[PostPage]()
+ /*line site_votes_projection_test.mygo:81:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/search?kind=posts&q=Projection", bobCookies, 200).Body.Bytes(), &search)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
@@ -71,29 +71,29 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_site_votes_projection.gen_test.go:71:1*/		}{})
 	}
  /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line site_votes_projection_test.mygo:47:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(search.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).VotedByMe != int64(1) {
- /*line site_votes_projection_test.mygo:49:5*/		t.Fatal("search did not use the shared vote projection")
- /*line site_votes_projection_test.mygo:47:6*/	} else {
+ /*line site_votes_projection_test.mygo:85:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(search.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).VotedByMe != int64(1) {
+ /*line site_votes_projection_test.mygo:88:5*/		t.Fatal("search did not use the shared vote projection")
+ /*line site_votes_projection_test.mygo:85:3*/	} else {
  /*line zz_site_votes_projection.gen_test.go:77:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	var anonymous []*http.Cookie = []*http.Cookie{}
 	public := browserPost(t, browserGet(t, handler, site.Origin, path, anonymous, 200))
- /*line site_votes_projection_test.mygo:53:6*/	if public.Score != int64(0) || public.Upvotes != int64(1) || public.Downvotes != int64(1) || public.VotedByMe != int64(0) || public.Permissions.CanVote || public.Permissions.CanUpvote || public.Permissions.CanDownvote {
- /*line site_votes_projection_test.mygo:56:5*/		t.Fatal("anonymous vote projection leaked personal state or permissions")
- /*line site_votes_projection_test.mygo:53:6*/	} else {
+ /*line site_votes_projection_test.mygo:92:3*/	if public.Score != int64(0) || public.Upvotes != int64(1) || public.Downvotes != int64(1) || public.VotedByMe != int64(0) || public.Permissions.CanVote || public.Permissions.CanUpvote || public.Permissions.CanDownvote {
+ /*line site_votes_projection_test.mygo:99:5*/		t.Fatal("anonymous vote projection leaked personal state or permissions")
+ /*line site_votes_projection_test.mygo:92:3*/	} else {
  /*line zz_site_votes_projection.gen_test.go:83:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "admin"))))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
 	disabled := browserPost(t, browserGet(t, handler, site.Origin, path, carolCookies, 200))
- /*line site_votes_projection_test.mygo:61:6*/	if disabled.Score != int64(1) || disabled.Upvotes != int64(1) || disabled.Downvotes != int64(0) || disabled.VotedByMe != int64(0) || !disabled.Permissions.CanUpvote || disabled.Permissions.CanDownvote {
- /*line site_votes_projection_test.mygo:63:5*/		t.Fatal("disabled downvotes were not excluded from projections")
- /*line site_votes_projection_test.mygo:61:6*/	} else {
+ /*line site_votes_projection_test.mygo:104:3*/	if disabled.Score != int64(1) || disabled.Upvotes != int64(1) || disabled.Downvotes != int64(0) || disabled.VotedByMe != int64(0) || !disabled.Permissions.CanUpvote || disabled.Permissions.CanDownvote {
+ /*line site_votes_projection_test.mygo:110:5*/		t.Fatal("disabled downvotes were not excluded from projections")
+ /*line site_votes_projection_test.mygo:104:3*/	} else {
  /*line zz_site_votes_projection.gen_test.go:90:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false))
 	none := browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
- /*line site_votes_projection_test.mygo:67:6*/	if none.Permissions.CanVote || none.Permissions.CanUpvote || none.Permissions.CanDownvote || none.Upvotes != int64(0) || none.Downvotes != int64(0) || none.Score != int64(0) {
- /*line site_votes_projection_test.mygo:69:5*/		t.Fatal("both-disabled vote settings were not projected consistently")
+ /*line site_votes_projection_test.mygo:114:3*/	if none.Permissions.CanVote || none.Permissions.CanUpvote || none.Permissions.CanDownvote || none.Upvotes != int64(0) || none.Downvotes != int64(0) || none.Score != int64(0) {
+ /*line site_votes_projection_test.mygo:120:5*/		t.Fatal("both-disabled vote settings were not projected consistently")
 		return
- /*line site_votes_projection_test.mygo:67:6*/	} else {
- /*line site_votes_projection_test.mygo:67:3*/		return
+ /*line site_votes_projection_test.mygo:114:3*/	} else {
+		return
  /*line zz_site_votes_projection.gen_test.go:98:1*/	}
 }

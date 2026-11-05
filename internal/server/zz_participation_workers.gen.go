@@ -25,10 +25,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 }
  /*line participation_workers.mygo:23:1*/func ProcessMailBatch(ctx context.Context, settings config.Config, db *gorm.DB) Result[struct {
 }, string] {
- /*line participation_workers.mygo:24:6*/	if settings.Registration.OutboxSecret == "" {
+ /*line participation_workers.mygo:24:3*/	if settings.Registration.OutboxSecret == "" {
  /*line participation_workers.mygo:25:12*/		return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:30:1*/		}{})
- /*line participation_workers.mygo:24:6*/	} else {
+ /*line participation_workers.mygo:24:3*/	} else {
  /*line zz_participation_workers.gen.go:32:1*/	}
  /*line participation_workers.mygo:27:13*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := base64.StdEncoding.DecodeString(settings.Registration.OutboxSecret)
@@ -38,24 +38,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_participation_workers.gen.go:39:1*/	}
  /*line participation_workers.mygo:23:1*/	key := __mygo_expr_1
- /*line participation_workers.mygo:28:6*/	if MygoIN6ResultM5IsErr[[]byte, error](key) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](key)) != 32 {
+ /*line participation_workers.mygo:28:3*/	if MygoIN6ResultM5IsErr[[]byte, error](key) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](key)) != 32 {
  /*line participation_workers.mygo:29:12*/		return Err[struct{}, string]("mail key unavailable")
- /*line participation_workers.mygo:28:6*/	} else {
+ /*line participation_workers.mygo:28:3*/	} else {
  /*line zz_participation_workers.gen.go:44:1*/	}
  /*line participation_workers.mygo:23:1*/	limits := settings.ParticipationWorkers
 	verification := storage.DeliverVerificationMailWithRetry(ctx, db, MygoIN6ResultM6Unwrap[[]byte, error](key), time.Now(), limits.BatchSize, limits.LeaseSeconds, limits.MaxAttempts, limits.RetryBaseSeconds, limits.RetryMaxSeconds, func(recipient string, link string) Result[struct{}, string] {
  /*line participation_workers.mygo:33:5*/		return SendVerificationSMTP(settings.SMTP, recipient, link)
  /*line zz_participation_workers.gen.go:48:1*/	})
- /*line participation_workers.mygo:35:6*/	if MygoIN6ResultM5IsErr[int, string](verification) {
+ /*line participation_workers.mygo:35:3*/	if MygoIN6ResultM5IsErr[int, string](verification) {
  /*line participation_workers.mygo:36:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int, string](verification))
- /*line participation_workers.mygo:35:6*/	} else {
+ /*line participation_workers.mygo:35:3*/	} else {
  /*line zz_participation_workers.gen.go:52:1*/	}
  /*line participation_workers.mygo:23:1*/	reset := storage.DeliverPasswordResetMail(ctx, db, MygoIN6ResultM6Unwrap[[]byte, error](key), time.Now(), limits.BatchSize, limits.LeaseSeconds, limits.MaxAttempts, limits.RetryBaseSeconds, limits.RetryMaxSeconds, func(recipient_1 string, link_1 string) Result[struct{}, string] {
  /*line participation_workers.mygo:39:5*/		return SendPasswordResetSMTP(settings.SMTP, recipient_1, link_1)
  /*line zz_participation_workers.gen.go:55:1*/	})
- /*line participation_workers.mygo:41:6*/	if MygoIN6ResultM5IsErr[int, string](reset) {
+ /*line participation_workers.mygo:41:3*/	if MygoIN6ResultM5IsErr[int, string](reset) {
  /*line participation_workers.mygo:42:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int, string](reset))
- /*line participation_workers.mygo:41:6*/	} else {
+ /*line participation_workers.mygo:41:3*/	} else {
  /*line zz_participation_workers.gen.go:59:1*/	}
  /*line participation_workers.mygo:44:3*/	return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:61:1*/	}{})
@@ -65,24 +65,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 	now := time.Now()
 	cutoff := now.Add(time.Duration(-48) * time.Hour)
 	registration := db.WithContext(ctx).Exec("DELETE FROM pending_registrations WHERE id IN (SELECT id FROM pending_registrations WHERE expires_at<=? ORDER BY expires_at,id LIMIT ? FOR UPDATE SKIP LOCKED)", now, batch)
- /*line participation_workers.mygo:51:6*/	if storage.QueryFailed(registration) {
+ /*line participation_workers.mygo:51:3*/	if storage.QueryFailed(registration) {
  /*line participation_workers.mygo:52:12*/		return Err[struct{}, string]("registration cleanup unavailable")
- /*line participation_workers.mygo:51:6*/	} else {
+ /*line participation_workers.mygo:51:3*/	} else {
  /*line zz_participation_workers.gen.go:71:1*/	}
  /*line participation_workers.mygo:47:1*/	registrationLimits := db.WithContext(ctx).Exec("DELETE FROM registration_rate_limits WHERE ctid IN (SELECT ctid FROM registration_rate_limits WHERE window_start<? LIMIT ? FOR UPDATE SKIP LOCKED)", cutoff, batch)
- /*line participation_workers.mygo:55:6*/	if storage.QueryFailed(registrationLimits) {
+ /*line participation_workers.mygo:55:3*/	if storage.QueryFailed(registrationLimits) {
  /*line participation_workers.mygo:56:12*/		return Err[struct{}, string]("registration cleanup unavailable")
- /*line participation_workers.mygo:55:6*/	} else {
+ /*line participation_workers.mygo:55:3*/	} else {
  /*line zz_participation_workers.gen.go:76:1*/	}
  /*line participation_workers.mygo:47:1*/	reset := db.WithContext(ctx).Exec("DELETE FROM password_reset_tokens WHERE id IN (SELECT id FROM password_reset_tokens WHERE expires_at<=? OR consumed_at IS NOT NULL ORDER BY expires_at,id LIMIT ? FOR UPDATE SKIP LOCKED)", now, batch)
- /*line participation_workers.mygo:59:6*/	if storage.QueryFailed(reset) {
+ /*line participation_workers.mygo:59:3*/	if storage.QueryFailed(reset) {
  /*line participation_workers.mygo:60:12*/		return Err[struct{}, string]("reset cleanup unavailable")
- /*line participation_workers.mygo:59:6*/	} else {
+ /*line participation_workers.mygo:59:3*/	} else {
  /*line zz_participation_workers.gen.go:81:1*/	}
  /*line participation_workers.mygo:47:1*/	resetLimits := db.WithContext(ctx).Exec("DELETE FROM password_reset_rate_limits WHERE ctid IN (SELECT ctid FROM password_reset_rate_limits WHERE window_start<? LIMIT ? FOR UPDATE SKIP LOCKED)", cutoff, batch)
- /*line participation_workers.mygo:63:6*/	if storage.QueryFailed(resetLimits) {
+ /*line participation_workers.mygo:63:3*/	if storage.QueryFailed(resetLimits) {
  /*line participation_workers.mygo:64:12*/		return Err[struct{}, string]("reset cleanup unavailable")
- /*line participation_workers.mygo:63:6*/	} else {
+ /*line participation_workers.mygo:63:3*/	} else {
  /*line zz_participation_workers.gen.go:86:1*/	}
  /*line participation_workers.mygo:66:3*/	return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:88:1*/	}{})
@@ -90,50 +90,50 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line participation_workers.mygo:69:1*/func ParticipationBatch(ctx context.Context, settings config.Config, db *gorm.DB, kind string, cursors []string) Result[struct {
 }, string] {
 	limits := settings.ParticipationWorkers
- /*line participation_workers.mygo:71:6*/	if kind == "delivery" {
+ /*line participation_workers.mygo:71:3*/	if kind == "delivery" {
 		result := delivery.RunOnce(ctx, db, settings, delivery.Limits{BatchSize: limits.BatchSize, LeaseSeconds: int64(limits.LeaseSeconds), MaxAttempts: int64(limits.MaxAttempts), BackoffSeconds: int64(limits.RetryBaseSeconds)}, func(target string, actor string, key string, payload []byte) Result[int, string] {
  /*line participation_workers.mygo:73:7*/			return delivery.PostContext(ctx, target, actor, key, payload)
  /*line zz_participation_workers.gen.go:96:1*/		})
- /*line participation_workers.mygo:75:8*/		if MygoIN6ResultM5IsErr[delivery.Outcome, string](result) {
+ /*line participation_workers.mygo:75:5*/		if MygoIN6ResultM5IsErr[delivery.Outcome, string](result) {
  /*line participation_workers.mygo:75:35*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[delivery.Outcome, string](result))
- /*line participation_workers.mygo:75:8*/		} else {
+ /*line participation_workers.mygo:75:5*/		} else {
  /*line zz_participation_workers.gen.go:100:1*/		}
  /*line participation_workers.mygo:76:12*/		return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:102:1*/		}{})
- /*line participation_workers.mygo:71:6*/	} else {
+ /*line participation_workers.mygo:71:3*/	} else {
  /*line zz_participation_workers.gen.go:104:1*/	}
- /*line participation_workers.mygo:78:6*/	if kind == "notifications" {
+ /*line participation_workers.mygo:78:3*/	if kind == "notifications" {
  /*line participation_workers.mygo:79:12*/		return storage.ProjectNotifications(ctx, db, limits.BatchSize)
- /*line participation_workers.mygo:78:6*/	} else {
+ /*line participation_workers.mygo:78:3*/	} else {
  /*line zz_participation_workers.gen.go:108:1*/	}
- /*line participation_workers.mygo:81:6*/	if kind == "actor_handles" {
+ /*line participation_workers.mygo:81:3*/	if kind == "actor_handles" {
 		result_1 := RunActorHandleBatch(ctx, settings, db)
- /*line participation_workers.mygo:83:8*/		if MygoIN6ResultM5IsErr[ActorHandleOutcome, string](result_1) {
+ /*line participation_workers.mygo:83:5*/		if MygoIN6ResultM5IsErr[ActorHandleOutcome, string](result_1) {
  /*line participation_workers.mygo:83:35*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[ActorHandleOutcome, string](result_1))
- /*line participation_workers.mygo:83:8*/		} else {
+ /*line participation_workers.mygo:83:5*/		} else {
  /*line zz_participation_workers.gen.go:114:1*/		}
  /*line participation_workers.mygo:84:12*/		return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:116:1*/		}{})
- /*line participation_workers.mygo:81:6*/	} else {
+ /*line participation_workers.mygo:81:3*/	} else {
  /*line zz_participation_workers.gen.go:118:1*/	}
- /*line participation_workers.mygo:86:6*/	if kind == "mail" {
+ /*line participation_workers.mygo:86:3*/	if kind == "mail" {
  /*line participation_workers.mygo:87:12*/		return ProcessMailBatch(ctx, settings, db)
- /*line participation_workers.mygo:86:6*/	} else {
+ /*line participation_workers.mygo:86:3*/	} else {
  /*line zz_participation_workers.gen.go:122:1*/	}
  /*line participation_workers.mygo:69:1*/	cleanup := CleanupAuthWork(ctx, db, limits.BatchSize)
- /*line participation_workers.mygo:90:6*/	if MygoIN6ResultM5IsErr[struct{}, string](cleanup) {
+ /*line participation_workers.mygo:90:3*/	if MygoIN6ResultM5IsErr[struct{}, string](cleanup) {
  /*line participation_workers.mygo:90:34*/		return cleanup
- /*line participation_workers.mygo:90:6*/	} else {
+ /*line participation_workers.mygo:90:3*/	} else {
  /*line zz_participation_workers.gen.go:127:1*/	}
- /*line participation_workers.mygo:91:6*/	if !settings.Media.Enabled {
+ /*line participation_workers.mygo:91:3*/	if !settings.Media.Enabled {
  /*line participation_workers.mygo:92:12*/		return Ok[struct{}, string](struct {
  /*line zz_participation_workers.gen.go:130:1*/		}{})
- /*line participation_workers.mygo:91:6*/	} else {
+ /*line participation_workers.mygo:91:3*/	} else {
  /*line zz_participation_workers.gen.go:132:1*/	}
  /*line participation_workers.mygo:69:1*/	files := storage.OpenMediaFiles(settings.Media)
- /*line participation_workers.mygo:95:6*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
+ /*line participation_workers.mygo:95:3*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
  /*line participation_workers.mygo:96:12*/		return Err[struct{}, string]("media unavailable")
- /*line participation_workers.mygo:95:6*/	} else {
+ /*line participation_workers.mygo:95:3*/	} else {
  /*line zz_participation_workers.gen.go:137:1*/	}
  /*line participation_workers.mygo:69:1*/	root := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files).Root
  /*line participation_workers.mygo:99:3*/	defer root.Close()
@@ -160,7 +160,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line participation_workers.mygo:113:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.MediaReconcilePage, string](reconciled))
  /*line participation_workers.mygo:69:1*/		} else {
  /*line zz_participation_workers.gen.go:162:1*/		}
- /*line participation_workers.mygo:115:27*/		var __mygo_expr_1 string
+ /*line participation_workers.mygo:115:24*/		var __mygo_expr_1 string
 		if MygoIN6ResultM6Unwrap[storage.MediaReconcilePage, string](reconciled).Done {
 			__mygo_expr_1 = ""
 		} else {
@@ -176,11 +176,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_participation_workers.gen.go:176:1*/} {
  /*line participation_workers.mygo:121:1*/	finished := concurrency.MakeChan[struct{}](1)
 	workers := settings.ParticipationWorkers
- /*line participation_workers.mygo:124:6*/	if !workers.Enabled {
+ /*line participation_workers.mygo:124:3*/	if !workers.Enabled {
  /*line participation_workers.mygo:125:5*/		concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(finished, struct {
  /*line zz_participation_workers.gen.go:181:1*/		}{})
  /*line participation_workers.mygo:126:12*/		return finished
- /*line participation_workers.mygo:124:6*/	} else {
+ /*line participation_workers.mygo:124:3*/	} else {
  /*line zz_participation_workers.gen.go:184:1*/	}
  /*line participation_workers.mygo:121:1*/	var counts []int = []int{workers.MailWorkers, workers.NotificationWorkers, workers.MediaWorkers, workers.ActorWorkers, settings.Runtime.Workers}
 	var kinds []string = []string{"mail", "notifications", "media", "actor_handles", "delivery"}

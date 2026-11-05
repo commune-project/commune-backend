@@ -14,9 +14,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	publicKey := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(privateKey))
 	body := "{\"type\":\"Create\"}"
 	digest := BodyDigest([]byte(body))
- /*line signature_test.mygo:14:6*/	if !strings.HasPrefix(digest, "sha-256=") {
+ /*line signature_test.mygo:14:3*/	if !strings.HasPrefix(digest, "sha-256=") {
  /*line signature_test.mygo:15:5*/		t.Fatal("digest is not an sha-256 value")
- /*line signature_test.mygo:14:6*/	} else {
+ /*line signature_test.mygo:14:3*/	} else {
  /*line zz_signature.gen_test.go:20:1*/	}
  /*line signature_test.mygo:9:1*/	now := time.Now().UTC()
 	date := now.Format(http.TimeFormat)
@@ -26,48 +26,48 @@ import . "github.com/mygo-lang/mygo/prelude"
 	signature := MygoIN6ResultM6Unwrap[string, string](SignSignature(privateKey, signingString))
 	header := FormatSignatureHeader("https://peer.example/users/alice#main-key", signature)
 	verified := VerifyRequest(publicKey, "POST", target, host, date, digest, header, now, int64(3600))
- /*line signature_test.mygo:25:6*/	if MygoIN6ResultM5IsErr[VerifiedRequest, string](verified) {
+ /*line signature_test.mygo:25:3*/	if MygoIN6ResultM5IsErr[VerifiedRequest, string](verified) {
  /*line signature_test.mygo:26:5*/		t.Fatalf("valid signed request was rejected: %s", MygoIN6ResultM9UnwrapErr[VerifiedRequest, string](verified))
- /*line signature_test.mygo:25:6*/	} else {
+ /*line signature_test.mygo:25:3*/	} else {
  /*line zz_signature.gen_test.go:32:1*/	}
- /*line signature_test.mygo:28:6*/	if MygoIN6ResultM6Unwrap[VerifiedRequest, string](verified).KeyID != "https://peer.example/users/alice#main-key" {
+ /*line signature_test.mygo:28:3*/	if MygoIN6ResultM6Unwrap[VerifiedRequest, string](verified).KeyID != "https://peer.example/users/alice#main-key" {
  /*line signature_test.mygo:29:5*/		t.Fatal("verified request lost the key identifier")
- /*line signature_test.mygo:28:6*/	} else {
+ /*line signature_test.mygo:28:3*/	} else {
  /*line zz_signature.gen_test.go:36:1*/	}
  /*line signature_test.mygo:9:1*/	tamperedDigest := BodyDigest([]byte(body + " "))
 	tampered := VerifyRequest(publicKey, "POST", target, host, date, tamperedDigest, header, now, int64(3600))
- /*line signature_test.mygo:33:6*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](tampered) {
+ /*line signature_test.mygo:33:3*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](tampered) {
  /*line signature_test.mygo:34:5*/		t.Fatal("tampered body digest was accepted")
- /*line signature_test.mygo:33:6*/	} else {
+ /*line signature_test.mygo:33:3*/	} else {
  /*line zz_signature.gen_test.go:42:1*/	}
  /*line signature_test.mygo:9:1*/	wrongTarget := VerifyRequest(publicKey, "POST", "/users/alice/inbox", host, date, digest, header, now, int64(3600))
- /*line signature_test.mygo:37:6*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](wrongTarget) {
+ /*line signature_test.mygo:37:3*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](wrongTarget) {
  /*line signature_test.mygo:38:5*/		t.Fatal("signature verified under a different request target")
- /*line signature_test.mygo:37:6*/	} else {
+ /*line signature_test.mygo:37:3*/	} else {
  /*line zz_signature.gen_test.go:47:1*/	}
  /*line signature_test.mygo:9:1*/	stale := VerifyRequest(publicKey, "POST", target, host, date, digest, header, now.Add(time.Duration(2)*time.Hour), int64(3600))
- /*line signature_test.mygo:41:6*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](stale) || MygoIN6ResultM9UnwrapErr[VerifiedRequest, string](stale) != "stale request" {
+ /*line signature_test.mygo:41:3*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](stale) || MygoIN6ResultM9UnwrapErr[VerifiedRequest, string](stale) != "stale request" {
  /*line signature_test.mygo:42:5*/		t.Fatal("stale request was accepted")
- /*line signature_test.mygo:41:6*/	} else {
+ /*line signature_test.mygo:41:3*/	} else {
  /*line zz_signature.gen_test.go:52:1*/	}
  /*line signature_test.mygo:9:1*/	otherKey := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())))
- /*line signature_test.mygo:45:6*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](VerifyRequest(otherKey, "POST", target, host, date, digest, header, now, int64(3600))) {
+ /*line signature_test.mygo:45:3*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](VerifyRequest(otherKey, "POST", target, host, date, digest, header, now, int64(3600))) {
  /*line signature_test.mygo:46:5*/		t.Fatal("signature verified against an unrelated key")
- /*line signature_test.mygo:45:6*/	} else {
+ /*line signature_test.mygo:45:3*/	} else {
  /*line zz_signature.gen_test.go:57:1*/	}
  /*line signature_test.mygo:9:1*/	weakHeader := "keyId=\"k\",algorithm=\"hs2019\",headers=\"(request-target) host date digest\",signature=\"" + signature + "\""
- /*line signature_test.mygo:49:6*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](VerifyRequest(publicKey, "POST", target, host, date, digest, weakHeader, now, int64(3600))) {
+ /*line signature_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[VerifiedRequest, string](VerifyRequest(publicKey, "POST", target, host, date, digest, weakHeader, now, int64(3600))) {
  /*line signature_test.mygo:50:5*/		t.Fatal("unsupported algorithm was accepted")
- /*line signature_test.mygo:49:6*/	} else {
+ /*line signature_test.mygo:49:3*/	} else {
  /*line zz_signature.gen_test.go:62:1*/	}
- /*line signature_test.mygo:52:6*/	if !KeyOwnedByActor("https://peer.example/users/alice#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/actor#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/users/alice#main-key", "") {
+ /*line signature_test.mygo:52:3*/	if !KeyOwnedByActor("https://peer.example/users/alice#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/actor#main-key", "https://peer.example/users/alice") || KeyOwnedByActor("https://peer.example/users/alice#main-key", "") {
  /*line signature_test.mygo:53:5*/		t.Fatal("key ownership check did not bind a key to its own actor")
- /*line signature_test.mygo:52:6*/	} else {
+ /*line signature_test.mygo:52:3*/	} else {
  /*line zz_signature.gen_test.go:66:1*/	}
- /*line signature_test.mygo:55:6*/	if MygoIN6ResultM4IsOk[SignatureParameters, string](ParseSignatureHeader("not a signature")) {
+ /*line signature_test.mygo:55:3*/	if MygoIN6ResultM4IsOk[SignatureParameters, string](ParseSignatureHeader("not a signature")) {
  /*line signature_test.mygo:56:5*/		t.Fatal("malformed signature header was accepted")
 		return
- /*line signature_test.mygo:55:6*/	} else {
- /*line signature_test.mygo:55:3*/		return
+ /*line signature_test.mygo:55:3*/	} else {
+		return
  /*line zz_signature.gen_test.go:72:1*/	}
 }

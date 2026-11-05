@@ -18,9 +18,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_test.mygo:14:1*/func getAP(handler http.HandlerFunc, origin string, path string, accept string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest("GET", origin+path, io.Reader(strings.NewReader("")))
- /*line federation_test.mygo:21:6*/	if accept != "" {
+ /*line federation_test.mygo:21:3*/	if accept != "" {
  /*line federation_test.mygo:22:5*/		req.Header.Set("Accept", accept)
- /*line federation_test.mygo:21:6*/	} else {
+ /*line federation_test.mygo:21:3*/	} else {
  /*line zz_federation.gen_test.go:24:1*/	}
  /*line federation_test.mygo:14:1*/	recorder := httptest.NewRecorder()
  /*line federation_test.mygo:25:3*/	handler.ServeHTTP(http.ResponseWriter(recorder), req)
@@ -49,80 +49,80 @@ import . "github.com/mygo-lang/mygo/prelude"
 	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
 	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Hello", Body: "Body", ParentID: ""}))
-	privateTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: ""}))
-	localTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: ""}))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Hello", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	privateTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	localTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	accept := "application/activity+json"
 	finger := getAP(handler, a.Origin, "/.well-known/webfinger?resource=acct:alice@forum-a.example", "application/jrd+json")
- /*line federation_test.mygo:116:6*/	if finger.Code != 200 || !strings.Contains(finger.Body.String(), alice.ActorURI) {
- /*line federation_test.mygo:117:5*/		t.Fatalf("webfinger did not advertise the actor: %d %s", finger.Code, finger.Body.String())
- /*line federation_test.mygo:116:6*/	} else {
+ /*line federation_test.mygo:128:3*/	if finger.Code != 200 || !strings.Contains(finger.Body.String(), alice.ActorURI) {
+ /*line federation_test.mygo:129:5*/		t.Fatalf("webfinger did not advertise the actor: %d %s", finger.Code, finger.Body.String())
+ /*line federation_test.mygo:128:3*/	} else {
  /*line zz_federation.gen_test.go:61:1*/	}
  /*line federation_test.mygo:29:1*/	wrongHost := getAP(handler, a.Origin, "/.well-known/webfinger?resource=acct:alice@forum-b.example", "application/jrd+json")
- /*line federation_test.mygo:125:6*/	if wrongHost.Code != 404 {
- /*line federation_test.mygo:126:5*/		t.Fatal("webfinger resolved another site's account")
- /*line federation_test.mygo:125:6*/	} else {
+ /*line federation_test.mygo:137:3*/	if wrongHost.Code != 404 {
+ /*line federation_test.mygo:138:5*/		t.Fatal("webfinger resolved another site's account")
+ /*line federation_test.mygo:137:3*/	} else {
  /*line zz_federation.gen_test.go:66:1*/	}
  /*line federation_test.mygo:29:1*/	person := getAP(handler, a.Origin, "/users/alice", accept)
- /*line federation_test.mygo:129:6*/	if person.Code != 200 || !strings.Contains(person.Body.String(), "\"type\":\"Person\"") || !strings.Contains(person.Body.String(), "publicKeyPem") {
- /*line federation_test.mygo:132:5*/		t.Fatal("person representation was incomplete")
- /*line federation_test.mygo:129:6*/	} else {
+ /*line federation_test.mygo:141:3*/	if person.Code != 200 || !strings.Contains(person.Body.String(), "\"type\":\"Person\"") || !strings.Contains(person.Body.String(), "publicKeyPem") {
+ /*line federation_test.mygo:144:5*/		t.Fatal("person representation was incomplete")
+ /*line federation_test.mygo:141:3*/	} else {
  /*line zz_federation.gen_test.go:71:1*/	}
- /*line federation_test.mygo:134:6*/	if !strings.Contains(person.Body.String(), alice.ActorURI+"/inbox") {
- /*line federation_test.mygo:135:5*/		t.Fatal("person representation advertised the wrong inbox")
- /*line federation_test.mygo:134:6*/	} else {
+ /*line federation_test.mygo:146:3*/	if !strings.Contains(person.Body.String(), alice.ActorURI+"/inbox") {
+ /*line federation_test.mygo:147:5*/		t.Fatal("person representation advertised the wrong inbox")
+ /*line federation_test.mygo:146:3*/	} else {
  /*line zz_federation.gen_test.go:75:1*/	}
  /*line federation_test.mygo:29:1*/	noNegotiation := getAP(handler, a.Origin, "/users/alice", "text/html")
- /*line federation_test.mygo:138:6*/	if noNegotiation.Code != 404 {
- /*line federation_test.mygo:139:5*/		t.Fatal("content negotiation did not reject a non-ActivityPub request")
- /*line federation_test.mygo:138:6*/	} else {
+ /*line federation_test.mygo:150:3*/	if noNegotiation.Code != 404 {
+ /*line federation_test.mygo:151:5*/		t.Fatal("content negotiation did not reject a non-ActivityPub request")
+ /*line federation_test.mygo:150:3*/	} else {
  /*line zz_federation.gen_test.go:80:1*/	}
- /*line federation_test.mygo:141:6*/	if getAP(handler, a.Origin, "/users/nobody", accept).Code != 404 {
- /*line federation_test.mygo:142:5*/		t.Fatal("unknown actor was exposed")
- /*line federation_test.mygo:141:6*/	} else {
+ /*line federation_test.mygo:153:3*/	if getAP(handler, a.Origin, "/users/nobody", accept).Code != 404 {
+ /*line federation_test.mygo:154:5*/		t.Fatal("unknown actor was exposed")
+ /*line federation_test.mygo:153:3*/	} else {
  /*line zz_federation.gen_test.go:84:1*/	}
  /*line federation_test.mygo:29:1*/	group := getAP(handler, a.Origin, "/communities/open", accept)
- /*line federation_test.mygo:145:6*/	if group.Code != 200 || !strings.Contains(group.Body.String(), "\"type\":\"Group\"") || !strings.Contains(group.Body.String(), "publicKeyPem") {
- /*line federation_test.mygo:148:5*/		t.Fatal("group representation was incomplete")
- /*line federation_test.mygo:145:6*/	} else {
+ /*line federation_test.mygo:157:3*/	if group.Code != 200 || !strings.Contains(group.Body.String(), "\"type\":\"Group\"") || !strings.Contains(group.Body.String(), "publicKeyPem") {
+ /*line federation_test.mygo:160:5*/		t.Fatal("group representation was incomplete")
+ /*line federation_test.mygo:157:3*/	} else {
  /*line zz_federation.gen_test.go:89:1*/	}
- /*line federation_test.mygo:150:6*/	if getAP(handler, a.Origin, "/communities/local", accept).Code != 404 {
- /*line federation_test.mygo:151:5*/		t.Fatal("local-only community was exposed through federation")
- /*line federation_test.mygo:150:6*/	} else {
+ /*line federation_test.mygo:162:3*/	if getAP(handler, a.Origin, "/communities/local", accept).Code != 404 {
+ /*line federation_test.mygo:163:5*/		t.Fatal("local-only community was exposed through federation")
+ /*line federation_test.mygo:162:3*/	} else {
  /*line zz_federation.gen_test.go:93:1*/	}
  /*line federation_test.mygo:29:1*/	object := getAP(handler, a.Origin, "/objects/"+topic.ID, accept)
- /*line federation_test.mygo:154:6*/	if object.Code != 200 || !strings.Contains(object.Body.String(), "\"type\":\"Page\"") || !strings.Contains(object.Body.String(), "#Public") {
- /*line federation_test.mygo:157:5*/		t.Fatal("public object representation was incomplete")
- /*line federation_test.mygo:154:6*/	} else {
+ /*line federation_test.mygo:166:3*/	if object.Code != 200 || !strings.Contains(object.Body.String(), "\"type\":\"Page\"") || !strings.Contains(object.Body.String(), "#Public") {
+ /*line federation_test.mygo:169:5*/		t.Fatal("public object representation was incomplete")
+ /*line federation_test.mygo:166:3*/	} else {
  /*line zz_federation.gen_test.go:98:1*/	}
- /*line federation_test.mygo:159:6*/	if getAP(handler, a.Origin, "/objects/"+privateTopic.ID, accept).Code != 404 || getAP(handler, a.Origin, "/objects/"+localTopic.ID, accept).Code != 404 {
- /*line federation_test.mygo:161:5*/		t.Fatal("restricted or local-only object was exposed")
- /*line federation_test.mygo:159:6*/	} else {
+ /*line federation_test.mygo:171:3*/	if getAP(handler, a.Origin, "/objects/"+privateTopic.ID, accept).Code != 404 || getAP(handler, a.Origin, "/objects/"+localTopic.ID, accept).Code != 404 {
+ /*line federation_test.mygo:173:5*/		t.Fatal("restricted or local-only object was exposed")
+ /*line federation_test.mygo:171:3*/	} else {
  /*line zz_federation.gen_test.go:102:1*/	}
- /*line federation_test.mygo:163:6*/	if getAP(handler, b.Origin, "/objects/"+topic.ID, accept).Code != 404 {
- /*line federation_test.mygo:164:5*/		t.Fatal("another site served an object it does not own")
- /*line federation_test.mygo:163:6*/	} else {
+ /*line federation_test.mygo:175:3*/	if getAP(handler, b.Origin, "/objects/"+topic.ID, accept).Code != 404 {
+ /*line federation_test.mygo:176:5*/		t.Fatal("another site served an object it does not own")
+ /*line federation_test.mygo:175:3*/	} else {
  /*line zz_federation.gen_test.go:106:1*/	}
  /*line federation_test.mygo:29:1*/	activityURI := a.Origin + "/activities/create-1"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,post_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, topic.ID)))
 	payload := "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,decode(repeat('00',32),'hex'))", activityURI, []byte(payload))))
 	activity := getAP(handler, a.Origin, "/activities/create-1", accept)
- /*line federation_test.mygo:171:6*/	if activity.Code != 200 || !strings.Contains(activity.Body.String(), "Create") {
- /*line federation_test.mygo:172:5*/		t.Fatalf("activity retrieval failed: %d %s", activity.Code, activity.Body.String())
- /*line federation_test.mygo:171:6*/	} else {
+ /*line federation_test.mygo:183:3*/	if activity.Code != 200 || !strings.Contains(activity.Body.String(), "Create") {
+ /*line federation_test.mygo:184:5*/		t.Fatalf("activity retrieval failed: %d %s", activity.Code, activity.Body.String())
+ /*line federation_test.mygo:183:3*/	} else {
  /*line zz_federation.gen_test.go:115:1*/	}
- /*line federation_test.mygo:174:6*/	if getAP(handler, b.Origin, "/activities/create-1", accept).Code != 404 {
- /*line federation_test.mygo:175:5*/		t.Fatal("another site served a foreign activity")
- /*line federation_test.mygo:174:6*/	} else {
+ /*line federation_test.mygo:186:3*/	if getAP(handler, b.Origin, "/activities/create-1", accept).Code != 404 {
+ /*line federation_test.mygo:187:5*/		t.Fatal("another site served a foreign activity")
+ /*line federation_test.mygo:186:3*/	} else {
  /*line zz_federation.gen_test.go:119:1*/	}
  /*line federation_test.mygo:29:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(posts, ctx, topic.ID, alice, false))
 	tombstone := getAP(handler, a.Origin, "/objects/"+topic.ID, accept)
- /*line federation_test.mygo:179:6*/	if tombstone.Code != 200 || !strings.Contains(tombstone.Body.String(), "\"type\":\"Tombstone\"") || strings.Contains(tombstone.Body.String(), "Body") {
- /*line federation_test.mygo:182:5*/		t.Fatal("deleted object was not represented as a tombstone")
+ /*line federation_test.mygo:191:3*/	if tombstone.Code != 200 || !strings.Contains(tombstone.Body.String(), "\"type\":\"Tombstone\"") || strings.Contains(tombstone.Body.String(), "Body") {
+ /*line federation_test.mygo:194:5*/		t.Fatal("deleted object was not represented as a tombstone")
 		return
- /*line federation_test.mygo:179:6*/	} else {
- /*line federation_test.mygo:179:3*/		return
+ /*line federation_test.mygo:191:3*/	} else {
+		return
  /*line zz_federation.gen_test.go:127:1*/	}
 }

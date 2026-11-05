@@ -11,6 +11,7 @@ import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestNotificationCursor(t: Ref[testing.T]) -> ()
   let cursor = NotificationCursor{Time: time.Now().UTC().Truncate(time.Microsecond), ID: 73i64}
@@ -211,11 +212,11 @@ func TestPostgresNotificationsRemoteAndRevocation(t: Ref[testing.T]) -> ()
     Version: 0i64,
     DeletedAt: Zero[sql.NullTime](),
   }
-  if posts.Receive(ctx, incoming, "https://forged.example/actor").IsOk() then
+  if posts.Receive(ctx, incoming, "https://forged.example/actor", content.DefaultSanitizer()).IsOk() then
     t.Fatal("unverified remote author accepted")
   end
-  let received = posts.Receive(ctx, incoming, author).Unwrap()
-  let _ = posts.Receive(ctx, incoming, author).Unwrap()
+  let received = posts.Receive(ctx, incoming, author, content.DefaultSanitizer()).Unwrap()
+  let _ = posts.Receive(ctx, incoming, author, content.DefaultSanitizer()).Unwrap()
   let _ = ProjectNotifications(ctx, f.DB, 100).Unwrap()
   let browser = BrowserRepository{DB: f.DB, SiteID: f.Site.ID}
   let viewer = browser.Viewer(ctx, f.Alice).Unwrap()

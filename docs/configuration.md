@@ -146,3 +146,26 @@ Deployments that serve existing accounts should therefore configure SMTP and
 the outbox key even when registration is off. Reset mail shares the durable mail
 worker loop, uses expiring leases, retains encrypted payloads only while
 retryable, and clears payload bytes on success or terminal failure.
+
+## Rendering configuration
+
+`rendering.markdown.hard_wraps` defaults to true and renders a single Markdown
+soft line break as `<br>`. Set it to false to restore CommonMark soft-break
+folding. `rendering.markdown.allow_raw_html` defaults to false; when true, raw
+HTML is parsed and passed through the same allowlist as HTML content.
+
+`rendering.sanitize.elements`, `.attributes`, `.url_schemes`, and
+`.allow_relative_urls` configure the parser-based allowlist. An omitted object
+or field uses the built-in safe default shown in `config/example.json`. A
+present array replaces that category completely; an empty array removes every
+element, attribute, or scheme. Validation fails before serving for dangerous
+elements such as `script`, `iframe`, and `input`, event attributes,
+`style`/`srcset`, and schemes outside `http`, `https`, `mailto`, and `tel`.
+GitHub-flavored tables, strikethrough, autolinks, and task-list syntax are
+enabled. Task-list checkboxes are removed by the allowlist, and tables render
+without alignment markup. Image `referrerpolicy="no-referrer"` is forced.
+
+`biography_html` is a snapshot written when a biography is edited. Changing the
+allowlist later affects post display and new renders immediately, but existing
+biography HTML keeps the policy used at save time until the biography is edited
+again.

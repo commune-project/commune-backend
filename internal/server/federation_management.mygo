@@ -52,9 +52,9 @@ func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.S
     return Ok(())
   end
   var role = "member"
-  let extension = Zero[GroupRoleExtension]()
-  if json.Unmarshal(payload, Ref.new(extension)).IsOk() && extension.Role != "" then
-    role = extension.Role
+  let roleExtension = Zero[GroupRoleExtension]()
+  if json.Unmarshal(payload, Ref.new(roleExtension)).IsOk() && roleExtension.Role != "" then
+    role = roleExtension.Role
   end
   if role != "member" && role != "manager" then
     return Ok(())

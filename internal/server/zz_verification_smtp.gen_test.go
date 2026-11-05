@@ -10,27 +10,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line verification_smtp_test.mygo:8:1*/func TestVerificationSMTPTransport(t *testing.T) {
 	sink := transport.NewSMTP(t)
-	settings := config.SMTP{Host: sink.Host, Port: sink.Port, From: "forum@example.org", TLSMode: "test", TimeoutSeconds: 2}
+	settings := config.SMTP{Host: sink.Host, Port: sink.Port, From: "forum@example.org", TLSMode: "test", TimeoutSeconds: 2, Username: "", Password: ""}
 	link := "https://a.example/verify-email#token=EXAMPLE"
- /*line verification_smtp_test.mygo:12:6*/	if MygoIN6ResultM5IsErr[struct{}, string](SendVerificationSMTP(settings, "owner@example.org", link)) {
- /*line verification_smtp_test.mygo:13:5*/		t.Fatal("test SMTP delivery failed")
- /*line verification_smtp_test.mygo:12:6*/	} else {
+ /*line verification_smtp_test.mygo:20:3*/	if MygoIN6ResultM5IsErr[struct{}, string](SendVerificationSMTP(settings, "owner@example.org", link)) {
+ /*line verification_smtp_test.mygo:21:5*/		t.Fatal("test SMTP delivery failed")
+ /*line verification_smtp_test.mygo:20:3*/	} else {
  /*line zz_verification_smtp.gen_test.go:18:1*/	}
  /*line verification_smtp_test.mygo:8:1*/	messages := sink.Messages()
- /*line verification_smtp_test.mygo:16:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(messages) != 1 || !strings.Contains(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(messages, 0)), link) {
- /*line verification_smtp_test.mygo:17:5*/		t.Fatal("verification email was not delivered to test transport")
- /*line verification_smtp_test.mygo:16:6*/	} else {
+ /*line verification_smtp_test.mygo:24:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(messages) != 1 || !strings.Contains(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(messages, 0)), link) {
+ /*line verification_smtp_test.mygo:25:5*/		t.Fatal("verification email was not delivered to test transport")
+ /*line verification_smtp_test.mygo:24:3*/	} else {
  /*line zz_verification_smtp.gen_test.go:23:1*/	}
  /*line verification_smtp_test.mygo:8:1*/	secured := settings
 	secured.TLSMode = "starttls"
- /*line verification_smtp_test.mygo:21:6*/	if MygoIN6ResultM4IsOk[struct{}, string](SendVerificationSMTP(secured, "owner@example.org", link)) {
- /*line verification_smtp_test.mygo:22:5*/		t.Fatal("SMTP without STARTTLS accepted on secure path")
- /*line verification_smtp_test.mygo:21:6*/	} else {
+ /*line verification_smtp_test.mygo:29:3*/	if MygoIN6ResultM4IsOk[struct{}, string](SendVerificationSMTP(secured, "owner@example.org", link)) {
+ /*line verification_smtp_test.mygo:30:5*/		t.Fatal("SMTP without STARTTLS accepted on secure path")
+ /*line verification_smtp_test.mygo:29:3*/	} else {
  /*line zz_verification_smtp.gen_test.go:29:1*/	}
- /*line verification_smtp_test.mygo:24:6*/	if MygoIN6ResultM4IsOk[struct{}, string](SendVerificationSMTP(settings, "owner@example.org\r\nBcc: victim@example.org", link)) {
- /*line verification_smtp_test.mygo:25:5*/		t.Fatal("mail header injection accepted")
+ /*line verification_smtp_test.mygo:32:3*/	if MygoIN6ResultM4IsOk[struct{}, string](SendVerificationSMTP(settings, "owner@example.org\r\nBcc: victim@example.org", link)) {
+ /*line verification_smtp_test.mygo:33:5*/		t.Fatal("mail header injection accepted")
 		return
- /*line verification_smtp_test.mygo:24:6*/	} else {
- /*line verification_smtp_test.mygo:24:3*/		return
+ /*line verification_smtp_test.mygo:32:3*/	} else {
+		return
  /*line zz_verification_smtp.gen_test.go:35:1*/	}
 }

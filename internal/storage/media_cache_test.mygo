@@ -12,6 +12,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
@@ -54,7 +55,8 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
       Title: sql.NullString{String: "", Valid: false},
       ID: "",
     },
-    author
+    author,
+    content.DefaultSanitizer()
   ).Unwrap()
   let _ = MutationResult(db.Exec(
     "INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?),('remote',?,?)",

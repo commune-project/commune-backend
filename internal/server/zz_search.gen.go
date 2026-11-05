@@ -9,60 +9,60 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line search.mygo:9:1*/func SearchRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line search.mygo:10:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 3 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "search" {
- /*line search.mygo:11:12*/		return false
- /*line search.mygo:10:6*/	} else {
+ /*line search.mygo:8:1*/func SearchRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line search.mygo:16:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 3 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "search" {
+ /*line search.mygo:17:12*/		return false
+ /*line search.mygo:16:3*/	} else {
  /*line zz_search.gen.go:16:1*/	}
- /*line search.mygo:13:3*/	w.Header().Set("Cache-Control", "no-store")
- /*line search.mygo:14:6*/	if request.Method != "GET" {
- /*line search.mygo:15:5*/		MethodNotAllowed(w, "GET")
- /*line search.mygo:16:12*/		return true
- /*line search.mygo:14:6*/	} else {
+ /*line search.mygo:19:3*/	w.Header().Set("Cache-Control", "no-store")
+ /*line search.mygo:20:3*/	if request.Method != "GET" {
+ /*line search.mygo:21:5*/		MethodNotAllowed(w, "GET")
+ /*line search.mygo:22:12*/		return true
+ /*line search.mygo:20:3*/	} else {
  /*line zz_search.gen.go:22:1*/	}
- /*line search.mygo:9:1*/	kind := request.URL.Query().Get("kind")
+ /*line search.mygo:8:1*/	kind := request.URL.Query().Get("kind")
 	query := request.URL.Query().Get("q")
 	page := PageFromQuery(settings, request)
- /*line search.mygo:21:6*/	if kind != "communities" && kind != "posts" || !storage.ValidSearchQuery(query) || MygoIN6ResultM5IsErr[storage.Page, string](page) {
- /*line search.mygo:22:5*/		Fail(w, "invalid page")
- /*line search.mygo:23:12*/		return true
- /*line search.mygo:21:6*/	} else {
+ /*line search.mygo:27:3*/	if kind != "communities" && kind != "posts" || !storage.ValidSearchQuery(query) || MygoIN6ResultM5IsErr[storage.Page, string](page) {
+ /*line search.mygo:30:5*/		Fail(w, "invalid page")
+ /*line search.mygo:31:12*/		return true
+ /*line search.mygo:27:3*/	} else {
  /*line zz_search.gen.go:30:1*/	}
- /*line search.mygo:9:1*/	identity := BrowserIdentity(db, site, request, false)
- /*line search.mygo:26:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
- /*line search.mygo:27:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](identity))
- /*line search.mygo:28:12*/		return true
- /*line search.mygo:26:6*/	} else {
+ /*line search.mygo:8:1*/	identity := BrowserIdentity(db, site, request, false)
+ /*line search.mygo:34:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
+ /*line search.mygo:35:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](identity))
+ /*line search.mygo:36:12*/		return true
+ /*line search.mygo:34:3*/	} else {
  /*line zz_search.gen.go:36:1*/	}
- /*line search.mygo:9:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
+ /*line search.mygo:8:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, string](identity))
- /*line search.mygo:32:6*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
- /*line search.mygo:33:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
- /*line search.mygo:34:12*/		return true
- /*line search.mygo:32:6*/	} else {
+ /*line search.mygo:40:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+ /*line search.mygo:41:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
+ /*line search.mygo:42:12*/		return true
+ /*line search.mygo:40:3*/	} else {
  /*line zz_search.gen.go:43:1*/	}
- /*line search.mygo:36:6*/	if kind == "communities" {
+ /*line search.mygo:44:3*/	if kind == "communities" {
 		rows := storage.MygoIN17BrowserRepositoryM17SearchCommunities(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
 		if MygoIN6ResultM5IsErr[[]storage.CommunityView, string](rows) {
- /*line search.mygo:39:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, string](rows))
- /*line search.mygo:36:6*/		} else {
+ /*line search.mygo:53:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, string](rows))
+ /*line search.mygo:44:3*/		} else {
 			outputs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]storage.CommunityView, string](rows), func(view storage.CommunityView) CommunityOutput {
- /*line search.mygo:42:9*/				return BrowserCommunityDTO(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer))
+ /*line search.mygo:56:9*/				return BrowserCommunityDTO(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer))
  /*line zz_search.gen.go:51:1*/			})
- /*line search.mygo:36:6*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
+ /*line search.mygo:44:3*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
  /*line zz_search.gen.go:53:1*/		}
- /*line search.mygo:36:6*/	} else {
+ /*line search.mygo:44:3*/	} else {
 		rows_1 := storage.MygoIN17BrowserRepositoryM11SearchPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
 		if MygoIN6ResultM5IsErr[[]storage.PostRecord, string](rows_1) {
- /*line search.mygo:49:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, string](rows_1))
- /*line search.mygo:36:6*/		} else {
-			outputs_1 := BrowserPosts(request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](rows_1))
+ /*line search.mygo:77:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, string](rows_1))
+ /*line search.mygo:44:3*/		} else {
+			outputs_1 := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](rows_1))
 			if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs_1) {
- /*line search.mygo:53:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs_1))
- /*line search.mygo:36:6*/			} else {
- /*line search.mygo:55:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs_1), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
+ /*line search.mygo:81:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs_1))
+ /*line search.mygo:44:3*/			} else {
+ /*line search.mygo:83:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs_1), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
  /*line zz_search.gen.go:64:1*/			}
 		}
 	}
- /*line search.mygo:59:3*/	return true
+ /*line search.mygo:95:3*/	return true
  /*line zz_search.gen.go:68:1*/}

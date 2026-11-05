@@ -78,44 +78,44 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line representation.mygo:72:1*/func PersonRepresentation(site config.Site, actor storage.ActorRecord, username string, publicPEM string) ActorRepresentation {
 	uri := actor.URI
- /*line representation.mygo:79:3*/	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Person", PreferredUsername: username, Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
+ /*line representation.mygo:79:3*/	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Person", PreferredUsername: username, Name: "", Summary: "", Icon: Zero[ProfileIcon](), Updated: Zero[time.Time](), Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", AttributedTo: "", FollowPolicy: "", PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
  /*line zz_representation.gen.go:82:1*/}
- /*line representation.mygo:95:1*/func GroupRepresentation(community storage.CommunityRecord, actor storage.ActorRecord, publicPEM string) ActorRepresentation {
+ /*line representation.mygo:101:1*/func GroupRepresentation(community storage.CommunityRecord, actor storage.ActorRecord, publicPEM string) ActorRepresentation {
 	uri := actor.URI
- /*line representation.mygo:101:3*/	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Group", PreferredUsername: community.Name, Name: community.Title, Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", AttributedTo: uri + "/moderators", FollowPolicy: community.FollowPolicy, PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
+ /*line representation.mygo:107:3*/	return ActorRepresentation{Context: activityStreamsContext, ID: uri, Type: "Group", PreferredUsername: community.Name, Name: community.Title, Summary: "", Icon: Zero[ProfileIcon](), Updated: Zero[time.Time](), Inbox: storage.MygoIN11ActorRecordM5Inbox(actor), Outbox: uri + "/outbox", Followers: uri + "/followers", AttributedTo: uri + "/moderators", FollowPolicy: community.FollowPolicy, PublicKey: PublicKeyRepresentation{ID: uri + "#main-key", Owner: uri, PublicKeyPEM: publicPEM}}
  /*line zz_representation.gen.go:86:1*/}
- /*line representation.mygo:120:1*/func BuildObjectRepresentation(record storage.PostRecord, community storage.CommunityRecord) ObjectRepresentation {
- /*line representation.mygo:124:3*/	return BuildObjectRepresentationWithContext(record, community, "")
+ /*line representation.mygo:129:1*/func BuildObjectRepresentation(sanitizer content.Sanitizer, record storage.PostRecord, community storage.CommunityRecord) ObjectRepresentation {
+ /*line representation.mygo:134:3*/	return BuildObjectRepresentationWithContext(sanitizer, record, community, "")
  /*line zz_representation.gen.go:89:1*/}
- /*line representation.mygo:127:1*/func BuildObjectRepresentationWithContext(record storage.PostRecord, community storage.CommunityRecord, discussionContext string) ObjectRepresentation {
+ /*line representation.mygo:137:1*/func BuildObjectRepresentationWithContext(sanitizer content.Sanitizer, record storage.PostRecord, community storage.CommunityRecord, discussionContext string) ObjectRepresentation {
 	var to []string = []string{}
 	var cc []string = []string{}
 	audience := community.ActorURI.String
- /*line representation.mygo:135:6*/	if community.ReadPolicy == "eligible_users" {
+ /*line representation.mygo:146:3*/	if community.ReadPolicy == "eligible_users" {
 		to = []string{publicAudience}
 		cc = []string{audience}
 	} else {
 		to = []string{audience}
  /*line zz_representation.gen.go:99:1*/	}
- /*line representation.mygo:127:1*/	var __mygo_expr_0 string
+ /*line representation.mygo:137:1*/	var __mygo_expr_0 string
 	if record.ContentFormat == "" {
 		__mygo_expr_0 = "legacy"
 	} else {
 		__mygo_expr_0 = record.ContentFormat
  /*line zz_representation.gen.go:105:1*/	}
- /*line representation.mygo:127:1*/	format := __mygo_expr_0
-	rendered := content.RenderRich(record.Body, format)
- /*line representation.mygo:152:16*/	var __mygo_expr_1 RichSource
+ /*line representation.mygo:137:1*/	format := __mygo_expr_0
+	rendered := content.RenderRich(sanitizer, record.Body, format)
+ /*line representation.mygo:167:13*/	var __mygo_expr_1 RichSource
 	if format == "markdown" {
 		__mygo_expr_1 = RichSource{Content: record.Body, MediaType: "text/markdown"}
 	} else {
-		__mygo_expr_1 = RichSource{}
+		__mygo_expr_1 = Zero[RichSource]()
  /*line zz_representation.gen.go:113:1*/	}
- /*line representation.mygo:143:3*/	return ObjectRepresentation{Context: activityStreamsContext, DiscussionContext: discussionContext, ID: record.ObjectURI.String, Type: record.ObjectType, AttributedTo: record.AuthorActorURI, Name: content.RenderText(record.Title.String), Content: MygoIN6ResultM8UnwrapOr[string, string](rendered, ""), MediaType: "text/html", Source: __mygo_expr_1, InReplyTo: record.ParentID.String, Published: record.AuthoredAt, Updated: record.UpdatedAt, To: to, CC: cc}
+ /*line representation.mygo:158:3*/	return ObjectRepresentation{Context: activityStreamsContext, DiscussionContext: discussionContext, ID: record.ObjectURI.String, Type: record.ObjectType, AttributedTo: record.AuthorActorURI, Name: content.RenderText(record.Title.String), Content: MygoIN6ResultM8UnwrapOr[string, string](rendered, ""), MediaType: "text/html", Source: __mygo_expr_1, Attachment: []RichAttachment{}, Tag: []RichMention{}, InReplyTo: record.ParentID.String, Published: record.AuthoredAt, Updated: record.UpdatedAt, To: to, CC: cc}
  /*line zz_representation.gen.go:115:1*/}
- /*line representation.mygo:161:1*/func BuildTombstoneRepresentation(record storage.PostRecord) TombstoneRepresentation {
- /*line representation.mygo:162:3*/	return TombstoneRepresentation{Context: activityStreamsContext, ID: record.ObjectURI.String, Type: "Tombstone", FormerType: record.ObjectType, Deleted: record.DeletedAt.Time}
+ /*line representation.mygo:185:1*/func BuildTombstoneRepresentation(record storage.PostRecord) TombstoneRepresentation {
+ /*line representation.mygo:186:3*/	return TombstoneRepresentation{Context: activityStreamsContext, ID: record.ObjectURI.String, Type: "Tombstone", FormerType: record.ObjectType, Deleted: record.DeletedAt.Time}
  /*line zz_representation.gen.go:118:1*/}
- /*line representation.mygo:173:1*/func FederatedCommunity(record storage.CommunityRecord) bool {
- /*line representation.mygo:174:3*/	return record.FederationMode == "federated" && record.ActorURI.Valid && record.ActorURI.String != ""
+ /*line representation.mygo:197:1*/func FederatedCommunity(record storage.CommunityRecord) bool {
+ /*line representation.mygo:198:3*/	return record.FederationMode == "federated" && record.ActorURI.Valid && record.ActorURI.String != ""
  /*line zz_representation.gen.go:121:1*/}

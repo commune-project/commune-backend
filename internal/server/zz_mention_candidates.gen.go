@@ -22,32 +22,32 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_mention_candidates.gen.go:22:1*/}
 
  /*line mention_candidates.mygo:21:1*/func MentionCandidatesRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line mention_candidates.mygo:29:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "mentions" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "candidates" {
+ /*line mention_candidates.mygo:29:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "mentions" || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "candidates" {
  /*line mention_candidates.mygo:32:12*/		return false
- /*line mention_candidates.mygo:29:6*/	} else {
+ /*line mention_candidates.mygo:29:3*/	} else {
  /*line zz_mention_candidates.gen.go:28:1*/	}
  /*line mention_candidates.mygo:34:3*/	w.Header().Set("Cache-Control", "no-store")
  /*line mention_candidates.mygo:35:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
- /*line mention_candidates.mygo:36:6*/	if request.Method != "GET" {
+ /*line mention_candidates.mygo:36:3*/	if request.Method != "GET" {
  /*line mention_candidates.mygo:37:5*/		MethodNotAllowed(w, "GET")
  /*line mention_candidates.mygo:38:12*/		return true
- /*line mention_candidates.mygo:36:6*/	} else {
+ /*line mention_candidates.mygo:36:3*/	} else {
  /*line zz_mention_candidates.gen.go:35:1*/	}
  /*line mention_candidates.mygo:21:1*/	identity := BrowserIdentity(db, site, request, true)
- /*line mention_candidates.mygo:41:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
+ /*line mention_candidates.mygo:41:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
  /*line mention_candidates.mygo:42:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](identity))
  /*line mention_candidates.mygo:43:12*/		return true
- /*line mention_candidates.mygo:41:6*/	} else {
+ /*line mention_candidates.mygo:41:3*/	} else {
  /*line zz_mention_candidates.gen.go:41:1*/	}
  /*line mention_candidates.mygo:21:1*/	query := strings.TrimSpace(request.URL.Query().Get("q"))
- /*line mention_candidates.mygo:46:6*/	if !storage.ValidMentionCandidateQuery(query) {
+ /*line mention_candidates.mygo:46:3*/	if !storage.ValidMentionCandidateQuery(query) {
  /*line mention_candidates.mygo:47:5*/		WriteErrorJSON(w, 400, "invalid mention query")
  /*line mention_candidates.mygo:48:12*/		return true
- /*line mention_candidates.mygo:46:6*/	} else {
+ /*line mention_candidates.mygo:46:3*/	} else {
  /*line zz_mention_candidates.gen.go:47:1*/	}
  /*line mention_candidates.mygo:21:1*/	var limit int = 8
 	rawLimit := request.URL.Query().Get("limit")
- /*line mention_candidates.mygo:52:6*/	if rawLimit != "" {
+ /*line mention_candidates.mygo:52:3*/	if rawLimit != "" {
  /*line mention_candidates.mygo:53:18*/		var __mygo_expr_1 Result[int, error]
 		__mygo_expr_2, __mygo_expr_0 := strconv.Atoi(rawLimit)
 		if __mygo_expr_0 != nil {
@@ -55,21 +55,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
 			__mygo_expr_1 = Ok[int, error](__mygo_expr_2)
  /*line zz_mention_candidates.gen.go:57:1*/		}
- /*line mention_candidates.mygo:52:6*/		parsed := __mygo_expr_1
- /*line mention_candidates.mygo:54:8*/		if MygoIN6ResultM5IsErr[int, error](parsed) || !storage.ValidMentionCandidateLimit(MygoIN6ResultM6Unwrap[int, error](parsed)) {
+ /*line mention_candidates.mygo:52:3*/		parsed := __mygo_expr_1
+ /*line mention_candidates.mygo:54:5*/		if MygoIN6ResultM5IsErr[int, error](parsed) || !storage.ValidMentionCandidateLimit(MygoIN6ResultM6Unwrap[int, error](parsed)) {
  /*line mention_candidates.mygo:55:7*/			WriteErrorJSON(w, 400, "invalid limit")
  /*line mention_candidates.mygo:56:14*/			return true
- /*line mention_candidates.mygo:54:8*/		} else {
+ /*line mention_candidates.mygo:54:5*/		} else {
  /*line zz_mention_candidates.gen.go:63:1*/		}
- /*line mention_candidates.mygo:52:6*/		limit = MygoIN6ResultM6Unwrap[int, error](parsed)
+ /*line mention_candidates.mygo:52:3*/		limit = MygoIN6ResultM6Unwrap[int, error](parsed)
 	} else {
  /*line zz_mention_candidates.gen.go:66:1*/	}
  /*line mention_candidates.mygo:21:1*/	repository := storage.MentionCandidateRepository{DB: db, SiteID: site.ID}
 	rows := storage.MygoIN26MentionCandidateRepositoryM6Search(repository, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, string](identity), query, limit)
- /*line mention_candidates.mygo:62:6*/	if MygoIN6ResultM5IsErr[[]storage.MentionCandidateRecord, string](rows) {
+ /*line mention_candidates.mygo:62:3*/	if MygoIN6ResultM5IsErr[[]storage.MentionCandidateRecord, string](rows) {
  /*line mention_candidates.mygo:63:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.MentionCandidateRecord, string](rows))
  /*line mention_candidates.mygo:64:12*/		return true
- /*line mention_candidates.mygo:62:6*/	} else {
+ /*line mention_candidates.mygo:62:3*/	} else {
  /*line zz_mention_candidates.gen.go:73:1*/	}
  /*line mention_candidates.mygo:21:1*/	var outputs []MentionCandidateOutput = []MentionCandidateOutput{}
  /*line mention_candidates.mygo:67:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.MentionCandidateRecord, string](rows), func(row storage.MentionCandidateRecord) {

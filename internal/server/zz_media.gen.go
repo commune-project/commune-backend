@@ -29,36 +29,36 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line media.mygo:26:1*/func MediaFailure(w http.ResponseWriter, reason string) {
 	var status int = 503
- /*line media.mygo:28:6*/	if reason == "not found" {
+ /*line media.mygo:28:3*/	if reason == "not found" {
 		status = 404
 	} else {
  /*line zz_media.gen.go:35:1*/	}
- /*line media.mygo:29:6*/	if reason == "forbidden" {
+ /*line media.mygo:29:3*/	if reason == "forbidden" {
 		status = 403
 	} else {
  /*line zz_media.gen.go:39:1*/	}
- /*line media.mygo:30:6*/	if reason == "unauthenticated" {
+ /*line media.mygo:30:3*/	if reason == "unauthenticated" {
 		status = 401
 	} else {
  /*line zz_media.gen.go:43:1*/	}
- /*line media.mygo:31:6*/	if reason == "media too large" {
+ /*line media.mygo:31:3*/	if reason == "media too large" {
 		status = 413
 	} else {
  /*line zz_media.gen.go:47:1*/	}
- /*line media.mygo:32:6*/	if reason == "unsupported media" {
+ /*line media.mygo:32:3*/	if reason == "unsupported media" {
 		status = 415
 	} else {
  /*line zz_media.gen.go:51:1*/	}
- /*line media.mygo:33:6*/	if reason == "media quota exceeded" {
+ /*line media.mygo:33:3*/	if reason == "media quota exceeded" {
 		status = 429
 		w.Header().Set("Retry-After", "3600")
 	} else {
  /*line zz_media.gen.go:56:1*/	}
- /*line media.mygo:37:6*/	if reason == "invalid upload" || reason == "invalid media purpose" || reason == "invalid image" || reason == "invalid media binding" {
+ /*line media.mygo:37:3*/	if reason == "invalid upload" || reason == "invalid media purpose" || reason == "invalid image" || reason == "invalid media binding" {
 		status = 400
 	} else {
  /*line zz_media.gen.go:60:1*/	}
- /*line media.mygo:38:6*/	if reason == "media binding conflict" {
+ /*line media.mygo:38:3*/	if reason == "media binding conflict" {
 		status = 409
 	} else {
  /*line zz_media.gen.go:64:1*/	}
@@ -67,91 +67,91 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media.gen.go:67:1*/}
  /*line media.mygo:44:1*/func MediaAvatarBinder(site config.Site) func(context.Context, *gorm.DB, auth.Identity, string, string) Result[AvatarBinding, string] {
  /*line media.mygo:45:3*/	return func(ctx context.Context, tx *gorm.DB, identity auth.Identity, uploadID string, oldBindingID string) Result[AvatarBinding, string] {
-		repository := storage.MediaRepository{DB: tx, SiteID: site.ID}
+		repository := storage.MediaRepository{DB: tx, SiteID: site.ID, Files: Zero[storage.MediaFiles](), Settings: Zero[config.Media]()}
 		bound := storage.MygoIN15MediaRepositoryM12BindAvatarTx(repository, ctx, tx, identity, uploadID)
- /*line media.mygo:48:8*/		if MygoIN6ResultM5IsErr[string, string](bound) {
+ /*line media.mygo:48:5*/		if MygoIN6ResultM5IsErr[string, string](bound) {
  /*line media.mygo:49:14*/			return Err[AvatarBinding, string](MygoIN6ResultM9UnwrapErr[string, string](bound))
- /*line media.mygo:48:8*/		} else {
+ /*line media.mygo:48:5*/		} else {
  /*line zz_media.gen.go:75:1*/		}
- /*line media.mygo:51:8*/		if MygoIN6ResultM6Unwrap[string, string](bound) == "" {
- /*line media.mygo:52:14*/			return Ok[AvatarBinding, string](AvatarBinding{})
- /*line media.mygo:51:8*/		} else {
+ /*line media.mygo:51:5*/		if MygoIN6ResultM6Unwrap[string, string](bound) == "" {
+ /*line media.mygo:52:14*/			return Ok[AvatarBinding, string](Zero[AvatarBinding]())
+ /*line media.mygo:51:5*/		} else {
  /*line zz_media.gen.go:79:1*/		}
  /*line media.mygo:45:3*/		id := strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, string](bound), "/api/v1/media/")
  /*line media.mygo:55:5*/		return Ok[AvatarBinding, string](AvatarBinding{ID: id, URL: site.Origin + MygoIN6ResultM6Unwrap[string, string](bound)})
  /*line zz_media.gen.go:82:1*/	}
 }
  /*line media.mygo:61:1*/func MediaRoute(settings config.Config, db *gorm.DB, site config.Site, mediaFS storage.MediaFiles, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line media.mygo:62:6*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" {
+ /*line media.mygo:62:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" {
  /*line media.mygo:63:12*/		return false
- /*line media.mygo:62:6*/	} else {
+ /*line media.mygo:62:3*/	} else {
  /*line zz_media.gen.go:88:1*/	}
  /*line media.mygo:65:3*/	w.Header().Set("Cache-Control", "no-store")
  /*line media.mygo:66:3*/	w.Header().Set("X-Content-Type-Options", "nosniff")
  /*line media.mygo:67:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
- /*line media.mygo:68:6*/	if !settings.Media.Enabled {
+ /*line media.mygo:68:3*/	if !settings.Media.Enabled {
  /*line media.mygo:69:5*/		http.NotFound(w, request)
  /*line media.mygo:70:12*/		return true
- /*line media.mygo:68:6*/	} else {
+ /*line media.mygo:68:3*/	} else {
  /*line zz_media.gen.go:96:1*/	}
  /*line media.mygo:61:1*/	repository := storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
- /*line media.mygo:73:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") == "private" {
+ /*line media.mygo:73:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") == "private" {
 		session := Authenticated(db, site, request)
- /*line media.mygo:75:8*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line media.mygo:75:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
  /*line media.mygo:76:7*/			MediaFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
  /*line media.mygo:77:14*/			return true
- /*line media.mygo:75:8*/		} else {
+ /*line media.mygo:75:5*/		} else {
  /*line zz_media.gen.go:104:1*/		}
  /*line media.mygo:79:5*/		ServePrivateMedia(repository, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), ""), w, request, PrivateMediaUnavailable)
  /*line media.mygo:80:12*/		return true
- /*line media.mygo:73:6*/	} else {
+ /*line media.mygo:73:3*/	} else {
  /*line zz_media.gen.go:108:1*/	}
- /*line media.mygo:82:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
- /*line media.mygo:83:8*/		if request.Method != "POST" {
+ /*line media.mygo:82:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line media.mygo:83:5*/		if request.Method != "POST" {
  /*line media.mygo:84:7*/			MethodNotAllowed(w, "POST")
  /*line media.mygo:85:14*/			return true
- /*line media.mygo:83:8*/		} else {
+ /*line media.mygo:83:5*/		} else {
  /*line zz_media.gen.go:114:1*/		}
- /*line media.mygo:82:6*/		session_1 := Authenticated(db, site, request)
- /*line media.mygo:88:8*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session_1) {
+ /*line media.mygo:82:3*/		session_1 := Authenticated(db, site, request)
+ /*line media.mygo:88:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session_1) {
  /*line media.mygo:89:7*/			MediaFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session_1))
  /*line media.mygo:90:14*/			return true
- /*line media.mygo:88:8*/		} else {
+ /*line media.mygo:88:5*/		} else {
  /*line zz_media.gen.go:120:1*/		}
- /*line media.mygo:92:8*/		if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session_1), request) {
+ /*line media.mygo:92:5*/		if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session_1), request) {
  /*line media.mygo:93:7*/			MediaFailure(w, "forbidden")
  /*line media.mygo:94:14*/			return true
- /*line media.mygo:92:8*/		} else {
+ /*line media.mygo:92:5*/		} else {
  /*line zz_media.gen.go:125:1*/		}
  /*line media.mygo:96:5*/		UploadMedia(repository, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session_1).Identity, w, request)
  /*line media.mygo:97:12*/		return true
- /*line media.mygo:82:6*/	} else {
+ /*line media.mygo:82:3*/	} else {
  /*line zz_media.gen.go:129:1*/	}
  /*line media.mygo:61:1*/	preview := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "preview"
- /*line media.mygo:100:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 && !preview {
+ /*line media.mygo:100:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 && !preview {
  /*line media.mygo:101:5*/		http.NotFound(w, request)
  /*line media.mygo:102:12*/		return true
- /*line media.mygo:100:6*/	} else {
+ /*line media.mygo:100:3*/	} else {
  /*line zz_media.gen.go:135:1*/	}
- /*line media.mygo:104:6*/	if request.Method != "GET" && request.Method != "HEAD" {
+ /*line media.mygo:104:3*/	if request.Method != "GET" && request.Method != "HEAD" {
  /*line media.mygo:105:5*/		MethodNotAllowed(w, "GET, HEAD")
  /*line media.mygo:106:12*/		return true
- /*line media.mygo:104:6*/	} else {
+ /*line media.mygo:104:3*/	} else {
  /*line zz_media.gen.go:140:1*/	}
  /*line media.mygo:61:1*/	identity := BrowserIdentity(db, site, request, false)
- /*line media.mygo:109:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
+ /*line media.mygo:109:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](identity) {
  /*line media.mygo:110:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](identity))
  /*line media.mygo:111:12*/		return true
- /*line media.mygo:109:6*/	} else {
+ /*line media.mygo:109:3*/	} else {
  /*line zz_media.gen.go:146:1*/	}
  /*line media.mygo:61:1*/	result := storage.MygoIN15MediaRepositoryM4Read(repository, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, string](identity), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), preview, func(upload storage.MediaUpload, file *os.File) Result[struct{}, string] {
  /*line media.mygo:114:5*/		ServeMedia(w, request, upload, file, preview)
  /*line media.mygo:115:5*/		return Ok[struct{}, string](struct {
  /*line zz_media.gen.go:150:1*/		}{})
 	})
- /*line media.mygo:117:6*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line media.mygo:117:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
  /*line media.mygo:118:5*/		MediaFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line media.mygo:117:6*/	} else {
+ /*line media.mygo:117:3*/	} else {
  /*line zz_media.gen.go:155:1*/	}
  /*line media.mygo:120:3*/	return true
  /*line zz_media.gen.go:157:1*/}
@@ -168,16 +168,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*multipart.Reader, error](__mygo_expr_2)
  /*line zz_media.gen.go:169:1*/	}
  /*line media.mygo:123:1*/	multipartResult := __mygo_expr_1
- /*line media.mygo:129:6*/	if MygoIN6ResultM5IsErr[*multipart.Reader, error](multipartResult) {
+ /*line media.mygo:129:3*/	if MygoIN6ResultM5IsErr[*multipart.Reader, error](multipartResult) {
  /*line media.mygo:130:5*/		MediaFailure(w, "unsupported media")
- /*line media.mygo:129:6*/		return
+ /*line media.mygo:129:3*/		return
 	} else {
  /*line zz_media.gen.go:175:1*/	}
  /*line media.mygo:123:1*/	reader := MygoIN6ResultM6Unwrap[*multipart.Reader, error](multipartResult)
 	ctx, cancel := context.WithTimeout(request.Context(), time.Duration(5)*time.Minute)
  /*line media.mygo:135:3*/	defer cancel()
  /*line media.mygo:123:1*/	var purpose string = ""
-	upload := storage.MediaUpload{}
+	upload := Zero[storage.MediaUpload]()
 	var failure string = ""
 	var done bool = false
 	var count int = 0
@@ -243,32 +243,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 		}
 	}
  /*line media.mygo:182:6*/	if failure == "" && (purpose == "" || upload.ID == "") {
-		failure = "invalid upload"
+ /*line media.mygo:182:3*/		failure = "invalid upload"
 	} else {
  /*line zz_media.gen.go:248:1*/	}
- /*line media.mygo:185:6*/	if failure == "" && purpose == "avatar" && upload.PreviewBytes == int64(0) {
+ /*line media.mygo:185:3*/	if failure == "" && purpose == "avatar" && upload.PreviewBytes == int64(0) {
 		failure = "unsupported media"
 	} else {
  /*line zz_media.gen.go:252:1*/	}
- /*line media.mygo:188:6*/	if failure == "" && upload.Purpose != purpose {
+ /*line media.mygo:188:3*/	if failure == "" && upload.Purpose != purpose {
 		changed := repository.DB.WithContext(ctx).Exec("UPDATE media_uploads SET purpose=? WHERE id=? AND state='ready' AND NOT EXISTS(SELECT 1 FROM media_bindings WHERE upload_id=?)", purpose, upload.ID, upload.ID)
 		if storage.QueryFailed(changed) || changed.RowsAffected != int64(1) {
 			failure = "media unavailable"
 		} else {
  /*line zz_media.gen.go:258:1*/		}
- /*line media.mygo:188:6*/	} else {
+ /*line media.mygo:188:3*/	} else {
  /*line zz_media.gen.go:260:1*/	}
- /*line media.mygo:194:6*/	if failure != "" {
- /*line media.mygo:195:8*/		if upload.ID != "" {
+ /*line media.mygo:194:3*/	if failure != "" {
+ /*line media.mygo:195:5*/		if upload.ID != "" {
 			repository.DB.WithContext(context.Background()).Exec("UPDATE media_uploads SET expires_at=? WHERE id=?", time.Now(), upload.ID)
 		} else {
  /*line zz_media.gen.go:265:1*/		}
  /*line media.mygo:198:5*/		MediaFailure(w, failure)
- /*line media.mygo:194:6*/		return
+ /*line media.mygo:194:3*/		return
 	} else {
  /*line zz_media.gen.go:269:1*/	}
  /*line media.mygo:123:1*/	reference := storage.MediaBindingURL(upload.ID)
- /*line media.mygo:202:183*/	var __mygo_expr_10 string
+ /*line media.mygo:202:180*/	var __mygo_expr_10 string
 	if upload.PreviewBytes > int64(0) {
 		__mygo_expr_10 = reference + "/preview"
 	} else {

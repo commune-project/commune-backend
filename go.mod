@@ -6,7 +6,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/glebarez/sqlite v1.11.0
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/mygo-lang/mygo v0.1.3
+	github.com/mygo-lang/mygo v0.2.0-beta1
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2
 	golang.org/x/net v0.62.0

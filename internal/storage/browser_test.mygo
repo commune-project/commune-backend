@@ -8,6 +8,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestPostgresBrowserPolicyParity(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -199,7 +200,7 @@ func TestPostgresBrowserFilteredPagesAndReplica(t: Ref[testing.T]) -> ()
     ContentFormat: "",
     ID: "",
   }
-  let remote = PostRepository{DB: db, SiteID: b.ID}.Receive(ctx, incoming, author).Unwrap()
+  let remote = PostRepository{DB: db, SiteID: b.ID}.Receive(ctx, incoming, author, content.DefaultSanitizer()).Unwrap()
   let before = browser.ListCommunities(ctx, anonymous, Page{Limit: 20, Offset: 0}, 50).Unwrap()
   if before.Len() != 1 then
     t.Fatal("unreceived replica appeared in discovery")

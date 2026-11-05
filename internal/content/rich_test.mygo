@@ -6,7 +6,7 @@ import html "go:golang.org/x/net/html"
 
 func TestRichFormatBoundaries(t: Ref[testing.T]) -> ()
   let source = "# Heading\n\n**bold** &amp; `@code`\n\n- one\n- two\n\n> quote\n\n[link](https://example.org)\n\n![alt](https://example.org/image.png)\n\n<script>alert(1)</script>"
-  let rendered = RenderRich(source, "markdown").Unwrap()
+  let rendered = RenderRich(DefaultSanitizer(), source, "markdown").Unwrap()
   [
     "<h1>Heading</h1>",
     "<strong>bold</strong>",
@@ -26,15 +26,15 @@ func TestRichFormatBoundaries(t: Ref[testing.T]) -> ()
     t.Fatal("Markdown raw HTML was enabled")
   end
   let legacy = "**literal** <b>old</b> &lt;tag&gt;"
-  if RenderRich(legacy, "legacy").Unwrap() != RenderText(legacy) ||
-    RenderRich(legacy, "text").Unwrap() != RenderText(legacy) then
+  if RenderRich(DefaultSanitizer(), legacy, "legacy").Unwrap() != RenderText(legacy) ||
+    RenderRich(DefaultSanitizer(), legacy, "text").Unwrap() != RenderText(legacy) then
     t.Fatal("legacy rendering changed")
   end
-  if RenderRich("**literal** <strong>HTML</strong>", "html").Unwrap() !=
+  if RenderRich(DefaultSanitizer(), "**literal** <strong>HTML</strong>", "html").Unwrap() !=
     "**literal** <strong>HTML</strong>" then
     t.Fatal("remote HTML was interpreted as Markdown")
   end
-  if RenderRich("hello", "unknown").IsOk() || PlainRichText("hello", "unknown").IsOk() then
+  if RenderRich(DefaultSanitizer(), "hello", "unknown").IsOk() || PlainRichText(DefaultSanitizer(), "hello", "unknown").IsOk() then
     t.Fatal("unknown format accepted")
   end
 end
@@ -71,6 +71,13 @@ func AssertRichSafe(t: Ref[testing.T], rendered: String) -> ()
           "code",
           "a",
           "img",
+          "del",
+          "table",
+          "thead",
+          "tbody",
+          "tr",
+          "th",
+          "td",
         ]
         if !allowed.Contains(token.Data) then
           t.Fatalf("active/unexpected element survived: %s", rendered)
@@ -103,7 +110,7 @@ func AssertRichSafe(t: Ref[testing.T], rendered: String) -> ()
       end
     end
   end
-  if SanitizeRichHTML(rendered) != rendered then
+  if SanitizeRichHTML(DefaultSanitizer(), rendered) != rendered then
     t.Fatalf("sanitization did not converge: %s", rendered)
   end
 end
@@ -131,12 +138,12 @@ func TestRichAdversarialHTML(t: Ref[testing.T]) -> ()
     "&lt;script&gt;literal&lt;/script&gt;<p>safe</p>",
   ]
   attacks.Each(func(source: String) -> ()
-    let rendered = RenderRich(source, "html").Unwrap()
+    let rendered = RenderRich(DefaultSanitizer(), source, "html").Unwrap()
     AssertRichSafe(t, rendered)
     if !strings.Contains(rendered, "safe") then
       t.Fatalf("safe text was lost: %s => %s", source, rendered)
     end
-    AssertRichSafe(t, RenderRich(source, "markdown").Unwrap())
+    AssertRichSafe(t, RenderRich(DefaultSanitizer(), source, "markdown").Unwrap())
   end)
   [
     "[x](javascript:alert%281%29)",
@@ -144,7 +151,7 @@ func TestRichAdversarialHTML(t: Ref[testing.T]) -> ()
     "[x](vbscript:bad)",
     "[x](jav&#x61;script:bad)",
   ].Each(func(source: String) -> ()
-    AssertRichSafe(t, RenderRich(source, "markdown").Unwrap())
+    AssertRichSafe(t, RenderRich(DefaultSanitizer(), source, "markdown").Unwrap())
   end)
 end
 
@@ -164,7 +171,7 @@ func TestPlainRichText(t: Ref[testing.T]) -> ()
     ["html", "&lt;script&gt;literal&lt;/script&gt;", "<script>literal</script>"],
   ]
   cases.Each(func(item: Slice[String]) -> ()
-    let output = PlainRichText(item.Get(1).Unwrap(), item.Get(0).Unwrap()).Unwrap()
+    let output = PlainRichText(DefaultSanitizer(), item.Get(1).Unwrap(), item.Get(0).Unwrap()).Unwrap()
     if output != item.Get(2).Unwrap() then
       t.Fatalf("wrong plain text: %s", output)
     end
@@ -173,12 +180,77 @@ end
 
 func TestRichBounds(t: Ref[testing.T]) -> ()
   let oversized = strings.Repeat("x", 1048577)
-  if RenderRich(oversized, "markdown").IsOk() ||
+  if RenderRich(DefaultSanitizer(), oversized, "markdown").IsOk() ||
     ExtractMentionCandidates(oversized, "markdown").IsOk() ||
-    PlainRichText(oversized, "html").IsOk() then
+    PlainRichText(DefaultSanitizer(), oversized, "html").IsOk() then
     t.Fatal("oversized input accepted")
   end
   if ExtractMentionCandidates(strings.Repeat("@alice ", 65), "markdown").IsOk() then
     t.Fatal("candidate bound not enforced")
+  end
+end
+
+func TestRichGFMAndHardWraps(t: Ref[testing.T]) -> ()
+  let source = "line one\nline two\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n~~gone~~ https://example.org\n\n- [x] done"
+  let rendered = RenderRich(DefaultSanitizer(), source, "markdown").Unwrap()
+  [
+    "<br>",
+    "<table>",
+    "<del>gone</del>",
+    "href=\"https://example.org\"",
+    "done",
+  ].Each(func(fragment: String) -> ()
+    if !strings.Contains(rendered, fragment) then
+      t.Fatalf("missing GFM feature %s in %s", fragment, rendered)
+    end
+  end)
+  if strings.Contains(rendered, "align=") || strings.Contains(rendered, "text-align") then
+    t.Fatalf("table alignment leaked: %s", rendered)
+  end
+  if strings.Contains(rendered, "<input") then
+    t.Fatalf("task-list checkbox rendered: %s", rendered)
+  end
+end
+
+func TestRichRawHTMLAllowlist(t: Ref[testing.T]) -> ()
+  var config = DefaultSanitizerConfig()
+  config.AllowRawHTML = true
+  let sanitizer = NewSanitizer(config)
+  let rendered = RenderRich(
+    sanitizer,
+    "<h2>heading</h2><script>bad()</script><p class=\"x\">safe</p>",
+    "markdown"
+  ).Unwrap()
+  if !strings.Contains(rendered, "<h2>heading</h2>") ||
+    strings.Contains(rendered, "<script") ||
+    strings.Contains(rendered, "class=") then
+    t.Fatalf("raw HTML allowlist mismatch: %s", rendered)
+  end
+end
+
+func TestRichConfiguredAllowlist(t: Ref[testing.T]) -> ()
+  var restricted = DefaultSanitizerConfig()
+  restricted.Elements = ["p", "a", "img"]
+  restricted.Attributes = [
+    SanitizerAttribute{Element: "a", Names: ["href"]},
+    SanitizerAttribute{Element: "img", Names: ["src", "alt"]},
+  ]
+  let rendered = RenderRich(
+    NewSanitizer(restricted),
+    "# Heading\n\n**bold** [x](https://e.example)",
+    "markdown"
+  ).Unwrap()
+  if strings.Contains(rendered, "<h1>") || strings.Contains(rendered, "<strong>") then
+    t.Fatalf("restricted allowlist kept omitted elements: %s", rendered)
+  end
+  if !strings.Contains(rendered, "Heading") || !strings.Contains(rendered, "bold") then
+    t.Fatalf("restricted allowlist lost text: %s", rendered)
+  end
+  var empty = DefaultSanitizerConfig()
+  empty.Elements = []
+  empty.Attributes = []
+  let bare = RenderRich(NewSanitizer(empty), "# Heading\n\n**bold**", "markdown").Unwrap()
+  if strings.Contains(bare, "<") || !strings.Contains(bare, "Heading") || !strings.Contains(bare, "bold") then
+    t.Fatalf("empty allowlist mismatch: %s", bare)
   end
 end

@@ -93,7 +93,7 @@ func InboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
     WriteErrorJSON(w, 400, "invalid activity")
     return
   end
-  let applied = ApplyActivity(request.Context(), db, site, parsedActivity.Unwrap(), payload, addressed)
+  let applied = ApplyActivity(settings.Rendering.Sanitizer, request.Context(), db, site, parsedActivity.Unwrap(), payload, addressed)
   if applied.IsErr() then
     slog.Warn("inbound activity failed", "activity", envelope.ID, "actor", envelope.Actor, "kind", envelope.Type, "reason", applied.UnwrapErr())
     WriteErrorJSON(w, 400, applied.UnwrapErr())

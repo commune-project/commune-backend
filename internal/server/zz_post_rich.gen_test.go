@@ -12,76 +12,77 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line post_rich_test.mygo:14:1*/func TestMentionDiscoveryCanonicalValidation(t *testing.T) {
- /*line post_rich_test.mygo:15:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
+ /*line post_rich_test.mygo:15:1*/func TestMentionDiscoveryCanonicalValidation(t *testing.T) {
+ /*line post_rich_test.mygo:16:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.New()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*transport.Fixture, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*transport.Fixture, error](__mygo_expr_2)
- /*line zz_post_rich.gen_test.go:25:1*/	}
- /*line post_rich_test.mygo:14:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
- /*line post_rich_test.mygo:16:3*/	t.Cleanup(func() {
- /*line post_rich_test.mygo:16:13*/		fixture.DB.Close()
+ /*line zz_post_rich.gen_test.go:26:1*/	}
+ /*line post_rich_test.mygo:15:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
+ /*line post_rich_test.mygo:17:3*/	t.Cleanup(func() {
+ /*line post_rich_test.mygo:17:13*/		fixture.DB.Close()
 		return
- /*line zz_post_rich.gen_test.go:30:1*/	})
- /*line post_rich_test.mygo:17:20*/	var __mygo_expr_4 Result[*gorm.DB, error]
+ /*line zz_post_rich.gen_test.go:31:1*/	})
+ /*line post_rich_test.mygo:18:20*/	var __mygo_expr_4 Result[*gorm.DB, error]
 	__mygo_expr_5, __mygo_expr_3 := transport.ORM(fixture.DB)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*gorm.DB, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*gorm.DB, error](__mygo_expr_5)
- /*line zz_post_rich.gen_test.go:37:1*/	}
- /*line post_rich_test.mygo:14:1*/	connection := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_4)
+ /*line zz_post_rich.gen_test.go:38:1*/	}
+ /*line post_rich_test.mygo:15:1*/	connection := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_4)
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	calls := 0
 	actorID := "https://remote.example/users/bob"
 	fetcher := func(ctx context.Context, options config.Config, db *gorm.DB, current config.Site, uri string) Result[federation.FetchResult, string] {
- /*line post_rich_test.mygo:22:17*/		calls = calls + 1
- /*line post_rich_test.mygo:24:8*/		if strings.Contains(uri, "/.well-known/webfinger?") {
- /*line post_rich_test.mygo:25:10*/			if !strings.Contains(uri, "acct%3Abob%40remote.example") {
- /*line post_rich_test.mygo:26:9*/				t.Fatal("WebFinger account was not query escaped")
- /*line post_rich_test.mygo:25:10*/			} else {
- /*line zz_post_rich.gen_test.go:49:1*/			}
- /*line post_rich_test.mygo:28:7*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", Body: []byte("{\"subject\":\"acct:bob@remote.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"https://remote.example/users/bob\"}]}")})
- /*line post_rich_test.mygo:24:8*/		} else {
- /*line post_rich_test.mygo:30:7*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", Body: []byte("{\"id\":\"" + actorID + "\",\"type\":\"Person\",\"preferredUsername\":\"bob\",\"inbox\":\"https://remote.example/inbox\"}")})
- /*line zz_post_rich.gen_test.go:53:1*/		}
+ /*line post_rich_test.mygo:23:17*/		calls = calls + 1
+ /*line post_rich_test.mygo:25:5*/		if strings.Contains(uri, "/.well-known/webfinger?") {
+ /*line post_rich_test.mygo:26:7*/			if !strings.Contains(uri, "acct%3Abob%40remote.example") {
+ /*line post_rich_test.mygo:27:9*/				t.Fatal("WebFinger account was not query escaped")
+ /*line post_rich_test.mygo:26:7*/			} else {
+ /*line zz_post_rich.gen_test.go:50:1*/			}
+ /*line post_rich_test.mygo:29:7*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/jrd+json", FinalURL: uri, Body: []byte("{\"subject\":\"acct:bob@remote.example\",\"links\":[{\"rel\":\"self\",\"type\":\"application/activity+json\",\"href\":\"https://remote.example/users/bob\"}]}")})
+ /*line post_rich_test.mygo:25:5*/		} else {
+ /*line post_rich_test.mygo:36:7*/			return Ok[federation.FetchResult, string](federation.FetchResult{Status: 200, ContentType: "application/activity+json", FinalURL: uri, Body: []byte("{\"id\":\"" + actorID + "\",\"type\":\"Person\",\"preferredUsername\":\"bob\",\"inbox\":\"https://remote.example/inbox\"}")})
+ /*line zz_post_rich.gen_test.go:54:1*/		}
 	}
- /*line post_rich_test.mygo:14:1*/	actor := MygoIN6ResultM6Unwrap[storage.ResolvedPostMention, string](DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher))
- /*line post_rich_test.mygo:34:6*/	if actor.ActorURI != actorID || calls != 2 {
- /*line post_rich_test.mygo:35:5*/		t.Fatal("canonical WebFinger/Actor chain was not resolved")
- /*line post_rich_test.mygo:34:6*/	} else {
- /*line zz_post_rich.gen_test.go:59:1*/	}
- /*line post_rich_test.mygo:14:1*/	actorID = "https://other.example/forged"
- /*line post_rich_test.mygo:38:6*/	if MygoIN6ResultM4IsOk[storage.ResolvedPostMention, string](DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher)) {
- /*line post_rich_test.mygo:39:5*/		t.Fatal("Actor ID differing from WebFinger self identity accepted")
- /*line post_rich_test.mygo:38:6*/	} else {
- /*line zz_post_rich.gen_test.go:64:1*/	}
- /*line post_rich_test.mygo:41:3*/	var __mygo_expr_7 Result[struct{}, error]
+ /*line post_rich_test.mygo:15:1*/	actor := MygoIN6ResultM6Unwrap[storage.ResolvedPostMention, string](DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher))
+ /*line post_rich_test.mygo:55:3*/	if actor.ActorURI != actorID || calls != 2 {
+ /*line post_rich_test.mygo:56:5*/		t.Fatal("canonical WebFinger/Actor chain was not resolved")
+ /*line post_rich_test.mygo:55:3*/	} else {
+ /*line zz_post_rich.gen_test.go:60:1*/	}
+ /*line post_rich_test.mygo:15:1*/	actorID = "https://other.example/forged"
+ /*line post_rich_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[storage.ResolvedPostMention, string](DiscoverMentionActorWith(context.Background(), settings, connection, site, "bob", "remote.example", fetcher)) {
+ /*line post_rich_test.mygo:68:5*/		t.Fatal("Actor ID differing from WebFinger self identity accepted")
+ /*line post_rich_test.mygo:59:3*/	} else {
+ /*line zz_post_rich.gen_test.go:65:1*/	}
+ /*line post_rich_test.mygo:70:3*/	var __mygo_expr_7 Result[struct{}, error]
 	__mygo_expr_6 := fixture.Mock.ExpectationsWereMet()
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[struct{}, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[struct{}, error](struct {
- /*line zz_post_rich.gen_test.go:71:1*/		}{})
+ /*line zz_post_rich.gen_test.go:72:1*/		}{})
 	}
- /*line post_rich_test.mygo:41:3*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_7)
+ /*line post_rich_test.mygo:70:3*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_7)
 	return
- /*line zz_post_rich.gen_test.go:75:1*/}
- /*line post_rich_test.mygo:44:1*/func TestPostgresRichBrowserAndDiscoveryBudget(t *testing.T) {
- /*line post_rich_test.mygo:45:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line zz_post_rich.gen_test.go:76:1*/}
+ /*line post_rich_test.mygo:73:1*/func TestPostgresRichBrowserAndDiscoveryBudget(t *testing.T) {
+ /*line post_rich_test.mygo:74:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_post_rich.gen_test.go:83:1*/	}
- /*line post_rich_test.mygo:44:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_post_rich.gen_test.go:84:1*/	}
+ /*line post_rich_test.mygo:73:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
@@ -96,80 +97,90 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, local.ID, alice, false, bob.ActorURI, true))
 	discoveries := 0
 	discover := func(bounded context.Context, options config.Config, connection *gorm.DB, current config.Site, username string, domain string) Result[storage.ResolvedPostMention, string] {
- /*line post_rich_test.mygo:59:18*/		discoveries = discoveries + 1
- /*line post_rich_test.mygo:61:5*/		return Ok[storage.ResolvedPostMention, string](storage.ResolvedPostMention{ActorURI: "https://remote.example/users/" + username, InboxURI: "https://remote.example/inbox", Username: username, Domain: domain})
- /*line zz_post_rich.gen_test.go:101:1*/	}
- /*line post_rich_test.mygo:44:1*/	source := "@remote@remote.example @remote@remote.example @second@second.example `@code@third.example` ![x](https://fourth.example/@image)"
+ /*line post_rich_test.mygo:106:18*/		discoveries = discoveries + 1
+ /*line post_rich_test.mygo:108:5*/		return Ok[storage.ResolvedPostMention, string](storage.ResolvedPostMention{ActorURI: "https://remote.example/users/" + username, InboxURI: "https://remote.example/inbox", Username: username, Domain: domain, Start: 0, End: 0})
+ /*line zz_post_rich.gen_test.go:102:1*/	}
+ /*line post_rich_test.mygo:73:1*/	source := "@remote@remote.example @remote@remote.example @second@second.example `@code@third.example` ![x](https://fourth.example/@image)"
 	resolved := MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](ResolvePostMentionsWith(ctx, settings, db, site, alice, open.ID, source, "markdown", false, discover))
- /*line post_rich_test.mygo:65:6*/	if discoveries != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resolved) != 2 {
- /*line post_rich_test.mygo:66:5*/		t.Fatal("remote discovery exceeded budget or repeated duplicate requests")
- /*line post_rich_test.mygo:65:6*/	} else {
- /*line zz_post_rich.gen_test.go:107:1*/	}
- /*line post_rich_test.mygo:44:1*/	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ContentFormat: "markdown", Mentions: resolved}))
-	previousMention := storage.PostMentionRecord{}
+ /*line post_rich_test.mygo:130:3*/	if discoveries != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resolved) != 2 {
+ /*line post_rich_test.mygo:131:5*/		t.Fatal("remote discovery exceeded budget or repeated duplicate requests")
+ /*line post_rich_test.mygo:130:3*/	} else {
+ /*line zz_post_rich.gen_test.go:108:1*/	}
+ /*line post_rich_test.mygo:73:1*/	posts := storage.PostRepository{DB: db, SiteID: site.ID}
+	remotePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Remote", Body: source, ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: []string{}, Mentions: resolved}))
+	previousMention := Zero[storage.PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&previousMention)))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, remotePost.ID))).Version))
-	retainedMention := storage.PostMentionRecord{}
+	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM4Edit(posts, ctx, remotePost.ID, alice, false, "Remote", source, MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, remotePost.ID))).Version, content.DefaultSanitizer()))
+	retainedMention := Zero[storage.PostMentionRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("post_mentions").Where("post_id=? AND active", remotePost.ID).Find(&retainedMention)))
- /*line post_rich_test.mygo:75:6*/	if retainedMention.ID != previousMention.ID {
- /*line post_rich_test.mygo:76:5*/		t.Fatal("unavailable discovery retired/renotified unchanged remote mention")
- /*line post_rich_test.mygo:75:6*/	} else {
- /*line zz_post_rich.gen_test.go:118:1*/	}
- /*line post_rich_test.mygo:78:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](ResolvePostMentionsWith(ctx, settings, db, site, alice, local.ID, source, "markdown", false, discover))) != 0 || discoveries != 1 {
- /*line post_rich_test.mygo:79:5*/		t.Fatal("local-only post caused remote lookup")
- /*line post_rich_test.mygo:78:6*/	} else {
- /*line zz_post_rich.gen_test.go:122:1*/	}
- /*line post_rich_test.mygo:44:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)))
+ /*line post_rich_test.mygo:170:3*/	if retainedMention.ID != previousMention.ID {
+ /*line post_rich_test.mygo:171:5*/		t.Fatal("unavailable discovery retired/renotified unchanged remote mention")
+ /*line post_rich_test.mygo:170:3*/	} else {
+ /*line zz_post_rich.gen_test.go:119:1*/	}
+ /*line post_rich_test.mygo:173:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](ResolvePostMentionsWith(ctx, settings, db, site, alice, local.ID, source, "markdown", false, discover))) != 0 || discoveries != 1 {
+ /*line post_rich_test.mygo:187:5*/		t.Fatal("local-only post caused remote lookup")
+ /*line post_rich_test.mygo:173:3*/	} else {
+ /*line zz_post_rich.gen_test.go:123:1*/	}
+ /*line post_rich_test.mygo:73:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)))
 	MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](ResolvePostMentionsWith(ctx, settings, db, site, alice, open.ID, "@x@blocked.example", "markdown", false, discover))
- /*line post_rich_test.mygo:83:6*/	if discoveries != 1 {
- /*line post_rich_test.mygo:84:5*/		t.Fatal("blocked account domain caused remote lookup")
- /*line post_rich_test.mygo:83:6*/	} else {
- /*line zz_post_rich.gen_test.go:128:1*/	}
- /*line post_rich_test.mygo:44:1*/	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
+ /*line post_rich_test.mygo:205:3*/	if discoveries != 1 {
+ /*line post_rich_test.mygo:206:5*/		t.Fatal("blocked account domain caused remote lookup")
+ /*line post_rich_test.mygo:205:3*/	} else {
+ /*line zz_post_rich.gen_test.go:129:1*/	}
+ /*line post_rich_test.mygo:73:1*/	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, alice))
-	projected := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(ctx, browser, viewer, []storage.PostRecord{remotePost})), 0))
- /*line post_rich_test.mygo:89:6*/	if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 || !strings.Contains(projected.BodyHTML, "@second@second.example") {
- /*line post_rich_test.mygo:90:5*/		t.Fatal("resolved mentions were not linked or unresolved text disappeared")
- /*line post_rich_test.mygo:89:6*/	} else {
- /*line zz_post_rich.gen_test.go:135:1*/	}
- /*line post_rich_test.mygo:44:1*/	handler := Handler(settings, db)
+	projected := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer(), ctx, browser, viewer, []storage.PostRecord{remotePost})), 0))
+ /*line post_rich_test.mygo:211:3*/	if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 || !strings.Contains(projected.BodyHTML, "@second@second.example") {
+ /*line post_rich_test.mygo:213:5*/		t.Fatal("resolved mentions were not linked or unresolved text disappeared")
+ /*line post_rich_test.mygo:211:3*/	} else {
+ /*line zz_post_rich.gen_test.go:136:1*/	}
+ /*line post_rich_test.mygo:73:1*/	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
-	published := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + local.ID + "/topics", Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"title\":\"Rich\",\"body\":\"中文 **内容** @bob " + "`@alice`" + "\",\"content_format\":\"markdown\"}"})
- /*line post_rich_test.mygo:95:6*/	if published.Code != 201 {
- /*line post_rich_test.mygo:96:5*/		t.Fatalf("rich publication failed: %s", published.Body.String())
- /*line post_rich_test.mygo:95:6*/	} else {
- /*line zz_post_rich.gen_test.go:142:1*/	}
- /*line post_rich_test.mygo:44:1*/	post := browserPost(t, published)
- /*line post_rich_test.mygo:99:6*/	if post.ContentFormat != "markdown" || !strings.Contains(post.BodyHTML, "<strong>内容</strong>") || !strings.Contains(post.BodyHTML, "href=\""+bob.ActorURI+"\"") {
- /*line post_rich_test.mygo:100:5*/		t.Fatalf("mutation response lacks safe rich content: %s", published.Body.String())
- /*line post_rich_test.mygo:99:6*/	} else {
- /*line zz_post_rich.gen_test.go:147:1*/	}
- /*line post_rich_test.mygo:44:1*/	sourceResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+post.ID+"/source", cookies, 200)
-	editing := PostSource{}
- /*line post_rich_test.mygo:104:11*/	var __mygo_expr_4 Result[struct{}, error]
+	published := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + open.ID + "/topics", Payload: "{\"title\":\"Rich\",\"body\":\"中文 **内容** @bob @alice\",\"content_format\":\"markdown\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_rich_test.mygo:229:3*/	if published.Code != 201 {
+ /*line post_rich_test.mygo:230:5*/		t.Fatalf("rich publication failed: %s", published.Body.String())
+ /*line post_rich_test.mygo:229:3*/	} else {
+ /*line zz_post_rich.gen_test.go:143:1*/	}
+ /*line post_rich_test.mygo:73:1*/	post := browserPost(t, published)
+ /*line post_rich_test.mygo:233:3*/	if post.ContentFormat != "markdown" || !strings.Contains(post.BodyHTML, "<strong>内容</strong>") || !strings.Contains(post.BodyHTML, "href=\""+bob.ActorURI+"\"") {
+ /*line post_rich_test.mygo:236:5*/		t.Fatalf("mutation response lacks safe rich content: %s", published.Body.String())
+ /*line post_rich_test.mygo:233:3*/	} else {
+ /*line zz_post_rich.gen_test.go:148:1*/	}
+ /*line post_rich_test.mygo:73:1*/	gfm := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + open.ID + "/topics", Payload: "{\"title\":\"GFM\",\"body\":\"a\\nb\\n\\n| x | y |\\n|---|---|\\n| 1 | 2 |\\n\\n~~old~~\",\"content_format\":\"markdown\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_rich_test.mygo:250:3*/	if gfm.Code != 201 {
+ /*line post_rich_test.mygo:251:5*/		t.Fatalf("GFM publication failed: %s", gfm.Body.String())
+ /*line post_rich_test.mygo:250:3*/	} else {
+ /*line zz_post_rich.gen_test.go:153:1*/	}
+ /*line post_rich_test.mygo:73:1*/	gfmPost := browserPost(t, gfm)
+ /*line post_rich_test.mygo:254:3*/	if !strings.Contains(gfmPost.BodyHTML, "<table>") || !strings.Contains(gfmPost.BodyHTML, "<del>old</del>") || !strings.Contains(gfmPost.BodyHTML, "<br>") {
+ /*line post_rich_test.mygo:257:5*/		t.Fatalf("GFM output missing: %s", gfmPost.BodyHTML)
+ /*line post_rich_test.mygo:254:3*/	} else {
+ /*line zz_post_rich.gen_test.go:158:1*/	}
+ /*line post_rich_test.mygo:73:1*/	sourceResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+post.ID+"/source", cookies, 200)
+	editing := Zero[PostSource]()
+ /*line post_rich_test.mygo:268:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(sourceResponse.Body.Bytes(), &editing)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_post_rich.gen_test.go:156:1*/		}{})
+ /*line zz_post_rich.gen_test.go:167:1*/		}{})
 	}
- /*line post_rich_test.mygo:44:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line post_rich_test.mygo:105:6*/	if editing.Body != "中文 **内容** @bob `@alice`" || editing.ContentFormat != "markdown" {
- /*line post_rich_test.mygo:106:5*/		t.Fatal("source response lost original Markdown")
- /*line post_rich_test.mygo:105:6*/	} else {
- /*line zz_post_rich.gen_test.go:162:1*/	}
- /*line post_rich_test.mygo:44:1*/	patched := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":1,\"title\":\"Rich\",\"body\":\"still **Markdown** @bob\"}"})
- /*line post_rich_test.mygo:109:6*/	if patched.Code != 200 || browserPost(t, patched).ContentFormat != "markdown" {
- /*line post_rich_test.mygo:110:5*/		t.Fatalf("omitted edit format did not preserve Markdown: %s", patched.Body.String())
- /*line post_rich_test.mygo:109:6*/	} else {
- /*line zz_post_rich.gen_test.go:167:1*/	}
- /*line post_rich_test.mygo:44:1*/	invalid := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Source: site.Origin, Cookies: cookies, CSRF: csrfOf(cookies), Payload: "{\"expected_version\":2,\"title\":\"Rich\",\"body\":\"![x](/api/v1/media/foreign)\",\"content_format\":\"markdown\"}"})
- /*line post_rich_test.mygo:113:6*/	if invalid.Code != 400 {
- /*line post_rich_test.mygo:114:5*/		t.Fatalf("unbound upload reference did not fail with 400: %s", invalid.Body.String())
+ /*line post_rich_test.mygo:73:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
+ /*line post_rich_test.mygo:269:3*/	if editing.Body != "中文 **内容** @bob @alice" || editing.ContentFormat != "markdown" {
+ /*line post_rich_test.mygo:270:5*/		t.Fatal("source response lost original Markdown")
+ /*line post_rich_test.mygo:269:3*/	} else {
+ /*line zz_post_rich.gen_test.go:173:1*/	}
+ /*line post_rich_test.mygo:73:1*/	patched := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "{\"expected_version\":1,\"title\":\"Rich\",\"body\":\"still **Markdown** @bob\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_rich_test.mygo:284:3*/	if patched.Code != 200 || browserPost(t, patched).ContentFormat != "markdown" {
+ /*line post_rich_test.mygo:285:5*/		t.Fatalf("omitted edit format did not preserve Markdown: %s", patched.Body.String())
+ /*line post_rich_test.mygo:284:3*/	} else {
+ /*line zz_post_rich.gen_test.go:178:1*/	}
+ /*line post_rich_test.mygo:73:1*/	invalid := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "{\"expected_version\":2,\"title\":\"Rich\",\"body\":\"![x](/api/v1/media/foreign)\",\"content_format\":\"markdown\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_rich_test.mygo:299:3*/	if invalid.Code != 400 {
+ /*line post_rich_test.mygo:300:5*/		t.Fatalf("unbound upload reference did not fail with 400: %s", invalid.Body.String())
 		return
- /*line post_rich_test.mygo:113:6*/	} else {
- /*line post_rich_test.mygo:113:3*/		return
- /*line zz_post_rich.gen_test.go:174:1*/	}
+ /*line post_rich_test.mygo:299:3*/	} else {
+		return
+ /*line zz_post_rich.gen_test.go:185:1*/	}
 }

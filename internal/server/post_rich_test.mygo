@@ -10,6 +10,7 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func TestMentionDiscoveryCanonicalValidation(t: Ref[testing.T]) -> ()
   let fixture = transport.New().Unwrap()
@@ -158,7 +159,8 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     false,
     "Remote",
     source,
-    storage.LoadObjectByID(ctx, db, remotePost.ID).Unwrap().Unwrap().Version
+    storage.LoadObjectByID(ctx, db, remotePost.ID).Unwrap().Unwrap().Version,
+    content.DefaultSanitizer()
   ).Unwrap()
   var retainedMention = Zero[storage.PostMentionRecord]()
   let _ = storage.MutationResult(db.Table("post_mentions").Where(
@@ -205,7 +207,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   end
   let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = browser.Viewer(ctx, alice).Unwrap()
-  let projected = BrowserPosts(ctx, browser, viewer, [remotePost]).Unwrap().Get(0).Unwrap()
+  let projected = BrowserPosts(content.DefaultSanitizer(), ctx, browser, viewer, [remotePost]).Unwrap().Get(0).Unwrap()
   if strings.Count(projected.BodyHTML, "href=\"https://remote.example/users/remote\"") != 2 ||
     !strings.Contains(projected.BodyHTML, "@second@second.example") then
     t.Fatal("resolved mentions were not linked or unresolved text disappeared")
@@ -217,8 +219,8 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     forumCall{
       Method: "POST",
       Origin: site.Origin,
-      Path: "/api/v1/communities/",
-      Payload: `{"title":"Rich","body":"中文 **内容** @bob `,
+      Path: "/api/v1/communities/" + open.ID + "/topics",
+      Payload: "{\"title\":\"Rich\",\"body\":\"中文 **内容** @bob @alice\",\"content_format\":\"markdown\"}",
       Cookies: cookies,
       CSRF: csrfOf(cookies),
       Source: site.Origin,
@@ -233,6 +235,27 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     !strings.Contains(post.BodyHTML, "href=\"" + bob.ActorURI + "\"") then
     t.Fatalf("mutation response lacks safe rich content: %s", published.Body.String())
   end
+  let gfm = doForum(
+    handler,
+    forumCall{
+      Method: "POST",
+      Origin: site.Origin,
+      Path: "/api/v1/communities/" + open.ID + "/topics",
+      Payload: "{\"title\":\"GFM\",\"body\":\"a\\nb\\n\\n| x | y |\\n|---|---|\\n| 1 | 2 |\\n\\n~~old~~\",\"content_format\":\"markdown\"}",
+      Cookies: cookies,
+      CSRF: csrfOf(cookies),
+      Source: site.Origin,
+    }
+  )
+  if gfm.Code != 201 then
+    t.Fatalf("GFM publication failed: %s", gfm.Body.String())
+  end
+  let gfmPost = browserPost(t, gfm)
+  if !strings.Contains(gfmPost.BodyHTML, "<table>") ||
+    !strings.Contains(gfmPost.BodyHTML, "<del>old</del>") ||
+    !strings.Contains(gfmPost.BodyHTML, "<br>") then
+    t.Fatalf("GFM output missing: %s", gfmPost.BodyHTML)
+  end
   let sourceResponse = browserGet(
     t,
     handler,
@@ -243,7 +266,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   )
   let editing = Zero[PostSource]()
   let _ = json.Unmarshal(sourceResponse.Body.Bytes(), Ref.new(editing)).Unwrap()
-  if editing.Body != "中文 **内容** @bob `@alice`" || editing.ContentFormat != "markdown" then
+  if editing.Body != "中文 **内容** @bob @alice" || editing.ContentFormat != "markdown" then
     t.Fatal("source response lost original Markdown")
   end
   let patched = doForum(
@@ -251,7 +274,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     forumCall{
       Method: "PATCH",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: `{"expected_version":1,"title":"Rich","body":"still **Markdown** @bob"}`,
       Cookies: cookies,
       CSRF: csrfOf(cookies),
@@ -266,7 +289,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
     forumCall{
       Method: "PATCH",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: `{"expected_version":2,"title":"Rich","body":"![x](/api/v1/media/foreign)","content_format":"markdown"}`,
       Cookies: cookies,
       CSRF: csrfOf(cookies),

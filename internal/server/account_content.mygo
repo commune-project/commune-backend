@@ -54,7 +54,7 @@ func AccountContentRoute(
     Fail(w, records.UnwrapErr())
     return true
   end
-  let outputs = BrowserPosts(request.Context(), repository, viewer.Unwrap(), records.Unwrap())
+  let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), records.Unwrap())
   if outputs.IsErr() then
     Fail(w, outputs.UnwrapErr())
   else

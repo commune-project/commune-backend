@@ -50,13 +50,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line forum_communities.mygo:56:1*/func RequireMutation(settings config.Config, db *gorm.DB, site config.Site, request *http.Request) Result[auth.Identity, string] {
 	session := Authenticated(db, site, request)
- /*line forum_communities.mygo:63:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line forum_communities.mygo:63:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
  /*line forum_communities.mygo:64:12*/		return Err[auth.Identity, string]("unauthenticated")
- /*line forum_communities.mygo:63:6*/	} else {
+ /*line forum_communities.mygo:63:3*/	} else {
  /*line zz_forum_communities.gen.go:56:1*/	}
- /*line forum_communities.mygo:66:6*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line forum_communities.mygo:66:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
  /*line forum_communities.mygo:67:12*/		return Err[auth.Identity, string]("forbidden")
- /*line forum_communities.mygo:66:6*/	} else {
+ /*line forum_communities.mygo:66:3*/	} else {
  /*line zz_forum_communities.gen.go:60:1*/	}
  /*line forum_communities.mygo:69:3*/	return Ok[auth.Identity, string](MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity)
  /*line zz_forum_communities.gen.go:62:1*/}
@@ -67,43 +67,43 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum_communities.gen.go:67:1*/}
  /*line forum_communities.mygo:77:1*/func CommunityRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) {
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
- /*line forum_communities.mygo:86:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
- /*line forum_communities.mygo:87:8*/		if request.Method != "POST" {
+ /*line forum_communities.mygo:86:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line forum_communities.mygo:87:5*/		if request.Method != "POST" {
  /*line forum_communities.mygo:88:7*/			MethodNotAllowed(w, "GET, POST")
 			return
- /*line forum_communities.mygo:87:8*/		} else {
+ /*line forum_communities.mygo:87:5*/		} else {
 			actor := RequireMutation(settings, db, site, request)
- /*line forum_communities.mygo:91:10*/			if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
+ /*line forum_communities.mygo:91:7*/			if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
  /*line forum_communities.mygo:92:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](actor))
 				return
- /*line forum_communities.mygo:91:10*/			} else {
-				input := CreateCommunityInput{}
+ /*line forum_communities.mygo:91:7*/			} else {
+				input := Zero[CreateCommunityInput]()
 				decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
- /*line forum_communities.mygo:96:12*/				if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
+ /*line forum_communities.mygo:96:9*/				if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
  /*line forum_communities.mygo:97:11*/					WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
 					return
- /*line forum_communities.mygo:96:12*/				} else {
+ /*line forum_communities.mygo:96:9*/				} else {
 					created := storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, request.Context(), site, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), input.Name, input.Title, input.Mode, input.ReadPolicy, input.PostPolicy, input.FollowPolicy)
- /*line forum_communities.mygo:110:14*/					if MygoIN6ResultM5IsErr[storage.CommunityRecord, string](created) {
+ /*line forum_communities.mygo:110:11*/					if MygoIN6ResultM5IsErr[storage.CommunityRecord, string](created) {
  /*line forum_communities.mygo:111:13*/						Fail(w, MygoIN6ResultM9UnwrapErr[storage.CommunityRecord, string](created))
 						return
- /*line forum_communities.mygo:110:14*/					} else {
+ /*line forum_communities.mygo:110:11*/					} else {
  /*line forum_communities.mygo:113:13*/						WriteBrowserCommunity(db, site, w, request, 201, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](created))
 						return
  /*line zz_forum_communities.gen.go:93:1*/					}
 				}
 			}
 		}
- /*line forum_communities.mygo:86:6*/	} else {
- /*line forum_communities.mygo:119:8*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 {
- /*line forum_communities.mygo:120:10*/			if request.Method != "GET" {
+ /*line forum_communities.mygo:86:3*/	} else {
+ /*line forum_communities.mygo:119:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 {
+ /*line forum_communities.mygo:120:7*/			if request.Method != "GET" {
  /*line forum_communities.mygo:121:9*/				MethodNotAllowed(w, "GET")
 				return
- /*line forum_communities.mygo:120:10*/			} else {
+ /*line forum_communities.mygo:120:7*/			} else {
 				BrowserReadRoute(settings, db, site, w, request, parts)
 				return
  /*line zz_forum_communities.gen.go:105:1*/			}
- /*line forum_communities.mygo:119:8*/		} else {
+ /*line forum_communities.mygo:119:5*/		} else {
  /*line forum_communities.mygo:126:7*/			CommunityMemberRoute(settings, db, site, w, request, parts)
 			return
  /*line zz_forum_communities.gen.go:109:1*/		}
@@ -113,227 +113,227 @@ import . "github.com/mygo-lang/mygo/prelude"
 	id := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3))
 	section := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
- /*line forum_communities.mygo:142:6*/	if section == "topics" {
+ /*line forum_communities.mygo:142:3*/	if section == "topics" {
  /*line forum_communities.mygo:143:5*/		CommunityTopicRoute(settings, db, site, w, request, id)
- /*line forum_communities.mygo:142:6*/		return
+ /*line forum_communities.mygo:142:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:120:1*/	}
- /*line forum_communities.mygo:146:6*/	if section == "follow-requests" && request.Method == "GET" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 {
+ /*line forum_communities.mygo:146:3*/	if section == "follow-requests" && request.Method == "GET" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 {
 		session := Authenticated(db, site, request)
- /*line forum_communities.mygo:148:8*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line forum_communities.mygo:148:5*/		if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
  /*line forum_communities.mygo:149:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line forum_communities.mygo:148:8*/			return
+ /*line forum_communities.mygo:148:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:127:1*/		}
- /*line forum_communities.mygo:146:6*/		checked := storage.MygoIN19CommunityRepositoryM5Check(communities, request.Context(), id, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, false)
- /*line forum_communities.mygo:153:8*/		if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](checked) {
+ /*line forum_communities.mygo:146:3*/		checked := storage.MygoIN19CommunityRepositoryM5Check(communities, request.Context(), id, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, false)
+ /*line forum_communities.mygo:153:5*/		if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](checked) {
  /*line forum_communities.mygo:154:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.CommunityAccess, string](checked))
- /*line forum_communities.mygo:153:8*/			return
+ /*line forum_communities.mygo:153:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:133:1*/		}
- /*line forum_communities.mygo:157:8*/		if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](checked).Authority, "manage-community") {
+ /*line forum_communities.mygo:157:5*/		if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](checked).Authority, "manage-community") {
  /*line forum_communities.mygo:158:7*/			Fail(w, "forbidden")
- /*line forum_communities.mygo:157:8*/			return
+ /*line forum_communities.mygo:157:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:138:1*/		}
- /*line forum_communities.mygo:146:6*/		page := PageFromQuery(settings, request)
- /*line forum_communities.mygo:162:8*/		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
+ /*line forum_communities.mygo:146:3*/		page := PageFromQuery(settings, request)
+ /*line forum_communities.mygo:162:5*/		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
  /*line forum_communities.mygo:163:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
- /*line forum_communities.mygo:162:8*/			return
+ /*line forum_communities.mygo:162:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:144:1*/		}
- /*line forum_communities.mygo:146:6*/		rows := storage.PendingFollows(request.Context(), db, id, MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
- /*line forum_communities.mygo:167:8*/		if MygoIN6ResultM5IsErr[[]storage.FollowRequestRecord, string](rows) {
+ /*line forum_communities.mygo:146:3*/		rows := storage.PendingFollows(request.Context(), db, id, MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset)
+ /*line forum_communities.mygo:167:5*/		if MygoIN6ResultM5IsErr[[]storage.FollowRequestRecord, string](rows) {
  /*line forum_communities.mygo:168:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.FollowRequestRecord, string](rows))
- /*line forum_communities.mygo:167:8*/		} else {
+ /*line forum_communities.mygo:167:5*/		} else {
  /*line forum_communities.mygo:170:7*/			WriteJSON(w, 200, FollowRequestPage{Items: MygoIN6ResultM6Unwrap[[]storage.FollowRequestRecord, string](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
  /*line zz_forum_communities.gen.go:150:1*/		}
- /*line forum_communities.mygo:146:6*/		return
+ /*line forum_communities.mygo:146:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:153:1*/	}
  /*line forum_communities.mygo:131:1*/	actor := RequireMutation(settings, db, site, request)
- /*line forum_communities.mygo:175:6*/	if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
+ /*line forum_communities.mygo:175:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
  /*line forum_communities.mygo:176:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](actor))
- /*line forum_communities.mygo:175:6*/		return
+ /*line forum_communities.mygo:175:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:159:1*/	}
  /*line forum_communities.mygo:131:1*/	identity := MygoIN6ResultM6Unwrap[auth.Identity, string](actor)
  /*line forum_communities.mygo:180:6*/	if section == "follow" && (request.Method == "POST" || request.Method == "DELETE") {
-		result := ApplyBrowserCommunityFollow(request.Context(), settings, db, site, id, identity, request.Method == "POST")
- /*line forum_communities.mygo:182:8*/		if MygoIN6ResultM5IsErr[string, string](result) {
+ /*line forum_communities.mygo:180:3*/		result := ApplyBrowserCommunityFollow(request.Context(), settings, db, site, id, identity, request.Method == "POST")
+ /*line forum_communities.mygo:182:5*/		if MygoIN6ResultM5IsErr[string, string](result) {
  /*line forum_communities.mygo:183:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[string, string](result))
- /*line forum_communities.mygo:182:8*/		} else {
+ /*line forum_communities.mygo:182:5*/		} else {
  /*line forum_communities.mygo:185:7*/			w.WriteHeader(204)
  /*line zz_forum_communities.gen.go:167:1*/		}
- /*line forum_communities.mygo:180:6*/		return
+ /*line forum_communities.mygo:180:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:170:1*/	}
- /*line forum_communities.mygo:189:6*/	if section == "follow-requests" && request.Method == "POST" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 6 {
-		input := FollowDecisionInput{}
+ /*line forum_communities.mygo:189:3*/	if section == "follow-requests" && request.Method == "POST" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 6 {
+		input := Zero[FollowDecisionInput]()
 		decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
- /*line forum_communities.mygo:192:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
+ /*line forum_communities.mygo:192:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
  /*line forum_communities.mygo:193:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
- /*line forum_communities.mygo:192:8*/			return
+ /*line forum_communities.mygo:192:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:178:1*/		}
- /*line forum_communities.mygo:189:6*/		accepted := input.State == "accepted"
- /*line forum_communities.mygo:197:8*/		if input.State != "accepted" && input.State != "rejected" {
+ /*line forum_communities.mygo:189:3*/		accepted := input.State == "accepted"
+ /*line forum_communities.mygo:197:5*/		if input.State != "accepted" && input.State != "rejected" {
  /*line forum_communities.mygo:198:7*/			WriteErrorJSON(w, 400, "invalid state")
- /*line forum_communities.mygo:197:8*/			return
+ /*line forum_communities.mygo:197:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:184:1*/		}
  /*line forum_communities.mygo:201:5*/		Settle(w, ApplyReviewCommunityFollow(request.Context(), db, site, id, identity, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 5)), accepted))
- /*line forum_communities.mygo:189:6*/		return
+ /*line forum_communities.mygo:189:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:188:1*/	}
- /*line forum_communities.mygo:204:6*/	if section == "policy" {
- /*line forum_communities.mygo:205:8*/		if request.Method != "PUT" {
+ /*line forum_communities.mygo:204:3*/	if section == "policy" {
+ /*line forum_communities.mygo:205:5*/		if request.Method != "PUT" {
  /*line forum_communities.mygo:206:7*/			MethodNotAllowed(w, "PUT")
- /*line forum_communities.mygo:205:8*/			return
+ /*line forum_communities.mygo:205:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:194:1*/		}
- /*line forum_communities.mygo:204:6*/		input_1 := PolicyInput{}
+ /*line forum_communities.mygo:204:3*/		input_1 := Zero[PolicyInput]()
 		decoded_1 := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_1)
- /*line forum_communities.mygo:211:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_1) {
+ /*line forum_communities.mygo:211:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_1) {
  /*line forum_communities.mygo:212:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded_1))
- /*line forum_communities.mygo:211:8*/		} else {
+ /*line forum_communities.mygo:211:5*/		} else {
 			var __mygo_expr_0 Result[struct{}, string]
 			if input_1.FollowPolicy == "" {
 				__mygo_expr_0 = storage.MygoIN19CommunityRepositoryM9SetPolicy(communities, request.Context(), id, identity, false, input_1.ReadPolicy, input_1.PostPolicy)
 			} else {
 				__mygo_expr_0 = storage.MygoIN19CommunityRepositoryM12SetPolicyAll(communities, request.Context(), id, identity, false, input_1.ReadPolicy, input_1.PostPolicy, input_1.FollowPolicy)
  /*line zz_forum_communities.gen.go:205:1*/			}
- /*line forum_communities.mygo:211:8*/			result_1 := __mygo_expr_0
+ /*line forum_communities.mygo:211:5*/			result_1 := __mygo_expr_0
 			if MygoIN6ResultM5IsErr[struct{}, string](result_1) {
  /*line forum_communities.mygo:220:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result_1))
- /*line forum_communities.mygo:211:8*/			} else {
+ /*line forum_communities.mygo:211:5*/			} else {
  /*line forum_communities.mygo:222:9*/				w.WriteHeader(204)
  /*line zz_forum_communities.gen.go:211:1*/			}
 		}
- /*line forum_communities.mygo:204:6*/		return
+ /*line forum_communities.mygo:204:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:215:1*/	}
  /*line forum_communities.mygo:227:6*/	if section == "bans" && (request.Method == "POST" || request.Method == "DELETE") {
-		input_2 := BanInput{}
+ /*line forum_communities.mygo:227:3*/		input_2 := Zero[BanInput]()
 		decoded_2 := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_2)
- /*line forum_communities.mygo:230:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_2) {
+ /*line forum_communities.mygo:230:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_2) {
  /*line forum_communities.mygo:231:7*/			WriteErrorJSON(w, 400, "invalid ban")
- /*line forum_communities.mygo:230:8*/			return
+ /*line forum_communities.mygo:230:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:223:1*/		}
- /*line forum_communities.mygo:227:6*/		expiry := ParseBanExpiry(input_2.ExpiresAt)
- /*line forum_communities.mygo:235:8*/		if MygoIN6ResultM5IsErr[sql.NullTime, string](expiry) {
+ /*line forum_communities.mygo:227:3*/		expiry := ParseBanExpiry(input_2.ExpiresAt)
+ /*line forum_communities.mygo:235:5*/		if MygoIN6ResultM5IsErr[sql.NullTime, string](expiry) {
  /*line forum_communities.mygo:236:7*/			WriteErrorJSON(w, 400, "invalid ban")
- /*line forum_communities.mygo:235:8*/			return
+ /*line forum_communities.mygo:235:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:229:1*/		}
- /*line forum_communities.mygo:227:6*/		var __mygo_expr_1 Result[struct{}, string]
+ /*line forum_communities.mygo:227:3*/		var __mygo_expr_1 Result[struct{}, string]
 		if request.Method == "POST" {
 			__mygo_expr_1 = storage.BanCommunity(request.Context(), db, site.ID, id, identity, input_2.Actor, input_2.Reason, MygoIN6ResultM6Unwrap[sql.NullTime, string](expiry))
 		} else {
 			__mygo_expr_1 = storage.UnbanCommunity(request.Context(), db, site.ID, id, identity, input_2.Actor)
  /*line zz_forum_communities.gen.go:235:1*/		}
- /*line forum_communities.mygo:227:6*/		result_2 := __mygo_expr_1
+ /*line forum_communities.mygo:227:3*/		result_2 := __mygo_expr_1
  /*line forum_communities.mygo:244:5*/		Settle(w, result_2)
- /*line forum_communities.mygo:227:6*/		return
+ /*line forum_communities.mygo:227:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:240:1*/	}
  /*line forum_communities.mygo:247:6*/	if section == "removals" && (request.Method == "POST" || request.Method == "DELETE") {
-		post := PostRefInput{}
+ /*line forum_communities.mygo:247:3*/		post := Zero[PostRefInput]()
 		decoded_3 := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &post)
- /*line forum_communities.mygo:250:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_3) {
+ /*line forum_communities.mygo:250:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_3) {
  /*line forum_communities.mygo:251:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded_3))
- /*line forum_communities.mygo:250:8*/			return
+ /*line forum_communities.mygo:250:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:248:1*/		}
  /*line forum_communities.mygo:254:5*/		Settle(w, storage.MygoIN19CommunityRepositoryM10RemovePost(communities, request.Context(), id, post.PostID, identity, false, request.Method == "POST"))
- /*line forum_communities.mygo:247:6*/		return
+ /*line forum_communities.mygo:247:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:252:1*/	}
- /*line forum_communities.mygo:267:6*/	if section == "submissions" && request.Method == "POST" {
-		submission := SubmissionInput{}
+ /*line forum_communities.mygo:267:3*/	if section == "submissions" && request.Method == "POST" {
+		submission := Zero[SubmissionInput]()
 		decoded_4 := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &submission)
- /*line forum_communities.mygo:270:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_4) {
+ /*line forum_communities.mygo:270:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_4) {
  /*line forum_communities.mygo:271:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded_4))
- /*line forum_communities.mygo:270:8*/			return
+ /*line forum_communities.mygo:270:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:260:1*/		}
  /*line forum_communities.mygo:274:5*/		Settle(w, storage.MygoIN19CommunityRepositoryM13SetSubmission(communities, request.Context(), id, submission.PostID, identity, false, submission.State))
- /*line forum_communities.mygo:267:6*/		return
+ /*line forum_communities.mygo:267:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:264:1*/	}
  /*line forum_communities.mygo:287:6*/	if (section == "members" || section == "managers") && (request.Method == "POST" || request.Method == "DELETE") {
-		input_3 := ActorInput{}
+ /*line forum_communities.mygo:287:3*/		input_3 := Zero[ActorInput]()
 		decoded_5 := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_3)
- /*line forum_communities.mygo:291:8*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_5) {
+ /*line forum_communities.mygo:291:5*/		if MygoIN6ResultM5IsErr[struct{}, string](decoded_5) {
  /*line forum_communities.mygo:292:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded_5))
- /*line forum_communities.mygo:291:8*/			return
+ /*line forum_communities.mygo:291:5*/			return
 		} else {
  /*line zz_forum_communities.gen.go:272:1*/		}
- /*line forum_communities.mygo:295:8*/		if section == "members" {
+ /*line forum_communities.mygo:295:5*/		if section == "members" {
  /*line forum_communities.mygo:296:7*/			Settle(w, storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
  /*line forum_communities.mygo:298:55*/				previous := storage.IsCurrentMember(request.Context(), tx, id, input_3.Actor)
- /*line forum_communities.mygo:300:14*/				if MygoIN6ResultM5IsErr[bool, string](previous) {
+ /*line forum_communities.mygo:300:11*/				if MygoIN6ResultM5IsErr[bool, string](previous) {
  /*line forum_communities.mygo:300:43*/					return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](previous))
- /*line forum_communities.mygo:300:14*/				} else {
+ /*line forum_communities.mygo:300:11*/				} else {
  /*line zz_forum_communities.gen.go:279:1*/				}
  /*line forum_communities.mygo:298:55*/				changed := storage.MygoIN19CommunityRepositoryM9SetMember(storage.CommunityRepository{DB: tx, SiteID: site.ID}, request.Context(), id, identity, false, input_3.Actor, request.Method == "POST")
- /*line forum_communities.mygo:302:14*/				if MygoIN6ResultM5IsErr[struct{}, string](changed) {
+ /*line forum_communities.mygo:302:11*/				if MygoIN6ResultM5IsErr[struct{}, string](changed) {
  /*line forum_communities.mygo:302:42*/					return changed
- /*line forum_communities.mygo:302:14*/				} else {
+ /*line forum_communities.mygo:302:11*/				} else {
  /*line zz_forum_communities.gen.go:284:1*/				}
- /*line forum_communities.mygo:303:14*/				if request.Method == "DELETE" && MygoIN6ResultM6Unwrap[bool, string](previous) {
+ /*line forum_communities.mygo:303:11*/				if request.Method == "DELETE" && MygoIN6ResultM6Unwrap[bool, string](previous) {
  /*line forum_communities.mygo:303:74*/					return QueueMemberRevocation(request.Context(), tx, site, id, input_3.Actor)
- /*line forum_communities.mygo:303:14*/				} else {
+ /*line forum_communities.mygo:303:11*/				} else {
  /*line zz_forum_communities.gen.go:288:1*/				}
  /*line forum_communities.mygo:304:11*/				return Ok[struct{}, string](struct {
  /*line zz_forum_communities.gen.go:290:1*/				}{})
 			}))
- /*line forum_communities.mygo:295:8*/		} else {
+ /*line forum_communities.mygo:295:5*/		} else {
  /*line forum_communities.mygo:308:7*/			Settle(w, storage.MygoIN19CommunityRepositoryM10SetManager(communities, request.Context(), id, identity, false, input_3.Actor, request.Method == "POST"))
  /*line zz_forum_communities.gen.go:294:1*/		}
- /*line forum_communities.mygo:287:6*/		return
+ /*line forum_communities.mygo:287:3*/		return
 	} else {
  /*line zz_forum_communities.gen.go:297:1*/	}
  /*line forum_communities.mygo:322:3*/	WriteErrorJSON(w, 404, "not found")
 	return
  /*line zz_forum_communities.gen.go:300:1*/}
  /*line forum_communities.mygo:325:1*/func CommunityTopicRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, id string) {
- /*line forum_communities.mygo:333:6*/	if request.Method == "GET" {
+ /*line forum_communities.mygo:333:3*/	if request.Method == "GET" {
 		BrowserReadRoute(settings, db, site, w, request, Segments(request.URL.Path))
 		return
 	} else {
- /*line forum_communities.mygo:336:8*/		if request.Method == "POST" {
+ /*line forum_communities.mygo:336:5*/		if request.Method == "POST" {
 			actor := RequireMutation(settings, db, site, request)
- /*line forum_communities.mygo:338:10*/			if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
+ /*line forum_communities.mygo:338:7*/			if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
  /*line forum_communities.mygo:339:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](actor))
- /*line forum_communities.mygo:338:10*/				return
+ /*line forum_communities.mygo:338:7*/				return
 			} else {
  /*line zz_forum_communities.gen.go:312:1*/			}
- /*line forum_communities.mygo:336:8*/			identity := MygoIN6ResultM6Unwrap[auth.Identity, string](actor)
-			input := CreateTopicInput{}
+ /*line forum_communities.mygo:336:5*/			identity := MygoIN6ResultM6Unwrap[auth.Identity, string](actor)
+			input := Zero[CreateTopicInput]()
 			decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
- /*line forum_communities.mygo:345:10*/			if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
+ /*line forum_communities.mygo:345:7*/			if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
  /*line forum_communities.mygo:346:9*/				WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
 				return
- /*line forum_communities.mygo:345:10*/			} else {
+ /*line forum_communities.mygo:345:7*/			} else {
 				mentions := ResolvePostMentions(request.Context(), settings, db, site, identity, id, input.Body, input.ContentFormat, false)
- /*line forum_communities.mygo:349:12*/				if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, string](mentions) {
+ /*line forum_communities.mygo:349:9*/				if MygoIN6ResultM5IsErr[[]storage.ResolvedPostMention, string](mentions) {
  /*line forum_communities.mygo:350:11*/					Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.ResolvedPostMention, string](mentions))
- /*line forum_communities.mygo:349:12*/					return
+ /*line forum_communities.mygo:349:9*/					return
 				} else {
  /*line zz_forum_communities.gen.go:325:1*/				}
- /*line forum_communities.mygo:345:10*/				published := PublishForumPost(settings, db, request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: "", ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions)})
- /*line forum_communities.mygo:368:12*/				if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
- /*line forum_communities.mygo:369:11*/					Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
+ /*line forum_communities.mygo:345:7*/				published := PublishForumPost(settings, db, request.Context(), site, id, identity, false, storage.PublishInput{Title: input.Title, Body: input.Body, ParentID: "", ContextURI: "", ContentFormat: input.ContentFormat, AttachmentIDs: input.AttachmentIDs, Mentions: MygoIN6ResultM6Unwrap[[]storage.ResolvedPostMention, string](mentions)})
+ /*line forum_communities.mygo:369:9*/				if MygoIN6ResultM5IsErr[storage.PostRecord, string](published) {
+ /*line forum_communities.mygo:370:11*/					Fail(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](published))
 					return
- /*line forum_communities.mygo:368:12*/				} else {
- /*line forum_communities.mygo:371:11*/					WriteBrowserPost(db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
+ /*line forum_communities.mygo:369:9*/				} else {
+ /*line forum_communities.mygo:372:11*/					WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, MygoIN6ResultM6Unwrap[storage.PostRecord, string](published))
 					return
  /*line zz_forum_communities.gen.go:333:1*/				}
 			}
- /*line forum_communities.mygo:336:8*/		} else {
- /*line forum_communities.mygo:375:7*/			MethodNotAllowed(w, "GET, POST")
+ /*line forum_communities.mygo:336:5*/		} else {
+ /*line forum_communities.mygo:376:7*/			MethodNotAllowed(w, "GET, POST")
 			return
  /*line zz_forum_communities.gen.go:338:1*/		}
 	}

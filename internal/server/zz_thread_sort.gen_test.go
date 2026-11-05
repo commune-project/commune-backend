@@ -34,11 +34,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic"}))
-	rootLow := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "low", ParentID: topic.ID}))
-	rootHigh := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "high", ParentID: topic.ID}))
-	childOld := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "child old", ParentID: rootLow.ID}))
-	childNew := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "child new", ParentID: rootLow.ID}))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	rootLow := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "low", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	rootHigh := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "high", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	childOld := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "child old", ParentID: rootLow.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	childNew := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "child new", ParentID: rootLow.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id IN (?,?)", rootLow.ID, childOld.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-02T00:00:00Z',updated_at='2026-01-02T00:00:00Z' WHERE id IN (?,?)", rootHigh.ID, childNew.ID)))
 	reactions := storage.ReactionRepository{DB: db, SiteID: site.ID}
@@ -47,7 +47,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, rootHigh.ID, carol, false, 1, ""))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, childNew.ID, bob, false, 1, ""))
 	handler := Handler(settings, db)
-	topPage := PostPage{}
+	topPage := Zero[PostPage]()
 	topResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=top&max_depth=2", []*http.Cookie{}, 200)
  /*line thread_sort_test.mygo:40:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(topResponse.Body.Bytes(), &topPage)
@@ -58,16 +58,16 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_sort.gen_test.go:58:1*/		}{})
 	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line thread_sort_test.mygo:41:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topPage.Items) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topPage.Items, 0)).ID != rootHigh.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topPage.Items, 1)).ID != rootLow.ID {
+ /*line thread_sort_test.mygo:41:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topPage.Items) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topPage.Items, 0)).ID != rootHigh.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topPage.Items, 1)).ID != rootLow.ID {
  /*line thread_sort_test.mygo:42:5*/		t.Fatal("root siblings were not vote ordered")
- /*line thread_sort_test.mygo:41:6*/	} else {
+ /*line thread_sort_test.mygo:41:3*/	} else {
  /*line zz_thread_sort.gen_test.go:64:1*/	}
  /*line thread_sort_test.mygo:12:1*/	topChildren := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topPage.Items, 1)).Children
- /*line thread_sort_test.mygo:45:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topChildren) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topChildren, 0)).ID != childNew.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topChildren, 1)).ID != childOld.ID {
+ /*line thread_sort_test.mygo:45:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topChildren) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topChildren, 0)).ID != childNew.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(topChildren, 1)).ID != childOld.ID {
  /*line thread_sort_test.mygo:46:5*/		t.Fatal("child siblings were not independently vote ordered")
- /*line thread_sort_test.mygo:45:6*/	} else {
+ /*line thread_sort_test.mygo:45:3*/	} else {
  /*line zz_thread_sort.gen_test.go:69:1*/	}
- /*line thread_sort_test.mygo:12:1*/	oldPage := PostPage{}
+ /*line thread_sort_test.mygo:12:1*/	oldPage := Zero[PostPage]()
 	oldResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=old&max_depth=2", []*http.Cookie{}, 200)
  /*line thread_sort_test.mygo:50:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(oldResponse.Body.Bytes(), &oldPage)
@@ -78,11 +78,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_sort.gen_test.go:78:1*/		}{})
 	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line thread_sort_test.mygo:51:6*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(oldPage.Items, 0)).ID != rootLow.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(oldPage.Items, 0)).Children, 0)).ID != childOld.ID {
+ /*line thread_sort_test.mygo:51:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(oldPage.Items, 0)).ID != rootLow.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(oldPage.Items, 0)).Children, 0)).ID != childOld.ID {
  /*line thread_sort_test.mygo:53:5*/		t.Fatal("old sibling ordering did not preserve ascending authored time")
- /*line thread_sort_test.mygo:51:6*/	} else {
+ /*line thread_sort_test.mygo:51:3*/	} else {
  /*line zz_thread_sort.gen_test.go:84:1*/	}
- /*line thread_sort_test.mygo:12:1*/	newPage := PostPage{}
+ /*line thread_sort_test.mygo:12:1*/	newPage := Zero[PostPage]()
 	newResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=new&max_depth=2", []*http.Cookie{}, 200)
  /*line thread_sort_test.mygo:57:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(newResponse.Body.Bytes(), &newPage)
@@ -93,14 +93,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_sort.gen_test.go:93:1*/		}{})
 	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line thread_sort_test.mygo:58:6*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(newPage.Items, 0)).ID != rootHigh.ID || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(newPage.Items, 0)).Children) != 0 {
+ /*line thread_sort_test.mygo:58:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(newPage.Items, 0)).ID != rootHigh.ID || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(newPage.Items, 0)).Children) != 0 {
  /*line thread_sort_test.mygo:60:5*/		t.Fatal("new thread ordering was incorrect")
- /*line thread_sort_test.mygo:58:6*/	} else {
+ /*line thread_sort_test.mygo:58:3*/	} else {
  /*line zz_thread_sort.gen_test.go:99:1*/	}
  /*line thread_sort_test.mygo:62:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, rootLow.ID, carol, false, -1, ""))
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, childOld.ID, bob, false, 1, ""))
  /*line thread_sort_test.mygo:64:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, childOld.ID, carol, false, -1, ""))
- /*line thread_sort_test.mygo:12:1*/	controversialPage := PostPage{}
+ /*line thread_sort_test.mygo:12:1*/	controversialPage := Zero[PostPage]()
 	controversialResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=controversial&max_depth=2", []*http.Cookie{}, 200)
  /*line thread_sort_test.mygo:67:11*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(controversialResponse.Body.Bytes(), &controversialPage)
@@ -111,14 +111,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_sort.gen_test.go:111:1*/		}{})
 	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
- /*line thread_sort_test.mygo:68:6*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(controversialPage.Items, 0)).ID != rootLow.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(controversialPage.Items, 0)).Children, 0)).ID != childOld.ID {
+ /*line thread_sort_test.mygo:68:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(controversialPage.Items, 0)).ID != rootLow.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(controversialPage.Items, 0)).Children, 0)).ID != childOld.ID {
  /*line thread_sort_test.mygo:70:5*/		t.Fatal("controversial sibling ordering did not favour opposing votes")
- /*line thread_sort_test.mygo:68:6*/	} else {
+ /*line thread_sort_test.mygo:68:3*/	} else {
  /*line zz_thread_sort.gen_test.go:117:1*/	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Undo(reactions, ctx, childNew.ID, bob, false))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-03T00:00:00Z',updated_at='2026-01-03T00:00:00Z' WHERE id IN (?,?)", childOld.ID, childNew.ID)))
-	firstTie := PostPage{}
-	secondTie := PostPage{}
+	firstTie := Zero[PostPage]()
+	secondTie := Zero[PostPage]()
 	firstTieResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=top&max_depth=2", []*http.Cookie{}, 200)
 	secondTieResponse := browserGet(t, handler, site.Origin, "/api/v1/posts/"+topic.ID+"/replies?sort=top&max_depth=2", []*http.Cookie{}, 200)
  /*line thread_sort_test.mygo:78:11*/	var __mygo_expr_12 Result[struct{}, error]
@@ -139,10 +139,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_sort.gen_test.go:139:1*/		}{})
 	}
  /*line thread_sort_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_14)
- /*line thread_sort_test.mygo:80:6*/	if firstTieResponse.Body.String() != secondTieResponse.Body.String() {
+ /*line thread_sort_test.mygo:80:3*/	if firstTieResponse.Body.String() != secondTieResponse.Body.String() {
  /*line thread_sort_test.mygo:81:5*/		t.Fatal("equal thread scores and timestamps were not stably ordered")
 		return
- /*line thread_sort_test.mygo:80:6*/	} else {
- /*line thread_sort_test.mygo:80:3*/		return
+ /*line thread_sort_test.mygo:80:3*/	} else {
+		return
  /*line zz_thread_sort.gen_test.go:147:1*/	}
 }

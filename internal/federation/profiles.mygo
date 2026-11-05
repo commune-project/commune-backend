@@ -60,7 +60,7 @@ end
 
 # Called only after the outer HTTP signature has been verified. Public avatar
 # metadata is validated without making any request to its URL.
-func ApplyPersonUpdate(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, payload: Slice[Byte]) -> Result[(), String]
+func ApplyPersonUpdate(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, payload: Slice[Byte]) -> Result[(), String]
   let parsed = PersonUpdateObject(payload)
   if parsed.IsErr() then
     return Err(parsed.UnwrapErr())
@@ -91,7 +91,7 @@ func ApplyPersonUpdate(ctx: context.Context, db: Ref[gorm.DB], site: config.Site
       return Err("invalid avatar URL")
     end
   end
-  storage.MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,updated_at=EXCLUDED.updated_at WHERE profiles.updated_at < EXCLUDED.updated_at", object.ID, content.RenderText(object.Name), object.Summary, content.SanitizeRichHTML(object.Summary), object.Icon.URL, object.Updated))
+  storage.MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,updated_at=EXCLUDED.updated_at WHERE profiles.updated_at < EXCLUDED.updated_at", object.ID, content.RenderText(object.Name), object.Summary, content.SanitizeRichHTML(sanitizer, object.Summary), object.Icon.URL, object.Updated))
 end
 
 # Persist and plan in the SAME transaction as the profile/avatar mutation.

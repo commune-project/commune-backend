@@ -7,48 +7,49 @@ import "context"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line profiles_postgres_test.mygo:11:1*/func TestPostgresPersonUpdateFreshnessBlocksAndLocalAuthority(t *testing.T) {
+ /*line profiles_postgres_test.mygo:12:1*/func TestPostgresPersonUpdateFreshnessBlocksAndLocalAuthority(t *testing.T) {
 	ctx := context.Background()
- /*line profiles_postgres_test.mygo:13:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line profiles_postgres_test.mygo:14:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_profiles_postgres.gen_test.go:24:1*/	}
- /*line profiles_postgres_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_profiles_postgres.gen_test.go:25:1*/	}
+ /*line profiles_postgres_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	site := config.Site{ID: "profiles", Origin: "https://profiles.example"}
+	site := config.Site{ID: "profiles", RegistrationEnabled: false, Origin: "https://profiles.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer()}
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
 	local := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	remote := "https://remote.example/users/a"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remote)))
 	update := "{\"id\":\"https://remote.example/activities/1\",\"type\":\"Update\",\"actor\":\"https://remote.example/users/a\",\"object\":{\"id\":\"https://remote.example/users/a\",\"type\":\"Person\",\"name\":\"Newest\",\"summary\":\"<p>Hello</p><script>bad()</script>\",\"updated\":\"2026-01-02T00:00:00Z\",\"icon\":{\"type\":\"Image\",\"url\":\"https://192.0.2.1/never-fetch.png\"}}}"
-	MygoIN6ResultM6Unwrap[struct{}, string](ApplyPersonUpdate(ctx, db, site, []byte(update)))
+	MygoIN6ResultM6Unwrap[struct{}, string](ApplyPersonUpdate(content.DefaultSanitizer(), ctx, db, site, []byte(update)))
 	older := strings.Replace(strings.Replace(update, "Newest", "Old", 1), "2026-01-02", "2026-01-01", 1)
-	MygoIN6ResultM6Unwrap[struct{}, string](ApplyPersonUpdate(ctx, db, site, []byte(older)))
+	MygoIN6ResultM6Unwrap[struct{}, string](ApplyPersonUpdate(content.DefaultSanitizer(), ctx, db, site, []byte(older)))
 	profile := MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](storage.LoadProfile(ctx, db, remote))
- /*line profiles_postgres_test.mygo:25:6*/	if profile.DisplayName != "Newest" || strings.Contains(profile.BiographyHTML, "script") || profile.AvatarURL != "https://192.0.2.1/never-fetch.png" {
- /*line profiles_postgres_test.mygo:26:5*/		t.Fatal("stale update, unsafe biography or public avatar metadata failed")
- /*line profiles_postgres_test.mygo:25:6*/	} else {
- /*line zz_profiles_postgres.gen_test.go:40:1*/	}
- /*line profiles_postgres_test.mygo:11:1*/	forgedLocal := strings.ReplaceAll(update, remote, local.ActorURI)
- /*line profiles_postgres_test.mygo:29:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ApplyPersonUpdate(ctx, db, site, []byte(forgedLocal))) {
- /*line profiles_postgres_test.mygo:30:5*/		t.Fatal("remote update altered local account profile")
- /*line profiles_postgres_test.mygo:29:6*/	} else {
- /*line zz_profiles_postgres.gen_test.go:45:1*/	}
- /*line profiles_postgres_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, remote)))
+ /*line profiles_postgres_test.mygo:26:3*/	if profile.DisplayName != "Newest" || strings.Contains(profile.BiographyHTML, "script") || profile.AvatarURL != "https://192.0.2.1/never-fetch.png" {
+ /*line profiles_postgres_test.mygo:27:5*/		t.Fatal("stale update, unsafe biography or public avatar metadata failed")
+ /*line profiles_postgres_test.mygo:26:3*/	} else {
+ /*line zz_profiles_postgres.gen_test.go:41:1*/	}
+ /*line profiles_postgres_test.mygo:12:1*/	forgedLocal := strings.ReplaceAll(update, remote, local.ActorURI)
+ /*line profiles_postgres_test.mygo:30:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ApplyPersonUpdate(content.DefaultSanitizer(), ctx, db, site, []byte(forgedLocal))) {
+ /*line profiles_postgres_test.mygo:31:5*/		t.Fatal("remote update altered local account profile")
+ /*line profiles_postgres_test.mygo:30:3*/	} else {
+ /*line zz_profiles_postgres.gen_test.go:46:1*/	}
+ /*line profiles_postgres_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, remote)))
 	newer := strings.Replace(update, "2026-01-02", "2026-01-03", 1)
- /*line profiles_postgres_test.mygo:34:6*/	if MygoIN6ResultM4IsOk[struct{}, string](ApplyPersonUpdate(ctx, db, site, []byte(newer))) {
- /*line profiles_postgres_test.mygo:35:5*/		t.Fatal("blocked Actor update accepted")
+ /*line profiles_postgres_test.mygo:35:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ApplyPersonUpdate(content.DefaultSanitizer(), ctx, db, site, []byte(newer))) {
+ /*line profiles_postgres_test.mygo:36:5*/		t.Fatal("blocked Actor update accepted")
 		return
- /*line profiles_postgres_test.mygo:34:6*/	} else {
- /*line profiles_postgres_test.mygo:34:3*/		return
- /*line zz_profiles_postgres.gen_test.go:53:1*/	}
+ /*line profiles_postgres_test.mygo:35:3*/	} else {
+		return
+ /*line zz_profiles_postgres.gen_test.go:54:1*/	}
 }

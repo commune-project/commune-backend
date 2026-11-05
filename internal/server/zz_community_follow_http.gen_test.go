@@ -49,16 +49,16 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line community_follow_http_test.mygo:37:5*/		return "/api/v1/communities/" + id + "/follow"
  /*line zz_community_follow_http.gen_test.go:50:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	follow := func(id_1 string, cookies []*http.Cookie, token string) *httptest.ResponseRecorder {
- /*line community_follow_http_test.mygo:40:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id_1), Cookies: cookies, CSRF: token, Source: site.Origin})
+ /*line community_follow_http_test.mygo:40:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id_1), Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin})
  /*line zz_community_follow_http.gen_test.go:53:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	unfollow := func(id_2 string, cookies_1 []*http.Cookie, token_1 string) *httptest.ResponseRecorder {
- /*line community_follow_http_test.mygo:43:5*/		return doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id_2), Cookies: cookies_1, CSRF: token_1, Source: site.Origin})
+ /*line community_follow_http_test.mygo:43:5*/		return doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id_2), Payload: "", Cookies: cookies_1, CSRF: token_1, Source: site.Origin})
  /*line zz_community_follow_http.gen_test.go:56:1*/	}
- /*line community_follow_http_test.mygo:45:6*/	if follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
+ /*line community_follow_http_test.mygo:45:3*/	if follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:46:5*/		t.Fatal("open follow was not idempotent")
- /*line community_follow_http_test.mygo:45:6*/	} else {
+ /*line community_follow_http_test.mygo:45:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:60:1*/	}
- /*line community_follow_http_test.mygo:13:1*/	accepted := CommunityOutput{}
+ /*line community_follow_http_test.mygo:13:1*/	accepted := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:49:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+open.ID, outsiderCookies, 200).Body.Bytes(), &accepted)
 	if __mygo_expr_3 != nil {
@@ -68,11 +68,11 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_http.gen_test.go:68:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line community_follow_http_test.mygo:50:6*/	if !accepted.Viewer.IsFollowing || accepted.Viewer.FollowState != "accepted" || accepted.Viewer.CanFollow || accepted.FollowerCount != int64(1) || accepted.FollowPolicy != "open" {
+ /*line community_follow_http_test.mygo:50:3*/	if !accepted.Viewer.IsFollowing || accepted.Viewer.FollowState != "accepted" || accepted.Viewer.CanFollow || accepted.FollowerCount != int64(1) || accepted.FollowPolicy != "open" {
  /*line community_follow_http_test.mygo:52:5*/		t.Fatal("accepted follow projection was incorrect")
- /*line community_follow_http_test.mygo:50:6*/	} else {
+ /*line community_follow_http_test.mygo:50:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:74:1*/	}
- /*line community_follow_http_test.mygo:13:1*/	anonymous := CommunityOutput{}
+ /*line community_follow_http_test.mygo:13:1*/	anonymous := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:55:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+open.ID, []*http.Cookie{}, 200).Body.Bytes(), &anonymous)
 	if __mygo_expr_5 != nil {
@@ -82,19 +82,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_http.gen_test.go:82:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line community_follow_http_test.mygo:59:6*/	if anonymous.Viewer.IsFollowing || anonymous.Viewer.FollowState != "none" || anonymous.Viewer.CanFollow || anonymous.FollowerCount != int64(0) || anonymous.FollowPolicy != "open" {
+ /*line community_follow_http_test.mygo:59:3*/	if anonymous.Viewer.IsFollowing || anonymous.Viewer.FollowState != "none" || anonymous.Viewer.CanFollow || anonymous.FollowerCount != int64(0) || anonymous.FollowPolicy != "open" {
  /*line community_follow_http_test.mygo:62:5*/		t.Fatal("anonymous community follow projection leaked account state or counts")
- /*line community_follow_http_test.mygo:59:6*/	} else {
+ /*line community_follow_http_test.mygo:59:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:88:1*/	}
- /*line community_follow_http_test.mygo:64:6*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
+ /*line community_follow_http_test.mygo:64:3*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:66:5*/		t.Fatal("unfollow was not idempotent")
- /*line community_follow_http_test.mygo:64:6*/	} else {
+ /*line community_follow_http_test.mygo:64:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:92:1*/	}
- /*line community_follow_http_test.mygo:68:6*/	if follow(approval.ID, outsiderCookies, outsiderCSRF).Code != 204 {
+ /*line community_follow_http_test.mygo:68:3*/	if follow(approval.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:69:5*/		t.Fatal("approval follow failed")
- /*line community_follow_http_test.mygo:68:6*/	} else {
+ /*line community_follow_http_test.mygo:68:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:96:1*/	}
- /*line community_follow_http_test.mygo:13:1*/	pending := CommunityOutput{}
+ /*line community_follow_http_test.mygo:13:1*/	pending := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:72:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+approval.ID, outsiderCookies, 200).Body.Bytes(), &pending)
 	if __mygo_expr_7 != nil {
@@ -104,38 +104,38 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_http.gen_test.go:104:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line community_follow_http_test.mygo:73:6*/	if pending.Viewer.FollowState != "pending" || pending.Viewer.IsFollowing || pending.Viewer.CanFollow || pending.FollowerCount != int64(0) {
+ /*line community_follow_http_test.mygo:73:3*/	if pending.Viewer.FollowState != "pending" || pending.Viewer.IsFollowing || pending.Viewer.CanFollow || pending.FollowerCount != int64(0) {
  /*line community_follow_http_test.mygo:75:5*/		t.Fatal("pending follow projection was incorrect")
- /*line community_follow_http_test.mygo:73:6*/	} else {
+ /*line community_follow_http_test.mygo:73:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:110:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	deniedMember := follow(restricted.ID, outsiderCookies, outsiderCSRF)
- /*line community_follow_http_test.mygo:78:6*/	if deniedMember.Code != 403 || deniedMember.Body.String() != "{\"error\":\"follow_requires_membership\"}" {
+ /*line community_follow_http_test.mygo:78:3*/	if deniedMember.Code != 403 || deniedMember.Body.String() != "{\"error\":\"follow_requires_membership\"}" {
  /*line community_follow_http_test.mygo:79:5*/		t.Fatal("members follow policy did not reject a non-member")
- /*line community_follow_http_test.mygo:78:6*/	} else {
+ /*line community_follow_http_test.mygo:78:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:115:1*/	}
- /*line community_follow_http_test.mygo:81:6*/	if follow(restricted.ID, memberCookies, memberCSRF).Code != 204 {
+ /*line community_follow_http_test.mygo:81:3*/	if follow(restricted.ID, memberCookies, memberCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:82:5*/		t.Fatal("members stay could not follow")
- /*line community_follow_http_test.mygo:81:6*/	} else {
+ /*line community_follow_http_test.mygo:81:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:119:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	disabledFollow := follow(disabled.ID, outsiderCookies, outsiderCSRF)
- /*line community_follow_http_test.mygo:85:6*/	if disabledFollow.Code != 403 || disabledFollow.Body.String() != "{\"error\":\"feature_disabled\"}" {
+ /*line community_follow_http_test.mygo:85:3*/	if disabledFollow.Code != 403 || disabledFollow.Body.String() != "{\"error\":\"feature_disabled\"}" {
  /*line community_follow_http_test.mygo:86:5*/		t.Fatal("disabled follow policy did not return feature_disabled")
- /*line community_follow_http_test.mygo:85:6*/	} else {
+ /*line community_follow_http_test.mygo:85:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:124:1*/	}
- /*line community_follow_http_test.mygo:88:6*/	if follow("missing", outsiderCookies, outsiderCSRF).Code != 404 || follow(private.ID, outsiderCookies, outsiderCSRF).Code != 404 {
+ /*line community_follow_http_test.mygo:88:3*/	if follow("missing", outsiderCookies, outsiderCSRF).Code != 404 || follow(private.ID, outsiderCookies, outsiderCSRF).Code != 404 {
  /*line community_follow_http_test.mygo:89:5*/		t.Fatal("missing or unreadable follow target did not return 404")
- /*line community_follow_http_test.mygo:88:6*/	} else {
+ /*line community_follow_http_test.mygo:88:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:128:1*/	}
- /*line community_follow_http_test.mygo:91:6*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, Source: site.Origin}).Code != 403 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 {
+ /*line community_follow_http_test.mygo:91:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: "", Source: site.Origin}).Code != 403 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 {
  /*line community_follow_http_test.mygo:93:5*/		t.Fatal("follow route accepted missing CSRF or foreign origin")
- /*line community_follow_http_test.mygo:91:6*/	} else {
+ /*line community_follow_http_test.mygo:91:3*/	} else {
  /*line zz_community_follow_http.gen_test.go:132:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	follow(open.ID, outsiderCookies, outsiderCSRF)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM12SetPolicyAll(communities, ctx, open.ID, creator, false, "eligible_users", "eligible_users", "disabled"))
- /*line community_follow_http_test.mygo:97:6*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
+ /*line community_follow_http_test.mygo:97:3*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:98:5*/		t.Fatal("existing follower could not unfollow after disabling new follows")
 		return
- /*line community_follow_http_test.mygo:97:6*/	} else {
- /*line community_follow_http_test.mygo:97:3*/		return
+ /*line community_follow_http_test.mygo:97:3*/	} else {
+		return
  /*line zz_community_follow_http.gen_test.go:140:1*/	}
 }

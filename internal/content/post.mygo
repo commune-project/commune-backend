@@ -19,6 +19,7 @@ end
 
 # Re-rendering uses original byte spans; editing source is never overwritten.
 func RenderPostRich(
+  sanitizer: Sanitizer,
   source: String,
   format: String,
   mentions: Slice[RichMention],
@@ -68,15 +69,16 @@ func RenderPostRich(
     let _ = output.WriteString(((source as Slice[Byte]).Slice(position, (source as Slice[Byte]).Len()).UnwrapOr([])) as String)
     expanded = output.String()
   end
-  switch RenderRich(expanded, format)
+  switch RenderRich(sanitizer, expanded, format)
     case Err(message) => Err(message)
-    case Ok(rendered) => RewritePostMedia(rendered, origin, media, strict)
+    case Ok(rendered) => RewritePostMedia(sanitizer, rendered, origin, media, strict)
   end
 end
 
 # Only URL attributes are rewritten, after parsing and entity decoding. Neither
 # code examples nor plain text can be rewritten by a coincidental ID substring.
 func RewritePostMedia(
+  sanitizer: Sanitizer,
   rendered: String,
   origin: String,
   media: Slice[RichMedia],
@@ -151,5 +153,5 @@ func RewritePostMedia(
   if strict && invalid then
     return Err("invalid media reference")
   end
-  Ok(SanitizeRichHTML(output.String()))
+  Ok(SanitizeRichHTML(sanitizer, output.String()))
 end

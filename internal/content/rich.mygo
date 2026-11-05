@@ -4,10 +4,163 @@ import bytes "go:bytes"
 import io "go:io"
 import strings "go:strings"
 import goldmark "go:github.com/yuin/goldmark"
+import extension "go:github.com/yuin/goldmark/extension"
+import gmhtml "go:github.com/yuin/goldmark/renderer/html"
 import bluemonday "go:github.com/microcosm-cc/bluemonday"
 import html "go:golang.org/x/net/html"
+struct SanitizerAttribute
+  Element: String
+  Names: Slice[String]
+end
+
+struct SanitizerConfig
+  HardWraps: Bool
+  AllowRawHTML: Bool
+  Elements: Slice[String]
+  Attributes: Slice[SanitizerAttribute]
+  URLSchemes: Slice[String]
+  AllowRelativeURLs: Bool
+end
+
+struct Sanitizer
+  Policy: Ref[bluemonday.Policy]
+  Converter: goldmark.Markdown
+end
+
+func DefaultSanitizerConfig() -> SanitizerConfig
+  SanitizerConfig{
+    HardWraps: true,
+    AllowRawHTML: false,
+    Elements: [
+      "p",
+      "br",
+      "hr",
+      "em",
+      "strong",
+      "del",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "pre",
+      "code",
+      "a",
+      "img",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+    ],
+    Attributes: [
+      SanitizerAttribute{Element: "a", Names: ["href", "title"]},
+      SanitizerAttribute{
+        Element: "img",
+        Names: ["src", "alt", "title", "referrerpolicy"],
+      },
+    ],
+    URLSchemes: ["http", "https"],
+    AllowRelativeURLs: true,
+  }
+end
+
+func BuildRichConverter(hardWraps: Bool, allowRawHTML: Bool) -> goldmark.Markdown
+  switch (hardWraps, allowRawHTML)
+    case (true, true) then
+      goldmark.New(
+        goldmark.WithExtensions(
+          extension.Linkify,
+          extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)),
+          extension.Strikethrough,
+          extension.TaskList
+        ),
+        goldmark.WithRendererOptions(gmhtml.WithHardWraps(), gmhtml.WithUnsafe())
+      )
+    end
+    case (true, false) then
+      goldmark.New(
+        goldmark.WithExtensions(
+          extension.Linkify,
+          extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)),
+          extension.Strikethrough,
+          extension.TaskList
+        ),
+        goldmark.WithRendererOptions(gmhtml.WithHardWraps())
+      )
+    end
+    case (false, true) then
+      goldmark.New(
+        goldmark.WithExtensions(
+          extension.Linkify,
+          extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)),
+          extension.Strikethrough,
+          extension.TaskList
+        ),
+        goldmark.WithRendererOptions(gmhtml.WithUnsafe())
+      )
+    end
+    case (false, false) then
+      goldmark.New(goldmark.WithExtensions(
+        extension.Linkify,
+        extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignNone)),
+        extension.Strikethrough,
+        extension.TaskList
+      ))
+    end
+  end
+end
+
+func NewSanitizer(config: SanitizerConfig) -> Sanitizer
+  let policy = bluemonday.NewPolicy()
+  let _ = policy.RequireParseableURLs(true)
+  let _ = policy.RequireNoFollowOnLinks(true)
+  let _ = policy.RequireNoReferrerOnLinks(true)
+  let _ = policy.AllowRelativeURLs(config.AllowRelativeURLs)
+  go[()] {
+    code: """{policy}.AllowElements({elements}...)"""
+    in policy = policy
+    in elements = config.Elements
+  }
+  config.Attributes.Each(func(item: SanitizerAttribute) -> ()
+    go[()] {
+      code: """{policy}.AllowAttrs({names}...).OnElements({element})"""
+      in policy = policy
+      in names = item.Names
+      in element = item.Element
+    }
+  end)
+  go[()] {
+    code: """{policy}.AllowURLSchemes({schemes}...)"""
+    in policy = policy
+    in schemes = config.URLSchemes
+  }
+  Sanitizer{
+    Policy: policy,
+    Converter: BuildRichConverter(config.HardWraps, config.AllowRawHTML),
+  }
+end
+
+impl Sanitizer: Default[Sanitizer]
+  func Default() -> Sanitizer
+    NewSanitizer(DefaultSanitizerConfig())
+  end
+end
+
+let defaultSanitizer: Sanitizer = NewSanitizer(DefaultSanitizerConfig())
+
+func DefaultSanitizer() -> Sanitizer
+  defaultSanitizer
+end
+
 # Format strings are persisted by callers; unknown formats fail closed.
-func RenderRich(source: String, format: String) -> Result[String, String]
+func RenderRich(sanitizer: Sanitizer, source: String, format: String) -> Result[String, String]
   if (source as Slice[Byte]).Len() > 1048576 then
     return Err("content exceeds 1 MiB")
   end
@@ -17,8 +170,9 @@ func RenderRich(source: String, format: String) -> Result[String, String]
   var rendered = source
   if format == "markdown" then
     let output = bytes.Buffer{}
-    # Goldmark defaults: CommonMark, no raw HTML, no unsafe URLs/extensions.
-    if goldmark.New().Convert(source as Slice[Byte], Ref.new(output) as io.Writer).IsErr() then
+    # The configured converter enables GFM, optional hard wraps and raw HTML;
+    # the allowlist below remains the only executable-content boundary.
+    if sanitizer.Converter.Convert(source as Slice[Byte], Ref.new(output) as io.Writer).IsErr() then
       return Err("Markdown rendering failed")
     end
     rendered = output.String()
@@ -27,14 +181,14 @@ func RenderRich(source: String, format: String) -> Result[String, String]
       return Err("unsupported content format")
     end
   end
-  Ok(SanitizeRichHTML(rendered))
+  Ok(SanitizeRichHTML(sanitizer, rendered))
 end
 
 # Search normalization follows the same interpretation as display, decodes HTML
 # entities once, includes image alt text, and separates blocks before folding
 # whitespace. It does not replace the author's editable source.
-func PlainRichText(source: String, format: String) -> Result[String, String]
-  switch RenderRich(source, format)
+func PlainRichText(sanitizer: Sanitizer, source: String, format: String) -> Result[String, String]
+  switch RenderRich(sanitizer, source, format)
     case Err(message) => Err(message)
     case Ok(rendered) then
       let tokenizer = html.NewTokenizer(strings.NewReader(rendered))
@@ -71,38 +225,11 @@ func PlainRichText(source: String, format: String) -> Result[String, String]
   end
 end
 
-# A fresh policy avoids shared mutable state. No CSS, class/id, event attributes,
-# SVG/MathML, forms, embeds, data URLs, or arbitrary schemes are admitted.
-func SanitizeRichHTML(source: String) -> String
-  let policy = bluemonday.NewPolicy()
-  let _ = policy.AllowElements(
-    "p",
-    "br",
-    "hr",
-    "em",
-    "strong",
-    "ul",
-    "ol",
-    "li",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "blockquote",
-    "pre",
-    "code",
-    "a",
-    "img"
-  )
-  let _ = policy.AllowAttrs("href", "title").OnElements("a")
-  let _ = policy.AllowAttrs("src", "alt", "title", "referrerpolicy").OnElements("img")
-  let _ = policy.AllowURLSchemes("http", "https")
-  let _ = policy.AllowRelativeURLs(true)
-  let _ = policy.RequireParseableURLs(true)
-  let _ = policy.RequireNoFollowOnLinks(true)
-  let _ = policy.RequireNoReferrerOnLinks(true)
+# The policy is built once from deployment configuration. No CSS, class/id, event
+# attributes, SVG/MathML, forms, embeds, data URLs, or arbitrary schemes are in
+# the built-in default; deployments may narrow or extend the validated set.
+func SanitizeRichHTML(sanitizer: Sanitizer, source: String) -> String
+  let policy = sanitizer.Policy
   # Parse and reserialize, never patch HTML with regular expressions. Override
   # any supplied image policy, then run the final allowlist once more.
   let clean = policy.Sanitize(source)

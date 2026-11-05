@@ -12,28 +12,28 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line participation.mygo:11:1*/func ParticipationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line participation.mygo:19:6*/	if SearchRoute(settings, db, site, w, request, parts) || MentionCandidatesRoute(settings, db, site, w, request, parts) || NotificationRoute(settings, db, site, w, request, parts) || ProfilesRoute(settings, db, site, w, request, parts) || SiteVoteRoute(settings, db, site, w, request, parts) || AccountBlockRoute(settings, db, site, w, request, parts) || AccountContentRoute(settings, db, site, w, request, parts) || ModerationRoute(settings, db, site, w, request, parts) {
+ /*line participation.mygo:19:3*/	if SearchRoute(settings, db, site, w, request, parts) || MentionCandidatesRoute(settings, db, site, w, request, parts) || NotificationRoute(settings, db, site, w, request, parts) || ProfilesRoute(settings, db, site, w, request, parts) || SiteVoteRoute(settings, db, site, w, request, parts) || AccountBlockRoute(settings, db, site, w, request, parts) || AccountContentRoute(settings, db, site, w, request, parts) || ModerationRoute(settings, db, site, w, request, parts) {
  /*line participation.mygo:27:12*/		return true
- /*line participation.mygo:19:6*/	} else {
+ /*line participation.mygo:19:3*/	} else {
  /*line zz_participation.gen.go:18:1*/	}
- /*line participation.mygo:29:6*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" {
+ /*line participation.mygo:29:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "media" {
  /*line participation.mygo:30:12*/		return false
- /*line participation.mygo:29:6*/	} else {
+ /*line participation.mygo:29:3*/	} else {
  /*line zz_participation.gen.go:22:1*/	}
  /*line participation.mygo:11:1*/	files := storage.OpenMediaFiles(settings.Media)
- /*line participation.mygo:33:6*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
+ /*line participation.mygo:33:3*/	if MygoIN6ResultM5IsErr[storage.MediaFiles, string](files) {
  /*line participation.mygo:34:5*/		WriteErrorJSON(w, 503, "media unavailable")
  /*line participation.mygo:35:12*/		return true
- /*line participation.mygo:33:6*/	} else {
+ /*line participation.mygo:33:3*/	} else {
  /*line zz_participation.gen.go:28:1*/	}
  /*line participation.mygo:11:1*/	root := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files).Root
  /*line participation.mygo:38:3*/	defer root.Close()
  /*line participation.mygo:11:1*/	fetch := func(ctx context.Context, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, string] {
  /*line participation.mygo:40:5*/		return FetchAuthorizedPrivateMedia(ctx, settings, db, identity, row)
  /*line zz_participation.gen.go:33:1*/	}
- /*line participation.mygo:42:6*/	if PrivateMediaRoute(settings, db, site, MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files), w, request, parts, fetch) {
+ /*line participation.mygo:42:3*/	if PrivateMediaRoute(settings, db, site, MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files), w, request, parts, fetch) {
  /*line participation.mygo:42:98*/		return true
- /*line participation.mygo:42:6*/	} else {
+ /*line participation.mygo:42:3*/	} else {
  /*line zz_participation.gen.go:37:1*/	}
  /*line participation.mygo:43:3*/	return MediaRoute(settings, db, site, MygoIN6ResultM6Unwrap[storage.MediaFiles, string](files), w, request, parts)
  /*line zz_participation.gen.go:39:1*/}

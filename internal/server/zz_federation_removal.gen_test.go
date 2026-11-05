@@ -34,8 +34,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
 	otherCommunity := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "other", "Other", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, alice, false, storage.PublishInput{Title: "T", Body: "Body", ParentID: ""}))
-	ignoredPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, alice, false, storage.PublishInput{Title: "Ignored", Body: "Body", ParentID: ""}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, alice, false, storage.PublishInput{Title: "T", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	ignoredPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, community.ID, alice, false, storage.PublishInput{Title: "Ignored", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[string, string](storage.EnsureLocalKey(ctx, db, community.ActorURI.String))
 	MygoIN6ResultM6Unwrap[string, string](storage.EnsureLocalKey(ctx, db, otherCommunity.ActorURI.String))
 	groupKey := MygoIN6ResultM6Unwrap[string, string](storage.LoadLocalPrivateKey(ctx, db, community.ActorURI.String))
@@ -43,35 +43,35 @@ import . "github.com/mygo-lang/mygo/prelude"
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	remove := "{\"id\":\"https://forum-a.example/activities/remove-1\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + post.ObjectURI.String + "\"}"
- /*line federation_removal_test.mygo:35:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", remove, community.ActorURI.String, groupKey, date).Code != 202 {
+ /*line federation_removal_test.mygo:35:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", remove, community.ActorURI.String, groupKey, date).Code != 202 {
  /*line federation_removal_test.mygo:36:5*/		t.Fatal("a group removal was rejected")
- /*line federation_removal_test.mygo:35:6*/	} else {
+ /*line federation_removal_test.mygo:35:3*/	} else {
  /*line zz_federation_removal.gen_test.go:49:1*/	}
- /*line federation_removal_test.mygo:38:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, post.ID, community.ID)) {
+ /*line federation_removal_test.mygo:38:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, post.ID, community.ID)) {
  /*line federation_removal_test.mygo:39:5*/		t.Fatal("the scoped removal was not recorded")
- /*line federation_removal_test.mygo:38:6*/	} else {
+ /*line federation_removal_test.mygo:38:3*/	} else {
  /*line zz_federation_removal.gen_test.go:53:1*/	}
  /*line federation_removal_test.mygo:13:1*/	stored := PostRecordForTest(ctx, db, post.ID)
- /*line federation_removal_test.mygo:42:6*/	if stored.Body != "Body" || stored.DeletedAtValid {
+ /*line federation_removal_test.mygo:42:3*/	if stored.Body != "Body" || stored.DeletedAtValid {
  /*line federation_removal_test.mygo:43:5*/		t.Fatal("peer moderation erased or rewrote the shared object")
- /*line federation_removal_test.mygo:42:6*/	} else {
+ /*line federation_removal_test.mygo:42:3*/	} else {
  /*line zz_federation_removal.gen_test.go:58:1*/	}
  /*line federation_removal_test.mygo:13:1*/	foreign := "{\"id\":\"https://forum-a.example/activities/remove-2\",\"actor\":\"" + otherCommunity.ActorURI.String + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + otherCommunity.ActorURI.String + "\",\"object\":\"" + ignoredPost.ObjectURI.String + "\"}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", foreign, otherCommunity.ActorURI.String, otherKey, date)
- /*line federation_removal_test.mygo:47:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID)) || MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, otherCommunity.ID)) {
+ /*line federation_removal_test.mygo:47:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID)) || MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, otherCommunity.ID)) {
  /*line federation_removal_test.mygo:48:5*/		t.Fatal("an unrelated community removed another community's post")
- /*line federation_removal_test.mygo:47:6*/	} else {
+ /*line federation_removal_test.mygo:47:3*/	} else {
  /*line zz_federation_removal.gen_test.go:64:1*/	}
  /*line federation_removal_test.mygo:13:1*/	innerID := "https://peer.example/activities/remove-inner"
 	inner := "{\"id\":\"" + innerID + "\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\",\"object\":\"" + ignoredPost.ObjectURI.String + "\"}"
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.InsertActivityPayload(ctx, db, innerID, community.ActorURI.String, "Remove", []byte(inner), community.ID))
 	announce := "{\"id\":\"https://forum-a.example/activities/announce-remove\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + community.ActorURI.String + "\",\"type\":\"Remove\"}}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", announce, community.ActorURI.String, groupKey, date)
- /*line federation_removal_test.mygo:55:6*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID)) {
+ /*line federation_removal_test.mygo:55:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityRemoval(ctx, db, ignoredPost.ID, community.ID)) {
  /*line federation_removal_test.mygo:56:5*/		t.Fatal("an announced removal was not consumed")
 		return
- /*line federation_removal_test.mygo:55:6*/	} else {
- /*line federation_removal_test.mygo:55:3*/		return
+ /*line federation_removal_test.mygo:55:3*/	} else {
+		return
  /*line zz_federation_removal.gen_test.go:75:1*/	}
 }
 
@@ -81,7 +81,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_federation_removal.gen_test.go:81:1*/}
 
  /*line federation_removal_test.mygo:65:1*/func PostRecordForTest(ctx context.Context, db *gorm.DB, id string) PostState {
-	record := storage.PostRecord{}
+	record := Zero[storage.PostRecord]()
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.WithContext(ctx).Table("posts").Where("id = ?", id).Find(&record)))
  /*line federation_removal_test.mygo:68:3*/	return PostState{Body: record.Body, DeletedAtValid: record.DeletedAt.Valid}
  /*line zz_federation_removal.gen_test.go:87:1*/}

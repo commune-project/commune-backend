@@ -43,9 +43,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_fetch.mygo:40:3*/	return FetchSignedResource(ctx, raw, actor, key, limits, "application/octet-stream, image/*")
  /*line zz_media_fetch.gen.go:44:1*/}
  /*line media_fetch.mygo:43:1*/func FetchSignedResource(ctx context.Context, raw string, actor string, key string, limits FetchLimits, accept string) Result[[]byte, string] {
- /*line media_fetch.mygo:44:6*/	if limits.MaxBytes < 1 || limits.TimeoutSeconds < 1 || limits.MaxRedirects < 0 {
+ /*line media_fetch.mygo:44:3*/	if limits.MaxBytes < 1 || limits.TimeoutSeconds < 1 || limits.MaxRedirects < 0 {
  /*line media_fetch.mygo:44:94*/		return Err[[]byte, string]("invalid media limits")
- /*line media_fetch.mygo:44:6*/	} else {
+ /*line media_fetch.mygo:44:3*/	} else {
  /*line zz_media_fetch.gen.go:49:1*/	}
  /*line media_fetch.mygo:43:1*/	bounded, cancel := context.WithTimeout(ctx, time.Duration(limits.TimeoutSeconds)*time.Second)
  /*line media_fetch.mygo:46:3*/	defer cancel()
@@ -57,11 +57,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
  /*line zz_media_fetch.gen.go:58:1*/	}
  /*line media_fetch.mygo:43:1*/	original := __mygo_expr_1
- /*line media_fetch.mygo:48:6*/	if MygoIN6ResultM5IsErr[*url.URL, error](original) {
+ /*line media_fetch.mygo:48:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](original) {
  /*line media_fetch.mygo:48:35*/		return Err[[]byte, string]("invalid destination")
- /*line media_fetch.mygo:48:6*/	} else {
+ /*line media_fetch.mygo:48:3*/	} else {
  /*line zz_media_fetch.gen.go:63:1*/	}
- /*line media_fetch.mygo:43:1*/	client := http.Client{}
+ /*line media_fetch.mygo:43:1*/	client := Zero[http.Client]()
  /*line media_fetch.mygo:50:3*/	DisableRedirects(&client)
  /*line media_fetch.mygo:51:3*/	MediaTransport(&client, limits.AllowPrivate)
  /*line media_fetch.mygo:43:1*/	current := raw
@@ -126,9 +126,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		if received.StatusCode >= 300 && received.StatusCode < 400 {
 			next := ResolveLocation(received, received.Header.Get("Location"))
 			received.Body.Close()
- /*line media_fetch.mygo:75:10*/			if MygoIN6ResultM5IsErr[string, string](next) {
+ /*line media_fetch.mygo:75:7*/			if MygoIN6ResultM5IsErr[string, string](next) {
  /*line media_fetch.mygo:75:35*/				return Err[[]byte, string]("invalid redirect")
- /*line media_fetch.mygo:75:10*/			} else {
+ /*line media_fetch.mygo:75:7*/			} else {
  /*line zz_media_fetch.gen.go:132:1*/			}
  /*line media_fetch.mygo:43:1*/			current = MygoIN6ResultM6Unwrap[string, string](next)
 			hops = hops + 1

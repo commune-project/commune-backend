@@ -5,6 +5,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func CollectionPageSize(settings: config.Config) -> Int
   settings.Runtime.MaxPageSize
@@ -45,7 +46,7 @@ func OutboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
     http.NotFound(w, request)
     return
   end
-  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  let items = BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, listed.Unwrap())
   if items.IsErr() then
     http.NotFound(w, request)
     return
@@ -53,7 +54,7 @@ func OutboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
   WriteActivity(w, 200, federation.BuildObjectPage(actorURI + "/outbox", page, size, totalItems.Unwrap(), items.Unwrap()))
 end
 
-func BuildObjectItems(ctx: context.Context, db: Ref[gorm.DB], records: Slice[storage.PostRecord]) -> Result[Slice[federation.ObjectRepresentation], String]
+func BuildObjectItems(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], records: Slice[storage.PostRecord]) -> Result[Slice[federation.ObjectRepresentation], String]
   var items: Slice[federation.ObjectRepresentation] = []
   var failed = false
   records.Each(func(record: storage.PostRecord) -> ()
@@ -62,7 +63,7 @@ func BuildObjectItems(ctx: context.Context, db: Ref[gorm.DB], records: Slice[sto
       failed = true
     else
       let contextURI = storage.PrimaryPostContextURI(ctx, db, record.ID)
-      let enriched = BuildRichObject(ctx, db, record, community.Unwrap().Unwrap(), contextURI)
+      let enriched = BuildRichObject(sanitizer, ctx, db, record, community.Unwrap().Unwrap(), contextURI)
       if enriched.IsErr() then
         failed = true
       else
@@ -123,7 +124,7 @@ func RepliesHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site
     http.NotFound(w, request)
     return
   end
-  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  let items = BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, listed.Unwrap())
   if items.IsErr() then
     http.NotFound(w, request)
     return

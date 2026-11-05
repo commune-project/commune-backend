@@ -49,7 +49,7 @@ func ContextHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site
     http.NotFound(w, request)
     return
   end
-  let items = BuildObjectItems(request.Context(), db, listed.Unwrap())
+  let items = BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, listed.Unwrap())
   if items.IsErr() then
     http.NotFound(w, request)
     return

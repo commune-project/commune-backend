@@ -10,11 +10,16 @@ end
 
 # Restricted content may embed only resource-authorized cache references.
 # Authoritative source remains intact; this operates on sanitized display HTML.
-func RewritePrivateMedia(rendered: String, references: Slice[RemoteMediaReference]) -> String
-  RewriteMediaReferences(rendered, references, true)
+func RewritePrivateMedia(
+  sanitizer: Sanitizer,
+  rendered: String,
+  references: Slice[RemoteMediaReference]
+) -> String
+  RewriteMediaReferences(sanitizer, rendered, references, true)
 end
 
 func RewriteMediaReferences(
+  sanitizer: Sanitizer,
   rendered: String,
   references: Slice[RemoteMediaReference],
   restrictImages: Bool
@@ -52,5 +57,5 @@ func RewriteMediaReferences(
       let _ = output.WriteString(token.String())
     end
   end
-  SanitizeRichHTML(output.String())
+  SanitizeRichHTML(sanitizer, output.String())
 end

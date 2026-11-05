@@ -5,6 +5,7 @@ import time "go:time"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import content "github.com/commune-project/commune-backend/internal/content"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 
 struct PostSource
@@ -83,7 +84,7 @@ func BrowserReadRoute(
     return true
   end
   if post && (parts.Len() == 4 || section == "source") then
-    BrowserPostRead(repository, viewer.Unwrap(), w, request, parts.Get(3).Unwrap(), section == "source")
+    BrowserPostRead(settings.Rendering.Sanitizer, repository, viewer.Unwrap(), w, request, parts.Get(3).Unwrap(), section == "source")
     return true
   end
   let page = PageFromQuery(settings, request)
@@ -141,6 +142,7 @@ func BrowserReadRoute(
     return true
   end
   BrowserTopicRead(
+    settings.Rendering.Sanitizer,
     repository,
     viewer.Unwrap(),
     w,
@@ -202,6 +204,7 @@ func BrowserCommunityRead(
 end
 
 func BrowserPostRead(
+  sanitizer: content.Sanitizer,
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
   w: http.ResponseWriter,
@@ -210,7 +213,7 @@ func BrowserPostRead(
   source: Bool
 ) -> ()
   if !source then
-    BrowserPostDisplay(repository, viewer, w, request, id)
+    BrowserPostDisplay(sanitizer, repository, viewer, w, request, id)
     return
   end
   var output = Zero[PostSource]()
@@ -236,6 +239,7 @@ func BrowserPostRead(
         return Err("not found")
       end
       let outputs = BrowserPosts(
+        sanitizer,
         request.Context(),
         storage.BrowserRepository {
           DB: tx,
@@ -271,6 +275,7 @@ func BrowserPostRead(
 end
 
 func BrowserPostDisplay(
+  sanitizer: content.Sanitizer,
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
   w: http.ResponseWriter,
@@ -285,7 +290,7 @@ func BrowserPostDisplay(
   end
   let record = read.Unwrap()
   let records: Slice[storage.PostRecord] = [record]
-  let outputs = BrowserPosts(request.Context(), repository, viewer, records)
+  let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer, records)
   if outputs.IsErr() then
     Fail(w, outputs.UnwrapErr())
     return
@@ -295,6 +300,7 @@ func BrowserPostDisplay(
 end
 
 func BrowserTopicRead(
+  sanitizer: content.Sanitizer,
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
   w: http.ResponseWriter,
@@ -350,7 +356,7 @@ func BrowserTopicRead(
         Fail(w, rows.UnwrapErr())
         return
       end
-      let outputs = BrowserThread(request.Context(), repository, viewer, rows.Unwrap(), id, threadSort.Unwrap())
+      let outputs = BrowserThread(sanitizer, request.Context(), repository, viewer, rows.Unwrap(), id, threadSort.Unwrap())
       if outputs.IsErr() then
         Fail(w, outputs.UnwrapErr())
       else
@@ -377,7 +383,7 @@ func BrowserTopicRead(
       return
     end
   end
-  let outputs = BrowserPosts(request.Context(), repository, viewer, records.Unwrap())
+  let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer, records.Unwrap())
   if outputs.IsErr() then
     Fail(w, outputs.UnwrapErr())
   else

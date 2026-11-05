@@ -28,9 +28,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 						inString = false
 						if IsJsonKeyStart(text, index) {
 							marker := MygoIT8ToStringFN3IntGN3IntEM8ToString(depth) + "|" + MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN15StringByteIndexGN6StringN3IntN4ByteEM5Slice(text, stringStart+1, index), "")
- /*line jsoncheck.mygo:33:18*/							if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(keys, marker, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line jsoncheck.mygo:33:15*/							if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(keys, marker, MygoIT2EqFN6StringGN6StringEM6Equals) {
  /*line jsoncheck.mygo:34:24*/								return true
- /*line jsoncheck.mygo:33:18*/							} else {
+ /*line jsoncheck.mygo:33:15*/							} else {
  /*line zz_jsoncheck.gen.go:34:1*/							}
  /*line jsoncheck.mygo:13:1*/							keys = MygoIN5SliceM6Append(keys, marker)
 						} else {

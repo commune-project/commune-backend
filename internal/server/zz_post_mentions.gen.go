@@ -15,42 +15,42 @@ import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/federation"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line post_mentions.mygo:16:1*/func PostAttachmentIDsMissing(ids []string) bool {
- /*line post_mentions.mygo:17:3*/	return ids == nil
+ /*line post_mentions.mygo:15:1*/func PostAttachmentIDsMissing(ids []string) bool {
+ /*line post_mentions.mygo:16:3*/	return ids == nil
  /*line zz_post_mentions.gen.go:20:1*/}
- /*line post_mentions.mygo:26:1*/func ResolvePostMentions(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, identity auth.Identity, communityID string, body string, format string, editing bool) Result[[]storage.ResolvedPostMention, string] {
- /*line post_mentions.mygo:27:3*/	return ResolvePostMentionsWith(ctx, settings, db, site, identity, communityID, body, format, editing, DiscoverMentionActor)
+ /*line post_mentions.mygo:25:1*/func ResolvePostMentions(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, identity auth.Identity, communityID string, body string, format string, editing bool) Result[[]storage.ResolvedPostMention, string] {
+ /*line post_mentions.mygo:36:3*/	return ResolvePostMentionsWith(ctx, settings, db, site, identity, communityID, body, format, editing, DiscoverMentionActor)
  /*line zz_post_mentions.gen.go:23:1*/}
- /*line post_mentions.mygo:30:1*/func ResolvePostMentionsWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, identity auth.Identity, communityID string, body string, format string, editing bool, discover func(context.Context, config.Config, *gorm.DB, config.Site, string, string) Result[storage.ResolvedPostMention, string]) Result[[]storage.ResolvedPostMention, string] {
+ /*line post_mentions.mygo:50:1*/func ResolvePostMentionsWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, identity auth.Identity, communityID string, body string, format string, editing bool, discover func(context.Context, config.Config, *gorm.DB, config.Site, string, string) Result[storage.ResolvedPostMention, string]) Result[[]storage.ResolvedPostMention, string] {
 	var resolved []storage.ResolvedPostMention = []storage.ResolvedPostMention{}
 	source := strings.TrimSpace(body)
- /*line post_mentions.mygo:33:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > settings.Rendering.MaxSourceBytes {
- /*line post_mentions.mygo:33:84*/		return Err[[]storage.ResolvedPostMention, string]("invalid post input")
- /*line post_mentions.mygo:33:6*/	} else {
+ /*line post_mentions.mygo:64:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > settings.Rendering.MaxSourceBytes {
+ /*line post_mentions.mygo:65:12*/		return Err[[]storage.ResolvedPostMention, string]("invalid post input")
+ /*line post_mentions.mygo:64:3*/	} else {
  /*line zz_post_mentions.gen.go:30:1*/	}
- /*line post_mentions.mygo:34:6*/	if format != "markdown" {
- /*line post_mentions.mygo:35:12*/		return Ok[[]storage.ResolvedPostMention, string](resolved)
- /*line post_mentions.mygo:34:6*/	} else {
+ /*line post_mentions.mygo:67:3*/	if format != "markdown" {
+ /*line post_mentions.mygo:68:12*/		return Ok[[]storage.ResolvedPostMention, string](resolved)
+ /*line post_mentions.mygo:67:3*/	} else {
  /*line zz_post_mentions.gen.go:34:1*/	}
- /*line post_mentions.mygo:30:1*/	candidates := content.ExtractMentionCandidates(source, format)
- /*line post_mentions.mygo:38:6*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](candidates) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](candidates)) > settings.Rendering.MaxMentions || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > settings.Rendering.MaxSourceBytes {
- /*line post_mentions.mygo:39:12*/		return Err[[]storage.ResolvedPostMention, string]("invalid post input")
- /*line post_mentions.mygo:38:6*/	} else {
+ /*line post_mentions.mygo:50:1*/	candidates := content.ExtractMentionCandidates(source, format)
+ /*line post_mentions.mygo:71:3*/	if MygoIN6ResultM5IsErr[[]content.MentionCandidate, string](candidates) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](candidates)) > settings.Rendering.MaxMentions || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(source)) > settings.Rendering.MaxSourceBytes {
+ /*line post_mentions.mygo:74:12*/		return Err[[]storage.ResolvedPostMention, string]("invalid post input")
+ /*line post_mentions.mygo:71:3*/	} else {
  /*line zz_post_mentions.gen.go:39:1*/	}
- /*line post_mentions.mygo:41:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](candidates)) == 0 {
- /*line post_mentions.mygo:42:12*/		return Ok[[]storage.ResolvedPostMention, string](resolved)
- /*line post_mentions.mygo:41:6*/	} else {
+ /*line post_mentions.mygo:76:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.MentionCandidate, string](candidates)) == 0 {
+ /*line post_mentions.mygo:77:12*/		return Ok[[]storage.ResolvedPostMention, string](resolved)
+ /*line post_mentions.mygo:76:3*/	} else {
  /*line zz_post_mentions.gen.go:43:1*/	}
- /*line post_mentions.mygo:30:1*/	access := storage.MygoIN19CommunityRepositoryM15CheckAuthorship(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, communityID, identity, false)
- /*line post_mentions.mygo:45:6*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
- /*line post_mentions.mygo:46:12*/		return Err[[]storage.ResolvedPostMention, string](MygoIN6ResultM9UnwrapErr[storage.CommunityAccess, string](access))
- /*line post_mentions.mygo:45:6*/	} else {
+ /*line post_mentions.mygo:50:1*/	access := storage.MygoIN19CommunityRepositoryM15CheckAuthorship(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, communityID, identity, false)
+ /*line post_mentions.mygo:85:3*/	if MygoIN6ResultM5IsErr[storage.CommunityAccess, string](access) {
+ /*line post_mentions.mygo:86:12*/		return Err[[]storage.ResolvedPostMention, string](MygoIN6ResultM9UnwrapErr[storage.CommunityAccess, string](access))
+ /*line post_mentions.mygo:85:3*/	} else {
  /*line zz_post_mentions.gen.go:48:1*/	}
- /*line post_mentions.mygo:48:6*/	if !editing && !storage.MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access)) || editing && !storage.MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access), identity.ActorURI) {
- /*line post_mentions.mygo:49:12*/		return Err[[]storage.ResolvedPostMention, string]("forbidden")
- /*line post_mentions.mygo:48:6*/	} else {
+ /*line post_mentions.mygo:88:3*/	if !editing && !storage.MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access)) || editing && !storage.MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access), identity.ActorURI) {
+ /*line post_mentions.mygo:90:12*/		return Err[[]storage.ResolvedPostMention, string]("forbidden")
+ /*line post_mentions.mygo:88:3*/	} else {
  /*line zz_post_mentions.gen.go:52:1*/	}
- /*line post_mentions.mygo:30:1*/	bounded, cancel := context.WithTimeout(ctx, time.Duration(settings.Rendering.MentionTimeoutSeconds)*time.Second)
+ /*line post_mentions.mygo:50:1*/	bounded, cancel := context.WithTimeout(ctx, time.Duration(settings.Rendering.MentionTimeoutSeconds)*time.Second)
 	var attempted []string = []string{}
 	var cache []storage.ResolvedPostMention = []storage.ResolvedPostMention{}
 	discoveries := 0
@@ -62,38 +62,38 @@ import . "github.com/mygo-lang/mygo/prelude"
 			continue
 		} else {
  /*line zz_post_mentions.gen.go:64:1*/		}
- /*line post_mentions.mygo:30:1*/		key := strings.ToLower(candidate.Username) + "@" + candidate.Domain
+ /*line post_mentions.mygo:50:1*/		key := strings.ToLower(candidate.Username) + "@" + candidate.Domain
 		if !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(attempted, key, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			attempted = MygoIN5SliceM6Append(attempted, key)
 			local := candidate.Domain == strings.TrimPrefix(site.Origin, "https://") || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(site.Aliases, candidate.Domain, MygoIT2EqFN6StringGN6StringEM6Equals)
 			if local {
 				person := storage.LoadLocalPerson(bounded, db, site.ID, strings.ToLower(candidate.Username))
 				if MygoIN6ResultM4IsOk[Option[storage.ActorRecord], string](person) && MygoIN6OptionM6IsSome[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)) {
-					cache = MygoIN5SliceM6Append(cache, storage.ResolvedPostMention{ActorURI: MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)).URI, InboxURI: storage.MygoIN11ActorRecordM5Inbox(MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person))), Username: candidate.Username, Domain: candidate.Domain})
+					cache = MygoIN5SliceM6Append(cache, storage.ResolvedPostMention{ActorURI: MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person)).URI, InboxURI: storage.MygoIN11ActorRecordM5Inbox(MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](person))), Username: candidate.Username, Domain: candidate.Domain, Start: candidate.Start, End: candidate.End})
 				} else {
  /*line zz_post_mentions.gen.go:74:1*/				}
- /*line post_mentions.mygo:30:1*/			} else {
+ /*line post_mentions.mygo:50:1*/			} else {
 				if MygoIN6ResultM6Unwrap[storage.CommunityAccess, string](access).Community.FederationMode == "federated" && discoveries < settings.Rendering.MaxRemoteDiscoveries {
 					discoveries = discoveries + 1
 					blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: site.ID}, bounded, "https://"+candidate.Domain+"/")
- /*line post_mentions.mygo:75:14*/					if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line post_mentions.mygo:131:11*/					if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM6Unwrap[bool, string](blocked) {
 						continue
 					} else {
  /*line zz_post_mentions.gen.go:82:1*/					}
- /*line post_mentions.mygo:30:1*/					found := discover(bounded, settings, db, site, candidate.Username, candidate.Domain)
+ /*line post_mentions.mygo:50:1*/					found := discover(bounded, settings, db, site, candidate.Username, candidate.Domain)
 					if MygoIN6ResultM4IsOk[storage.ResolvedPostMention, string](found) {
 						cache = MygoIN5SliceM6Append(cache, MygoIN6ResultM6Unwrap[storage.ResolvedPostMention, string](found))
 					} else {
  /*line zz_post_mentions.gen.go:87:1*/					}
- /*line post_mentions.mygo:30:1*/				} else {
+ /*line post_mentions.mygo:50:1*/				} else {
  /*line zz_post_mentions.gen.go:89:1*/				}
 			}
- /*line post_mentions.mygo:30:1*/		} else {
+ /*line post_mentions.mygo:50:1*/		} else {
  /*line zz_post_mentions.gen.go:92:1*/		}
- /*line post_mentions.mygo:30:1*/		matched := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cache, func(item storage.ResolvedPostMention) bool {
- /*line post_mentions.mygo:86:7*/			return strings.EqualFold(item.Username, candidate.Username) && item.Domain == candidate.Domain
+ /*line post_mentions.mygo:50:1*/		matched := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cache, func(item storage.ResolvedPostMention) bool {
+ /*line post_mentions.mygo:141:80*/			return strings.EqualFold(item.Username, candidate.Username) && item.Domain == candidate.Domain
  /*line zz_post_mentions.gen.go:95:1*/		})
- /*line post_mentions.mygo:30:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) == 1 {
+ /*line post_mentions.mygo:50:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matched) == 1 {
 			item_1 := MygoIN6OptionM6Unwrap[storage.ResolvedPostMention](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matched, 0))
 			item_1.Start = candidate.Start
 			item_1.End = candidate.End
@@ -101,40 +101,40 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_post_mentions.gen.go:102:1*/		}
 	}
- /*line post_mentions.mygo:95:3*/	cancel()
- /*line post_mentions.mygo:96:3*/	return Ok[[]storage.ResolvedPostMention, string](resolved)
+ /*line post_mentions.mygo:149:3*/	cancel()
+ /*line post_mentions.mygo:150:3*/	return Ok[[]storage.ResolvedPostMention, string](resolved)
  /*line zz_post_mentions.gen.go:106:1*/}
- /*line post_mentions.mygo:101:1*/func FetchMentionDocument(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, uri string) Result[federation.FetchResult, string] {
+ /*line post_mentions.mygo:155:1*/func FetchMentionDocument(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, uri string) Result[federation.FetchResult, string] {
 	blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: site.ID}, ctx, uri)
- /*line post_mentions.mygo:103:6*/	if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line post_mentions.mygo:104:12*/		return Err[federation.FetchResult, string]("unresolved mention")
- /*line post_mentions.mygo:103:6*/	} else {
+ /*line post_mentions.mygo:163:3*/	if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line post_mentions.mygo:164:12*/		return Err[federation.FetchResult, string]("unresolved mention")
+ /*line post_mentions.mygo:163:3*/	} else {
  /*line zz_post_mentions.gen.go:112:1*/	}
- /*line post_mentions.mygo:101:1*/	limits := FetchLimitsFrom(settings)
+ /*line post_mentions.mygo:155:1*/	limits := FetchLimitsFrom(settings)
 	limits.MaxRedirects = 0
- /*line post_mentions.mygo:108:6*/	if limits.MaxBytes > 65536 {
+ /*line post_mentions.mygo:168:3*/	if limits.MaxBytes > 65536 {
 		limits.MaxBytes = 65536
 	} else {
  /*line zz_post_mentions.gen.go:118:1*/	}
- /*line post_mentions.mygo:101:1*/	fetched := federation.Fetch(ctx, uri, limits)
- /*line post_mentions.mygo:112:6*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) || MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Body) {
- /*line post_mentions.mygo:113:12*/		return Err[federation.FetchResult, string]("unresolved mention")
- /*line post_mentions.mygo:112:6*/	} else {
+ /*line post_mentions.mygo:155:1*/	fetched := federation.Fetch(ctx, uri, limits)
+ /*line post_mentions.mygo:172:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) || MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Body) {
+ /*line post_mentions.mygo:175:12*/		return Err[federation.FetchResult, string]("unresolved mention")
+ /*line post_mentions.mygo:172:3*/	} else {
  /*line zz_post_mentions.gen.go:123:1*/	}
- /*line post_mentions.mygo:115:3*/	return fetched
+ /*line post_mentions.mygo:177:3*/	return fetched
  /*line zz_post_mentions.gen.go:125:1*/}
- /*line post_mentions.mygo:118:1*/func DiscoverMentionActor(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string) Result[storage.ResolvedPostMention, string] {
- /*line post_mentions.mygo:119:3*/	return DiscoverMentionActorWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
+ /*line post_mentions.mygo:180:1*/func DiscoverMentionActor(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string) Result[storage.ResolvedPostMention, string] {
+ /*line post_mentions.mygo:188:3*/	return DiscoverMentionActorWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
  /*line zz_post_mentions.gen.go:128:1*/}
- /*line post_mentions.mygo:122:1*/func DiscoverMentionActorWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string, fetcher func(context.Context, config.Config, *gorm.DB, config.Site, string) Result[federation.FetchResult, string]) Result[storage.ResolvedPostMention, string] {
+ /*line post_mentions.mygo:191:1*/func DiscoverMentionActorWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string, fetcher func(context.Context, config.Config, *gorm.DB, config.Site, string) Result[federation.FetchResult, string]) Result[storage.ResolvedPostMention, string] {
 	account := "acct:" + username + "@" + domain
 	finger := fetcher(ctx, settings, db, site, "https://"+domain+"/.well-known/webfinger?resource="+url.QueryEscape(account))
- /*line post_mentions.mygo:125:6*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](finger) {
- /*line post_mentions.mygo:126:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:125:6*/	} else {
+ /*line post_mentions.mygo:208:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](finger) {
+ /*line post_mentions.mygo:209:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:208:3*/	} else {
  /*line zz_post_mentions.gen.go:135:1*/	}
- /*line post_mentions.mygo:122:1*/	document := federation.WebFingerDocument{}
- /*line post_mentions.mygo:129:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line post_mentions.mygo:191:1*/	document := Zero[federation.WebFingerDocument]()
+ /*line post_mentions.mygo:212:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, string](finger).Body, &document)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -142,31 +142,31 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_post_mentions.gen.go:143:1*/		}{})
 	}
- /*line post_mentions.mygo:129:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !strings.EqualFold(document.Subject, account) {
- /*line post_mentions.mygo:130:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:129:6*/	} else {
+ /*line post_mentions.mygo:212:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !strings.EqualFold(document.Subject, account) {
+ /*line post_mentions.mygo:214:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:212:3*/	} else {
  /*line zz_post_mentions.gen.go:148:1*/	}
- /*line post_mentions.mygo:122:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
- /*line post_mentions.mygo:133:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && storage.CanonicalObjectURI(link.Href)
+ /*line post_mentions.mygo:191:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
+ /*line post_mentions.mygo:217:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && storage.CanonicalObjectURI(link.Href)
  /*line zz_post_mentions.gen.go:151:1*/	})
- /*line post_mentions.mygo:135:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
- /*line post_mentions.mygo:136:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:135:6*/	} else {
+ /*line post_mentions.mygo:221:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
+ /*line post_mentions.mygo:222:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:221:3*/	} else {
  /*line zz_post_mentions.gen.go:155:1*/	}
- /*line post_mentions.mygo:122:1*/	uri := MygoIN6OptionM6Unwrap[federation.WebFingerLink](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(links, 0)).Href
- /*line post_mentions.mygo:139:6*/	if MygoIN5SliceM3Any(settings.Sites, func(local config.Site) bool {
- /*line post_mentions.mygo:139:58*/		return strings.HasPrefix(uri, local.Origin+"/")
- /*line post_mentions.mygo:139:6*/	}) {
- /*line post_mentions.mygo:140:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:139:6*/	} else {
+ /*line post_mentions.mygo:191:1*/	uri := MygoIN6OptionM6Unwrap[federation.WebFingerLink](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(links, 0)).Href
+ /*line post_mentions.mygo:225:3*/	if MygoIN5SliceM3Any(settings.Sites, func(local config.Site) bool {
+ /*line post_mentions.mygo:226:5*/		return strings.HasPrefix(uri, local.Origin+"/")
+ /*line post_mentions.mygo:225:3*/	}) {
+ /*line post_mentions.mygo:228:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:225:3*/	} else {
  /*line zz_post_mentions.gen.go:162:1*/	}
- /*line post_mentions.mygo:122:1*/	fetched := fetcher(ctx, settings, db, site, uri)
- /*line post_mentions.mygo:143:6*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) || !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).ContentType) {
- /*line post_mentions.mygo:144:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:143:6*/	} else {
+ /*line post_mentions.mygo:191:1*/	fetched := fetcher(ctx, settings, db, site, uri)
+ /*line post_mentions.mygo:231:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) || !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).ContentType) {
+ /*line post_mentions.mygo:232:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:231:3*/	} else {
  /*line zz_post_mentions.gen.go:167:1*/	}
- /*line post_mentions.mygo:122:1*/	actor := federation.ActorRepresentation{}
- /*line post_mentions.mygo:147:6*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line post_mentions.mygo:191:1*/	actor := Zero[federation.ActorRepresentation]()
+ /*line post_mentions.mygo:235:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched).Body, &actor)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
@@ -174,9 +174,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[struct{}, error](struct {
  /*line zz_post_mentions.gen.go:175:1*/		}{})
 	}
- /*line post_mentions.mygo:147:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || actor.ID != uri || actor.Type != "Person" || !strings.EqualFold(actor.PreferredUsername, username) || !storage.CanonicalObjectURI(actor.Inbox) {
- /*line post_mentions.mygo:148:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
- /*line post_mentions.mygo:147:6*/	} else {
+ /*line post_mentions.mygo:235:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || actor.ID != uri || actor.Type != "Person" || !strings.EqualFold(actor.PreferredUsername, username) || !storage.CanonicalObjectURI(actor.Inbox) {
+ /*line post_mentions.mygo:240:12*/		return Err[storage.ResolvedPostMention, string]("unresolved mention")
+ /*line post_mentions.mygo:235:3*/	} else {
  /*line zz_post_mentions.gen.go:180:1*/	}
- /*line post_mentions.mygo:150:3*/	return Ok[storage.ResolvedPostMention, string](storage.ResolvedPostMention{ActorURI: uri, InboxURI: actor.Inbox, Username: username, Domain: domain})
+ /*line post_mentions.mygo:242:3*/	return Ok[storage.ResolvedPostMention, string](storage.ResolvedPostMention{ActorURI: uri, InboxURI: actor.Inbox, Username: username, Domain: domain, Start: 0, End: 0})
  /*line zz_post_mentions.gen.go:182:1*/}

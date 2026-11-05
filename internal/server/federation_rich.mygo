@@ -8,6 +8,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 struct RichActivityObject
   Object: json.RawMessage `json:"object"`
@@ -16,6 +17,7 @@ end
 # The inbox has verified this exact inner payload against its canonical copy.
 # Only the owning Group may introduce a post into a received community.
 func ReceiveRichAnnounce(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   db: Ref[gorm.DB],
   site: config.Site,
@@ -70,9 +72,10 @@ func ReceiveRichAnnounce(
         end
       end
       if current.Type == "Delete" then
-        return ApplyRichMutation(ctx, tx, site, current, envelope.Object as Slice[Byte])
+        return ApplyRichMutation(sanitizer, ctx, tx, site, current, envelope.Object as Slice[Byte])
       end
       ReceiveRichActivity(
+        sanitizer,
         ctx,
         tx,
         site,
@@ -87,6 +90,7 @@ end
 # Called only after signature/action authorization. A hosted Group's posting
 # gate runs before initial reception; updates retain the stored community.
 func ReceiveRichActivity(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   db: Ref[gorm.DB],
   site: config.Site,
@@ -98,7 +102,7 @@ func ReceiveRichActivity(
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
     return Err("invalid activity")
   end
-  let parsed = federation.ParseRichObject(envelope.Object as Slice[Byte])
+  let parsed = federation.ParseRichObject(sanitizer, envelope.Object as Slice[Byte])
   if parsed.IsErr() then
     return Err(parsed.UnwrapErr())
   end
@@ -199,7 +203,12 @@ func ReceiveRichActivity(
       if actor.IsErr() then
         return Err(actor.UnwrapErr())
       end
-      let received = storage.PostRepository{DB: tx, SiteID: site.ID}.Receive(ctx, incoming, activity.Actor)
+      let received = storage.PostRepository { DB: tx, SiteID: site.ID }.Receive(
+        ctx,
+        incoming,
+        activity.Actor,
+        sanitizer
+      )
       if received.IsErr() then
         return Err(received.UnwrapErr())
       end
@@ -226,6 +235,7 @@ func ReceiveRichActivity(
 end
 
 func ApplyRichMutation(
+  sanitizer: content.Sanitizer,
   ctx: context.Context,
   db: Ref[gorm.DB],
   site: config.Site,
@@ -247,7 +257,7 @@ func ApplyRichMutation(
     return Ok(())
   end
   if activity.Type == "Update" then
-    return ReceiveRichActivity(ctx, db, site, activity, payload, post.CommunityID)
+    return ReceiveRichActivity(sanitizer, ctx, db, site, activity, payload, post.CommunityID)
   end
   post.Body = ""
   post.RichMetadata = ""
@@ -255,19 +265,24 @@ func ApplyRichMutation(
   if !post.UpdatedAt.After(post.AuthoredAt) then
     post.UpdatedAt = post.AuthoredAt.Add(time.Microsecond)
   end
-  post.DeletedAt = sql.NullTime{Time: post.UpdatedAt, Valid: true}
+  post.DeletedAt = sql.NullTime { Time: post.UpdatedAt, Valid: true }
   storage.RunTransaction(
     ctx,
     db,
     func(tx: Ref[gorm.DB]) -> Result[(), String]
-      let received = storage.PostRepository{DB: tx, SiteID: site.ID}.Receive(ctx, post, activity.Actor)
+      let received = storage.PostRepository { DB: tx, SiteID: site.ID }.Receive(
+        ctx,
+        post,
+        activity.Actor,
+        sanitizer
+      )
       if received.IsErr() then
         return Err(received.UnwrapErr())
       end
       if storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID)).IsErr() then
         return Err("media unavailable")
       end
-      let invalidated = storage.MediaRepository{
+      let invalidated = storage.MediaRepository {
         DB: tx,
         SiteID: site.ID,
         Files: Zero[storage.MediaFiles](),

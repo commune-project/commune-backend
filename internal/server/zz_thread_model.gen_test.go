@@ -33,14 +33,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic"}))
-	emptyTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Empty", Body: "empty"}))
-	root1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "root one", ParentID: topic.ID}))
-	child1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "child one", ParentID: root1.ID}))
-	grandchild1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "grandchild", ParentID: child1.ID}))
-	root2 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "root two", ParentID: topic.ID}))
-	child2 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "child two", ParentID: root2.ID}))
-	root3 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "root three", ParentID: topic.ID}))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Topic", Body: "topic", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	emptyTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Empty", Body: "empty", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	root1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "root one", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	child1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "child one", ParentID: root1.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	grandchild1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "grandchild", ParentID: child1.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	root2 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "root two", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	child2 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "child two", ParentID: root2.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	root3 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "root three", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-01T00:00:00Z',updated_at='2026-02-01T00:00:00Z' WHERE id=?", root1.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-02T00:00:00Z',updated_at='2026-02-02T00:00:00Z' WHERE id=?", child1.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-02-03T00:00:00Z',updated_at='2026-02-03T00:00:00Z' WHERE id=?", grandchild1.ID)))
@@ -50,9 +50,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	handler := Handler(settings, db)
 	var anonymous []*http.Cookie = []*http.Cookie{}
 	path := "/api/v1/posts/" + topic.ID + "/replies"
-	full := PostPage{}
+	full := Zero[PostPage]()
 	fullResponse := browserGet(t, handler, site.Origin, path+"?sort=old&max_depth=3", anonymous, 200)
- /*line thread_model_test.mygo:43:11*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line thread_model_test.mygo:197:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(fullResponse.Body.Bytes(), &full)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
@@ -61,28 +61,28 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_model.gen_test.go:61:1*/		}{})
 	}
  /*line thread_model_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
- /*line thread_model_test.mygo:44:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(full.Items) != 3 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(full.Items, 0)).ID != root1.ID {
- /*line thread_model_test.mygo:45:5*/		t.Fatal("root replies or default old ordering were incorrect")
- /*line thread_model_test.mygo:44:6*/	} else {
+ /*line thread_model_test.mygo:198:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(full.Items) != 3 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(full.Items, 0)).ID != root1.ID {
+ /*line thread_model_test.mygo:199:5*/		t.Fatal("root replies or default old ordering were incorrect")
+ /*line thread_model_test.mygo:198:3*/	} else {
  /*line zz_thread_model.gen_test.go:67:1*/	}
  /*line thread_model_test.mygo:13:1*/	firstRoot := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(full.Items, 0))
- /*line thread_model_test.mygo:48:6*/	if firstRoot.Depth != 1 || firstRoot.ChildCount != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(firstRoot.Children) != 1 {
- /*line thread_model_test.mygo:49:5*/		t.Fatal("root depth or child count was incorrect")
- /*line thread_model_test.mygo:48:6*/	} else {
+ /*line thread_model_test.mygo:202:3*/	if firstRoot.Depth != 1 || firstRoot.ChildCount != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(firstRoot.Children) != 1 {
+ /*line thread_model_test.mygo:203:5*/		t.Fatal("root depth or child count was incorrect")
+ /*line thread_model_test.mygo:202:3*/	} else {
  /*line zz_thread_model.gen_test.go:72:1*/	}
  /*line thread_model_test.mygo:13:1*/	firstChild := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(firstRoot.Children, 0))
- /*line thread_model_test.mygo:52:6*/	if firstChild.ID != child1.ID || firstChild.Depth != 2 || firstChild.ChildCount != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(firstChild.Children, 0)).ID != grandchild1.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(firstChild.Children, 0)).Depth != 3 {
- /*line thread_model_test.mygo:55:5*/		t.Fatal("recursive children or depths were incorrect")
- /*line thread_model_test.mygo:52:6*/	} else {
+ /*line thread_model_test.mygo:206:3*/	if firstChild.ID != child1.ID || firstChild.Depth != 2 || firstChild.ChildCount != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(firstChild.Children, 0)).ID != grandchild1.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(firstChild.Children, 0)).Depth != 3 {
+ /*line thread_model_test.mygo:211:5*/		t.Fatal("recursive children or depths were incorrect")
+ /*line thread_model_test.mygo:206:3*/	} else {
  /*line zz_thread_model.gen_test.go:77:1*/	}
  /*line thread_model_test.mygo:13:1*/	paged := topicOrderPageForReplies(t, handler, site.Origin, path+"?limit=2&offset=1&sort=old")
- /*line thread_model_test.mygo:58:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(paged.Items) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 0)).ID != root2.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 1)).ID != root3.ID {
- /*line thread_model_test.mygo:59:5*/		t.Fatal("root-only pagination repeated or promoted descendants")
- /*line thread_model_test.mygo:58:6*/	} else {
+ /*line thread_model_test.mygo:214:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(paged.Items) != 2 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 0)).ID != root2.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged.Items, 1)).ID != root3.ID {
+ /*line thread_model_test.mygo:217:5*/		t.Fatal("root-only pagination repeated or promoted descendants")
+ /*line thread_model_test.mygo:214:3*/	} else {
  /*line zz_thread_model.gen_test.go:82:1*/	}
- /*line thread_model_test.mygo:13:1*/	shallow := PostPage{}
+ /*line thread_model_test.mygo:13:1*/	shallow := Zero[PostPage]()
 	shallowResponse := browserGet(t, handler, site.Origin, path+"?max_depth=1", anonymous, 200)
- /*line thread_model_test.mygo:63:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line thread_model_test.mygo:221:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(shallowResponse.Body.Bytes(), &shallow)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
@@ -91,13 +91,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_model.gen_test.go:91:1*/		}{})
 	}
  /*line thread_model_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line thread_model_test.mygo:64:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(shallow.Items, 0)).Children) != 0 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(shallow.Items, 0)).ChildCount != 0 {
- /*line thread_model_test.mygo:65:5*/		t.Fatal("max_depth=1 returned descendants")
- /*line thread_model_test.mygo:64:6*/	} else {
+ /*line thread_model_test.mygo:222:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(shallow.Items, 0)).Children) != 0 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(shallow.Items, 0)).ChildCount != 0 {
+ /*line thread_model_test.mygo:224:5*/		t.Fatal("max_depth=1 returned descendants")
+ /*line thread_model_test.mygo:222:3*/	} else {
  /*line zz_thread_model.gen_test.go:97:1*/	}
- /*line thread_model_test.mygo:13:1*/	flat := PostPage{}
+ /*line thread_model_test.mygo:13:1*/	flat := Zero[PostPage]()
 	flatResponse := browserGet(t, handler, site.Origin, path+"?view=flat", anonymous, 200)
- /*line thread_model_test.mygo:69:11*/	var __mygo_expr_8 Result[struct{}, error]
+ /*line thread_model_test.mygo:228:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(flatResponse.Body.Bytes(), &flat)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
@@ -106,37 +106,37 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_model.gen_test.go:106:1*/		}{})
 	}
  /*line thread_model_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line thread_model_test.mygo:70:6*/	if flatResponse.Body.String() != shallowResponse.Body.String() {
- /*line thread_model_test.mygo:71:5*/		t.Fatal("view=flat was not equivalent to max_depth=1")
- /*line thread_model_test.mygo:70:6*/	} else {
+ /*line thread_model_test.mygo:229:3*/	if flatResponse.Body.String() != shallowResponse.Body.String() {
+ /*line thread_model_test.mygo:230:5*/		t.Fatal("view=flat was not equivalent to max_depth=1")
+ /*line thread_model_test.mygo:229:3*/	} else {
  /*line zz_thread_model.gen_test.go:112:1*/	}
  /*line thread_model_test.mygo:13:1*/	empty := topicOrderPageForReplies(t, handler, site.Origin, "/api/v1/posts/"+emptyTopic.ID+"/replies")
- /*line thread_model_test.mygo:74:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(empty.Items) != 0 {
- /*line thread_model_test.mygo:75:5*/		t.Fatal("empty thread returned items")
- /*line thread_model_test.mygo:74:6*/	} else {
+ /*line thread_model_test.mygo:238:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(empty.Items) != 0 {
+ /*line thread_model_test.mygo:239:5*/		t.Fatal("empty thread returned items")
+ /*line thread_model_test.mygo:238:3*/	} else {
  /*line zz_thread_model.gen_test.go:117:1*/	}
  /*line thread_model_test.mygo:13:1*/	browserGet(t, handler, site.Origin, path+"?max_depth=8", anonymous, 200)
 	var invalid []string = []string{"?max_depth=0", "?max_depth=9", "?max_depth=no", "?view=wide", "?sort=hot"}
- /*line thread_model_test.mygo:79:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(query string) {
- /*line thread_model_test.mygo:79:16*/		browserGet(t, handler, site.Origin, path+query, anonymous, 400)
+ /*line thread_model_test.mygo:249:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(query string) {
+ /*line thread_model_test.mygo:249:16*/		browserGet(t, handler, site.Origin, path+query, anonymous, 400)
 		return
  /*line zz_thread_model.gen_test.go:123:1*/	})
- /*line thread_model_test.mygo:82:6*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: path}).Code != 405 {
- /*line thread_model_test.mygo:83:5*/		t.Fatal("unsupported reply method was not rejected")
- /*line thread_model_test.mygo:82:6*/	} else {
+ /*line thread_model_test.mygo:252:3*/	if doForum(handler, forumCall{Method: "PUT", Origin: site.Origin, Path: path, Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""}).Code != 405 {
+ /*line thread_model_test.mygo:264:5*/		t.Fatal("unsupported reply method was not rejected")
+ /*line thread_model_test.mygo:252:3*/	} else {
  /*line zz_thread_model.gen_test.go:127:1*/	}
  /*line thread_model_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, root2.ID)))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, community.ID, root3.ID, author, false, true))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(posts, ctx, root1.ID, author, false))
-	deletedParent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "deleted parent", ParentID: topic.ID}))
-	deletedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "deleted child", ParentID: deletedParent.ID}))
+	deletedParent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "deleted parent", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	deletedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "deleted child", ParentID: deletedParent.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN14PostRepositoryM6Delete(posts, ctx, deletedParent.ID, author, false))
-	unreceivedParent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "unreceived parent", ParentID: topic.ID}))
-	unreceivedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Body: "unreceived child", ParentID: unreceivedParent.ID}))
+	unreceivedParent := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "unreceived parent", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	unreceivedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "", Body: "unreceived child", ParentID: unreceivedParent.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DELETE FROM site_posts WHERE site_id=? AND post_id=?", site.ID, unreceivedParent.ID)))
 	excludedResponse := browserGet(t, handler, site.Origin, path+"?max_depth=3", anonymous, 200)
-	excluded := PostPage{}
- /*line thread_model_test.mygo:97:11*/	var __mygo_expr_10 Result[struct{}, error]
+	excluded := Zero[PostPage]()
+ /*line thread_model_test.mygo:345:11*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(excludedResponse.Body.Bytes(), &excluded)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
@@ -145,30 +145,30 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_thread_model.gen_test.go:145:1*/		}{})
 	}
  /*line thread_model_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
- /*line thread_model_test.mygo:98:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(excluded.Items) != 0 {
- /*line thread_model_test.mygo:99:5*/		t.Fatal("excluded roots were promoted into the thread")
- /*line thread_model_test.mygo:98:6*/	} else {
+ /*line thread_model_test.mygo:346:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(excluded.Items) != 0 {
+ /*line thread_model_test.mygo:347:5*/		t.Fatal("excluded roots were promoted into the thread")
+ /*line thread_model_test.mygo:346:3*/	} else {
  /*line zz_thread_model.gen_test.go:151:1*/	}
  /*line thread_model_test.mygo:13:1*/	var excludedIDs []string = []string{root1.ID, root2.ID, root3.ID, deletedParent.ID, unreceivedParent.ID, child1.ID, child2.ID, grandchild1.ID, deletedChild.ID, unreceivedChild.ID}
- /*line thread_model_test.mygo:102:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(excludedIDs, func(id string) {
- /*line thread_model_test.mygo:103:8*/		if strings.Contains(excludedResponse.Body.String(), id) {
- /*line thread_model_test.mygo:104:7*/			t.Fatal("excluded thread identity leaked")
+ /*line thread_model_test.mygo:361:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(excludedIDs, func(id string) {
+ /*line thread_model_test.mygo:362:5*/		if strings.Contains(excludedResponse.Body.String(), id) {
+ /*line thread_model_test.mygo:363:7*/			t.Fatal("excluded thread identity leaked")
 			return
- /*line thread_model_test.mygo:103:8*/		} else {
- /*line thread_model_test.mygo:103:5*/			return
+ /*line thread_model_test.mygo:362:5*/		} else {
+			return
  /*line zz_thread_model.gen_test.go:159:1*/		}
 	})
  /*line thread_model_test.mygo:13:1*/	var directExcluded []string = []string{child2.ID, deletedChild.ID, unreceivedChild.ID, grandchild1.ID}
- /*line thread_model_test.mygo:108:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(directExcluded, func(id_1 string) {
- /*line thread_model_test.mygo:108:23*/		browserGet(t, handler, site.Origin, "/api/v1/posts/"+id_1, anonymous, 404)
+ /*line thread_model_test.mygo:372:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(directExcluded, func(id_1 string) {
+ /*line thread_model_test.mygo:372:23*/		browserGet(t, handler, site.Origin, "/api/v1/posts/"+id_1, anonymous, 404)
 		return
  /*line zz_thread_model.gen_test.go:165:1*/	})
- /*line thread_model_test.mygo:108:3*/	return
+ /*line thread_model_test.mygo:372:3*/	return
  /*line zz_thread_model.gen_test.go:167:1*/}
- /*line thread_model_test.mygo:113:1*/func topicOrderPageForReplies(t *testing.T, handler http.HandlerFunc, origin string, path string) PostPage {
-	output := PostPage{}
+ /*line thread_model_test.mygo:377:1*/func topicOrderPageForReplies(t *testing.T, handler http.HandlerFunc, origin string, path string) PostPage {
+	output := Zero[PostPage]()
 	response := browserGet(t, handler, origin, path, []*http.Cookie{}, 200)
- /*line thread_model_test.mygo:116:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line thread_model_test.mygo:385:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(response.Body.Bytes(), &output)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -176,9 +176,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_thread_model.gen_test.go:177:1*/		}{})
 	}
- /*line thread_model_test.mygo:116:6*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line thread_model_test.mygo:117:5*/		t.Fatalf("invalid thread page: %s", response.Body.String())
- /*line thread_model_test.mygo:116:6*/	} else {
+ /*line thread_model_test.mygo:385:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line thread_model_test.mygo:386:5*/		t.Fatalf("invalid thread page: %s", response.Body.String())
+ /*line thread_model_test.mygo:385:3*/	} else {
  /*line zz_thread_model.gen_test.go:182:1*/	}
- /*line thread_model_test.mygo:119:3*/	return output
+ /*line thread_model_test.mygo:388:3*/	return output
  /*line zz_thread_model.gen_test.go:184:1*/}

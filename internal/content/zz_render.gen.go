@@ -11,16 +11,16 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line render.mygo:6:1*/func init() {
 	blockedElements = []string{"script", "style", "noscript", "iframe", "frame", "frameset", "object", "embed", "applet", "template", "svg", "math", "xmp", "plaintext", "title", "textarea", "canvas", "video", "audio", "form", "button"}
  /*line zz_render.gen.go:13:1*/}
- /*line render.mygo:8:1*/func StripElement(raw string, name string) string {
+ /*line render.mygo:30:1*/func StripElement(raw string, name string) string {
 	element := regexp.MustCompile("(?is)<" + name + "\\b[^>]*>.*?</" + name + "\\s*>")
- /*line render.mygo:10:3*/	return element.ReplaceAllString(raw, " ")
+ /*line render.mygo:32:3*/	return element.ReplaceAllString(raw, " ")
  /*line zz_render.gen.go:17:1*/}
- /*line render.mygo:14:1*/func RenderText(raw string) string {
+ /*line render.mygo:36:1*/func RenderText(raw string) string {
 	withoutComments := regexp.MustCompile("(?s)<!--.*?-->").ReplaceAllString(raw, " ")
 	withoutElements := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(blockedElements, withoutComments, func(current string, name string) string {
- /*line render.mygo:17:5*/		return StripElement(current, name)
+ /*line render.mygo:41:7*/		return StripElement(current, name)
  /*line zz_render.gen.go:22:1*/	})
- /*line render.mygo:14:1*/	withoutTags := regexp.MustCompile("(?s)</?[a-zA-Z][^>]*>").ReplaceAllString(withoutElements, "")
+ /*line render.mygo:36:1*/	withoutTags := regexp.MustCompile("(?s)</?[a-zA-Z][^>]*>").ReplaceAllString(withoutElements, "")
 	replacer := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;")
- /*line render.mygo:21:3*/	return strings.TrimSpace(replacer.Replace(withoutTags))
+ /*line render.mygo:60:3*/	return strings.TrimSpace(replacer.Replace(withoutTags))
  /*line zz_render.gen.go:26:1*/}

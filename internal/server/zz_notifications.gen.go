@@ -17,9 +17,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_notifications.gen.go:17:1*/}
 
  /*line notifications.mygo:18:1*/func NotificationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line notifications.mygo:26:6*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "notifications" {
+ /*line notifications.mygo:26:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "notifications" {
  /*line notifications.mygo:27:12*/		return false
- /*line notifications.mygo:26:6*/	} else {
+ /*line notifications.mygo:26:3*/	} else {
  /*line zz_notifications.gen.go:23:1*/	}
  /*line notifications.mygo:29:3*/	w.Header().Set("Cache-Control", "no-store")
  /*line notifications.mygo:18:1*/	section := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "")
@@ -27,10 +27,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 	count := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 && section == "unread-count"
 	all := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 && section == "read-all"
 	single := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "") == "read"
- /*line notifications.mygo:35:6*/	if !list && !count && !all && !single {
+ /*line notifications.mygo:35:3*/	if !list && !count && !all && !single {
  /*line notifications.mygo:36:5*/		WriteErrorJSON(w, 404, "not found")
  /*line notifications.mygo:37:12*/		return true
- /*line notifications.mygo:35:6*/	} else {
+ /*line notifications.mygo:35:3*/	} else {
  /*line zz_notifications.gen.go:34:1*/	}
  /*line notifications.mygo:18:1*/	var __mygo_expr_0 string
 	if list || count {
@@ -39,69 +39,69 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = "POST"
  /*line zz_notifications.gen.go:40:1*/	}
  /*line notifications.mygo:18:1*/	method := __mygo_expr_0
- /*line notifications.mygo:44:6*/	if request.Method != method {
+ /*line notifications.mygo:44:3*/	if request.Method != method {
  /*line notifications.mygo:45:5*/		MethodNotAllowed(w, method)
  /*line notifications.mygo:46:12*/		return true
- /*line notifications.mygo:44:6*/	} else {
+ /*line notifications.mygo:44:3*/	} else {
  /*line zz_notifications.gen.go:46:1*/	}
  /*line notifications.mygo:18:1*/	session := Authenticated(db, site, request)
- /*line notifications.mygo:49:6*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
+ /*line notifications.mygo:49:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
  /*line notifications.mygo:50:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
  /*line notifications.mygo:51:12*/		return true
- /*line notifications.mygo:49:6*/	} else {
+ /*line notifications.mygo:49:3*/	} else {
  /*line zz_notifications.gen.go:52:1*/	}
- /*line notifications.mygo:53:6*/	if method == "POST" && !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line notifications.mygo:53:3*/	if method == "POST" && !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
  /*line notifications.mygo:54:5*/		WriteErrorJSON(w, 403, "CSRF denied")
  /*line notifications.mygo:55:12*/		return true
- /*line notifications.mygo:53:6*/	} else {
+ /*line notifications.mygo:53:3*/	} else {
  /*line zz_notifications.gen.go:57:1*/	}
  /*line notifications.mygo:18:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity)
- /*line notifications.mygo:59:6*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
+ /*line notifications.mygo:59:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
  /*line notifications.mygo:60:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
  /*line notifications.mygo:61:12*/		return true
- /*line notifications.mygo:59:6*/	} else {
+ /*line notifications.mygo:59:3*/	} else {
  /*line zz_notifications.gen.go:64:1*/	}
- /*line notifications.mygo:63:6*/	if list {
+ /*line notifications.mygo:63:3*/	if list {
 		page := PageFromQuery(settings, request)
 		if MygoIN6ResultM5IsErr[storage.Page, string](page) {
  /*line notifications.mygo:66:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
- /*line notifications.mygo:63:6*/		} else {
+ /*line notifications.mygo:63:3*/		} else {
 			rows := storage.MygoIN17BrowserRepositoryM13Notifications(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
 			if MygoIN6ResultM5IsErr[storage.NotificationPage, string](rows) {
  /*line notifications.mygo:75:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[storage.NotificationPage, string](rows))
- /*line notifications.mygo:63:6*/			} else {
+ /*line notifications.mygo:63:3*/			} else {
  /*line notifications.mygo:77:9*/				WriteJSON(w, 200, MygoIN6ResultM6Unwrap[storage.NotificationPage, string](rows))
  /*line zz_notifications.gen.go:75:1*/			}
 		}
- /*line notifications.mygo:63:6*/	} else {
+ /*line notifications.mygo:63:3*/	} else {
 		if count {
 			unread := storage.MygoIN17BrowserRepositoryM23NotificationUnreadCount(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer))
 			if MygoIN6ResultM5IsErr[int64, string](unread) {
  /*line notifications.mygo:83:7*/				Fail(w, MygoIN6ResultM9UnwrapErr[int64, string](unread))
- /*line notifications.mygo:63:6*/			} else {
+ /*line notifications.mygo:63:3*/			} else {
  /*line notifications.mygo:85:7*/				WriteJSON(w, 200, NotificationCountOutput{Count: MygoIN6ResultM6Unwrap[int64, string](unread)})
  /*line zz_notifications.gen.go:84:1*/			}
- /*line notifications.mygo:63:6*/		} else {
+ /*line notifications.mygo:63:3*/		} else {
 			if all {
-				input := NotificationReadAllInput{}
+				input := Zero[NotificationReadAllInput]()
 				decoded := DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)
 				if MygoIN6ResultM5IsErr[struct{}, string](decoded) {
  /*line notifications.mygo:91:7*/					WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](decoded))
- /*line notifications.mygo:63:6*/				} else {
+ /*line notifications.mygo:63:3*/				} else {
 					cursor := storage.ParseNotificationCursor(input.ThroughCursor)
 					if MygoIN6ResultM5IsErr[storage.NotificationCursor, string](cursor) {
  /*line notifications.mygo:95:9*/						WriteErrorJSON(w, 400, "invalid cursor")
- /*line notifications.mygo:63:6*/					} else {
+ /*line notifications.mygo:63:3*/					} else {
 						result := storage.MygoIN17BrowserRepositoryM20ReadAllNotifications(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.NotificationCursor, string](cursor))
 						if MygoIN6ResultM5IsErr[struct{}, string](result) {
  /*line notifications.mygo:99:11*/							Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line notifications.mygo:63:6*/						} else {
+ /*line notifications.mygo:63:3*/						} else {
  /*line notifications.mygo:101:11*/							w.WriteHeader(204)
  /*line zz_notifications.gen.go:101:1*/						}
 					}
 				}
- /*line notifications.mygo:63:6*/			} else {
+ /*line notifications.mygo:63:3*/			} else {
  /*line notifications.mygo:106:14*/				var __mygo_expr_2 Result[int64, error]
 				__mygo_expr_3, __mygo_expr_1 := strconv.ParseInt(section, 10, 64)
 				if __mygo_expr_1 != nil {
@@ -109,17 +109,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 				} else {
 					__mygo_expr_2 = Ok[int64, error](__mygo_expr_3)
  /*line zz_notifications.gen.go:111:1*/				}
- /*line notifications.mygo:63:6*/				id := __mygo_expr_2
+ /*line notifications.mygo:63:3*/				id := __mygo_expr_2
 				if MygoIN6ResultM5IsErr[int64, error](id) {
  /*line notifications.mygo:108:7*/					WriteErrorJSON(w, 400, "invalid notification")
- /*line notifications.mygo:63:6*/				} else {
+ /*line notifications.mygo:63:3*/				} else {
 					if MygoIN6ResultM6Unwrap[int64, error](id) <= int64(0) {
  /*line notifications.mygo:110:7*/						WriteErrorJSON(w, 400, "invalid notification")
- /*line notifications.mygo:63:6*/					} else {
+ /*line notifications.mygo:63:3*/					} else {
 						result_1 := storage.MygoIN17BrowserRepositoryM16ReadNotification(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[int64, error](id))
 						if MygoIN6ResultM5IsErr[struct{}, string](result_1) {
  /*line notifications.mygo:114:9*/							Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result_1))
- /*line notifications.mygo:63:6*/						} else {
+ /*line notifications.mygo:63:3*/						} else {
  /*line notifications.mygo:116:9*/							w.WriteHeader(204)
  /*line zz_notifications.gen.go:124:1*/						}
 					}

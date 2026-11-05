@@ -27,7 +27,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_registration.gen.go:27:1*/}
 
  /*line registration.mygo:28:1*/func RegistrationClientIP(settings config.Config, request *http.Request) Result[string, string] {
- /*line registration.mygo:29:14*/	var __mygo_expr_1 Result[netip.AddrPort, error]
+ /*line registration.mygo:32:14*/	var __mygo_expr_1 Result[netip.AddrPort, error]
 	__mygo_expr_2, __mygo_expr_0 := netip.ParseAddrPort(request.RemoteAddr)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[netip.AddrPort, error](__mygo_expr_0)
@@ -35,41 +35,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[netip.AddrPort, error](__mygo_expr_2)
  /*line zz_registration.gen.go:36:1*/	}
  /*line registration.mygo:28:1*/	peer := __mygo_expr_1
- /*line registration.mygo:30:6*/	if MygoIN6ResultM5IsErr[netip.AddrPort, error](peer) {
- /*line registration.mygo:31:12*/		return Err[string, string]("invalid client address")
- /*line registration.mygo:30:6*/	} else {
+ /*line registration.mygo:33:3*/	if MygoIN6ResultM5IsErr[netip.AddrPort, error](peer) {
+ /*line registration.mygo:34:12*/		return Err[string, string]("invalid client address")
+ /*line registration.mygo:33:3*/	} else {
  /*line zz_registration.gen.go:41:1*/	}
  /*line registration.mygo:28:1*/	value := MygoIN6ResultM6Unwrap[netip.AddrPort, error](peer).Addr().Unmap().String()
- /*line registration.mygo:34:6*/	if config.TrustedProxy(settings, request.RemoteAddr) {
+ /*line registration.mygo:37:3*/	if config.TrustedProxy(settings, request.RemoteAddr) {
 		forwarded := request.Header.Get("X-Forwarded-For")
 		if forwarded != "" {
 			hops := strings.Split(forwarded, ",")
 			index := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hops) - 1
 			for index >= 0 {
- /*line registration.mygo:41:25*/				var __mygo_expr_4 Result[netip.Addr, error]
+ /*line registration.mygo:44:25*/				var __mygo_expr_4 Result[netip.Addr, error]
 				__mygo_expr_5, __mygo_expr_3 := netip.ParseAddr(strings.TrimSpace(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(hops, index))))
 				if __mygo_expr_3 != nil {
 					__mygo_expr_4 = Err[netip.Addr, error](__mygo_expr_3)
 				} else {
 					__mygo_expr_4 = Ok[netip.Addr, error](__mygo_expr_5)
  /*line zz_registration.gen.go:55:1*/				}
- /*line registration.mygo:34:6*/				candidate := __mygo_expr_4
+ /*line registration.mygo:37:3*/				candidate := __mygo_expr_4
 				if MygoIN6ResultM5IsErr[netip.Addr, error](candidate) {
- /*line registration.mygo:43:18*/					return Err[string, string]("invalid client address")
- /*line registration.mygo:34:6*/				} else {
+ /*line registration.mygo:46:18*/					return Err[string, string]("invalid client address")
+ /*line registration.mygo:37:3*/				} else {
  /*line zz_registration.gen.go:60:1*/				}
- /*line registration.mygo:34:6*/				value = MygoIN6ResultM6Unwrap[netip.Addr, error](candidate).Unmap().String()
+ /*line registration.mygo:37:3*/				value = MygoIN6ResultM6Unwrap[netip.Addr, error](candidate).Unmap().String()
 				if !config.TrustedProxy(settings, net.JoinHostPort(value, "1")) {
 					break
 				} else {
  /*line zz_registration.gen.go:65:1*/				}
- /*line registration.mygo:34:6*/				index = index - 1
+ /*line registration.mygo:37:3*/				index = index - 1
  /*line zz_registration.gen.go:67:1*/			}
- /*line registration.mygo:34:6*/		} else {
+ /*line registration.mygo:37:3*/		} else {
  /*line zz_registration.gen.go:69:1*/		}
- /*line registration.mygo:34:6*/	} else {
+ /*line registration.mygo:37:3*/	} else {
  /*line zz_registration.gen.go:71:1*/	}
- /*line registration.mygo:53:16*/	var __mygo_expr_7 Result[netip.Addr, error]
+ /*line registration.mygo:56:16*/	var __mygo_expr_7 Result[netip.Addr, error]
 	__mygo_expr_8, __mygo_expr_6 := netip.ParseAddr(value)
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[netip.Addr, error](__mygo_expr_6)
@@ -77,102 +77,102 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[netip.Addr, error](__mygo_expr_8)
  /*line zz_registration.gen.go:78:1*/	}
  /*line registration.mygo:28:1*/	parsed := __mygo_expr_7
- /*line registration.mygo:54:6*/	if MygoIN6ResultM5IsErr[netip.Addr, error](parsed) {
- /*line registration.mygo:55:12*/		return Err[string, string]("invalid client address")
- /*line registration.mygo:54:6*/	} else {
+ /*line registration.mygo:57:3*/	if MygoIN6ResultM5IsErr[netip.Addr, error](parsed) {
+ /*line registration.mygo:58:12*/		return Err[string, string]("invalid client address")
+ /*line registration.mygo:57:3*/	} else {
  /*line zz_registration.gen.go:83:1*/	}
- /*line registration.mygo:57:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[netip.Addr, error](parsed).Unmap().String())
+ /*line registration.mygo:60:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[netip.Addr, error](parsed).Unmap().String())
  /*line zz_registration.gen.go:85:1*/}
- /*line registration.mygo:60:1*/func RegistrationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
+ /*line registration.mygo:63:1*/func RegistrationRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
 	path := request.URL.Path
- /*line registration.mygo:62:6*/	if path != "/api/v1/auth/register" && path != "/api/v1/auth/verification/resend" && path != "/api/v1/auth/verification/confirm" {
- /*line registration.mygo:63:12*/		return false
- /*line registration.mygo:62:6*/	} else {
+ /*line registration.mygo:71:3*/	if path != "/api/v1/auth/register" && path != "/api/v1/auth/verification/resend" && path != "/api/v1/auth/verification/confirm" {
+ /*line registration.mygo:74:12*/		return false
+ /*line registration.mygo:71:3*/	} else {
  /*line zz_registration.gen.go:91:1*/	}
- /*line registration.mygo:65:6*/	if request.Method != "POST" {
- /*line registration.mygo:66:5*/		w.Header().Set("Allow", "POST")
- /*line registration.mygo:67:5*/		WriteErrorJSON(w, 405, "method not allowed")
- /*line registration.mygo:68:12*/		return true
- /*line registration.mygo:65:6*/	} else {
+ /*line registration.mygo:76:3*/	if request.Method != "POST" {
+ /*line registration.mygo:77:5*/		w.Header().Set("Allow", "POST")
+ /*line registration.mygo:78:5*/		WriteErrorJSON(w, 405, "method not allowed")
+ /*line registration.mygo:79:12*/		return true
+ /*line registration.mygo:76:3*/	} else {
  /*line zz_registration.gen.go:97:1*/	}
- /*line registration.mygo:70:6*/	if !site.RegistrationEnabled || !SameOrigin(settings, request) {
- /*line registration.mygo:71:5*/		WriteErrorJSON(w, 403, "registration forbidden")
- /*line registration.mygo:72:12*/		return true
- /*line registration.mygo:70:6*/	} else {
+ /*line registration.mygo:81:3*/	if !site.RegistrationEnabled || !SameOrigin(settings, request) {
+ /*line registration.mygo:82:5*/		WriteErrorJSON(w, 403, "registration forbidden")
+ /*line registration.mygo:83:12*/		return true
+ /*line registration.mygo:81:3*/	} else {
  /*line zz_registration.gen.go:102:1*/	}
- /*line registration.mygo:74:13*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line registration.mygo:85:13*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := base64.StdEncoding.DecodeString(settings.Registration.OutboxSecret)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_registration.gen.go:109:1*/	}
- /*line registration.mygo:60:1*/	key := __mygo_expr_1
- /*line registration.mygo:75:6*/	if MygoIN6ResultM5IsErr[[]byte, error](key) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](key)) != 32 {
- /*line registration.mygo:76:5*/		WriteErrorJSON(w, 503, "registration unavailable")
- /*line registration.mygo:77:12*/		return true
- /*line registration.mygo:75:6*/	} else {
+ /*line registration.mygo:63:1*/	key := __mygo_expr_1
+ /*line registration.mygo:86:3*/	if MygoIN6ResultM5IsErr[[]byte, error](key) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](key)) != 32 {
+ /*line registration.mygo:87:5*/		WriteErrorJSON(w, 503, "registration unavailable")
+ /*line registration.mygo:88:12*/		return true
+ /*line registration.mygo:86:3*/	} else {
  /*line zz_registration.gen.go:115:1*/	}
- /*line registration.mygo:60:1*/	ip := RegistrationClientIP(settings, request)
- /*line registration.mygo:80:6*/	if MygoIN6ResultM5IsErr[string, string](ip) {
- /*line registration.mygo:81:5*/		WriteErrorJSON(w, 400, "invalid client address")
- /*line registration.mygo:82:12*/		return true
- /*line registration.mygo:80:6*/	} else {
+ /*line registration.mygo:63:1*/	ip := RegistrationClientIP(settings, request)
+ /*line registration.mygo:91:3*/	if MygoIN6ResultM5IsErr[string, string](ip) {
+ /*line registration.mygo:92:5*/		WriteErrorJSON(w, 400, "invalid client address")
+ /*line registration.mygo:93:12*/		return true
+ /*line registration.mygo:91:3*/	} else {
  /*line zz_registration.gen.go:121:1*/	}
- /*line registration.mygo:60:1*/	repository := storage.RegistrationRepository{DB: db, Site: site, EncryptionKey: MygoIN6ResultM6Unwrap[[]byte, error](key), IPAttempts: settings.Registration.IPLimit, EmailAttempts: settings.Registration.EmailLimit, TokenTTLSeconds: settings.Registration.TokenTTLSeconds, RateWindowSeconds: settings.Registration.RateWindowSeconds}
+ /*line registration.mygo:63:1*/	repository := storage.RegistrationRepository{DB: db, Site: site, EncryptionKey: MygoIN6ResultM6Unwrap[[]byte, error](key), IPAttempts: settings.Registration.IPLimit, EmailAttempts: settings.Registration.EmailLimit, TokenTTLSeconds: settings.Registration.TokenTTLSeconds, RateWindowSeconds: settings.Registration.RateWindowSeconds}
 	var result Result[struct{}, string] = Ok[struct{}, string](struct {
  /*line zz_registration.gen.go:124:1*/	}{})
- /*line registration.mygo:86:6*/	if path == "/api/v1/auth/register" {
-		input := RegistrationInput{}
- /*line registration.mygo:88:8*/		if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
- /*line registration.mygo:89:7*/			WriteErrorJSON(w, 400, "invalid registration request")
- /*line registration.mygo:90:14*/			return true
- /*line registration.mygo:88:8*/		} else {
+ /*line registration.mygo:105:3*/	if path == "/api/v1/auth/register" {
+		input := Zero[RegistrationInput]()
+ /*line registration.mygo:107:5*/		if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line registration.mygo:108:7*/			WriteErrorJSON(w, 400, "invalid registration request")
+ /*line registration.mygo:109:14*/			return true
+ /*line registration.mygo:107:5*/		} else {
  /*line zz_registration.gen.go:131:1*/		}
- /*line registration.mygo:86:6*/		result = storage.MygoIN22RegistrationRepositoryM8Register(repository, request.Context(), input.Username, input.Email, MygoIN6ResultM6Unwrap[string, string](ip), time.Now())
+ /*line registration.mygo:105:3*/		result = storage.MygoIN22RegistrationRepositoryM8Register(repository, request.Context(), input.Username, input.Email, MygoIN6ResultM6Unwrap[string, string](ip), time.Now())
 	} else {
 		if path == "/api/v1/auth/verification/resend" {
-			input_1 := VerificationResendInput{}
- /*line registration.mygo:95:8*/			if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_1)) {
- /*line registration.mygo:96:7*/				WriteErrorJSON(w, 400, "invalid registration request")
- /*line registration.mygo:97:14*/				return true
- /*line registration.mygo:95:8*/			} else {
+			input_1 := Zero[VerificationResendInput]()
+ /*line registration.mygo:115:7*/			if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_1)) {
+ /*line registration.mygo:116:9*/				WriteErrorJSON(w, 400, "invalid registration request")
+ /*line registration.mygo:117:16*/				return true
+ /*line registration.mygo:115:7*/			} else {
  /*line zz_registration.gen.go:140:1*/			}
- /*line registration.mygo:86:6*/			result = storage.MygoIN22RegistrationRepositoryM6Resend(repository, request.Context(), input_1.Email, MygoIN6ResultM6Unwrap[string, string](ip), time.Now())
+ /*line registration.mygo:105:3*/			result = storage.MygoIN22RegistrationRepositoryM6Resend(repository, request.Context(), input_1.Email, MygoIN6ResultM6Unwrap[string, string](ip), time.Now())
 		} else {
-			input_2 := VerificationInput{}
- /*line registration.mygo:102:8*/			if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_2)) {
- /*line registration.mygo:103:7*/				WriteErrorJSON(w, 400, "invalid verification request")
- /*line registration.mygo:104:14*/				return true
- /*line registration.mygo:102:8*/			} else {
+			input_2 := Zero[VerificationInput]()
+ /*line registration.mygo:122:7*/			if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_2)) {
+ /*line registration.mygo:123:9*/				WriteErrorJSON(w, 400, "invalid verification request")
+ /*line registration.mygo:124:16*/				return true
+ /*line registration.mygo:122:7*/			} else {
  /*line zz_registration.gen.go:148:1*/			}
- /*line registration.mygo:86:6*/			result = storage.MygoIN22RegistrationRepositoryM7Confirm(repository, request.Context(), input_2.Token, input_2.Password, time.Now())
+ /*line registration.mygo:105:3*/			result = storage.MygoIN22RegistrationRepositoryM7Confirm(repository, request.Context(), input_2.Token, input_2.Password, time.Now())
  /*line zz_registration.gen.go:150:1*/		}
 	}
- /*line registration.mygo:108:6*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
+ /*line registration.mygo:129:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
 		reason := MygoIN6ResultM9UnwrapErr[struct{}, string](result)
 		if reason == "registration rate limited" {
- /*line registration.mygo:111:7*/			w.Header().Set("Retry-After", strconv.Itoa(settings.Registration.RateWindowSeconds))
- /*line registration.mygo:108:6*/			WriteErrorJSON(w, 429, reason)
+ /*line registration.mygo:132:7*/			w.Header().Set("Retry-After", strconv.Itoa(settings.Registration.RateWindowSeconds))
+ /*line registration.mygo:129:3*/			WriteErrorJSON(w, 429, reason)
 		} else {
 			if reason == "registration conflict" {
- /*line registration.mygo:114:7*/				WriteErrorJSON(w, 409, "registration conflict")
- /*line registration.mygo:108:6*/			} else {
+ /*line registration.mygo:136:9*/				WriteErrorJSON(w, 409, "registration conflict")
+ /*line registration.mygo:129:3*/			} else {
 				if strings.HasPrefix(reason, "invalid ") {
- /*line registration.mygo:116:7*/					WriteErrorJSON(w, 400, reason)
- /*line registration.mygo:108:6*/				} else {
- /*line registration.mygo:118:7*/					WriteErrorJSON(w, 503, "registration unavailable")
+ /*line registration.mygo:139:11*/					WriteErrorJSON(w, 400, reason)
+ /*line registration.mygo:129:3*/				} else {
+ /*line registration.mygo:141:11*/					WriteErrorJSON(w, 503, "registration unavailable")
  /*line zz_registration.gen.go:165:1*/				}
 			}
 		}
- /*line registration.mygo:108:6*/	} else {
- /*line registration.mygo:121:22*/		var __mygo_expr_3 int
+ /*line registration.mygo:129:3*/	} else {
+ /*line registration.mygo:146:19*/		var __mygo_expr_3 int
 		if path == "/api/v1/auth/verification/confirm" {
 			__mygo_expr_3 = 204
 		} else {
 			__mygo_expr_3 = 202
  /*line zz_registration.gen.go:174:1*/		}
- /*line registration.mygo:121:5*/		w.WriteHeader(__mygo_expr_3)
+ /*line registration.mygo:146:5*/		w.WriteHeader(__mygo_expr_3)
  /*line zz_registration.gen.go:176:1*/	}
- /*line registration.mygo:123:3*/	return true
+ /*line registration.mygo:153:3*/	return true
  /*line zz_registration.gen.go:178:1*/}

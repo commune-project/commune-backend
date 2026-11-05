@@ -21,48 +21,48 @@ import . "github.com/mygo-lang/mygo/prelude"
 
  /*line community_follow_outbox.mygo:19:1*/func ApplyBrowserCommunityFollow(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, communityID string, identity auth.Identity, follow bool) Result[string, string] {
 	loaded := storage.LoadCommunityByID(ctx, db, communityID)
- /*line community_follow_outbox.mygo:29:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
+ /*line community_follow_outbox.mygo:29:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
  /*line community_follow_outbox.mygo:30:12*/		return Err[string, string]("not found")
- /*line community_follow_outbox.mygo:29:6*/	} else {
+ /*line community_follow_outbox.mygo:29:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:27:1*/	}
  /*line community_follow_outbox.mygo:19:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
 	remote := community.HostSiteID != site.ID && community.FederationMode == "federated" && community.ActorURI.Valid
 	priorState := storage.CommunityFollowState(ctx, db, communityID, identity.ActorURI)
 	priorURI := storage.CommunityFollowURI(ctx, db, communityID, identity.ActorURI)
- /*line community_follow_outbox.mygo:36:6*/	if !follow {
- /*line community_follow_outbox.mygo:37:8*/		if MygoIN6ResultM4IsOk[string, string](priorState) && MygoIN6ResultM6Unwrap[string, string](priorState) == "undone" {
+ /*line community_follow_outbox.mygo:36:3*/	if !follow {
+ /*line community_follow_outbox.mygo:37:5*/		if MygoIN6ResultM4IsOk[string, string](priorState) && MygoIN6ResultM6Unwrap[string, string](priorState) == "undone" {
  /*line community_follow_outbox.mygo:38:14*/			return storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, false, "")
- /*line community_follow_outbox.mygo:37:8*/		} else {
+ /*line community_follow_outbox.mygo:37:5*/		} else {
  /*line zz_community_follow_outbox.gen.go:36:1*/		}
- /*line community_follow_outbox.mygo:36:6*/		var __mygo_expr_0 string
+ /*line community_follow_outbox.mygo:36:3*/		var __mygo_expr_0 string
 		if remote && MygoIN6ResultM4IsOk[string, string](priorURI) && storage.CanonicalObjectURI(MygoIN6ResultM6Unwrap[string, string](priorURI)) {
 			__mygo_expr_0 = site.Origin + "/activities/" + rand.Text()
 		} else {
 			__mygo_expr_0 = ""
  /*line zz_community_follow_outbox.gen.go:42:1*/		}
- /*line community_follow_outbox.mygo:36:6*/		undoURI := __mygo_expr_0
+ /*line community_follow_outbox.mygo:36:3*/		undoURI := __mygo_expr_0
 		changed := storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, false, undoURI)
- /*line community_follow_outbox.mygo:42:8*/		if MygoIN6ResultM5IsErr[string, string](changed) {
+ /*line community_follow_outbox.mygo:42:5*/		if MygoIN6ResultM5IsErr[string, string](changed) {
  /*line community_follow_outbox.mygo:42:36*/			return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](changed))
- /*line community_follow_outbox.mygo:42:8*/		} else {
+ /*line community_follow_outbox.mygo:42:5*/		} else {
  /*line zz_community_follow_outbox.gen.go:48:1*/		}
- /*line community_follow_outbox.mygo:43:8*/		if undoURI == "" || MygoIN6ResultM5IsErr[string, string](priorURI) {
+ /*line community_follow_outbox.mygo:43:5*/		if undoURI == "" || MygoIN6ResultM5IsErr[string, string](priorURI) {
  /*line community_follow_outbox.mygo:43:54*/			return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](changed))
- /*line community_follow_outbox.mygo:43:8*/		} else {
+ /*line community_follow_outbox.mygo:43:5*/		} else {
  /*line zz_community_follow_outbox.gen.go:52:1*/		}
  /*line community_follow_outbox.mygo:44:12*/		return QueueBrowserFollowActivity(ctx, db, site, community, identity, "Undo", undoURI, MygoIN6ResultM6Unwrap[string, string](priorURI))
- /*line community_follow_outbox.mygo:36:6*/	} else {
+ /*line community_follow_outbox.mygo:36:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:55:1*/	}
  /*line community_follow_outbox.mygo:46:6*/	if MygoIN6ResultM4IsOk[string, string](priorState) && (MygoIN6ResultM6Unwrap[string, string](priorState) == "accepted" || MygoIN6ResultM6Unwrap[string, string](priorState) == "pending") {
-		var __mygo_expr_1 string
+ /*line community_follow_outbox.mygo:46:3*/		var __mygo_expr_1 string
 		if MygoIN6ResultM4IsOk[string, string](priorURI) {
 			__mygo_expr_1 = MygoIN6ResultM6Unwrap[string, string](priorURI)
 		} else {
 			__mygo_expr_1 = ""
  /*line zz_community_follow_outbox.gen.go:62:1*/		}
- /*line community_follow_outbox.mygo:46:6*/		uri := __mygo_expr_1
+ /*line community_follow_outbox.mygo:46:3*/		uri := __mygo_expr_1
  /*line community_follow_outbox.mygo:48:12*/		return storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, true, uri)
- /*line community_follow_outbox.mygo:46:6*/	} else {
+ /*line community_follow_outbox.mygo:46:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:66:1*/	}
  /*line community_follow_outbox.mygo:19:1*/	var __mygo_expr_2 string
 	if remote {
@@ -72,31 +72,31 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_community_follow_outbox.gen.go:72:1*/	}
  /*line community_follow_outbox.mygo:19:1*/	followURI := __mygo_expr_2
 	changed_1 := storage.BrowserFollowWithURI(ctx, db, site.ID, communityID, identity, true, followURI)
- /*line community_follow_outbox.mygo:52:6*/	if MygoIN6ResultM5IsErr[string, string](changed_1) {
+ /*line community_follow_outbox.mygo:52:3*/	if MygoIN6ResultM5IsErr[string, string](changed_1) {
  /*line community_follow_outbox.mygo:52:34*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](changed_1))
- /*line community_follow_outbox.mygo:52:6*/	} else {
+ /*line community_follow_outbox.mygo:52:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:78:1*/	}
- /*line community_follow_outbox.mygo:53:6*/	if !remote || MygoIN6ResultM6Unwrap[string, string](changed_1) != "accepted" && MygoIN6ResultM6Unwrap[string, string](changed_1) != "pending" {
+ /*line community_follow_outbox.mygo:53:3*/	if !remote || MygoIN6ResultM6Unwrap[string, string](changed_1) != "accepted" && MygoIN6ResultM6Unwrap[string, string](changed_1) != "pending" {
  /*line community_follow_outbox.mygo:54:12*/		return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](changed_1))
- /*line community_follow_outbox.mygo:53:6*/	} else {
+ /*line community_follow_outbox.mygo:53:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:82:1*/	}
  /*line community_follow_outbox.mygo:19:1*/	object := community.ActorURI.String
 	queued := QueueBrowserFollowActivity(ctx, db, site, community, identity, "Follow", followURI, object)
- /*line community_follow_outbox.mygo:58:6*/	if MygoIN6ResultM5IsErr[string, string](queued) {
+ /*line community_follow_outbox.mygo:58:3*/	if MygoIN6ResultM5IsErr[string, string](queued) {
  /*line community_follow_outbox.mygo:58:33*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](queued))
- /*line community_follow_outbox.mygo:58:6*/	} else {
+ /*line community_follow_outbox.mygo:58:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:88:1*/	}
  /*line community_follow_outbox.mygo:59:3*/	return Ok[string, string](MygoIN6ResultM6Unwrap[string, string](changed_1))
  /*line zz_community_follow_outbox.gen.go:90:1*/}
  /*line community_follow_outbox.mygo:62:1*/func QueueBrowserFollowActivity(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, identity auth.Identity, kind string, activityURI string, objectURI string) Result[string, string] {
- /*line community_follow_outbox.mygo:72:6*/	if !storage.CanonicalObjectURI(activityURI) || !storage.CanonicalObjectURI(objectURI) {
+ /*line community_follow_outbox.mygo:72:3*/	if !storage.CanonicalObjectURI(activityURI) || !storage.CanonicalObjectURI(objectURI) {
  /*line community_follow_outbox.mygo:73:12*/		return Err[string, string]("follow activity unavailable")
- /*line community_follow_outbox.mygo:72:6*/	} else {
+ /*line community_follow_outbox.mygo:72:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:95:1*/	}
  /*line community_follow_outbox.mygo:62:1*/	key := storage.EnsureLocalKey(ctx, db, identity.ActorURI)
- /*line community_follow_outbox.mygo:76:6*/	if MygoIN6ResultM5IsErr[string, string](key) {
+ /*line community_follow_outbox.mygo:76:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
  /*line community_follow_outbox.mygo:76:30*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[string, string](key))
- /*line community_follow_outbox.mygo:76:6*/	} else {
+ /*line community_follow_outbox.mygo:76:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:100:1*/	}
  /*line community_follow_outbox.mygo:77:17*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := json.Marshal(LocalFollowActivity{Context: "https://www.w3.org/ns/activitystreams", ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
@@ -106,61 +106,61 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
  /*line zz_community_follow_outbox.gen.go:107:1*/	}
  /*line community_follow_outbox.mygo:62:1*/	payload := __mygo_expr_1
- /*line community_follow_outbox.mygo:78:6*/	if MygoIN6ResultM5IsErr[[]byte, error](payload) {
+ /*line community_follow_outbox.mygo:78:3*/	if MygoIN6ResultM5IsErr[[]byte, error](payload) {
  /*line community_follow_outbox.mygo:78:34*/		return Err[string, string]("follow activity unavailable")
- /*line community_follow_outbox.mygo:78:6*/	} else {
+ /*line community_follow_outbox.mygo:78:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:112:1*/	}
  /*line community_follow_outbox.mygo:62:1*/	stored := storage.InsertActivityPayload(ctx, db, activityURI, identity.ActorURI, kind, MygoIN6ResultM6Unwrap[[]byte, error](payload), community.ID)
- /*line community_follow_outbox.mygo:80:6*/	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
+ /*line community_follow_outbox.mygo:80:3*/	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
  /*line community_follow_outbox.mygo:80:33*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[struct{}, string](stored))
- /*line community_follow_outbox.mygo:80:6*/	} else {
+ /*line community_follow_outbox.mygo:80:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:117:1*/	}
  /*line community_follow_outbox.mygo:62:1*/	planned := storage.PlanDelivery(ctx, db, activityURI, identity.ActorURI, []string{community.ActorURI.String}, community.ID)
- /*line community_follow_outbox.mygo:82:6*/	if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
+ /*line community_follow_outbox.mygo:82:3*/	if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
  /*line community_follow_outbox.mygo:82:34*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned))
- /*line community_follow_outbox.mygo:82:6*/	} else {
+ /*line community_follow_outbox.mygo:82:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:122:1*/	}
  /*line community_follow_outbox.mygo:83:3*/	return Ok[string, string](objectURI)
  /*line zz_community_follow_outbox.gen.go:124:1*/}
  /*line community_follow_outbox.mygo:86:1*/func ApplyReviewCommunityFollow(ctx context.Context, db *gorm.DB, site config.Site, communityID string, identity auth.Identity, actorURI string, accept bool) Result[struct {
 }, string] {
 	changed := storage.ReviewFollowChanged(ctx, db, site.ID, communityID, identity, actorURI, accept)
- /*line community_follow_outbox.mygo:96:6*/	if MygoIN6ResultM5IsErr[bool, string](changed) {
+ /*line community_follow_outbox.mygo:96:3*/	if MygoIN6ResultM5IsErr[bool, string](changed) {
  /*line community_follow_outbox.mygo:97:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](changed))
- /*line community_follow_outbox.mygo:96:6*/	} else {
+ /*line community_follow_outbox.mygo:96:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:131:1*/	}
- /*line community_follow_outbox.mygo:99:6*/	if !MygoIN6ResultM6Unwrap[bool, string](changed) {
+ /*line community_follow_outbox.mygo:99:3*/	if !MygoIN6ResultM6Unwrap[bool, string](changed) {
  /*line community_follow_outbox.mygo:100:12*/		return Ok[struct{}, string](struct {
  /*line zz_community_follow_outbox.gen.go:134:1*/		}{})
- /*line community_follow_outbox.mygo:99:6*/	} else {
+ /*line community_follow_outbox.mygo:99:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:136:1*/	}
  /*line community_follow_outbox.mygo:86:1*/	loaded := storage.LoadCommunityByID(ctx, db, communityID)
- /*line community_follow_outbox.mygo:103:6*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
+ /*line community_follow_outbox.mygo:103:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
  /*line community_follow_outbox.mygo:103:61*/		return Err[struct{}, string]("community unavailable")
- /*line community_follow_outbox.mygo:103:6*/	} else {
+ /*line community_follow_outbox.mygo:103:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:141:1*/	}
  /*line community_follow_outbox.mygo:86:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
- /*line community_follow_outbox.mygo:105:6*/	if community.HostSiteID != site.ID || community.FederationMode != "federated" || !community.ActorURI.Valid {
+ /*line community_follow_outbox.mygo:105:3*/	if community.HostSiteID != site.ID || community.FederationMode != "federated" || !community.ActorURI.Valid {
  /*line community_follow_outbox.mygo:106:12*/		return Ok[struct{}, string](struct {
  /*line zz_community_follow_outbox.gen.go:145:1*/		}{})
- /*line community_follow_outbox.mygo:105:6*/	} else {
+ /*line community_follow_outbox.mygo:105:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:147:1*/	}
  /*line community_follow_outbox.mygo:86:1*/	actor := storage.LoadActor(ctx, db, actorURI)
- /*line community_follow_outbox.mygo:109:6*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line community_follow_outbox.mygo:109:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
  /*line community_follow_outbox.mygo:109:59*/		return Err[struct{}, string]("actor unavailable")
- /*line community_follow_outbox.mygo:109:6*/	} else {
+ /*line community_follow_outbox.mygo:109:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:152:1*/	}
- /*line community_follow_outbox.mygo:110:6*/	if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid {
+ /*line community_follow_outbox.mygo:110:3*/	if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid {
  /*line community_follow_outbox.mygo:110:60*/		return Ok[struct{}, string](struct {
  /*line zz_community_follow_outbox.gen.go:155:1*/		}{})
- /*line community_follow_outbox.mygo:110:6*/	} else {
+ /*line community_follow_outbox.mygo:110:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:157:1*/	}
  /*line community_follow_outbox.mygo:86:1*/	followURI := storage.CommunityFollowURI(ctx, db, communityID, actorURI)
- /*line community_follow_outbox.mygo:112:6*/	if MygoIN6ResultM5IsErr[string, string](followURI) {
+ /*line community_follow_outbox.mygo:112:3*/	if MygoIN6ResultM5IsErr[string, string](followURI) {
  /*line community_follow_outbox.mygo:112:36*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](followURI))
- /*line community_follow_outbox.mygo:112:6*/	} else {
+ /*line community_follow_outbox.mygo:112:3*/	} else {
  /*line zz_community_follow_outbox.gen.go:162:1*/	}
- /*line community_follow_outbox.mygo:113:97*/	var __mygo_expr_0 string
+ /*line community_follow_outbox.mygo:113:94*/	var __mygo_expr_0 string
 	if accept {
 		__mygo_expr_0 = "Accept"
 	} else {

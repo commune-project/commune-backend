@@ -4,6 +4,8 @@ import testing "go:testing"
 import strings "go:strings"
 import os "go:os"
 import filepath "go:path/filepath"
+import json "go:encoding/json"
+import content "github.com/commune-project/commune-backend/internal/content"
 
 func validInput() -> Input
   Input {
@@ -45,6 +47,17 @@ func validInput() -> Input
       MaxMentions: 20,
       MaxRemoteDiscoveries: 10,
       MentionTimeoutSeconds: 10,
+      Markdown: Markdown {
+        HardWraps: Zero[json.RawMessage](),
+        AllowRawHTML: Zero[json.RawMessage](),
+      },
+      Sanitize: Sanitize {
+        Elements: Zero[Slice[String]](),
+        Attributes: Zero[Slice[SanitizeAttribute]](),
+        URLSchemes: Zero[Slice[String]](),
+        AllowRelativeURLs: Zero[json.RawMessage](),
+      },
+      Sanitizer: Zero[content.Sanitizer](),
     },
     ParticipationWorkers: ParticipationWorkers {
       Enabled: false,
@@ -65,12 +78,14 @@ func validInput() -> Input
         RegistrationEnabled: false,
         Origin: "https://A.EXAMPLE.:443/",
         Aliases: ["alias.example"],
+        Sanitizer: Zero[content.Sanitizer](),
       },
       Site {
         ID: "b",
         RegistrationEnabled: false,
         Origin: "https://b.example",
         Aliases: [],
+        Sanitizer: Zero[content.Sanitizer](),
       },
     ],
     DatabaseURL: "postgres://app:secret@localhost/commune?sslmode=disable",
@@ -183,6 +198,7 @@ func TestInvalidConfiguration(t: Ref[testing.T]) -> ()
                 RegistrationEnabled: false,
                 Origin: "https://a.example:443",
                 Aliases: [],
+                Sanitizer: Zero[content.Sanitizer](),
               },
             ]
           end
@@ -194,6 +210,7 @@ func TestInvalidConfiguration(t: Ref[testing.T]) -> ()
                 RegistrationEnabled: false,
                 Origin: "https://b.example",
                 Aliases: ["ALIAS.EXAMPLE."],
+                Sanitizer: Zero[content.Sanitizer](),
               },
             ]
           end
@@ -205,6 +222,7 @@ func TestInvalidConfiguration(t: Ref[testing.T]) -> ()
                 RegistrationEnabled: false,
                 Origin: "https://b.example",
                 Aliases: [],
+                Sanitizer: Zero[content.Sanitizer](),
               },
             ]
           end
@@ -214,6 +232,7 @@ func TestInvalidConfiguration(t: Ref[testing.T]) -> ()
               RegistrationEnabled: false,
               Origin: "https://a.example",
               Aliases: [],
+              Sanitizer: Zero[content.Sanitizer](),
             }]
           end
           case "bad database" => input.DatabaseURL = "mysql://user:secret@localhost/db"
@@ -262,6 +281,80 @@ func TestLoad(t: Ref[testing.T]) -> ()
           t.Fatal("file error exposes contents")
         end
       end
+    end
+  end)
+end
+
+func TestRenderingConfiguration(t: Ref[testing.T]) -> ()
+  let defaults = content.DefaultSanitizerConfig()
+  let settings = Validate(validInput()).Unwrap()
+  if settings.Rendering.Sanitize.Elements.Len() != defaults.Elements.Len() ||
+    settings.Rendering.Sanitize.Attributes.Len() != defaults.Attributes.Len() then
+    t.Fatal("rendering defaults were not applied")
+  end
+  if !content.RenderRich(settings.Sites.Get(0).Unwrap().Sanitizer, "**x**", "markdown").IsOk() then
+    t.Fatal("site sanitizer was not populated")
+  end
+  var empty = validInput()
+  empty.Rendering.Sanitize.Elements = []
+  empty.Rendering.Sanitize.Attributes = []
+  let emptySettings = Validate(empty).Unwrap()
+  if emptySettings.Rendering.Sanitize.Elements.Len() != 0 then
+    t.Fatal("explicit empty elements were replaced by defaults")
+  end
+  var restricted = validInput()
+  restricted.Rendering.Sanitize.Elements = ["p", "a", "img"]
+  restricted.Rendering.Sanitize.Attributes = [
+    SanitizeAttribute{Element: "a", Names: ["href"]},
+    SanitizeAttribute{Element: "img", Names: ["src"]},
+  ]
+  let restrictedSettings = Validate(restricted).Unwrap()
+  if restrictedSettings.Rendering.Sanitize.Elements.Len() != 3 then
+    t.Fatal("explicit element set was merged with defaults")
+  end
+  ["script", "iframe", "input"].Each(func(name: String) -> ()
+    var bad = validInput()
+    bad.Rendering.Sanitize.Elements = [name]
+    bad.Rendering.Sanitize.Attributes = []
+    if Validate(bad).IsOk() then
+      t.Fatalf("dangerous element accepted: %s", name)
+    end
+  end)
+  var badAttribute = validInput()
+  badAttribute.Rendering.Sanitize.Attributes = [
+    SanitizeAttribute{Element: "a", Names: ["style"]},
+  ]
+  if Validate(badAttribute).IsOk() then
+    t.Fatal("style attribute accepted")
+  end
+  var badEvent = validInput()
+  badEvent.Rendering.Sanitize.Attributes = [
+    SanitizeAttribute{Element: "a", Names: ["onclick"]},
+  ]
+  if Validate(badEvent).IsOk() then
+    t.Fatal("event attribute accepted")
+  end
+  var badScheme = validInput()
+  badScheme.Rendering.Sanitize.URLSchemes = ["javascript"]
+  if Validate(badScheme).IsOk() then
+    t.Fatal("javascript scheme accepted")
+  end
+end
+
+func TestRenderingTemplateDefaults(t: Ref[testing.T]) -> ()
+  let defaults = content.DefaultSanitizerConfig()
+  let expectedAttributes = defaults.Attributes.Map(func(item: content.SanitizerAttribute) -> String
+    item.Element + ":" + strings.Join(item.Names, ",")
+  end)
+  ["../../config/example.json", "../../deploy/commune.json"].Each(func(path: String) -> ()
+    let settings = Load(path).Unwrap()
+    let actualAttributes = settings.Rendering.Sanitize.Attributes.Map(func(item: SanitizeAttribute) -> String
+      item.Element + ":" + strings.Join(item.Names, ",")
+    end)
+    if strings.Join(settings.Rendering.Sanitize.Elements, ",") != strings.Join(defaults.Elements, ",") ||
+      strings.Join(actualAttributes, ";") != strings.Join(expectedAttributes, ";") ||
+      strings.Join(settings.Rendering.Sanitize.URLSchemes, ",") != strings.Join(defaults.URLSchemes, ",") then
+      t.Fatalf("rendering template drifted: %s", path)
     end
   end)
 end

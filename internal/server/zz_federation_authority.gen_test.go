@@ -53,15 +53,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 	embeddedMismatch := "{\"id\":\"http://127.0.0.1:1/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\"}"
 	unreachable := announceBody("https://hoax.example/activities/a1", hoax, embeddedMismatch, recipients)
 	unreachableResult := signedPost(handler, a.Origin, "/users/alice/inbox", unreachable, hoax, hoaxKey, date)
- /*line federation_authority_test.mygo:45:6*/	if unreachableResult.Code != 403 || !strings.Contains(unreachableResult.Body.String(), "unverifiable") {
+ /*line federation_authority_test.mygo:45:3*/	if unreachableResult.Code != 403 || !strings.Contains(unreachableResult.Body.String(), "unverifiable") {
  /*line federation_authority_test.mygo:46:5*/		t.Fatalf("unverifiable embedded author was accepted: %d %s", unreachableResult.Code, unreachableResult.Body.String())
- /*line federation_authority_test.mygo:45:6*/	} else {
+ /*line federation_authority_test.mygo:45:3*/	} else {
  /*line zz_federation_authority.gen_test.go:59:1*/	}
  /*line federation_authority_test.mygo:18:1*/	trustedBody := "{\"id\":\"" + hoax + "/objects/9\",\"actor\":\"" + hoax + "\",\"type\":\"Create\"}"
 	trusted := announceBody("https://hoax.example/activities/a2", hoax, trustedBody, recipients)
- /*line federation_authority_test.mygo:50:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", trusted, hoax, hoaxKey, date).Code != 202 {
+ /*line federation_authority_test.mygo:50:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", trusted, hoax, hoaxKey, date).Code != 202 {
  /*line federation_authority_test.mygo:51:5*/		t.Fatal("an activity embedded by its own signer was rejected")
- /*line federation_authority_test.mygo:50:6*/	} else {
+ /*line federation_authority_test.mygo:50:3*/	} else {
  /*line zz_federation_authority.gen_test.go:65:1*/	}
  /*line federation_authority_test.mygo:18:1*/	peerHandler := func(w http.ResponseWriter, request *http.Request) {
  /*line federation_authority_test.mygo:54:5*/		w.Header().Set("Content-Type", "application/activity+json")
@@ -73,28 +73,28 @@ import . "github.com/mygo-lang/mygo/prelude"
 	reachableInner := "{\"id\":\"" + peer.URL + "/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\"}"
 	relayed := announceBody("https://hoax.example/activities/a3", hoax, reachableInner, recipients)
 	relayedResult := signedPost(handler, a.Origin, "/users/alice/inbox", relayed, hoax, hoaxKey, date)
- /*line federation_authority_test.mygo:62:6*/	if relayedResult.Code != 202 {
+ /*line federation_authority_test.mygo:62:3*/	if relayedResult.Code != 202 {
  /*line federation_authority_test.mygo:63:5*/		t.Fatalf("canonically confirmed embedded activity was rejected: %d %s", relayedResult.Code, relayedResult.Body.String())
- /*line federation_authority_test.mygo:62:6*/	} else {
+ /*line federation_authority_test.mygo:62:3*/	} else {
  /*line zz_federation_authority.gen_test.go:79:1*/	}
  /*line federation_authority_test.mygo:65:3*/	peer.Close()
  /*line federation_authority_test.mygo:18:1*/	forgedUpdate := "{\"id\":\"https://hoax.example/activities/a4\",\"actor\":\"" + hoax + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
 	forgedResult := signedPost(handler, a.Origin, "/users/alice/inbox", forgedUpdate, hoax, hoaxKey, date)
- /*line federation_authority_test.mygo:68:6*/	if forgedResult.Code != 403 || !strings.Contains(forgedResult.Body.String(), "forged mutation") {
+ /*line federation_authority_test.mygo:68:3*/	if forgedResult.Code != 403 || !strings.Contains(forgedResult.Body.String(), "forged mutation") {
  /*line federation_authority_test.mygo:69:5*/		t.Fatalf("a signed update of another author's object was accepted: %d %s", forgedResult.Code, forgedResult.Body.String())
- /*line federation_authority_test.mygo:68:6*/	} else {
+ /*line federation_authority_test.mygo:68:3*/	} else {
  /*line zz_federation_authority.gen_test.go:86:1*/	}
  /*line federation_authority_test.mygo:18:1*/	ownerUpdate := "{\"id\":\"https://victim.example/activities/u1\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
- /*line federation_authority_test.mygo:72:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", ownerUpdate, victim, victimKey, date).Code != 202 {
+ /*line federation_authority_test.mygo:72:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", ownerUpdate, victim, victimKey, date).Code != 202 {
  /*line federation_authority_test.mygo:73:5*/		t.Fatal("the object owner's own update was rejected")
- /*line federation_authority_test.mygo:72:6*/	} else {
+ /*line federation_authority_test.mygo:72:3*/	} else {
  /*line zz_federation_authority.gen_test.go:91:1*/	}
  /*line federation_authority_test.mygo:18:1*/	unknownUpdate := "{\"id\":\"https://victim.example/activities/u2\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"https://victim.example/objects/absent\"}"
 	unknownResult := signedPost(handler, a.Origin, "/users/alice/inbox", unknownUpdate, victim, victimKey, date)
- /*line federation_authority_test.mygo:77:6*/	if unknownResult.Code != 403 || !strings.Contains(unknownResult.Body.String(), "unknown object") {
+ /*line federation_authority_test.mygo:77:3*/	if unknownResult.Code != 403 || !strings.Contains(unknownResult.Body.String(), "unknown object") {
  /*line federation_authority_test.mygo:78:5*/		t.Fatalf("an update of an unknown object was accepted: %d %s", unknownResult.Code, unknownResult.Body.String())
 		return
- /*line federation_authority_test.mygo:77:6*/	} else {
- /*line federation_authority_test.mygo:77:3*/		return
+ /*line federation_authority_test.mygo:77:3*/	} else {
+		return
  /*line zz_federation_authority.gen_test.go:99:1*/	}
 }

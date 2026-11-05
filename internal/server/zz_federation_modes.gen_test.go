@@ -53,32 +53,32 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_modes_test.mygo:41:5*/		return count
  /*line zz_federation_modes.gen_test.go:54:1*/	}
  /*line federation_modes_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", create("open-1", author, open, ""), author, authorKey, date)
- /*line federation_modes_test.mygo:44:6*/	if announced(open) != int64(1) {
+ /*line federation_modes_test.mygo:44:3*/	if announced(open) != int64(1) {
  /*line federation_modes_test.mygo:45:5*/		t.Fatal("an eligible author could not post in an open community")
- /*line federation_modes_test.mygo:44:6*/	} else {
+ /*line federation_modes_test.mygo:44:3*/	} else {
  /*line zz_federation_modes.gen_test.go:59:1*/	}
  /*line federation_modes_test.mygo:12:1*/	subscriberPost := create("mp-1", author, memberPost, "")
 	signedPost(handler, a.Origin, "/users/alice/inbox", subscriberPost, author, authorKey, date)
- /*line federation_modes_test.mygo:49:6*/	if announced(memberPost) != int64(0) {
+ /*line federation_modes_test.mygo:49:3*/	if announced(memberPost) != int64(0) {
  /*line federation_modes_test.mygo:50:5*/		t.Fatal("a non-member subscriber posted in a members-posting community")
- /*line federation_modes_test.mygo:49:6*/	} else {
+ /*line federation_modes_test.mygo:49:3*/	} else {
  /*line zz_federation_modes.gen_test.go:65:1*/	}
  /*line federation_modes_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", create("mp-2", member, memberPost, ""), member, memberKey, date)
- /*line federation_modes_test.mygo:53:6*/	if announced(memberPost) != int64(1) {
+ /*line federation_modes_test.mygo:53:3*/	if announced(memberPost) != int64(1) {
  /*line federation_modes_test.mygo:54:5*/		t.Fatal("an approved member could not post in a members-posting community")
- /*line federation_modes_test.mygo:53:6*/	} else {
+ /*line federation_modes_test.mygo:53:3*/	} else {
  /*line zz_federation_modes.gen_test.go:70:1*/	}
  /*line federation_modes_test.mygo:12:1*/	publicRestricted := create("mr-1", member, memberRead, ",\"https://www.w3.org/ns/activitystreams#Public\"")
 	signedPost(handler, a.Origin, "/users/alice/inbox", publicRestricted, member, memberKey, date)
- /*line federation_modes_test.mygo:58:6*/	if announced(memberRead) != int64(0) {
+ /*line federation_modes_test.mygo:58:3*/	if announced(memberRead) != int64(0) {
  /*line federation_modes_test.mygo:59:5*/		t.Fatal("a public-addressed submission was accepted for a member-readable community")
- /*line federation_modes_test.mygo:58:6*/	} else {
+ /*line federation_modes_test.mygo:58:3*/	} else {
  /*line zz_federation_modes.gen_test.go:76:1*/	}
  /*line federation_modes_test.mygo:12:1*/	stored := MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](storage.LoadActivityPayload(ctx, db, "https://peer.example/activities/mr-1"))
- /*line federation_modes_test.mygo:62:6*/	if MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](stored) || string(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](stored).Payload) != publicRestricted {
+ /*line federation_modes_test.mygo:62:3*/	if MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](stored) || string(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](stored).Payload) != publicRestricted {
  /*line federation_modes_test.mygo:63:5*/		t.Fatal("the rejected submission's original payload was rewritten or lost")
 		return
- /*line federation_modes_test.mygo:62:6*/	} else {
- /*line federation_modes_test.mygo:62:3*/		return
+ /*line federation_modes_test.mygo:62:3*/	} else {
+		return
  /*line zz_federation_modes.gen_test.go:83:1*/	}
 }

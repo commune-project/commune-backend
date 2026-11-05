@@ -39,77 +39,77 @@ import . "github.com/mygo-lang/mygo/prelude"
 	followURI := "https://peer.example/activities/follow-1"
 	follow := "{\"id\":\"" + followURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Follow\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + alice.ActorURI + "\"}"
 	followResult := signedPost(handler, a.Origin, "/users/alice/inbox", follow, follower, followerKey, date)
- /*line federation_follows_test.mygo:30:6*/	if followResult.Code != 202 {
+ /*line federation_follows_test.mygo:30:3*/	if followResult.Code != 202 {
  /*line federation_follows_test.mygo:31:5*/		t.Fatalf("person follow was not accepted: %d %s", followResult.Code, followResult.Body.String())
- /*line federation_follows_test.mygo:30:6*/	} else {
+ /*line federation_follows_test.mygo:30:3*/	} else {
  /*line zz_federation_follows.gen_test.go:45:1*/	}
  /*line federation_follows_test.mygo:13:1*/	following := MygoIN6ResultM6Unwrap[bool, string](storage.IsPersonFollower(ctx, db, alice.ActorURI, follower))
- /*line federation_follows_test.mygo:34:6*/	if !following {
+ /*line federation_follows_test.mygo:34:3*/	if !following {
  /*line federation_follows_test.mygo:35:5*/		t.Fatal("follow was not recorded for the local Person")
- /*line federation_follows_test.mygo:34:6*/	} else {
+ /*line federation_follows_test.mygo:34:3*/	} else {
  /*line zz_federation_follows.gen_test.go:50:1*/	}
  /*line federation_follows_test.mygo:13:1*/	var count int64 = int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Accept'", alice.ActorURI).Count(&count)))
- /*line federation_follows_test.mygo:39:6*/	if count != int64(1) {
+ /*line federation_follows_test.mygo:39:3*/	if count != int64(1) {
  /*line federation_follows_test.mygo:40:5*/		t.Fatal("an Accept was not issued for the follow")
- /*line federation_follows_test.mygo:39:6*/	} else {
+ /*line federation_follows_test.mygo:39:3*/	} else {
  /*line zz_federation_follows.gen_test.go:56:1*/	}
  /*line federation_follows_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", follower).Count(&count)))
- /*line federation_follows_test.mygo:43:6*/	if count != int64(1) {
+ /*line federation_follows_test.mygo:43:3*/	if count != int64(1) {
  /*line federation_follows_test.mygo:44:5*/		t.Fatal("the Accept was not queued for delivery to the follower")
- /*line federation_follows_test.mygo:43:6*/	} else {
+ /*line federation_follows_test.mygo:43:3*/	} else {
  /*line zz_federation_follows.gen_test.go:61:1*/	}
  /*line federation_follows_test.mygo:13:1*/	followers := getAP(handler, a.Origin, "/users/alice/followers", "application/activity+json")
- /*line federation_follows_test.mygo:47:6*/	if followers.Code != 200 || !strings.Contains(followers.Body.String(), "\"totalItems\":1") {
+ /*line federation_follows_test.mygo:47:3*/	if followers.Code != 200 || !strings.Contains(followers.Body.String(), "\"totalItems\":1") {
  /*line federation_follows_test.mygo:48:5*/		t.Fatalf("followers collection did not count the follower: %d %s", followers.Code, followers.Body.String())
- /*line federation_follows_test.mygo:47:6*/	} else {
+ /*line federation_follows_test.mygo:47:3*/	} else {
  /*line zz_federation_follows.gen_test.go:66:1*/	}
  /*line federation_follows_test.mygo:13:1*/	page := getAP(handler, a.Origin, "/users/alice/followers?page=1", "application/activity+json")
- /*line federation_follows_test.mygo:51:6*/	if !strings.Contains(page.Body.String(), follower) {
+ /*line federation_follows_test.mygo:51:3*/	if !strings.Contains(page.Body.String(), follower) {
  /*line federation_follows_test.mygo:52:5*/		t.Fatal("followers page did not list the follower")
- /*line federation_follows_test.mygo:51:6*/	} else {
+ /*line federation_follows_test.mygo:51:3*/	} else {
  /*line zz_federation_follows.gen_test.go:71:1*/	}
  /*line federation_follows_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("community_members").Count(&count)))
- /*line federation_follows_test.mygo:55:6*/	if count != int64(0) {
+ /*line federation_follows_test.mygo:55:3*/	if count != int64(0) {
  /*line federation_follows_test.mygo:56:5*/		t.Fatal("a person follow created community membership")
- /*line federation_follows_test.mygo:55:6*/	} else {
+ /*line federation_follows_test.mygo:55:3*/	} else {
  /*line zz_federation_follows.gen_test.go:76:1*/	}
  /*line federation_follows_test.mygo:13:1*/	undoURI := "https://peer.example/activities/undo-1"
 	undo := "{\"id\":\"" + undoURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Undo\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + followURI + "\"}"
- /*line federation_follows_test.mygo:60:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", undo, follower, followerKey, date).Code != 202 {
+ /*line federation_follows_test.mygo:60:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", undo, follower, followerKey, date).Code != 202 {
  /*line federation_follows_test.mygo:61:5*/		t.Fatal("undo of a person follow was not accepted")
- /*line federation_follows_test.mygo:60:6*/	} else {
+ /*line federation_follows_test.mygo:60:3*/	} else {
  /*line zz_federation_follows.gen_test.go:82:1*/	}
- /*line federation_follows_test.mygo:63:6*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsPersonFollower(ctx, db, alice.ActorURI, follower)) {
+ /*line federation_follows_test.mygo:63:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsPersonFollower(ctx, db, alice.ActorURI, follower)) {
  /*line federation_follows_test.mygo:64:5*/		t.Fatal("undo did not remove the follower")
- /*line federation_follows_test.mygo:63:6*/	} else {
+ /*line federation_follows_test.mygo:63:3*/	} else {
  /*line zz_federation_follows.gen_test.go:86:1*/	}
  /*line federation_follows_test.mygo:13:1*/	after := getAP(handler, a.Origin, "/users/alice/followers", "application/activity+json")
- /*line federation_follows_test.mygo:67:6*/	if !strings.Contains(after.Body.String(), "\"totalItems\":0") {
+ /*line federation_follows_test.mygo:67:3*/	if !strings.Contains(after.Body.String(), "\"totalItems\":0") {
  /*line federation_follows_test.mygo:68:5*/		t.Fatal("followers collection still counted a removed follower")
- /*line federation_follows_test.mygo:67:6*/	} else {
+ /*line federation_follows_test.mygo:67:3*/	} else {
  /*line zz_federation_follows.gen_test.go:91:1*/	}
  /*line federation_follows_test.mygo:13:1*/	announceURI := "https://peer.example/activities/announce-1"
 	announce := "{\"id\":\"" + announceURI + "\",\"actor\":\"" + follower + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"https://peer.example/objects/9\"}"
- /*line federation_follows_test.mygo:72:6*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, follower, followerKey, date).Code != 202 {
+ /*line federation_follows_test.mygo:72:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, follower, followerKey, date).Code != 202 {
  /*line federation_follows_test.mygo:73:5*/		t.Fatal("ordinary boost ingestion was not accepted")
- /*line federation_follows_test.mygo:72:6*/	} else {
+ /*line federation_follows_test.mygo:72:3*/	} else {
  /*line zz_federation_follows.gen_test.go:97:1*/	}
  /*line federation_follows_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("activity_uri = ?", announceURI).Count(&count)))
- /*line federation_follows_test.mygo:76:6*/	if count != int64(1) {
+ /*line federation_follows_test.mygo:76:3*/	if count != int64(1) {
  /*line federation_follows_test.mygo:77:5*/		t.Fatal("boost ingestion did not record a receipt")
- /*line federation_follows_test.mygo:76:6*/	} else {
+ /*line federation_follows_test.mygo:76:3*/	} else {
  /*line zz_federation_follows.gen_test.go:102:1*/	}
  /*line federation_follows_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("community_members").Count(&count)))
- /*line federation_follows_test.mygo:80:6*/	if count != int64(0) {
+ /*line federation_follows_test.mygo:80:3*/	if count != int64(0) {
  /*line federation_follows_test.mygo:81:5*/		t.Fatal("a boost created community membership")
- /*line federation_follows_test.mygo:80:6*/	} else {
+ /*line federation_follows_test.mygo:80:3*/	} else {
  /*line zz_federation_follows.gen_test.go:107:1*/	}
  /*line federation_follows_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Count(&count)))
- /*line federation_follows_test.mygo:84:6*/	if count != int64(0) {
+ /*line federation_follows_test.mygo:84:3*/	if count != int64(0) {
  /*line federation_follows_test.mygo:85:5*/		t.Fatal("a boost created group inclusion")
 		return
- /*line federation_follows_test.mygo:84:6*/	} else {
- /*line federation_follows_test.mygo:84:3*/		return
+ /*line federation_follows_test.mygo:84:3*/	} else {
+		return
  /*line zz_federation_follows.gen_test.go:114:1*/	}
 }
