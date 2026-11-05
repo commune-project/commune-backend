@@ -58,12 +58,14 @@ func PostMutation(
   id: String,
   identity: auth.Identity
 ) -> ()
-  if request.Method == "PATCH" then
-    var input = Zero[EditPostInput]()
-    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
-    if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
-    else
+  switch request.Method
+    case "PATCH" then
+      var input = Zero[EditPostInput]()
+      let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+      if decoded.IsErr() then
+        WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
+        return
+      end
       if input.ExpectedVersion <= 0i64 then
         WriteErrorJSON(w, 400, "invalid expected version")
         return
@@ -77,14 +79,10 @@ func PostMutation(
         return
       end
       if existing.Unwrap().AuthorActorURI != identity.ActorURI then
-        Fail(w, "forbidden")
+        FailFailure(w, Of("forbidden"))
         return
       end
-      let format = if input.ContentFormat == "" then
-        existing.Unwrap().ContentFormat
-      else
-        input.ContentFormat
-      end
+      let format = if input.ContentFormat == "" => existing.Unwrap().ContentFormat else input.ContentFormat
       let mentions = ResolvePostMentions(
         request.Context(),
         settings,
@@ -132,12 +130,11 @@ func PostMutation(
       let edited = saved.MapWithOk(updated)
       if edited.IsErr() then
         FailFailure(w, edited.UnwrapErr())
-      else
-        WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 200, identity, edited.Unwrap())
+        return
       end
+      WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 200, identity, edited.Unwrap())
     end
-  else
-    if request.Method == "DELETE" then
+    case "DELETE" then
       let deleted = storage.RunTransaction(
         request.Context(),
         db,
@@ -145,12 +142,7 @@ func PostMutation(
           let removed = storage.PostRepository {
             DB: tx,
             SiteID: site.ID,
-          }.Delete(
-            request.Context(),
-            id,
-            identity,
-            false
-          )
+          }.Delete(request.Context(), id, identity, false)
           if removed.IsErr() then
             return removed
           end
@@ -163,15 +155,13 @@ func PostMutation(
       )
       if deleted.IsErr() then
         FailFailure(w, deleted.UnwrapErr())
-      else
-        w.WriteHeader(204)
+        return
       end
-    else
-      MethodNotAllowed(w, "GET, PATCH, DELETE")
+      w.WriteHeader(204)
     end
+    case _ => MethodNotAllowed(w, "GET, PATCH, DELETE")
   end
 end
-
 func PostSectionRoute(
   settings: config.Config,
   db: Ref[gorm.DB],
@@ -194,66 +184,87 @@ func PostSectionRoute(
     MethodNotAllowed(w, "POST, DELETE")
     return
   end
-  WithActor(settings, db, site, w, request, func(identity: auth.Identity) -> Result[(), failure.Failure]
-    if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
-      (section == "read" && request.Method == "POST") ||
-      (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
-      let readable = storage.FeedRepository { DB: db, SiteID: site.ID }.ReadObject(request.Context(), id, identity, false)
-      if readable.IsErr() then
-        return Err(readable.UnwrapErr())
-      end
-      if readable.Unwrap().DeletedAt.Valid then
-        return Err(Of("not found"))
-      end
-      let state = storage.ContentStateRepository {
-        DB: db,
-        SiteID: site.ID,
-        AccountID: identity.AccountID,
-      }
-      let result = switch section
-        case "save" => state.Save(request.Context(), id, request.Method == "POST")
-        case "read" => state.Read(request.Context(), id)
-        case _ => state.Hide(request.Context(), id, request.Method == "POST")
-      end
-      Settle(w, result)
-      return Ok(())
-    end
-    if section == "vote" then
-      var input = Zero[VoteInput]()
-      if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
-        WriteErrorJSON(w, 400, "invalid vote")
+  WithActor(
+    settings,
+    db,
+    site,
+    w,
+    request,
+    func(identity: auth.Identity) -> Result[(), failure.Failure]
+      if (section == "save" && (request.Method == "POST" || request.Method == "DELETE")) ||
+        (section == "read" && request.Method == "POST") ||
+        (section == "hide-for-me" && (request.Method == "POST" || request.Method == "DELETE")) then
+        let readable = storage.FeedRepository { DB: db, SiteID: site.ID }.ReadObject(
+          request.Context(),
+          id,
+          identity,
+          false
+        )
+        if readable.IsErr() then
+          return Err(readable.UnwrapErr())
+        end
+        if readable.Unwrap().DeletedAt.Valid then
+          return Err(Of("not found"))
+        end
+        let state = storage.ContentStateRepository {
+          DB: db,
+          SiteID: site.ID,
+          AccountID: identity.AccountID,
+        }
+        let result = switch section
+          case "save" => state.Save(request.Context(), id, request.Method == "POST")
+          case "read" => state.Read(request.Context(), id)
+          case _ => state.Hide(request.Context(), id, request.Method == "POST")
+        end
+        Settle(w, result)
         return Ok(())
       end
-      let score = ParseVoteValue(input.Score)
-      if score.IsErr() then
-        WriteErrorJSON(w, 400, "invalid vote")
+      if section == "vote" then
+        var input = Zero[VoteInput]()
+        if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
+          WriteErrorJSON(w, 400, "invalid vote")
+          return Ok(())
+        end
+        let score = ParseVoteValue(input.Score)
+        if score.IsErr() then
+          WriteErrorJSON(w, 400, "invalid vote")
+          return Ok(())
+        end
+        Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score.Unwrap()))
         return Ok(())
       end
-      Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score.Unwrap()))
-      return Ok(())
-    end
-    if section == "likes" then
-      let score = if request.Method == "POST" => 1 else 0
-      Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
-      return Ok(())
-    end
-    if section == "import" && request.Method == "POST" then
-      let posts = storage.PostRepository { DB: db, SiteID: site.ID }
-      let imported = posts.Import(request.Context(), id, identity, false)
-      if imported.IsErr() then
-        return Err(imported.UnwrapErr())
+      if section == "likes" then
+        let score = if request.Method == "POST" => 1 else 0
+        Settle(w, ApplyLocalVote(request.Context(), settings, db, site, id, identity, score))
+        return Ok(())
       end
-      WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, imported.Unwrap())
-      return Ok(())
+      if section == "import" && request.Method == "POST" then
+        let posts = storage.PostRepository { DB: db, SiteID: site.ID }
+        let imported = posts.Import(request.Context(), id, identity, false)
+        if imported.IsErr() then
+          return Err(imported.UnwrapErr())
+        end
+        WriteBrowserPost(
+          settings.Rendering.Sanitizer,
+          db,
+          site,
+          w,
+          request,
+          201,
+          identity,
+          imported.Unwrap()
+        )
+        return Ok(())
+      end
+      if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
+        let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
+        Settle(w, feed.SetHidden(request.Context(), id, request.Method == "POST", identity))
+        return Ok(())
+      end
+      WriteErrorJSON(w, 404, "not found")
+      Ok(())
     end
-    if section == "hide" && (request.Method == "POST" || request.Method == "DELETE") then
-      let feed = storage.FeedRepository { DB: db, SiteID: site.ID }
-      Settle(w, feed.SetHidden(request.Context(), id, request.Method == "POST", identity))
-      return Ok(())
-    end
-    WriteErrorJSON(w, 404, "not found")
-    Ok(())
-  end)
+  )
 end
 
 func ReplyRoute(
@@ -273,60 +284,89 @@ func ReplyRoute(
     MethodNotAllowed(w, "GET, POST")
     return
   end
-  WithActor(settings, db, site, w, request, func(actor: auth.Identity) -> Result[(), failure.Failure]
-    let parent = feed.ReadObject(request.Context(), id, actor, false)
-    if parent.IsErr() then
-      return Err(parent.UnwrapErr())
+  WithActor(
+    settings,
+    db,
+    site,
+    w,
+    request,
+    func(actor: auth.Identity) -> Result[(), failure.Failure]
+      let parent = feed.ReadObject(request.Context(), id, actor, false)
+      if parent.IsErr() then
+        return Err(parent.UnwrapErr())
+      end
+      let communityBan = storage.ActiveCommunityBan(
+        request.Context(),
+        db,
+        parent.Unwrap().CommunityID,
+        actor.ActorURI,
+        time.Now()
+      )
+      let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.ActorURI, time.Now())
+      if communityBan.IsErr() || siteBan.IsErr() then
+        return Err(Of("moderation unavailable"))
+      end
+      if communityBan.Unwrap() || siteBan.Unwrap() then
+        return Err(Of("forbidden"))
+      end
+      let blocked = storage.IsInteractionBlocked(
+        request.Context(),
+        db,
+        site.ID,
+        parent.Unwrap().AuthorActorURI,
+        actor.ActorURI
+      )
+      if blocked.IsErr() then
+        return Err(blocked.UnwrapErr())
+      end
+      if blocked.Unwrap() then
+        return Err(Of("forbidden"))
+      end
+      var input = Zero[ReplyInput]()
+      let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
+      if decoded.IsErr() then
+        WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
+        return Ok(())
+      end
+      let mentions = ResolvePostMentions(
+        request.Context(),
+        settings,
+        db,
+        site,
+        actor,
+        parent.Unwrap().CommunityID,
+        input.Body,
+        input.ContentFormat,
+        false
+      )
+      if mentions.IsErr() then
+        return Err(mentions.UnwrapErr())
+      end
+      let published = PublishForumPost(
+        settings,
+        db,
+        request.Context(),
+        site,
+        parent.Unwrap().CommunityID,
+        actor,
+        false,
+        storage.PublishInput {
+          Title: "",
+          Body: input.Body,
+          ParentID: id,
+          ContextURI: input.ContextURI,
+          ContentFormat: input.ContentFormat,
+          AttachmentIDs: input.AttachmentIDs,
+          Mentions: mentions.Unwrap(),
+        }
+      )
+      if published.IsErr() then
+        return Err(published.UnwrapErr())
+      end
+      WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, actor, published.Unwrap())
+      Ok(())
     end
-    let communityBan = storage.ActiveCommunityBan(request.Context(), db, parent.Unwrap().CommunityID, actor.ActorURI, time.Now())
-    let siteBan = storage.ActiveSiteBan(request.Context(), db, site.ID, actor.ActorURI, time.Now())
-    if communityBan.IsErr() || siteBan.IsErr() then
-      return Err(Of("moderation unavailable"))
-    end
-    if communityBan.Unwrap() || siteBan.Unwrap() then
-      return Err(Of("forbidden"))
-    end
-    let blocked = storage.IsInteractionBlocked(request.Context(), db, site.ID, parent.Unwrap().AuthorActorURI, actor.ActorURI)
-    if blocked.IsErr() then
-      return Err(blocked.UnwrapErr())
-    end
-    if blocked.Unwrap() then
-      return Err(Of("forbidden"))
-    end
-    var input = Zero[ReplyInput]()
-    let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
-    if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
-      return Ok(())
-    end
-    let mentions = ResolvePostMentions(request.Context(), settings, db, site, actor, parent.Unwrap().CommunityID, input.Body, input.ContentFormat, false)
-    if mentions.IsErr() then
-      return Err(mentions.UnwrapErr())
-    end
-    let published = PublishForumPost(
-      settings,
-      db,
-      request.Context(),
-      site,
-      parent.Unwrap().CommunityID,
-      actor,
-      false,
-      storage.PublishInput {
-        Title: "",
-        Body: input.Body,
-        ParentID: id,
-        ContextURI: input.ContextURI,
-        ContentFormat: input.ContentFormat,
-        AttachmentIDs: input.AttachmentIDs,
-        Mentions: mentions.Unwrap(),
-      }
-    )
-    if published.IsErr() then
-      return Err(published.UnwrapErr())
-    end
-    WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, actor, published.Unwrap())
-    Ok(())
-  end)
+  )
 end
 func Settle(w: http.ResponseWriter, result: Result[(), failure.Failure]) -> ()
   if result.IsErr() then

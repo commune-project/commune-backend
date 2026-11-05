@@ -23,215 +23,229 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_browser_routes.gen.go:23:1*/}
 
  /*line browser_routes.mygo:22:1*/func BrowserIdentity(db *gorm.DB, site config.Site, request *http.Request, required bool) Result[auth.Identity, failure.Failure] {
-	session := Authenticated(db, site, request)
- /*line browser_routes.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
- /*line browser_routes.mygo:30:5*/		if !required && failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session)) == "unauthenticated" {
- /*line browser_routes.mygo:31:14*/			return Ok[auth.Identity, failure.Failure](Zero[auth.Identity]())
- /*line browser_routes.mygo:30:5*/		} else {
- /*line zz_browser_routes.gen.go:31:1*/		}
- /*line browser_routes.mygo:33:12*/		return Err[auth.Identity, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
- /*line browser_routes.mygo:29:3*/	} else {
- /*line zz_browser_routes.gen.go:34:1*/	}
- /*line browser_routes.mygo:35:3*/	return Ok[auth.Identity, failure.Failure](MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity)
- /*line zz_browser_routes.gen.go:36:1*/}
- /*line browser_routes.mygo:40:1*/func BrowserReadRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line browser_routes.mygo:28:3*/	__mygo_expr_0 := Authenticated(db, site, request)
+	__mygo_switch_matched___mygo_expr_1 := false
+	var __mygo_expr_2 Result[auth.Identity, failure.Failure]
+	if !__mygo_switch_matched___mygo_expr_1 {
+		if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[storage.AuthenticatedSession, failure.Failure]); ok {
+ /*line browser_routes.mygo:29:22*/			if required && failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_3.F0) == "unauthenticated" {
+ /*line browser_routes.mygo:28:3*/				__mygo_switch_matched___mygo_expr_1 = true
+				__mygo_expr_2 = Ok[auth.Identity, failure.Failure](Zero[auth.Identity]())
+ /*line zz_browser_routes.gen.go:34:1*/			}
+		}
+	}
+ /*line browser_routes.mygo:28:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+		if __mygo_match___mygo_expr_4, ok := __mygo_expr_0.(Result__Err[storage.AuthenticatedSession, failure.Failure]); ok {
+			__mygo_switch_matched___mygo_expr_1 = true
+			__mygo_expr_2 = Err[auth.Identity, failure.Failure](__mygo_match___mygo_expr_4.F0)
+ /*line zz_browser_routes.gen.go:41:1*/		}
+	}
+ /*line browser_routes.mygo:28:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+		if __mygo_match___mygo_expr_5, ok := __mygo_expr_0.(Result__Ok[storage.AuthenticatedSession, failure.Failure]); ok {
+			__mygo_switch_matched___mygo_expr_1 = true
+			__mygo_expr_2 = Ok[auth.Identity, failure.Failure](__mygo_match___mygo_expr_5.F0.Identity)
+ /*line zz_browser_routes.gen.go:47:1*/		}
+	}
+ /*line browser_routes.mygo:28:3*/	return __mygo_expr_2
+ /*line zz_browser_routes.gen.go:50:1*/}
+ /*line browser_routes.mygo:39:1*/func BrowserReadRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
 	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
 	section := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 4), "")
 	community := resource == "communities" && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && (section == "topics" || section == "members" || section == "managers"))
 	topic := resource == "topics" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3
 	post := resource == "posts" && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 5 && (section == "replies" || section == "source"))
- /*line browser_routes.mygo:57:3*/	if !community && !topic && !post {
- /*line browser_routes.mygo:58:12*/		return false
- /*line browser_routes.mygo:57:3*/	} else {
- /*line zz_browser_routes.gen.go:46:1*/	}
- /*line browser_routes.mygo:40:1*/	roster := community && (section == "members" || section == "managers")
- /*line browser_routes.mygo:61:3*/	if request.Method != "GET" {
- /*line browser_routes.mygo:62:5*/		if topic || section == "source" {
- /*line browser_routes.mygo:63:7*/			MethodNotAllowed(w, "GET")
- /*line browser_routes.mygo:64:14*/			return true
- /*line browser_routes.mygo:62:5*/		} else {
- /*line zz_browser_routes.gen.go:53:1*/		}
- /*line browser_routes.mygo:66:5*/		if roster && request.Method != "POST" && request.Method != "DELETE" {
- /*line browser_routes.mygo:67:7*/			MethodNotAllowed(w, "GET, POST, DELETE")
- /*line browser_routes.mygo:68:14*/			return true
- /*line browser_routes.mygo:66:5*/		} else {
- /*line zz_browser_routes.gen.go:58:1*/		}
- /*line browser_routes.mygo:70:12*/		return false
- /*line browser_routes.mygo:61:3*/	} else {
- /*line zz_browser_routes.gen.go:61:1*/	}
- /*line browser_routes.mygo:40:1*/	identity := BrowserIdentity(db, site, request, roster || section == "source")
- /*line browser_routes.mygo:73:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](identity) {
- /*line browser_routes.mygo:74:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](identity))
- /*line browser_routes.mygo:75:12*/		return true
- /*line browser_routes.mygo:73:3*/	} else {
- /*line zz_browser_routes.gen.go:67:1*/	}
- /*line browser_routes.mygo:40:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
+ /*line browser_routes.mygo:56:3*/	if !community && !topic && !post {
+ /*line browser_routes.mygo:57:12*/		return false
+ /*line browser_routes.mygo:56:3*/	} else {
+ /*line zz_browser_routes.gen.go:60:1*/	}
+ /*line browser_routes.mygo:39:1*/	roster := community && (section == "members" || section == "managers")
+ /*line browser_routes.mygo:60:3*/	if request.Method != "GET" {
+ /*line browser_routes.mygo:61:5*/		if topic || section == "source" {
+ /*line browser_routes.mygo:62:7*/			MethodNotAllowed(w, "GET")
+ /*line browser_routes.mygo:63:14*/			return true
+ /*line browser_routes.mygo:61:5*/		} else {
+ /*line zz_browser_routes.gen.go:67:1*/		}
+ /*line browser_routes.mygo:65:5*/		if roster && request.Method != "POST" && request.Method != "DELETE" {
+ /*line browser_routes.mygo:66:7*/			MethodNotAllowed(w, "GET, POST, DELETE")
+ /*line browser_routes.mygo:67:14*/			return true
+ /*line browser_routes.mygo:65:5*/		} else {
+ /*line zz_browser_routes.gen.go:72:1*/		}
+ /*line browser_routes.mygo:69:12*/		return false
+ /*line browser_routes.mygo:60:3*/	} else {
+ /*line zz_browser_routes.gen.go:75:1*/	}
+ /*line browser_routes.mygo:39:1*/	identity := BrowserIdentity(db, site, request, roster || section == "source")
+ /*line browser_routes.mygo:72:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](identity) {
+ /*line browser_routes.mygo:73:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](identity))
+ /*line browser_routes.mygo:74:12*/		return true
+ /*line browser_routes.mygo:72:3*/	} else {
+ /*line zz_browser_routes.gen.go:81:1*/	}
+ /*line browser_routes.mygo:39:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
 	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](identity))
- /*line browser_routes.mygo:79:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, failure.Failure](viewer) {
- /*line browser_routes.mygo:80:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, failure.Failure](viewer))
- /*line browser_routes.mygo:81:12*/		return true
- /*line browser_routes.mygo:79:3*/	} else {
- /*line zz_browser_routes.gen.go:74:1*/	}
- /*line browser_routes.mygo:83:3*/	if community && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 {
- /*line browser_routes.mygo:84:5*/		BrowserCommunityRead(repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)))
- /*line browser_routes.mygo:85:12*/		return true
- /*line browser_routes.mygo:83:3*/	} else {
- /*line zz_browser_routes.gen.go:79:1*/	}
- /*line browser_routes.mygo:87:6*/	if post && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 || section == "source") {
- /*line browser_routes.mygo:88:5*/		BrowserPostRead(settings.Rendering.Sanitizer, repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), section == "source")
- /*line browser_routes.mygo:89:12*/		return true
- /*line browser_routes.mygo:87:3*/	} else {
- /*line zz_browser_routes.gen.go:84:1*/	}
- /*line browser_routes.mygo:40:1*/	page := PageFromQuery(settings, request)
- /*line browser_routes.mygo:92:3*/	if MygoIN6ResultM5IsErr[storage.Page, failure.Failure](page) {
- /*line browser_routes.mygo:93:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.Page, failure.Failure](page))
- /*line browser_routes.mygo:94:12*/		return true
- /*line browser_routes.mygo:92:3*/	} else {
- /*line zz_browser_routes.gen.go:90:1*/	}
- /*line browser_routes.mygo:96:3*/	if community && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
+ /*line browser_routes.mygo:78:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, failure.Failure](viewer) {
+ /*line browser_routes.mygo:79:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, failure.Failure](viewer))
+ /*line browser_routes.mygo:80:12*/		return true
+ /*line browser_routes.mygo:78:3*/	} else {
+ /*line zz_browser_routes.gen.go:88:1*/	}
+ /*line browser_routes.mygo:82:3*/	if community && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 {
+ /*line browser_routes.mygo:83:5*/		BrowserCommunityRead(repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)))
+ /*line browser_routes.mygo:84:12*/		return true
+ /*line browser_routes.mygo:82:3*/	} else {
+ /*line zz_browser_routes.gen.go:93:1*/	}
+ /*line browser_routes.mygo:86:6*/	if post && (MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4 || section == "source") {
+ /*line browser_routes.mygo:87:5*/		BrowserPostRead(settings.Rendering.Sanitizer, repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), section == "source")
+ /*line browser_routes.mygo:88:12*/		return true
+ /*line browser_routes.mygo:86:3*/	} else {
+ /*line zz_browser_routes.gen.go:98:1*/	}
+ /*line browser_routes.mygo:39:1*/	page := PageFromQuery(settings, request)
+ /*line browser_routes.mygo:91:3*/	if MygoIN6ResultM5IsErr[storage.Page, failure.Failure](page) {
+ /*line browser_routes.mygo:92:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.Page, failure.Failure](page))
+ /*line browser_routes.mygo:93:12*/		return true
+ /*line browser_routes.mygo:91:3*/	} else {
+ /*line zz_browser_routes.gen.go:104:1*/	}
+ /*line browser_routes.mygo:95:3*/	if community && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3 {
 		views := storage.MygoIN17BrowserRepositoryM15ListCommunities(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
- /*line browser_routes.mygo:103:5*/		if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
- /*line browser_routes.mygo:104:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
- /*line browser_routes.mygo:103:5*/		} else {
+ /*line browser_routes.mygo:102:5*/		if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
+ /*line browser_routes.mygo:103:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
+ /*line browser_routes.mygo:102:5*/		} else {
 			outputs := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views), func(view storage.CommunityView) CommunityOutput {
- /*line browser_routes.mygo:107:9*/				return MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
- /*line zz_browser_routes.gen.go:98:1*/			})
- /*line browser_routes.mygo:103:5*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
- /*line zz_browser_routes.gen.go:100:1*/		}
- /*line browser_routes.mygo:119:12*/		return true
- /*line browser_routes.mygo:96:3*/	} else {
- /*line zz_browser_routes.gen.go:103:1*/	}
- /*line browser_routes.mygo:121:3*/	if roster {
+ /*line browser_routes.mygo:106:9*/				return MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer))
+ /*line zz_browser_routes.gen.go:112:1*/			})
+ /*line browser_routes.mygo:102:5*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
+ /*line zz_browser_routes.gen.go:114:1*/		}
+ /*line browser_routes.mygo:118:12*/		return true
+ /*line browser_routes.mygo:95:3*/	} else {
+ /*line zz_browser_routes.gen.go:117:1*/	}
+ /*line browser_routes.mygo:120:3*/	if roster {
 		rows := storage.MygoIN17BrowserRepositoryM6Roster(repository, request.Context(), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), section == "managers", MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
- /*line browser_routes.mygo:130:5*/		if MygoIN6ResultM5IsErr[[]storage.RosterEntry, failure.Failure](rows) {
- /*line browser_routes.mygo:131:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.RosterEntry, failure.Failure](rows))
- /*line browser_routes.mygo:130:5*/		} else {
- /*line browser_routes.mygo:133:7*/			WriteJSON(w, 200, RosterPage{Items: MygoIN6ResultM6Unwrap[[]storage.RosterEntry, failure.Failure](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
- /*line zz_browser_routes.gen.go:110:1*/		}
- /*line browser_routes.mygo:143:12*/		return true
- /*line browser_routes.mygo:121:3*/	} else {
- /*line zz_browser_routes.gen.go:113:1*/	}
- /*line browser_routes.mygo:145:3*/	BrowserTopicRead(settings.Rendering.Sanitizer, repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, parts, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
- /*line browser_routes.mygo:155:3*/	return true
- /*line zz_browser_routes.gen.go:116:1*/}
- /*line browser_routes.mygo:158:1*/func BrowserCommunityRead(repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string) {
+ /*line browser_routes.mygo:129:5*/		if MygoIN6ResultM5IsErr[[]storage.RosterEntry, failure.Failure](rows) {
+ /*line browser_routes.mygo:130:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.RosterEntry, failure.Failure](rows))
+ /*line browser_routes.mygo:129:5*/		} else {
+ /*line browser_routes.mygo:132:7*/			WriteJSON(w, 200, RosterPage{Items: MygoIN6ResultM6Unwrap[[]storage.RosterEntry, failure.Failure](rows), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
+ /*line zz_browser_routes.gen.go:124:1*/		}
+ /*line browser_routes.mygo:142:12*/		return true
+ /*line browser_routes.mygo:120:3*/	} else {
+ /*line zz_browser_routes.gen.go:127:1*/	}
+ /*line browser_routes.mygo:144:3*/	BrowserTopicRead(settings.Rendering.Sanitizer, repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), w, request, parts, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line browser_routes.mygo:154:3*/	return true
+ /*line zz_browser_routes.gen.go:130:1*/}
+ /*line browser_routes.mygo:157:1*/func BrowserCommunityRead(repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string) {
 	var ids []string = []string{id}
 	views := storage.MygoIN17BrowserRepositoryM5Views(repository, request.Context(), viewer, ids)
- /*line browser_routes.mygo:167:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
- /*line browser_routes.mygo:168:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
- /*line browser_routes.mygo:167:3*/		return
+ /*line browser_routes.mygo:166:3*/	if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
+ /*line browser_routes.mygo:167:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
+ /*line browser_routes.mygo:166:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:124:1*/	}
- /*line browser_routes.mygo:171:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views)) != 1 {
- /*line browser_routes.mygo:172:5*/		Fail(w, "not found")
- /*line browser_routes.mygo:171:3*/		return
+ /*line zz_browser_routes.gen.go:138:1*/	}
+ /*line browser_routes.mygo:170:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views)) != 1 {
+ /*line browser_routes.mygo:171:5*/		Fail(w, "not found")
+ /*line browser_routes.mygo:170:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:129:1*/	}
- /*line browser_routes.mygo:158:1*/	view := MygoIN6OptionM6Unwrap[storage.CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views), 0))
- /*line browser_routes.mygo:178:3*/	if view.Record.HostSiteID != repository.SiteID {
+ /*line zz_browser_routes.gen.go:143:1*/	}
+ /*line browser_routes.mygo:157:1*/	view := MygoIN6OptionM6Unwrap[storage.CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views), 0))
+ /*line browser_routes.mygo:177:3*/	if view.Record.HostSiteID != repository.SiteID {
 		received := storage.QueryExists(repository.DB.WithContext(request.Context()).Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", repository.SiteID).Where("p.community_id=?", id))
- /*line browser_routes.mygo:186:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](received) {
- /*line browser_routes.mygo:187:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[bool, failure.Failure](received))
- /*line browser_routes.mygo:186:5*/			return
+ /*line browser_routes.mygo:185:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](received) {
+ /*line browser_routes.mygo:186:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[bool, failure.Failure](received))
+ /*line browser_routes.mygo:185:5*/			return
 		} else {
- /*line zz_browser_routes.gen.go:137:1*/		}
- /*line browser_routes.mygo:178:3*/		if view.Record.HostSiteID != "" || !MygoIN6ResultM6Unwrap[bool, failure.Failure](received) {
- /*line browser_routes.mygo:191:7*/			Fail(w, "not found")
- /*line browser_routes.mygo:178:3*/			return
+ /*line zz_browser_routes.gen.go:151:1*/		}
+ /*line browser_routes.mygo:177:3*/		if view.Record.HostSiteID != "" || !MygoIN6ResultM6Unwrap[bool, failure.Failure](received) {
+ /*line browser_routes.mygo:190:7*/			Fail(w, "not found")
+ /*line browser_routes.mygo:177:3*/			return
 		} else {
- /*line zz_browser_routes.gen.go:142:1*/		}
- /*line browser_routes.mygo:178:3*/	} else {
- /*line zz_browser_routes.gen.go:144:1*/	}
- /*line browser_routes.mygo:195:3*/	if !storage.MygoIN15CommunityAccessM7CanRead(storage.MygoIN17BrowserRepositoryM6Access(repository, view, viewer)) {
- /*line browser_routes.mygo:196:5*/		Fail(w, "not found")
- /*line browser_routes.mygo:195:3*/		return
+ /*line zz_browser_routes.gen.go:156:1*/		}
+ /*line browser_routes.mygo:177:3*/	} else {
+ /*line zz_browser_routes.gen.go:158:1*/	}
+ /*line browser_routes.mygo:194:3*/	if !storage.MygoIN15CommunityAccessM7CanRead(storage.MygoIN17BrowserRepositoryM6Access(repository, view, viewer)) {
+ /*line browser_routes.mygo:195:5*/		Fail(w, "not found")
+ /*line browser_routes.mygo:194:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:149:1*/	}
- /*line browser_routes.mygo:158:1*/	audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, request.Context(), viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views))
- /*line browser_routes.mygo:200:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](audit) {
- /*line browser_routes.mygo:201:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
+ /*line zz_browser_routes.gen.go:163:1*/	}
+ /*line browser_routes.mygo:157:1*/	audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, request.Context(), viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views))
+ /*line browser_routes.mygo:199:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](audit) {
+ /*line browser_routes.mygo:200:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
 		return
- /*line browser_routes.mygo:200:3*/	} else {
- /*line browser_routes.mygo:203:5*/		WriteJSON(w, 200, MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, viewer))
+ /*line browser_routes.mygo:199:3*/	} else {
+ /*line browser_routes.mygo:202:5*/		WriteJSON(w, 200, MygoIN15CommunityOutputM8FromView(request.Context(), repository, view, viewer))
 		return
- /*line zz_browser_routes.gen.go:157:1*/	}
+ /*line zz_browser_routes.gen.go:171:1*/	}
 }
- /*line browser_routes.mygo:207:1*/func BrowserPostRead(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string, source bool) {
- /*line browser_routes.mygo:216:3*/	if !source {
- /*line browser_routes.mygo:217:5*/		BrowserPostDisplay(sanitizer, repository, viewer, w, request, id)
- /*line browser_routes.mygo:216:3*/		return
+ /*line browser_routes.mygo:206:1*/func BrowserPostRead(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string, source bool) {
+ /*line browser_routes.mygo:215:3*/	if !source {
+ /*line browser_routes.mygo:216:5*/		BrowserPostDisplay(sanitizer, repository, viewer, w, request, id)
+ /*line browser_routes.mygo:215:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:164:1*/	}
- /*line browser_routes.mygo:207:1*/	output := Zero[PostSource]()
+ /*line zz_browser_routes.gen.go:178:1*/	}
+ /*line browser_routes.mygo:206:1*/	output := Zero[PostSource]()
 	result := storage.RunTransaction(request.Context(), repository.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
- /*line browser_routes.mygo:224:5*/		isolation := storage.MutationResult(tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
- /*line browser_routes.mygo:226:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](isolation) {
- /*line browser_routes.mygo:227:16*/			return isolation
- /*line browser_routes.mygo:226:7*/		} else {
- /*line zz_browser_routes.gen.go:171:1*/		}
- /*line browser_routes.mygo:224:5*/		read := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: tx, SiteID: repository.SiteID}, request.Context(), id, viewer.Identity, false)
- /*line browser_routes.mygo:235:7*/		if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](read) {
- /*line browser_routes.mygo:236:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](read))
- /*line browser_routes.mygo:235:7*/		} else {
- /*line zz_browser_routes.gen.go:176:1*/		}
- /*line browser_routes.mygo:224:5*/		record := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](read)
- /*line browser_routes.mygo:239:7*/		if record.DeletedAt.Valid {
- /*line browser_routes.mygo:240:16*/			return Err[struct{}, failure.Failure](Of("not found"))
- /*line browser_routes.mygo:239:7*/		} else {
- /*line zz_browser_routes.gen.go:181:1*/		}
- /*line browser_routes.mygo:224:5*/		outputs := BrowserPosts(sanitizer, request.Context(), storage.BrowserRepository{DB: tx, SiteID: repository.SiteID}, viewer, []storage.PostRecord{record})
- /*line browser_routes.mygo:252:7*/		if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
- /*line browser_routes.mygo:253:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
- /*line browser_routes.mygo:252:7*/		} else {
- /*line zz_browser_routes.gen.go:186:1*/		}
- /*line browser_routes.mygo:224:5*/		post := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), 0))
- /*line browser_routes.mygo:256:7*/		if !post.Permissions.CanEdit {
- /*line browser_routes.mygo:257:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
- /*line browser_routes.mygo:256:7*/		} else {
- /*line zz_browser_routes.gen.go:191:1*/		}
- /*line browser_routes.mygo:224:5*/		output = PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt, Version: record.Version, ContentFormat: record.ContentFormat, AttachmentIDs: post.AttachmentIDs}
- /*line browser_routes.mygo:268:7*/		return Ok[struct{}, failure.Failure](struct {
- /*line zz_browser_routes.gen.go:194:1*/		}{})
+ /*line browser_routes.mygo:223:5*/		isolation := storage.MutationResult(tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+ /*line browser_routes.mygo:225:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](isolation) {
+ /*line browser_routes.mygo:226:16*/			return isolation
+ /*line browser_routes.mygo:225:7*/		} else {
+ /*line zz_browser_routes.gen.go:185:1*/		}
+ /*line browser_routes.mygo:223:5*/		read := storage.MygoIN14FeedRepositoryM10ReadObject(storage.FeedRepository{DB: tx, SiteID: repository.SiteID}, request.Context(), id, viewer.Identity, false)
+ /*line browser_routes.mygo:234:7*/		if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](read) {
+ /*line browser_routes.mygo:235:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](read))
+ /*line browser_routes.mygo:234:7*/		} else {
+ /*line zz_browser_routes.gen.go:190:1*/		}
+ /*line browser_routes.mygo:223:5*/		record := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](read)
+ /*line browser_routes.mygo:238:7*/		if record.DeletedAt.Valid {
+ /*line browser_routes.mygo:239:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line browser_routes.mygo:238:7*/		} else {
+ /*line zz_browser_routes.gen.go:195:1*/		}
+ /*line browser_routes.mygo:223:5*/		outputs := BrowserPosts(sanitizer, request.Context(), storage.BrowserRepository{DB: tx, SiteID: repository.SiteID}, viewer, []storage.PostRecord{record})
+ /*line browser_routes.mygo:251:7*/		if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
+ /*line browser_routes.mygo:252:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
+ /*line browser_routes.mygo:251:7*/		} else {
+ /*line zz_browser_routes.gen.go:200:1*/		}
+ /*line browser_routes.mygo:223:5*/		post := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), 0))
+ /*line browser_routes.mygo:255:7*/		if !post.Permissions.CanEdit {
+ /*line browser_routes.mygo:256:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line browser_routes.mygo:255:7*/		} else {
+ /*line zz_browser_routes.gen.go:205:1*/		}
+ /*line browser_routes.mygo:223:5*/		output = PostSource{ID: record.ID, Title: record.Title.String, Body: record.Body, UpdatedAt: record.UpdatedAt, Version: record.Version, ContentFormat: record.ContentFormat, AttachmentIDs: post.AttachmentIDs}
+ /*line browser_routes.mygo:267:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_browser_routes.gen.go:208:1*/		}{})
 	})
- /*line browser_routes.mygo:271:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
- /*line browser_routes.mygo:272:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line browser_routes.mygo:270:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line browser_routes.mygo:271:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
 		return
- /*line browser_routes.mygo:271:3*/	} else {
- /*line browser_routes.mygo:274:5*/		WriteJSON(w, 200, output)
+ /*line browser_routes.mygo:270:3*/	} else {
+ /*line browser_routes.mygo:273:5*/		WriteJSON(w, 200, output)
 		return
- /*line zz_browser_routes.gen.go:202:1*/	}
+ /*line zz_browser_routes.gen.go:216:1*/	}
 }
- /*line browser_routes.mygo:278:1*/func BrowserPostDisplay(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string) {
+ /*line browser_routes.mygo:277:1*/func BrowserPostDisplay(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, id string) {
 	feed := storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
 	read := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, viewer.Identity, false)
- /*line browser_routes.mygo:288:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](read) {
- /*line browser_routes.mygo:289:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](read))
- /*line browser_routes.mygo:288:3*/		return
+ /*line browser_routes.mygo:287:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](read) {
+ /*line browser_routes.mygo:288:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](read))
+ /*line browser_routes.mygo:287:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:211:1*/	}
- /*line browser_routes.mygo:278:1*/	record := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](read)
+ /*line zz_browser_routes.gen.go:225:1*/	}
+ /*line browser_routes.mygo:277:1*/	record := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](read)
 	var records []storage.PostRecord = []storage.PostRecord{record}
 	outputs := BrowserPosts(sanitizer, request.Context(), repository, viewer, records)
- /*line browser_routes.mygo:295:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
- /*line browser_routes.mygo:296:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
- /*line browser_routes.mygo:295:3*/		return
+ /*line browser_routes.mygo:294:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
+ /*line browser_routes.mygo:295:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
+ /*line browser_routes.mygo:294:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:219:1*/	}
- /*line browser_routes.mygo:278:1*/	output := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), 0))
- /*line browser_routes.mygo:300:3*/	WriteJSON(w, 200, output)
+ /*line zz_browser_routes.gen.go:233:1*/	}
+ /*line browser_routes.mygo:277:1*/	output := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), 0))
+ /*line browser_routes.mygo:299:3*/	WriteJSON(w, 200, output)
 	return
- /*line zz_browser_routes.gen.go:223:1*/}
- /*line browser_routes.mygo:303:1*/func BrowserTopicRead(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, parts []string, page storage.Page, max int) {
+ /*line zz_browser_routes.gen.go:237:1*/}
+ /*line browser_routes.mygo:302:1*/func BrowserTopicRead(sanitizer content.Sanitizer, repository storage.BrowserRepository, viewer storage.BrowserViewer, w http.ResponseWriter, request *http.Request, parts []string, page storage.Page, max int) {
 	feed := storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
 	topicSort := ParseTopicSort(request)
- /*line browser_routes.mygo:315:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](topicSort) {
- /*line browser_routes.mygo:316:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[string, failure.Failure](topicSort))
- /*line browser_routes.mygo:315:3*/		return
+ /*line browser_routes.mygo:314:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](topicSort) {
+ /*line browser_routes.mygo:315:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[string, failure.Failure](topicSort))
+ /*line browser_routes.mygo:314:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:231:1*/	}
- /*line browser_routes.mygo:303:1*/	var records Result[[]storage.PostRecord, failure.Failure] = Err[[]storage.PostRecord, failure.Failure](Of("not found"))
+ /*line zz_browser_routes.gen.go:245:1*/	}
+ /*line browser_routes.mygo:302:1*/	var records Result[[]storage.PostRecord, failure.Failure] = Err[[]storage.PostRecord, failure.Failure](Of("not found"))
 	var readCommunityID string = ""
- /*line browser_routes.mygo:321:3*/	if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "topics" {
+ /*line browser_routes.mygo:320:3*/	if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2)) == "topics" {
 		records = storage.MygoIN17BrowserRepositoryM12LatestSorted(repository, request.Context(), viewer, page, max, MygoIN6ResultM6Unwrap[string, failure.Failure](topicSort))
 	} else {
 		id := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3))
@@ -240,66 +254,66 @@ import . "github.com/mygo-lang/mygo/prelude"
 			records = storage.MygoIN14FeedRepositoryM16ListTopicsSorted(feed, request.Context(), id, viewer.Identity, false, page, max, MygoIN6ResultM6Unwrap[string, failure.Failure](topicSort))
 		} else {
 			threadDepth := ParseThreadDepth(request)
- /*line browser_routes.mygo:330:7*/			if MygoIN6ResultM5IsErr[int, failure.Failure](threadDepth) {
- /*line browser_routes.mygo:331:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[int, failure.Failure](threadDepth))
- /*line browser_routes.mygo:330:7*/				return
+ /*line browser_routes.mygo:329:7*/			if MygoIN6ResultM5IsErr[int, failure.Failure](threadDepth) {
+ /*line browser_routes.mygo:330:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[int, failure.Failure](threadDepth))
+ /*line browser_routes.mygo:329:7*/				return
 			} else {
- /*line zz_browser_routes.gen.go:247:1*/			}
- /*line browser_routes.mygo:321:3*/			threadSort := ParseThreadSort(request)
- /*line browser_routes.mygo:335:7*/			if MygoIN6ResultM5IsErr[ThreadSortMode, failure.Failure](threadSort) {
- /*line browser_routes.mygo:336:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[ThreadSortMode, failure.Failure](threadSort))
- /*line browser_routes.mygo:335:7*/				return
+ /*line zz_browser_routes.gen.go:261:1*/			}
+ /*line browser_routes.mygo:320:3*/			threadSort := ParseThreadSort(request)
+ /*line browser_routes.mygo:334:7*/			if MygoIN6ResultM5IsErr[ThreadSortMode, failure.Failure](threadSort) {
+ /*line browser_routes.mygo:335:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[ThreadSortMode, failure.Failure](threadSort))
+ /*line browser_routes.mygo:334:7*/				return
 			} else {
- /*line zz_browser_routes.gen.go:253:1*/			}
- /*line browser_routes.mygo:321:3*/			parent := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, viewer.Identity, false)
- /*line browser_routes.mygo:340:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](parent) {
- /*line browser_routes.mygo:341:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](parent))
- /*line browser_routes.mygo:340:7*/				return
+ /*line zz_browser_routes.gen.go:267:1*/			}
+ /*line browser_routes.mygo:320:3*/			parent := storage.MygoIN14FeedRepositoryM10ReadObject(feed, request.Context(), id, viewer.Identity, false)
+ /*line browser_routes.mygo:339:7*/			if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](parent) {
+ /*line browser_routes.mygo:340:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](parent))
+ /*line browser_routes.mygo:339:7*/				return
 			} else {
- /*line zz_browser_routes.gen.go:259:1*/			}
- /*line browser_routes.mygo:321:3*/			readCommunityID = MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID
+ /*line zz_browser_routes.gen.go:273:1*/			}
+ /*line browser_routes.mygo:320:3*/			readCommunityID = MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID
 			rows := storage.MygoIN14FeedRepositoryM6Thread(feed, request.Context(), MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](parent).CommunityID, id, viewer.Identity, false, page, max, MygoIN6ResultM6Unwrap[int, failure.Failure](threadDepth), MygoIN14ThreadSortModeM6Render(MygoIN6ResultM6Unwrap[ThreadSortMode, failure.Failure](threadSort)))
- /*line browser_routes.mygo:356:7*/			if MygoIN6ResultM5IsErr[[]storage.ThreadRow, failure.Failure](rows) {
- /*line browser_routes.mygo:357:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.ThreadRow, failure.Failure](rows))
- /*line browser_routes.mygo:356:7*/				return
+ /*line browser_routes.mygo:355:7*/			if MygoIN6ResultM5IsErr[[]storage.ThreadRow, failure.Failure](rows) {
+ /*line browser_routes.mygo:356:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.ThreadRow, failure.Failure](rows))
+ /*line browser_routes.mygo:355:7*/				return
 			} else {
- /*line zz_browser_routes.gen.go:266:1*/			}
- /*line browser_routes.mygo:321:3*/			outputs := BrowserThread(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.ThreadRow, failure.Failure](rows), id, MygoIN6ResultM6Unwrap[ThreadSortMode, failure.Failure](threadSort))
- /*line browser_routes.mygo:361:7*/			if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
- /*line browser_routes.mygo:362:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
- /*line browser_routes.mygo:361:7*/			} else {
- /*line browser_routes.mygo:364:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), Limit: page.Limit, Offset: page.Offset})
- /*line zz_browser_routes.gen.go:272:1*/			}
- /*line browser_routes.mygo:321:3*/			return
- /*line zz_browser_routes.gen.go:274:1*/		}
+ /*line zz_browser_routes.gen.go:280:1*/			}
+ /*line browser_routes.mygo:320:3*/			outputs := BrowserThread(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.ThreadRow, failure.Failure](rows), id, MygoIN6ResultM6Unwrap[ThreadSortMode, failure.Failure](threadSort))
+ /*line browser_routes.mygo:360:7*/			if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
+ /*line browser_routes.mygo:361:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
+ /*line browser_routes.mygo:360:7*/			} else {
+ /*line browser_routes.mygo:363:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), Limit: page.Limit, Offset: page.Offset})
+ /*line zz_browser_routes.gen.go:286:1*/			}
+ /*line browser_routes.mygo:320:3*/			return
+ /*line zz_browser_routes.gen.go:288:1*/		}
 	}
- /*line browser_routes.mygo:369:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](records) {
- /*line browser_routes.mygo:370:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](records))
- /*line browser_routes.mygo:369:3*/		return
+ /*line browser_routes.mygo:368:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](records) {
+ /*line browser_routes.mygo:369:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](records))
+ /*line browser_routes.mygo:368:3*/		return
 	} else {
- /*line zz_browser_routes.gen.go:280:1*/	}
- /*line browser_routes.mygo:374:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records)) == 0 && readCommunityID != "" {
+ /*line zz_browser_routes.gen.go:294:1*/	}
+ /*line browser_routes.mygo:373:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records)) == 0 && readCommunityID != "" {
 		var ids []string = []string{readCommunityID}
 		views := storage.MygoIN17BrowserRepositoryM5Views(repository, request.Context(), viewer, ids)
- /*line browser_routes.mygo:377:5*/		if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
- /*line browser_routes.mygo:378:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
- /*line browser_routes.mygo:377:5*/			return
+ /*line browser_routes.mygo:376:5*/		if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](views) {
+ /*line browser_routes.mygo:377:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](views))
+ /*line browser_routes.mygo:376:5*/			return
 		} else {
- /*line zz_browser_routes.gen.go:288:1*/		}
- /*line browser_routes.mygo:374:3*/		audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, request.Context(), viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views))
+ /*line zz_browser_routes.gen.go:302:1*/		}
+ /*line browser_routes.mygo:373:3*/		audit := storage.MygoIN17BrowserRepositoryM10AuditViews(repository, request.Context(), viewer, MygoIN6ResultM6Unwrap[[]storage.CommunityView, failure.Failure](views))
 		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](audit) {
- /*line browser_routes.mygo:383:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
- /*line browser_routes.mygo:374:3*/			return
+ /*line browser_routes.mygo:382:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
+ /*line browser_routes.mygo:373:3*/			return
 		} else {
- /*line zz_browser_routes.gen.go:294:1*/		}
- /*line browser_routes.mygo:374:3*/	} else {
- /*line zz_browser_routes.gen.go:296:1*/	}
- /*line browser_routes.mygo:303:1*/	outputs_1 := BrowserPosts(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records))
- /*line browser_routes.mygo:388:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs_1) {
- /*line browser_routes.mygo:389:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs_1))
+ /*line zz_browser_routes.gen.go:308:1*/		}
+ /*line browser_routes.mygo:373:3*/	} else {
+ /*line zz_browser_routes.gen.go:310:1*/	}
+ /*line browser_routes.mygo:302:1*/	outputs_1 := BrowserPosts(sanitizer, request.Context(), repository, viewer, MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records))
+ /*line browser_routes.mygo:387:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs_1) {
+ /*line browser_routes.mygo:388:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs_1))
 		return
- /*line browser_routes.mygo:388:3*/	} else {
- /*line browser_routes.mygo:391:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs_1), Limit: page.Limit, Offset: page.Offset})
+ /*line browser_routes.mygo:387:3*/	} else {
+ /*line browser_routes.mygo:390:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs_1), Limit: page.Limit, Offset: page.Offset})
 		return
- /*line zz_browser_routes.gen.go:304:1*/	}
+ /*line zz_browser_routes.gen.go:318:1*/	}
 }
