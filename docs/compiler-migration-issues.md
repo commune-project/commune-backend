@@ -277,3 +277,49 @@ All handwritten application test files are now `*_test.mygo`; generated
 `zz_*.gen_test.go` files are compiler output. Run `make test` to generate and
 execute them. Interface and Result reproductions were run in an isolated
 `/tmp/commune-interface-probe` module, outside the application test packages.
+
+## Function-type parameters must stay unnamed
+
+`func(value: Identity)` inside a function-type position parses as a parameter
+named `value` whose type is the bare identifier `value`, so the enclosing
+signature fails with an arity or unification mismatch. Write the type only:
+
+```mygo
+func WithActor(settings: Config, handle: func(auth.Identity) -> Result[(), Failure]) -> ()
+```
+
+Named parameters are fine on ordinary function declarations; this affects
+function *types* used as parameter or field types.
+
+## Enum switches are exhaustive, but qualified patterns are not rejected
+
+Missing variants fail generation with
+`non-exhaustive switch: missing variant(s) ...`, and a guarded case does not
+count as coverage. Two rules follow: use unqualified variant patterns
+(`case Open =>`), and always add an unguarded fallback when a guard is used.
+Writing `case Policy.Open =>` is currently accepted and compiles to an
+always-true branch, so it must never appear in application code.
+
+## Cross-package error types can lose their qualifier in generated switches
+
+When a `Result` carries an error type imported from another package and the
+switch is written with explicit `Ok`/`Err` patterns, the generated Go can
+mention the bare type (`Failure`) instead of `failure.Failure`. The workaround
+is to avoid pattern-matching that intermediate result:
+
+```mygo
+let parsed = ParseSort(...)
+if parsed.IsErr() then
+  return Err(parsed.UnwrapErr())
+end
+ThreadSortMode.Parse(parsed.Unwrap())
+```
+
+## Inline Go result types must match the snippet exactly
+
+`go[Result[T, String]] { code: "..." }` expects the snippet to evaluate to a
+`Result[T, string]`; changing the annotation to a typed failure requires
+wrapping the snippet in `func() Result[T, string] { ... }()` and converting the
+result with `MapErr`. Statement-only snippets (`for`, `if`) must be wrapped the
+same way when used as a value.
+
