@@ -116,12 +116,12 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
   let viewer = browser.Viewer(ctx, Zero[auth.Identity]()).Unwrap()
   let allResult = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
   if allResult.IsErr() then
-    t.Fatalf("initial search failed: %s", allResult.UnwrapErr())
+    t.Fatalf("initial search failed: %s", allResult.UnwrapErr().Render())
   end
   let all = allResult.Unwrap()
   let pagedResult = browser.SearchPosts(ctx, viewer, "中文", Page{Limit: 1, Offset: 1}, 50)
   if pagedResult.IsErr() then
-    t.Fatalf("paged search failed: %s", pagedResult.UnwrapErr())
+    t.Fatalf("paged search failed: %s", pagedResult.UnwrapErr().Render())
   end
   let paged = pagedResult.Unwrap()
   if all.Len() != 2 || paged.Len() != 1 || paged.Get(0).Unwrap().ID != all.Get(1).Unwrap().ID then
@@ -131,7 +131,7 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
   queries.Each(func(query: String) -> ()
     let result = browser.SearchPosts(ctx, viewer, query, Page{Limit: 20, Offset: 0}, 50)
     if result.IsErr() then
-      t.Fatalf("search %q failed: %s", query, result.UnwrapErr())
+      t.Fatalf("search %q failed: %s", query, result.UnwrapErr().Render())
     end
     if result.Unwrap().Len() != 2 then
       t.Fatal("literal case insensitive Chinese search failed")
@@ -237,7 +237,7 @@ func TestPostgresSearch(t: Ref[testing.T]) -> ()
   ).Unwrap()
   let adminSearch = browser.SearchCommunities(ctx, admin, "私密", Page{Limit: 20, Offset: 0}, 50)
   if adminSearch.IsErr() then
-    t.Fatalf("administrator search failed: %s", adminSearch.UnwrapErr())
+    t.Fatalf("administrator search failed: %s", adminSearch.UnwrapErr().Render())
   end
   if !QueryExists(db.Table("audit_events").Where(
     "acting_actor_uri=? AND action='read-community' AND target_id=?",

@@ -6,7 +6,7 @@ func TestCollectionTraversal(t: Ref[testing.T]) -> ()
   let payload = "{\"id\":\"https://peer.example/contexts/1\",\"type\":\"OrderedCollectionPage\",\"first\":\"https://peer.example/contexts/1?page=1\",\"next\":{\"id\":\"https://peer.example/contexts/1?page=3\"},\"orderedItems\":[\"https://peer.example/objects/1\",{\"id\":\"https://peer.example/objects/2\"},{\"href\":\"https://peer.example/objects/3\"},\"https://peer.example/objects/1\"]}"
   let parsed = ParseCollectionTraversal(payload as Slice[Byte])
   if parsed.IsErr() then
-    t.Fatalf("a valid collection page was rejected: %s", parsed.UnwrapErr())
+    t.Fatalf("a valid collection page was rejected: %s", parsed.UnwrapErr().Render())
   end
   let page = parsed.Unwrap()
   if page.ID != "https://peer.example/contexts/1" || page.First != "https://peer.example/contexts/1?page=1" || page.Next != "https://peer.example/contexts/1?page=3" then

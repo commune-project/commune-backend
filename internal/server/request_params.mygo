@@ -6,21 +6,22 @@ import sql "go:database/sql"
 import strconv "go:strconv"
 import strings "go:strings"
 import time "go:time"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
-func ParseVoteValue(raw: json.RawMessage) -> Result[Int, String]
+func ParseVoteValue(raw: json.RawMessage) -> Result[Int, failure.Failure]
   let text = strings.TrimSpace(raw as String)
   if text == "" || text == "null" then
-    return Err("invalid vote")
+    return Err(Of("invalid vote"))
   end
   let score = 0
   if json.Unmarshal(raw as Slice[Byte], Ref.new(score)).IsErr() ||
     (score != -1 && score != 0 && score != 1) then
-    return Err("invalid vote")
+    return Err(Of("invalid vote"))
   end
   Ok(score)
 end
 
-func ParseSort(value: String, fallback: String, allowHot: Bool) -> Result[String, String]
+func ParseSort(value: String, fallback: String, allowHot: Bool) -> Result[String, failure.Failure]
   if value == "" then
     return Ok(fallback)
   end
@@ -29,31 +30,27 @@ func ParseSort(value: String, fallback: String, allowHot: Bool) -> Result[String
     value != "top" &&
     value != "controversial" &&
     (!allowHot || value != "hot") then
-    return Err("invalid sort")
+    return Err(Of("invalid sort"))
   end
   Ok(value)
 end
 
-func ParseTopicSort(request: Ref[http.Request]) -> Result[String, String]
+func ParseTopicSort(request: Ref[http.Request]) -> Result[String, failure.Failure]
   ParseSort(request.URL.Query().Get("sort"), "new", true)
 end
 
-func ParseThreadSort(request: Ref[http.Request]) -> Result[ThreadSortMode, String]
-  switch ParseSort(request.URL.Query().Get("sort"), "old", false)
-    case Err(reason) => Err(reason)
-    case Ok(value) then
-      switch ThreadSortMode.Parse(value)
-        case Err(_) => Err("invalid sort")
-        case Ok(mode) => Ok(mode)
-      end
-    end
+func ParseThreadSort(request: Ref[http.Request]) -> Result[ThreadSortMode, failure.Failure]
+  let parsed = ParseSort(request.URL.Query().Get("sort"), "old", false)
+  if parsed.IsErr() then
+    return Err(parsed.UnwrapErr())
   end
+  ThreadSortMode.Parse(parsed.Unwrap())
 end
 
-func ParseThreadDepth(request: Ref[http.Request]) -> Result[Int, String]
+func ParseThreadDepth(request: Ref[http.Request]) -> Result[Int, failure.Failure]
   let view = request.URL.Query().Get("view")
   if view != "" && view != "tree" && view != "flat" then
-    return Err("invalid view")
+    return Err(Of("invalid view"))
   end
   if view == "flat" then
     return Ok(1)
@@ -64,45 +61,45 @@ func ParseThreadDepth(request: Ref[http.Request]) -> Result[Int, String]
   end
   let parsed = strconv.Atoi(raw)
   if parsed.IsErr() || parsed.Unwrap() < 1 || parsed.Unwrap() > 8 then
-    return Err("invalid depth")
+    return Err(Of("invalid depth"))
   end
   Ok(parsed.Unwrap())
 end
 
-func ParseBlockKind(value: String) -> Result[String, String]
+func ParseBlockKind(value: String) -> Result[String, failure.Failure]
   if value != "person" && value != "community" && value != "instance" then
-    return Err("invalid block")
+    return Err(Of("invalid block"))
   end
   Ok(value)
 end
 
-func ParseReportState(value: String, allowEmpty: Bool) -> Result[String, String]
+func ParseReportState(value: String, allowEmpty: Bool) -> Result[String, failure.Failure]
   if value == "" then
     if allowEmpty then
       return Ok(value)
     end
-    return Err("invalid report state")
+    return Err(Of("invalid report state"))
   end
   if value != "open" && value != "resolved" && value != "rejected" then
-    return Err("invalid report state")
+    return Err(Of("invalid report state"))
   end
   Ok(value)
 end
 
-func ParseReportResolutionState(value: String) -> Result[String, String]
+func ParseReportResolutionState(value: String) -> Result[String, failure.Failure]
   if value != "resolved" && value != "rejected" then
-    return Err("invalid report state")
+    return Err(Of("invalid report state"))
   end
   Ok(value)
 end
 
-func ParseBanExpiry(value: String) -> Result[sql.NullTime, String]
+func ParseBanExpiry(value: String) -> Result[sql.NullTime, failure.Failure]
   if value == "" then
     return Ok(Zero[sql.NullTime]())
   end
   let parsed = time.Parse(time.RFC3339, value)
   if parsed.IsErr() then
-    return Err("invalid ban")
+    return Err(Of("invalid ban"))
   end
   Ok(sql.NullTime { Time: parsed.Unwrap(), Valid: true })
 end

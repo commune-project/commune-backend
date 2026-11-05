@@ -4,39 +4,40 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line collections_member.mygo:8:1*/func memberObjectQuery(ctx context.Context, db *gorm.DB, origin string, communityID string) *gorm.DB {
- /*line collections_member.mygo:14:3*/	return db.WithContext(ctx).Table("posts AS p").Where("p.federation_mode = 'federated' AND p.object_uri LIKE ? AND p.deleted_at IS NULL AND p.community_id = ? AND EXISTS (SELECT 1 FROM communities c WHERE c.id = p.community_id AND c.federation_mode = 'federated' AND c.read_policy = 'members')", origin+"/%", communityID)
- /*line zz_collections_member.gen.go:11:1*/}
- /*line collections_member.mygo:21:1*/func CountMemberObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string, communityID string) Result[int64, string] {
+ /*line collections_member.mygo:9:1*/func memberObjectQuery(ctx context.Context, db *gorm.DB, origin string, communityID string) *gorm.DB {
+ /*line collections_member.mygo:15:3*/	return db.WithContext(ctx).Table("posts AS p").Where("p.federation_mode = 'federated' AND p.object_uri LIKE ? AND p.deleted_at IS NULL AND p.community_id = ? AND EXISTS (SELECT 1 FROM communities c WHERE c.id = p.community_id AND c.federation_mode = 'federated' AND c.read_policy = 'members')", origin+"/%", communityID)
+ /*line zz_collections_member.gen.go:12:1*/}
+ /*line collections_member.mygo:22:1*/func CountMemberObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string, communityID string) Result[int64, failure.Failure] {
 	var count int64 = int64(0)
 	query := memberObjectQuery(ctx, db, origin, communityID).Where("p.author_actor_uri = ?", actorURI).Count(&count)
- /*line collections_member.mygo:33:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_member.mygo:34:12*/		return Err[int64, string]("collection unavailable")
- /*line collections_member.mygo:33:3*/	} else {
- /*line zz_collections_member.gen.go:18:1*/	}
- /*line collections_member.mygo:36:3*/	return Ok[int64, string](count)
- /*line zz_collections_member.gen.go:20:1*/}
- /*line collections_member.mygo:39:1*/func ListMemberObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string, communityID string, limit int, offset int) Result[[]PostRecord, string] {
+ /*line collections_member.mygo:34:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_member.mygo:35:12*/		return Err[int64, failure.Failure](Of("collection unavailable"))
+ /*line collections_member.mygo:34:3*/	} else {
+ /*line zz_collections_member.gen.go:19:1*/	}
+ /*line collections_member.mygo:37:3*/	return Ok[int64, failure.Failure](count)
+ /*line zz_collections_member.gen.go:21:1*/}
+ /*line collections_member.mygo:40:1*/func ListMemberObjects(ctx context.Context, db *gorm.DB, actorURI string, origin string, communityID string, limit int, offset int) Result[[]PostRecord, failure.Failure] {
 	var records []PostRecord = []PostRecord{}
 	query := memberObjectQuery(ctx, db, origin, communityID).Where("p.author_actor_uri = ?", actorURI).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line collections_member.mygo:53:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_member.mygo:54:12*/		return Err[[]PostRecord, string]("collection unavailable")
- /*line collections_member.mygo:53:3*/	} else {
- /*line zz_collections_member.gen.go:27:1*/	}
- /*line collections_member.mygo:56:3*/	return Ok[[]PostRecord, string](records)
- /*line zz_collections_member.gen.go:29:1*/}
- /*line collections_member.mygo:59:1*/func LoadObjectCommunity(ctx context.Context, db *gorm.DB, objectURI string) Result[Option[CommunityRecord], string] {
+ /*line collections_member.mygo:54:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_member.mygo:55:12*/		return Err[[]PostRecord, failure.Failure](Of("collection unavailable"))
+ /*line collections_member.mygo:54:3*/	} else {
+ /*line zz_collections_member.gen.go:28:1*/	}
+ /*line collections_member.mygo:57:3*/	return Ok[[]PostRecord, failure.Failure](records)
+ /*line zz_collections_member.gen.go:30:1*/}
+ /*line collections_member.mygo:60:1*/func LoadObjectCommunity(ctx context.Context, db *gorm.DB, objectURI string) Result[Option[CommunityRecord], failure.Failure] {
 	record := Zero[CommunityRecord]()
 	query := db.WithContext(ctx).Table("communities AS c").Select("c.*").Joins("JOIN posts AS p ON p.community_id = c.id").Where("p.object_uri = ?", objectURI).Limit(1).Find(&record)
- /*line collections_member.mygo:69:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_member.mygo:70:12*/		return Err[Option[CommunityRecord], string]("community unavailable")
- /*line collections_member.mygo:69:3*/	} else {
- /*line zz_collections_member.gen.go:36:1*/	}
- /*line collections_member.mygo:72:3*/	if query.RowsAffected != int64(1) {
- /*line collections_member.mygo:73:12*/		return Ok[Option[CommunityRecord], string](None[CommunityRecord]())
- /*line collections_member.mygo:72:3*/	} else {
- /*line zz_collections_member.gen.go:40:1*/	}
- /*line collections_member.mygo:75:3*/	return Ok[Option[CommunityRecord], string](Some[CommunityRecord](record))
- /*line zz_collections_member.gen.go:42:1*/}
+ /*line collections_member.mygo:70:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_member.mygo:71:12*/		return Err[Option[CommunityRecord], failure.Failure](Of("community unavailable"))
+ /*line collections_member.mygo:70:3*/	} else {
+ /*line zz_collections_member.gen.go:37:1*/	}
+ /*line collections_member.mygo:73:3*/	if query.RowsAffected != int64(1) {
+ /*line collections_member.mygo:74:12*/		return Ok[Option[CommunityRecord], failure.Failure](None[CommunityRecord]())
+ /*line collections_member.mygo:73:3*/	} else {
+ /*line zz_collections_member.gen.go:41:1*/	}
+ /*line collections_member.mygo:76:3*/	return Ok[Option[CommunityRecord], failure.Failure](Some[CommunityRecord](record))
+ /*line zz_collections_member.gen.go:43:1*/}

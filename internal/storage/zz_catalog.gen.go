@@ -5,67 +5,68 @@ package storage
 import files "github.com/commune-project/commune-backend/internal/migrationfiles"
 import "crypto/sha256"
 import "encoding/hex"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line catalog.mygo:8:1*/type Migration struct {
+ /*line catalog.mygo:9:1*/type Migration struct {
 	Version  int
 	Name     string
 	SQL      string
 	Checksum string
- /*line zz_catalog.gen.go:15:1*/}
- /*line catalog.mygo:15:1*/type AppliedMigration struct {
+ /*line zz_catalog.gen.go:16:1*/}
+ /*line catalog.mygo:16:1*/type AppliedMigration struct {
 	Version  int
 	Name     string
 	Checksum string
- /*line zz_catalog.gen.go:20:1*/}
+ /*line zz_catalog.gen.go:21:1*/}
 
- /*line catalog.mygo:21:1*/func MigrationCatalog() Result[[]Migration, string] {
+ /*line catalog.mygo:22:1*/func MigrationCatalog() Result[[]Migration, failure.Failure] {
 	var names []string = []string{"001_identity.sql", "002_forum_identities.sql", "003_forum_relations.sql", "004_person_follows.sql", "005_peer_capabilities.sql", "006_registration.sql", "007_media.sql", "008_profiles_content.sql", "009_notifications.sql", "010_rich_metadata.sql", "011_reaction_receipts.sql", "012_private_media_invalidation.sql", "013_post_versions.sql", "014_actor_handles.sql", "015_votes.sql", "016_password_reset.sql", "017_community_follows.sql", "018_account_blocks.sql", "019_moderation.sql", "020_saved_read_state.sql", "021_notification_targets.sql", "022_site_vote_settings.sql"}
 	var migrations []Migration = []Migration{}
 	i := 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(names) {
 		name := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, i))
- /*line catalog.mygo:50:16*/		var __mygo_expr_1 Result[string, error]
+ /*line catalog.mygo:51:16*/		var __mygo_expr_1 Result[string, error]
 		__mygo_expr_2, __mygo_expr_0 := files.Read(name)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[string, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[string, error](__mygo_expr_2)
- /*line zz_catalog.gen.go:34:1*/		}
- /*line catalog.mygo:21:1*/		read := __mygo_expr_1
+ /*line zz_catalog.gen.go:35:1*/		}
+ /*line catalog.mygo:22:1*/		read := __mygo_expr_1
 		if MygoIN6ResultM5IsErr[string, error](read) {
- /*line catalog.mygo:52:14*/			return Err[[]Migration, string]("embedded migration is missing")
- /*line catalog.mygo:21:1*/		} else {
- /*line zz_catalog.gen.go:39:1*/		}
- /*line catalog.mygo:21:1*/		source := MygoIN6ResultM6Unwrap[string, error](read)
+ /*line catalog.mygo:53:14*/			return Err[[]Migration, failure.Failure](Of("embedded migration is missing"))
+ /*line catalog.mygo:22:1*/		} else {
+ /*line zz_catalog.gen.go:40:1*/		}
+ /*line catalog.mygo:22:1*/		source := MygoIN6ResultM6Unwrap[string, error](read)
 		digester := sha256.New()
 		digester.Write([]byte(source))
 		bytes := digester.Sum([]byte{})
 		migrations = MygoIN5SliceM6Append(migrations, Migration{Version: i + 1, Name: name, SQL: source, Checksum: hex.EncodeToString(bytes)})
 		i = i + 1
- /*line zz_catalog.gen.go:46:1*/	}
- /*line catalog.mygo:66:3*/	return Ok[[]Migration, string](migrations)
- /*line zz_catalog.gen.go:48:1*/}
- /*line catalog.mygo:69:1*/func ValidateApplied(applied []AppliedMigration, catalog []Migration, requireCurrent bool) Result[struct {
-}, string] {
- /*line catalog.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) > MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
- /*line catalog.mygo:75:12*/		return Err[struct{}, string]("database schema is newer than this binary")
- /*line catalog.mygo:74:3*/	} else {
- /*line zz_catalog.gen.go:54:1*/	}
- /*line catalog.mygo:69:1*/	i := 0
+ /*line zz_catalog.gen.go:47:1*/	}
+ /*line catalog.mygo:67:3*/	return Ok[[]Migration, failure.Failure](migrations)
+ /*line zz_catalog.gen.go:49:1*/}
+ /*line catalog.mygo:70:1*/func ValidateApplied(applied []AppliedMigration, catalog []Migration, requireCurrent bool) Result[struct {
+}, failure.Failure] {
+ /*line catalog.mygo:75:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) > MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
+ /*line catalog.mygo:76:12*/		return Err[struct{}, failure.Failure](Of("database schema is newer than this binary"))
+ /*line catalog.mygo:75:3*/	} else {
+ /*line zz_catalog.gen.go:55:1*/	}
+ /*line catalog.mygo:70:1*/	i := 0
 	for i < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) {
 		record := MygoIN6OptionM6Unwrap[AppliedMigration](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(applied, i))
 		migration := MygoIN6OptionM6Unwrap[Migration](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(catalog, i))
 		if record.Version != migration.Version || record.Name != migration.Name || record.Checksum != migration.Checksum {
- /*line catalog.mygo:84:14*/			return Err[struct{}, string]("database migration history is incompatible with this binary")
- /*line catalog.mygo:69:1*/		} else {
- /*line zz_catalog.gen.go:62:1*/		}
- /*line catalog.mygo:69:1*/		i = i + 1
- /*line zz_catalog.gen.go:64:1*/	}
- /*line catalog.mygo:88:3*/	if requireCurrent && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
- /*line catalog.mygo:89:12*/		return Err[struct{}, string]("database schema is behind this binary; run explicit migration")
- /*line catalog.mygo:88:3*/	} else {
- /*line zz_catalog.gen.go:68:1*/	}
- /*line catalog.mygo:91:3*/	return Ok[struct{}, string](struct {
- /*line zz_catalog.gen.go:70:1*/	}{})
+ /*line catalog.mygo:85:14*/			return Err[struct{}, failure.Failure](Of("database migration history is incompatible with this binary"))
+ /*line catalog.mygo:70:1*/		} else {
+ /*line zz_catalog.gen.go:63:1*/		}
+ /*line catalog.mygo:70:1*/		i = i + 1
+ /*line zz_catalog.gen.go:65:1*/	}
+ /*line catalog.mygo:89:3*/	if requireCurrent && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(applied) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(catalog) {
+ /*line catalog.mygo:90:12*/		return Err[struct{}, failure.Failure](Of("database schema is behind this binary; run explicit migration"))
+ /*line catalog.mygo:89:3*/	} else {
+ /*line zz_catalog.gen.go:69:1*/	}
+ /*line catalog.mygo:92:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_catalog.gen.go:71:1*/	}{})
 }

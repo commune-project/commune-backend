@@ -4,39 +4,40 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line local_only.mygo:7:1*/func IsLocalOnlyCommunity(ctx context.Context, db *gorm.DB, communityID string) Result[bool, string] {
- /*line local_only.mygo:12:3*/	if communityID == "" {
- /*line local_only.mygo:13:12*/		return Ok[bool, string](false)
- /*line local_only.mygo:12:3*/	} else {
- /*line zz_local_only.gen.go:13:1*/	}
- /*line local_only.mygo:15:3*/	return QueryExists(db.WithContext(ctx).Table("communities").Where("id = ? AND federation_mode = 'local_only'", communityID))
- /*line zz_local_only.gen.go:15:1*/}
- /*line local_only.mygo:21:1*/func IsLocalOnlyObject(ctx context.Context, db *gorm.DB, objectURI string) Result[bool, string] {
- /*line local_only.mygo:26:3*/	if objectURI == "" {
- /*line local_only.mygo:27:12*/		return Ok[bool, string](false)
- /*line local_only.mygo:26:3*/	} else {
- /*line zz_local_only.gen.go:20:1*/	}
- /*line local_only.mygo:29:3*/	return QueryExists(db.WithContext(ctx).Table("posts").Where("object_uri = ? AND federation_mode = 'local_only'", objectURI))
- /*line zz_local_only.gen.go:22:1*/}
- /*line local_only.mygo:35:1*/func IsLocalOnlyPostID(ctx context.Context, db *gorm.DB, postID string) Result[bool, string] {
- /*line local_only.mygo:40:3*/	if postID == "" {
- /*line local_only.mygo:41:12*/		return Ok[bool, string](false)
- /*line local_only.mygo:40:3*/	} else {
- /*line zz_local_only.gen.go:27:1*/	}
- /*line local_only.mygo:43:3*/	return QueryExists(db.WithContext(ctx).Table("posts").Where("id = ? AND federation_mode = 'local_only'", postID))
- /*line zz_local_only.gen.go:29:1*/}
- /*line local_only.mygo:51:1*/func IsLocalOnlyActivity(ctx context.Context, db *gorm.DB, activityURI string) Result[bool, string] {
- /*line local_only.mygo:56:3*/	if activityURI == "" {
- /*line local_only.mygo:57:12*/		return Ok[bool, string](false)
- /*line local_only.mygo:56:3*/	} else {
- /*line zz_local_only.gen.go:34:1*/	}
- /*line local_only.mygo:51:1*/	excluded := false
+ /*line local_only.mygo:8:1*/func IsLocalOnlyCommunity(ctx context.Context, db *gorm.DB, communityID string) Result[bool, failure.Failure] {
+ /*line local_only.mygo:13:3*/	if communityID == "" {
+ /*line local_only.mygo:14:12*/		return Ok[bool, failure.Failure](false)
+ /*line local_only.mygo:13:3*/	} else {
+ /*line zz_local_only.gen.go:14:1*/	}
+ /*line local_only.mygo:16:3*/	return QueryExists(db.WithContext(ctx).Table("communities").Where("id = ? AND federation_mode = 'local_only'", communityID))
+ /*line zz_local_only.gen.go:16:1*/}
+ /*line local_only.mygo:22:1*/func IsLocalOnlyObject(ctx context.Context, db *gorm.DB, objectURI string) Result[bool, failure.Failure] {
+ /*line local_only.mygo:27:3*/	if objectURI == "" {
+ /*line local_only.mygo:28:12*/		return Ok[bool, failure.Failure](false)
+ /*line local_only.mygo:27:3*/	} else {
+ /*line zz_local_only.gen.go:21:1*/	}
+ /*line local_only.mygo:30:3*/	return QueryExists(db.WithContext(ctx).Table("posts").Where("object_uri = ? AND federation_mode = 'local_only'", objectURI))
+ /*line zz_local_only.gen.go:23:1*/}
+ /*line local_only.mygo:36:1*/func IsLocalOnlyPostID(ctx context.Context, db *gorm.DB, postID string) Result[bool, failure.Failure] {
+ /*line local_only.mygo:41:3*/	if postID == "" {
+ /*line local_only.mygo:42:12*/		return Ok[bool, failure.Failure](false)
+ /*line local_only.mygo:41:3*/	} else {
+ /*line zz_local_only.gen.go:28:1*/	}
+ /*line local_only.mygo:44:3*/	return QueryExists(db.WithContext(ctx).Table("posts").Where("id = ? AND federation_mode = 'local_only'", postID))
+ /*line zz_local_only.gen.go:30:1*/}
+ /*line local_only.mygo:52:1*/func IsLocalOnlyActivity(ctx context.Context, db *gorm.DB, activityURI string) Result[bool, failure.Failure] {
+ /*line local_only.mygo:57:3*/	if activityURI == "" {
+ /*line local_only.mygo:58:12*/		return Ok[bool, failure.Failure](false)
+ /*line local_only.mygo:57:3*/	} else {
+ /*line zz_local_only.gen.go:35:1*/	}
+ /*line local_only.mygo:52:1*/	excluded := false
 	query := db.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM activities a WHERE a.uri = ? AND ((a.community_id IS NOT NULL AND EXISTS (SELECT 1 FROM communities c WHERE c.id = a.community_id AND c.federation_mode = 'local_only')) OR (a.post_id IS NOT NULL AND EXISTS (SELECT 1 FROM posts p WHERE p.id = a.post_id AND p.federation_mode = 'local_only')))) AS local_only", activityURI).Scan(&excluded)
- /*line local_only.mygo:64:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line local_only.mygo:65:12*/		return Err[bool, string]("policy unavailable")
- /*line local_only.mygo:64:3*/	} else {
- /*line zz_local_only.gen.go:40:1*/	}
- /*line local_only.mygo:67:3*/	return Ok[bool, string](excluded)
- /*line zz_local_only.gen.go:42:1*/}
+ /*line local_only.mygo:65:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line local_only.mygo:66:12*/		return Err[bool, failure.Failure](Of("policy unavailable"))
+ /*line local_only.mygo:65:3*/	} else {
+ /*line zz_local_only.gen.go:41:1*/	}
+ /*line local_only.mygo:68:3*/	return Ok[bool, failure.Failure](excluded)
+ /*line zz_local_only.gen.go:43:1*/}

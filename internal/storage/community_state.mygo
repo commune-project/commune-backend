@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ReplicaCommunity
   ID: String `gorm:"column:id"`
@@ -17,17 +18,17 @@ func LoadReplicaCommunity(
   ctx: context.Context,
   db: Ref[gorm.DB],
   actorURI: String
-) -> Result[Option[ReplicaCommunity], String]
+) -> Result[Option[ReplicaCommunity], failure.Failure]
   let record = Zero[ReplicaCommunity]()
   let query = db.WithContext(ctx).Table("communities").Where(
     "actor_uri = ? AND host_site_id IS NULL AND federation_mode = 'federated'",
     actorURI
   ).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[ReplicaCommunity], String](None)
+    return Ok[Option[ReplicaCommunity], failure.Failure](None)
   end
   Ok(Some(record))
 end
@@ -38,11 +39,11 @@ func ApplyCommunityPolicy(
   communityID: String,
   readPolicy: String,
   postPolicy: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   let readValid = readPolicy == "eligible_users" || readPolicy == "members"
   let postValid = postPolicy == "eligible_users" || postPolicy == "members"
   if !readValid || !postValid || (readPolicy == "members" && postPolicy != "members") then
-    return Err("invalid access policy")
+    return Err(Of("invalid access policy"))
   end
   let updated = db.WithContext(ctx).Exec(
     "UPDATE communities SET read_policy = ?, post_policy = ?, policy_version = policy_version + 1 WHERE id = ? AND host_site_id IS NULL",
@@ -51,7 +52,7 @@ func ApplyCommunityPolicy(
     communityID
   )
   if MutationResult(updated).IsErr() then
-    return Err("state update failed")
+    return Err(Of("state update failed"))
   end
   Ok(updated.RowsAffected)
 end
@@ -64,16 +65,16 @@ func ReplaceReplicaMembers(
   communityID: String,
   authorityActorURI: String,
   approved: Slice[String]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec(
         "UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND revoked_at IS NULL",
         communityID
       )).IsErr() then
-        return Err("membership update failed")
+        return Err(Of("membership update failed"))
       end
       var failed = false
       approved.Each(func(member: String) -> ()
@@ -88,7 +89,7 @@ func ReplaceReplicaMembers(
         end
       end)
       if failed then
-        return Err("membership update failed")
+        return Err(Of("membership update failed"))
       end
       Ok(())
     end

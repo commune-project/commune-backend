@@ -12,6 +12,7 @@ import federation "github.com/commune-project/commune-backend/internal/federatio
 import content "github.com/commune-project/commune-backend/internal/content"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestActorHandleResolutionValidation(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()
@@ -22,7 +23,7 @@ func TestActorHandleResolutionValidation(t: Ref[testing.T]) -> ()
   var actorType = "Person"
   var preferred = "bob"
   var name = "Bob"
-  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, failure.Failure]
     if strings.Contains(uri, "/.well-known/webfinger?") then
       if !strings.Contains(accept, "application/jrd+json") ||
         !strings.Contains(uri, "acct%3Abob%40peer.example") then
@@ -186,7 +187,7 @@ func TestPostgresActorHandleWorkerAndBrowserProjection(t: Ref[testing.T]) -> ()
     t.Fatal("remote reception did not enqueue exactly one resolution job")
   end
   var fetches = 0
-  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, failure.Failure]
     fetches = fetches + 1
     if strings.Contains(uri, "/.well-known/webfinger?") then
       return Ok(federation.FetchResult {
@@ -261,7 +262,7 @@ func TestPostgresActorHandleWorkerOutcomes(t: Ref[testing.T]) -> ()
     blocked
   )).Unwrap()
   var calls = 0
-  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, String]
+  let fetcher = func(ctx: context.Context, uri: String, accept: String, limits: federation.FetchLimits) -> Result[federation.FetchResult, failure.Failure]
     calls = calls + 1
     if strings.Contains(uri, "good") then
       if strings.Contains(uri, "/.well-known/webfinger?") then
@@ -283,7 +284,7 @@ func TestPostgresActorHandleWorkerOutcomes(t: Ref[testing.T]) -> ()
         FinalURL: uri,
       })
     end
-    Err("unreachable")
+    Err(Of("unreachable"))
   end
   let first = RunActorHandleBatchWith(ctx, settings, db, fetcher).Unwrap()
   if first.Resolved != 1 || first.Retried != 1 || first.Suppressed != 1 || calls != 3 then

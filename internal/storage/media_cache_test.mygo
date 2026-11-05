@@ -13,6 +13,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
@@ -73,20 +74,20 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
   let _ = RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       cache = RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/one", "v1").Unwrap()
       Ok(())
     end
   ).Unwrap()
   var fetches: Int = 0
-  let fetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, String]
+  let fetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
     if actor.ActorURI != alice.ActorURI && actor.ActorURI != bob.ActorURI then
       t.Fatal("fetch lost requesting actor")
     end
     fetches = fetches + 1
     Ok(io.NopCloser(strings.NewReader("private bytes") as io.Reader))
   end
-  let transfer = func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), String]
+  let transfer = func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), failure.Failure]
     if io.ReadAll(file as io.Reader).Unwrap() as String != "private bytes" then
       t.Fatal("cache bytes changed")
     end
@@ -103,7 +104,7 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
     ctx,
     alice,
     cache.ID,
-    func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), String]
+    func(row: PrivateMediaCache, file: Ref[os.File]) -> Result[(), failure.Failure]
       let future = time.Now().Add((settings.PrivateCacheRetentionSeconds + 1) as time.Duration * time.Second)
       if repo.CleanupPrivateCache(ctx, future, 100).Unwrap() != 0 then
         t.Fatal("cleaner unlinked active transfer")
@@ -151,7 +152,7 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
   let _ = RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       repo.InvalidatePrivateCache(ctx, tx, post.ID, "")
     end
   ).Unwrap()
@@ -171,7 +172,7 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
     "https://remote.example/media/image",
     "image-v1"
   ).Unwrap()
-  let imageFetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, String]
+  let imageFetch = func(fetchCtx: context.Context, actor: auth.Identity, row: PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
     Ok(io.NopCloser(strings.NewReader(MediaTestPNG(2, 2) as String) as io.Reader))
   end
   let _ = repo.FetchPrivateCache(ctx, bob, imageCache.ID, imageFetch).Unwrap()
@@ -196,7 +197,7 @@ func TestPostgresMediaPrivateCacheExpiryAndRevocation(t: Ref[testing.T]) -> ()
   if RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let registered = RegisterPrivateMedia(ctx, tx, site.ID, post.ID, "https://remote.example/media/public", "v1")
       if registered.IsErr() then
         return Err(registered.UnwrapErr())

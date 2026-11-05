@@ -7,6 +7,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import content "github.com/commune-project/commune-backend/internal/content"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PostSource
   Version: Int64 `json:"version"`
@@ -23,10 +24,10 @@ func BrowserIdentity(
   site: config.Site,
   request: Ref[http.Request],
   required: Bool
-) -> Result[auth.Identity, String]
+) -> Result[auth.Identity, failure.Failure]
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    if !required && session.UnwrapErr() == "unauthenticated" then
+    if !required && session.UnwrapErr().Render() == "unauthenticated" then
       return Ok(Zero[auth.Identity]())
     end
     return Err(session.UnwrapErr())
@@ -70,13 +71,13 @@ func BrowserReadRoute(
   end
   let identity = BrowserIdentity(db, site, request, roster || section == "source")
   if identity.IsErr() then
-    Fail(w, identity.UnwrapErr())
+    FailFailure(w, identity.UnwrapErr())
     return true
   end
   let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = repository.Viewer(request.Context(), identity.Unwrap())
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return true
   end
   if community && parts.Len() == 4 then
@@ -89,7 +90,7 @@ func BrowserReadRoute(
   end
   let page = PageFromQuery(settings, request)
   if page.IsErr() then
-    Fail(w, page.UnwrapErr())
+    FailFailure(w, page.UnwrapErr())
     return true
   end
   if community && parts.Len() == 3 then
@@ -100,7 +101,7 @@ func BrowserReadRoute(
       settings.Runtime.MaxPageSize
     )
     if views.IsErr() then
-      Fail(w, views.UnwrapErr())
+      FailFailure(w, views.UnwrapErr())
     else
       let outputs = views.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
         BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
@@ -127,7 +128,7 @@ func BrowserReadRoute(
       settings.Runtime.MaxPageSize
     )
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
       WriteJSON(
         w,
@@ -164,7 +165,7 @@ func BrowserCommunityRead(
   let ids: Slice[String] = [id]
   let views = repository.Views(request.Context(), viewer, ids)
   if views.IsErr() then
-    Fail(w, views.UnwrapErr())
+    FailFailure(w, views.UnwrapErr())
     return
   end
   if views.Unwrap().Len() != 1 then
@@ -183,7 +184,7 @@ func BrowserCommunityRead(
       id
     ))
     if received.IsErr() then
-      Fail(w, received.UnwrapErr())
+      FailFailure(w, received.UnwrapErr())
       return
     end
     if view.Record.HostSiteID != "" || !received.Unwrap() then
@@ -197,7 +198,7 @@ func BrowserCommunityRead(
   end
   let audit = repository.AuditViews(request.Context(), viewer, views.Unwrap())
   if audit.IsErr() then
-    Fail(w, audit.UnwrapErr())
+    FailFailure(w, audit.UnwrapErr())
   else
     WriteJSON(w, 200, BrowserCommunityDTO(request.Context(), repository, view, viewer))
   end
@@ -220,7 +221,7 @@ func BrowserPostRead(
   let result = storage.RunTransaction(
     request.Context(),
     repository.DB,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let isolation = storage.MutationResult(tx.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
       if isolation.IsErr() then
         return isolation
@@ -236,7 +237,7 @@ func BrowserPostRead(
       end
       let record = read.Unwrap()
       if record.DeletedAt.Valid then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let outputs = BrowserPosts(
         sanitizer,
@@ -253,7 +254,7 @@ func BrowserPostRead(
       end
       let post = outputs.Unwrap().Get(0).Unwrap()
       if !post.Permissions.CanEdit then
-        return Err("forbidden")
+        return Err(Of("forbidden"))
       end
       output = PostSource {
         ID: record.ID,
@@ -268,7 +269,7 @@ func BrowserPostRead(
     end
   )
   if result.IsErr() then
-    Fail(w, result.UnwrapErr())
+    FailFailure(w, result.UnwrapErr())
   else
     WriteJSON(w, 200, output)
   end
@@ -285,14 +286,14 @@ func BrowserPostDisplay(
   let feed = storage.FeedRepository{DB: repository.DB, SiteID: repository.SiteID}
   let read = feed.ReadObject(request.Context(), id, viewer.Identity, false)
   if read.IsErr() then
-    Fail(w, read.UnwrapErr())
+    FailFailure(w, read.UnwrapErr())
     return
   end
   let record = read.Unwrap()
   let records: Slice[storage.PostRecord] = [record]
   let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer, records)
   if outputs.IsErr() then
-    Fail(w, outputs.UnwrapErr())
+    FailFailure(w, outputs.UnwrapErr())
     return
   end
   let output = outputs.Unwrap().Get(0).Unwrap()
@@ -312,10 +313,10 @@ func BrowserTopicRead(
   let feed = storage.FeedRepository { DB: repository.DB, SiteID: repository.SiteID }
   let topicSort = ParseTopicSort(request)
   if topicSort.IsErr() then
-    Fail(w, topicSort.UnwrapErr())
+    FailFailure(w, topicSort.UnwrapErr())
     return
   end
-  var records: Result[Slice[storage.PostRecord], String] = Err("not found")
+  var records: Result[Slice[storage.PostRecord], failure.Failure] = Err(Of("not found"))
   var readCommunityID: String = ""
   if parts.Get(2).Unwrap() == "topics" then
     records = repository.LatestSorted(request.Context(), viewer, page, max, topicSort.Unwrap())
@@ -327,17 +328,17 @@ func BrowserTopicRead(
     else
       let threadDepth = ParseThreadDepth(request)
       if threadDepth.IsErr() then
-        Fail(w, threadDepth.UnwrapErr())
+        FailFailure(w, threadDepth.UnwrapErr())
         return
       end
       let threadSort = ParseThreadSort(request)
       if threadSort.IsErr() then
-        Fail(w, threadSort.UnwrapErr())
+        FailFailure(w, threadSort.UnwrapErr())
         return
       end
       let parent = feed.ReadObject(request.Context(), id, viewer.Identity, false)
       if parent.IsErr() then
-        Fail(w, parent.UnwrapErr())
+        FailFailure(w, parent.UnwrapErr())
         return
       end
       readCommunityID = parent.Unwrap().CommunityID
@@ -353,12 +354,12 @@ func BrowserTopicRead(
         threadSort.Unwrap().Render()
       )
       if rows.IsErr() then
-        Fail(w, rows.UnwrapErr())
+        FailFailure(w, rows.UnwrapErr())
         return
       end
       let outputs = BrowserThread(sanitizer, request.Context(), repository, viewer, rows.Unwrap(), id, threadSort.Unwrap())
       if outputs.IsErr() then
-        Fail(w, outputs.UnwrapErr())
+        FailFailure(w, outputs.UnwrapErr())
       else
         WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset})
       end
@@ -366,7 +367,7 @@ func BrowserTopicRead(
     end
   end
   if records.IsErr() then
-    Fail(w, records.UnwrapErr())
+    FailFailure(w, records.UnwrapErr())
     return
   end
   # An empty page still reveals that the addressed protected collection exists.
@@ -374,18 +375,18 @@ func BrowserTopicRead(
     let ids: Slice[String] = [readCommunityID]
     let views = repository.Views(request.Context(), viewer, ids)
     if views.IsErr() then
-      Fail(w, views.UnwrapErr())
+      FailFailure(w, views.UnwrapErr())
       return
     end
     let audit = repository.AuditViews(request.Context(), viewer, views.Unwrap())
     if audit.IsErr() then
-      Fail(w, audit.UnwrapErr())
+      FailFailure(w, audit.UnwrapErr())
       return
     end
   end
   let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer, records.Unwrap())
   if outputs.IsErr() then
-    Fail(w, outputs.UnwrapErr())
+    FailFailure(w, outputs.UnwrapErr())
   else
     WriteJSON(w, 200, PostPage { Items: outputs.Unwrap(), Limit: page.Limit, Offset: page.Offset })
   end

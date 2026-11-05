@@ -8,84 +8,85 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line destination_test.mygo:10:1*/func TestPostgresDestinationPlanning(t *testing.T) {
- /*line destination_test.mygo:11:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line destination_test.mygo:11:1*/func TestPostgresDestinationPlanning(t *testing.T) {
+ /*line destination_test.mygo:12:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_destination.gen_test.go:22:1*/	}
- /*line destination_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_destination.gen_test.go:23:1*/	}
+ /*line destination_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	b := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, b))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
-	MygoIN6ResultM6Unwrap[string, string](storage.EnsureLocalKey(ctx, db, alice.ActorURI))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
+	MygoIN6ResultM6Unwrap[string, failure.Failure](storage.EnsureLocalKey(ctx, db, alice.ActorURI))
 	peerA := "https://peer.example/users/one"
 	peerB := "https://peer.example/users/two"
 	otherC := "https://other.example/users/three"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://other.example/inbox')", peerA, peerB, otherC)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://peer.example/inbox'), (?, 'Person', 'https://other.example/inbox')", peerA, peerB, otherC)))
 	activityURI := "https://forum-a.example/activities/create-1"
 	payload := "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,'Create')", activityURI, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,'Create')", activityURI, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
 	recipients := []string{peerA, peerB, otherC, carol.ActorURI}
-	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, string](storage.PlanDelivery(ctx, db, activityURI, alice.ActorURI, recipients, ""))
- /*line destination_test.mygo:33:3*/	if planned.Receipts != int64(1) || planned.Jobs != int64(3) {
- /*line destination_test.mygo:34:5*/		t.Fatalf("planning mis-split colocated and remote recipients: %d/%d", planned.Receipts, planned.Jobs)
- /*line destination_test.mygo:33:3*/	} else {
- /*line zz_destination.gen_test.go:48:1*/	}
- /*line destination_test.mygo:10:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
- /*line destination_test.mygo:38:3*/	if count != int64(0) {
- /*line destination_test.mygo:39:5*/		t.Fatal("a colocated recipient received an outbound job instead of a local receipt")
- /*line destination_test.mygo:38:3*/	} else {
- /*line zz_destination.gen_test.go:54:1*/	}
- /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
- /*line destination_test.mygo:42:3*/	if count != int64(1) {
- /*line destination_test.mygo:43:5*/		t.Fatal("a colocated recipient did not receive a local receipt")
- /*line destination_test.mygo:42:3*/	} else {
- /*line zz_destination.gen_test.go:59:1*/	}
- /*line destination_test.mygo:10:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](storage.ClaimDeliveryJobs(ctx, db, 10, int64(60)))
- /*line destination_test.mygo:46:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 3 {
- /*line destination_test.mygo:47:5*/		t.Fatalf("expected three remote jobs, got %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed))
- /*line destination_test.mygo:46:3*/	} else {
- /*line zz_destination.gen_test.go:64:1*/	}
- /*line destination_test.mygo:49:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(GroupJobs(claimed)) != 2 {
- /*line destination_test.mygo:50:5*/		t.Fatal("jobs sharing a destination were not collapsed into one transmission")
- /*line destination_test.mygo:49:3*/	} else {
- /*line zz_destination.gen_test.go:68:1*/	}
- /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
+	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, failure.Failure](storage.PlanDelivery(ctx, db, activityURI, alice.ActorURI, recipients, ""))
+ /*line destination_test.mygo:34:3*/	if planned.Receipts != int64(1) || planned.Jobs != int64(3) {
+ /*line destination_test.mygo:35:5*/		t.Fatalf("planning mis-split colocated and remote recipients: %d/%d", planned.Receipts, planned.Jobs)
+ /*line destination_test.mygo:34:3*/	} else {
+ /*line zz_destination.gen_test.go:49:1*/	}
+ /*line destination_test.mygo:11:1*/	var count int64 = int64(0)
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
+ /*line destination_test.mygo:39:3*/	if count != int64(0) {
+ /*line destination_test.mygo:40:5*/		t.Fatal("a colocated recipient received an outbound job instead of a local receipt")
+ /*line destination_test.mygo:39:3*/	} else {
+ /*line zz_destination.gen_test.go:55:1*/	}
+ /*line destination_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", carol.ActorURI).Count(&count)))
+ /*line destination_test.mygo:43:3*/	if count != int64(1) {
+ /*line destination_test.mygo:44:5*/		t.Fatal("a colocated recipient did not receive a local receipt")
+ /*line destination_test.mygo:43:3*/	} else {
+ /*line zz_destination.gen_test.go:60:1*/	}
+ /*line destination_test.mygo:11:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, failure.Failure](storage.ClaimDeliveryJobs(ctx, db, 10, int64(60)))
+ /*line destination_test.mygo:47:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 3 {
+ /*line destination_test.mygo:48:5*/		t.Fatalf("expected three remote jobs, got %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed))
+ /*line destination_test.mygo:47:3*/	} else {
+ /*line zz_destination.gen_test.go:65:1*/	}
+ /*line destination_test.mygo:50:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(GroupJobs(claimed)) != 2 {
+ /*line destination_test.mygo:51:5*/		t.Fatal("jobs sharing a destination were not collapsed into one transmission")
+ /*line destination_test.mygo:50:3*/	} else {
+ /*line zz_destination.gen_test.go:69:1*/	}
+ /*line destination_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
 	calls := 0
-	counting := func(target string, actorURI string, privateKey string, body []byte) Result[int, string] {
- /*line destination_test.mygo:54:18*/		calls = calls + 1
- /*line destination_test.mygo:56:5*/		return Ok[int, string](202)
- /*line zz_destination.gen_test.go:74:1*/	}
- /*line destination_test.mygo:10:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, Limits{BatchSize: 10, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
- /*line destination_test.mygo:59:3*/	if calls != 2 {
- /*line destination_test.mygo:60:5*/		t.Fatalf("shared-inbox delivery was transmitted %d times instead of once per destination", calls)
- /*line destination_test.mygo:59:3*/	} else {
- /*line zz_destination.gen_test.go:79:1*/	}
- /*line destination_test.mygo:62:3*/	if outcome.Delivered != 3 {
- /*line destination_test.mygo:63:5*/		t.Fatalf("all recipients of a shared inbox were not marked delivered: %d", outcome.Delivered)
- /*line destination_test.mygo:62:3*/	} else {
- /*line zz_destination.gen_test.go:83:1*/	}
- /*line destination_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'delivered'").Count(&count)))
- /*line destination_test.mygo:66:3*/	if count != int64(3) {
- /*line destination_test.mygo:67:5*/		t.Fatal("shared-inbox deduplication lost a recipient's delivery state")
+	counting := func(target string, actorURI string, privateKey string, body []byte) Result[int, failure.Failure] {
+ /*line destination_test.mygo:55:18*/		calls = calls + 1
+ /*line destination_test.mygo:57:5*/		return Ok[int, failure.Failure](202)
+ /*line zz_destination.gen_test.go:75:1*/	}
+ /*line destination_test.mygo:11:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, failure.Failure](RunOnce(ctx, db, settings, Limits{BatchSize: 10, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
+ /*line destination_test.mygo:60:3*/	if calls != 2 {
+ /*line destination_test.mygo:61:5*/		t.Fatalf("shared-inbox delivery was transmitted %d times instead of once per destination", calls)
+ /*line destination_test.mygo:60:3*/	} else {
+ /*line zz_destination.gen_test.go:80:1*/	}
+ /*line destination_test.mygo:63:3*/	if outcome.Delivered != 3 {
+ /*line destination_test.mygo:64:5*/		t.Fatalf("all recipients of a shared inbox were not marked delivered: %d", outcome.Delivered)
+ /*line destination_test.mygo:63:3*/	} else {
+ /*line zz_destination.gen_test.go:84:1*/	}
+ /*line destination_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'delivered'").Count(&count)))
+ /*line destination_test.mygo:67:3*/	if count != int64(3) {
+ /*line destination_test.mygo:68:5*/		t.Fatal("shared-inbox deduplication lost a recipient's delivery state")
 		return
- /*line destination_test.mygo:66:3*/	} else {
+ /*line destination_test.mygo:67:3*/	} else {
 		return
- /*line zz_destination.gen_test.go:90:1*/	}
+ /*line zz_destination.gen_test.go:91:1*/	}
 }

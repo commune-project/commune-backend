@@ -12,6 +12,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,85 +23,85 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_local_only.gen_test.go:25:1*/	}
+ /*line zz_federation_local_only.gen_test.go:26:1*/	}
  /*line federation_local_only_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
-	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	hiddenPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "secret", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Public", Body: "shared", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	hiddenPost := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "secret", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Public", Body: "shared", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	accept := "application/activity+json"
  /*line federation_local_only_test.mygo:30:3*/	if getAP(handler, a.Origin, "/objects/"+hiddenPost.ID, accept).Code != 404 {
  /*line federation_local_only_test.mygo:31:5*/		t.Fatal("a guessed local-only object identifier resolved a resource")
  /*line federation_local_only_test.mygo:30:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:45:1*/	}
+ /*line zz_federation_local_only.gen_test.go:46:1*/	}
  /*line federation_local_only_test.mygo:33:3*/	if getAP(handler, a.Origin, "/objects/"+hiddenPost.ID+"/replies", accept).Code != 404 {
  /*line federation_local_only_test.mygo:34:5*/		t.Fatal("a guessed local-only replies collection resolved a resource")
  /*line federation_local_only_test.mygo:33:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:49:1*/	}
+ /*line zz_federation_local_only.gen_test.go:50:1*/	}
  /*line federation_local_only_test.mygo:36:3*/	if getAP(handler, a.Origin, "/communities/local", accept).Code != 404 {
  /*line federation_local_only_test.mygo:37:5*/		t.Fatal("a guessed local-only community resolved a resource")
  /*line federation_local_only_test.mygo:36:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:53:1*/	}
+ /*line zz_federation_local_only.gen_test.go:54:1*/	}
  /*line federation_local_only_test.mygo:13:1*/	outbox := getAP(handler, a.Origin, "/users/alice/outbox", accept)
  /*line federation_local_only_test.mygo:40:3*/	if !strings.Contains(outbox.Body.String(), "\"totalItems\":1") || strings.Contains(outbox.Body.String(), "secret") {
  /*line federation_local_only_test.mygo:41:5*/		t.Fatal("the outbox did not exclude local-only content from its count and items")
  /*line federation_local_only_test.mygo:40:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:58:1*/	}
- /*line federation_local_only_test.mygo:13:1*/	isLocal := MygoIN6ResultM6Unwrap[bool, string](storage.IsLocalOnlyCommunity(ctx, db, local.ID))
-	isOpen := MygoIN6ResultM6Unwrap[bool, string](storage.IsLocalOnlyCommunity(ctx, db, open.ID))
-	isLocalPost := MygoIN6ResultM6Unwrap[bool, string](storage.IsLocalOnlyPostID(ctx, db, hiddenPost.ID))
+ /*line zz_federation_local_only.gen_test.go:59:1*/	}
+ /*line federation_local_only_test.mygo:13:1*/	isLocal := MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsLocalOnlyCommunity(ctx, db, local.ID))
+	isOpen := MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsLocalOnlyCommunity(ctx, db, open.ID))
+	isLocalPost := MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsLocalOnlyPostID(ctx, db, hiddenPost.ID))
  /*line federation_local_only_test.mygo:46:3*/	if !isLocal || isOpen || !isLocalPost {
  /*line federation_local_only_test.mygo:47:5*/		t.Fatal("local-only predicates misclassified a community or post")
  /*line federation_local_only_test.mygo:46:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:65:1*/	}
- /*line federation_local_only_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES ('https://forum-a.example/activities/local-1',?, 'Create', ?)", alice.ActorURI, local.ID))) {
+ /*line zz_federation_local_only.gen_test.go:66:1*/	}
+ /*line federation_local_only_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES ('https://forum-a.example/activities/local-1',?, 'Create', ?)", alice.ActorURI, local.ID))) {
  /*line federation_local_only_test.mygo:50:5*/		t.Fatal("a protocol activity was accepted for a local-only community")
  /*line federation_local_only_test.mygo:49:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:69:1*/	}
- /*line federation_local_only_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES ('https://forum-a.example/activities/job-base',?,'Create')", alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES ('https://forum-a.example/activities/job-base','{}'::bytea, decode(repeat('00',32),'hex'))")))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/dave','Person','https://peer.example/inbox')")))
+ /*line zz_federation_local_only.gen_test.go:70:1*/	}
+ /*line federation_local_only_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES ('https://forum-a.example/activities/job-base',?,'Create')", alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES ('https://forum-a.example/activities/job-base','{}'::bytea, decode(repeat('00',32),'hex'))")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/dave','Person','https://peer.example/inbox')")))
 	fabricated := db.Exec("INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES ('https://forum-a.example/activities/job-base',?,'https://peer.example/users/dave','https://peer.example/inbox',?)", alice.ActorURI, local.ID)
- /*line federation_local_only_test.mygo:56:3*/	if MygoIN6ResultM4IsOk[struct{}, string](storage.MutationResult(fabricated)) {
+ /*line federation_local_only_test.mygo:56:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](storage.MutationResult(fabricated)) {
  /*line federation_local_only_test.mygo:57:5*/		t.Fatal("a fabricated delivery job for a local-only community was accepted")
  /*line federation_local_only_test.mygo:56:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:77:1*/	}
- /*line federation_local_only_test.mygo:13:1*/	key := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+ /*line zz_federation_local_only.gen_test.go:78:1*/	}
+ /*line federation_local_only_test.mygo:13:1*/	key := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	peer := "https://peer.example/users/signer"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", peer, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(key)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", peer, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(key)))))
 	date := time.Now().UTC().Format(http.TimeFormat)
 	update := "{\"id\":\"https://peer.example/activities/u9\",\"actor\":\"" + peer + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + hiddenPost.ID + "\"}"
 	updateResult := signedPost(handler, a.Origin, "/users/alice/inbox", update, peer, key, date)
  /*line federation_local_only_test.mygo:65:3*/	if updateResult.Code != 403 || !strings.Contains(updateResult.Body.String(), "unknown object") {
  /*line federation_local_only_test.mygo:66:5*/		t.Fatalf("a signed request naming a local-only identifier revealed or mutated state: %d %s", updateResult.Code, updateResult.Body.String())
  /*line federation_local_only_test.mygo:65:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:87:1*/	}
+ /*line zz_federation_local_only.gen_test.go:88:1*/	}
  /*line federation_local_only_test.mygo:13:1*/	announce := "{\"id\":\"https://peer.example/activities/a9\",\"actor\":\"" + peer + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":\"" + hiddenPost.ID + "\"}"
  /*line federation_local_only_test.mygo:69:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, peer, key, date).Code != 202 {
  /*line federation_local_only_test.mygo:70:5*/		t.Fatal("an inert announcement was rejected instead of being ignored")
  /*line federation_local_only_test.mygo:69:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:92:1*/	}
+ /*line zz_federation_local_only.gen_test.go:93:1*/	}
  /*line federation_local_only_test.mygo:13:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("community_members").Where("community_id = ?", local.ID).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("community_members").Where("community_id = ?", local.ID).Count(&count)))
  /*line federation_local_only_test.mygo:74:3*/	if count != int64(1) {
  /*line federation_local_only_test.mygo:75:5*/		t.Fatal("an inbound announcement changed local-only membership")
  /*line federation_local_only_test.mygo:74:3*/	} else {
- /*line zz_federation_local_only.gen_test.go:98:1*/	}
- /*line federation_local_only_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Count(&count)))
+ /*line zz_federation_local_only.gen_test.go:99:1*/	}
+ /*line federation_local_only_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("collection_memberships").Count(&count)))
  /*line federation_local_only_test.mygo:78:3*/	if count != int64(0) {
  /*line federation_local_only_test.mygo:79:5*/		t.Fatal("an inbound announcement created group inclusion for a local-only resource")
 		return
  /*line federation_local_only_test.mygo:78:3*/	} else {
 		return
- /*line zz_federation_local_only.gen_test.go:105:1*/	}
+ /*line zz_federation_local_only.gen_test.go:106:1*/	}
 }

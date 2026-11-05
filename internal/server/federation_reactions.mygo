@@ -6,10 +6,11 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import config "github.com/commune-project/commune-backend/internal/config"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 # Called after signature verification and durable activity receipt. Occurrence
 # receipts and the reaction mutation commit together, including notification events.
-func ApplyRemoteReaction(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyRemoteReaction(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   var original = activity
   if activity.Type == "Undo" then
     let stored = storage.LoadActivityPayload(ctx, db, activity.ObjectURI)
@@ -19,14 +20,14 @@ func ApplyRemoteReaction(ctx: context.Context, db: Ref[gorm.DB], site: config.Si
     if parsed.IsErr() then return Err(parsed.UnwrapErr()) end
     original = parsed.Unwrap()
     if original.Type != "Like" && original.Type != "Dislike" then return Ok(()) end
-    if original.Actor != activity.Actor then return Err("forged reaction undo") end
+    if original.Actor != activity.Actor then return Err(Of("forged reaction undo")) end
   end
   let post = storage.LoadObjectByURI(ctx, db, original.ObjectURI)
   if post.IsErr() then return Err(post.UnwrapErr()) end
   if post.Unwrap().IsNone() then return Ok(()) end
-  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let claimed = tx.Exec("INSERT INTO applied_reaction_activities(activity_uri) VALUES (?) ON CONFLICT DO NOTHING", activity.ID)
-    if storage.QueryFailed(claimed) then return Err("reaction receipt unavailable") end
+    if storage.QueryFailed(claimed) then return Err(Of("reaction receipt unavailable")) end
     if claimed.RowsAffected == 0i64 then return Ok(()) end
     let identity = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: activity.Actor, Username: ""}
     let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}

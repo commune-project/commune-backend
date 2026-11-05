@@ -9,19 +9,20 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line search_test.mygo:12:1*/func TestSearchValidation(t *testing.T) {
  /*line search_test.mygo:13:3*/	if ValidSearchQuery("") || ValidSearchQuery("  ") || ValidSearchQuery(strings.Repeat("中", 201)) || !ValidSearchQuery(strings.Repeat("中", 200)) {
  /*line search_test.mygo:17:5*/		t.Fatal("search bounds failed")
  /*line search_test.mygo:13:3*/	} else {
- /*line zz_search.gen_test.go:18:1*/	}
+ /*line zz_search.gen_test.go:19:1*/	}
  /*line search_test.mygo:19:3*/	if SearchPattern("%_\\'") != "%\\%\\_\\\\'%" {
  /*line search_test.mygo:20:5*/		t.Fatal("literal search escaping failed")
 		return
  /*line search_test.mygo:19:3*/	} else {
 		return
- /*line zz_search.gen_test.go:24:1*/	}
+ /*line zz_search.gen_test.go:25:1*/	}
 }
  /*line search_test.mygo:24:1*/func TestSearchQueryUsesGormPagination(t *testing.T) {
 	fixture := mockFixture(t)
@@ -31,7 +32,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_search.gen_test.go:34:1*/	}
+ /*line zz_search.gen_test.go:35:1*/	}
  /*line search_test.mygo:24:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	repository := BrowserRepository{DB: db, SiteID: "a"}
 	query := MygoIN17BrowserRepositoryM16SearchPostsQuery(repository, context.Background(), Zero[BrowserViewer](), "literal", Page{Limit: 7, Offset: 3})
@@ -43,14 +44,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line search_test.mygo:42:3*/	if QueryFailed(built) {
  /*line search_test.mygo:43:5*/		t.Fatalf("search query builder failed dry run: %v", built.Error)
  /*line search_test.mygo:42:3*/	} else {
- /*line zz_search.gen_test.go:46:1*/	}
+ /*line zz_search.gen_test.go:47:1*/	}
  /*line search_test.mygo:24:1*/	sql := built.Statement.SQL.String()
  /*line search_test.mygo:46:3*/	if !strings.Contains(sql, "ILIKE") || strings.Contains(sql, "@site") || strings.Contains(sql, "@account") || !strings.Contains(sql, "ORDER BY authored_at DESC,id LIMIT") || !strings.Contains(sql, "OFFSET") {
  /*line search_test.mygo:51:5*/		t.Fatalf("search query lost GORM filtering or pagination: %s", sql)
 		return
  /*line search_test.mygo:46:3*/	} else {
 		return
- /*line zz_search.gen_test.go:53:1*/	}
+ /*line zz_search.gen_test.go:54:1*/	}
 }
  /*line search_test.mygo:55:1*/func TestPostgresSearch(t *testing.T) {
  /*line search_test.mygo:56:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -59,121 +60,121 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_search.gen_test.go:62:1*/	}
+ /*line zz_search.gen_test.go:63:1*/	}
  /*line search_test.mygo:55:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	open := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "public", "中文社区", "federated", "eligible_users", "eligible_users"))
-	private := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "中文私密", "federated", "members", "members"))
+	open := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "public", "中文社区", "federated", "eligible_users", "eligible_users"))
+	private := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "中文私密", "federated", "members", "members"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	first := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, testPublishInput("First", "<b>中文</b>")))
-	second := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, testPublishInput("Second", "[中文](https://hidden.example)")))
-	secret := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, testPublishInput("secret", "中文")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE posts SET search_text=?, authored_at='2026-01-01'", "中文 AbC %_\\' literal")))
+	first := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, testPublishInput("First", "<b>中文</b>")))
+	second := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, testPublishInput("Second", "[中文](https://hidden.example)")))
+	secret := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, testPublishInput("secret", "中文")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET search_text=?, authored_at='2026-01-01'", "中文 AbC %_\\' literal")))
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
+	viewer := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
 	allResult := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:118:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](allResult) {
- /*line search_test.mygo:119:5*/		t.Fatalf("initial search failed: %s", MygoIN6ResultM9UnwrapErr[[]PostRecord, string](allResult))
+ /*line search_test.mygo:118:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](allResult) {
+ /*line search_test.mygo:119:5*/		t.Fatalf("initial search failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[[]PostRecord, failure.Failure](allResult)))
  /*line search_test.mygo:118:3*/	} else {
- /*line zz_search.gen_test.go:84:1*/	}
- /*line search_test.mygo:55:1*/	all := MygoIN6ResultM6Unwrap[[]PostRecord, string](allResult)
+ /*line zz_search.gen_test.go:85:1*/	}
+ /*line search_test.mygo:55:1*/	all := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](allResult)
 	pagedResult := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", Page{Limit: 1, Offset: 1}, 50)
- /*line search_test.mygo:123:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](pagedResult) {
- /*line search_test.mygo:124:5*/		t.Fatalf("paged search failed: %s", MygoIN6ResultM9UnwrapErr[[]PostRecord, string](pagedResult))
+ /*line search_test.mygo:123:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](pagedResult) {
+ /*line search_test.mygo:124:5*/		t.Fatalf("paged search failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[[]PostRecord, failure.Failure](pagedResult)))
  /*line search_test.mygo:123:3*/	} else {
- /*line zz_search.gen_test.go:90:1*/	}
- /*line search_test.mygo:55:1*/	paged := MygoIN6ResultM6Unwrap[[]PostRecord, string](pagedResult)
+ /*line zz_search.gen_test.go:91:1*/	}
+ /*line search_test.mygo:55:1*/	paged := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](pagedResult)
  /*line search_test.mygo:127:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(all) != 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(paged) != 1 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(paged, 0)).ID != MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(all, 1)).ID {
  /*line search_test.mygo:128:5*/		t.Fatal("authorization before paging or deterministic ties failed")
  /*line search_test.mygo:127:3*/	} else {
- /*line zz_search.gen_test.go:95:1*/	}
+ /*line zz_search.gen_test.go:96:1*/	}
  /*line search_test.mygo:55:1*/	var queries []string = []string{"abc", "%_\\'", "中文"}
  /*line search_test.mygo:131:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(queries, func(query string) {
  /*line search_test.mygo:131:16*/		result := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, query, Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:133:5*/		if MygoIN6ResultM5IsErr[[]PostRecord, string](result) {
- /*line search_test.mygo:134:7*/			t.Fatalf("search %q failed: %s", query, MygoIN6ResultM9UnwrapErr[[]PostRecord, string](result))
+ /*line search_test.mygo:133:5*/		if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](result) {
+ /*line search_test.mygo:134:7*/			t.Fatalf("search %q failed: %s", query, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[[]PostRecord, failure.Failure](result)))
  /*line search_test.mygo:133:5*/		} else {
- /*line zz_search.gen_test.go:102:1*/		}
- /*line search_test.mygo:136:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](result)) != 2 {
+ /*line zz_search.gen_test.go:103:1*/		}
+ /*line search_test.mygo:136:5*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](result)) != 2 {
  /*line search_test.mygo:137:7*/			t.Fatal("literal case insensitive Chinese search failed")
 			return
  /*line search_test.mygo:136:5*/		} else {
 			return
- /*line zz_search.gen_test.go:108:1*/		}
+ /*line zz_search.gen_test.go:109:1*/		}
 	})
  /*line search_test.mygo:55:1*/	hiddenSource := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "hidden.example", Page{Limit: 20, Offset: 0}, 50)
 	markupSource := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "<b>", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:148:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](hiddenSource) || MygoIN6ResultM5IsErr[[]PostRecord, string](markupSource) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](hiddenSource)) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](markupSource)) != 0 {
+ /*line search_test.mygo:148:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](hiddenSource) || MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](markupSource) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](hiddenSource)) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](markupSource)) != 0 {
  /*line search_test.mygo:152:5*/		t.Fatal("search read markup/source instead of normalized text")
  /*line search_test.mygo:148:3*/	} else {
- /*line zz_search.gen_test.go:115:1*/	}
+ /*line zz_search.gen_test.go:116:1*/	}
  /*line search_test.mygo:55:1*/	communitySearch := MygoIN17BrowserRepositoryM17SearchCommunities(browser, ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:161:3*/	if MygoIN6ResultM5IsErr[[]CommunityView, string](communitySearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]CommunityView, string](communitySearch)) != 1 {
+ /*line search_test.mygo:161:3*/	if MygoIN6ResultM5IsErr[[]CommunityView, failure.Failure](communitySearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](communitySearch)) != 1 {
  /*line search_test.mygo:162:5*/		t.Fatal("community read filtering failed")
  /*line search_test.mygo:161:3*/	} else {
- /*line zz_search.gen_test.go:120:1*/	}
+ /*line zz_search.gen_test.go:121:1*/	}
  /*line search_test.mygo:55:1*/	blockedSearch := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, BrowserViewer{Identity: Zero[auth.Identity](), Verified: false, Blocked: true, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: false, DownvotesEnabled: false, VoteSettingsLoaded: false}, "中文", Page{Limit: 20, Offset: 0}, 50)
 	unreceivedSearch := MygoIN17BrowserRepositoryM11SearchPosts(BrowserRepository{DB: db, SiteID: "unreceived"}, ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:184:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](blockedSearch) || MygoIN6ResultM5IsErr[[]PostRecord, string](unreceivedSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](blockedSearch)) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](unreceivedSearch)) != 0 {
+ /*line search_test.mygo:184:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](blockedSearch) || MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](unreceivedSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](blockedSearch)) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](unreceivedSearch)) != 0 {
  /*line search_test.mygo:188:5*/		t.Fatal("blocked viewer or absent site reception leaked results")
  /*line search_test.mygo:184:3*/	} else {
- /*line zz_search.gen_test.go:126:1*/	}
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", first.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, second.ID, alice, false, "rejected"))
+ /*line zz_search.gen_test.go:127:1*/	}
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", first.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, second.ID, alice, false, "rejected"))
 	filtered := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:193:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](filtered) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](filtered)) != 0 {
+ /*line search_test.mygo:193:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](filtered) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](filtered)) != 0 {
  /*line search_test.mygo:194:5*/		t.Fatal("hidden/rejected posts leaked")
  /*line search_test.mygo:193:3*/	} else {
- /*line zz_search.gen_test.go:133:1*/	}
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", first.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE posts SET search_text='updated' WHERE id=?", first.ID)))
+ /*line zz_search.gen_test.go:134:1*/	}
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=NULL WHERE post_id=?", first.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET search_text='updated' WHERE id=?", first.ID)))
 	updatedSearch := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "updated", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:199:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](updatedSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](updatedSearch)) != 1 {
+ /*line search_test.mygo:199:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](updatedSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](updatedSearch)) != 1 {
  /*line search_test.mygo:200:5*/		t.Fatal("updated search text missing")
  /*line search_test.mygo:199:3*/	} else {
- /*line zz_search.gen_test.go:140:1*/	}
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, first.ID, alice, false))
+ /*line zz_search.gen_test.go:141:1*/	}
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14PostRepositoryM6Delete(posts, ctx, first.ID, alice, false))
 	tombstoneSearch := MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "updated", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:204:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, string](tombstoneSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](tombstoneSearch)) != 0 {
+ /*line search_test.mygo:204:3*/	if MygoIN6ResultM5IsErr[[]PostRecord, failure.Failure](tombstoneSearch) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](tombstoneSearch)) != 0 {
  /*line search_test.mygo:205:5*/		t.Fatal("tombstone leaked")
  /*line search_test.mygo:204:3*/	} else {
- /*line zz_search.gen_test.go:146:1*/	}
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", open.ID, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts ON CONFLICT DO NOTHING", site.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("ANALYZE posts")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("ANALYZE site_posts")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("ANALYZE communities")))
+ /*line zz_search.gen_test.go:147:1*/	}
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", open.ID, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts ON CONFLICT DO NOTHING", site.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("ANALYZE posts")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("ANALYZE site_posts")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("ANALYZE communities")))
  /*line search_test.mygo:219:20*/	var __mygo_expr_4 Result[[]string, error]
 	__mygo_expr_5, __mygo_expr_3 := transport.Explain(MygoIN17BrowserRepositoryM16SearchPostsQuery(browser, ctx, viewer, "中文", Page{Limit: 20, Offset: 0}))
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]string, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[[]string, error](__mygo_expr_5)
- /*line zz_search.gen_test.go:158:1*/	}
+ /*line zz_search.gen_test.go:159:1*/	}
  /*line search_test.mygo:55:1*/	planResult := __mygo_expr_4
  /*line search_test.mygo:228:3*/	if MygoIN6ResultM5IsErr[[]string, error](planResult) {
  /*line search_test.mygo:229:5*/		t.Fatalf("search explain failed: %s", MygoIN6ResultM9UnwrapErr[[]string, error](planResult))
  /*line search_test.mygo:228:3*/	} else {
- /*line zz_search.gen_test.go:163:1*/	}
+ /*line zz_search.gen_test.go:164:1*/	}
  /*line search_test.mygo:55:1*/	plan := MygoIN6ResultM6Unwrap[[]string, error](planResult)
  /*line search_test.mygo:232:3*/	t.Logf("1000-post literal search plan:\n%s", strings.Join(plan, "\n"))
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
-	admin := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, site.ID, "admin"))))))
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	admin := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(ctx, db, site.ID, "admin"))))))
 	adminSearch := MygoIN17BrowserRepositoryM17SearchCommunities(browser, ctx, admin, "私密", Page{Limit: 20, Offset: 0}, 50)
- /*line search_test.mygo:239:3*/	if MygoIN6ResultM5IsErr[[]CommunityView, string](adminSearch) {
- /*line search_test.mygo:240:5*/		t.Fatalf("administrator search failed: %s", MygoIN6ResultM9UnwrapErr[[]CommunityView, string](adminSearch))
+ /*line search_test.mygo:239:3*/	if MygoIN6ResultM5IsErr[[]CommunityView, failure.Failure](adminSearch) {
+ /*line search_test.mygo:240:5*/		t.Fatalf("administrator search failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[[]CommunityView, failure.Failure](adminSearch)))
  /*line search_test.mygo:239:3*/	} else {
- /*line zz_search.gen_test.go:172:1*/	}
- /*line search_test.mygo:242:3*/	if !MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("audit_events").Where("acting_actor_uri=? AND action='read-community' AND target_id=?", admin.Identity.ActorURI, private.ID))) {
+ /*line zz_search.gen_test.go:173:1*/	}
+ /*line search_test.mygo:242:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](QueryExists(db.Table("audit_events").Where("acting_actor_uri=? AND action='read-community' AND target_id=?", admin.Identity.ActorURI, private.ID))) {
  /*line search_test.mygo:247:5*/		t.Fatal("administrative search was not audited")
  /*line search_test.mygo:242:3*/	} else {
- /*line zz_search.gen_test.go:176:1*/	}
- /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", secret.ID)))
+ /*line zz_search.gen_test.go:177:1*/	}
+ /*line search_test.mygo:55:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", secret.ID)))
 	return
- /*line zz_search.gen_test.go:179:1*/}
+ /*line zz_search.gen_test.go:180:1*/}

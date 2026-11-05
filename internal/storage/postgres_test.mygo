@@ -62,10 +62,10 @@ func TestPostgresMigrationRollback(t: Ref[testing.T]) -> ()
   let db = postgresFixture(t)
   # Force the ledger write to fail after the migration DDL has executed.
   if db.Exec("CREATE TABLE public.commune_schema_migrations (version integer PRIMARY KEY CHECK(version < 0), name text NOT NULL UNIQUE, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())").IsErr() then
-    t.Fatal("cannot construct migration failure fixture")
+    t.Fatal("cannot construct migration failed fixture")
   end
   if Migrate(context.Background(), db).IsOk() then
-    t.Fatal("ledger failure was ignored")
+    t.Fatal("ledger failed was ignored")
   end
   let absent = false
   if db.QueryRow("SELECT to_regclass('public.sites') IS NULL").Scan(Ref.new(absent)).IsErr() || !absent then

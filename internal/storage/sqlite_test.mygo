@@ -8,6 +8,7 @@ import logger "go:gorm.io/gorm/logger"
 import sqlmock "go:github.com/DATA-DOG/go-sqlmock"
 import driver "go:database/sql/driver"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func requireGORM(t: Ref[testing.T], result: Ref[gorm.DB]) -> ()
   let failed = QueryFailed(result)
@@ -62,15 +63,15 @@ func TestGORMMappingAndScopedQuery(t: Ref[testing.T]) -> ()
   if FindAccount(context.Background(), db, "site-c", username).Unwrap().IsSome() then
     t.Fatal("cross-site lookup returned account")
   end
-  let work = func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let work = func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
-    Err[(), String]("reject")
+    Err[(), failure.Failure](Of("reject"))
   end
   if RunTransaction(context.Background(), db, work).IsOk() ||
     FindAccount(context.Background(), db, "site-a", username).Unwrap().Unwrap().Disabled then
     t.Fatal("transaction failed to roll back")
   end
-  let commit = func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let commit = func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
     Ok(())
   end

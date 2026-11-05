@@ -12,6 +12,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import content "github.com/commune-project/commune-backend/internal/content"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ProfilePatch
   DisplayName: json.RawMessage `json:"display_name"`
@@ -31,7 +32,7 @@ func BindProfileAvatar(
   settings: config.Config,
   identity: auth.Identity,
   uploadID: String
-) -> Result[AvatarBinding, String]
+) -> Result[AvatarBinding, failure.Failure]
   let media: storage.MediaRepository = storage.MediaRepository{
     DB: tx,
     SiteID: site.ID,
@@ -86,7 +87,7 @@ func ProfileRoute(
     end
     let loaded = storage.PublicProfile(request.Context(), db, site.ID, parts.Get(3).Unwrap())
     if loaded.IsErr() then
-      Fail(w, loaded.UnwrapErr())
+      FailFailure(w, loaded.UnwrapErr())
     else
       WriteJSON(w, 200, loaded.Unwrap())
     end
@@ -98,14 +99,14 @@ func ProfileRoute(
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   let identity = session.Unwrap().Identity
   if request.Method == "GET" then
     let loaded = storage.PublicProfile(request.Context(), db, site.ID, identity.Username)
     if loaded.IsErr() then
-      Fail(w, loaded.UnwrapErr())
+      FailFailure(w, loaded.UnwrapErr())
     else
       WriteJSON(w, 200, loaded.Unwrap())
     end
@@ -124,7 +125,7 @@ func ProfileRoute(
   let result = storage.RunTransaction(
     request.Context(),
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let locked = storage.LockProfileOwner(request.Context(), tx, site.ID, identity)
       if locked.IsErr() then
         return locked
@@ -141,7 +142,7 @@ func ProfileRoute(
           json.Unmarshal(patch.DisplayName as Slice[Byte], Ref.new(name)).IsErr() ||
           !utf8.ValidString(name) ||
           utf8.RuneCountInString(name) > settings.Rendering.MaxDisplayNameLength then
-          return Err("invalid profile input")
+          return Err(Of("invalid profile input"))
         end
         profile.DisplayName = content.RenderText(name)
       end
@@ -151,11 +152,11 @@ func ProfileRoute(
           json.Unmarshal(patch.Biography as Slice[Byte], Ref.new(biography)).IsErr() ||
           !utf8.ValidString(biography) ||
           utf8.RuneCountInString(biography) > settings.Rendering.MaxBiographyLength then
-          return Err("invalid profile input")
+          return Err(Of("invalid profile input"))
         end
         let rendered = content.RenderRich(settings.Rendering.Sanitizer, biography, "markdown")
         if rendered.IsErr() then
-          return Err("invalid profile input")
+          return Err(Of("invalid profile input"))
         end
         profile.Biography = biography
         profile.BiographyHTML = rendered.Unwrap()
@@ -164,7 +165,7 @@ func ProfileRoute(
         let upload = ""
         if (patch.AvatarUploadID as String) != "null" &&
           json.Unmarshal(patch.AvatarUploadID as Slice[Byte], Ref.new(upload)).IsErr() then
-          return Err("invalid profile input")
+          return Err(Of("invalid profile input"))
         end
         let binding = BindProfileAvatar(request.Context(), tx, site, settings, identity, upload)
         if binding.IsErr() then
@@ -192,14 +193,14 @@ func ProfileRoute(
     end
   )
   if result.IsErr() then
-    if result.UnwrapErr() == "invalid profile input" ||
-      result.UnwrapErr() == "invalid media binding" then
-      WriteErrorJSON(w, 400, result.UnwrapErr())
+    if result.UnwrapErr().Render() == "invalid profile input" ||
+      result.UnwrapErr().Render() == "invalid media binding" then
+      WriteErrorJSON(w, 400, result.UnwrapErr().Render())
     else
-      if result.UnwrapErr() == "media binding conflict" then
-        WriteErrorJSON(w, 409, result.UnwrapErr())
+      if result.UnwrapErr().Render() == "media binding conflict" then
+        WriteErrorJSON(w, 409, result.UnwrapErr().Render())
       else
-        Fail(w, result.UnwrapErr())
+        FailFailure(w, result.UnwrapErr())
       end
     end
   else

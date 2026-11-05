@@ -4,6 +4,7 @@ import strings "go:strings"
 import time "go:time"
 import http "go:net/http"
 import regexp "go:regexp"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct SignatureParameters
   KeyID: String
@@ -40,17 +41,17 @@ func VerifySignedGet(
   signatureHeader: String,
   now: time.Time,
   windowSeconds: Int64
-) -> Result[VerifiedRequest, String]
+) -> Result[VerifiedRequest, failure.Failure]
   let header = ParseSignatureHeader(signatureHeader)
   if header.IsErr() then
-    return Err("invalid signature header")
+    return Err(Of("invalid signature header"))
   end
   let params = header.Unwrap()
   if params.Algorithm != "rsa-sha256" || params.Headers != RequiredGetHeaders() then
-    return Err("unsupported signature")
+    return Err(Of("unsupported signature"))
   end
   if !FreshDate(date, now, windowSeconds) then
-    return Err("stale request")
+    return Err(Of("stale request"))
   end
   let signing = GetSigningString(method, requestTarget, host, date)
   let valid = VerifySignature(publicPEM, signing, params.Signature)
@@ -58,21 +59,21 @@ func VerifySignedGet(
     return Err(valid.UnwrapErr())
   end
   if !valid.Unwrap() then
-    return Err("invalid signature")
+    return Err(Of("invalid signature"))
   end
   Ok(VerifiedRequest{KeyID: params.KeyID})
 end
 
-func ExtractSignatureParam(header: String, name: String) -> Result[String, String]
+func ExtractSignatureParam(header: String, name: String) -> Result[String, failure.Failure]
   let pattern = regexp.MustCompile(name + "=\"([^\"]*)\"")
   let match = pattern.FindStringSubmatch(header)
   if match.Len() < 2 then
-    return Err("missing " + name)
+    return Err(Of("missing " + name))
   end
   Ok(match.Get(1).Unwrap())
 end
 
-func ParseSignatureHeader(header: String) -> Result[SignatureParameters, String]
+func ParseSignatureHeader(header: String) -> Result[SignatureParameters, failure.Failure]
   let keyID = ExtractSignatureParam(header, "keyId")
   if keyID.IsErr() then
     return Err(keyID.UnwrapErr())
@@ -151,17 +152,17 @@ func VerifyRequest(
   signatureHeader: String,
   now: time.Time,
   windowSeconds: Int64
-) -> Result[VerifiedRequest, String]
+) -> Result[VerifiedRequest, failure.Failure]
   let header = ParseSignatureHeader(signatureHeader)
   if header.IsErr() then
-    return Err("invalid signature header")
+    return Err(Of("invalid signature header"))
   end
   let params = header.Unwrap()
   if params.Algorithm != "rsa-sha256" || params.Headers != RequiredHeaders() then
-    return Err("unsupported signature")
+    return Err(Of("unsupported signature"))
   end
   if !FreshDate(date, now, windowSeconds) then
-    return Err("stale request")
+    return Err(Of("stale request"))
   end
   let signing = RequestSigningString(method, requestTarget, host, date, digest)
   let valid = VerifySignature(publicPEM, signing, params.Signature)
@@ -169,7 +170,7 @@ func VerifyRequest(
     return Err(valid.UnwrapErr())
   end
   if !valid.Unwrap() then
-    return Err("invalid signature")
+    return Err(Of("invalid signature"))
   end
   Ok(VerifiedRequest{KeyID: params.KeyID})
 end

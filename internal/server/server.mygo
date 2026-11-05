@@ -10,6 +10,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func Handler(settings: config.Config, db: Ref[gorm.DB]) -> http.HandlerFunc
   let callback = func(w: http.ResponseWriter, request: Ref[http.Request]) -> ()
@@ -88,9 +89,9 @@ func NewHTTPServer(settings: config.Config, db: Ref[gorm.DB]) -> Ref[http.Server
   Ref.new(server)
 end
 
-func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> Result[(), String]
+func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> Result[(), failure.Failure]
   if storage.CheckGORM(ctx, db).IsErr() then
-    return Err("schema is incompatible; run explicit migration")
+    return Err(Of("schema is incompatible; run explicit migration"))
   end
   let server = NewHTTPServer(settings, db)
   let (lifetime, cancelLifetime) = context.WithCancel(ctx)
@@ -116,7 +117,7 @@ func Serve(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB]) -> R
   if result.IsErr() && !errors.Is(result.UnwrapErr(), http.ErrServerClosed) then
     cancelLifetime()
     let _ = participationStopped.Receive()
-    return Err("http listener failed")
+    return Err(Of("http listener failed"))
   end
   cancelLifetime()
   let _ = stopped.Receive()

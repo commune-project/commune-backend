@@ -4,6 +4,7 @@ import context "go:context"
 import strings "go:strings"
 import utf8 "go:unicode/utf8"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 # The renderer owns search_text: decoded visible text, never HTML or Markdown
 # source. It must be persisted atomically on local and remote source updates.
 func ValidSearchQuery(query: String) -> Bool
@@ -46,13 +47,13 @@ impl BrowserRepository
     query: String,
     page: Page,
     max: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     if !ValidSearchQuery(query) || !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     var rows: Slice[PostRecord] = []
     if MutationResult(self.SearchPostsQuery(ctx, viewer, query, page).Scan(Ref.new(rows))).IsErr() then
-      return Err("search unavailable")
+      return Err(Of("search unavailable"))
     end
     Ok(rows)
   end
@@ -63,9 +64,9 @@ impl BrowserRepository
     query: String,
     page: Page,
     max: Int
-  ) -> Result[Slice[CommunityView], String]
+  ) -> Result[Slice[CommunityView], failure.Failure]
     if !ValidSearchQuery(query) || !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     let readable = self.CommunitiesQuery(
       ctx,
@@ -81,7 +82,7 @@ impl BrowserRepository
       pattern
     ).Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     if MutationResult(result).IsErr() then
-      return Err("search unavailable")
+      return Err(Of("search unavailable"))
     end
     let audit = self.AuditViews(ctx, viewer, rows)
     if audit.IsErr() then

@@ -10,137 +10,138 @@ import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_reactions_test.mygo:12:1*/type ReactionTestRow struct {
+ /*line federation_reactions_test.mygo:13:1*/type ReactionTestRow struct {
 	Score int "gorm:\"column:score\""
- /*line zz_federation_reactions.gen_test.go:19:1*/}
+ /*line zz_federation_reactions.gen_test.go:20:1*/}
 
- /*line federation_reactions_test.mygo:16:1*/func TestPostgresRemoteReactionReplayOccurrences(t *testing.T) {
+ /*line federation_reactions_test.mygo:17:1*/func TestPostgresRemoteReactionReplayOccurrences(t *testing.T) {
 	ctx := context.Background()
- /*line federation_reactions_test.mygo:18:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line federation_reactions_test.mygo:19:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_reactions.gen_test.go:29:1*/	}
- /*line federation_reactions_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+ /*line zz_federation_reactions.gen_test.go:30:1*/	}
+ /*line federation_reactions_test.mygo:17:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	site := config.Site{ID: "reactions", RegistrationEnabled: false, Origin: "https://reactions.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "likes", "Likes", "federated", "eligible_users", "eligible_users"))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	actor := "https://remote.example/users/bob"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.EnsureRemoteActor(ctx, db, actor, "Person"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.EnsureRemoteActor(ctx, db, actor, "Person"))
 	receive := func(kind string, id string, target string) {
- /*line federation_reactions_test.mygo:27:17*/		payload := "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"" + kind + "\",\"object\":\"" + target + "\"}"
-		MygoIN6ResultM6Unwrap[int64, string](storage.ReceiveActivity(ctx, db, site.ID, []string{alice.ActorURI}, id, actor, kind, []byte(payload)))
-		MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(payload))), []byte(payload), []string{alice.ActorURI}))
-		MygoIN6ResultM6Unwrap[struct{}, string](storage.ProjectNotifications(ctx, db, 100))
+ /*line federation_reactions_test.mygo:58:17*/		payload := "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"" + kind + "\",\"object\":\"" + target + "\"}"
+		MygoIN6ResultM6Unwrap[int64, failure.Failure](storage.ReceiveActivity(ctx, db, site.ID, []string{alice.ActorURI}, id, actor, kind, []byte(payload)))
+		MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](federation.ParseActivity([]byte(payload))), []byte(payload), []string{alice.ActorURI}))
+		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProjectNotifications(ctx, db, 100))
 		return
- /*line zz_federation_reactions.gen_test.go:45:1*/	}
- /*line federation_reactions_test.mygo:16:1*/	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, alice))
+ /*line zz_federation_reactions.gen_test.go:46:1*/	}
+ /*line federation_reactions_test.mygo:17:1*/	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
+	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, alice))
 	first := "https://remote.example/activities/like-1"
 	second := "https://remote.example/activities/like-2"
- /*line federation_reactions_test.mygo:37:3*/	receive("Like", first, post.ObjectURI.String)
- /*line federation_reactions_test.mygo:16:1*/	original := MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[storage.NotificationPage, string](storage.MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50)).Items, 0)).ID
- /*line federation_reactions_test.mygo:39:3*/	receive("Undo", "https://remote.example/activities/undo-1", first)
- /*line federation_reactions_test.mygo:40:3*/	receive("Like", first, post.ObjectURI.String)
- /*line federation_reactions_test.mygo:41:3*/	if MygoIN6ResultM6Unwrap[int64, string](storage.MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
- /*line federation_reactions_test.mygo:41:73*/		t.Fatal("replayed old Like resurrected retired notification")
- /*line federation_reactions_test.mygo:41:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:57:1*/	}
- /*line federation_reactions_test.mygo:42:3*/	receive("Like", second, post.ObjectURI.String)
- /*line federation_reactions_test.mygo:16:1*/	repeated := MygoIN6ResultM6Unwrap[storage.NotificationPage, string](storage.MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50)).Items
- /*line federation_reactions_test.mygo:44:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(repeated) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(repeated, 0)).ID == original {
- /*line federation_reactions_test.mygo:44:74*/		t.Fatal("new remote re-like lost occurrence identity")
- /*line federation_reactions_test.mygo:44:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:63:1*/	}
- /*line federation_reactions_test.mygo:45:3*/	receive("Undo", "https://remote.example/activities/stale-undo", first)
- /*line federation_reactions_test.mygo:46:3*/	if MygoIN6ResultM6Unwrap[int64, string](storage.MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
- /*line federation_reactions_test.mygo:46:73*/		t.Fatal("old Undo retired a newer Like")
+ /*line federation_reactions_test.mygo:84:3*/	receive("Like", first, post.ObjectURI.String)
+ /*line federation_reactions_test.mygo:17:1*/	original := MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[storage.NotificationPage, failure.Failure](storage.MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50)).Items, 0)).ID
+ /*line federation_reactions_test.mygo:86:3*/	receive("Undo", "https://remote.example/activities/undo-1", first)
+ /*line federation_reactions_test.mygo:87:3*/	receive("Like", first, post.ObjectURI.String)
+ /*line federation_reactions_test.mygo:88:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](storage.MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(0) {
+ /*line federation_reactions_test.mygo:89:5*/		t.Fatal("replayed old Like resurrected retired notification")
+ /*line federation_reactions_test.mygo:88:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:58:1*/	}
+ /*line federation_reactions_test.mygo:91:3*/	receive("Like", second, post.ObjectURI.String)
+ /*line federation_reactions_test.mygo:17:1*/	repeated := MygoIN6ResultM6Unwrap[storage.NotificationPage, failure.Failure](storage.MygoIN17BrowserRepositoryM13Notifications(browser, ctx, viewer, storage.Page{Limit: 20, Offset: 0}, 50)).Items
+ /*line federation_reactions_test.mygo:93:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(repeated) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(repeated, 0)).ID == original {
+ /*line federation_reactions_test.mygo:94:5*/		t.Fatal("new remote re-like lost occurrence identity")
+ /*line federation_reactions_test.mygo:93:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:64:1*/	}
+ /*line federation_reactions_test.mygo:96:3*/	receive("Undo", "https://remote.example/activities/stale-undo", first)
+ /*line federation_reactions_test.mygo:97:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](storage.MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, viewer)) != int64(1) {
+ /*line federation_reactions_test.mygo:98:5*/		t.Fatal("old Undo retired a newer Like")
 		return
- /*line federation_reactions_test.mygo:46:3*/	} else {
+ /*line federation_reactions_test.mygo:97:3*/	} else {
 		return
- /*line zz_federation_reactions.gen_test.go:70:1*/	}
+ /*line zz_federation_reactions.gen_test.go:71:1*/	}
 }
- /*line federation_reactions_test.mygo:49:1*/func TestPostgresRemoteDislikeAndUndo(t *testing.T) {
+ /*line federation_reactions_test.mygo:102:1*/func TestPostgresRemoteDislikeAndUndo(t *testing.T) {
 	ctx := context.Background()
- /*line federation_reactions_test.mygo:51:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line federation_reactions_test.mygo:104:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_reactions.gen_test.go:80:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+ /*line zz_federation_reactions.gen_test.go:81:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	site := config.Site{ID: "dislikes", RegistrationEnabled: false, Origin: "https://dislikes.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "votes", "Votes", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "votes", "Votes", "federated", "eligible_users", "eligible_users"))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	actor := "https://remote.example/users/bob"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.EnsureRemoteActor(ctx, db, actor, "Person"))
-	apply := func(kind string, id string, target string) Result[bool, string] {
- /*line federation_reactions_test.mygo:61:15*/		payload := "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"" + kind + "\",\"object\":\"" + target + "\"}"
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.EnsureRemoteActor(ctx, db, actor, "Person"))
+	apply := func(kind string, id string, target string) Result[bool, failure.Failure] {
+ /*line federation_reactions_test.mygo:144:15*/		payload := "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"" + kind + "\",\"object\":\"" + target + "\"}"
 		received := storage.ReceiveActivity(ctx, db, site.ID, []string{alice.ActorURI}, id, actor, kind, []byte(payload))
- /*line federation_reactions_test.mygo:64:5*/		if MygoIN6ResultM5IsErr[int64, string](received) {
- /*line federation_reactions_test.mygo:64:37*/			return Err[bool, string](MygoIN6ResultM9UnwrapErr[int64, string](received))
- /*line federation_reactions_test.mygo:64:5*/		} else {
- /*line zz_federation_reactions.gen_test.go:97:1*/		}
- /*line federation_reactions_test.mygo:61:15*/		parsed := federation.ParseActivity([]byte(payload))
- /*line federation_reactions_test.mygo:66:5*/		if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) {
- /*line federation_reactions_test.mygo:66:35*/			return Err[bool, string](MygoIN6ResultM9UnwrapErr[federation.ParsedActivity, string](parsed))
- /*line federation_reactions_test.mygo:66:5*/		} else {
- /*line zz_federation_reactions.gen_test.go:102:1*/		}
- /*line federation_reactions_test.mygo:67:5*/		return ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed), []byte(payload), []string{alice.ActorURI})
- /*line zz_federation_reactions.gen_test.go:104:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	dislikeURI := "https://remote.example/activities/dislike-1"
-	MygoIN6ResultM6Unwrap[bool, string](apply("Dislike", dislikeURI, post.ObjectURI.String))
+ /*line federation_reactions_test.mygo:155:5*/		if MygoIN6ResultM5IsErr[int64, failure.Failure](received) {
+ /*line federation_reactions_test.mygo:156:14*/			return Err[bool, failure.Failure](MygoIN6ResultM9UnwrapErr[int64, failure.Failure](received))
+ /*line federation_reactions_test.mygo:155:5*/		} else {
+ /*line zz_federation_reactions.gen_test.go:98:1*/		}
+ /*line federation_reactions_test.mygo:144:15*/		parsed := federation.ParseActivity([]byte(payload))
+ /*line federation_reactions_test.mygo:159:5*/		if MygoIN6ResultM5IsErr[federation.ParsedActivity, failure.Failure](parsed) {
+ /*line federation_reactions_test.mygo:160:14*/			return Err[bool, failure.Failure](MygoIN6ResultM9UnwrapErr[federation.ParsedActivity, failure.Failure](parsed))
+ /*line federation_reactions_test.mygo:159:5*/		} else {
+ /*line zz_federation_reactions.gen_test.go:103:1*/		}
+ /*line federation_reactions_test.mygo:162:5*/		return ApplyActivity(content.DefaultSanitizer, ctx, db, site, MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](parsed), []byte(payload), []string{alice.ActorURI})
+ /*line zz_federation_reactions.gen_test.go:105:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	dislikeURI := "https://remote.example/activities/dislike-1"
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](apply("Dislike", dislikeURI, post.ObjectURI.String))
 	reaction := Zero[ReactionTestRow]()
 	loaded := db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Find(&reaction)
- /*line federation_reactions_test.mygo:73:6*/	if storage.QueryFailed(loaded) || loaded.RowsAffected != int64(1) || reaction.Score != -1 {
- /*line federation_reactions_test.mygo:74:5*/		t.Fatal("remote Dislike was not stored as one downvote")
- /*line federation_reactions_test.mygo:73:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:112:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	MygoIN6ResultM6Unwrap[bool, string](apply("Dislike", dislikeURI, post.ObjectURI.String))
+ /*line federation_reactions_test.mygo:180:6*/	if storage.QueryFailed(loaded) || loaded.RowsAffected != int64(1) || reaction.Score != -1 {
+ /*line federation_reactions_test.mygo:181:5*/		t.Fatal("remote Dislike was not stored as one downvote")
+ /*line federation_reactions_test.mygo:180:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:113:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	MygoIN6ResultM6Unwrap[bool, failure.Failure](apply("Dislike", dislikeURI, post.ObjectURI.String))
 	count := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
- /*line federation_reactions_test.mygo:79:3*/	if count != int64(1) {
- /*line federation_reactions_test.mygo:80:5*/		t.Fatal("duplicate Dislike created another vote")
- /*line federation_reactions_test.mygo:79:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:119:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	MygoIN6ResultM6Unwrap[bool, string](apply("Undo", "https://remote.example/activities/undo-dislike-1", dislikeURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
- /*line federation_reactions_test.mygo:84:3*/	if count != int64(0) {
- /*line federation_reactions_test.mygo:85:5*/		t.Fatal("Undo of Dislike did not clear the vote")
- /*line federation_reactions_test.mygo:84:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:125:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "admin"))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
+ /*line federation_reactions_test.mygo:190:3*/	if count != int64(1) {
+ /*line federation_reactions_test.mygo:191:5*/		t.Fatal("duplicate Dislike created another vote")
+ /*line federation_reactions_test.mygo:190:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:120:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	MygoIN6ResultM6Unwrap[bool, failure.Failure](apply("Undo", "https://remote.example/activities/undo-dislike-1", dislikeURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
+ /*line federation_reactions_test.mygo:199:3*/	if count != int64(0) {
+ /*line federation_reactions_test.mygo:200:5*/		t.Fatal("Undo of Dislike did not clear the vote")
+ /*line federation_reactions_test.mygo:199:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:126:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], failure.Failure](storage.FindAccount(ctx, db, site.ID, "admin"))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
 	disabledURI := "https://remote.example/activities/dislike-disabled"
- /*line federation_reactions_test.mygo:90:3*/	if MygoIN6ResultM5IsErr[bool, string](apply("Dislike", disabledURI, post.ObjectURI.String)) {
- /*line federation_reactions_test.mygo:91:5*/		t.Fatal("disabled inbound Dislike was not accepted as a no-op")
- /*line federation_reactions_test.mygo:90:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:132:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
- /*line federation_reactions_test.mygo:94:3*/	if count != int64(0) || !MygoIN6ResultM6Unwrap[bool, string](storage.QueryExists(db.Table("applied_reaction_activities").Where("activity_uri=?", disabledURI))) {
- /*line federation_reactions_test.mygo:95:5*/		t.Fatal("disabled Dislike changed state or was not receipted")
- /*line federation_reactions_test.mygo:94:3*/	} else {
- /*line zz_federation_reactions.gen_test.go:137:1*/	}
- /*line federation_reactions_test.mygo:49:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, true, true, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, actor)))
- /*line federation_reactions_test.mygo:99:3*/	if MygoIN6ResultM4IsOk[bool, string](apply("Dislike", "https://remote.example/activities/dislike-blocked", post.ObjectURI.String)) {
- /*line federation_reactions_test.mygo:100:5*/		t.Fatal("blocked actor's Dislike was accepted")
+ /*line federation_reactions_test.mygo:205:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](apply("Dislike", disabledURI, post.ObjectURI.String)) {
+ /*line federation_reactions_test.mygo:206:5*/		t.Fatal("disabled inbound Dislike was not accepted as a no-op")
+ /*line federation_reactions_test.mygo:205:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:133:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, actor).Count(&count)))
+ /*line federation_reactions_test.mygo:213:3*/	if count != int64(0) || !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.QueryExists(db.Table("applied_reaction_activities").Where("activity_uri=?", disabledURI))) {
+ /*line federation_reactions_test.mygo:215:5*/		t.Fatal("disabled Dislike changed state or was not receipted")
+ /*line federation_reactions_test.mygo:213:3*/	} else {
+ /*line zz_federation_reactions.gen_test.go:138:1*/	}
+ /*line federation_reactions_test.mygo:102:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, true, true, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, actor)))
+ /*line federation_reactions_test.mygo:223:3*/	if MygoIN6ResultM4IsOk[bool, failure.Failure](apply("Dislike", "https://remote.example/activities/dislike-blocked", post.ObjectURI.String)) {
+ /*line federation_reactions_test.mygo:224:5*/		t.Fatal("blocked actor's Dislike was accepted")
 		return
- /*line federation_reactions_test.mygo:99:3*/	} else {
+ /*line federation_reactions_test.mygo:223:3*/	} else {
 		return
- /*line zz_federation_reactions.gen_test.go:145:1*/	}
+ /*line zz_federation_reactions.gen_test.go:146:1*/	}
 }

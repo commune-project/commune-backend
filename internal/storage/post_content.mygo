@@ -7,6 +7,7 @@ import strings "go:strings"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ResolvedPostMention
   ActorURI: String
@@ -40,7 +41,7 @@ func LoadPostRichStates(
   ctx: context.Context,
   db: Ref[gorm.DB],
   ids: Slice[String]
-) -> Result[Slice[PostRichState], String]
+) -> Result[Slice[PostRichState], failure.Failure]
   var states: Slice[PostRichState] = []
   if ids.Len() == 0 then
     return Ok(states)
@@ -50,16 +51,16 @@ func LoadPostRichStates(
     ids
   ).Scan(Ref.new(states))
   if MutationResult(query).IsErr() then
-    return Err("post content unavailable")
+    return Err(Of("post content unavailable"))
   end
   Ok(states)
 end
 
 impl PostRichState
-  func RichMedia(self: PostRichState) -> Result[Slice[content.RichMedia], String]
+  func RichMedia(self: PostRichState) -> Result[Slice[content.RichMedia], failure.Failure]
     var media: Slice[content.RichMedia] = []
     if json.Unmarshal(self.MediaJSON as Slice[Byte], Ref.new(media)).IsErr() then
-      return Err("post content unavailable")
+      return Err(Of("post content unavailable"))
     end
     Ok(media)
   end
@@ -70,12 +71,12 @@ func RenderStoredPost(
   post: PostRecord,
   state: PostRichState,
   strict: Bool
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let media = state.RichMedia()
   var mentions: Slice[content.RichMention] = []
   if media.IsErr() ||
     json.Unmarshal(state.MentionsJSON as Slice[Byte], Ref.new(mentions)).IsErr() then
-    return Err("post content unavailable")
+    return Err(Of("post content unavailable"))
   end
   content.RenderPostRich(
     sanitizer,
@@ -89,7 +90,9 @@ func RenderStoredPost(
     state.Origin,
     media.Unwrap(),
     strict
-  )
+  ).MapErr(func(reason: String) -> failure.Failure
+    Of(reason)
+  end)
 end
 
 # A resolved spelling is merely a proposal: recheck candidate spans, blocks,
@@ -100,10 +103,10 @@ func SetPostMentionsTx(
   siteID: String,
   post: PostRecord,
   resolved: Slice[ResolvedPostMention]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let parsed = content.ExtractMentionCandidates(post.Body, post.ContentFormat)
   if parsed.IsErr() then
-    return Err("invalid post input")
+    return Err(Of("invalid post input"))
   end
   let repository = CommunityRepository { DB: tx, SiteID: siteID }
   let loaded = repository.Load(ctx, post.CommunityID, false)
@@ -170,7 +173,7 @@ func SetPostMentionsTx(
       return Err(interactionBlocked.UnwrapErr())
     end
     if interactionBlocked.Unwrap() then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     if candidate.Domain != "" then
       let accountBlocked = policy.IsBlocked(ctx, "https://" + candidate.Domain + "/")
@@ -188,7 +191,7 @@ func SetPostMentionsTx(
     let account = Zero[AccountRecord]()
     let accountQuery = tx.WithContext(ctx).Table("accounts").Where("actor_uri=?", uri).Limit(1).Find(Ref.new(account))
     if MutationResult(accountQuery).IsErr() then
-      return Err("post content unavailable")
+      return Err(Of("post content unavailable"))
     end
     if accountQuery.RowsAffected > 0i64 && account.Disabled then
       continue
@@ -226,7 +229,7 @@ func SetPostMentionsTx(
         uri,
         inbox
       )).IsErr() then
-        return Err("post content unavailable")
+        return Err(Of("post content unavailable"))
       end
     end
     let actor = LoadActor(ctx, tx, uri)
@@ -248,13 +251,13 @@ func SetPostMentionsTx(
     "post_id=? AND active",
     post.ID
   ).Find(Ref.new(active))).IsErr() then
-    return Err("post content unavailable")
+    return Err(Of("post content unavailable"))
   end
-  var failure = false
+  var failed = false
   active.Each(func(old: PostMentionRecord) -> ()
     if !seen.Contains(old.ActorURI) then
       if MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE id=?", old.ID)).IsErr() then
-        failure = true
+        failed = true
       end
     end
   end)
@@ -278,11 +281,11 @@ func SetPostMentionsTx(
       )
     end
     if MutationResult(changed).IsErr() then
-      failure = true
+      failed = true
     end
   end)
-  if failure then
-    return Err("post content unavailable")
+  if failed then
+    return Err(Of("post content unavailable"))
   end
   Ok(())
 end
@@ -296,7 +299,7 @@ func ValidatePostContentTx(
   post: PostRecord,
   ids: Slice[String],
   mentions: Slice[ResolvedPostMention]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let media = BindPostMedia(ctx, tx, siteID, identity, post.ID, ids)
   if media.IsErr() then
     return Err(media.UnwrapErr())
@@ -307,7 +310,7 @@ func ValidatePostContentTx(
   end
   let states = LoadPostRichStates(ctx, tx, [post.ID])
   if states.IsErr() || states.Unwrap().Len() != 1 then
-    return Err("post content unavailable")
+    return Err(Of("post content unavailable"))
   end
   let rendered = RenderStoredPost(sanitizer, post, states.Unwrap().Get(0).Unwrap(), true)
   if rendered.IsErr() then
@@ -326,21 +329,21 @@ func RetainPostMentionsTx(
   source: String,
   format: String,
   incoming: Slice[ResolvedPostMention]
-) -> Result[Slice[ResolvedPostMention], String]
+) -> Result[Slice[ResolvedPostMention], failure.Failure]
   var resolved = incoming
   if previous.ContentFormat != "markdown" || format != "markdown" then
     return Ok(resolved)
   end
   let parsed = content.ExtractMentionCandidates(source, format)
   if parsed.IsErr() then
-    return Err("invalid post input")
+    return Err(Of("invalid post input"))
   end
   var existing: Slice[PostMentionRecord] = []
   if MutationResult(tx.WithContext(ctx).Table("post_mentions").Where(
     "post_id=? AND active",
     previous.ID
   ).Find(Ref.new(existing))).IsErr() then
-    return Err("post content unavailable")
+    return Err(Of("post content unavailable"))
   end
   var index = 0
   while index < parsed.Unwrap().Len()

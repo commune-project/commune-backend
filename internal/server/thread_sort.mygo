@@ -1,5 +1,7 @@
 package server
 
+import failure "github.com/commune-project/commune-backend/internal/failure"
+
 # Thread sorting is a closed set of modes; the query string is the boundary.
 enum ThreadSortMode
   New
@@ -9,13 +11,13 @@ enum ThreadSortMode
 end
 
 impl ThreadSortMode
-  func Parse(raw: String) -> Result[ThreadSortMode, String]
+  func Parse(raw: String) -> Result[ThreadSortMode, failure.Failure]
     switch raw
       case "new" => Ok(ThreadSortMode.New)
       case "old" => Ok(ThreadSortMode.Old)
       case "top" => Ok(ThreadSortMode.Top)
       case "controversial" => Ok(ThreadSortMode.Controversial)
-      case _ => Err("invalid sort")
+      case _ => Err(Of("invalid sort"))
     end
   end
 

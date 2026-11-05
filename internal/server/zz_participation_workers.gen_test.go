@@ -9,6 +9,7 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "gorm.io/gorm"
 import "database/sql"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line participation_workers_test.mygo:9:1*/func ParticipationStopped(signal chan struct {
@@ -20,18 +21,18 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return true
 	case <-timer.C:
 		return false
- /*line zz_participation_workers.gen_test.go:23:1*/	}
+ /*line zz_participation_workers.gen_test.go:24:1*/	}
 }
  /*line participation_workers_test.mygo:19:1*/func TestParticipationWorkerCancellation(t *testing.T) {
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
-	db := MygoIN6ResultM6Unwrap[*gorm.DB, string](storage.OpenPostgres("postgres://unused@127.0.0.1:1/unused?sslmode=disable"))
+	db := MygoIN6ResultM6Unwrap[*gorm.DB, failure.Failure](storage.OpenPostgres("postgres://unused@127.0.0.1:1/unused?sslmode=disable"))
  /*line participation_workers_test.mygo:22:14*/	var __mygo_expr_1 Result[*sql.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := db.DB()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.DB, error](__mygo_expr_2)
- /*line zz_participation_workers.gen_test.go:34:1*/	}
+ /*line zz_participation_workers.gen_test.go:35:1*/	}
  /*line participation_workers_test.mygo:19:1*/	pool := MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_1)
  /*line participation_workers_test.mygo:23:3*/	defer pool.Close()
  /*line participation_workers_test.mygo:19:1*/	ctx, cancel := context.WithCancel(context.Background())
@@ -39,7 +40,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line participation_workers_test.mygo:26:3*/	if !ParticipationStopped(StartParticipationWorkers(ctx, settings, db)) {
  /*line participation_workers_test.mygo:27:5*/		t.Fatal("disabled workers did not immediately stop")
  /*line participation_workers_test.mygo:26:3*/	} else {
- /*line zz_participation_workers.gen_test.go:42:1*/	}
+ /*line zz_participation_workers.gen_test.go:43:1*/	}
  /*line participation_workers_test.mygo:19:1*/	settings.ParticipationWorkers.Enabled = true
 	settings.ParticipationWorkers.MailWorkers = 2
 	settings.ParticipationWorkers.NotificationWorkers = 2
@@ -50,5 +51,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line participation_workers_test.mygo:34:3*/	} else {
 		return
- /*line zz_participation_workers.gen_test.go:53:1*/	}
+ /*line zz_participation_workers.gen_test.go:54:1*/	}
 }

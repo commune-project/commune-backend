@@ -15,6 +15,7 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestSignedDeliveryPost(t: Ref[testing.T]) -> ()
   let privateKey = storage.GeneratePrivatePEM().Unwrap()
@@ -90,7 +91,7 @@ func TestPostgresDeliveryLeases(t: Ref[testing.T]) -> ()
   let rolledBack = storage.RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let _ = storage.EnqueueDelivery(
         ctx,
         tx,
@@ -100,7 +101,7 @@ func TestPostgresDeliveryLeases(t: Ref[testing.T]) -> ()
         "https://peer.example/inbox",
         ""
       )
-      Err("mutation failed")
+      Err(Of("mutation failed"))
     end
   )
   let count: Int64 = 0i64
@@ -127,17 +128,17 @@ func TestPostgresDeliveryLeases(t: Ref[testing.T]) -> ()
     ""
   ).Unwrap()
   let limits = Limits{BatchSize: 5, LeaseSeconds: 60i64, MaxAttempts: 2i64, BackoffSeconds: 30i64}
-  let deliver = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+  let deliver = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, failure.Failure]
     Ok(202)
   end
-  let settle = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+  let settle = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, failure.Failure]
     if target == "https://peer.example/inbox" then
-      return Err("unreachable")
+      return Err(Of("unreachable"))
     end
     Ok(202)
   end
-  let down = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
-    Err("unreachable")
+  let down = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, failure.Failure]
+    Err(Of("unreachable"))
   end
   let first = RunOnce(ctx, db, settings, limits, settle).Unwrap()
   if first.Retried != 1 || first.Delivered != 1 then

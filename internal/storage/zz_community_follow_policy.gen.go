@@ -4,26 +4,27 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line community_follow_policy.mygo:6:1*/func LoadCommunityFollowRule(ctx context.Context, db *gorm.DB, id string) Result[string, string] {
+ /*line community_follow_policy.mygo:7:1*/func LoadCommunityFollowRule(ctx context.Context, db *gorm.DB, id string) Result[string, failure.Failure] {
 	rule := ""
 	query := db.WithContext(ctx).Raw("SELECT follow_policy FROM communities WHERE id=?", id).Scan(&rule)
- /*line community_follow_policy.mygo:9:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line community_follow_policy.mygo:10:12*/		return Err[string, string]("community unavailable")
- /*line community_follow_policy.mygo:9:3*/	} else {
- /*line zz_community_follow_policy.gen.go:15:1*/	}
- /*line community_follow_policy.mygo:12:3*/	if query.RowsAffected != int64(1) || rule == "" {
- /*line community_follow_policy.mygo:13:12*/		return Ok[string, string]("open")
- /*line community_follow_policy.mygo:12:3*/	} else {
- /*line zz_community_follow_policy.gen.go:19:1*/	}
- /*line community_follow_policy.mygo:15:3*/	return Ok[string, string](rule)
- /*line zz_community_follow_policy.gen.go:21:1*/}
- /*line community_follow_policy.mygo:18:1*/func SetCommunityFollowRule(ctx context.Context, tx *gorm.DB, id string, rule string) Result[struct {
-}, string] {
- /*line community_follow_policy.mygo:19:3*/	if rule != "open" && rule != "members" && rule != "approval" && rule != "disabled" {
- /*line community_follow_policy.mygo:20:12*/		return Err[struct{}, string]("invalid access policy")
- /*line community_follow_policy.mygo:19:3*/	} else {
- /*line zz_community_follow_policy.gen.go:27:1*/	}
- /*line community_follow_policy.mygo:22:3*/	return MutationResult(tx.WithContext(ctx).Exec("UPDATE communities SET follow_policy=? WHERE id=?", rule, id))
- /*line zz_community_follow_policy.gen.go:29:1*/}
+ /*line community_follow_policy.mygo:10:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line community_follow_policy.mygo:11:12*/		return Err[string, failure.Failure](Of("community unavailable"))
+ /*line community_follow_policy.mygo:10:3*/	} else {
+ /*line zz_community_follow_policy.gen.go:16:1*/	}
+ /*line community_follow_policy.mygo:13:3*/	if query.RowsAffected != int64(1) || rule == "" {
+ /*line community_follow_policy.mygo:14:12*/		return Ok[string, failure.Failure]("open")
+ /*line community_follow_policy.mygo:13:3*/	} else {
+ /*line zz_community_follow_policy.gen.go:20:1*/	}
+ /*line community_follow_policy.mygo:16:3*/	return Ok[string, failure.Failure](rule)
+ /*line zz_community_follow_policy.gen.go:22:1*/}
+ /*line community_follow_policy.mygo:19:1*/func SetCommunityFollowRule(ctx context.Context, tx *gorm.DB, id string, rule string) Result[struct {
+}, failure.Failure] {
+ /*line community_follow_policy.mygo:20:3*/	if rule != "open" && rule != "members" && rule != "approval" && rule != "disabled" {
+ /*line community_follow_policy.mygo:21:12*/		return Err[struct{}, failure.Failure](Of("invalid access policy"))
+ /*line community_follow_policy.mygo:20:3*/	} else {
+ /*line zz_community_follow_policy.gen.go:28:1*/	}
+ /*line community_follow_policy.mygo:23:3*/	return MutationResult(tx.WithContext(ctx).Exec("UPDATE communities SET follow_policy=? WHERE id=?", rule, id))
+ /*line zz_community_follow_policy.gen.go:30:1*/}

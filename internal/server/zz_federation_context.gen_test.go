@@ -12,135 +12,136 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_context_test.mygo:14:1*/func TestPostgresDiscussionContextCollection(t *testing.T) {
- /*line federation_context_test.mygo:15:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line federation_context_test.mygo:15:1*/func TestPostgresDiscussionContextCollection(t *testing.T) {
+ /*line federation_context_test.mygo:16:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_context.gen_test.go:25:1*/	}
- /*line federation_context_test.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_federation_context.gen_test.go:26:1*/	}
+ /*line federation_context_test.mygo:15:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
-	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	contextRow := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, string](storage.CreateDiscussionContext(ctx, db, open, topic.ID, a.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.AttachPostToContext(ctx, db, topic.ID, contextRow.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.AttachPostToContext(ctx, db, reply.ID, contextRow.ID))
-	restrictedTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	restrictedContext := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, string](storage.CreateDiscussionContext(ctx, db, restricted, restrictedTopic.ID, a.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.AttachPostToContext(ctx, db, restrictedTopic.ID, restrictedContext.ID))
-	localTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	localContext := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, string](storage.CreateDiscussionContext(ctx, db, local, localTopic.ID, a.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.AttachPostToContext(ctx, db, localTopic.ID, localContext.ID))
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
+	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	contextRow := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, failure.Failure](storage.CreateDiscussionContext(ctx, db, open, topic.ID, a.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.AttachPostToContext(ctx, db, topic.ID, contextRow.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.AttachPostToContext(ctx, db, reply.ID, contextRow.ID))
+	restrictedTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, restricted.ID, alice, false, storage.PublishInput{Title: "Secret", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	restrictedContext := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, failure.Failure](storage.CreateDiscussionContext(ctx, db, restricted, restrictedTopic.ID, a.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.AttachPostToContext(ctx, db, restrictedTopic.ID, restrictedContext.ID))
+	localTopic := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Local", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	localContext := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, failure.Failure](storage.CreateDiscussionContext(ctx, db, local, localTopic.ID, a.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.AttachPostToContext(ctx, db, localTopic.ID, localContext.ID))
 	handler := Handler(settings, db)
 	accept := "application/activity+json"
- /*line federation_context_test.mygo:41:3*/	if !contextRow.ContextURI.Valid {
- /*line federation_context_test.mygo:42:5*/		t.Fatal("a federated discussion did not receive a context identity")
- /*line federation_context_test.mygo:41:3*/	} else {
- /*line zz_federation_context.gen_test.go:55:1*/	}
- /*line federation_context_test.mygo:14:1*/	listed := getAP(handler, a.Origin, "/contexts/"+contextRow.ID, accept)
- /*line federation_context_test.mygo:45:3*/	if listed.Code != 200 || !strings.Contains(listed.Body.String(), "\"type\":\"OrderedCollection\"") || !strings.Contains(listed.Body.String(), "\"totalItems\":2") {
- /*line federation_context_test.mygo:46:5*/		t.Fatalf("the context collection was wrong: %d %s", listed.Code, listed.Body.String())
- /*line federation_context_test.mygo:45:3*/	} else {
- /*line zz_federation_context.gen_test.go:60:1*/	}
- /*line federation_context_test.mygo:48:3*/	if !strings.Contains(listed.Body.String(), contextRow.ContextURI.String) {
- /*line federation_context_test.mygo:49:5*/		t.Fatal("the context collection did not use its canonical identity")
- /*line federation_context_test.mygo:48:3*/	} else {
- /*line zz_federation_context.gen_test.go:64:1*/	}
- /*line federation_context_test.mygo:14:1*/	page := getAP(handler, a.Origin, "/contexts/"+contextRow.ID+"?page=1", accept)
- /*line federation_context_test.mygo:52:3*/	if page.Code != 200 || !strings.Contains(page.Body.String(), "\"type\":\"OrderedCollectionPage\"") || !strings.Contains(page.Body.String(), topic.ObjectURI.String) {
- /*line federation_context_test.mygo:53:5*/		t.Fatalf("the context page did not list the discussion: %d %s", page.Code, page.Body.String())
- /*line federation_context_test.mygo:52:3*/	} else {
- /*line zz_federation_context.gen_test.go:69:1*/	}
- /*line federation_context_test.mygo:55:3*/	if localContext.ContextURI.Valid {
- /*line federation_context_test.mygo:56:5*/		t.Fatal("a local-only discussion received a protocol context")
- /*line federation_context_test.mygo:55:3*/	} else {
- /*line zz_federation_context.gen_test.go:73:1*/	}
- /*line federation_context_test.mygo:58:3*/	if getAP(handler, a.Origin, "/contexts/"+localContext.ID, accept).Code != 404 {
- /*line federation_context_test.mygo:59:5*/		t.Fatal("a local-only discussion exposed an ActivityPub context")
- /*line federation_context_test.mygo:58:3*/	} else {
- /*line zz_federation_context.gen_test.go:77:1*/	}
- /*line federation_context_test.mygo:61:3*/	if getAP(handler, a.Origin, "/contexts/"+restrictedContext.ID, accept).Code != 404 {
- /*line federation_context_test.mygo:62:5*/		t.Fatal("an unsigned read reached a member-readable context")
- /*line federation_context_test.mygo:61:3*/	} else {
- /*line zz_federation_context.gen_test.go:81:1*/	}
- /*line federation_context_test.mygo:14:1*/	memberKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+ /*line federation_context_test.mygo:42:3*/	if !contextRow.ContextURI.Valid {
+ /*line federation_context_test.mygo:43:5*/		t.Fatal("a federated discussion did not receive a context identity")
+ /*line federation_context_test.mygo:42:3*/	} else {
+ /*line zz_federation_context.gen_test.go:56:1*/	}
+ /*line federation_context_test.mygo:15:1*/	listed := getAP(handler, a.Origin, "/contexts/"+contextRow.ID, accept)
+ /*line federation_context_test.mygo:46:3*/	if listed.Code != 200 || !strings.Contains(listed.Body.String(), "\"type\":\"OrderedCollection\"") || !strings.Contains(listed.Body.String(), "\"totalItems\":2") {
+ /*line federation_context_test.mygo:47:5*/		t.Fatalf("the context collection was wrong: %d %s", listed.Code, listed.Body.String())
+ /*line federation_context_test.mygo:46:3*/	} else {
+ /*line zz_federation_context.gen_test.go:61:1*/	}
+ /*line federation_context_test.mygo:49:3*/	if !strings.Contains(listed.Body.String(), contextRow.ContextURI.String) {
+ /*line federation_context_test.mygo:50:5*/		t.Fatal("the context collection did not use its canonical identity")
+ /*line federation_context_test.mygo:49:3*/	} else {
+ /*line zz_federation_context.gen_test.go:65:1*/	}
+ /*line federation_context_test.mygo:15:1*/	page := getAP(handler, a.Origin, "/contexts/"+contextRow.ID+"?page=1", accept)
+ /*line federation_context_test.mygo:53:3*/	if page.Code != 200 || !strings.Contains(page.Body.String(), "\"type\":\"OrderedCollectionPage\"") || !strings.Contains(page.Body.String(), topic.ObjectURI.String) {
+ /*line federation_context_test.mygo:54:5*/		t.Fatalf("the context page did not list the discussion: %d %s", page.Code, page.Body.String())
+ /*line federation_context_test.mygo:53:3*/	} else {
+ /*line zz_federation_context.gen_test.go:70:1*/	}
+ /*line federation_context_test.mygo:56:3*/	if localContext.ContextURI.Valid {
+ /*line federation_context_test.mygo:57:5*/		t.Fatal("a local-only discussion received a protocol context")
+ /*line federation_context_test.mygo:56:3*/	} else {
+ /*line zz_federation_context.gen_test.go:74:1*/	}
+ /*line federation_context_test.mygo:59:3*/	if getAP(handler, a.Origin, "/contexts/"+localContext.ID, accept).Code != 404 {
+ /*line federation_context_test.mygo:60:5*/		t.Fatal("a local-only discussion exposed an ActivityPub context")
+ /*line federation_context_test.mygo:59:3*/	} else {
+ /*line zz_federation_context.gen_test.go:78:1*/	}
+ /*line federation_context_test.mygo:62:3*/	if getAP(handler, a.Origin, "/contexts/"+restrictedContext.ID, accept).Code != 404 {
+ /*line federation_context_test.mygo:63:5*/		t.Fatal("an unsigned read reached a member-readable context")
+ /*line federation_context_test.mygo:62:3*/	} else {
+ /*line zz_federation_context.gen_test.go:82:1*/	}
+ /*line federation_context_test.mygo:15:1*/	memberKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	member := "https://peer.example/users/member"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", member, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(memberKey)))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, member, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", member, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(memberKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", restricted.ID, member, alice.ActorURI)))
 	date := time.Now().UTC().Format(http.TimeFormat)
 	memberRead := signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, member, memberKey, date)
- /*line federation_context_test.mygo:70:3*/	if memberRead.Code != 200 || !strings.Contains(memberRead.Body.String(), "\"totalItems\":1") {
- /*line federation_context_test.mygo:71:5*/		t.Fatalf("a member could not read the protected context: %d %s", memberRead.Code, memberRead.Body.String())
- /*line federation_context_test.mygo:70:3*/	} else {
- /*line zz_federation_context.gen_test.go:91:1*/	}
- /*line federation_context_test.mygo:14:1*/	outsiderKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+ /*line federation_context_test.mygo:71:3*/	if memberRead.Code != 200 || !strings.Contains(memberRead.Body.String(), "\"totalItems\":1") {
+ /*line federation_context_test.mygo:72:5*/		t.Fatalf("a member could not read the protected context: %d %s", memberRead.Code, memberRead.Body.String())
+ /*line federation_context_test.mygo:71:3*/	} else {
+ /*line zz_federation_context.gen_test.go:92:1*/	}
+ /*line federation_context_test.mygo:15:1*/	outsiderKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	outsider := "https://peer.example/users/outsider"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", outsider, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(outsiderKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", outsider, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(outsiderKey)))))
 	outsiderRead := signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, outsider, outsiderKey, date)
- /*line federation_context_test.mygo:77:3*/	if outsiderRead.Code != 404 || strings.Contains(outsiderRead.Body.String(), restrictedTopic.ObjectURI.String) {
- /*line federation_context_test.mygo:78:5*/		t.Fatal("a non-member received protected context or membership evidence")
- /*line federation_context_test.mygo:77:3*/	} else {
- /*line zz_federation_context.gen_test.go:99:1*/	}
- /*line federation_context_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri=?", restricted.ID, member)))
- /*line federation_context_test.mygo:81:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, member, memberKey, date).Code != 404 {
- /*line federation_context_test.mygo:82:5*/		t.Fatal("a revoked member retained protected context access")
- /*line federation_context_test.mygo:81:3*/	} else {
- /*line zz_federation_context.gen_test.go:104:1*/	}
- /*line federation_context_test.mygo:14:1*/	managerKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+ /*line federation_context_test.mygo:78:3*/	if outsiderRead.Code != 404 || strings.Contains(outsiderRead.Body.String(), restrictedTopic.ObjectURI.String) {
+ /*line federation_context_test.mygo:79:5*/		t.Fatal("a non-member received protected context or membership evidence")
+ /*line federation_context_test.mygo:78:3*/	} else {
+ /*line zz_federation_context.gen_test.go:100:1*/	}
+ /*line federation_context_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri=?", restricted.ID, member)))
+ /*line federation_context_test.mygo:82:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, member, memberKey, date).Code != 404 {
+ /*line federation_context_test.mygo:83:5*/		t.Fatal("a revoked member retained protected context access")
+ /*line federation_context_test.mygo:82:3*/	} else {
+ /*line zz_federation_context.gen_test.go:105:1*/	}
+ /*line federation_context_test.mygo:15:1*/	managerKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	manager := "https://peer.example/users/manager"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", manager, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(managerKey)))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", restricted.ID, manager, alice.ActorURI)))
- /*line federation_context_test.mygo:88:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, manager, managerKey, date).Code != 200 {
- /*line federation_context_test.mygo:89:5*/		t.Fatal("a current manager could not read the protected context")
- /*line federation_context_test.mygo:88:3*/	} else {
- /*line zz_federation_context.gen_test.go:112:1*/	}
- /*line federation_context_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE moderators SET revoked_at=now() WHERE community_id=? AND actor_uri=?", restricted.ID, manager)))
- /*line federation_context_test.mygo:92:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, manager, managerKey, date).Code != 404 {
- /*line federation_context_test.mygo:93:5*/		t.Fatal("a revoked manager retained protected context access")
- /*line federation_context_test.mygo:92:3*/	} else {
- /*line zz_federation_context.gen_test.go:117:1*/	}
- /*line federation_context_test.mygo:14:1*/	fetchCount := 0
-	fetcher := func(fetchCtx context.Context, fetchSettings config.Config, uri string) Result[[]byte, string] {
- /*line federation_context_test.mygo:96:17*/		fetchCount = fetchCount + 1
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?)", manager, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(managerKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", restricted.ID, manager, alice.ActorURI)))
+ /*line federation_context_test.mygo:89:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, manager, managerKey, date).Code != 200 {
+ /*line federation_context_test.mygo:90:5*/		t.Fatal("a current manager could not read the protected context")
+ /*line federation_context_test.mygo:89:3*/	} else {
+ /*line zz_federation_context.gen_test.go:113:1*/	}
+ /*line federation_context_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE moderators SET revoked_at=now() WHERE community_id=? AND actor_uri=?", restricted.ID, manager)))
+ /*line federation_context_test.mygo:93:3*/	if signedGet(handler, a.Origin, "/contexts/"+restrictedContext.ID, manager, managerKey, date).Code != 404 {
+ /*line federation_context_test.mygo:94:5*/		t.Fatal("a revoked manager retained protected context access")
+ /*line federation_context_test.mygo:93:3*/	} else {
+ /*line zz_federation_context.gen_test.go:118:1*/	}
+ /*line federation_context_test.mygo:15:1*/	fetchCount := 0
+	fetcher := func(fetchCtx context.Context, fetchSettings config.Config, uri string) Result[[]byte, failure.Failure] {
+ /*line federation_context_test.mygo:97:17*/		fetchCount = fetchCount + 1
 		body := "{\"id\":\"" + restrictedContext.ContextURI.String + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + restricted.ActorURI.String + "\"}"
- /*line federation_context_test.mygo:99:5*/		return Ok[[]byte, string]([]byte(body))
- /*line zz_federation_context.gen_test.go:123:1*/	}
- /*line federation_context_test.mygo:14:1*/	deniedBackfill := BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: outsider, Username: ""}, true, fetcher)
- /*line federation_context_test.mygo:102:3*/	if MygoIN6ResultM4IsOk[BackfillResult, string](deniedBackfill) || fetchCount != 0 {
- /*line federation_context_test.mygo:103:5*/		t.Fatal("a non-member caused protected context backfill or remote fetch")
- /*line federation_context_test.mygo:102:3*/	} else {
- /*line zz_federation_context.gen_test.go:128:1*/	}
- /*line federation_context_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id=? AND actor_uri=?", restricted.ID, member)))
+ /*line federation_context_test.mygo:100:5*/		return Ok[[]byte, failure.Failure]([]byte(body))
+ /*line zz_federation_context.gen_test.go:124:1*/	}
+ /*line federation_context_test.mygo:15:1*/	deniedBackfill := BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: outsider, Username: ""}, true, fetcher)
+ /*line federation_context_test.mygo:103:3*/	if MygoIN6ResultM4IsOk[BackfillResult, failure.Failure](deniedBackfill) || fetchCount != 0 {
+ /*line federation_context_test.mygo:104:5*/		t.Fatal("a non-member caused protected context backfill or remote fetch")
+ /*line federation_context_test.mygo:103:3*/	} else {
+ /*line zz_federation_context.gen_test.go:129:1*/	}
+ /*line federation_context_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id=? AND actor_uri=?", restricted.ID, member)))
 	memberBackfill := BackfillDiscussion(ctx, settings, db, a, restrictedContext.ID, auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: member, Username: ""}, true, fetcher)
- /*line federation_context_test.mygo:107:3*/	if MygoIN6ResultM5IsErr[BackfillResult, string](memberBackfill) {
- /*line federation_context_test.mygo:108:5*/		t.Fatalf("a current member could not authorize protected context traversal: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, string](memberBackfill))
- /*line federation_context_test.mygo:107:3*/	} else {
- /*line zz_federation_context.gen_test.go:134:1*/	}
- /*line federation_context_test.mygo:110:3*/	if fetchCount != 1 {
- /*line federation_context_test.mygo:111:5*/		t.Fatalf("a current member caused %d protected context fetches", fetchCount)
- /*line federation_context_test.mygo:110:3*/	} else {
- /*line zz_federation_context.gen_test.go:138:1*/	}
- /*line federation_context_test.mygo:14:1*/	fetchBeforeLocal := fetchCount
- /*line federation_context_test.mygo:114:3*/	if MygoIN6ResultM4IsOk[BackfillResult, string](BackfillDiscussion(ctx, settings, db, a, localContext.ID, auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: member, Username: ""}, true, fetcher)) || fetchCount != fetchBeforeLocal {
- /*line federation_context_test.mygo:115:5*/		t.Fatal("a local-only context initiated remote synchronization")
+ /*line federation_context_test.mygo:108:3*/	if MygoIN6ResultM5IsErr[BackfillResult, failure.Failure](memberBackfill) {
+ /*line federation_context_test.mygo:109:5*/		t.Fatalf("a current member could not authorize protected context traversal: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, failure.Failure](memberBackfill))
+ /*line federation_context_test.mygo:108:3*/	} else {
+ /*line zz_federation_context.gen_test.go:135:1*/	}
+ /*line federation_context_test.mygo:111:3*/	if fetchCount != 1 {
+ /*line federation_context_test.mygo:112:5*/		t.Fatalf("a current member caused %d protected context fetches", fetchCount)
+ /*line federation_context_test.mygo:111:3*/	} else {
+ /*line zz_federation_context.gen_test.go:139:1*/	}
+ /*line federation_context_test.mygo:15:1*/	fetchBeforeLocal := fetchCount
+ /*line federation_context_test.mygo:115:3*/	if MygoIN6ResultM4IsOk[BackfillResult, failure.Failure](BackfillDiscussion(ctx, settings, db, a, localContext.ID, auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: member, Username: ""}, true, fetcher)) || fetchCount != fetchBeforeLocal {
+ /*line federation_context_test.mygo:116:5*/		t.Fatal("a local-only context initiated remote synchronization")
 		return
- /*line federation_context_test.mygo:114:3*/	} else {
+ /*line federation_context_test.mygo:115:3*/	} else {
 		return
- /*line zz_federation_context.gen_test.go:145:1*/	}
+ /*line zz_federation_context.gen_test.go:146:1*/	}
 }

@@ -6,22 +6,23 @@ import "testing"
 import "context"
 import "database/sql"
 import "github.com/commune-project/commune-backend/internal/testsupport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line postgres_test.mygo:9:1*/func postgresFixture(t *testing.T) *sql.DB {
  /*line postgres_test.mygo:10:3*/	return testsupport.Postgres(t)
- /*line zz_postgres.gen_test.go:13:1*/}
+ /*line zz_postgres.gen_test.go:14:1*/}
  /*line postgres_test.mygo:13:1*/func TestPostgresMigrationAndConstraints(t *testing.T) {
 	db := postgresFixture(t)
 	ctx := context.Background()
- /*line postgres_test.mygo:16:3*/	if MygoIN6ResultM4IsOk[struct{}, string](CheckSchema(ctx, db)) {
+ /*line postgres_test.mygo:16:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](CheckSchema(ctx, db)) {
  /*line postgres_test.mygo:17:5*/		t.Fatal("empty database passed schema check")
  /*line postgres_test.mygo:16:3*/	} else {
- /*line zz_postgres.gen_test.go:20:1*/	}
- /*line postgres_test.mygo:19:3*/	if MygoIN6ResultM5IsErr[struct{}, string](Migrate(ctx, db)) || MygoIN6ResultM5IsErr[struct{}, string](Migrate(ctx, db)) || MygoIN6ResultM5IsErr[struct{}, string](CheckSchema(ctx, db)) {
+ /*line zz_postgres.gen_test.go:21:1*/	}
+ /*line postgres_test.mygo:19:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](Migrate(ctx, db)) || MygoIN6ResultM5IsErr[struct{}, failure.Failure](Migrate(ctx, db)) || MygoIN6ResultM5IsErr[struct{}, failure.Failure](CheckSchema(ctx, db)) {
  /*line postgres_test.mygo:20:5*/		t.Fatal("migration, repeat migration or readiness failed")
  /*line postgres_test.mygo:19:3*/	} else {
- /*line zz_postgres.gen_test.go:24:1*/	}
+ /*line zz_postgres.gen_test.go:25:1*/	}
  /*line postgres_test.mygo:13:1*/	seeds := []string{"INSERT INTO sites(id,canonical_origin) VALUES ('a','https://a.example'),('b','https://b.example')", "INSERT INTO actors(uri,local_site_id,kind) VALUES ('https://a.example/users/alice','a','Person'),('https://b.example/users/alice','b','Person'),('https://a.example/users/bob','a','Person'),('https://a.example/communities/c','a','Group')", "INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES ('a','https://a.example/users/alice','alice','alice@example.org','hash'),('b','https://b.example/users/alice','alice','alice@example.org','hash')"}
  /*line postgres_test.mygo:27:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(seeds, func(query string) {
  /*line postgres_test.mygo:28:8*/		var __mygo_expr_1 Result[sql.Result, error]
@@ -30,13 +31,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
- /*line zz_postgres.gen_test.go:33:1*/		}
+ /*line zz_postgres.gen_test.go:34:1*/		}
  /*line postgres_test.mygo:28:5*/		if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_1) {
  /*line postgres_test.mygo:29:7*/			t.Fatal("valid multi-site fixture rejected")
 			return
  /*line postgres_test.mygo:28:5*/		} else {
 			return
- /*line zz_postgres.gen_test.go:39:1*/		}
+ /*line zz_postgres.gen_test.go:40:1*/		}
 	})
  /*line postgres_test.mygo:32:6*/	var __mygo_expr_4 Result[sql.Result, error]
 	__mygo_expr_5, __mygo_expr_3 := db.Exec("INSERT INTO site_roles(site_id,account_id,role) SELECT 'a',id,'administrator' FROM accounts WHERE site_id='a'")
@@ -44,11 +45,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[sql.Result, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[sql.Result, error](__mygo_expr_5)
- /*line zz_postgres.gen_test.go:47:1*/	}
+ /*line zz_postgres.gen_test.go:48:1*/	}
  /*line postgres_test.mygo:32:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_4) {
  /*line postgres_test.mygo:33:5*/		t.Fatal("valid site administrator rejected")
  /*line postgres_test.mygo:32:3*/	} else {
- /*line zz_postgres.gen_test.go:51:1*/	}
+ /*line zz_postgres.gen_test.go:52:1*/	}
  /*line postgres_test.mygo:13:1*/	rejected := []string{"INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','https://a.example/users/bob','alice','hash')", "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('b','https://a.example/users/bob','bob','hash')", "INSERT INTO accounts(site_id,actor_uri,username,password_hash) VALUES ('a','https://a.example/communities/c','c','hash')", "INSERT INTO actors(uri,kind,private_key_pem) VALUES ('https://remote.example/u/x','Person','secret')", "INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,expires_at) SELECT decode(repeat('aa',32),'hex'),'b',id,decode(repeat('bb',32),'hex'),now()+interval '1 hour' FROM accounts WHERE site_id='a'", "INSERT INTO site_roles(site_id,account_id,role) SELECT 'b',id,'administrator' FROM accounts WHERE site_id='a'", "INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES ('a','https://a.example/users/bob','bob','alice@example.org','hash')"}
  /*line postgres_test.mygo:44:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(rejected, func(query_1 string) {
  /*line postgres_test.mygo:45:8*/		var __mygo_expr_7 Result[sql.Result, error]
@@ -57,13 +58,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_7 = Err[sql.Result, error](__mygo_expr_6)
 		} else {
 			__mygo_expr_7 = Ok[sql.Result, error](__mygo_expr_8)
- /*line zz_postgres.gen_test.go:60:1*/		}
+ /*line zz_postgres.gen_test.go:61:1*/		}
  /*line postgres_test.mygo:45:5*/		if MygoIN6ResultM4IsOk[sql.Result, error](__mygo_expr_7) {
  /*line postgres_test.mygo:46:7*/			t.Fatal("database constraint accepted invalid data")
 			return
  /*line postgres_test.mygo:45:5*/		} else {
 			return
- /*line zz_postgres.gen_test.go:66:1*/		}
+ /*line zz_postgres.gen_test.go:67:1*/		}
 	})
  /*line postgres_test.mygo:13:1*/	count := 0
  /*line postgres_test.mygo:50:6*/	var __mygo_expr_10 Result[struct{}, error]
@@ -72,36 +73,36 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
 	} else {
 		__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_postgres.gen_test.go:75:1*/		}{})
+ /*line zz_postgres.gen_test.go:76:1*/		}{})
 	}
  /*line postgres_test.mygo:50:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) || count != 0 {
  /*line postgres_test.mygo:51:5*/		t.Fatal("deployment roles were implicitly assigned")
  /*line postgres_test.mygo:50:3*/	} else {
- /*line zz_postgres.gen_test.go:80:1*/	}
+ /*line zz_postgres.gen_test.go:81:1*/	}
  /*line postgres_test.mygo:53:6*/	var __mygo_expr_12 Result[sql.Result, error]
 	__mygo_expr_13, __mygo_expr_11 := db.Exec("INSERT INTO deployment_roles(account_id,role) SELECT id,'superadministrator' FROM accounts WHERE site_id='a'")
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[sql.Result, error](__mygo_expr_11)
 	} else {
 		__mygo_expr_12 = Ok[sql.Result, error](__mygo_expr_13)
- /*line zz_postgres.gen_test.go:87:1*/	}
+ /*line zz_postgres.gen_test.go:88:1*/	}
  /*line postgres_test.mygo:53:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_12) {
  /*line postgres_test.mygo:54:5*/		t.Fatal("explicit deployment administrator rejected")
  /*line postgres_test.mygo:53:3*/	} else {
- /*line zz_postgres.gen_test.go:91:1*/	}
+ /*line zz_postgres.gen_test.go:92:1*/	}
  /*line postgres_test.mygo:56:6*/	var __mygo_expr_15 Result[sql.Result, error]
 	__mygo_expr_16, __mygo_expr_14 := db.Exec("UPDATE commune_schema_migrations SET checksum = repeat('0',64)")
 	if __mygo_expr_14 != nil {
 		__mygo_expr_15 = Err[sql.Result, error](__mygo_expr_14)
 	} else {
 		__mygo_expr_15 = Ok[sql.Result, error](__mygo_expr_16)
- /*line zz_postgres.gen_test.go:98:1*/	}
- /*line postgres_test.mygo:56:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_15) || MygoIN6ResultM4IsOk[struct{}, string](CheckSchema(ctx, db)) || MygoIN6ResultM4IsOk[struct{}, string](Migrate(ctx, db)) {
+ /*line zz_postgres.gen_test.go:99:1*/	}
+ /*line postgres_test.mygo:56:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_15) || MygoIN6ResultM4IsOk[struct{}, failure.Failure](CheckSchema(ctx, db)) || MygoIN6ResultM4IsOk[struct{}, failure.Failure](Migrate(ctx, db)) {
  /*line postgres_test.mygo:57:5*/		t.Fatal("modified migration checksum accepted")
 		return
  /*line postgres_test.mygo:56:3*/	} else {
 		return
- /*line zz_postgres.gen_test.go:104:1*/	}
+ /*line zz_postgres.gen_test.go:105:1*/	}
 }
  /*line postgres_test.mygo:61:1*/func TestPostgresMigrationRollback(t *testing.T) {
 	db := postgresFixture(t)
@@ -111,15 +112,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[sql.Result, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[sql.Result, error](__mygo_expr_2)
- /*line zz_postgres.gen_test.go:114:1*/	}
+ /*line zz_postgres.gen_test.go:115:1*/	}
  /*line postgres_test.mygo:64:3*/	if MygoIN6ResultM5IsErr[sql.Result, error](__mygo_expr_1) {
- /*line postgres_test.mygo:65:5*/		t.Fatal("cannot construct migration failure fixture")
+ /*line postgres_test.mygo:65:5*/		t.Fatal("cannot construct migration failed fixture")
  /*line postgres_test.mygo:64:3*/	} else {
- /*line zz_postgres.gen_test.go:118:1*/	}
- /*line postgres_test.mygo:67:3*/	if MygoIN6ResultM4IsOk[struct{}, string](Migrate(context.Background(), db)) {
- /*line postgres_test.mygo:68:5*/		t.Fatal("ledger failure was ignored")
+ /*line zz_postgres.gen_test.go:119:1*/	}
+ /*line postgres_test.mygo:67:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](Migrate(context.Background(), db)) {
+ /*line postgres_test.mygo:68:5*/		t.Fatal("ledger failed was ignored")
  /*line postgres_test.mygo:67:3*/	} else {
- /*line zz_postgres.gen_test.go:122:1*/	}
+ /*line zz_postgres.gen_test.go:123:1*/	}
  /*line postgres_test.mygo:61:1*/	absent := false
  /*line postgres_test.mygo:71:6*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := db.QueryRow("SELECT to_regclass('public.sites') IS NULL").Scan(&absent)
@@ -127,12 +128,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_postgres.gen_test.go:130:1*/		}{})
+ /*line zz_postgres.gen_test.go:131:1*/		}{})
 	}
  /*line postgres_test.mygo:71:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || !absent {
  /*line postgres_test.mygo:72:5*/		t.Fatal("migration DDL survived rollback")
  /*line postgres_test.mygo:71:3*/	} else {
- /*line zz_postgres.gen_test.go:135:1*/	}
+ /*line zz_postgres.gen_test.go:136:1*/	}
  /*line postgres_test.mygo:61:1*/	count := 0
  /*line postgres_test.mygo:75:6*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := db.QueryRow("SELECT count(*) FROM public.commune_schema_migrations").Scan(&count)
@@ -140,12 +141,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_postgres.gen_test.go:143:1*/		}{})
+ /*line zz_postgres.gen_test.go:144:1*/		}{})
 	}
  /*line postgres_test.mygo:75:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || count != 0 {
  /*line postgres_test.mygo:76:5*/		t.Fatal("failed migration retained ledger records")
 		return
  /*line postgres_test.mygo:75:3*/	} else {
 		return
- /*line zz_postgres.gen_test.go:150:1*/	}
+ /*line zz_postgres.gen_test.go:151:1*/	}
 }

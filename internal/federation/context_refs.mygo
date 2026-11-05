@@ -1,6 +1,7 @@
 package federation
 
 import json "go:encoding/json"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ContextReference
   URI: String
@@ -27,10 +28,10 @@ end
 # The AS2 `context` property is parsed separately from `audience` and from the
 # JSON-LD `@context` keyword. Every reference is declared-only (`Verified`
 # false); a resolution failure never rejects the containing activity.
-func ParseContexts(payload: Slice[Byte]) -> Result[ContextParseResult, String]
+func ParseContexts(payload: Slice[Byte]) -> Result[ContextParseResult, failure.Failure]
   let holder = Zero[ContextHolder]()
   if json.Unmarshal(payload, Ref.new(holder)).IsErr() then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   let references = DecodeContextValue(holder.Context as Slice[Byte])
   let audience = DecodeAudience(holder.Audience as Slice[Byte])

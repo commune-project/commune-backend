@@ -11,9 +11,10 @@ import "time"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line post_publish.mygo:13:1*/type PublishInput struct {
+ /*line post_publish.mygo:14:1*/type PublishInput struct {
 	Title         string
 	Body          string
 	ParentID      string
@@ -21,9 +22,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 	ContentFormat string
 	AttachmentIDs []string
 	Mentions      []ResolvedPostMention
- /*line zz_post_publish.gen.go:24:1*/}
+ /*line zz_post_publish.gen.go:25:1*/}
 
- /*line post_publish.mygo:23:1*/func MygoIN14PostRepositoryM7Publish(self PostRepository, ctx context.Context, site config.Site, communityID string, identity auth.Identity, remoteVerified bool, input PublishInput) Result[PostRecord, string] {
+ /*line post_publish.mygo:24:1*/func MygoIN14PostRepositoryM7Publish(self PostRepository, ctx context.Context, site config.Site, communityID string, identity auth.Identity, remoteVerified bool, input PublishInput) Result[PostRecord, failure.Failure] {
 	body := strings.TrimSpace(input.Body)
 	title := strings.TrimSpace(input.Title)
 	var __mygo_expr_0 string
@@ -31,152 +32,152 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_0 = "legacy"
 	} else {
 		__mygo_expr_0 = input.ContentFormat
- /*line zz_post_publish.gen.go:34:1*/	}
- /*line post_publish.mygo:23:1*/	format := __mygo_expr_0
- /*line post_publish.mygo:42:5*/	if format != "legacy" && format != "markdown" {
- /*line post_publish.mygo:43:14*/		return Err[PostRecord, string]("invalid content format")
- /*line post_publish.mygo:42:5*/	} else {
- /*line zz_post_publish.gen.go:39:1*/	}
- /*line post_publish.mygo:45:5*/	if self.SiteID == "" || body == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(body)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(title)) > 200 || input.ParentID != "" && title != "" || input.ParentID == "" && title == "" {
- /*line post_publish.mygo:51:14*/		return Err[PostRecord, string]("invalid post input")
- /*line post_publish.mygo:45:5*/	} else {
- /*line zz_post_publish.gen.go:43:1*/	}
- /*line post_publish.mygo:53:5*/	if remoteVerified {
- /*line post_publish.mygo:54:14*/		return Err[PostRecord, string]("forbidden")
- /*line post_publish.mygo:53:5*/	} else {
- /*line zz_post_publish.gen.go:47:1*/	}
- /*line post_publish.mygo:23:1*/	plain := content.PlainRichText(site.Sanitizer, body, format)
- /*line post_publish.mygo:57:5*/	if MygoIN6ResultM5IsErr[string, string](plain) {
- /*line post_publish.mygo:58:14*/		return Err[PostRecord, string]("invalid post input")
- /*line post_publish.mygo:57:5*/	} else {
- /*line zz_post_publish.gen.go:52:1*/	}
- /*line post_publish.mygo:23:1*/	stored := Zero[PostRecord]()
-	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line post_publish.mygo:64:7*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
+ /*line zz_post_publish.gen.go:35:1*/	}
+ /*line post_publish.mygo:24:1*/	format := __mygo_expr_0
+ /*line post_publish.mygo:43:5*/	if format != "legacy" && format != "markdown" {
+ /*line post_publish.mygo:44:14*/		return Err[PostRecord, failure.Failure](Of("invalid content format"))
+ /*line post_publish.mygo:43:5*/	} else {
+ /*line zz_post_publish.gen.go:40:1*/	}
+ /*line post_publish.mygo:46:5*/	if self.SiteID == "" || body == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(body)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(title)) > 200 || input.ParentID != "" && title != "" || input.ParentID == "" && title == "" {
+ /*line post_publish.mygo:52:14*/		return Err[PostRecord, failure.Failure](Of("invalid post input"))
+ /*line post_publish.mygo:46:5*/	} else {
+ /*line zz_post_publish.gen.go:44:1*/	}
+ /*line post_publish.mygo:54:5*/	if remoteVerified {
+ /*line post_publish.mygo:55:14*/		return Err[PostRecord, failure.Failure](Of("forbidden"))
+ /*line post_publish.mygo:54:5*/	} else {
+ /*line zz_post_publish.gen.go:48:1*/	}
+ /*line post_publish.mygo:24:1*/	plain := content.PlainRichText(site.Sanitizer, body, format)
+ /*line post_publish.mygo:58:5*/	if MygoIN6ResultM5IsErr[string, string](plain) {
+ /*line post_publish.mygo:59:14*/		return Err[PostRecord, failure.Failure](Of("invalid post input"))
+ /*line post_publish.mygo:58:5*/	} else {
+ /*line zz_post_publish.gen.go:53:1*/	}
+ /*line post_publish.mygo:24:1*/	stored := Zero[PostRecord]()
+	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line post_publish.mygo:65:7*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		loaded := MygoIN19CommunityRepositoryM4Load(repository, ctx, communityID, true)
- /*line post_publish.mygo:67:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line post_publish.mygo:68:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line post_publish.mygo:67:9*/		} else {
- /*line zz_post_publish.gen.go:60:1*/		}
- /*line post_publish.mygo:64:7*/		community := MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded)
- /*line post_publish.mygo:71:9*/		if community.FederationMode != "federated" && input.ContextURI != "" {
- /*line post_publish.mygo:72:18*/			return Err[struct{}, string]("forbidden")
- /*line post_publish.mygo:71:9*/		} else {
- /*line zz_post_publish.gen.go:65:1*/		}
- /*line post_publish.mygo:64:7*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, community, identity, false)
- /*line post_publish.mygo:75:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line post_publish.mygo:76:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line post_publish.mygo:75:9*/		} else {
- /*line zz_post_publish.gen.go:70:1*/		}
- /*line post_publish.mygo:78:9*/		if !MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line post_publish.mygo:79:18*/			return Err[struct{}, string]("forbidden")
- /*line post_publish.mygo:78:9*/		} else {
- /*line zz_post_publish.gen.go:74:1*/		}
- /*line post_publish.mygo:64:7*/		active := QueryExists(tx.Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, self.SiteID, identity.ActorURI))
- /*line post_publish.mygo:87:9*/		if MygoIN6ResultM5IsErr[bool, string](active) {
- /*line post_publish.mygo:88:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](active))
- /*line post_publish.mygo:87:9*/		} else {
- /*line zz_post_publish.gen.go:79:1*/		}
- /*line post_publish.mygo:90:9*/		if !MygoIN6ResultM6Unwrap[bool, string](active) || community.HostSiteID != self.SiteID {
- /*line post_publish.mygo:91:18*/			return Err[struct{}, string]("forbidden")
- /*line post_publish.mygo:90:9*/		} else {
- /*line zz_post_publish.gen.go:83:1*/		}
- /*line post_publish.mygo:64:7*/		now := time.Now().UTC().Truncate(time.Microsecond)
+ /*line post_publish.mygo:68:9*/		if MygoIN6ResultM5IsErr[CommunityRecord, failure.Failure](loaded) {
+ /*line post_publish.mygo:69:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityRecord, failure.Failure](loaded))
+ /*line post_publish.mygo:68:9*/		} else {
+ /*line zz_post_publish.gen.go:61:1*/		}
+ /*line post_publish.mygo:65:7*/		community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](loaded)
+ /*line post_publish.mygo:72:9*/		if community.FederationMode != "federated" && input.ContextURI != "" {
+ /*line post_publish.mygo:73:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line post_publish.mygo:72:9*/		} else {
+ /*line zz_post_publish.gen.go:66:1*/		}
+ /*line post_publish.mygo:65:7*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, community, identity, false)
+ /*line post_publish.mygo:76:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) {
+ /*line post_publish.mygo:77:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](access))
+ /*line post_publish.mygo:76:9*/		} else {
+ /*line zz_post_publish.gen.go:71:1*/		}
+ /*line post_publish.mygo:79:9*/		if !MygoIN15CommunityAccessM7CanPost(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access)) {
+ /*line post_publish.mygo:80:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line post_publish.mygo:79:9*/		} else {
+ /*line zz_post_publish.gen.go:75:1*/		}
+ /*line post_publish.mygo:65:7*/		active := QueryExists(tx.Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, self.SiteID, identity.ActorURI))
+ /*line post_publish.mygo:88:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](active) {
+ /*line post_publish.mygo:89:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](active))
+ /*line post_publish.mygo:88:9*/		} else {
+ /*line zz_post_publish.gen.go:80:1*/		}
+ /*line post_publish.mygo:91:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](active) || community.HostSiteID != self.SiteID {
+ /*line post_publish.mygo:92:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line post_publish.mygo:91:9*/		} else {
+ /*line zz_post_publish.gen.go:84:1*/		}
+ /*line post_publish.mygo:65:7*/		now := time.Now().UTC().Truncate(time.Microsecond)
 		communityBan := ActiveCommunityBan(ctx, tx, community.ID, identity.ActorURI, now)
 		siteBan := ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, now)
- /*line post_publish.mygo:96:9*/		if MygoIN6ResultM5IsErr[bool, string](communityBan) || MygoIN6ResultM5IsErr[bool, string](siteBan) {
- /*line post_publish.mygo:97:18*/			return Err[struct{}, string]("moderation unavailable")
- /*line post_publish.mygo:96:9*/		} else {
- /*line zz_post_publish.gen.go:90:1*/		}
- /*line post_publish.mygo:99:9*/		if MygoIN6ResultM6Unwrap[bool, string](communityBan) || MygoIN6ResultM6Unwrap[bool, string](siteBan) {
- /*line post_publish.mygo:100:18*/			return Err[struct{}, string]("forbidden")
- /*line post_publish.mygo:99:9*/		} else {
- /*line zz_post_publish.gen.go:94:1*/		}
- /*line post_publish.mygo:64:7*/		identifier := rand.Text()
+ /*line post_publish.mygo:97:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](communityBan) || MygoIN6ResultM5IsErr[bool, failure.Failure](siteBan) {
+ /*line post_publish.mygo:98:18*/			return Err[struct{}, failure.Failure](Of("moderation unavailable"))
+ /*line post_publish.mygo:97:9*/		} else {
+ /*line zz_post_publish.gen.go:91:1*/		}
+ /*line post_publish.mygo:100:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](communityBan) || MygoIN6ResultM6Unwrap[bool, failure.Failure](siteBan) {
+ /*line post_publish.mygo:101:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line post_publish.mygo:100:9*/		} else {
+ /*line zz_post_publish.gen.go:95:1*/		}
+ /*line post_publish.mygo:65:7*/		identifier := rand.Text()
 		parent := Zero[sql.NullString]()
- /*line post_publish.mygo:104:9*/		if input.ParentID != "" {
+ /*line post_publish.mygo:105:9*/		if input.ParentID != "" {
 			parentResult := queryParent(tx, communityID, input.ParentID)
- /*line post_publish.mygo:106:11*/			if MygoIN6ResultM5IsErr[sql.NullString, string](parentResult) {
- /*line post_publish.mygo:107:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[sql.NullString, string](parentResult))
- /*line post_publish.mygo:106:11*/			} else {
- /*line zz_post_publish.gen.go:102:1*/			}
- /*line post_publish.mygo:104:9*/			parent = MygoIN6ResultM6Unwrap[sql.NullString, string](parentResult)
+ /*line post_publish.mygo:107:11*/			if MygoIN6ResultM5IsErr[sql.NullString, failure.Failure](parentResult) {
+ /*line post_publish.mygo:108:20*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[sql.NullString, failure.Failure](parentResult))
+ /*line post_publish.mygo:107:11*/			} else {
+ /*line zz_post_publish.gen.go:103:1*/			}
+ /*line post_publish.mygo:105:9*/			parent = MygoIN6ResultM6Unwrap[sql.NullString, failure.Failure](parentResult)
 		} else {
- /*line zz_post_publish.gen.go:105:1*/		}
- /*line post_publish.mygo:64:7*/		objectURI := Zero[sql.NullString]()
- /*line post_publish.mygo:112:9*/		if community.FederationMode == "federated" {
+ /*line zz_post_publish.gen.go:106:1*/		}
+ /*line post_publish.mygo:65:7*/		objectURI := Zero[sql.NullString]()
+ /*line post_publish.mygo:113:9*/		if community.FederationMode == "federated" {
 			canonical := config.CanonicalURI(site, "objects", identifier)
- /*line post_publish.mygo:114:11*/			if MygoIN6ResultM5IsErr[string, string](canonical) {
- /*line post_publish.mygo:115:20*/				return Err[struct{}, string]("invalid post identity")
- /*line post_publish.mygo:114:11*/			} else {
- /*line zz_post_publish.gen.go:112:1*/			}
- /*line post_publish.mygo:112:9*/			objectURI = sql.NullString{String: MygoIN6ResultM6Unwrap[string, string](canonical), Valid: true}
+ /*line post_publish.mygo:115:11*/			if MygoIN6ResultM5IsErr[string, string](canonical) {
+ /*line post_publish.mygo:116:20*/				return Err[struct{}, failure.Failure](Of("invalid post identity"))
+ /*line post_publish.mygo:115:11*/			} else {
+ /*line zz_post_publish.gen.go:113:1*/			}
+ /*line post_publish.mygo:113:9*/			objectURI = sql.NullString{String: MygoIN6ResultM6Unwrap[string, string](canonical), Valid: true}
 		} else {
- /*line zz_post_publish.gen.go:115:1*/		}
- /*line post_publish.mygo:64:7*/		var __mygo_expr_1 string
+ /*line zz_post_publish.gen.go:116:1*/		}
+ /*line post_publish.mygo:65:7*/		var __mygo_expr_1 string
 		if input.ParentID == "" {
 			__mygo_expr_1 = "Page"
 		} else {
 			__mygo_expr_1 = "Note"
- /*line zz_post_publish.gen.go:121:1*/		}
- /*line post_publish.mygo:64:7*/		objectType := __mygo_expr_1
+ /*line zz_post_publish.gen.go:122:1*/		}
+ /*line post_publish.mygo:65:7*/		objectType := __mygo_expr_1
 		record := PostRecord{ID: identifier, ObjectURI: objectURI, CommunityID: communityID, FederationMode: community.FederationMode, AuthorActorURI: identity.ActorURI, ObjectType: objectType, Title: sql.NullString{String: title, Valid: title != ""}, Body: body, ContentFormat: format, SearchText: title + " " + MygoIN6ResultM6Unwrap[string, string](plain), RichMetadata: "", ParentID: parent, AuthoredAt: now, UpdatedAt: now, Version: int64(1), DeletedAt: Zero[sql.NullTime]()}
- /*line post_publish.mygo:142:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI+"/inbox", identity.ActorURI))) {
- /*line post_publish.mygo:149:18*/			return Err[struct{}, string]("post creation failed")
- /*line post_publish.mygo:142:9*/		} else {
- /*line zz_post_publish.gen.go:127:1*/		}
- /*line post_publish.mygo:151:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Create(&record))) {
- /*line post_publish.mygo:152:18*/			return Err[struct{}, string]("post creation failed")
- /*line post_publish.mygo:151:9*/		} else {
- /*line zz_post_publish.gen.go:131:1*/		}
- /*line post_publish.mygo:154:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", self.SiteID, identifier))) {
- /*line post_publish.mygo:155:18*/			return Err[struct{}, string]("post creation failed")
- /*line post_publish.mygo:154:9*/		} else {
- /*line zz_post_publish.gen.go:135:1*/		}
- /*line post_publish.mygo:157:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID))) {
- /*line post_publish.mygo:158:18*/			return Err[struct{}, string]("post creation failed")
- /*line post_publish.mygo:157:9*/		} else {
- /*line zz_post_publish.gen.go:139:1*/		}
- /*line post_publish.mygo:64:7*/		rich := ValidatePostContentTx(ctx, tx, site.Sanitizer, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
- /*line post_publish.mygo:161:9*/		if MygoIN6ResultM5IsErr[struct{}, string](rich) {
- /*line post_publish.mygo:162:18*/			return rich
- /*line post_publish.mygo:161:9*/		} else {
- /*line zz_post_publish.gen.go:144:1*/		}
- /*line post_publish.mygo:164:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", identifier).Find(&stored))) {
- /*line post_publish.mygo:165:18*/			return Err[struct{}, string]("post creation failed")
- /*line post_publish.mygo:164:9*/		} else {
- /*line zz_post_publish.gen.go:148:1*/		}
- /*line post_publish.mygo:169:9*/		if input.ContextURI != "" {
+ /*line post_publish.mygo:143:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) SELECT ?,?, 'Person', ? WHERE NOT EXISTS (SELECT 1 FROM actors WHERE uri=?)", identity.ActorURI, self.SiteID, identity.ActorURI+"/inbox", identity.ActorURI))) {
+ /*line post_publish.mygo:150:18*/			return Err[struct{}, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:143:9*/		} else {
+ /*line zz_post_publish.gen.go:128:1*/		}
+ /*line post_publish.mygo:152:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Table("posts").Create(&record))) {
+ /*line post_publish.mygo:153:18*/			return Err[struct{}, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:152:9*/		} else {
+ /*line zz_post_publish.gen.go:132:1*/		}
+ /*line post_publish.mygo:155:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", self.SiteID, identifier))) {
+ /*line post_publish.mygo:156:18*/			return Err[struct{}, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:155:9*/		} else {
+ /*line zz_post_publish.gen.go:136:1*/		}
+ /*line post_publish.mygo:158:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID))) {
+ /*line post_publish.mygo:159:18*/			return Err[struct{}, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:158:9*/		} else {
+ /*line zz_post_publish.gen.go:140:1*/		}
+ /*line post_publish.mygo:65:7*/		rich := ValidatePostContentTx(ctx, tx, site.Sanitizer, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
+ /*line post_publish.mygo:162:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](rich) {
+ /*line post_publish.mygo:163:18*/			return rich
+ /*line post_publish.mygo:162:9*/		} else {
+ /*line zz_post_publish.gen.go:145:1*/		}
+ /*line post_publish.mygo:165:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Table("posts").Where("id=?", identifier).Find(&stored))) {
+ /*line post_publish.mygo:166:18*/			return Err[struct{}, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:165:9*/		} else {
+ /*line zz_post_publish.gen.go:149:1*/		}
+ /*line post_publish.mygo:170:9*/		if input.ContextURI != "" {
 			contextID := EnsureContextStub(ctx, tx, input.ContextURI)
- /*line post_publish.mygo:171:11*/			if MygoIN6ResultM5IsErr[string, string](contextID) {
- /*line post_publish.mygo:172:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](contextID))
- /*line post_publish.mygo:171:11*/			} else {
- /*line zz_post_publish.gen.go:154:1*/			}
- /*line post_publish.mygo:169:9*/			attached := AttachDeclaredPostContextTx(ctx, tx, identifier, MygoIN6ResultM6Unwrap[string, string](contextID))
-			if MygoIN6ResultM5IsErr[struct{}, string](attached) {
- /*line post_publish.mygo:176:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](attached))
- /*line post_publish.mygo:169:9*/			} else {
- /*line zz_post_publish.gen.go:159:1*/			}
- /*line post_publish.mygo:169:9*/		} else {
- /*line zz_post_publish.gen.go:161:1*/		}
- /*line post_publish.mygo:179:9*/		return Ok[struct{}, string](struct {
- /*line zz_post_publish.gen.go:163:1*/		}{})
+ /*line post_publish.mygo:172:11*/			if MygoIN6ResultM5IsErr[string, failure.Failure](contextID) {
+ /*line post_publish.mygo:173:20*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](contextID))
+ /*line post_publish.mygo:172:11*/			} else {
+ /*line zz_post_publish.gen.go:155:1*/			}
+ /*line post_publish.mygo:170:9*/			attached := AttachDeclaredPostContextTx(ctx, tx, identifier, MygoIN6ResultM6Unwrap[string, failure.Failure](contextID))
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](attached) {
+ /*line post_publish.mygo:177:20*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](attached))
+ /*line post_publish.mygo:170:9*/			} else {
+ /*line zz_post_publish.gen.go:160:1*/			}
+ /*line post_publish.mygo:170:9*/		} else {
+ /*line zz_post_publish.gen.go:162:1*/		}
+ /*line post_publish.mygo:180:9*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_post_publish.gen.go:164:1*/		}{})
 	})
- /*line post_publish.mygo:182:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line post_publish.mygo:183:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line post_publish.mygo:182:5*/	} else {
- /*line zz_post_publish.gen.go:168:1*/	}
- /*line post_publish.mygo:185:5*/	return Ok[PostRecord, string](stored)
- /*line zz_post_publish.gen.go:170:1*/}
- /*line post_publish.mygo:189:1*/func queryParent(tx *gorm.DB, communityID string, parentID string) Result[sql.NullString, string] {
+ /*line post_publish.mygo:183:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line post_publish.mygo:184:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line post_publish.mygo:183:5*/	} else {
+ /*line zz_post_publish.gen.go:169:1*/	}
+ /*line post_publish.mygo:186:5*/	return Ok[PostRecord, failure.Failure](stored)
+ /*line zz_post_publish.gen.go:171:1*/}
+ /*line post_publish.mygo:190:1*/func queryParent(tx *gorm.DB, communityID string, parentID string) Result[sql.NullString, failure.Failure] {
 	var count int64 = int64(0)
- /*line post_publish.mygo:195:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=? AND community_id=? AND deleted_at IS NULL", parentID, communityID).Count(&count))) {
- /*line post_publish.mygo:200:12*/		return Err[sql.NullString, string]("post creation failed")
- /*line post_publish.mygo:195:3*/	} else {
- /*line zz_post_publish.gen.go:176:1*/	}
- /*line post_publish.mygo:202:3*/	if count != int64(1) {
- /*line post_publish.mygo:203:12*/		return Err[sql.NullString, string]("invalid parent")
- /*line post_publish.mygo:202:3*/	} else {
- /*line zz_post_publish.gen.go:180:1*/	}
- /*line post_publish.mygo:205:3*/	return Ok[sql.NullString, string](sql.NullString{String: parentID, Valid: true})
- /*line zz_post_publish.gen.go:182:1*/}
+ /*line post_publish.mygo:196:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Table("posts").Where("id=? AND community_id=? AND deleted_at IS NULL", parentID, communityID).Count(&count))) {
+ /*line post_publish.mygo:201:12*/		return Err[sql.NullString, failure.Failure](Of("post creation failed"))
+ /*line post_publish.mygo:196:3*/	} else {
+ /*line zz_post_publish.gen.go:177:1*/	}
+ /*line post_publish.mygo:203:3*/	if count != int64(1) {
+ /*line post_publish.mygo:204:12*/		return Err[sql.NullString, failure.Failure](Of("invalid parent"))
+ /*line post_publish.mygo:203:3*/	} else {
+ /*line zz_post_publish.gen.go:181:1*/	}
+ /*line post_publish.mygo:206:3*/	return Ok[sql.NullString, failure.Failure](sql.NullString{String: parentID, Valid: true})
+ /*line zz_post_publish.gen.go:183:1*/}

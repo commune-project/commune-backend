@@ -7,6 +7,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct GroupRoleExtension
   Role: String `json:"commune:role"`
@@ -15,7 +16,7 @@ end
 # Group management activities are authorized by current records, never by the
 # signature alone: the signer must hold community, hosting-site or deployment
 # authority for the target community.
-func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte]) -> Result[(), String]
+func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte]) -> Result[(), failure.Failure]
   if activity.Type != "Add" && activity.Type != "Remove" then
     return Ok(())
   end
@@ -60,7 +61,7 @@ func ApplyGroupManagement(ctx: context.Context, db: Ref[gorm.DB], site: config.S
     return Ok(())
   end
   let assigned = activity.Type == "Add"
-  var outcome: Result[(), String] = Ok(())
+  var outcome: Result[(), failure.Failure] = Ok(())
   if role == "manager" then
     outcome = repository.SetManager(ctx, community.ID, identity, true, activity.ObjectURI, assigned)
   else

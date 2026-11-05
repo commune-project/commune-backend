@@ -14,6 +14,10 @@ func Classify(reason: String) -> failure.Failure
   end
 end
 
+func Of(reason: String) -> failure.Failure
+  Classify(reason)
+end
+
 func FailFailure(w: http.ResponseWriter, value: failure.Failure) -> ()
   if value.IsEditConflict() then
     w.Header().Set("Cache-Control", "no-store")
@@ -39,7 +43,7 @@ func WithActor(
   handle: func(auth.Identity) -> Result[(), failure.Failure]
 ) -> ()
   switch RequireMutation(settings, db, site, request)
-    case Err(reason) => Fail(w, reason)
+    case Err(reason) => FailFailure(w, reason)
     case Ok(identity) => Complete(w, handle(identity))
   end
 end
@@ -53,7 +57,7 @@ func WithJSON[T](
   handle: func() -> Result[(), failure.Failure]
 ) -> ()
   switch DecodeJSON[T](w, request, maxBytes, target)
-    case Err(reason) => WriteErrorJSON(w, 400, reason)
+    case Err(reason) => WriteErrorJSON(w, 400, reason.Render())
     case Ok(_) => Complete(w, handle())
   end
 end

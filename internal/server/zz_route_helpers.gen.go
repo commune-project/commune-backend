@@ -22,48 +22,51 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line route_helpers.mygo:11:3*/	return __mygo_expr_1
  /*line zz_route_helpers.gen.go:24:1*/}
- /*line route_helpers.mygo:17:1*/func FailFailure(w http.ResponseWriter, value failure.Failure) {
- /*line route_helpers.mygo:18:3*/	if failure.MygoIN7FailureM14IsEditConflict(value) {
- /*line route_helpers.mygo:19:5*/		w.Header().Set("Cache-Control", "no-store")
- /*line route_helpers.mygo:18:3*/	} else {
- /*line zz_route_helpers.gen.go:29:1*/	}
- /*line route_helpers.mygo:21:3*/	WriteErrorJSON(w, failure.MygoIN7FailureM6Status(value), failure.MygoIN7FailureM6Render(value))
+ /*line route_helpers.mygo:17:1*/func Of(reason string) failure.Failure {
+ /*line route_helpers.mygo:18:3*/	return Classify(reason)
+ /*line zz_route_helpers.gen.go:27:1*/}
+ /*line route_helpers.mygo:21:1*/func FailFailure(w http.ResponseWriter, value failure.Failure) {
+ /*line route_helpers.mygo:22:3*/	if failure.MygoIN7FailureM14IsEditConflict(value) {
+ /*line route_helpers.mygo:23:5*/		w.Header().Set("Cache-Control", "no-store")
+ /*line route_helpers.mygo:22:3*/	} else {
+ /*line zz_route_helpers.gen.go:32:1*/	}
+ /*line route_helpers.mygo:25:3*/	WriteErrorJSON(w, failure.MygoIN7FailureM6Status(value), failure.MygoIN7FailureM6Render(value))
 	return
- /*line zz_route_helpers.gen.go:32:1*/}
- /*line route_helpers.mygo:24:1*/func Complete(w http.ResponseWriter, result Result[struct {
+ /*line zz_route_helpers.gen.go:35:1*/}
+ /*line route_helpers.mygo:28:1*/func Complete(w http.ResponseWriter, result Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:25:3*/	if _, ok := result.(Result__Ok[struct{}, failure.Failure]); ok {
- /*line zz_route_helpers.gen.go:36:1*/	} else {
- /*line route_helpers.mygo:25:3*/		if __mygo_match___mygo_expr_0, ok := result.(Result__Err[struct{}, failure.Failure]); ok {
- /*line route_helpers.mygo:27:24*/			FailFailure(w, __mygo_match___mygo_expr_0.F0)
- /*line route_helpers.mygo:25:3*/		} else {
- /*line zz_route_helpers.gen.go:40:1*/		}
+ /*line route_helpers.mygo:29:3*/	if _, ok := result.(Result__Ok[struct{}, failure.Failure]); ok {
+ /*line zz_route_helpers.gen.go:39:1*/	} else {
+ /*line route_helpers.mygo:29:3*/		if __mygo_match___mygo_expr_0, ok := result.(Result__Err[struct{}, failure.Failure]); ok {
+ /*line route_helpers.mygo:31:24*/			FailFailure(w, __mygo_match___mygo_expr_0.F0)
+ /*line route_helpers.mygo:29:3*/		} else {
+ /*line zz_route_helpers.gen.go:43:1*/		}
 	}
- /*line route_helpers.mygo:25:3*/	return
- /*line zz_route_helpers.gen.go:43:1*/}
- /*line route_helpers.mygo:33:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
+ /*line route_helpers.mygo:29:3*/	return
+ /*line zz_route_helpers.gen.go:46:1*/}
+ /*line route_helpers.mygo:37:1*/func WithActor(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, handle func(auth.Identity) Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:41:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
-	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[auth.Identity, string]); ok {
- /*line route_helpers.mygo:42:25*/		Fail(w, __mygo_match___mygo_expr_2.F0)
- /*line zz_route_helpers.gen.go:49:1*/	} else {
- /*line route_helpers.mygo:41:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, string]); ok {
- /*line route_helpers.mygo:43:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
- /*line route_helpers.mygo:41:3*/		} else {
- /*line zz_route_helpers.gen.go:53:1*/		}
+ /*line route_helpers.mygo:45:3*/	__mygo_expr_0 := RequireMutation(settings, db, site, request)
+	if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Err[auth.Identity, failure.Failure]); ok {
+ /*line route_helpers.mygo:46:25*/		FailFailure(w, __mygo_match___mygo_expr_2.F0)
+ /*line zz_route_helpers.gen.go:52:1*/	} else {
+ /*line route_helpers.mygo:45:3*/		if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Ok[auth.Identity, failure.Failure]); ok {
+ /*line route_helpers.mygo:47:26*/			Complete(w, handle(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:45:3*/		} else {
+ /*line zz_route_helpers.gen.go:56:1*/		}
 	}
- /*line route_helpers.mygo:41:3*/	return
- /*line zz_route_helpers.gen.go:56:1*/}
- /*line route_helpers.mygo:48:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
+ /*line route_helpers.mygo:45:3*/	return
+ /*line zz_route_helpers.gen.go:59:1*/}
+ /*line route_helpers.mygo:52:1*/func WithJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T, handle func() Result[struct {
 }, failure.Failure]) {
- /*line route_helpers.mygo:55:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
-	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, string]); ok {
- /*line route_helpers.mygo:56:25*/		WriteErrorJSON(w, 400, __mygo_match___mygo_expr_1.F0)
- /*line route_helpers.mygo:55:3*/	} else {
-		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, string]); ok {
+ /*line route_helpers.mygo:59:3*/	__mygo_expr_0 := DecodeJSON[T](w, request, maxBytes, target)
+	if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[struct{}, failure.Failure]); ok {
+ /*line route_helpers.mygo:60:25*/		WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_1.F0))
+ /*line route_helpers.mygo:59:3*/	} else {
+		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, failure.Failure]); ok {
 			Complete(w, handle())
 		} else {
- /*line zz_route_helpers.gen.go:66:1*/		}
+ /*line zz_route_helpers.gen.go:69:1*/		}
 	}
- /*line route_helpers.mygo:55:3*/	return
- /*line zz_route_helpers.gen.go:69:1*/}
+ /*line route_helpers.mygo:59:3*/	return
+ /*line zz_route_helpers.gen.go:72:1*/}

@@ -2,18 +2,19 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
-func LoadObjectByURI(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[Option[PostRecord], String]
+func LoadObjectByURI(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[Option[PostRecord], failure.Failure]
   if uri == "" then
-    return Err("invalid object")
+    return Err(Of("invalid object"))
   end
   let record = Zero[PostRecord]()
   let query = db.WithContext(ctx).Table("posts").Where("object_uri = ?", uri).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("object unavailable")
+    return Err(Of("object unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[PostRecord], String](None)
+    return Ok[Option[PostRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end

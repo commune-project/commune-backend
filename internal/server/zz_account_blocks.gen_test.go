@@ -12,6 +12,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,17 +23,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:25:1*/	}
+ /*line zz_account_blocks.gen_test.go:26:1*/	}
  /*line account_blocks_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
 	csrf := csrfOf(cookies)
@@ -41,7 +42,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_blocks_test.mygo:38:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: anonymous, Source: "", CSRF: "", Payload: ""}).Code != 401 {
  /*line account_blocks_test.mygo:50:5*/		t.Fatal("anonymous account block listing was accepted")
  /*line account_blocks_test.mygo:38:3*/	} else {
- /*line zz_account_blocks.gen_test.go:44:1*/	}
+ /*line zz_account_blocks.gen_test.go:45:1*/	}
  /*line account_blocks_test.mygo:13:1*/	initial := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Cookies: cookies, Source: "", CSRF: "", Payload: ""})
 	initialPage := Zero[AccountBlockPage]()
  /*line account_blocks_test.mygo:66:5*/	var __mygo_expr_4 Result[struct{}, error]
@@ -50,53 +51,53 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_account_blocks.gen_test.go:53:1*/		}{})
+ /*line zz_account_blocks.gen_test.go:54:1*/		}{})
 	}
  /*line account_blocks_test.mygo:65:3*/	if initial.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(initialPage.Items) != 0 {
  /*line account_blocks_test.mygo:68:5*/		t.Fatal("initial account block listing failed")
  /*line account_blocks_test.mygo:65:3*/	} else {
- /*line zz_account_blocks.gen_test.go:58:1*/	}
+ /*line zz_account_blocks.gen_test.go:59:1*/	}
  /*line account_blocks_test.mygo:13:1*/	personBody := "{\"kind\":\"person\",\"target\":\"" + bob.ActorURI + "\"}"
  /*line account_blocks_test.mygo:71:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, Source: site.Origin, CSRF: ""}).Code != 403 {
  /*line account_blocks_test.mygo:83:5*/		t.Fatal("account block without CSRF was accepted")
  /*line account_blocks_test.mygo:71:3*/	} else {
- /*line zz_account_blocks.gen_test.go:63:1*/	}
+ /*line zz_account_blocks.gen_test.go:64:1*/	}
  /*line account_blocks_test.mygo:85:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: "https://foreign.example"}).Code != 403 {
  /*line account_blocks_test.mygo:97:5*/		t.Fatal("cross-origin account block was accepted")
  /*line account_blocks_test.mygo:85:3*/	} else {
- /*line zz_account_blocks.gen_test.go:67:1*/	}
+ /*line zz_account_blocks.gen_test.go:68:1*/	}
  /*line account_blocks_test.mygo:99:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:111:5*/		t.Fatal("valid person block failed")
  /*line account_blocks_test.mygo:99:3*/	} else {
- /*line zz_account_blocks.gen_test.go:71:1*/	}
+ /*line zz_account_blocks.gen_test.go:72:1*/	}
  /*line account_blocks_test.mygo:113:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:125:5*/		t.Fatal("repeat person block was not idempotent")
  /*line account_blocks_test.mygo:113:3*/	} else {
- /*line zz_account_blocks.gen_test.go:75:1*/	}
+ /*line zz_account_blocks.gen_test.go:76:1*/	}
  /*line account_blocks_test.mygo:13:1*/	selfBody := "{\"kind\":\"person\",\"target\":\"" + alice.ActorURI + "\"}"
  /*line account_blocks_test.mygo:128:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: selfBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
  /*line account_blocks_test.mygo:141:5*/		t.Fatal("self block was accepted")
  /*line account_blocks_test.mygo:128:3*/	} else {
- /*line zz_account_blocks.gen_test.go:80:1*/	}
+ /*line zz_account_blocks.gen_test.go:81:1*/	}
  /*line account_blocks_test.mygo:143:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"domain\",\"target\":\"remote.example\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
  /*line account_blocks_test.mygo:156:5*/		t.Fatal("invalid block kind was accepted")
  /*line account_blocks_test.mygo:143:3*/	} else {
- /*line zz_account_blocks.gen_test.go:84:1*/	}
+ /*line zz_account_blocks.gen_test.go:85:1*/	}
  /*line account_blocks_test.mygo:158:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"person\",\"target\":\"not-an-actor\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
  /*line account_blocks_test.mygo:171:5*/		t.Fatal("malformed person target was accepted")
  /*line account_blocks_test.mygo:158:3*/	} else {
- /*line zz_account_blocks.gen_test.go:88:1*/	}
+ /*line zz_account_blocks.gen_test.go:89:1*/	}
  /*line account_blocks_test.mygo:13:1*/	ownInstance := strings.TrimPrefix(site.Origin, "https://")
  /*line account_blocks_test.mygo:174:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"instance\",\"target\":\"" + ownInstance + "\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
  /*line account_blocks_test.mygo:187:5*/		t.Fatal("own-instance block was accepted")
  /*line account_blocks_test.mygo:174:3*/	} else {
- /*line zz_account_blocks.gen_test.go:93:1*/	}
+ /*line zz_account_blocks.gen_test.go:94:1*/	}
  /*line account_blocks_test.mygo:13:1*/	communityBody := "{\"kind\":\"community\",\"target\":\"" + community.ID + "\"}"
 	instanceBody := "{\"kind\":\"instance\",\"target\":\"REMOTE.EXAMPLE\"}"
  /*line account_blocks_test.mygo:191:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: communityBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: instanceBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:217:5*/		t.Fatal("community or instance block failed")
  /*line account_blocks_test.mygo:191:3*/	} else {
- /*line zz_account_blocks.gen_test.go:99:1*/	}
+ /*line zz_account_blocks.gen_test.go:100:1*/	}
  /*line account_blocks_test.mygo:13:1*/	listed := AccountBlockPage{Items: []storage.AccountBlockRecord{}}
 	response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: ""})
  /*line account_blocks_test.mygo:233:5*/	var __mygo_expr_6 Result[struct{}, error]
@@ -105,22 +106,22 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_account_blocks.gen_test.go:108:1*/		}{})
+ /*line zz_account_blocks.gen_test.go:109:1*/		}{})
 	}
  /*line account_blocks_test.mygo:232:3*/	if response.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(listed.Items) != 3 {
  /*line account_blocks_test.mygo:235:5*/		t.Fatal("account block listing did not return each target once")
  /*line account_blocks_test.mygo:232:3*/	} else {
- /*line zz_account_blocks.gen_test.go:113:1*/	}
+ /*line zz_account_blocks.gen_test.go:114:1*/	}
  /*line account_blocks_test.mygo:237:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 || doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: personBody, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:263:5*/		t.Fatal("idempotent person unblock failed")
  /*line account_blocks_test.mygo:237:3*/	} else {
- /*line zz_account_blocks.gen_test.go:117:1*/	}
+ /*line zz_account_blocks.gen_test.go:118:1*/	}
  /*line account_blocks_test.mygo:265:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "{\"kind\":\"instance\",\"target\":\"https://evil.example/path\"}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
  /*line account_blocks_test.mygo:278:5*/		t.Fatal("malformed instance unblock was accepted")
 		return
  /*line account_blocks_test.mygo:265:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:123:1*/	}
+ /*line zz_account_blocks.gen_test.go:124:1*/	}
 }
  /*line account_blocks_test.mygo:282:1*/func TestPostgresBlockedThreadSubtreeAndChildCount(t *testing.T) {
  /*line account_blocks_test.mygo:283:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -129,28 +130,28 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:132:1*/	}
+ /*line zz_account_blocks.gen_test.go:133:1*/	}
  /*line account_blocks_test.mygo:282:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	viewer := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	viewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "topic", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	visibleRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible root", ParentID: topic.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	visibleChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible child", ParentID: visibleRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	blockedRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked root", ParentID: topic.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	blockedDescendant := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked descendant", ParentID: blockedRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	blockedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked child", ParentID: visibleRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	blockedGrandchild := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked grandchild", ParentID: blockedChild.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "topic", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	visibleRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible root", ParentID: topic.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	visibleChild := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "visible child", ParentID: visibleRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	blockedRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked root", ParentID: topic.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	blockedDescendant := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked descendant", ParentID: blockedRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	blockedChild := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Body: "blocked child", ParentID: visibleRoot.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	blockedGrandchild := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Body: "blocked grandchild", ParentID: blockedChild.ID, Title: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	blocks := storage.AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "viewer", "viewer-password")
 	response := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/posts/" + topic.ID + "/replies", Cookies: cookies, Payload: "", CSRF: "", Source: ""})
@@ -161,27 +162,27 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_account_blocks.gen_test.go:164:1*/		}{})
+ /*line zz_account_blocks.gen_test.go:165:1*/		}{})
 	}
  /*line account_blocks_test.mygo:433:3*/	if response.Code != 200 || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
  /*line account_blocks_test.mygo:434:5*/		t.Fatalf("thread read failed: %d %s", response.Code, response.Body.String())
  /*line account_blocks_test.mygo:433:3*/	} else {
- /*line zz_account_blocks.gen_test.go:169:1*/	}
+ /*line zz_account_blocks.gen_test.go:170:1*/	}
  /*line account_blocks_test.mygo:436:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ID != visibleRoot.ID {
  /*line account_blocks_test.mygo:437:5*/		t.Fatal("blocked root subtree remained visible")
  /*line account_blocks_test.mygo:436:3*/	} else {
- /*line zz_account_blocks.gen_test.go:173:1*/	}
+ /*line zz_account_blocks.gen_test.go:174:1*/	}
  /*line account_blocks_test.mygo:282:1*/	root := MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0))
  /*line account_blocks_test.mygo:440:3*/	if root.ChildCount != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(root.Children) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(root.Children, 0)).ID != visibleChild.ID {
  /*line account_blocks_test.mygo:443:5*/		t.Fatal("blocked child contributed to visible child count")
  /*line account_blocks_test.mygo:440:3*/	} else {
- /*line zz_account_blocks.gen_test.go:178:1*/	}
+ /*line zz_account_blocks.gen_test.go:179:1*/	}
  /*line account_blocks_test.mygo:445:3*/	if strings.Contains(response.Body.String(), blockedRoot.ID) || strings.Contains(response.Body.String(), blockedDescendant.ID) || strings.Contains(response.Body.String(), blockedChild.ID) || strings.Contains(response.Body.String(), blockedGrandchild.ID) {
  /*line account_blocks_test.mygo:449:5*/		t.Fatal("blocked subtree identity or content leaked")
 		return
  /*line account_blocks_test.mygo:445:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:184:1*/	}
+ /*line zz_account_blocks.gen_test.go:185:1*/	}
 }
  /*line account_blocks_test.mygo:453:1*/func TestPostgresBlockBeforeAndAfterRead(t *testing.T) {
  /*line account_blocks_test.mygo:454:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -190,21 +191,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:193:1*/	}
+ /*line zz_account_blocks.gen_test.go:194:1*/	}
  /*line account_blocks_test.mygo:453:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	alicePost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Alice secret", Body: "alice body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	bobPost := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Title: "Bob secret", Body: "bob body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	alicePost := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Alice secret", Body: "alice body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	bobPost := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, bob, false, storage.PublishInput{Title: "Bob secret", Body: "bob body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "viewer", "viewer-password")
 	csrf := csrfOf(cookies)
@@ -213,32 +214,32 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line account_blocks_test.mygo:512:3*/	if browserGet(t, handler, site.Origin, alicePostPath, cookies, 200).Body.String() == "" {
  /*line account_blocks_test.mygo:513:5*/		t.Fatal("pre-block read returned no content")
  /*line account_blocks_test.mygo:512:3*/	} else {
- /*line zz_account_blocks.gen_test.go:216:1*/	}
+ /*line zz_account_blocks.gen_test.go:217:1*/	}
  /*line account_blocks_test.mygo:453:1*/	aliceBlock := "{\"kind\":\"person\",\"target\":\"" + alice.ActorURI + "\"}"
  /*line account_blocks_test.mygo:516:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: aliceBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:529:5*/		t.Fatal("post-read block failed")
  /*line account_blocks_test.mygo:516:3*/	} else {
- /*line zz_account_blocks.gen_test.go:221:1*/	}
+ /*line zz_account_blocks.gen_test.go:222:1*/	}
  /*line account_blocks_test.mygo:453:1*/	blocked := browserGet(t, handler, site.Origin, alicePostPath, cookies, 404)
  /*line account_blocks_test.mygo:532:3*/	if strings.Contains(blocked.Body.String(), "Alice secret") || strings.Contains(blocked.Body.String(), alice.ActorURI) {
  /*line account_blocks_test.mygo:534:5*/		t.Fatal("blocked direct read leaked metadata")
  /*line account_blocks_test.mygo:532:3*/	} else {
- /*line zz_account_blocks.gen_test.go:226:1*/	}
+ /*line zz_account_blocks.gen_test.go:227:1*/	}
  /*line account_blocks_test.mygo:453:1*/	topics := browserGet(t, handler, site.Origin, "/api/v1/communities/"+community.ID+"/topics", cookies, 200)
  /*line account_blocks_test.mygo:544:3*/	if strings.Contains(topics.Body.String(), alicePost.ID) {
  /*line account_blocks_test.mygo:545:5*/		t.Fatal("block created after read did not filter the community listing")
  /*line account_blocks_test.mygo:544:3*/	} else {
- /*line zz_account_blocks.gen_test.go:231:1*/	}
+ /*line zz_account_blocks.gen_test.go:232:1*/	}
  /*line account_blocks_test.mygo:547:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: aliceBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:560:5*/		t.Fatal("unblock after read failed")
  /*line account_blocks_test.mygo:547:3*/	} else {
- /*line zz_account_blocks.gen_test.go:235:1*/	}
+ /*line zz_account_blocks.gen_test.go:236:1*/	}
  /*line account_blocks_test.mygo:453:1*/	browserGet(t, handler, site.Origin, alicePostPath, cookies, 200)
 	bobBlock := "{\"kind\":\"person\",\"target\":\"" + bob.ActorURI + "\"}"
  /*line account_blocks_test.mygo:564:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: bobBlock, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line account_blocks_test.mygo:577:5*/		t.Fatal("pre-read block failed")
  /*line account_blocks_test.mygo:564:3*/	} else {
- /*line zz_account_blocks.gen_test.go:241:1*/	}
+ /*line zz_account_blocks.gen_test.go:242:1*/	}
  /*line account_blocks_test.mygo:453:1*/	browserGet(t, handler, site.Origin, "/api/v1/posts/"+bobPost.ID, cookies, 404)
 	return
- /*line zz_account_blocks.gen_test.go:244:1*/}
+ /*line zz_account_blocks.gen_test.go:245:1*/}

@@ -4,16 +4,17 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line scoped_removal.mygo:7:1*/func RecordScopedRemoval(ctx context.Context, db *gorm.DB, postID string, communityID string, authorityActorURI string, evidenceURI string) Result[int64, string] {
+ /*line scoped_removal.mygo:8:1*/func RecordScopedRemoval(ctx context.Context, db *gorm.DB, postID string, communityID string, authorityActorURI string, evidenceURI string) Result[int64, failure.Failure] {
 	changed := db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'removed') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state='removed', authority_actor_uri=EXCLUDED.authority_actor_uri, updated_at=now() WHERE collection_memberships.state IS DISTINCT FROM 'removed'", postID, communityID, authorityActorURI, evidenceURI)
- /*line scoped_removal.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(changed)) {
- /*line scoped_removal.mygo:23:12*/		return Err[int64, string]("removal failed")
- /*line scoped_removal.mygo:22:3*/	} else {
- /*line zz_scoped_removal.gen.go:14:1*/	}
- /*line scoped_removal.mygo:25:3*/	return Ok[int64, string](changed.RowsAffected)
- /*line zz_scoped_removal.gen.go:16:1*/}
- /*line scoped_removal.mygo:28:1*/func IsCommunityRemoval(ctx context.Context, db *gorm.DB, postID string, communityID string) Result[bool, string] {
- /*line scoped_removal.mygo:34:3*/	return QueryExists(db.WithContext(ctx).Table("collection_memberships").Where("post_id = ? AND community_id = ? AND state = 'removed'", postID, communityID))
- /*line zz_scoped_removal.gen.go:19:1*/}
+ /*line scoped_removal.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(changed)) {
+ /*line scoped_removal.mygo:24:12*/		return Err[int64, failure.Failure](Of("removal failed"))
+ /*line scoped_removal.mygo:23:3*/	} else {
+ /*line zz_scoped_removal.gen.go:15:1*/	}
+ /*line scoped_removal.mygo:26:3*/	return Ok[int64, failure.Failure](changed.RowsAffected)
+ /*line zz_scoped_removal.gen.go:17:1*/}
+ /*line scoped_removal.mygo:29:1*/func IsCommunityRemoval(ctx context.Context, db *gorm.DB, postID string, communityID string) Result[bool, failure.Failure] {
+ /*line scoped_removal.mygo:35:3*/	return QueryExists(db.WithContext(ctx).Table("collection_memberships").Where("post_id = ? AND community_id = ? AND state = 'removed'", postID, communityID))
+ /*line zz_scoped_removal.gen.go:20:1*/}

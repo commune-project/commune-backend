@@ -5,130 +5,131 @@ package storage
 import "context"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM6Manage(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, action string, target string, work func(*gorm.DB, CommunityRecord) Result[struct{}, string]) Result[struct{}, string] {
- /*line community_management.mygo:9:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line community_management.mygo:9:34*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
+ /*line community_management.mygo:8:1*/func MygoIN19CommunityRepositoryM6Manage(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, action string, target string, work func(*gorm.DB, CommunityRecord) Result[struct{}, failure.Failure]) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:10:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:10:34*/		repository := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		loaded := MygoIN19CommunityRepositoryM4Load(repository, ctx, id, true)
- /*line community_management.mygo:12:7*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line community_management.mygo:13:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line community_management.mygo:12:7*/		} else {
- /*line zz_community_management.gen.go:17:1*/		}
- /*line community_management.mygo:9:34*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
- /*line community_management.mygo:16:7*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line community_management.mygo:17:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line community_management.mygo:16:7*/		} else {
- /*line zz_community_management.gen.go:22:1*/		}
- /*line community_management.mygo:19:7*/		if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Authority, "manage-community") {
- /*line community_management.mygo:20:16*/			return Err[struct{}, string]("forbidden")
- /*line community_management.mygo:19:7*/		} else {
- /*line zz_community_management.gen.go:26:1*/		}
- /*line community_management.mygo:9:34*/		changed := work(tx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded))
- /*line community_management.mygo:23:7*/		if MygoIN6ResultM5IsErr[struct{}, string](changed) {
- /*line community_management.mygo:24:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](changed))
- /*line community_management.mygo:23:7*/		} else {
- /*line zz_community_management.gen.go:31:1*/		}
- /*line community_management.mygo:26:7*/		return MygoIN19CommunityRepositoryM5Audit(repository, ctx, MygoIN6ResultM6Unwrap[CommunityAccess, string](access), action, target)
- /*line zz_community_management.gen.go:33:1*/	})
+ /*line community_management.mygo:13:7*/		if MygoIN6ResultM5IsErr[CommunityRecord, failure.Failure](loaded) {
+ /*line community_management.mygo:14:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityRecord, failure.Failure](loaded))
+ /*line community_management.mygo:13:7*/		} else {
+ /*line zz_community_management.gen.go:18:1*/		}
+ /*line community_management.mygo:10:34*/		access := MygoIN19CommunityRepositoryM6Access(repository, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](loaded), identity, remoteVerified)
+ /*line community_management.mygo:17:7*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) {
+ /*line community_management.mygo:18:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](access))
+ /*line community_management.mygo:17:7*/		} else {
+ /*line zz_community_management.gen.go:23:1*/		}
+ /*line community_management.mygo:20:7*/		if !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access).Authority, "manage-community") {
+ /*line community_management.mygo:21:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line community_management.mygo:20:7*/		} else {
+ /*line zz_community_management.gen.go:27:1*/		}
+ /*line community_management.mygo:10:34*/		changed := work(tx, MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](loaded))
+ /*line community_management.mygo:24:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](changed) {
+ /*line community_management.mygo:25:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](changed))
+ /*line community_management.mygo:24:7*/		} else {
+ /*line zz_community_management.gen.go:32:1*/		}
+ /*line community_management.mygo:27:7*/		return MygoIN19CommunityRepositoryM5Audit(repository, ctx, MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access), action, target)
+ /*line zz_community_management.gen.go:34:1*/	})
 }
- /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM9SetMember(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, actorURI string, approved bool) Result[struct{}, string] {
+ /*line community_management.mygo:8:1*/func MygoIN19CommunityRepositoryM9SetMember(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, actorURI string, approved bool) Result[struct{}, failure.Failure] {
 	var __mygo_expr_0 string
 	if approved {
 		__mygo_expr_0 = "approve-member"
 	} else {
 		__mygo_expr_0 = "revoke-member"
- /*line zz_community_management.gen.go:41:1*/	}
- /*line community_management.mygo:7:1*/	action := __mygo_expr_0
- /*line community_management.mygo:32:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, action, actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:32:70*/		valid := QueryExists(tx.Table("actors AS a").Where("a.uri = ? AND a.kind = 'Person' AND (? = 'federated' OR EXISTS (SELECT 1 FROM accounts WHERE actor_uri = a.uri AND site_id = ? AND NOT disabled))", actorURI, community.FederationMode, community.HostSiteID))
- /*line community_management.mygo:34:7*/		if MygoIN6ResultM5IsErr[bool, string](valid) {
- /*line community_management.mygo:35:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](valid))
- /*line community_management.mygo:34:7*/		} else {
- /*line zz_community_management.gen.go:48:1*/		}
- /*line community_management.mygo:37:7*/		if !MygoIN6ResultM6Unwrap[bool, string](valid) {
- /*line community_management.mygo:38:16*/			return Err[struct{}, string]("invalid member")
- /*line community_management.mygo:37:7*/		} else {
- /*line zz_community_management.gen.go:52:1*/		}
- /*line community_management.mygo:32:70*/		var __mygo_expr_1 *gorm.DB
+ /*line zz_community_management.gen.go:42:1*/	}
+ /*line community_management.mygo:8:1*/	action := __mygo_expr_0
+ /*line community_management.mygo:33:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, action, actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:33:70*/		valid := QueryExists(tx.Table("actors AS a").Where("a.uri = ? AND a.kind = 'Person' AND (? = 'federated' OR EXISTS (SELECT 1 FROM accounts WHERE actor_uri = a.uri AND site_id = ? AND NOT disabled))", actorURI, community.FederationMode, community.HostSiteID))
+ /*line community_management.mygo:35:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](valid) {
+ /*line community_management.mygo:36:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](valid))
+ /*line community_management.mygo:35:7*/		} else {
+ /*line zz_community_management.gen.go:49:1*/		}
+ /*line community_management.mygo:38:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](valid) {
+ /*line community_management.mygo:39:16*/			return Err[struct{}, failure.Failure](Of("invalid member"))
+ /*line community_management.mygo:38:7*/		} else {
+ /*line zz_community_management.gen.go:53:1*/		}
+ /*line community_management.mygo:33:70*/		var __mygo_expr_1 *gorm.DB
 		if approved {
 			__mygo_expr_1 = tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET approved_by=EXCLUDED.approved_by,approved_at=now(),revoked_at=NULL", id, actorURI, identity.ActorURI)
 		} else {
 			__mygo_expr_1 = tx.Exec("UPDATE community_members SET revoked_at=now() WHERE community_id=? AND actor_uri=? AND revoked_at IS NULL", id, actorURI)
- /*line zz_community_management.gen.go:58:1*/		}
- /*line community_management.mygo:32:70*/		query := __mygo_expr_1
- /*line community_management.mygo:45:7*/		return MutationResult(query)
- /*line zz_community_management.gen.go:61:1*/	})
+ /*line zz_community_management.gen.go:59:1*/		}
+ /*line community_management.mygo:33:70*/		query := __mygo_expr_1
+ /*line community_management.mygo:46:7*/		return MutationResult(query)
+ /*line zz_community_management.gen.go:62:1*/	})
 }
- /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM10SetManager(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, actorURI string, assigned bool) Result[struct{}, string] {
+ /*line community_management.mygo:8:1*/func MygoIN19CommunityRepositoryM10SetManager(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, actorURI string, assigned bool) Result[struct{}, failure.Failure] {
 	var __mygo_expr_0 string
 	if assigned {
 		__mygo_expr_0 = "assign-manager"
 	} else {
 		__mygo_expr_0 = "revoke-manager"
- /*line zz_community_management.gen.go:69:1*/	}
- /*line community_management.mygo:7:1*/	action := __mygo_expr_0
- /*line community_management.mygo:51:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, action, actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:51:70*/		valid := QueryExists(tx.Table("actors AS a").Where("a.uri = ? AND a.kind = 'Person' AND (? = 'federated' OR EXISTS (SELECT 1 FROM accounts WHERE actor_uri=a.uri AND site_id=? AND NOT disabled))", actorURI, community.FederationMode, community.HostSiteID))
- /*line community_management.mygo:53:7*/		if MygoIN6ResultM5IsErr[bool, string](valid) {
- /*line community_management.mygo:54:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](valid))
- /*line community_management.mygo:53:7*/		} else {
- /*line zz_community_management.gen.go:76:1*/		}
- /*line community_management.mygo:56:7*/		if !MygoIN6ResultM6Unwrap[bool, string](valid) {
- /*line community_management.mygo:57:16*/			return Err[struct{}, string]("invalid manager")
- /*line community_management.mygo:56:7*/		} else {
- /*line zz_community_management.gen.go:80:1*/		}
- /*line community_management.mygo:51:70*/		var __mygo_expr_1 *gorm.DB
+ /*line zz_community_management.gen.go:70:1*/	}
+ /*line community_management.mygo:8:1*/	action := __mygo_expr_0
+ /*line community_management.mygo:52:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, action, actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:52:70*/		valid := QueryExists(tx.Table("actors AS a").Where("a.uri = ? AND a.kind = 'Person' AND (? = 'federated' OR EXISTS (SELECT 1 FROM accounts WHERE actor_uri=a.uri AND site_id=? AND NOT disabled))", actorURI, community.FederationMode, community.HostSiteID))
+ /*line community_management.mygo:54:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](valid) {
+ /*line community_management.mygo:55:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](valid))
+ /*line community_management.mygo:54:7*/		} else {
+ /*line zz_community_management.gen.go:77:1*/		}
+ /*line community_management.mygo:57:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](valid) {
+ /*line community_management.mygo:58:16*/			return Err[struct{}, failure.Failure](Of("invalid manager"))
+ /*line community_management.mygo:57:7*/		} else {
+ /*line zz_community_management.gen.go:81:1*/		}
+ /*line community_management.mygo:52:70*/		var __mygo_expr_1 *gorm.DB
 		if assigned {
 			__mygo_expr_1 = tx.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET assigned_by=EXCLUDED.assigned_by,assigned_at=now(),revoked_at=NULL", id, actorURI, identity.ActorURI)
 		} else {
 			__mygo_expr_1 = tx.Exec("UPDATE moderators SET revoked_at=now() WHERE community_id=? AND actor_uri=? AND revoked_at IS NULL", id, actorURI)
- /*line zz_community_management.gen.go:86:1*/		}
- /*line community_management.mygo:51:70*/		query := __mygo_expr_1
- /*line community_management.mygo:64:7*/		return MutationResult(query)
- /*line zz_community_management.gen.go:89:1*/	})
+ /*line zz_community_management.gen.go:87:1*/		}
+ /*line community_management.mygo:52:70*/		query := __mygo_expr_1
+ /*line community_management.mygo:65:7*/		return MutationResult(query)
+ /*line zz_community_management.gen.go:90:1*/	})
 }
- /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM9SetPolicy(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string) Result[struct{}, string] {
- /*line community_management.mygo:69:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:69:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
- /*line community_management.mygo:71:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
- /*line community_management.mygo:72:16*/			return Err[struct{}, string]("invalid access policy")
- /*line community_management.mygo:71:7*/		} else {
- /*line zz_community_management.gen.go:97:1*/		}
- /*line community_management.mygo:74:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) {
- /*line community_management.mygo:75:16*/			return Err[struct{}, string]("invalid access policy")
- /*line community_management.mygo:74:7*/		} else {
- /*line zz_community_management.gen.go:101:1*/		}
- /*line community_management.mygo:77:7*/		return MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))
- /*line zz_community_management.gen.go:103:1*/	})
+ /*line community_management.mygo:8:1*/func MygoIN19CommunityRepositoryM9SetPolicy(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:70:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:70:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
+ /*line community_management.mygo:72:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
+ /*line community_management.mygo:73:16*/			return Err[struct{}, failure.Failure](Of("invalid access policy"))
+ /*line community_management.mygo:72:7*/		} else {
+ /*line zz_community_management.gen.go:98:1*/		}
+ /*line community_management.mygo:75:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) {
+ /*line community_management.mygo:76:16*/			return Err[struct{}, failure.Failure](Of("invalid access policy"))
+ /*line community_management.mygo:75:7*/		} else {
+ /*line zz_community_management.gen.go:102:1*/		}
+ /*line community_management.mygo:78:7*/		return MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))
+ /*line zz_community_management.gen.go:104:1*/	})
 }
- /*line community_management.mygo:7:1*/func MygoIN19CommunityRepositoryM12SetPolicyAll(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string, follow string) Result[struct{}, string] {
- /*line community_management.mygo:82:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line community_management.mygo:82:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
+ /*line community_management.mygo:8:1*/func MygoIN19CommunityRepositoryM12SetPolicyAll(self CommunityRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, read string, post string, follow string) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:83:5*/	return MygoIN19CommunityRepositoryM6Manage(self, ctx, id, identity, remoteVerified, "set-policy", id, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line community_management.mygo:83:70*/		policyResult := auth.NewCommunityPolicy(community.HostSiteID, community.FederationMode, read, post)
 		currentFollow := LoadCommunityFollowRule(ctx, tx, id)
- /*line community_management.mygo:85:7*/		if MygoIN6ResultM5IsErr[string, string](currentFollow) {
- /*line community_management.mygo:86:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](currentFollow))
- /*line community_management.mygo:85:7*/		} else {
- /*line zz_community_management.gen.go:112:1*/		}
- /*line community_management.mygo:82:70*/		var __mygo_expr_0 string
+ /*line community_management.mygo:86:7*/		if MygoIN6ResultM5IsErr[string, failure.Failure](currentFollow) {
+ /*line community_management.mygo:87:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](currentFollow))
+ /*line community_management.mygo:86:7*/		} else {
+ /*line zz_community_management.gen.go:113:1*/		}
+ /*line community_management.mygo:83:70*/		var __mygo_expr_0 string
 		if follow == "" {
-			__mygo_expr_0 = MygoIN6ResultM6Unwrap[string, string](currentFollow)
+			__mygo_expr_0 = MygoIN6ResultM6Unwrap[string, failure.Failure](currentFollow)
 		} else {
 			__mygo_expr_0 = follow
- /*line zz_community_management.gen.go:118:1*/		}
- /*line community_management.mygo:82:70*/		followPolicy := __mygo_expr_0
- /*line community_management.mygo:89:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
- /*line community_management.mygo:90:16*/			return Err[struct{}, string]("invalid access policy")
- /*line community_management.mygo:89:7*/		} else {
- /*line zz_community_management.gen.go:123:1*/		}
- /*line community_management.mygo:92:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" {
- /*line community_management.mygo:94:16*/			return Err[struct{}, string]("invalid access policy")
- /*line community_management.mygo:92:7*/		} else {
- /*line zz_community_management.gen.go:127:1*/		}
- /*line community_management.mygo:96:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))) {
- /*line community_management.mygo:97:16*/			return Err[struct{}, string]("policy update failed")
- /*line community_management.mygo:96:7*/		} else {
- /*line zz_community_management.gen.go:131:1*/		}
- /*line community_management.mygo:99:7*/		return SetCommunityFollowRule(ctx, tx, id, followPolicy)
- /*line zz_community_management.gen.go:133:1*/	})
+ /*line zz_community_management.gen.go:119:1*/		}
+ /*line community_management.mygo:83:70*/		followPolicy := __mygo_expr_0
+ /*line community_management.mygo:90:7*/		if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
+ /*line community_management.mygo:91:16*/			return Err[struct{}, failure.Failure](Of("invalid access policy"))
+ /*line community_management.mygo:90:7*/		} else {
+ /*line zz_community_management.gen.go:124:1*/		}
+ /*line community_management.mygo:93:7*/		if !auth.MygoIN15CommunityPolicyM5Valid(MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" {
+ /*line community_management.mygo:95:16*/			return Err[struct{}, failure.Failure](Of("invalid access policy"))
+ /*line community_management.mygo:93:7*/		} else {
+ /*line zz_community_management.gen.go:128:1*/		}
+ /*line community_management.mygo:97:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE communities SET read_policy=?,post_policy=?,policy_version=policy_version+1 WHERE id=? AND host_site_id=?", read, post, id, self.SiteID))) {
+ /*line community_management.mygo:98:16*/			return Err[struct{}, failure.Failure](Of("policy update failed"))
+ /*line community_management.mygo:97:7*/		} else {
+ /*line zz_community_management.gen.go:132:1*/		}
+ /*line community_management.mygo:100:7*/		return SetCommunityFollowRule(ctx, tx, id, followPolicy)
+ /*line zz_community_management.gen.go:134:1*/	})
 }

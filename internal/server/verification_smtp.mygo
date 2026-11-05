@@ -7,18 +7,19 @@ import time "go:time"
 import strconv "go:strconv"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func SendVerificationSMTP(
   settings: config.SMTP,
   recipient: String,
   link: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if strings.ContainsAny(recipient + settings.From, "\r\n") then
-    return Err("invalid mail address")
+    return Err(Of("invalid mail address"))
   end
   let address = net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
   let timeout = settings.TimeoutSeconds as time.Duration * time.Second
-  var connection: Result[net.Conn, String] = Err("smtp unavailable")
+  var connection: Result[net.Conn, failure.Failure] = Err(Of("smtp unavailable"))
   if settings.TLSMode == "tls" then
     var dialer = Zero[net.Dialer]()
     dialer.Timeout = timeout
@@ -36,14 +37,14 @@ func SendVerificationSMTP(
     end
   end
   if connection.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let socket = connection.Unwrap()
   let _ = socket.SetDeadline(time.Now().Add(timeout))
   let client = smtp.NewClient(socket, settings.Host)
   if client.IsErr() then
     let _ = socket.Close()
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let mailer = client.Unwrap()
   go[()] { code: "defer {mailer}.Close()"; in mailer = mailer }
@@ -52,21 +53,21 @@ func SendVerificationSMTP(
     security.ServerName = settings.Host
     security.MinVersion = tls.VersionTLS12 as UInt16
     if mailer.StartTLS(Ref.new(security)).IsErr() then
-      return Err("smtp TLS unavailable")
+      return Err(Of("smtp TLS unavailable"))
     end
   end
   if settings.Username != "" then
     if settings.TLSMode == "test" ||
       mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
-      return Err("smtp authentication failed")
+      return Err(Of("smtp authentication failed"))
     end
   end
   if mailer.Mail(settings.From).IsErr() || mailer.Rcpt(recipient).IsErr() then
-    return Err("smtp recipient unavailable")
+    return Err(Of("smtp recipient unavailable"))
   end
   let output = mailer.Data()
   if output.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let message = "From: " +
     settings.From +
@@ -78,7 +79,7 @@ func SendVerificationSMTP(
   let written = output.Unwrap().Write(message as Slice[Byte])
   let closed = output.Unwrap().Close()
   if written.IsErr() || closed.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let _ = mailer.Quit()
   Ok(())
@@ -88,13 +89,13 @@ func SendPasswordResetSMTP(
   settings: config.SMTP,
   recipient: String,
   link: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if strings.ContainsAny(recipient + settings.From, "\r\n") then
-    return Err("invalid mail address")
+    return Err(Of("invalid mail address"))
   end
   let address = net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
   let timeout = settings.TimeoutSeconds as time.Duration * time.Second
-  var connection: Result[net.Conn, String] = Err("smtp unavailable")
+  var connection: Result[net.Conn, failure.Failure] = Err(Of("smtp unavailable"))
   if settings.TLSMode == "tls" then
     var dialer = Zero[net.Dialer]()
     dialer.Timeout = timeout
@@ -112,14 +113,14 @@ func SendPasswordResetSMTP(
     end
   end
   if connection.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let socket = connection.Unwrap()
   let _ = socket.SetDeadline(time.Now().Add(timeout))
   let client = smtp.NewClient(socket, settings.Host)
   if client.IsErr() then
     let _ = socket.Close()
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let mailer = client.Unwrap()
   go[()] { code: "defer {mailer}.Close()"; in mailer = mailer }
@@ -128,21 +129,21 @@ func SendPasswordResetSMTP(
     security.ServerName = settings.Host
     security.MinVersion = tls.VersionTLS12 as UInt16
     if mailer.StartTLS(Ref.new(security)).IsErr() then
-      return Err("smtp TLS unavailable")
+      return Err(Of("smtp TLS unavailable"))
     end
   end
   if settings.Username != "" then
     if settings.TLSMode == "test" ||
       mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host)).IsErr() then
-      return Err("smtp authentication failed")
+      return Err(Of("smtp authentication failed"))
     end
   end
   if mailer.Mail(settings.From).IsErr() || mailer.Rcpt(recipient).IsErr() then
-    return Err("smtp recipient unavailable")
+    return Err(Of("smtp recipient unavailable"))
   end
   let output = mailer.Data()
   if output.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let message = "From: " +
     settings.From +
@@ -154,7 +155,7 @@ func SendPasswordResetSMTP(
   let written = output.Unwrap().Write(message as Slice[Byte])
   let closed = output.Unwrap().Close()
   if written.IsErr() || closed.IsErr() then
-    return Err("smtp unavailable")
+    return Err(Of("smtp unavailable"))
   end
   let _ = mailer.Quit()
   Ok(())

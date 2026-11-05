@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,48 +18,48 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_content_state.gen_test.go:20:1*/	}
+ /*line zz_content_state.gen_test.go:21:1*/	}
  /*line content_state_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, testPublishInput("State", "state")))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, testPublishInput("State", "state")))
 	bobState := ContentStateRepository{DB: db, SiteID: site.ID, AccountID: bob.AccountID}
 	carolState := ContentStateRepository{DB: db, SiteID: site.ID, AccountID: carol.AccountID}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Read(bobState, ctx, post.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Read(bobState, ctx, post.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, true))
-	flags := MygoIN6ResultM6Unwrap[ContentStateFlags, string](MygoIN22ContentStateRepositoryM6States(bobState, ctx, []string{post.ID}))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Read(bobState, ctx, post.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Read(bobState, ctx, post.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, true))
+	flags := MygoIN6ResultM6Unwrap[ContentStateFlags, failure.Failure](MygoIN22ContentStateRepositoryM6States(bobState, ctx, []string{post.ID}))
  /*line content_state_test.mygo:30:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(flags.Saved) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(flags.Read) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(flags.Hidden) != 1 {
  /*line content_state_test.mygo:31:5*/		t.Fatal("idempotent content state was not retained once per type")
  /*line content_state_test.mygo:30:3*/	} else {
- /*line zz_content_state.gen_test.go:44:1*/	}
- /*line content_state_test.mygo:9:1*/	isolated := MygoIN6ResultM6Unwrap[ContentStateFlags, string](MygoIN22ContentStateRepositoryM6States(carolState, ctx, []string{post.ID}))
+ /*line zz_content_state.gen_test.go:45:1*/	}
+ /*line content_state_test.mygo:9:1*/	isolated := MygoIN6ResultM6Unwrap[ContentStateFlags, failure.Failure](MygoIN22ContentStateRepositoryM6States(carolState, ctx, []string{post.ID}))
  /*line content_state_test.mygo:34:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(isolated.Saved) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(isolated.Read) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(isolated.Hidden) != 0 {
  /*line content_state_test.mygo:35:5*/		t.Fatal("content state leaked across accounts")
  /*line content_state_test.mygo:34:3*/	} else {
- /*line zz_content_state.gen_test.go:49:1*/	}
- /*line content_state_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, false))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, false))
-	cleared := MygoIN6ResultM6Unwrap[ContentStateFlags, string](MygoIN22ContentStateRepositoryM6States(bobState, ctx, []string{post.ID}))
+ /*line zz_content_state.gen_test.go:50:1*/	}
+ /*line content_state_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Save(bobState, ctx, post.ID, false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Hide(bobState, ctx, post.ID, false))
+	cleared := MygoIN6ResultM6Unwrap[ContentStateFlags, failure.Failure](MygoIN22ContentStateRepositoryM6States(bobState, ctx, []string{post.ID}))
  /*line content_state_test.mygo:40:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(cleared.Saved) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(cleared.Read) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(cleared.Hidden) != 0 {
  /*line content_state_test.mygo:41:5*/		t.Fatal("content state clearing affected the wrong state")
  /*line content_state_test.mygo:40:3*/	} else {
- /*line zz_content_state.gen_test.go:56:1*/	}
+ /*line zz_content_state.gen_test.go:57:1*/	}
  /*line content_state_test.mygo:9:1*/	otherSite := ContentStateRepository{DB: db, SiteID: "b", AccountID: bob.AccountID}
- /*line content_state_test.mygo:44:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22ContentStateRepositoryM4Save(otherSite, ctx, post.ID, true)) {
+ /*line content_state_test.mygo:44:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Save(otherSite, ctx, post.ID, true)) {
  /*line content_state_test.mygo:45:5*/		t.Fatal("content state accepted an account from another site")
 		return
  /*line content_state_test.mygo:44:3*/	} else {
 		return
- /*line zz_content_state.gen_test.go:63:1*/	}
+ /*line zz_content_state.gen_test.go:64:1*/	}
 }

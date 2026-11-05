@@ -7,6 +7,7 @@ import gorm "go:gorm.io/gorm"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct FederationAttachmentRow
   ID: String
@@ -23,19 +24,19 @@ func BuildRichObject(
   post: storage.PostRecord,
   community: storage.CommunityRecord,
   contextURI: String
-) -> Result[federation.ObjectRepresentation, String]
+) -> Result[federation.ObjectRepresentation, failure.Failure]
   var output = federation.BuildObjectRepresentationWithContext(sanitizer, post, community, contextURI)
   if post.ParentID.Valid then
     let parent = storage.LoadObjectByID(ctx, db, post.ParentID.String)
     if parent.IsErr() || parent.Unwrap().IsNone() then
-      return Err("parent unavailable")
+      return Err(Of("parent unavailable"))
     end
     output.InReplyTo = parent.Unwrap().Unwrap().ObjectURI.String
   end
   if post.RichMetadata != "" then
     var metadata = Zero[federation.RichMetadata]()
     if json.Unmarshal(post.RichMetadata as Slice[Byte], Ref.new(metadata)).IsErr() then
-      return Err("rich metadata unavailable")
+      return Err(Of("rich metadata unavailable"))
     end
     output.Source = metadata.Source
     output.Attachment = metadata.Attachment
@@ -47,7 +48,7 @@ func BuildRichObject(
       post.ID
     ).Scan(Ref.new(rows))
     if storage.MutationResult(queried).IsErr() then
-      return Err("media unavailable")
+      return Err(Of("media unavailable"))
     end
     let origin = strings.Split(post.ObjectURI.String, "/objects/").Get(0).UnwrapOr("")
     output.Attachment = rows.Map(func(row: FederationAttachmentRow) -> federation.RichAttachment
@@ -60,7 +61,7 @@ func BuildRichObject(
     end)
     let states = storage.LoadPostRichStates(ctx, db, [post.ID])
     if states.IsErr() || states.Unwrap().Len() != 1 then
-      return Err("post content unavailable")
+      return Err(Of("post content unavailable"))
     end
     let rendered = storage.RenderStoredPost(sanitizer, post, states.Unwrap().Get(0).Unwrap(), false)
     if rendered.IsErr() then
@@ -85,7 +86,7 @@ func BuildRichObject(
     "post_id=? AND active",
     post.ID
   ).Order("actor_uri").Find(Ref.new(mentions))).IsErr() then
-    return Err("mentions unavailable")
+    return Err(Of("mentions unavailable"))
   end
   if post.RichMetadata == "" then
     output.Tag = mentions.Map(func(mention: storage.PostMentionRecord) -> federation.RichMention

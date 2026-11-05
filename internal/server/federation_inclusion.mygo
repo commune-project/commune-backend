@@ -5,11 +5,12 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 # A Group Announce verifies inclusion: the announcer must be the group that owns
 # the post's community, the wrapped Create must already be stored, and the result
 # is recorded idempotently. Nothing is re-fanned-out, so a replay cannot amplify.
-func ApplyAnnounce(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyAnnounce(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   if activity.Embedded.IsNone() then
     return Ok(())
   end

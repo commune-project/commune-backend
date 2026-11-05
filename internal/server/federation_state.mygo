@@ -6,6 +6,7 @@ import gorm "go:gorm.io/gorm"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import config "github.com/commune-project/commune-backend/internal/config"
 import rand "go:crypto/rand"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct CommunityStatePolicy
   Read: String `json:"read"`
@@ -37,7 +38,7 @@ func ApplyCommunityState(
   ctx: context.Context,
   db: Ref[gorm.DB],
   payload: Slice[Byte]
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   var state = Zero[CommunityStateActivity]()
   if json.Unmarshal(payload, Ref.new(state)).IsErr() ||
     state.ID == "" ||
@@ -100,10 +101,10 @@ func QueueMemberRevocation(
   site: config.Site,
   communityID: String,
   actorURI: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let group = storage.LoadCommunityByID(ctx, db, communityID)
   if group.IsErr() || group.Unwrap().IsNone() then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   let community = group.Unwrap().Unwrap()
   if community.FederationMode != "federated" || community.HostSiteID != site.ID then
@@ -111,7 +112,7 @@ func QueueMemberRevocation(
   end
   let actor = storage.LoadActor(ctx, db, actorURI)
   if actor.IsErr() || actor.Unwrap().IsNone() then
-    return Err("actor unavailable")
+    return Err(Of("actor unavailable"))
   end
   if actor.Unwrap().Unwrap().LocalSiteID.Valid then
     return Ok(())
@@ -124,7 +125,7 @@ func QueueMemberRevocation(
     return Ok(())
   end
   if storage.EnsureLocalKey(ctx, db, community.ActorURI.String).IsErr() then
-    return Err("signing unavailable")
+    return Err(Of("signing unavailable"))
   end
   let uri = site.Origin + "/activities/" + rand.Text()
   let payload = json.Marshal(CommunityStateActivity{
@@ -140,7 +141,7 @@ func QueueMemberRevocation(
     },
   })
   if payload.IsErr() then
-    return Err("revocation unavailable")
+    return Err(Of("revocation unavailable"))
   end
   let stored = storage.InsertActivityPayload(
     ctx,

@@ -53,10 +53,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line context_backfill.mygo:48:3*/	WithActor(settings, db, site, w, request, func(identity auth.Identity) Result[struct{}, failure.Failure] {
  /*line context_backfill.mygo:48:45*/		result := BackfillDiscussion(request.Context(), settings, db, site, contextID, identity, false, FetchBackfillPayload)
  /*line context_backfill.mygo:59:5*/		var __mygo_expr_0 Result[struct{}, failure.Failure]
-		if __mygo_match___mygo_expr_2, ok := result.(Result__Err[BackfillResult, string]); ok {
-			__mygo_expr_0 = Err[struct{}, failure.Failure](Classify(__mygo_match___mygo_expr_2.F0))
+		if __mygo_match___mygo_expr_2, ok := result.(Result__Err[BackfillResult, failure.Failure]); ok {
+			__mygo_expr_0 = Err[struct{}, failure.Failure](__mygo_match___mygo_expr_2.F0)
  /*line zz_context_backfill.gen.go:58:1*/		} else {
- /*line context_backfill.mygo:59:5*/			if __mygo_match___mygo_expr_1, ok := result.(Result__Ok[BackfillResult, string]); ok {
+ /*line context_backfill.mygo:59:5*/			if __mygo_match___mygo_expr_1, ok := result.(Result__Ok[BackfillResult, failure.Failure]); ok {
  /*line context_backfill.mygo:62:9*/				WriteJSON(w, 200, __mygo_match___mygo_expr_1.F0)
  /*line context_backfill.mygo:59:5*/				__mygo_expr_0 = Ok[struct{}, failure.Failure](struct {
  /*line zz_context_backfill.gen.go:62:1*/				}{})
@@ -67,73 +67,73 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_backfill.gen.go:67:1*/	})
  /*line context_backfill.mygo:48:3*/	return
  /*line zz_context_backfill.gen.go:69:1*/}
- /*line context_backfill.mygo:69:1*/func FetchBackfillPayload(ctx context.Context, settings config.Config, uri string) Result[[]byte, string] {
+ /*line context_backfill.mygo:69:1*/func FetchBackfillPayload(ctx context.Context, settings config.Config, uri string) Result[[]byte, failure.Failure] {
 	fetched := federation.Fetch(ctx, uri, FetchLimitsFrom(settings))
- /*line context_backfill.mygo:75:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](fetched) {
- /*line context_backfill.mygo:76:12*/		return Err[[]byte, string](MygoIN6ResultM9UnwrapErr[federation.FetchResult, string](fetched))
+ /*line context_backfill.mygo:75:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](fetched) {
+ /*line context_backfill.mygo:76:12*/		return Err[[]byte, failure.Failure](MygoIN6ResultM9UnwrapErr[federation.FetchResult, failure.Failure](fetched))
  /*line context_backfill.mygo:75:3*/	} else {
  /*line zz_context_backfill.gen.go:75:1*/	}
- /*line context_backfill.mygo:69:1*/	response := MygoIN6ResultM6Unwrap[federation.FetchResult, string](fetched)
+ /*line context_backfill.mygo:69:1*/	response := MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](fetched)
  /*line context_backfill.mygo:79:3*/	if response.Status != 200 || !federation.WantsActivityJSON(response.ContentType) {
- /*line context_backfill.mygo:80:12*/		return Err[[]byte, string]("resource unavailable")
+ /*line context_backfill.mygo:80:12*/		return Err[[]byte, failure.Failure](Of("resource unavailable"))
  /*line context_backfill.mygo:79:3*/	} else {
  /*line zz_context_backfill.gen.go:80:1*/	}
- /*line context_backfill.mygo:82:3*/	return Ok[[]byte, string](response.Body)
+ /*line context_backfill.mygo:82:3*/	return Ok[[]byte, failure.Failure](response.Body)
  /*line zz_context_backfill.gen.go:82:1*/}
- /*line context_backfill.mygo:85:1*/func ResolveBackfillCommunity(ctx context.Context, db *gorm.DB, siteID string, authority string) Result[string, string] {
+ /*line context_backfill.mygo:85:1*/func ResolveBackfillCommunity(ctx context.Context, db *gorm.DB, siteID string, authority string) Result[string, failure.Failure] {
 	hosted := storage.LoadHostedCommunityByActor(ctx, db, siteID, authority)
- /*line context_backfill.mygo:92:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](hosted) {
- /*line context_backfill.mygo:93:12*/		return Err[string, string](MygoIN6ResultM9UnwrapErr[Option[storage.CommunityRecord], string](hosted))
+ /*line context_backfill.mygo:92:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](hosted) {
+ /*line context_backfill.mygo:93:12*/		return Err[string, failure.Failure](MygoIN6ResultM9UnwrapErr[Option[storage.CommunityRecord], failure.Failure](hosted))
  /*line context_backfill.mygo:92:3*/	} else {
  /*line zz_context_backfill.gen.go:88:1*/	}
- /*line context_backfill.mygo:95:3*/	if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)) {
- /*line context_backfill.mygo:96:12*/		return Ok[string, string](MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)).ID)
+ /*line context_backfill.mygo:95:3*/	if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](hosted)) {
+ /*line context_backfill.mygo:96:12*/		return Ok[string, failure.Failure](MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](hosted)).ID)
  /*line context_backfill.mygo:95:3*/	} else {
  /*line zz_context_backfill.gen.go:92:1*/	}
  /*line context_backfill.mygo:85:1*/	replica := storage.LoadReplicaCommunity(ctx, db, authority)
- /*line context_backfill.mygo:99:3*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], string](replica) || MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
- /*line context_backfill.mygo:100:12*/		return Err[string, string]("not found")
+ /*line context_backfill.mygo:99:3*/	if MygoIN6ResultM5IsErr[Option[storage.ReplicaCommunity], failure.Failure](replica) || MygoIN6OptionM6IsNone[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], failure.Failure](replica)) {
+ /*line context_backfill.mygo:100:12*/		return Err[string, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:99:3*/	} else {
  /*line zz_context_backfill.gen.go:97:1*/	}
- /*line context_backfill.mygo:102:3*/	return Ok[string, string](MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)).ID)
+ /*line context_backfill.mygo:102:3*/	return Ok[string, failure.Failure](MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], failure.Failure](replica)).ID)
  /*line zz_context_backfill.gen.go:99:1*/}
- /*line context_backfill.mygo:105:1*/func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, communityID string, contextID string, authority string, collectionURI string, objectURI string, fetcher func(context.Context, config.Config, string) Result[[]byte, string]) Result[int, string] {
+ /*line context_backfill.mygo:105:1*/func ImportBackfilledObject(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, communityID string, contextID string, authority string, collectionURI string, objectURI string, fetcher func(context.Context, config.Config, string) Result[[]byte, failure.Failure]) Result[int, failure.Failure] {
 	existing := storage.LoadObjectByURI(ctx, db, objectURI)
- /*line context_backfill.mygo:118:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](existing) {
- /*line context_backfill.mygo:119:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](existing))
+ /*line context_backfill.mygo:118:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](existing) {
+ /*line context_backfill.mygo:119:12*/		return Err[int, failure.Failure](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], failure.Failure](existing))
  /*line context_backfill.mygo:118:3*/	} else {
  /*line zz_context_backfill.gen.go:105:1*/	}
- /*line context_backfill.mygo:121:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) && MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)).DeletedAt.Valid {
- /*line context_backfill.mygo:122:12*/		return Ok[int, string](2)
+ /*line context_backfill.mygo:121:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](existing)) && MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](existing)).DeletedAt.Valid {
+ /*line context_backfill.mygo:122:12*/		return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:121:3*/	} else {
  /*line zz_context_backfill.gen.go:109:1*/	}
  /*line context_backfill.mygo:105:1*/	payload := fetcher(ctx, settings, objectURI)
- /*line context_backfill.mygo:125:3*/	if MygoIN6ResultM5IsErr[[]byte, string](payload) {
- /*line context_backfill.mygo:126:12*/		return Ok[int, string](2)
+ /*line context_backfill.mygo:125:3*/	if MygoIN6ResultM5IsErr[[]byte, failure.Failure](payload) {
+ /*line context_backfill.mygo:126:12*/		return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:125:3*/	} else {
  /*line zz_context_backfill.gen.go:114:1*/	}
- /*line context_backfill.mygo:105:1*/	parsedRich := federation.ParseRichObject(settings.Rendering.Sanitizer, MygoIN6ResultM6Unwrap[[]byte, string](payload))
- /*line context_backfill.mygo:129:3*/	if MygoIN6ResultM5IsErr[federation.RichObject, string](parsedRich) {
- /*line context_backfill.mygo:129:37*/		return Ok[int, string](2)
+ /*line context_backfill.mygo:105:1*/	parsedRich := federation.ParseRichObject(settings.Rendering.Sanitizer, MygoIN6ResultM6Unwrap[[]byte, failure.Failure](payload))
+ /*line context_backfill.mygo:129:3*/	if MygoIN6ResultM5IsErr[federation.RichObject, failure.Failure](parsedRich) {
+ /*line context_backfill.mygo:129:37*/		return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:129:3*/	} else {
  /*line zz_context_backfill.gen.go:119:1*/	}
- /*line context_backfill.mygo:105:1*/	object := MygoIN6ResultM6Unwrap[federation.RichObject, string](parsedRich)
+ /*line context_backfill.mygo:105:1*/	object := MygoIN6ResultM6Unwrap[federation.RichObject, failure.Failure](parsedRich)
  /*line context_backfill.mygo:131:3*/	if object.ID != objectURI || object.Type != "Page" && object.Type != "Note" || object.AttributedTo == "" || object.Published.IsZero() {
- /*line context_backfill.mygo:136:12*/		return Ok[int, string](2)
+ /*line context_backfill.mygo:136:12*/		return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:131:3*/	} else {
  /*line zz_context_backfill.gen.go:124:1*/	}
  /*line context_backfill.mygo:105:1*/	parent := Zero[sql.NullString]()
  /*line context_backfill.mygo:139:3*/	if object.InReplyTo != "" {
 		parentRecord := storage.LoadObjectByURI(ctx, db, object.InReplyTo)
- /*line context_backfill.mygo:141:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](parentRecord) {
- /*line context_backfill.mygo:142:14*/			return Err[int, string](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], string](parentRecord))
+ /*line context_backfill.mygo:141:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](parentRecord) {
+ /*line context_backfill.mygo:142:14*/			return Err[int, failure.Failure](MygoIN6ResultM9UnwrapErr[Option[storage.PostRecord], failure.Failure](parentRecord))
  /*line context_backfill.mygo:141:5*/		} else {
  /*line zz_context_backfill.gen.go:131:1*/		}
- /*line context_backfill.mygo:144:5*/		if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)) || MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).CommunityID != communityID {
- /*line context_backfill.mygo:145:14*/			return Ok[int, string](2)
+ /*line context_backfill.mygo:144:5*/		if MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](parentRecord)) || MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](parentRecord)).CommunityID != communityID {
+ /*line context_backfill.mygo:145:14*/			return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:144:5*/		} else {
  /*line zz_context_backfill.gen.go:135:1*/		}
- /*line context_backfill.mygo:139:3*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parentRecord)).ID, Valid: true}
+ /*line context_backfill.mygo:139:3*/		parent = sql.NullString{String: MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](parentRecord)).ID, Valid: true}
 	} else {
  /*line zz_context_backfill.gen.go:138:1*/	}
  /*line context_backfill.mygo:105:1*/	var __mygo_expr_0 time.Time
@@ -144,12 +144,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_backfill.gen.go:144:1*/	}
  /*line context_backfill.mygo:105:1*/	updated := __mygo_expr_0
  /*line context_backfill.mygo:154:3*/	if updated.Before(object.Published) {
- /*line context_backfill.mygo:155:12*/		return Ok[int, string](2)
+ /*line context_backfill.mygo:155:12*/		return Ok[int, failure.Failure](2)
  /*line context_backfill.mygo:154:3*/	} else {
  /*line zz_context_backfill.gen.go:149:1*/	}
  /*line context_backfill.mygo:105:1*/	insertedActor := storage.EnsureRemoteActor(ctx, db, object.AttributedTo, "Person")
- /*line context_backfill.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, string](insertedActor) {
- /*line context_backfill.mygo:159:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[struct{}, string](insertedActor))
+ /*line context_backfill.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](insertedActor) {
+ /*line context_backfill.mygo:159:12*/		return Err[int, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](insertedActor))
  /*line context_backfill.mygo:158:3*/	} else {
  /*line zz_context_backfill.gen.go:154:1*/	}
  /*line context_backfill.mygo:105:1*/	title := sql.NullString{String: object.Name, Valid: object.Name != ""}
@@ -162,7 +162,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_backfill.gen.go:162:1*/	}
  /*line context_backfill.mygo:105:1*/	metadata := __mygo_expr_2
  /*line context_backfill.mygo:163:3*/	if MygoIN6ResultM5IsErr[[]byte, error](metadata) {
- /*line context_backfill.mygo:163:35*/		return Err[int, string]("invalid rich metadata")
+ /*line context_backfill.mygo:163:35*/		return Err[int, failure.Failure](Of("invalid rich metadata"))
  /*line context_backfill.mygo:163:3*/	} else {
  /*line zz_context_backfill.gen.go:167:1*/	}
  /*line context_backfill.mygo:173:20*/	var __mygo_expr_4 string
@@ -173,84 +173,84 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_context_backfill.gen.go:173:1*/	}
  /*line context_backfill.mygo:105:1*/	incoming := storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: object.ID, Valid: true}, CommunityID: communityID, FederationMode: "federated", AuthorActorURI: object.AttributedTo, ObjectType: object.Type, Title: title, Body: object.Content, ContentFormat: __mygo_expr_4, SearchText: "", RichMetadata: string(MygoIN6ResultM6Unwrap[[]byte, error](metadata)), ParentID: parent, AuthoredAt: object.Published, UpdatedAt: updated, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
 	received := storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, incoming, object.AttributedTo, settings.Rendering.Sanitizer)
- /*line context_backfill.mygo:188:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, string](received) {
- /*line context_backfill.mygo:189:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[storage.PostRecord, string](received))
+ /*line context_backfill.mygo:188:3*/	if MygoIN6ResultM5IsErr[storage.PostRecord, failure.Failure](received) {
+ /*line context_backfill.mygo:189:12*/		return Err[int, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PostRecord, failure.Failure](received))
  /*line context_backfill.mygo:188:3*/	} else {
  /*line zz_context_backfill.gen.go:179:1*/	}
- /*line context_backfill.mygo:105:1*/	included := storage.RecordCanonicalContextInclusion(ctx, db, MygoIN6ResultM6Unwrap[storage.PostRecord, string](received).ID, contextID, authority, collectionURI)
- /*line context_backfill.mygo:199:3*/	if MygoIN6ResultM5IsErr[int64, string](included) {
- /*line context_backfill.mygo:200:12*/		return Err[int, string](MygoIN6ResultM9UnwrapErr[int64, string](included))
+ /*line context_backfill.mygo:105:1*/	included := storage.RecordCanonicalContextInclusion(ctx, db, MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](received).ID, contextID, authority, collectionURI)
+ /*line context_backfill.mygo:199:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](included) {
+ /*line context_backfill.mygo:200:12*/		return Err[int, failure.Failure](MygoIN6ResultM9UnwrapErr[int64, failure.Failure](included))
  /*line context_backfill.mygo:199:3*/	} else {
  /*line zz_context_backfill.gen.go:184:1*/	}
- /*line context_backfill.mygo:202:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](existing)) {
- /*line context_backfill.mygo:203:12*/		return Ok[int, string](1)
+ /*line context_backfill.mygo:202:3*/	if MygoIN6OptionM6IsSome[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](existing)) {
+ /*line context_backfill.mygo:203:12*/		return Ok[int, failure.Failure](1)
  /*line context_backfill.mygo:202:3*/	} else {
  /*line zz_context_backfill.gen.go:188:1*/	}
- /*line context_backfill.mygo:205:3*/	return Ok[int, string](0)
+ /*line context_backfill.mygo:205:3*/	return Ok[int, failure.Failure](0)
  /*line zz_context_backfill.gen.go:190:1*/}
- /*line context_backfill.mygo:211:1*/func BackfillDiscussion(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, contextID string, identity auth.Identity, remoteVerified bool, fetcher func(context.Context, config.Config, string) Result[[]byte, string]) Result[BackfillResult, string] {
+ /*line context_backfill.mygo:211:1*/func BackfillDiscussion(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, contextID string, identity auth.Identity, remoteVerified bool, fetcher func(context.Context, config.Config, string) Result[[]byte, failure.Failure]) Result[BackfillResult, failure.Failure] {
 	loaded := storage.LoadDiscussionContext(ctx, db, contextID)
- /*line context_backfill.mygo:222:3*/	if MygoIN6ResultM5IsErr[Option[storage.DiscussionContextRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded)) {
- /*line context_backfill.mygo:223:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:222:3*/	if MygoIN6ResultM5IsErr[Option[storage.DiscussionContextRecord], failure.Failure](loaded) || MygoIN6OptionM6IsNone[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], failure.Failure](loaded)) {
+ /*line context_backfill.mygo:223:12*/		return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:222:3*/	} else {
  /*line zz_context_backfill.gen.go:196:1*/	}
- /*line context_backfill.mygo:211:1*/	existingContext := MygoIN6OptionM6Unwrap[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], string](loaded))
+ /*line context_backfill.mygo:211:1*/	existingContext := MygoIN6OptionM6Unwrap[storage.DiscussionContextRecord](MygoIN6ResultM6Unwrap[Option[storage.DiscussionContextRecord], failure.Failure](loaded))
  /*line context_backfill.mygo:226:3*/	if !existingContext.ContextURI.Valid || existingContext.ContextURI.String == "" {
- /*line context_backfill.mygo:227:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:227:12*/		return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:226:3*/	} else {
  /*line zz_context_backfill.gen.go:201:1*/	}
  /*line context_backfill.mygo:229:3*/	if existingContext.CommunityID.Valid {
 		existingCommunity := storage.LoadCommunityByID(ctx, db, existingContext.CommunityID.String)
- /*line context_backfill.mygo:231:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](existingCommunity) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](existingCommunity))) {
- /*line context_backfill.mygo:234:14*/			return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:231:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](existingCommunity) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](existingCommunity)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](existingCommunity))) {
+ /*line context_backfill.mygo:234:14*/			return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:231:5*/		} else {
  /*line zz_context_backfill.gen.go:207:1*/		}
  /*line context_backfill.mygo:229:3*/		allowed := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, existingContext.CommunityID.String, identity, remoteVerified)
-		if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line context_backfill.mygo:243:14*/			return Err[BackfillResult, string]("not found")
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed) {
+ /*line context_backfill.mygo:243:14*/			return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:229:3*/		} else {
  /*line zz_context_backfill.gen.go:212:1*/		}
  /*line context_backfill.mygo:229:3*/	} else {
  /*line zz_context_backfill.gen.go:214:1*/	}
  /*line context_backfill.mygo:211:1*/	rootURI := existingContext.ContextURI.String
 	rootPayload := fetcher(ctx, settings, rootURI)
- /*line context_backfill.mygo:248:3*/	if MygoIN6ResultM5IsErr[[]byte, string](rootPayload) {
- /*line context_backfill.mygo:249:12*/		return Err[BackfillResult, string]("context unavailable")
+ /*line context_backfill.mygo:248:3*/	if MygoIN6ResultM5IsErr[[]byte, failure.Failure](rootPayload) {
+ /*line context_backfill.mygo:249:12*/		return Err[BackfillResult, failure.Failure](Of("context unavailable"))
  /*line context_backfill.mygo:248:3*/	} else {
  /*line zz_context_backfill.gen.go:220:1*/	}
- /*line context_backfill.mygo:211:1*/	rootBytes := MygoIN6ResultM6Unwrap[[]byte, string](rootPayload)
+ /*line context_backfill.mygo:211:1*/	rootBytes := MygoIN6ResultM6Unwrap[[]byte, failure.Failure](rootPayload)
 	authority := federation.ContextAuthorityURI(rootBytes)
  /*line context_backfill.mygo:253:3*/	if authority == "" {
- /*line context_backfill.mygo:254:12*/		return Err[BackfillResult, string]("context authority unavailable")
+ /*line context_backfill.mygo:254:12*/		return Err[BackfillResult, failure.Failure](Of("context authority unavailable"))
  /*line context_backfill.mygo:253:3*/	} else {
  /*line zz_context_backfill.gen.go:226:1*/	}
  /*line context_backfill.mygo:211:1*/	communityID := ResolveBackfillCommunity(ctx, db, site.ID, authority)
- /*line context_backfill.mygo:257:3*/	if MygoIN6ResultM5IsErr[string, string](communityID) {
- /*line context_backfill.mygo:258:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[string, string](communityID))
+ /*line context_backfill.mygo:257:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](communityID) {
+ /*line context_backfill.mygo:258:12*/		return Err[BackfillResult, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](communityID))
  /*line context_backfill.mygo:257:3*/	} else {
  /*line zz_context_backfill.gen.go:231:1*/	}
- /*line context_backfill.mygo:260:3*/	if existingContext.CommunityID.Valid && existingContext.CommunityID.String != MygoIN6ResultM6Unwrap[string, string](communityID) {
- /*line context_backfill.mygo:262:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:260:3*/	if existingContext.CommunityID.Valid && existingContext.CommunityID.String != MygoIN6ResultM6Unwrap[string, failure.Failure](communityID) {
+ /*line context_backfill.mygo:262:12*/		return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:260:3*/	} else {
  /*line zz_context_backfill.gen.go:235:1*/	}
- /*line context_backfill.mygo:211:1*/	community := storage.LoadCommunityByID(ctx, db, MygoIN6ResultM6Unwrap[string, string](communityID))
- /*line context_backfill.mygo:265:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community))) {
- /*line context_backfill.mygo:268:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:211:1*/	community := storage.LoadCommunityByID(ctx, db, MygoIN6ResultM6Unwrap[string, failure.Failure](communityID))
+ /*line context_backfill.mygo:265:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](community)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](community))) {
+ /*line context_backfill.mygo:268:12*/		return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:265:3*/	} else {
  /*line zz_context_backfill.gen.go:240:1*/	}
- /*line context_backfill.mygo:211:1*/	allowed_1 := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, MygoIN6ResultM6Unwrap[string, string](communityID), identity, remoteVerified)
- /*line context_backfill.mygo:276:3*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed_1) {
- /*line context_backfill.mygo:277:12*/		return Err[BackfillResult, string]("not found")
+ /*line context_backfill.mygo:211:1*/	allowed_1 := storage.MygoIN14FeedRepositoryM9AllowRead(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, MygoIN6ResultM6Unwrap[string, failure.Failure](communityID), identity, remoteVerified)
+ /*line context_backfill.mygo:276:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed_1) {
+ /*line context_backfill.mygo:277:12*/		return Err[BackfillResult, failure.Failure](Of("not found"))
  /*line context_backfill.mygo:276:3*/	} else {
  /*line zz_context_backfill.gen.go:245:1*/	}
  /*line context_backfill.mygo:211:1*/	authorityActor := storage.EnsureRemoteActor(ctx, db, authority, "Group")
- /*line context_backfill.mygo:280:3*/	if MygoIN6ResultM5IsErr[struct{}, string](authorityActor) {
- /*line context_backfill.mygo:281:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](authorityActor))
+ /*line context_backfill.mygo:280:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](authorityActor) {
+ /*line context_backfill.mygo:281:12*/		return Err[BackfillResult, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](authorityActor))
  /*line context_backfill.mygo:280:3*/	} else {
  /*line zz_context_backfill.gen.go:250:1*/	}
- /*line context_backfill.mygo:211:1*/	resolved := storage.ResolveDiscussionContext(ctx, db, contextID, MygoIN6ResultM6Unwrap[string, string](communityID), authority, rootURI)
- /*line context_backfill.mygo:291:3*/	if MygoIN6ResultM5IsErr[struct{}, string](resolved) {
- /*line context_backfill.mygo:292:12*/		return Err[BackfillResult, string](MygoIN6ResultM9UnwrapErr[struct{}, string](resolved))
+ /*line context_backfill.mygo:211:1*/	resolved := storage.ResolveDiscussionContext(ctx, db, contextID, MygoIN6ResultM6Unwrap[string, failure.Failure](communityID), authority, rootURI)
+ /*line context_backfill.mygo:291:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](resolved) {
+ /*line context_backfill.mygo:292:12*/		return Err[BackfillResult, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](resolved))
  /*line context_backfill.mygo:291:3*/	} else {
  /*line zz_context_backfill.gen.go:255:1*/	}
  /*line context_backfill.mygo:211:1*/	var pending []string = []string{rootURI}
@@ -260,7 +260,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	examined := 0
 	imported := 0
 	updatedCount := 0
-	failure := ""
+	var settledFailure Option[failure.Failure] = None[failure.Failure]()
  /*line context_backfill.mygo:302:9*/	for cursor < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(pending) && pages < maxBackfillPages && examined < maxBackfillItems {
  /*line context_backfill.mygo:211:1*/		pageURI := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(pending, cursor))
 		cursor = cursor + 1
@@ -268,23 +268,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:270:1*/		}
- /*line context_backfill.mygo:211:1*/		var __mygo_expr_0 Result[[]byte, string]
+ /*line context_backfill.mygo:211:1*/		var __mygo_expr_0 Result[[]byte, failure.Failure]
 		if pageURI == rootURI {
-			__mygo_expr_0 = Ok[[]byte, string](rootBytes)
+			__mygo_expr_0 = Ok[[]byte, failure.Failure](rootBytes)
 		} else {
 			__mygo_expr_0 = fetcher(ctx, settings, pageURI)
  /*line zz_context_backfill.gen.go:276:1*/		}
  /*line context_backfill.mygo:211:1*/		pageBytes := __mygo_expr_0
-		if MygoIN6ResultM5IsErr[[]byte, string](pageBytes) {
+		if MygoIN6ResultM5IsErr[[]byte, failure.Failure](pageBytes) {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:281:1*/		}
- /*line context_backfill.mygo:211:1*/		parsed := federation.ParseCollectionTraversal(MygoIN6ResultM6Unwrap[[]byte, string](pageBytes))
-		if MygoIN6ResultM5IsErr[federation.CollectionTraversal, string](parsed) {
+ /*line context_backfill.mygo:211:1*/		parsed := federation.ParseCollectionTraversal(MygoIN6ResultM6Unwrap[[]byte, failure.Failure](pageBytes))
+		if MygoIN6ResultM5IsErr[federation.CollectionTraversal, failure.Failure](parsed) {
 			continue
 		} else {
  /*line zz_context_backfill.gen.go:286:1*/		}
- /*line context_backfill.mygo:211:1*/		traversal := MygoIN6ResultM6Unwrap[federation.CollectionTraversal, string](parsed)
+ /*line context_backfill.mygo:211:1*/		traversal := MygoIN6ResultM6Unwrap[federation.CollectionTraversal, failure.Failure](parsed)
 		if traversal.ID != "" && traversal.ID != pageURI {
 			continue
 		} else {
@@ -296,19 +296,19 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_context_backfill.gen.go:297:1*/		}
  /*line context_backfill.mygo:329:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(traversal.Items, func(itemURI string) {
- /*line context_backfill.mygo:330:7*/			if failure == "" && examined < maxBackfillItems && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, itemURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line context_backfill.mygo:330:7*/			if MygoIN6OptionM6IsNone[failure.Failure](settledFailure) && examined < maxBackfillItems && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, itemURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
 				seen = MygoIN5SliceM6Append(seen, itemURI)
 				examined = examined + 1
-				result := ImportBackfilledObject(ctx, settings, db, site, MygoIN6ResultM6Unwrap[string, string](communityID), contextID, authority, rootURI, itemURI, fetcher)
- /*line context_backfill.mygo:345:9*/				if MygoIN6ResultM5IsErr[int, string](result) {
-					failure = MygoIN6ResultM9UnwrapErr[int, string](result)
+				result := ImportBackfilledObject(ctx, settings, db, site, MygoIN6ResultM6Unwrap[string, failure.Failure](communityID), contextID, authority, rootURI, itemURI, fetcher)
+ /*line context_backfill.mygo:345:9*/				if MygoIN6ResultM5IsErr[int, failure.Failure](result) {
+					settledFailure = Some[failure.Failure](MygoIN6ResultM9UnwrapErr[int, failure.Failure](result))
 					return
 				} else {
- /*line context_backfill.mygo:348:11*/					if MygoIN6ResultM6Unwrap[int, string](result) == 0 {
+ /*line context_backfill.mygo:348:11*/					if MygoIN6ResultM6Unwrap[int, failure.Failure](result) == 0 {
 						imported = imported + 1
 						return
 					} else {
- /*line context_backfill.mygo:351:13*/						if MygoIN6ResultM6Unwrap[int, string](result) == 1 {
+ /*line context_backfill.mygo:351:13*/						if MygoIN6ResultM6Unwrap[int, failure.Failure](result) == 1 {
 							updatedCount = updatedCount + 1
 							return
 						} else {
@@ -320,8 +320,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 				return
  /*line zz_context_backfill.gen.go:321:1*/			}
 		})
- /*line context_backfill.mygo:211:1*/		if failure != "" {
- /*line context_backfill.mygo:359:14*/			return Err[BackfillResult, string](failure)
+ /*line context_backfill.mygo:211:1*/		if MygoIN6OptionM6IsSome[failure.Failure](settledFailure) {
+ /*line context_backfill.mygo:359:14*/			return Err[BackfillResult, failure.Failure](MygoIN6OptionM6Unwrap[failure.Failure](settledFailure))
  /*line context_backfill.mygo:211:1*/		} else {
  /*line zz_context_backfill.gen.go:326:1*/		}
  /*line context_backfill.mygo:211:1*/		if traversal.Next != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(seen, traversal.Next, MygoIT2EqFN6StringGN6StringEM6Equals) {
@@ -329,5 +329,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		} else {
  /*line zz_context_backfill.gen.go:330:1*/		}
 	}
- /*line context_backfill.mygo:365:3*/	return Ok[BackfillResult, string](BackfillResult{Examined: examined, Imported: imported, Updated: updatedCount, Pages: pages})
+ /*line context_backfill.mygo:365:3*/	return Ok[BackfillResult, failure.Failure](BackfillResult{Examined: examined, Imported: imported, Updated: updatedCount, Pages: pages})
  /*line zz_context_backfill.gen.go:333:1*/}

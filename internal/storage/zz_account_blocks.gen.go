@@ -9,232 +9,233 @@ import "net/url"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line account_blocks.mygo:11:1*/type AccountBlockRecord struct {
+ /*line account_blocks.mygo:12:1*/type AccountBlockRecord struct {
 	Kind      string    "gorm:\"column:kind\" json:\"kind\""
 	Target    string    "gorm:\"column:target\" json:\"target\""
 	CreatedAt time.Time "gorm:\"column:created_at\" json:\"created_at\""
- /*line zz_account_blocks.gen.go:18:1*/}
- /*line account_blocks.mygo:17:1*/type AccountBlockRepository struct {
+ /*line zz_account_blocks.gen.go:19:1*/}
+ /*line account_blocks.mygo:18:1*/type AccountBlockRepository struct {
 	DB        *gorm.DB
 	SiteID    string
 	AccountID int64
- /*line zz_account_blocks.gen.go:23:1*/}
+ /*line zz_account_blocks.gen.go:24:1*/}
 
- /*line account_blocks.mygo:23:1*/func PersonalBlockSQL(alias string, named bool) string {
+ /*line account_blocks.mygo:24:1*/func PersonalBlockSQL(alias string, named bool) string {
 	var __mygo_expr_0 string
 	if named {
 		__mygo_expr_0 = "@site"
 	} else {
 		__mygo_expr_0 = "?"
- /*line zz_account_blocks.gen.go:31:1*/	}
- /*line account_blocks.mygo:23:1*/	site := __mygo_expr_0
+ /*line zz_account_blocks.gen.go:32:1*/	}
+ /*line account_blocks.mygo:24:1*/	site := __mygo_expr_0
 	var __mygo_expr_1 string
 	if named {
 		__mygo_expr_1 = "@account"
 	} else {
 		__mygo_expr_1 = "?"
- /*line zz_account_blocks.gen.go:38:1*/	}
- /*line account_blocks.mygo:23:1*/	account := __mygo_expr_1
+ /*line zz_account_blocks.gen.go:39:1*/	}
+ /*line account_blocks.mygo:24:1*/	account := __mygo_expr_1
 	author := alias + ".author_actor_uri"
 	community := alias + ".community_id"
- /*line account_blocks.mygo:28:3*/	return "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=" + site + " AND b.account_id=" + account + " AND ((b.kind='person' AND b.target=" + author + ")" + " OR (b.kind='community' AND b.target=" + community + ")" + " OR (b.kind='instance' AND b.target=lower(split_part(split_part(" + author + ",'://',2),'/',1)))))"
- /*line zz_account_blocks.gen.go:43:1*/}
+ /*line account_blocks.mygo:29:3*/	return "NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=" + site + " AND b.account_id=" + account + " AND ((b.kind='person' AND b.target=" + author + ")" + " OR (b.kind='community' AND b.target=" + community + ")" + " OR (b.kind='instance' AND b.target=lower(split_part(split_part(" + author + ",'://',2),'/',1)))))"
+ /*line zz_account_blocks.gen.go:44:1*/}
 
- /*line account_blocks.mygo:35:1*/var PersonalBlockP string
- /*line zz_account_blocks.gen.go:46:1*/
- /*line account_blocks.mygo:35:1*/func init() {
-	PersonalBlockP = PersonalBlockSQL("p", true)
- /*line zz_account_blocks.gen.go:49:1*/}
-
- /*line account_blocks.mygo:36:1*/var PersonalBlockC string
- /*line zz_account_blocks.gen.go:52:1*/
+ /*line account_blocks.mygo:36:1*/var PersonalBlockP string
+ /*line zz_account_blocks.gen.go:47:1*/
  /*line account_blocks.mygo:36:1*/func init() {
-	PersonalBlockC = PersonalBlockSQL("c", true)
- /*line zz_account_blocks.gen.go:55:1*/}
+	PersonalBlockP = PersonalBlockSQL("p", true)
+ /*line zz_account_blocks.gen.go:50:1*/}
 
- /*line account_blocks.mygo:37:1*/var PersonalBlockPArgs string
- /*line zz_account_blocks.gen.go:58:1*/
+ /*line account_blocks.mygo:37:1*/var PersonalBlockC string
+ /*line zz_account_blocks.gen.go:53:1*/
  /*line account_blocks.mygo:37:1*/func init() {
-	PersonalBlockPArgs = PersonalBlockSQL("p", false)
- /*line zz_account_blocks.gen.go:61:1*/}
+	PersonalBlockC = PersonalBlockSQL("c", true)
+ /*line zz_account_blocks.gen.go:56:1*/}
 
- /*line account_blocks.mygo:38:1*/var PersonalBlockCArgs string
- /*line zz_account_blocks.gen.go:64:1*/
+ /*line account_blocks.mygo:38:1*/var PersonalBlockPArgs string
+ /*line zz_account_blocks.gen.go:59:1*/
  /*line account_blocks.mygo:38:1*/func init() {
+	PersonalBlockPArgs = PersonalBlockSQL("p", false)
+ /*line zz_account_blocks.gen.go:62:1*/}
+
+ /*line account_blocks.mygo:39:1*/var PersonalBlockCArgs string
+ /*line zz_account_blocks.gen.go:65:1*/
+ /*line account_blocks.mygo:39:1*/func init() {
 	PersonalBlockCArgs = PersonalBlockSQL("c", false)
- /*line zz_account_blocks.gen.go:67:1*/}
- /*line account_blocks.mygo:40:1*/func PersonalBlockHidesPost(ctx context.Context, db *gorm.DB, siteID string, accountID int64, postID string) Result[bool, string] {
+ /*line zz_account_blocks.gen.go:68:1*/}
+ /*line account_blocks.mygo:41:1*/func PersonalBlockHidesPost(ctx context.Context, db *gorm.DB, siteID string, accountID int64, postID string) Result[bool, failure.Failure] {
 	visible := false
 	query := db.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM posts p WHERE p.id=? AND "+PersonalBlockPArgs+")", postID, siteID, accountID).Scan(&visible)
- /*line account_blocks.mygo:48:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line account_blocks.mygo:49:12*/		return Err[bool, string]("blocks unavailable")
- /*line account_blocks.mygo:48:3*/	} else {
- /*line zz_account_blocks.gen.go:74:1*/	}
- /*line account_blocks.mygo:51:3*/	return Ok[bool, string](!visible)
- /*line zz_account_blocks.gen.go:76:1*/}
- /*line account_blocks.mygo:54:1*/func IsInteractionBlocked(ctx context.Context, db *gorm.DB, siteID string, ownerActorURI string, targetActorURI string) Result[bool, string] {
+ /*line account_blocks.mygo:49:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line account_blocks.mygo:50:12*/		return Err[bool, failure.Failure](Of("blocks unavailable"))
+ /*line account_blocks.mygo:49:3*/	} else {
+ /*line zz_account_blocks.gen.go:75:1*/	}
+ /*line account_blocks.mygo:52:3*/	return Ok[bool, failure.Failure](!visible)
+ /*line zz_account_blocks.gen.go:77:1*/}
+ /*line account_blocks.mygo:55:1*/func IsInteractionBlocked(ctx context.Context, db *gorm.DB, siteID string, ownerActorURI string, targetActorURI string) Result[bool, failure.Failure] {
 	blocked := false
 	sql := "SELECT EXISTS (SELECT 1 FROM account_blocks b JOIN accounts a ON a.site_id=b.site_id AND a.id=b.account_id WHERE b.site_id=? AND ((a.actor_uri=? AND ((b.kind='person' AND b.target=?) OR (b.kind='instance' AND b.target=lower(split_part(split_part(?,'://',2),'/',1))))) OR (a.actor_uri=? AND ((b.kind='person' AND b.target=?) OR (b.kind='instance' AND b.target=lower(split_part(split_part(?,'://',2),'/',1))))))) AS blocked"
 	query := db.WithContext(ctx).Raw(sql, siteID, ownerActorURI, targetActorURI, targetActorURI, targetActorURI, ownerActorURI, ownerActorURI).Scan(&blocked)
- /*line account_blocks.mygo:58:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line account_blocks.mygo:59:12*/		return Err[bool, string]("blocks unavailable")
- /*line account_blocks.mygo:58:3*/	} else {
- /*line zz_account_blocks.gen.go:84:1*/	}
- /*line account_blocks.mygo:61:3*/	return Ok[bool, string](blocked)
- /*line zz_account_blocks.gen.go:86:1*/}
- /*line account_blocks.mygo:65:1*/func MygoIN22AccountBlockRepositoryM4List(self AccountBlockRepository, ctx context.Context) Result[[]AccountBlockRecord, string] {
+ /*line account_blocks.mygo:59:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line account_blocks.mygo:60:12*/		return Err[bool, failure.Failure](Of("blocks unavailable"))
+ /*line account_blocks.mygo:59:3*/	} else {
+ /*line zz_account_blocks.gen.go:85:1*/	}
+ /*line account_blocks.mygo:62:3*/	return Ok[bool, failure.Failure](blocked)
+ /*line zz_account_blocks.gen.go:87:1*/}
+ /*line account_blocks.mygo:66:1*/func MygoIN22AccountBlockRepositoryM4List(self AccountBlockRepository, ctx context.Context) Result[[]AccountBlockRecord, failure.Failure] {
 	var rows []AccountBlockRecord = []AccountBlockRecord{}
 	query := self.DB.WithContext(ctx).Table("account_blocks").Where("site_id=? AND account_id=?", self.SiteID, self.AccountID).Order("kind,target").Find(&rows)
- /*line account_blocks.mygo:69:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line account_blocks.mygo:70:14*/		return Err[[]AccountBlockRecord, string]("blocks unavailable")
- /*line account_blocks.mygo:69:5*/	} else {
- /*line zz_account_blocks.gen.go:93:1*/	}
- /*line account_blocks.mygo:72:5*/	return Ok[[]AccountBlockRecord, string](rows)
- /*line zz_account_blocks.gen.go:95:1*/}
- /*line account_blocks.mygo:65:1*/func MygoIN22AccountBlockRepositoryM3Add(self AccountBlockRepository, ctx context.Context, identity auth.Identity, kind string, target string) Result[struct{}, string] {
- /*line account_blocks.mygo:76:5*/	if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" {
- /*line account_blocks.mygo:77:14*/		return Err[struct{}, string]("forbidden")
- /*line account_blocks.mygo:76:5*/	} else {
- /*line zz_account_blocks.gen.go:100:1*/	}
- /*line account_blocks.mygo:79:5*/	if kind != "person" && kind != "community" && kind != "instance" {
- /*line account_blocks.mygo:80:14*/		return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:79:5*/	} else {
- /*line zz_account_blocks.gen.go:104:1*/	}
- /*line account_blocks.mygo:65:1*/	value := strings.TrimSpace(target)
- /*line account_blocks.mygo:83:5*/	if value == "" {
- /*line account_blocks.mygo:84:14*/		return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:83:5*/	} else {
- /*line zz_account_blocks.gen.go:109:1*/	}
- /*line account_blocks.mygo:86:5*/	if kind == "person" {
- /*line account_blocks.mygo:87:7*/		if value == identity.ActorURI {
- /*line account_blocks.mygo:88:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:87:7*/		} else {
- /*line zz_account_blocks.gen.go:114:1*/		}
- /*line account_blocks.mygo:90:7*/		if !CanonicalObjectURI(value) {
- /*line account_blocks.mygo:91:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:90:7*/		} else {
- /*line zz_account_blocks.gen.go:118:1*/		}
- /*line account_blocks.mygo:86:5*/		known := QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri=? AND kind='Person'", value))
-		if MygoIN6ResultM5IsErr[bool, string](known) || !MygoIN6ResultM6Unwrap[bool, string](known) {
- /*line account_blocks.mygo:95:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:86:5*/		} else {
- /*line zz_account_blocks.gen.go:123:1*/		}
- /*line account_blocks.mygo:86:5*/	} else {
- /*line zz_account_blocks.gen.go:125:1*/	}
- /*line account_blocks.mygo:98:5*/	if kind == "community" {
+ /*line account_blocks.mygo:70:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line account_blocks.mygo:71:14*/		return Err[[]AccountBlockRecord, failure.Failure](Of("blocks unavailable"))
+ /*line account_blocks.mygo:70:5*/	} else {
+ /*line zz_account_blocks.gen.go:94:1*/	}
+ /*line account_blocks.mygo:73:5*/	return Ok[[]AccountBlockRecord, failure.Failure](rows)
+ /*line zz_account_blocks.gen.go:96:1*/}
+ /*line account_blocks.mygo:66:1*/func MygoIN22AccountBlockRepositoryM3Add(self AccountBlockRepository, ctx context.Context, identity auth.Identity, kind string, target string) Result[struct{}, failure.Failure] {
+ /*line account_blocks.mygo:77:5*/	if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" {
+ /*line account_blocks.mygo:78:14*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line account_blocks.mygo:77:5*/	} else {
+ /*line zz_account_blocks.gen.go:101:1*/	}
+ /*line account_blocks.mygo:80:5*/	if kind != "person" && kind != "community" && kind != "instance" {
+ /*line account_blocks.mygo:81:14*/		return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:80:5*/	} else {
+ /*line zz_account_blocks.gen.go:105:1*/	}
+ /*line account_blocks.mygo:66:1*/	value := strings.TrimSpace(target)
+ /*line account_blocks.mygo:84:5*/	if value == "" {
+ /*line account_blocks.mygo:85:14*/		return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:84:5*/	} else {
+ /*line zz_account_blocks.gen.go:110:1*/	}
+ /*line account_blocks.mygo:87:5*/	if kind == "person" {
+ /*line account_blocks.mygo:88:7*/		if value == identity.ActorURI {
+ /*line account_blocks.mygo:89:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:88:7*/		} else {
+ /*line zz_account_blocks.gen.go:115:1*/		}
+ /*line account_blocks.mygo:91:7*/		if !CanonicalObjectURI(value) {
+ /*line account_blocks.mygo:92:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:91:7*/		} else {
+ /*line zz_account_blocks.gen.go:119:1*/		}
+ /*line account_blocks.mygo:87:5*/		known := QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri=? AND kind='Person'", value))
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](known) || !MygoIN6ResultM6Unwrap[bool, failure.Failure](known) {
+ /*line account_blocks.mygo:96:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:87:5*/		} else {
+ /*line zz_account_blocks.gen.go:124:1*/		}
+ /*line account_blocks.mygo:87:5*/	} else {
+ /*line zz_account_blocks.gen.go:126:1*/	}
+ /*line account_blocks.mygo:99:5*/	if kind == "community" {
 		community := MygoIN19CommunityRepositoryM4Open(CommunityRepository{DB: self.DB, SiteID: self.SiteID}, ctx, value, false)
- /*line account_blocks.mygo:100:7*/		if MygoIN6ResultM5IsErr[CommunityRecord, string](community) {
- /*line account_blocks.mygo:101:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:100:7*/		} else {
- /*line zz_account_blocks.gen.go:131:1*/		}
- /*line account_blocks.mygo:98:5*/		access := MygoIN19CommunityRepositoryM6Access(CommunityRepository{DB: self.DB, SiteID: self.SiteID}, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](community), identity, false)
-		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line account_blocks.mygo:105:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:98:5*/		} else {
- /*line zz_account_blocks.gen.go:136:1*/		}
- /*line account_blocks.mygo:98:5*/	} else {
- /*line zz_account_blocks.gen.go:138:1*/	}
- /*line account_blocks.mygo:108:5*/	if kind == "instance" {
- /*line account_blocks.mygo:109:7*/		if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") {
- /*line account_blocks.mygo:110:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:109:7*/		} else {
- /*line zz_account_blocks.gen.go:143:1*/		}
- /*line account_blocks.mygo:112:20*/		var __mygo_expr_1 Result[*url.URL, error]
+ /*line account_blocks.mygo:101:7*/		if MygoIN6ResultM5IsErr[CommunityRecord, failure.Failure](community) {
+ /*line account_blocks.mygo:102:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:101:7*/		} else {
+ /*line zz_account_blocks.gen.go:132:1*/		}
+ /*line account_blocks.mygo:99:5*/		access := MygoIN19CommunityRepositoryM6Access(CommunityRepository{DB: self.DB, SiteID: self.SiteID}, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](community), identity, false)
+		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) || !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access)) {
+ /*line account_blocks.mygo:106:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:99:5*/		} else {
+ /*line zz_account_blocks.gen.go:137:1*/		}
+ /*line account_blocks.mygo:99:5*/	} else {
+ /*line zz_account_blocks.gen.go:139:1*/	}
+ /*line account_blocks.mygo:109:5*/	if kind == "instance" {
+ /*line account_blocks.mygo:110:7*/		if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") {
+ /*line account_blocks.mygo:111:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:110:7*/		} else {
+ /*line zz_account_blocks.gen.go:144:1*/		}
+ /*line account_blocks.mygo:113:20*/		var __mygo_expr_1 Result[*url.URL, error]
 		__mygo_expr_2, __mygo_expr_0 := url.Parse("https://" + value)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_account_blocks.gen.go:150:1*/		}
- /*line account_blocks.mygo:108:5*/		parsed := __mygo_expr_1
- /*line account_blocks.mygo:113:7*/		if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Host == "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Path != "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).RawQuery != "" {
- /*line account_blocks.mygo:114:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:113:7*/		} else {
- /*line zz_account_blocks.gen.go:155:1*/		}
- /*line account_blocks.mygo:108:5*/		normalized := config.NormalizeAuthority(value)
- /*line account_blocks.mygo:117:7*/		if MygoIN6ResultM5IsErr[string, string](normalized) {
- /*line account_blocks.mygo:118:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:117:7*/		} else {
- /*line zz_account_blocks.gen.go:160:1*/		}
- /*line account_blocks.mygo:108:5*/		value = MygoIN6ResultM6Unwrap[string, string](normalized)
+ /*line zz_account_blocks.gen.go:151:1*/		}
+ /*line account_blocks.mygo:109:5*/		parsed := __mygo_expr_1
+ /*line account_blocks.mygo:114:7*/		if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Host == "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Path != "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).RawQuery != "" {
+ /*line account_blocks.mygo:115:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:114:7*/		} else {
+ /*line zz_account_blocks.gen.go:156:1*/		}
+ /*line account_blocks.mygo:109:5*/		normalized := config.NormalizeAuthority(value)
+ /*line account_blocks.mygo:118:7*/		if MygoIN6ResultM5IsErr[string, string](normalized) {
+ /*line account_blocks.mygo:119:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:118:7*/		} else {
+ /*line zz_account_blocks.gen.go:161:1*/		}
+ /*line account_blocks.mygo:109:5*/		value = MygoIN6ResultM6Unwrap[string, string](normalized)
 		origin := ""
 		lookup := self.DB.WithContext(ctx).Raw("SELECT canonical_origin FROM sites WHERE id=?", self.SiteID).Scan(&origin)
- /*line account_blocks.mygo:123:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(lookup)) || lookup.RowsAffected != int64(1) {
- /*line account_blocks.mygo:124:16*/			return Err[struct{}, string]("blocks unavailable")
- /*line account_blocks.mygo:123:7*/		} else {
- /*line zz_account_blocks.gen.go:167:1*/		}
- /*line account_blocks.mygo:126:21*/		var __mygo_expr_4 Result[*url.URL, error]
+ /*line account_blocks.mygo:124:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(lookup)) || lookup.RowsAffected != int64(1) {
+ /*line account_blocks.mygo:125:16*/			return Err[struct{}, failure.Failure](Of("blocks unavailable"))
+ /*line account_blocks.mygo:124:7*/		} else {
+ /*line zz_account_blocks.gen.go:168:1*/		}
+ /*line account_blocks.mygo:127:21*/		var __mygo_expr_4 Result[*url.URL, error]
 		__mygo_expr_5, __mygo_expr_3 := url.Parse(origin)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[*url.URL, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[*url.URL, error](__mygo_expr_5)
- /*line zz_account_blocks.gen.go:174:1*/		}
- /*line account_blocks.mygo:108:5*/		siteURL := __mygo_expr_4
+ /*line zz_account_blocks.gen.go:175:1*/		}
+ /*line account_blocks.mygo:109:5*/		siteURL := __mygo_expr_4
 		if MygoIN6ResultM5IsErr[*url.URL, error](siteURL) || MygoIN6ResultM8UnwrapOr[string, string](config.NormalizeAuthority(MygoIN6ResultM6Unwrap[*url.URL, error](siteURL).Host), "") == value {
- /*line account_blocks.mygo:128:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:108:5*/		} else {
- /*line zz_account_blocks.gen.go:179:1*/		}
- /*line account_blocks.mygo:108:5*/	} else {
- /*line zz_account_blocks.gen.go:181:1*/	}
- /*line account_blocks.mygo:131:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line account_blocks.mygo:132:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.WithContext(ctx).Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,?,?) ON CONFLICT DO NOTHING", self.SiteID, self.AccountID, kind, value))) {
- /*line account_blocks.mygo:133:16*/			return Err[struct{}, string]("block update failed")
- /*line account_blocks.mygo:132:7*/		} else {
- /*line zz_account_blocks.gen.go:186:1*/		}
- /*line account_blocks.mygo:131:34*/		retired := tx.WithContext(ctx).Exec("UPDATE notification_events e SET retired_at=now() WHERE e.recipient_uri=? AND e.retired_at IS NULL AND ((?='person' AND (e.actor_uri=? OR (e.target_kind='person' AND e.target_id=?))) OR (?='instance' AND (lower(split_part(split_part(e.actor_uri,'://',2),'/',1))=? OR (e.target_kind='person' AND lower(split_part(split_part(e.target_id,'://',2),'/',1))=?))) OR (?='community' AND ((e.target_kind='community' AND e.target_id=?) OR (e.post_id IS NOT NULL AND EXISTS(SELECT 1 FROM posts p WHERE p.id=e.post_id AND p.community_id=?)))))", identity.ActorURI, kind, value, value, kind, value, value, kind, value, value)
- /*line account_blocks.mygo:142:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(retired)) {
- /*line account_blocks.mygo:143:16*/			return Err[struct{}, string]("block update failed")
- /*line account_blocks.mygo:142:7*/		} else {
- /*line zz_account_blocks.gen.go:191:1*/		}
- /*line account_blocks.mygo:145:7*/		return Ok[struct{}, string](struct {
- /*line zz_account_blocks.gen.go:193:1*/		}{})
+ /*line account_blocks.mygo:129:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:109:5*/		} else {
+ /*line zz_account_blocks.gen.go:180:1*/		}
+ /*line account_blocks.mygo:109:5*/	} else {
+ /*line zz_account_blocks.gen.go:182:1*/	}
+ /*line account_blocks.mygo:132:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line account_blocks.mygo:133:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.WithContext(ctx).Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,?,?) ON CONFLICT DO NOTHING", self.SiteID, self.AccountID, kind, value))) {
+ /*line account_blocks.mygo:134:16*/			return Err[struct{}, failure.Failure](Of("block update failed"))
+ /*line account_blocks.mygo:133:7*/		} else {
+ /*line zz_account_blocks.gen.go:187:1*/		}
+ /*line account_blocks.mygo:132:34*/		retired := tx.WithContext(ctx).Exec("UPDATE notification_events e SET retired_at=now() WHERE e.recipient_uri=? AND e.retired_at IS NULL AND ((?='person' AND (e.actor_uri=? OR (e.target_kind='person' AND e.target_id=?))) OR (?='instance' AND (lower(split_part(split_part(e.actor_uri,'://',2),'/',1))=? OR (e.target_kind='person' AND lower(split_part(split_part(e.target_id,'://',2),'/',1))=?))) OR (?='community' AND ((e.target_kind='community' AND e.target_id=?) OR (e.post_id IS NOT NULL AND EXISTS(SELECT 1 FROM posts p WHERE p.id=e.post_id AND p.community_id=?)))))", identity.ActorURI, kind, value, value, kind, value, value, kind, value, value)
+ /*line account_blocks.mygo:143:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(retired)) {
+ /*line account_blocks.mygo:144:16*/			return Err[struct{}, failure.Failure](Of("block update failed"))
+ /*line account_blocks.mygo:143:7*/		} else {
+ /*line zz_account_blocks.gen.go:192:1*/		}
+ /*line account_blocks.mygo:146:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_account_blocks.gen.go:194:1*/		}{})
 	})
 }
- /*line account_blocks.mygo:65:1*/func MygoIN22AccountBlockRepositoryM6Remove(self AccountBlockRepository, ctx context.Context, identity auth.Identity, kind string, target string) Result[struct{}, string] {
- /*line account_blocks.mygo:150:5*/	if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" {
- /*line account_blocks.mygo:151:14*/		return Err[struct{}, string]("forbidden")
- /*line account_blocks.mygo:150:5*/	} else {
- /*line zz_account_blocks.gen.go:200:1*/	}
- /*line account_blocks.mygo:153:5*/	if kind != "person" && kind != "community" && kind != "instance" {
- /*line account_blocks.mygo:154:14*/		return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:153:5*/	} else {
- /*line zz_account_blocks.gen.go:204:1*/	}
- /*line account_blocks.mygo:65:1*/	value := strings.TrimSpace(target)
- /*line account_blocks.mygo:157:5*/	if value == "" {
- /*line account_blocks.mygo:158:14*/		return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:157:5*/	} else {
- /*line zz_account_blocks.gen.go:209:1*/	}
- /*line account_blocks.mygo:160:5*/	if kind == "person" && !CanonicalObjectURI(value) {
- /*line account_blocks.mygo:161:14*/		return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:160:5*/	} else {
- /*line zz_account_blocks.gen.go:213:1*/	}
- /*line account_blocks.mygo:163:5*/	if kind == "instance" {
- /*line account_blocks.mygo:164:7*/		if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") {
- /*line account_blocks.mygo:165:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:164:7*/		} else {
- /*line zz_account_blocks.gen.go:218:1*/		}
- /*line account_blocks.mygo:167:20*/		var __mygo_expr_1 Result[*url.URL, error]
+ /*line account_blocks.mygo:66:1*/func MygoIN22AccountBlockRepositoryM6Remove(self AccountBlockRepository, ctx context.Context, identity auth.Identity, kind string, target string) Result[struct{}, failure.Failure] {
+ /*line account_blocks.mygo:151:5*/	if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" {
+ /*line account_blocks.mygo:152:14*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line account_blocks.mygo:151:5*/	} else {
+ /*line zz_account_blocks.gen.go:201:1*/	}
+ /*line account_blocks.mygo:154:5*/	if kind != "person" && kind != "community" && kind != "instance" {
+ /*line account_blocks.mygo:155:14*/		return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:154:5*/	} else {
+ /*line zz_account_blocks.gen.go:205:1*/	}
+ /*line account_blocks.mygo:66:1*/	value := strings.TrimSpace(target)
+ /*line account_blocks.mygo:158:5*/	if value == "" {
+ /*line account_blocks.mygo:159:14*/		return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:158:5*/	} else {
+ /*line zz_account_blocks.gen.go:210:1*/	}
+ /*line account_blocks.mygo:161:5*/	if kind == "person" && !CanonicalObjectURI(value) {
+ /*line account_blocks.mygo:162:14*/		return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:161:5*/	} else {
+ /*line zz_account_blocks.gen.go:214:1*/	}
+ /*line account_blocks.mygo:164:5*/	if kind == "instance" {
+ /*line account_blocks.mygo:165:7*/		if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") {
+ /*line account_blocks.mygo:166:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:165:7*/		} else {
+ /*line zz_account_blocks.gen.go:219:1*/		}
+ /*line account_blocks.mygo:168:20*/		var __mygo_expr_1 Result[*url.URL, error]
 		__mygo_expr_2, __mygo_expr_0 := url.Parse("https://" + value)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_account_blocks.gen.go:225:1*/		}
- /*line account_blocks.mygo:163:5*/		parsed := __mygo_expr_1
- /*line account_blocks.mygo:168:7*/		if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Host == "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Path != "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).RawQuery != "" {
- /*line account_blocks.mygo:169:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:168:7*/		} else {
- /*line zz_account_blocks.gen.go:230:1*/		}
- /*line account_blocks.mygo:163:5*/		normalized := config.NormalizeAuthority(value)
- /*line account_blocks.mygo:172:7*/		if MygoIN6ResultM5IsErr[string, string](normalized) {
- /*line account_blocks.mygo:173:16*/			return Err[struct{}, string]("invalid block")
- /*line account_blocks.mygo:172:7*/		} else {
- /*line zz_account_blocks.gen.go:235:1*/		}
- /*line account_blocks.mygo:163:5*/		value = MygoIN6ResultM6Unwrap[string, string](normalized)
+ /*line zz_account_blocks.gen.go:226:1*/		}
+ /*line account_blocks.mygo:164:5*/		parsed := __mygo_expr_1
+ /*line account_blocks.mygo:169:7*/		if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Host == "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Path != "" || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).RawQuery != "" {
+ /*line account_blocks.mygo:170:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:169:7*/		} else {
+ /*line zz_account_blocks.gen.go:231:1*/		}
+ /*line account_blocks.mygo:164:5*/		normalized := config.NormalizeAuthority(value)
+ /*line account_blocks.mygo:173:7*/		if MygoIN6ResultM5IsErr[string, string](normalized) {
+ /*line account_blocks.mygo:174:16*/			return Err[struct{}, failure.Failure](Of("invalid block"))
+ /*line account_blocks.mygo:173:7*/		} else {
+ /*line zz_account_blocks.gen.go:236:1*/		}
+ /*line account_blocks.mygo:164:5*/		value = MygoIN6ResultM6Unwrap[string, string](normalized)
 	} else {
- /*line zz_account_blocks.gen.go:238:1*/	}
- /*line account_blocks.mygo:177:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("DELETE FROM account_blocks WHERE site_id=? AND account_id=? AND kind=? AND target=?", self.SiteID, self.AccountID, kind, value))
- /*line zz_account_blocks.gen.go:240:1*/}
+ /*line zz_account_blocks.gen.go:239:1*/	}
+ /*line account_blocks.mygo:178:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("DELETE FROM account_blocks WHERE site_id=? AND account_id=? AND kind=? AND target=?", self.SiteID, self.AccountID, kind, value))
+ /*line zz_account_blocks.gen.go:241:1*/}

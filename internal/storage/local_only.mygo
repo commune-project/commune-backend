@@ -2,13 +2,14 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 # Central local-only predicates. Every federation boundary calls these rather
 # than trusting an incoming identifier or a stale queued job.
 func IsLocalOnlyCommunity(
   ctx: context.Context,
   db: Ref[gorm.DB],
   communityID: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if communityID == "" then
     return Ok(false)
   end
@@ -22,7 +23,7 @@ func IsLocalOnlyObject(
   ctx: context.Context,
   db: Ref[gorm.DB],
   objectURI: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if objectURI == "" then
     return Ok(false)
   end
@@ -36,7 +37,7 @@ func IsLocalOnlyPostID(
   ctx: context.Context,
   db: Ref[gorm.DB],
   postID: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if postID == "" then
     return Ok(false)
   end
@@ -52,7 +53,7 @@ func IsLocalOnlyActivity(
   ctx: context.Context,
   db: Ref[gorm.DB],
   activityURI: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if activityURI == "" then
     return Ok(false)
   end
@@ -62,7 +63,7 @@ func IsLocalOnlyActivity(
     activityURI
   ).Scan(Ref.new(excluded))
   if MutationResult(query).IsErr() then
-    return Err("policy unavailable")
+    return Err(Of("policy unavailable"))
   end
   Ok(excluded)
 end

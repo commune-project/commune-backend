@@ -13,6 +13,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
@@ -28,7 +29,7 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
   let repo = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
   let upload = repo.Upload(ctx, alice, "post", "../../name.html", "text/html", strings.NewReader("<html>download</html>") as io.Reader).Unwrap()
-  let transfer = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), String]
+  let transfer = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), failure.Failure]
     if io.ReadAll(file as io.Reader).Unwrap() as String != "<html>download</html>" then
       t.Fatal("media bytes changed")
     end
@@ -40,19 +41,19 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   let _ = repo.Read(ctx, alice, upload.ID, false, transfer).Unwrap()
   let community = CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "private", "Private", "federated", "members", "members").Unwrap()
   let published = PostRepository{DB: db, SiteID: site.ID}.Publish(ctx, site, community.ID, alice, false, testPublishInput("Topic", "Body"))
-  if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr()) end
+  if published.IsErr() then t.Fatalf("media fixture post publish failed: %s", published.UnwrapErr().Render()) end
   let post = published.Unwrap()
   let ids: Slice[String] = [upload.ID]
-  let rolled = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let rolled = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let bound = BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids)
     if bound.IsErr() then return Err(bound.UnwrapErr()) end
-    Err("rollback probe")
+    Err(Of("rollback probe"))
   end)
   if rolled.IsOk() || QueryExists(db.Table("media_bindings").Where("upload_id=?", upload.ID)).Unwrap() then
     t.Fatal("binding survived parent rollback")
   end
   var bindingURL: String = ""
-  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     bindingURL = BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids).Unwrap().Get(0).Unwrap()
     Ok(())
   end).Unwrap()
@@ -79,7 +80,7 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   let _ = repo.Cleanup(ctx, time.Now(), 100).Unwrap()
   let _ = repo.Read(ctx, alice, bindingID, false, transfer).Unwrap()
   let empty: Slice[String] = []
-  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let cleared = BindPostMedia(ctx, tx, site.ID, alice, post.ID, empty)
     if cleared.IsErr() then return Err(cleared.UnwrapErr()) end
     Ok(())
@@ -96,7 +97,7 @@ func TestPostgresMediaBindingsQuotasAndCleanup(t: Ref[testing.T]) -> ()
   let crashCleaned = repo.Cleanup(ctx, time.Now(), 100).Unwrap()
   if crashCleaned != 1 || mediaFS.Root.Lstat("local/" + abandoned.ID).IsOk() then t.Fatalf("crash-stage reservation/source not reconciled: cleaned=%d exists=%t", crashCleaned, mediaFS.Root.Lstat("local/" + abandoned.ID).IsOk()) end
   # Failed unlink leaves a quota-bearing row for a later retry.
-  let failed = repo.Reserve(ctx, alice, "post", "failure").Unwrap()
+  let failed = repo.Reserve(ctx, alice, "post", "failed").Unwrap()
   let _ = mediaFS.Root.Mkdir("local/" + failed.ID, 448 as os.FileMode).Unwrap()
   let _ = os.WriteFile(settings.Root + "/local/" + failed.ID + "/obstruction", "x" as Slice[Byte], 384 as os.FileMode).Unwrap()
   let _ = MutationResult(db.Exec("UPDATE media_uploads SET lease_until=? WHERE id=?", time.Now().Add(0 as time.Duration - time.Minute), failed.ID)).Unwrap()
@@ -139,19 +140,19 @@ func TestPostgresMediaAvatarReplacement(t: Ref[testing.T]) -> ()
   t.Cleanup(func() -> () let _ = mediaFS.Root.Close() end)
   let repo = MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings}
   let upload = repo.Upload(ctx, alice, "avatar", "avatar.png", "image/png", bytes.NewReader(MediaTestPNG(16, 16)) as io.Reader).Unwrap()
-  if RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  if RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let result = repo.BindAvatarTx(ctx, tx, bob, upload.ID)
     if result.IsErr() then return Err(result.UnwrapErr()) end
     Ok(())
   end).IsOk() then t.Fatal("another account reused avatar") end
   var url: String = ""
-  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     url = repo.BindAvatarTx(ctx, tx, alice, upload.ID).Unwrap()
     SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
   end).Unwrap()
-  let noop = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), String] Ok(()) end
+  let noop = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), failure.Failure] Ok(()) end
   let _ = repo.Read(ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop).Unwrap()
-  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let _ = repo.BindAvatarTx(ctx, tx, alice, "").Unwrap()
     SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
   end).Unwrap()

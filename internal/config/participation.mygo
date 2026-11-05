@@ -289,7 +289,7 @@ func SanitizeDefaults(value: Sanitize) -> Sanitize
   end
   let attributes = if OptionalSliceMissing(value.Attributes) then
     defaults.Attributes.Map(func(item: content.SanitizerAttribute) -> SanitizeAttribute
-      SanitizeAttribute{Element: item.Element, Names: item.Names}
+      SanitizeAttribute { Element: item.Element, Names: item.Names }
     end)
   else
     value.Attributes

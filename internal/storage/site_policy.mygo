@@ -6,16 +6,17 @@ import url "go:net/url"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct SiteRepository
   DB: Ref[gorm.DB]
   SiteID: String
 end
 
-func QueryExists(query: Ref[gorm.DB]) -> Result[Bool, String]
+func QueryExists(query: Ref[gorm.DB]) -> Result[Bool, failure.Failure]
   let count = 0i64
   if MutationResult(query.Count(Ref.new(count))).IsErr() then
-    return Err("policy unavailable")
+    return Err(Of("policy unavailable"))
   end
   Ok(count > 0i64)
 end
@@ -25,7 +26,7 @@ impl SiteRepository
     self: SiteRepository,
     ctx: context.Context,
     identity: auth.Identity
-  ) -> Result[Bool, String]
+  ) -> Result[Bool, failure.Failure]
     if !identity.BelongsTo(self.SiteID) then
       return Ok(false)
     end
@@ -40,7 +41,7 @@ impl SiteRepository
     self: SiteRepository,
     ctx: context.Context,
     identity: auth.Identity
-  ) -> Result[Bool, String]
+  ) -> Result[Bool, failure.Failure]
     if identity.AccountID <= 0i64 || identity.ActorURI == "" then
       return Ok(false)
     end
@@ -54,14 +55,14 @@ impl SiteRepository
     self: SiteRepository,
     ctx: context.Context,
     actorURI: String
-  ) -> Result[Bool, String]
+  ) -> Result[Bool, failure.Failure]
     let parsed = url.Parse(actorURI)
     if parsed.IsErr() then
-      return Err("invalid actor identity")
+      return Err(Of("invalid actor identity"))
     end
     let actor = parsed.Unwrap()
     if actor.Scheme != "https" || config.NormalizeAuthority(actor.Host).IsErr() then
-      return Err("invalid actor identity")
+      return Err(Of("invalid actor identity"))
     end
     let domain = strings.ToLower(strings.TrimSuffix(actor.Hostname(), "."))
     let blocked = false
@@ -73,7 +74,7 @@ impl SiteRepository
       domain
     ).Scan(Ref.new(blocked))
     if MutationResult(query).IsErr() then
-      return Err("policy unavailable")
+      return Err(Of("policy unavailable"))
     end
     Ok(blocked)
   end
@@ -83,18 +84,18 @@ impl SiteRepository
     identity: auth.Identity,
     actorURI: String,
     blocked: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let repository = SiteRepository{DB: tx, SiteID: self.SiteID}
         let allowed = repository.IsAdministrator(ctx, identity)
         if allowed.IsErr() then
           return Err(allowed.UnwrapErr())
         end
         if !allowed.Unwrap() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let query = if blocked then
           tx.Exec(
@@ -110,7 +111,7 @@ impl SiteRepository
           )
         end
         if MutationResult(query).IsErr() then
-          return Err("block update failed")
+          return Err(Of("block update failed"))
         end
         let action = if blocked then
           "block-actor"
@@ -133,22 +134,22 @@ impl SiteRepository
     identity: auth.Identity,
     domain: String,
     blocked: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let normalized = strings.ToLower(strings.TrimSuffix(domain, "."))
     if !config.ValidDomain(normalized) then
-      return Err("invalid domain")
+      return Err(Of("invalid domain"))
     end
     RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let repository = SiteRepository{DB: tx, SiteID: self.SiteID}
         let allowed = repository.IsAdministrator(ctx, identity)
         if allowed.IsErr() then
           return Err(allowed.UnwrapErr())
         end
         if !allowed.Unwrap() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let query = if blocked then
           tx.Exec(
@@ -164,7 +165,7 @@ impl SiteRepository
           )
         end
         if MutationResult(query).IsErr() then
-          return Err("block update failed")
+          return Err(Of("block update failed"))
         end
         let action = if blocked then
           "block-domain"

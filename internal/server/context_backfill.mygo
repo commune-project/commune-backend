@@ -57,7 +57,7 @@ func ContextBackfillRoute(
       FetchBackfillPayload
     )
     switch result
-      case Err(reason) => Err(Classify(reason))
+      case Err(reason) => Err(reason)
       case Ok(value) then
         WriteJSON(w, 200, value)
         Ok(())
@@ -70,14 +70,14 @@ func FetchBackfillPayload(
   ctx: context.Context,
   settings: config.Config,
   uri: String
-) -> Result[Slice[Byte], String]
+) -> Result[Slice[Byte], failure.Failure]
   let fetched = federation.Fetch(ctx, uri, FetchLimitsFrom(settings))
   if fetched.IsErr() then
     return Err(fetched.UnwrapErr())
   end
   let response = fetched.Unwrap()
   if response.Status != 200 || !federation.WantsActivityJSON(response.ContentType) then
-    return Err("resource unavailable")
+    return Err(Of("resource unavailable"))
   end
   Ok(response.Body)
 end
@@ -87,7 +87,7 @@ func ResolveBackfillCommunity(
   db: Ref[gorm.DB],
   siteID: String,
   authority: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let hosted = storage.LoadHostedCommunityByActor(ctx, db, siteID, authority)
   if hosted.IsErr() then
     return Err(hosted.UnwrapErr())
@@ -97,7 +97,7 @@ func ResolveBackfillCommunity(
   end
   let replica = storage.LoadReplicaCommunity(ctx, db, authority)
   if replica.IsErr() || replica.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   Ok(replica.Unwrap().Unwrap().ID)
 end
@@ -112,8 +112,8 @@ func ImportBackfilledObject(
   authority: String,
   collectionURI: String,
   objectURI: String,
-  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], String]
-) -> Result[Int, String]
+  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], failure.Failure]
+) -> Result[Int, failure.Failure]
   let existing = storage.LoadObjectByURI(ctx, db, objectURI)
   if existing.IsErr() then
     return Err(existing.UnwrapErr())
@@ -160,7 +160,7 @@ func ImportBackfilledObject(
   end
   let title = sql.NullString { String: object.Name, Valid: object.Name != "" }
   let metadata = json.Marshal(federation.RichMetadata{Source: object.Source, Attachment: object.Attachment, Tag: object.Tag})
-  if metadata.IsErr() then return Err("invalid rich metadata") end
+  if metadata.IsErr() then return Err(Of("invalid rich metadata")) end
   let incoming = storage.PostRecord {
     ID: "",
     ObjectURI: sql.NullString { String: object.ID, Valid: true },
@@ -216,22 +216,22 @@ func BackfillDiscussion(
   contextID: String,
   identity: auth.Identity,
   remoteVerified: Bool,
-  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], String]
-) -> Result[BackfillResult, String]
+  fetcher: func(context.Context, config.Config, String) -> Result[Slice[Byte], failure.Failure]
+) -> Result[BackfillResult, failure.Failure]
   let loaded = storage.LoadDiscussionContext(ctx, db, contextID)
   if loaded.IsErr() || loaded.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let existingContext = loaded.Unwrap().Unwrap()
   if !existingContext.ContextURI.Valid || existingContext.ContextURI.String == "" then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   if existingContext.CommunityID.Valid then
     let existingCommunity = storage.LoadCommunityByID(ctx, db, existingContext.CommunityID.String)
     if existingCommunity.IsErr() ||
       existingCommunity.Unwrap().IsNone() ||
       !federation.FederatedCommunity(existingCommunity.Unwrap().Unwrap()) then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     let allowed = storage.FeedRepository{DB: db, SiteID: site.ID}.AllowRead(
       ctx,
@@ -240,18 +240,18 @@ func BackfillDiscussion(
       remoteVerified
     )
     if allowed.IsErr() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
   end
   let rootURI = existingContext.ContextURI.String
   let rootPayload = fetcher(ctx, settings, rootURI)
   if rootPayload.IsErr() then
-    return Err("context unavailable")
+    return Err(Of("context unavailable"))
   end
   let rootBytes = rootPayload.Unwrap()
   let authority = federation.ContextAuthorityURI(rootBytes)
   if authority == "" then
-    return Err("context authority unavailable")
+    return Err(Of("context authority unavailable"))
   end
   let communityID = ResolveBackfillCommunity(ctx, db, site.ID, authority)
   if communityID.IsErr() then
@@ -259,13 +259,13 @@ func BackfillDiscussion(
   end
   if existingContext.CommunityID.Valid &&
     existingContext.CommunityID.String != communityID.Unwrap() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let community = storage.LoadCommunityByID(ctx, db, communityID.Unwrap())
   if community.IsErr() ||
     community.Unwrap().IsNone() ||
     !federation.FederatedCommunity(community.Unwrap().Unwrap()) then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let allowed = storage.FeedRepository{DB: db, SiteID: site.ID}.AllowRead(
     ctx,
@@ -274,7 +274,7 @@ func BackfillDiscussion(
     remoteVerified
   )
   if allowed.IsErr() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let authorityActor = storage.EnsureRemoteActor(ctx, db, authority, "Group")
   if authorityActor.IsErr() then
@@ -298,7 +298,7 @@ func BackfillDiscussion(
   var examined = 0
   var imported = 0
   var updatedCount = 0
-  var failure = ""
+  var settledFailure: Option[failure.Failure] = None
   while cursor < pending.Len() && pages < maxBackfillPages && examined < maxBackfillItems
     let pageURI = pending.Get(cursor).Unwrap()
     cursor = cursor + 1
@@ -306,7 +306,7 @@ func BackfillDiscussion(
       continue
     end
     let pageBytes = if pageURI == rootURI then
-      Ok[Slice[Byte], String](rootBytes)
+      Ok[Slice[Byte], failure.Failure](rootBytes)
     else
       fetcher(ctx, settings, pageURI)
     end
@@ -327,7 +327,7 @@ func BackfillDiscussion(
       pending = pending.Append(traversal.First)
     end
     traversal.Items.Each(func(itemURI: String) -> ()
-      if failure == "" && examined < maxBackfillItems && !seen.Contains(itemURI) then
+      if settledFailure.IsNone() && examined < maxBackfillItems && !seen.Contains(itemURI) then
         seen = seen.Append(itemURI)
         examined = examined + 1
         let result = ImportBackfilledObject(
@@ -343,7 +343,7 @@ func BackfillDiscussion(
           fetcher
         )
         if result.IsErr() then
-          failure = result.UnwrapErr()
+          settledFailure = Some(result.UnwrapErr())
         else
           if result.Unwrap() == 0 then
             imported = imported + 1
@@ -355,8 +355,8 @@ func BackfillDiscussion(
         end
       end
     end)
-    if failure != "" then
-      return Err(failure)
+    if settledFailure.IsSome() then
+      return Err(settledFailure.Unwrap())
     end
     if traversal.Next != "" && !seen.Contains(traversal.Next) then
       pending = pending.Append(traversal.Next)

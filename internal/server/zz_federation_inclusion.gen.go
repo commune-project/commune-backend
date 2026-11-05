@@ -7,92 +7,93 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_inclusion.mygo:12:1*/func ApplyAnnounce(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
-}, string] {
- /*line federation_inclusion.mygo:13:3*/	if MygoIN6OptionM6IsNone[federation.EmbeddedActivity](activity.Embedded) {
- /*line federation_inclusion.mygo:14:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:16:1*/		}{})
- /*line federation_inclusion.mygo:13:3*/	} else {
- /*line zz_federation_inclusion.gen.go:18:1*/	}
- /*line federation_inclusion.mygo:12:1*/	innerID := MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).ID
- /*line federation_inclusion.mygo:17:3*/	if innerID == "" {
- /*line federation_inclusion.mygo:18:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:22:1*/		}{})
- /*line federation_inclusion.mygo:17:3*/	} else {
- /*line zz_federation_inclusion.gen.go:24:1*/	}
- /*line federation_inclusion.mygo:12:1*/	groupID := ""
+ /*line federation_inclusion.mygo:13:1*/func ApplyAnnounce(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
+}, failure.Failure] {
+ /*line federation_inclusion.mygo:14:3*/	if MygoIN6OptionM6IsNone[federation.EmbeddedActivity](activity.Embedded) {
+ /*line federation_inclusion.mygo:15:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:17:1*/		}{})
+ /*line federation_inclusion.mygo:14:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:19:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	innerID := MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).ID
+ /*line federation_inclusion.mygo:18:3*/	if innerID == "" {
+ /*line federation_inclusion.mygo:19:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:23:1*/		}{})
+ /*line federation_inclusion.mygo:18:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:25:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	groupID := ""
 	hosted := storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.Actor)
- /*line federation_inclusion.mygo:22:3*/	if MygoIN6ResultM4IsOk[Option[storage.CommunityRecord], string](hosted) && MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)) {
-		groupID = MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](hosted)).ID
+ /*line federation_inclusion.mygo:23:3*/	if MygoIN6ResultM4IsOk[Option[storage.CommunityRecord], failure.Failure](hosted) && MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](hosted)) {
+		groupID = MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](hosted)).ID
 	} else {
- /*line zz_federation_inclusion.gen.go:30:1*/	}
- /*line federation_inclusion.mygo:25:3*/	if groupID == "" {
+ /*line zz_federation_inclusion.gen.go:31:1*/	}
+ /*line federation_inclusion.mygo:26:3*/	if groupID == "" {
 		replica := storage.LoadReplicaCommunity(ctx, db, activity.Actor)
-		if MygoIN6ResultM4IsOk[Option[storage.ReplicaCommunity], string](replica) && MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)) {
-			groupID = MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], string](replica)).ID
+		if MygoIN6ResultM4IsOk[Option[storage.ReplicaCommunity], failure.Failure](replica) && MygoIN6OptionM6IsSome[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], failure.Failure](replica)) {
+			groupID = MygoIN6OptionM6Unwrap[storage.ReplicaCommunity](MygoIN6ResultM6Unwrap[Option[storage.ReplicaCommunity], failure.Failure](replica)).ID
 		} else {
- /*line zz_federation_inclusion.gen.go:36:1*/		}
- /*line federation_inclusion.mygo:25:3*/	} else {
- /*line zz_federation_inclusion.gen.go:38:1*/	}
- /*line federation_inclusion.mygo:31:3*/	if groupID == "" {
- /*line federation_inclusion.mygo:32:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:41:1*/		}{})
- /*line federation_inclusion.mygo:31:3*/	} else {
- /*line zz_federation_inclusion.gen.go:43:1*/	}
- /*line federation_inclusion.mygo:12:1*/	inner := storage.LoadActivityPayload(ctx, db, innerID)
- /*line federation_inclusion.mygo:35:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](inner) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](inner)) {
- /*line federation_inclusion.mygo:36:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:47:1*/		}{})
- /*line federation_inclusion.mygo:35:3*/	} else {
- /*line zz_federation_inclusion.gen.go:49:1*/	}
- /*line federation_inclusion.mygo:12:1*/	parsed := federation.ParseActivity(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](inner)).Payload)
- /*line federation_inclusion.mygo:39:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) {
- /*line federation_inclusion.mygo:40:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:53:1*/		}{})
- /*line federation_inclusion.mygo:39:3*/	} else {
- /*line zz_federation_inclusion.gen.go:55:1*/	}
- /*line federation_inclusion.mygo:12:1*/	create := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed)
- /*line federation_inclusion.mygo:43:3*/	if create.Type != "Create" && create.Type != "Remove" || create.ObjectURI == "" {
- /*line federation_inclusion.mygo:44:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:59:1*/		}{})
- /*line federation_inclusion.mygo:43:3*/	} else {
- /*line zz_federation_inclusion.gen.go:61:1*/	}
- /*line federation_inclusion.mygo:12:1*/	post := storage.LoadObjectByURI(ctx, db, create.ObjectURI)
- /*line federation_inclusion.mygo:47:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](post) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post)) {
- /*line federation_inclusion.mygo:48:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:65:1*/		}{})
- /*line federation_inclusion.mygo:47:3*/	} else {
- /*line zz_federation_inclusion.gen.go:67:1*/	}
- /*line federation_inclusion.mygo:12:1*/	record := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](post))
+ /*line zz_federation_inclusion.gen.go:37:1*/		}
+ /*line federation_inclusion.mygo:26:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:39:1*/	}
+ /*line federation_inclusion.mygo:32:3*/	if groupID == "" {
+ /*line federation_inclusion.mygo:33:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:42:1*/		}{})
+ /*line federation_inclusion.mygo:32:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:44:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	inner := storage.LoadActivityPayload(ctx, db, innerID)
+ /*line federation_inclusion.mygo:36:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], failure.Failure](inner) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](inner)) {
+ /*line federation_inclusion.mygo:37:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:48:1*/		}{})
+ /*line federation_inclusion.mygo:36:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:50:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	parsed := federation.ParseActivity(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](inner)).Payload)
+ /*line federation_inclusion.mygo:40:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, failure.Failure](parsed) {
+ /*line federation_inclusion.mygo:41:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:54:1*/		}{})
+ /*line federation_inclusion.mygo:40:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:56:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	create := MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](parsed)
+ /*line federation_inclusion.mygo:44:3*/	if create.Type != "Create" && create.Type != "Remove" || create.ObjectURI == "" {
+ /*line federation_inclusion.mygo:45:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:60:1*/		}{})
+ /*line federation_inclusion.mygo:44:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:62:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	post := storage.LoadObjectByURI(ctx, db, create.ObjectURI)
+ /*line federation_inclusion.mygo:48:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](post) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](post)) {
+ /*line federation_inclusion.mygo:49:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:66:1*/		}{})
+ /*line federation_inclusion.mygo:48:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:68:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	record := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](post))
 	owner := storage.PostCommunityID(ctx, db, record.ID)
- /*line federation_inclusion.mygo:52:3*/	if MygoIN6ResultM5IsErr[string, string](owner) || MygoIN6ResultM6Unwrap[string, string](owner) != groupID {
- /*line federation_inclusion.mygo:53:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:72:1*/		}{})
- /*line federation_inclusion.mygo:52:3*/	} else {
- /*line zz_federation_inclusion.gen.go:74:1*/	}
- /*line federation_inclusion.mygo:12:1*/	authority := storage.CommunityActorURI(ctx, db, groupID)
- /*line federation_inclusion.mygo:56:3*/	if MygoIN6ResultM5IsErr[string, string](authority) {
- /*line federation_inclusion.mygo:57:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:78:1*/		}{})
- /*line federation_inclusion.mygo:56:3*/	} else {
- /*line zz_federation_inclusion.gen.go:80:1*/	}
- /*line federation_inclusion.mygo:59:3*/	if create.Type == "Remove" {
-		removed := storage.RecordScopedRemoval(ctx, db, record.ID, groupID, MygoIN6ResultM6Unwrap[string, string](authority), activity.ID)
- /*line federation_inclusion.mygo:61:5*/		if MygoIN6ResultM5IsErr[int64, string](removed) {
- /*line federation_inclusion.mygo:62:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int64, string](removed))
- /*line federation_inclusion.mygo:61:5*/		} else {
- /*line zz_federation_inclusion.gen.go:86:1*/		}
- /*line federation_inclusion.mygo:64:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:88:1*/		}{})
- /*line federation_inclusion.mygo:59:3*/	} else {
- /*line zz_federation_inclusion.gen.go:90:1*/	}
- /*line federation_inclusion.mygo:12:1*/	recorded := storage.RecordCommunityInclusion(ctx, db, record.ID, groupID, MygoIN6ResultM6Unwrap[string, string](authority), activity.ID)
- /*line federation_inclusion.mygo:67:3*/	if MygoIN6ResultM5IsErr[int64, string](recorded) {
- /*line federation_inclusion.mygo:68:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int64, string](recorded))
- /*line federation_inclusion.mygo:67:3*/	} else {
- /*line zz_federation_inclusion.gen.go:95:1*/	}
- /*line federation_inclusion.mygo:70:3*/	return Ok[struct{}, string](struct {
- /*line zz_federation_inclusion.gen.go:97:1*/	}{})
+ /*line federation_inclusion.mygo:53:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](owner) || MygoIN6ResultM6Unwrap[string, failure.Failure](owner) != groupID {
+ /*line federation_inclusion.mygo:54:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:73:1*/		}{})
+ /*line federation_inclusion.mygo:53:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:75:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	authority := storage.CommunityActorURI(ctx, db, groupID)
+ /*line federation_inclusion.mygo:57:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](authority) {
+ /*line federation_inclusion.mygo:58:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:79:1*/		}{})
+ /*line federation_inclusion.mygo:57:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:81:1*/	}
+ /*line federation_inclusion.mygo:60:3*/	if create.Type == "Remove" {
+		removed := storage.RecordScopedRemoval(ctx, db, record.ID, groupID, MygoIN6ResultM6Unwrap[string, failure.Failure](authority), activity.ID)
+ /*line federation_inclusion.mygo:62:5*/		if MygoIN6ResultM5IsErr[int64, failure.Failure](removed) {
+ /*line federation_inclusion.mygo:63:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[int64, failure.Failure](removed))
+ /*line federation_inclusion.mygo:62:5*/		} else {
+ /*line zz_federation_inclusion.gen.go:87:1*/		}
+ /*line federation_inclusion.mygo:65:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:89:1*/		}{})
+ /*line federation_inclusion.mygo:60:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:91:1*/	}
+ /*line federation_inclusion.mygo:13:1*/	recorded := storage.RecordCommunityInclusion(ctx, db, record.ID, groupID, MygoIN6ResultM6Unwrap[string, failure.Failure](authority), activity.ID)
+ /*line federation_inclusion.mygo:68:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](recorded) {
+ /*line federation_inclusion.mygo:69:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[int64, failure.Failure](recorded))
+ /*line federation_inclusion.mygo:68:3*/	} else {
+ /*line zz_federation_inclusion.gen.go:96:1*/	}
+ /*line federation_inclusion.mygo:71:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_inclusion.gen.go:98:1*/	}{})
 }

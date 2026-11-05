@@ -10,9 +10,10 @@ import "crypto/rand"
 import "net/mail"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line password_reset.mygo:12:1*/type PasswordResetRepository struct {
+ /*line password_reset.mygo:13:1*/type PasswordResetRepository struct {
 	DB                *gorm.DB
 	Site              config.Site
 	EncryptionKey     []byte
@@ -20,42 +21,42 @@ import . "github.com/mygo-lang/mygo/prelude"
 	EmailAttempts     int
 	TokenTTLSeconds   int
 	RateWindowSeconds int
- /*line zz_password_reset.gen.go:23:1*/}
- /*line password_reset.mygo:22:1*/type ResetTokenRecord struct {
+ /*line zz_password_reset.gen.go:24:1*/}
+ /*line password_reset.mygo:23:1*/type ResetTokenRecord struct {
 	ID        string    "gorm:\"column:id\""
 	SiteID    string    "gorm:\"column:site_id\""
 	AccountID int64     "gorm:\"column:account_id\""
 	TokenHash []byte    "gorm:\"column:token_hash\""
 	ExpiresAt time.Time "gorm:\"column:expires_at\""
- /*line zz_password_reset.gen.go:30:1*/}
- /*line password_reset.mygo:30:1*/type ResetMailJob struct {
+ /*line zz_password_reset.gen.go:31:1*/}
+ /*line password_reset.mygo:31:1*/type ResetMailJob struct {
 	ID               string "gorm:\"column:id\""
 	ResetID          string "gorm:\"column:reset_id\""
 	EncryptedPayload []byte "gorm:\"column:encrypted_payload\""
 	Attempts         int    "gorm:\"column:attempts\""
 	Email            string "gorm:\"column:email\""
- /*line zz_password_reset.gen.go:37:1*/}
+ /*line zz_password_reset.gen.go:38:1*/}
 
- /*line password_reset.mygo:38:1*/func ResetEmail(email string) Result[string, string] {
+ /*line password_reset.mygo:39:1*/func ResetEmail(email string) Result[string, failure.Failure] {
 	address := strings.ToLower(strings.TrimSpace(email))
- /*line password_reset.mygo:40:16*/	var __mygo_expr_1 Result[*mail.Address, error]
+ /*line password_reset.mygo:41:16*/	var __mygo_expr_1 Result[*mail.Address, error]
 	__mygo_expr_2, __mygo_expr_0 := mail.ParseAddress(address)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*mail.Address, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*mail.Address, error](__mygo_expr_2)
- /*line zz_password_reset.gen.go:47:1*/	}
- /*line password_reset.mygo:38:1*/	parsed := __mygo_expr_1
- /*line password_reset.mygo:41:3*/	if address == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(address)) > 254 || MygoIN6ResultM5IsErr[*mail.Address, error](parsed) || MygoIN6ResultM6Unwrap[*mail.Address, error](parsed).Address != address {
- /*line password_reset.mygo:45:12*/		return Err[string, string]("invalid reset request")
- /*line password_reset.mygo:41:3*/	} else {
- /*line zz_password_reset.gen.go:52:1*/	}
- /*line password_reset.mygo:47:3*/	return Ok[string, string](address)
- /*line zz_password_reset.gen.go:54:1*/}
- /*line password_reset.mygo:50:1*/func PasswordResetHash(token string) []byte {
- /*line password_reset.mygo:51:3*/	return auth.TokenHash(token)
- /*line zz_password_reset.gen.go:57:1*/}
- /*line password_reset.mygo:54:1*/func MygoIN23PasswordResetRepositoryM6Charge(self PasswordResetRepository, ctx context.Context, ip string, email string, now time.Time) Result[struct{}, string] {
+ /*line zz_password_reset.gen.go:48:1*/	}
+ /*line password_reset.mygo:39:1*/	parsed := __mygo_expr_1
+ /*line password_reset.mygo:42:3*/	if address == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(address)) > 254 || MygoIN6ResultM5IsErr[*mail.Address, error](parsed) || MygoIN6ResultM6Unwrap[*mail.Address, error](parsed).Address != address {
+ /*line password_reset.mygo:46:12*/		return Err[string, failure.Failure](Of("invalid reset request"))
+ /*line password_reset.mygo:42:3*/	} else {
+ /*line zz_password_reset.gen.go:53:1*/	}
+ /*line password_reset.mygo:48:3*/	return Ok[string, failure.Failure](address)
+ /*line zz_password_reset.gen.go:55:1*/}
+ /*line password_reset.mygo:51:1*/func PasswordResetHash(token string) []byte {
+ /*line password_reset.mygo:52:3*/	return auth.TokenHash(token)
+ /*line zz_password_reset.gen.go:58:1*/}
+ /*line password_reset.mygo:55:1*/func MygoIN23PasswordResetRepositoryM6Charge(self PasswordResetRepository, ctx context.Context, ip string, email string, now time.Time) Result[struct{}, failure.Failure] {
 	start := now.Truncate(time.Duration(self.RateWindowSeconds) * time.Second)
 	var dimensions []string = []string{"ip", "email"}
 	var subjects []string = []string{ip, email}
@@ -65,184 +66,184 @@ import . "github.com/mygo-lang/mygo/prelude"
 		count := 0
 		query := self.DB.WithContext(ctx).Raw("INSERT INTO password_reset_rate_limits(site_id,dimension,subject_hash,window_start,attempts) VALUES (?,?,?,?,1) ON CONFLICT(site_id,dimension,subject_hash,window_start) DO UPDATE SET attempts=password_reset_rate_limits.attempts+1 RETURNING attempts", self.Site.ID, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dimensions, index)), auth.TokenHash(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(subjects, index))), start).Scan(&count)
 		if QueryFailed(query) {
- /*line password_reset.mygo:77:16*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:54:1*/		} else {
- /*line zz_password_reset.gen.go:70:1*/		}
- /*line password_reset.mygo:54:1*/		if count > MygoIN6OptionM6Unwrap[int](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(limits, index)) {
- /*line password_reset.mygo:80:16*/			return Err[struct{}, string]("reset rate limited")
- /*line password_reset.mygo:54:1*/		} else {
- /*line zz_password_reset.gen.go:74:1*/		}
- /*line password_reset.mygo:54:1*/		index = index + 1
- /*line zz_password_reset.gen.go:76:1*/	}
- /*line password_reset.mygo:84:5*/	return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen.go:78:1*/	}{})
+ /*line password_reset.mygo:78:16*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:55:1*/		} else {
+ /*line zz_password_reset.gen.go:71:1*/		}
+ /*line password_reset.mygo:55:1*/		if count > MygoIN6OptionM6Unwrap[int](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(limits, index)) {
+ /*line password_reset.mygo:81:16*/			return Err[struct{}, failure.Failure](Of("reset rate limited"))
+ /*line password_reset.mygo:55:1*/		} else {
+ /*line zz_password_reset.gen.go:75:1*/		}
+ /*line password_reset.mygo:55:1*/		index = index + 1
+ /*line zz_password_reset.gen.go:77:1*/	}
+ /*line password_reset.mygo:85:5*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen.go:79:1*/	}{})
 }
- /*line password_reset.mygo:54:1*/func MygoIN23PasswordResetRepositoryM7Request(self PasswordResetRepository, ctx context.Context, email string, ip string, now time.Time) Result[struct{}, string] {
+ /*line password_reset.mygo:55:1*/func MygoIN23PasswordResetRepositoryM7Request(self PasswordResetRepository, ctx context.Context, email string, ip string, now time.Time) Result[struct{}, failure.Failure] {
 	normalized := ResetEmail(email)
- /*line password_reset.mygo:94:5*/	if MygoIN6ResultM5IsErr[string, string](normalized) {
- /*line password_reset.mygo:95:14*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](normalized))
- /*line password_reset.mygo:94:5*/	} else {
- /*line zz_password_reset.gen.go:85:1*/	}
- /*line password_reset.mygo:54:1*/	charged := MygoIN23PasswordResetRepositoryM6Charge(self, ctx, ip, MygoIN6ResultM6Unwrap[string, string](normalized), now)
- /*line password_reset.mygo:98:5*/	if MygoIN6ResultM5IsErr[struct{}, string](charged) {
- /*line password_reset.mygo:99:14*/		return charged
- /*line password_reset.mygo:98:5*/	} else {
- /*line zz_password_reset.gen.go:90:1*/	}
- /*line password_reset.mygo:101:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line password_reset.mygo:104:7*/		account := Zero[AccountRecord]()
-		found := tx.WithContext(ctx).Table("accounts").Where("site_id=? AND email=? AND NOT disabled", self.Site.ID, MygoIN6ResultM6Unwrap[string, string](normalized)).Limit(1).Find(&account)
- /*line password_reset.mygo:111:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line password_reset.mygo:112:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:111:9*/		} else {
- /*line zz_password_reset.gen.go:97:1*/		}
- /*line password_reset.mygo:114:9*/		if found.RowsAffected != int64(1) {
- /*line password_reset.mygo:115:18*/			return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen.go:100:1*/			}{})
- /*line password_reset.mygo:114:9*/		} else {
- /*line zz_password_reset.gen.go:102:1*/		}
- /*line password_reset.mygo:117:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE password_reset_tokens SET consumed_at=? WHERE site_id=? AND account_id=? AND consumed_at IS NULL", now, self.Site.ID, account.ID))) {
- /*line password_reset.mygo:123:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:117:9*/		} else {
- /*line zz_password_reset.gen.go:106:1*/		}
- /*line password_reset.mygo:104:7*/		token := rand.Text()
+ /*line password_reset.mygo:95:5*/	if MygoIN6ResultM5IsErr[string, failure.Failure](normalized) {
+ /*line password_reset.mygo:96:14*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](normalized))
+ /*line password_reset.mygo:95:5*/	} else {
+ /*line zz_password_reset.gen.go:86:1*/	}
+ /*line password_reset.mygo:55:1*/	charged := MygoIN23PasswordResetRepositoryM6Charge(self, ctx, ip, MygoIN6ResultM6Unwrap[string, failure.Failure](normalized), now)
+ /*line password_reset.mygo:99:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](charged) {
+ /*line password_reset.mygo:100:14*/		return charged
+ /*line password_reset.mygo:99:5*/	} else {
+ /*line zz_password_reset.gen.go:91:1*/	}
+ /*line password_reset.mygo:102:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line password_reset.mygo:105:7*/		account := Zero[AccountRecord]()
+		found := tx.WithContext(ctx).Table("accounts").Where("site_id=? AND email=? AND NOT disabled", self.Site.ID, MygoIN6ResultM6Unwrap[string, failure.Failure](normalized)).Limit(1).Find(&account)
+ /*line password_reset.mygo:112:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(found)) {
+ /*line password_reset.mygo:113:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:112:9*/		} else {
+ /*line zz_password_reset.gen.go:98:1*/		}
+ /*line password_reset.mygo:115:9*/		if found.RowsAffected != int64(1) {
+ /*line password_reset.mygo:116:18*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen.go:101:1*/			}{})
+ /*line password_reset.mygo:115:9*/		} else {
+ /*line zz_password_reset.gen.go:103:1*/		}
+ /*line password_reset.mygo:118:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE password_reset_tokens SET consumed_at=? WHERE site_id=? AND account_id=? AND consumed_at IS NULL", now, self.Site.ID, account.ID))) {
+ /*line password_reset.mygo:124:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:118:9*/		} else {
+ /*line zz_password_reset.gen.go:107:1*/		}
+ /*line password_reset.mygo:105:7*/		token := rand.Text()
 		tokenID := rand.Text()
 		expires := now.Add(time.Duration(self.TokenTTLSeconds) * time.Second)
- /*line password_reset.mygo:128:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO password_reset_tokens(id,site_id,account_id,token_hash,created_at,expires_at) VALUES (?,?,?,?,?,?)", tokenID, self.Site.ID, account.ID, auth.TokenHash(token), now, expires))) {
- /*line password_reset.mygo:137:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:128:9*/		} else {
- /*line zz_password_reset.gen.go:113:1*/		}
- /*line password_reset.mygo:104:7*/		link := self.Site.Origin + "/reset-password#token=" + token
+ /*line password_reset.mygo:129:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO password_reset_tokens(id,site_id,account_id,token_hash,created_at,expires_at) VALUES (?,?,?,?,?,?)", tokenID, self.Site.ID, account.ID, auth.TokenHash(token), now, expires))) {
+ /*line password_reset.mygo:138:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:129:9*/		} else {
+ /*line zz_password_reset.gen.go:114:1*/		}
+ /*line password_reset.mygo:105:7*/		link := self.Site.Origin + "/reset-password#token=" + token
 		sealed := auth.SealPasswordReset(self.EncryptionKey, link)
- /*line password_reset.mygo:141:9*/		if MygoIN6ResultM5IsErr[[]byte, string](sealed) {
- /*line password_reset.mygo:142:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:141:9*/		} else {
- /*line zz_password_reset.gen.go:119:1*/		}
- /*line password_reset.mygo:144:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO password_reset_mail_jobs(id,reset_id,encrypted_payload,available_at) VALUES (?,?,?,?)", rand.Text(), tokenID, MygoIN6ResultM6Unwrap[[]byte, string](sealed), now))) {
- /*line password_reset.mygo:151:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:144:9*/		} else {
- /*line zz_password_reset.gen.go:123:1*/		}
- /*line password_reset.mygo:153:9*/		return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen.go:125:1*/		}{})
+ /*line password_reset.mygo:142:9*/		if MygoIN6ResultM5IsErr[[]byte, string](sealed) {
+ /*line password_reset.mygo:143:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:142:9*/		} else {
+ /*line zz_password_reset.gen.go:120:1*/		}
+ /*line password_reset.mygo:145:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO password_reset_mail_jobs(id,reset_id,encrypted_payload,available_at) VALUES (?,?,?,?)", rand.Text(), tokenID, MygoIN6ResultM6Unwrap[[]byte, string](sealed), now))) {
+ /*line password_reset.mygo:152:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:145:9*/		} else {
+ /*line zz_password_reset.gen.go:124:1*/		}
+ /*line password_reset.mygo:154:9*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen.go:126:1*/		}{})
 	})
 }
- /*line password_reset.mygo:54:1*/func MygoIN23PasswordResetRepositoryM7Confirm(self PasswordResetRepository, ctx context.Context, token string, password string, now time.Time) Result[struct{}, string] {
- /*line password_reset.mygo:164:5*/	if !auth.ValidToken(token) {
- /*line password_reset.mygo:165:14*/		return Err[struct{}, string]("invalid reset token")
- /*line password_reset.mygo:164:5*/	} else {
- /*line zz_password_reset.gen.go:132:1*/	}
- /*line password_reset.mygo:54:1*/	hash := auth.HashPassword(password)
- /*line password_reset.mygo:168:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
- /*line password_reset.mygo:169:14*/		return Err[struct{}, string]("invalid reset password")
- /*line password_reset.mygo:168:5*/	} else {
- /*line zz_password_reset.gen.go:137:1*/	}
- /*line password_reset.mygo:171:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line password_reset.mygo:174:7*/		record := Zero[ResetTokenRecord]()
+ /*line password_reset.mygo:55:1*/func MygoIN23PasswordResetRepositoryM7Confirm(self PasswordResetRepository, ctx context.Context, token string, password string, now time.Time) Result[struct{}, failure.Failure] {
+ /*line password_reset.mygo:165:5*/	if !auth.ValidToken(token) {
+ /*line password_reset.mygo:166:14*/		return Err[struct{}, failure.Failure](Of("invalid reset token"))
+ /*line password_reset.mygo:165:5*/	} else {
+ /*line zz_password_reset.gen.go:133:1*/	}
+ /*line password_reset.mygo:55:1*/	hash := auth.HashPassword(password)
+ /*line password_reset.mygo:169:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
+ /*line password_reset.mygo:170:14*/		return Err[struct{}, failure.Failure](Of("invalid reset password"))
+ /*line password_reset.mygo:169:5*/	} else {
+ /*line zz_password_reset.gen.go:138:1*/	}
+ /*line password_reset.mygo:172:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line password_reset.mygo:175:7*/		record := Zero[ResetTokenRecord]()
 		query := tx.Raw("SELECT * FROM password_reset_tokens WHERE site_id=? AND token_hash=? AND expires_at>? AND consumed_at IS NULL FOR UPDATE", self.Site.ID, auth.TokenHash(token), now).Scan(&record)
- /*line password_reset.mygo:182:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line password_reset.mygo:183:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:182:9*/		} else {
- /*line zz_password_reset.gen.go:144:1*/		}
- /*line password_reset.mygo:185:9*/		if query.RowsAffected != int64(1) {
- /*line password_reset.mygo:186:18*/			return Err[struct{}, string]("invalid reset token")
- /*line password_reset.mygo:185:9*/		} else {
- /*line zz_password_reset.gen.go:148:1*/		}
- /*line password_reset.mygo:188:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE accounts SET password_hash=? WHERE site_id=? AND id=? AND NOT disabled", MygoIN6ResultM6Unwrap[string, string](hash), self.Site.ID, record.AccountID))) {
- /*line password_reset.mygo:194:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:188:9*/		} else {
- /*line zz_password_reset.gen.go:152:1*/		}
- /*line password_reset.mygo:196:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE password_reset_tokens SET consumed_at=? WHERE id=?", now, record.ID))) {
- /*line password_reset.mygo:197:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:196:9*/		} else {
- /*line zz_password_reset.gen.go:156:1*/		}
- /*line password_reset.mygo:199:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE password_reset_mail_jobs SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL WHERE reset_id=? AND state IN ('pending','leased')", record.ID))) {
- /*line password_reset.mygo:203:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:199:9*/		} else {
- /*line zz_password_reset.gen.go:160:1*/		}
- /*line password_reset.mygo:205:9*/		return MutationResult(tx.Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND revoked_at IS NULL", now, self.Site.ID, record.AccountID))
- /*line zz_password_reset.gen.go:162:1*/	})
+ /*line password_reset.mygo:183:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line password_reset.mygo:184:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:183:9*/		} else {
+ /*line zz_password_reset.gen.go:145:1*/		}
+ /*line password_reset.mygo:186:9*/		if query.RowsAffected != int64(1) {
+ /*line password_reset.mygo:187:18*/			return Err[struct{}, failure.Failure](Of("invalid reset token"))
+ /*line password_reset.mygo:186:9*/		} else {
+ /*line zz_password_reset.gen.go:149:1*/		}
+ /*line password_reset.mygo:189:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE accounts SET password_hash=? WHERE site_id=? AND id=? AND NOT disabled", MygoIN6ResultM6Unwrap[string, string](hash), self.Site.ID, record.AccountID))) {
+ /*line password_reset.mygo:195:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:189:9*/		} else {
+ /*line zz_password_reset.gen.go:153:1*/		}
+ /*line password_reset.mygo:197:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE password_reset_tokens SET consumed_at=? WHERE id=?", now, record.ID))) {
+ /*line password_reset.mygo:198:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:197:9*/		} else {
+ /*line zz_password_reset.gen.go:157:1*/		}
+ /*line password_reset.mygo:200:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE password_reset_mail_jobs SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL WHERE reset_id=? AND state IN ('pending','leased')", record.ID))) {
+ /*line password_reset.mygo:204:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:200:9*/		} else {
+ /*line zz_password_reset.gen.go:161:1*/		}
+ /*line password_reset.mygo:206:9*/		return MutationResult(tx.Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND revoked_at IS NULL", now, self.Site.ID, record.AccountID))
+ /*line zz_password_reset.gen.go:163:1*/	})
 }
- /*line password_reset.mygo:54:1*/func MygoIN23PasswordResetRepositoryM6Change(self PasswordResetRepository, ctx context.Context, identity auth.Identity, current string, password string) Result[struct{}, string] {
+ /*line password_reset.mygo:55:1*/func MygoIN23PasswordResetRepositoryM6Change(self PasswordResetRepository, ctx context.Context, identity auth.Identity, current string, password string) Result[struct{}, failure.Failure] {
 	hash := auth.HashPassword(password)
- /*line password_reset.mygo:222:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
- /*line password_reset.mygo:223:14*/		return Err[struct{}, string]("invalid reset password")
- /*line password_reset.mygo:222:5*/	} else {
- /*line zz_password_reset.gen.go:169:1*/	}
- /*line password_reset.mygo:225:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line password_reset.mygo:228:7*/		account := Zero[AccountRecord]()
+ /*line password_reset.mygo:223:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
+ /*line password_reset.mygo:224:14*/		return Err[struct{}, failure.Failure](Of("invalid reset password"))
+ /*line password_reset.mygo:223:5*/	} else {
+ /*line zz_password_reset.gen.go:170:1*/	}
+ /*line password_reset.mygo:226:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line password_reset.mygo:229:7*/		account := Zero[AccountRecord]()
 		query := tx.WithContext(ctx).Table("accounts").Where("site_id=? AND id=? AND actor_uri=? AND NOT disabled", self.Site.ID, identity.AccountID, identity.ActorURI).Limit(1).Find(&account)
- /*line password_reset.mygo:236:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line password_reset.mygo:237:18*/			return Err[struct{}, string]("reset unavailable")
- /*line password_reset.mygo:236:9*/		} else {
- /*line zz_password_reset.gen.go:176:1*/		}
- /*line password_reset.mygo:239:9*/		if query.RowsAffected != int64(1) || !auth.VerifyPassword(account.PasswordHash, current) {
- /*line password_reset.mygo:240:18*/			return Err[struct{}, string]("invalid current password")
- /*line password_reset.mygo:239:9*/		} else {
- /*line zz_password_reset.gen.go:180:1*/		}
- /*line password_reset.mygo:242:9*/		return MutationResult(tx.Exec("UPDATE accounts SET password_hash=? WHERE site_id=? AND id=?", MygoIN6ResultM6Unwrap[string, string](hash), self.Site.ID, identity.AccountID))
- /*line zz_password_reset.gen.go:182:1*/	})
+ /*line password_reset.mygo:237:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line password_reset.mygo:238:18*/			return Err[struct{}, failure.Failure](Of("reset unavailable"))
+ /*line password_reset.mygo:237:9*/		} else {
+ /*line zz_password_reset.gen.go:177:1*/		}
+ /*line password_reset.mygo:240:9*/		if query.RowsAffected != int64(1) || !auth.VerifyPassword(account.PasswordHash, current) {
+ /*line password_reset.mygo:241:18*/			return Err[struct{}, failure.Failure](Of("invalid current password"))
+ /*line password_reset.mygo:240:9*/		} else {
+ /*line zz_password_reset.gen.go:181:1*/		}
+ /*line password_reset.mygo:243:9*/		return MutationResult(tx.Exec("UPDATE accounts SET password_hash=? WHERE site_id=? AND id=?", MygoIN6ResultM6Unwrap[string, string](hash), self.Site.ID, identity.AccountID))
+ /*line zz_password_reset.gen.go:183:1*/	})
 }
- /*line password_reset.mygo:253:1*/func DeliverPasswordResetMail(ctx context.Context, db *gorm.DB, key []byte, now time.Time, batch int, leaseSeconds int, maxAttempts int, retrySeconds int, retryMaxSeconds int, send func(string, string) Result[struct {
-}, string]) Result[int, string] {
- /*line password_reset.mygo:265:3*/	if batch < 1 || batch > 1000 || leaseSeconds < 1 || maxAttempts < 1 || retrySeconds < 1 || retryMaxSeconds < retrySeconds {
- /*line password_reset.mygo:271:12*/		return Err[int, string]("invalid reset mail limits")
- /*line password_reset.mygo:265:3*/	} else {
- /*line zz_password_reset.gen.go:189:1*/	}
- /*line password_reset.mygo:253:1*/	lease := rand.Text()
+ /*line password_reset.mygo:254:1*/func DeliverPasswordResetMail(ctx context.Context, db *gorm.DB, key []byte, now time.Time, batch int, leaseSeconds int, maxAttempts int, retrySeconds int, retryMaxSeconds int, send func(string, string) Result[struct {
+}, failure.Failure]) Result[int, failure.Failure] {
+ /*line password_reset.mygo:266:3*/	if batch < 1 || batch > 1000 || leaseSeconds < 1 || maxAttempts < 1 || retrySeconds < 1 || retryMaxSeconds < retrySeconds {
+ /*line password_reset.mygo:272:12*/		return Err[int, failure.Failure](Of("invalid reset mail limits"))
+ /*line password_reset.mygo:266:3*/	} else {
+ /*line zz_password_reset.gen.go:190:1*/	}
+ /*line password_reset.mygo:254:1*/	lease := rand.Text()
 	var jobs []ResetMailJob = []ResetMailJob{}
 	query := db.WithContext(ctx).Raw("WITH ready AS (SELECT j.id FROM password_reset_mail_jobs j JOIN password_reset_tokens t ON t.id=j.reset_id WHERE t.expires_at>? AND t.consumed_at IS NULL AND j.available_at<=? AND j.attempts<? AND (j.state='pending' OR (j.state='leased' AND j.lease_until<=?)) ORDER BY j.available_at,j.id FOR UPDATE OF j SKIP LOCKED LIMIT ?), claimed AS (UPDATE password_reset_mail_jobs j SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1 FROM ready WHERE j.id=ready.id RETURNING j.*) SELECT c.*,a.email FROM claimed c JOIN password_reset_tokens t ON t.id=c.reset_id JOIN accounts a ON a.site_id=t.site_id AND a.id=t.account_id", now, now, maxAttempts, now, batch, lease, now.Add(time.Duration(leaseSeconds)*time.Second)).Scan(&jobs)
- /*line password_reset.mygo:285:3*/	if QueryFailed(query) {
- /*line password_reset.mygo:286:12*/		return Err[int, string]("reset mail unavailable")
- /*line password_reset.mygo:285:3*/	} else {
- /*line zz_password_reset.gen.go:196:1*/	}
- /*line password_reset.mygo:253:1*/	var delivered int = 0
+ /*line password_reset.mygo:286:3*/	if QueryFailed(query) {
+ /*line password_reset.mygo:287:12*/		return Err[int, failure.Failure](Of("reset mail unavailable"))
+ /*line password_reset.mygo:286:3*/	} else {
+ /*line zz_password_reset.gen.go:197:1*/	}
+ /*line password_reset.mygo:254:1*/	var delivered int = 0
 	var failed bool = false
- /*line password_reset.mygo:290:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(jobs, func(job ResetMailJob) {
- /*line password_reset.mygo:290:13*/		opened := auth.OpenPasswordReset(key, job.EncryptedPayload)
-		var __mygo_expr_0 Result[struct{}, string]
+ /*line password_reset.mygo:291:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(jobs, func(job ResetMailJob) {
+ /*line password_reset.mygo:291:13*/		opened := auth.OpenPasswordReset(key, job.EncryptedPayload)
+		var __mygo_expr_0 Result[struct{}, failure.Failure]
 		if MygoIN6ResultM4IsOk[string, string](opened) {
 			__mygo_expr_0 = send(job.Email, MygoIN6ResultM6Unwrap[string, string](opened))
 		} else {
-			__mygo_expr_0 = Err[struct{}, string]("invalid reset payload")
- /*line zz_password_reset.gen.go:206:1*/		}
- /*line password_reset.mygo:290:13*/		sent := __mygo_expr_0
-		terminal := MygoIN6ResultM4IsOk[struct{}, string](sent) || MygoIN6ResultM5IsErr[string, string](opened) || job.Attempts >= maxAttempts
+			__mygo_expr_0 = Err[struct{}, failure.Failure](Of("invalid reset payload"))
+ /*line zz_password_reset.gen.go:207:1*/		}
+ /*line password_reset.mygo:291:13*/		sent := __mygo_expr_0
+		terminal := MygoIN6ResultM4IsOk[struct{}, failure.Failure](sent) || MygoIN6ResultM5IsErr[string, string](opened) || job.Attempts >= maxAttempts
 		var __mygo_expr_2 string
-		if MygoIN6ResultM4IsOk[struct{}, string](sent) {
+		if MygoIN6ResultM4IsOk[struct{}, failure.Failure](sent) {
 			__mygo_expr_2 = "sent"
 		} else {
- /*line password_reset.mygo:301:7*/			var __mygo_expr_1 string
+ /*line password_reset.mygo:302:7*/			var __mygo_expr_1 string
 			if terminal {
 				__mygo_expr_1 = "failed"
 			} else {
 				__mygo_expr_1 = "pending"
- /*line zz_password_reset.gen.go:218:1*/			}
- /*line password_reset.mygo:290:13*/			__mygo_expr_2 = __mygo_expr_1
- /*line zz_password_reset.gen.go:220:1*/		}
- /*line password_reset.mygo:290:13*/		state := __mygo_expr_2
+ /*line zz_password_reset.gen.go:219:1*/			}
+ /*line password_reset.mygo:291:13*/			__mygo_expr_2 = __mygo_expr_1
+ /*line zz_password_reset.gen.go:221:1*/		}
+ /*line password_reset.mygo:291:13*/		state := __mygo_expr_2
 		var __mygo_expr_3 []byte
 		if terminal {
 			__mygo_expr_3 = []byte{}
 		} else {
 			__mygo_expr_3 = job.EncryptedPayload
- /*line zz_password_reset.gen.go:227:1*/		}
- /*line password_reset.mygo:290:13*/		payload := __mygo_expr_3
+ /*line zz_password_reset.gen.go:228:1*/		}
+ /*line password_reset.mygo:291:13*/		payload := __mygo_expr_3
 		delay := VerificationRetrySeconds(retrySeconds, retryMaxSeconds, job.Attempts)
 		settle := db.WithContext(ctx).Exec("UPDATE password_reset_mail_jobs SET state=?,encrypted_payload=?,lease_token=NULL,lease_until=NULL,available_at=? WHERE id=? AND state='leased' AND lease_token=?", state, payload, now.Add(time.Duration(delay)*time.Second), job.ID, lease)
- /*line password_reset.mygo:321:5*/		if QueryFailed(settle) {
+ /*line password_reset.mygo:322:5*/		if QueryFailed(settle) {
 			failed = true
 			return
 		} else {
- /*line password_reset.mygo:324:7*/			if MygoIN6ResultM4IsOk[struct{}, string](sent) && settle.RowsAffected == int64(1) {
+ /*line password_reset.mygo:325:7*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](sent) && settle.RowsAffected == int64(1) {
 				delivered = delivered + 1
 				return
 			} else {
- /*line password_reset.mygo:324:7*/				return
- /*line zz_password_reset.gen.go:240:1*/			}
+ /*line password_reset.mygo:325:7*/				return
+ /*line zz_password_reset.gen.go:241:1*/			}
 		}
 	})
- /*line password_reset.mygo:329:3*/	if failed {
- /*line password_reset.mygo:330:12*/		return Err[int, string]("reset mail unavailable")
- /*line password_reset.mygo:329:3*/	} else {
- /*line zz_password_reset.gen.go:246:1*/	}
- /*line password_reset.mygo:332:3*/	return Ok[int, string](delivered)
- /*line zz_password_reset.gen.go:248:1*/}
+ /*line password_reset.mygo:330:3*/	if failed {
+ /*line password_reset.mygo:331:12*/		return Err[int, failure.Failure](Of("reset mail unavailable"))
+ /*line password_reset.mygo:330:3*/	} else {
+ /*line zz_password_reset.gen.go:247:1*/	}
+ /*line password_reset.mygo:333:3*/	return Ok[int, failure.Failure](delivered)
+ /*line zz_password_reset.gen.go:249:1*/}

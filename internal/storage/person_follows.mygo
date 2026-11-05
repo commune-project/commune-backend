@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func AddPersonFollower(
   ctx: context.Context,
@@ -9,9 +10,9 @@ func AddPersonFollower(
   localActorURI: String,
   follower: String,
   followURI: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if localActorURI == "" || follower == "" || followURI == "" then
-    return Err("invalid follow")
+    return Err(Of("invalid follow"))
   end
   MutationResult(db.WithContext(ctx).Exec(
     "INSERT INTO person_follows(local_actor_uri,follower_actor_uri,follow_uri,state) VALUES (?,?,?,'accepted') ON CONFLICT (local_actor_uri,follower_actor_uri) DO UPDATE SET state='accepted', follow_uri=EXCLUDED.follow_uri, updated_at=now()",
@@ -26,7 +27,7 @@ func RemovePersonFollower(
   db: Ref[gorm.DB],
   localActorURI: String,
   follower: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE person_follows SET state='undone', updated_at=now() WHERE local_actor_uri=? AND follower_actor_uri=?",
     localActorURI,
@@ -39,7 +40,7 @@ func IsPersonFollower(
   db: Ref[gorm.DB],
   localActorURI: String,
   follower: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   QueryExists(db.WithContext(ctx).Table("person_follows").Where(
     "local_actor_uri=? AND follower_actor_uri=? AND state='accepted'",
     localActorURI,
@@ -51,14 +52,14 @@ func CountPersonFollowers(
   ctx: context.Context,
   db: Ref[gorm.DB],
   localActorURI: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   let count: Int64 = 0i64
   let query = db.WithContext(ctx).Table("person_follows").Where(
     "local_actor_uri=? AND state='accepted'",
     localActorURI
   ).Count(Ref.new(count))
   if MutationResult(query).IsErr() then
-    return Err("follower count unavailable")
+    return Err(Of("follower count unavailable"))
   end
   Ok(count)
 end
@@ -69,19 +70,19 @@ func ListPersonFollowers(
   localActorURI: String,
   limit: Int,
   offset: Int
-) -> Result[Slice[String], String]
+) -> Result[Slice[String], failure.Failure]
   var records: Slice[String] = []
   let query = db.WithContext(ctx).Table("person_follows").Select("follower_actor_uri").Where(
     "local_actor_uri=? AND state='accepted'",
     localActorURI
   ).Order("follower_actor_uri").Limit(limit).Offset(offset).Find(Ref.new(records))
   if MutationResult(query).IsErr() then
-    return Err("follower list unavailable")
+    return Err(Of("follower list unavailable"))
   end
   Ok(records)
 end
 
-func LoadActivityKind(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[String, String]
+func LoadActivityKind(ctx: context.Context, db: Ref[gorm.DB], uri: String) -> Result[String, failure.Failure]
   let kind = ""
   let query = db.WithContext(ctx).Raw("SELECT kind FROM activities WHERE uri = ?", uri).Scan(Ref.new(kind))
   return Required(query, kind, "activity unavailable")

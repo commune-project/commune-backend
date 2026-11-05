@@ -48,7 +48,7 @@ func TestPostgresAuthenticationAndSessions(t: Ref[testing.T]) -> ()
     end
   end)
   if accounts.Authenticate(ctx, "a", "alice' OR 1=1 --", "first-site-password").IsOk() ||
-    accounts.Authenticate(ctx, "a", "missing", "first-site-password").UnwrapErr() !=
+    accounts.Authenticate(ctx, "a", "missing", "first-site-password").UnwrapErr().Render() !=
       "invalid credentials" then
     t.Fatal("login input or unknown account handling failed")
   end

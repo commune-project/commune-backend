@@ -2,6 +2,7 @@ package federation
 
 import context "go:context"
 import json "go:encoding/json"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct EmbeddedActivity
   ID: String `json:"id"`
@@ -33,13 +34,13 @@ struct ParsedActivity
 end
 
 # `object` is either an identifier string or an embedded object/activity.
-func ParseActivity(payload: Slice[Byte]) -> Result[ParsedActivity, String]
+func ParseActivity(payload: Slice[Byte]) -> Result[ParsedActivity, failure.Failure]
   let view = Zero[ActivityView]()
   if json.Unmarshal(payload, Ref.new(view)).IsErr() then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   if view.ID == "" || view.Actor == "" || view.Type == "" then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   var objectURI = ""
   var embedded: Option[EmbeddedActivity] = None
@@ -65,7 +66,7 @@ end
 
 # A relayed activity whose claimed author differs from the forwarder must be
 # confirmed through the author's own canonical copy before it can alter state.
-func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limits: FetchLimits, payload: Slice[Byte], signer: ForwardSigner) -> Result[(), String]
+func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limits: FetchLimits, payload: Slice[Byte], signer: ForwardSigner) -> Result[(), failure.Failure]
   if activity.Embedded.IsNone() then
     return Ok(())
   end
@@ -74,7 +75,7 @@ func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limi
     return Ok(())
   end
   if inner.ID == "" then
-    return Err("unverifiable embedded author")
+    return Err(Of("unverifiable embedded author"))
   end
   let canonical = if signer.ActorURI != "" then
     FetchSignedResource(ctx, inner.ID, signer.ActorURI, signer.PrivateKey, limits, ActivityJSONType())
@@ -82,24 +83,24 @@ func VerifyEmbeddedActivity(ctx: context.Context, activity: ParsedActivity, limi
     Fetch(ctx, inner.ID, limits).Map(func(response: FetchResult) -> Slice[Byte] response.Body end)
   end
   if canonical.IsErr() then
-    return Err("unverifiable embedded author")
+    return Err(Of("unverifiable embedded author"))
   end
   let parsed = ParseActivity(canonical.Unwrap())
   if parsed.IsErr() then
-    return Err("unverifiable embedded author")
+    return Err(Of("unverifiable embedded author"))
   end
   let copy = parsed.Unwrap()
   if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type then
-    return Err("unverifiable embedded author")
+    return Err(Of("unverifiable embedded author"))
   end
   let envelope = Zero[ActivityView]()
-  if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then return Err("invalid forwarded activity") end
+  if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then return Err(Of("invalid forwarded activity")) end
   let forwarded = json.Marshal(envelope.Object)
   let authoritative = json.Marshal(canonical.Unwrap() as json.RawMessage)
   let document = Zero[ActivityView]()
-  if json.Unmarshal(envelope.Object as Slice[Byte], Ref.new(document)).IsErr() then return Err("invalid forwarded activity") end
+  if json.Unmarshal(envelope.Object as Slice[Byte], Ref.new(document)).IsErr() then return Err(Of("invalid forwarded activity")) end
   if (document.Object as Slice[Byte]).Len() > 0 && (forwarded.IsErr() || authoritative.IsErr() || (forwarded.Unwrap() as String) != (authoritative.Unwrap() as String)) then
-    return Err("modified forwarded activity")
+    return Err(Of("modified forwarded activity"))
   end
   Ok(())
 end

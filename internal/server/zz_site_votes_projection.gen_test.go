@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,23 +22,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_site_votes_projection.gen_test.go:24:1*/	}
+ /*line zz_site_votes_projection.gen_test.go:25:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Projection", Body: "vote projection", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Projection", Body: "vote projection", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	reactions := storage.ReactionRepository{DB: db, SiteID: site.ID}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, bob, false, 1, ""))
- /*line site_votes_projection_test.mygo:52:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, carol, false, -1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, bob, false, 1, ""))
+ /*line site_votes_projection_test.mygo:52:11*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, post.ID, carol, false, -1, ""))
  /*line site_votes_projection_test.mygo:12:1*/	handler := Handler(settings, db)
 	bobCookies := login(handler, site.Origin, "bob", "bob-password")
 	carolCookies := login(handler, site.Origin, "carol", "carol-password")
@@ -46,7 +47,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line site_votes_projection_test.mygo:58:3*/	if detail.Score != int64(0) || detail.Upvotes != int64(1) || detail.Downvotes != int64(1) || detail.VotedByMe != int64(1) || detail.LikeCount != int64(1) || !detail.LikedByMe || !detail.Permissions.CanVote || !detail.Permissions.CanUpvote || !detail.Permissions.CanDownvote {
  /*line site_votes_projection_test.mygo:67:5*/		t.Fatal("authenticated vote projection was inconsistent")
  /*line site_votes_projection_test.mygo:58:3*/	} else {
- /*line zz_site_votes_projection.gen_test.go:49:1*/	}
+ /*line zz_site_votes_projection.gen_test.go:50:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	latest := Zero[PostPage]()
  /*line site_votes_projection_test.mygo:70:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/topics", bobCookies, 200).Body.Bytes(), &latest)
@@ -54,13 +55,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_site_votes_projection.gen_test.go:57:1*/		}{})
+ /*line zz_site_votes_projection.gen_test.go:58:1*/		}{})
 	}
  /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
  /*line site_votes_projection_test.mygo:74:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(latest.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).VotedByMe != int64(1) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest.Items, 0)).LikeCount != int64(1) {
  /*line site_votes_projection_test.mygo:78:5*/		t.Fatal("latest list did not use the shared vote projection")
  /*line site_votes_projection_test.mygo:74:3*/	} else {
- /*line zz_site_votes_projection.gen_test.go:63:1*/	}
+ /*line zz_site_votes_projection.gen_test.go:64:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	search := Zero[PostPage]()
  /*line site_votes_projection_test.mygo:81:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/search?kind=posts&q=Projection", bobCookies, 200).Body.Bytes(), &search)
@@ -68,32 +69,32 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_site_votes_projection.gen_test.go:71:1*/		}{})
+ /*line zz_site_votes_projection.gen_test.go:72:1*/		}{})
 	}
  /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
  /*line site_votes_projection_test.mygo:85:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(search.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).Score != int64(0) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(search.Items, 0)).VotedByMe != int64(1) {
  /*line site_votes_projection_test.mygo:88:5*/		t.Fatal("search did not use the shared vote projection")
  /*line site_votes_projection_test.mygo:85:3*/	} else {
- /*line zz_site_votes_projection.gen_test.go:77:1*/	}
+ /*line zz_site_votes_projection.gen_test.go:78:1*/	}
  /*line site_votes_projection_test.mygo:12:1*/	var anonymous []*http.Cookie = []*http.Cookie{}
 	public := browserPost(t, browserGet(t, handler, site.Origin, path, anonymous, 200))
  /*line site_votes_projection_test.mygo:92:3*/	if public.Score != int64(0) || public.Upvotes != int64(1) || public.Downvotes != int64(1) || public.VotedByMe != int64(0) || public.Permissions.CanVote || public.Permissions.CanUpvote || public.Permissions.CanDownvote {
  /*line site_votes_projection_test.mygo:99:5*/		t.Fatal("anonymous vote projection leaked personal state or permissions")
  /*line site_votes_projection_test.mygo:92:3*/	} else {
- /*line zz_site_votes_projection.gen_test.go:83:1*/	}
- /*line site_votes_projection_test.mygo:12:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "admin"))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
+ /*line zz_site_votes_projection.gen_test.go:84:1*/	}
+ /*line site_votes_projection_test.mygo:12:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], failure.Failure](storage.FindAccount(ctx, db, site.ID, "admin"))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
 	disabled := browserPost(t, browserGet(t, handler, site.Origin, path, carolCookies, 200))
  /*line site_votes_projection_test.mygo:104:3*/	if disabled.Score != int64(1) || disabled.Upvotes != int64(1) || disabled.Downvotes != int64(0) || disabled.VotedByMe != int64(0) || !disabled.Permissions.CanUpvote || disabled.Permissions.CanDownvote {
  /*line site_votes_projection_test.mygo:110:5*/		t.Fatal("disabled downvotes were not excluded from projections")
  /*line site_votes_projection_test.mygo:104:3*/	} else {
- /*line zz_site_votes_projection.gen_test.go:90:1*/	}
- /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false))
+ /*line zz_site_votes_projection.gen_test.go:91:1*/	}
+ /*line site_votes_projection_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false))
 	none := browserPost(t, browserGet(t, handler, site.Origin, path, bobCookies, 200))
  /*line site_votes_projection_test.mygo:114:3*/	if none.Permissions.CanVote || none.Permissions.CanUpvote || none.Permissions.CanDownvote || none.Upvotes != int64(0) || none.Downvotes != int64(0) || none.Score != int64(0) {
  /*line site_votes_projection_test.mygo:120:5*/		t.Fatal("both-disabled vote settings were not projected consistently")
 		return
  /*line site_votes_projection_test.mygo:114:3*/	} else {
 		return
- /*line zz_site_votes_projection.gen_test.go:98:1*/	}
+ /*line zz_site_votes_projection.gen_test.go:99:1*/	}
 }

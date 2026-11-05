@@ -5,70 +5,71 @@ package storage
 import "context"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line site_votes.mygo:7:1*/type SiteVoteSettingsRecord struct {
+ /*line site_votes.mygo:8:1*/type SiteVoteSettingsRecord struct {
 	SiteID           string "gorm:\"column:site_id\""
 	UpvotesEnabled   bool   "gorm:\"column:upvotes_enabled\""
 	DownvotesEnabled bool   "gorm:\"column:downvotes_enabled\""
- /*line zz_site_votes.gen.go:14:1*/}
+ /*line zz_site_votes.gen.go:15:1*/}
 
- /*line site_votes.mygo:13:1*/func SiteVoteUpEnabled(ctx context.Context, db *gorm.DB, siteID string) bool {
+ /*line site_votes.mygo:14:1*/func SiteVoteUpEnabled(ctx context.Context, db *gorm.DB, siteID string) bool {
 	row := Zero[SiteVoteSettingsRecord]()
 	query := db.WithContext(ctx).Table("site_vote_settings").Where("site_id=?", siteID).Limit(1).Find(&row)
- /*line site_votes.mygo:16:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected == int64(0) {
- /*line site_votes.mygo:17:12*/		return true
- /*line site_votes.mygo:16:3*/	} else {
- /*line zz_site_votes.gen.go:22:1*/	}
- /*line site_votes.mygo:19:3*/	return row.UpvotesEnabled
- /*line zz_site_votes.gen.go:24:1*/}
- /*line site_votes.mygo:22:1*/func SiteVoteDownEnabled(ctx context.Context, db *gorm.DB, siteID string) bool {
+ /*line site_votes.mygo:17:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) || query.RowsAffected == int64(0) {
+ /*line site_votes.mygo:18:12*/		return true
+ /*line site_votes.mygo:17:3*/	} else {
+ /*line zz_site_votes.gen.go:23:1*/	}
+ /*line site_votes.mygo:20:3*/	return row.UpvotesEnabled
+ /*line zz_site_votes.gen.go:25:1*/}
+ /*line site_votes.mygo:23:1*/func SiteVoteDownEnabled(ctx context.Context, db *gorm.DB, siteID string) bool {
 	row := Zero[SiteVoteSettingsRecord]()
 	query := db.WithContext(ctx).Table("site_vote_settings").Where("site_id=?", siteID).Limit(1).Find(&row)
- /*line site_votes.mygo:25:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected == int64(0) {
- /*line site_votes.mygo:26:12*/		return true
- /*line site_votes.mygo:25:3*/	} else {
- /*line zz_site_votes.gen.go:31:1*/	}
- /*line site_votes.mygo:28:3*/	return row.DownvotesEnabled
- /*line zz_site_votes.gen.go:33:1*/}
- /*line site_votes.mygo:31:1*/func UpdateSiteVoteSettings(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, up bool, down bool, hasUp bool, hasDown bool) Result[struct {
-}, string] {
- /*line site_votes.mygo:41:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line site_votes.mygo:44:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
+ /*line site_votes.mygo:26:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) || query.RowsAffected == int64(0) {
+ /*line site_votes.mygo:27:12*/		return true
+ /*line site_votes.mygo:26:3*/	} else {
+ /*line zz_site_votes.gen.go:32:1*/	}
+ /*line site_votes.mygo:29:3*/	return row.DownvotesEnabled
+ /*line zz_site_votes.gen.go:34:1*/}
+ /*line site_votes.mygo:32:1*/func UpdateSiteVoteSettings(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, up bool, down bool, hasUp bool, hasDown bool) Result[struct {
+}, failure.Failure] {
+ /*line site_votes.mygo:42:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line site_votes.mygo:45:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
 		admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 		deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line site_votes.mygo:48:7*/		if MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line site_votes.mygo:49:16*/			return Err[struct{}, string]("vote settings unavailable")
- /*line site_votes.mygo:48:7*/		} else {
- /*line zz_site_votes.gen.go:43:1*/		}
- /*line site_votes.mygo:51:7*/		if !MygoIN6ResultM6Unwrap[bool, string](admin) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
- /*line site_votes.mygo:52:16*/			return Err[struct{}, string]("forbidden")
- /*line site_votes.mygo:51:7*/		} else {
- /*line zz_site_votes.gen.go:47:1*/		}
- /*line site_votes.mygo:54:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING", siteID))) {
- /*line site_votes.mygo:58:16*/			return Err[struct{}, string]("vote settings unavailable")
- /*line site_votes.mygo:54:7*/		} else {
- /*line zz_site_votes.gen.go:51:1*/		}
- /*line site_votes.mygo:44:5*/		current := Zero[SiteVoteSettingsRecord]()
+ /*line site_votes.mygo:49:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line site_votes.mygo:50:16*/			return Err[struct{}, failure.Failure](Of("vote settings unavailable"))
+ /*line site_votes.mygo:49:7*/		} else {
+ /*line zz_site_votes.gen.go:44:1*/		}
+ /*line site_votes.mygo:52:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](admin) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment) {
+ /*line site_votes.mygo:53:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line site_votes.mygo:52:7*/		} else {
+ /*line zz_site_votes.gen.go:48:1*/		}
+ /*line site_votes.mygo:55:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING", siteID))) {
+ /*line site_votes.mygo:59:16*/			return Err[struct{}, failure.Failure](Of("vote settings unavailable"))
+ /*line site_votes.mygo:55:7*/		} else {
+ /*line zz_site_votes.gen.go:52:1*/		}
+ /*line site_votes.mygo:45:5*/		current := Zero[SiteVoteSettingsRecord]()
 		loaded := tx.Raw("SELECT site_id, upvotes_enabled, downvotes_enabled FROM site_vote_settings WHERE site_id=? FOR UPDATE", siteID).Scan(&current)
- /*line site_votes.mygo:65:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
- /*line site_votes.mygo:66:16*/			return Err[struct{}, string]("vote settings unavailable")
- /*line site_votes.mygo:65:7*/		} else {
- /*line zz_site_votes.gen.go:57:1*/		}
- /*line site_votes.mygo:44:5*/		nextUp := current.UpvotesEnabled
+ /*line site_votes.mygo:66:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
+ /*line site_votes.mygo:67:16*/			return Err[struct{}, failure.Failure](Of("vote settings unavailable"))
+ /*line site_votes.mygo:66:7*/		} else {
+ /*line zz_site_votes.gen.go:58:1*/		}
+ /*line site_votes.mygo:45:5*/		nextUp := current.UpvotesEnabled
 		nextDown := current.DownvotesEnabled
- /*line site_votes.mygo:70:7*/		if hasUp {
+ /*line site_votes.mygo:71:7*/		if hasUp {
 			nextUp = up
 		} else {
- /*line zz_site_votes.gen.go:63:1*/		}
- /*line site_votes.mygo:73:7*/		if hasDown {
+ /*line zz_site_votes.gen.go:64:1*/		}
+ /*line site_votes.mygo:74:7*/		if hasDown {
 			nextDown = down
 		} else {
- /*line zz_site_votes.gen.go:67:1*/		}
- /*line site_votes.mygo:76:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE site_vote_settings SET upvotes_enabled=?, downvotes_enabled=?, updated_at=now(), updated_by_actor_uri=? WHERE site_id=?", nextUp, nextDown, identity.ActorURI, siteID))) {
- /*line site_votes.mygo:83:16*/			return Err[struct{}, string]("vote settings unavailable")
- /*line site_votes.mygo:76:7*/		} else {
- /*line zz_site_votes.gen.go:71:1*/		}
- /*line site_votes.mygo:85:7*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'set-vote-settings',?)", identity.ActorURI, siteID, siteID))
- /*line zz_site_votes.gen.go:73:1*/	})
+ /*line zz_site_votes.gen.go:68:1*/		}
+ /*line site_votes.mygo:77:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE site_vote_settings SET upvotes_enabled=?, downvotes_enabled=?, updated_at=now(), updated_by_actor_uri=? WHERE site_id=?", nextUp, nextDown, identity.ActorURI, siteID))) {
+ /*line site_votes.mygo:84:16*/			return Err[struct{}, failure.Failure](Of("vote settings unavailable"))
+ /*line site_votes.mygo:77:7*/		} else {
+ /*line zz_site_votes.gen.go:72:1*/		}
+ /*line site_votes.mygo:86:7*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'set-vote-settings',?)", identity.ActorURI, siteID, siteID))
+ /*line zz_site_votes.gen.go:74:1*/	})
 }

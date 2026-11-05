@@ -6,68 +6,69 @@ import "context"
 import "gorm.io/gorm"
 import "os"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line media_protected.mygo:11:1*/func MygoIN15MediaRepositoryM17ReadVerifiedActor(self MediaRepository, ctx context.Context, identity auth.Identity, bindingID string, preview bool, work func(MediaUpload, *os.File) Result[struct{}, string]) Result[struct{}, string] {
- /*line media_protected.mygo:13:5*/	if identity.ActorURI == "" || identity.AccountID != int64(0) || !MediaFileID(bindingID) {
- /*line media_protected.mygo:14:14*/		return Err[struct{}, string]("not found")
- /*line media_protected.mygo:13:5*/	} else {
- /*line zz_media_protected.gen.go:15:1*/	}
- /*line media_protected.mygo:16:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line media_protected.mygo:16:34*/		binding := Zero[MediaBinding]()
+ /*line media_protected.mygo:12:1*/func MygoIN15MediaRepositoryM17ReadVerifiedActor(self MediaRepository, ctx context.Context, identity auth.Identity, bindingID string, preview bool, work func(MediaUpload, *os.File) Result[struct{}, failure.Failure]) Result[struct{}, failure.Failure] {
+ /*line media_protected.mygo:14:5*/	if identity.ActorURI == "" || identity.AccountID != int64(0) || !MediaFileID(bindingID) {
+ /*line media_protected.mygo:15:14*/		return Err[struct{}, failure.Failure](Of("not found"))
+ /*line media_protected.mygo:14:5*/	} else {
+ /*line zz_media_protected.gen.go:16:1*/	}
+ /*line media_protected.mygo:17:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line media_protected.mygo:17:34*/		binding := Zero[MediaBinding]()
 		loaded := tx.Raw("SELECT * FROM media_bindings WHERE id=? AND site_id=? AND purpose='post' AND active FOR SHARE", bindingID, self.SiteID).Scan(&binding)
- /*line media_protected.mygo:19:7*/		if QueryFailed(loaded) {
- /*line media_protected.mygo:20:16*/			return Err[struct{}, string]("media unavailable")
- /*line media_protected.mygo:19:7*/		} else {
- /*line zz_media_protected.gen.go:22:1*/		}
- /*line media_protected.mygo:22:7*/		if loaded.RowsAffected != int64(1) {
- /*line media_protected.mygo:23:16*/			return Err[struct{}, string]("not found")
- /*line media_protected.mygo:22:7*/		} else {
- /*line zz_media_protected.gen.go:26:1*/		}
- /*line media_protected.mygo:16:34*/		post := Zero[PostRecord]()
+ /*line media_protected.mygo:20:7*/		if QueryFailed(loaded) {
+ /*line media_protected.mygo:21:16*/			return Err[struct{}, failure.Failure](Of("media unavailable"))
+ /*line media_protected.mygo:20:7*/		} else {
+ /*line zz_media_protected.gen.go:23:1*/		}
+ /*line media_protected.mygo:23:7*/		if loaded.RowsAffected != int64(1) {
+ /*line media_protected.mygo:24:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line media_protected.mygo:23:7*/		} else {
+ /*line zz_media_protected.gen.go:27:1*/		}
+ /*line media_protected.mygo:17:34*/		post := Zero[PostRecord]()
 		found := tx.Table("posts AS p").Joins("JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND p.federation_mode='federated' AND NOT EXISTS(SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", binding.PostID).Find(&post)
- /*line media_protected.mygo:27:7*/		if QueryFailed(found) {
- /*line media_protected.mygo:28:16*/			return Err[struct{}, string]("media unavailable")
- /*line media_protected.mygo:27:7*/		} else {
- /*line zz_media_protected.gen.go:32:1*/		}
- /*line media_protected.mygo:30:7*/		if found.RowsAffected != int64(1) {
- /*line media_protected.mygo:31:16*/			return Err[struct{}, string]("not found")
- /*line media_protected.mygo:30:7*/		} else {
- /*line zz_media_protected.gen.go:36:1*/		}
- /*line media_protected.mygo:16:34*/		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
+ /*line media_protected.mygo:28:7*/		if QueryFailed(found) {
+ /*line media_protected.mygo:29:16*/			return Err[struct{}, failure.Failure](Of("media unavailable"))
+ /*line media_protected.mygo:28:7*/		} else {
+ /*line zz_media_protected.gen.go:33:1*/		}
+ /*line media_protected.mygo:31:7*/		if found.RowsAffected != int64(1) {
+ /*line media_protected.mygo:32:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line media_protected.mygo:31:7*/		} else {
+ /*line zz_media_protected.gen.go:37:1*/		}
+ /*line media_protected.mygo:17:34*/		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		checked := MygoIN19CommunityRepositoryM5Check(community, ctx, post.CommunityID, identity, true)
- /*line media_protected.mygo:35:7*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](checked) {
- /*line media_protected.mygo:36:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](checked))
- /*line media_protected.mygo:35:7*/		} else {
- /*line zz_media_protected.gen.go:42:1*/		}
- /*line media_protected.mygo:16:34*/		access := MygoIN6ResultM6Unwrap[CommunityAccess, string](checked)
- /*line media_protected.mygo:39:7*/		if access.Community.FederationMode != "federated" || !access.Subject.Verified || !MygoIN15CommunityAccessM7CanRead(access) {
- /*line media_protected.mygo:40:16*/			return Err[struct{}, string]("not found")
- /*line media_protected.mygo:39:7*/		} else {
- /*line zz_media_protected.gen.go:47:1*/		}
- /*line media_protected.mygo:16:34*/		upload := Zero[MediaUpload]()
+ /*line media_protected.mygo:36:7*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](checked) {
+ /*line media_protected.mygo:37:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](checked))
+ /*line media_protected.mygo:36:7*/		} else {
+ /*line zz_media_protected.gen.go:43:1*/		}
+ /*line media_protected.mygo:17:34*/		access := MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](checked)
+ /*line media_protected.mygo:40:7*/		if access.Community.FederationMode != "federated" || !access.Subject.Verified || !MygoIN15CommunityAccessM7CanRead(access) {
+ /*line media_protected.mygo:41:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line media_protected.mygo:40:7*/		} else {
+ /*line zz_media_protected.gen.go:48:1*/		}
+ /*line media_protected.mygo:17:34*/		upload := Zero[MediaUpload]()
 		original := tx.Raw("SELECT * FROM media_uploads WHERE id=? AND state='ready' FOR SHARE", binding.UploadID).Scan(&upload)
- /*line media_protected.mygo:44:7*/		if QueryFailed(original) {
- /*line media_protected.mygo:45:16*/			return Err[struct{}, string]("media unavailable")
- /*line media_protected.mygo:44:7*/		} else {
- /*line zz_media_protected.gen.go:53:1*/		}
- /*line media_protected.mygo:47:7*/		if original.RowsAffected != int64(1) || preview && upload.PreviewBytes == int64(0) {
- /*line media_protected.mygo:48:16*/			return Err[struct{}, string]("not found")
- /*line media_protected.mygo:47:7*/		} else {
- /*line zz_media_protected.gen.go:57:1*/		}
- /*line media_protected.mygo:50:34*/		var __mygo_expr_0 string
+ /*line media_protected.mygo:45:7*/		if QueryFailed(original) {
+ /*line media_protected.mygo:46:16*/			return Err[struct{}, failure.Failure](Of("media unavailable"))
+ /*line media_protected.mygo:45:7*/		} else {
+ /*line zz_media_protected.gen.go:54:1*/		}
+ /*line media_protected.mygo:48:7*/		if original.RowsAffected != int64(1) || preview && upload.PreviewBytes == int64(0) {
+ /*line media_protected.mygo:49:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line media_protected.mygo:48:7*/		} else {
+ /*line zz_media_protected.gen.go:58:1*/		}
+ /*line media_protected.mygo:51:34*/		var __mygo_expr_0 string
 		if preview {
 			__mygo_expr_0 = "previews"
 		} else {
 			__mygo_expr_0 = "local"
- /*line zz_media_protected.gen.go:63:1*/		}
- /*line media_protected.mygo:16:34*/		file := MygoIN10MediaFilesM4Open(self.Files, __mygo_expr_0, upload.ID)
- /*line media_protected.mygo:51:7*/		if MygoIN6ResultM5IsErr[*os.File, string](file) {
- /*line media_protected.mygo:52:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[*os.File, string](file))
- /*line media_protected.mygo:51:7*/		} else {
- /*line zz_media_protected.gen.go:68:1*/		}
- /*line media_protected.mygo:16:34*/		opened := MygoIN6ResultM6Unwrap[*os.File, string](file)
- /*line media_protected.mygo:55:7*/		defer opened.Close()
- /*line media_protected.mygo:56:7*/		return work(upload, opened)
- /*line zz_media_protected.gen.go:72:1*/	})
+ /*line zz_media_protected.gen.go:64:1*/		}
+ /*line media_protected.mygo:17:34*/		file := MygoIN10MediaFilesM4Open(self.Files, __mygo_expr_0, upload.ID)
+ /*line media_protected.mygo:52:7*/		if MygoIN6ResultM5IsErr[*os.File, failure.Failure](file) {
+ /*line media_protected.mygo:53:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[*os.File, failure.Failure](file))
+ /*line media_protected.mygo:52:7*/		} else {
+ /*line zz_media_protected.gen.go:69:1*/		}
+ /*line media_protected.mygo:17:34*/		opened := MygoIN6ResultM6Unwrap[*os.File, failure.Failure](file)
+ /*line media_protected.mygo:56:7*/		defer opened.Close()
+ /*line media_protected.mygo:57:7*/		return work(upload, opened)
+ /*line zz_media_protected.gen.go:73:1*/	})
 }

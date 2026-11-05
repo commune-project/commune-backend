@@ -6,6 +6,7 @@ import strings "go:strings"
 import time "go:time"
 import rand "go:crypto/rand"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ActorHandleJobRecord
   SiteID: String `gorm:"column:site_id"`
@@ -30,9 +31,9 @@ func QueueActorHandleResolution(
   tx: Ref[gorm.DB],
   siteID: String,
   actorURI: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   if siteID == "" || actorURI == "" then
-    return Err("invalid actor handle job")
+    return Err(Of("invalid actor handle job"))
   end
   let actor = Zero[ActorHandleStateRecord]()
   let loaded = tx.WithContext(ctx).Raw(
@@ -40,7 +41,7 @@ func QueueActorHandleResolution(
     actorURI
   ).Scan(Ref.new(actor))
   if MutationResult(loaded).IsErr() then
-    return Err("actor handle enqueue failed")
+    return Err(Of("actor handle enqueue failed"))
   end
   if loaded.RowsAffected != 1i64 ||
     actor.LocalSiteID.Valid ||
@@ -54,7 +55,7 @@ func QueueActorHandleResolution(
     actorURI
   )
   if MutationResult(inserted).IsErr() then
-    return Err("actor handle enqueue failed")
+    return Err(Of("actor handle enqueue failed"))
   end
   Ok(inserted.RowsAffected)
 end
@@ -65,7 +66,7 @@ func ClaimActorHandleJobs(
   db: Ref[gorm.DB],
   limit: Int,
   leaseSeconds: Int64
-) -> Result[Slice[ActorHandleJobRecord], String]
+) -> Result[Slice[ActorHandleJobRecord], failure.Failure]
   var claimed: Slice[ActorHandleJobRecord] = []
   let token = rand.Text()
   let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
@@ -76,7 +77,7 @@ func ClaimActorHandleJobs(
     limit
   ).Scan(Ref.new(claimed))
   if MutationResult(query).IsErr() then
-    return Err("actor handle claim failed")
+    return Err(Of("actor handle claim failed"))
   end
   Ok(claimed)
 end
@@ -86,7 +87,7 @@ func MarkActorHandleDone(
   db: Ref[gorm.DB],
   siteID: String,
   actorURI: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE actor_handle_jobs SET state='done',lease_token=NULL,lease_until=NULL,error_code=NULL WHERE site_id=? AND actor_uri=?",
     siteID,
@@ -101,7 +102,7 @@ func MarkActorHandleRetry(
   actorURI: String,
   errorCode: String,
   backoffSeconds: Int64
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE actor_handle_jobs SET state='pending',lease_token=NULL,lease_until=NULL,error_code=?,available_at=now() + (? * interval '1 second') WHERE site_id=? AND actor_uri=?",
     errorCode,
@@ -117,7 +118,7 @@ func MarkActorHandleFailed(
   siteID: String,
   actorURI: String,
   errorCode: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE actor_handle_jobs SET state='failed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?",
     errorCode,
@@ -132,7 +133,7 @@ func SuppressActorHandle(
   siteID: String,
   actorURI: String,
   reason: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE actor_handle_jobs SET state='suppressed',lease_token=NULL,lease_until=NULL,error_code=? WHERE site_id=? AND actor_uri=?",
     reason,
@@ -146,9 +147,9 @@ func SaveVerifiedActorHandle(
   db: Ref[gorm.DB],
   actorURI: String,
   acct: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if acct == "" || strings.HasPrefix(acct, "@") || !strings.Contains(acct, "@") then
-    return Err("invalid actor handle")
+    return Err(Of("invalid actor handle"))
   end
   let updated = db.WithContext(ctx).Exec(
     "UPDATE actors SET acct=? WHERE uri=? AND acct=''",
@@ -156,7 +157,7 @@ func SaveVerifiedActorHandle(
     actorURI
   )
   if MutationResult(updated).IsErr() then
-    return Err("actor handle storage failed")
+    return Err(Of("actor handle storage failed"))
   end
   Ok(updated.RowsAffected == 1i64)
 end
@@ -167,7 +168,7 @@ func BootstrapRemoteDisplayName(
   db: Ref[gorm.DB],
   actorURI: String,
   displayName: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if displayName == "" then
     return Ok(())
   end
@@ -177,7 +178,7 @@ func BootstrapRemoteDisplayName(
     actorURI
   ).Scan(Ref.new(actor))
   if MutationResult(loaded).IsErr() then
-    return Err("profile bootstrap failed")
+    return Err(Of("profile bootstrap failed"))
   end
   if loaded.RowsAffected != 1i64 || actor.LocalSiteID.Valid || actor.Kind != "Person" then
     return Ok(())

@@ -1,0 +1,11 @@
+package delivery
+
+import failure "github.com/commune-project/commune-backend/internal/failure"
+
+func Of(reason: String) -> failure.Failure
+  switch failure.Parse(reason)
+    case Ok(value) => value
+    case Err(_) => failure.Failure.Internal(reason)
+  end
+end
+

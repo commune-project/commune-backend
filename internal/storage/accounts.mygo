@@ -9,6 +9,7 @@ import mail "go:net/mail"
 import time "go:time"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct AccountRepository
   DB: Ref[gorm.DB]
@@ -21,47 +22,47 @@ impl AccountRecord
 end
 
 impl AccountRepository
-  func Authenticate(self: AccountRepository, ctx: context.Context, siteID: String, login: String, password: String) -> Result[auth.Identity, String]
+  func Authenticate(self: AccountRepository, ctx: context.Context, siteID: String, login: String, password: String) -> Result[auth.Identity, failure.Failure]
     let identifier = strings.ToLower(strings.TrimSpace(login))
     if siteID == "" || identifier == "" || (identifier as Slice[Byte]).Len() > 254 || (password as Slice[Byte]).Len() > 72 then
-      return Err("invalid credentials")
+      return Err(Of("invalid credentials"))
     end
     let account = Zero[AccountRecord]()
     let query = self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND (username = ? OR email = ?)", siteID, identifier, identifier).Limit(1).Find(Ref.new(account))
     if MutationResult(query).IsErr() then
-      return Err("authentication unavailable")
+      return Err(Of("authentication unavailable"))
     end
     if query.RowsAffected != 1i64 || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) then
-      return Err("invalid credentials")
+      return Err(Of("invalid credentials"))
     end
     Ok(account.Identity())
   end
 
-  func Create(self: AccountRepository, ctx: context.Context, site: config.Site, username: String, email: String, password: String) -> Result[auth.Identity, String]
+  func Create(self: AccountRepository, ctx: context.Context, site: config.Site, username: String, email: String, password: String) -> Result[auth.Identity, failure.Failure]
     if !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username).UnwrapOr(false) then
-      return Err("invalid account input")
+      return Err(Of("invalid account input"))
     end
     let address = strings.ToLower(strings.TrimSpace(email))
     if address != "" then
       let parsed = mail.ParseAddress(address)
       if (address as Slice[Byte]).Len() > 254 || parsed.IsErr() || parsed.Unwrap().Address != address then
-        return Err("invalid account input")
+        return Err(Of("invalid account input"))
       end
     end
     let hash = auth.HashPassword(password)
     let uri = config.CanonicalURI(site, "users", username)
     if hash.IsErr() || uri.IsErr() then
-      return Err("invalid account input")
+      return Err(Of("invalid account input"))
     end
     let account = AccountRecord{ID: 0i64, SiteID: site.ID, ActorURI: uri.Unwrap(), ActorKind: "Person", Username: username, Email: sql.NullString{String: address, Valid: address != ""}, PasswordHash: hash.Unwrap(), Disabled: false, CreatedAt: time.Now()}
-    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    let result = RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?)", uri.Unwrap(), site.ID, uri.Unwrap() + "/inbox")).IsErr() then
-        return Err("account creation failed")
+        return Err(Of("account creation failed"))
       end
       MutationResult(tx.Table("accounts").Create(Ref.new(account)))
     end)
     if result.IsErr() then
-      return Err("account creation failed")
+      return Err(Of("account creation failed"))
     end
     Ok(account.Identity())
   end

@@ -9,68 +9,69 @@ import "net/http/httptest"
 import "time"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line media_fetch_test.mygo:11:1*/func TestPrivateMediaSignedFetchBounds(t *testing.T) {
-	key := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	publicKey := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(key))
+	key := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	publicKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(key))
 	handler := func(w http.ResponseWriter, request *http.Request) {
- /*line media_fetch_test.mygo:15:5*/		if MygoIN6ResultM5IsErr[VerifiedRequest, string](VerifySignedGet(publicKey, request.Method, request.URL.RequestURI(), request.Host, request.Header.Get("Date"), request.Header.Get("Signature"), time.Now(), int64(300))) {
+ /*line media_fetch_test.mygo:15:5*/		if MygoIN6ResultM5IsErr[VerifiedRequest, failure.Failure](VerifySignedGet(publicKey, request.Method, request.URL.RequestURI(), request.Host, request.Header.Get("Date"), request.Header.Get("Signature"), time.Now(), int64(300))) {
  /*line media_fetch_test.mygo:25:7*/			w.WriteHeader(403)
  /*line media_fetch_test.mygo:15:5*/			return
 		} else {
- /*line zz_media_fetch.gen_test.go:22:1*/		}
+ /*line zz_media_fetch.gen_test.go:23:1*/		}
  /*line media_fetch_test.mygo:28:5*/		if request.URL.Path == "/redirect" {
  /*line media_fetch_test.mygo:29:7*/			w.Header().Set("Location", "/ok")
  /*line media_fetch_test.mygo:30:7*/			w.WriteHeader(302)
  /*line media_fetch_test.mygo:28:5*/			return
 		} else {
- /*line zz_media_fetch.gen_test.go:28:1*/		}
+ /*line zz_media_fetch.gen_test.go:29:1*/		}
  /*line media_fetch_test.mygo:33:5*/		if request.URL.Path == "/foreign" {
  /*line media_fetch_test.mygo:34:7*/			w.Header().Set("Location", "http://127.0.0.1:1/secret")
  /*line media_fetch_test.mygo:35:7*/			w.WriteHeader(302)
  /*line media_fetch_test.mygo:33:5*/			return
 		} else {
- /*line zz_media_fetch.gen_test.go:34:1*/		}
+ /*line zz_media_fetch.gen_test.go:35:1*/		}
  /*line media_fetch_test.mygo:40:7*/		var __mygo_expr_0 int
 		if request.URL.Path == "/large" {
 			__mygo_expr_0 = 1025
 		} else {
 			__mygo_expr_0 = 4
- /*line zz_media_fetch.gen_test.go:40:1*/		}
+ /*line zz_media_fetch.gen_test.go:41:1*/		}
  /*line media_fetch_test.mygo:14:17*/		w.Write([]byte(strings.Repeat("x", __mygo_expr_0)))
 		return
- /*line zz_media_fetch.gen_test.go:43:1*/	}
+ /*line zz_media_fetch.gen_test.go:44:1*/	}
  /*line media_fetch_test.mygo:11:1*/	peer := httptest.NewServer(http.HandlerFunc(handler))
  /*line media_fetch_test.mygo:44:3*/	t.Cleanup(func() {
  /*line media_fetch_test.mygo:44:26*/		peer.Close()
 		return
- /*line zz_media_fetch.gen_test.go:48:1*/	})
+ /*line zz_media_fetch.gen_test.go:49:1*/	})
  /*line media_fetch_test.mygo:11:1*/	limits := FetchLimits{AllowPrivate: true, MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2}
 	actor := "https://receiver.example/users/alice"
 	fetched := FetchPrivateMedia(context.Background(), peer.URL+"/redirect", actor, key, limits)
- /*line media_fetch_test.mygo:48:3*/	if MygoIN6ResultM5IsErr[[]byte, string](fetched) || string(MygoIN6ResultM6Unwrap[[]byte, string](fetched)) != "xxxx" {
+ /*line media_fetch_test.mygo:48:3*/	if MygoIN6ResultM5IsErr[[]byte, failure.Failure](fetched) || string(MygoIN6ResultM6Unwrap[[]byte, failure.Failure](fetched)) != "xxxx" {
  /*line media_fetch_test.mygo:49:5*/		t.Fatal("signed media redirect failed")
  /*line media_fetch_test.mygo:48:3*/	} else {
- /*line zz_media_fetch.gen_test.go:55:1*/	}
- /*line media_fetch_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/large", actor, key, limits)) {
+ /*line zz_media_fetch.gen_test.go:56:1*/	}
+ /*line media_fetch_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[[]byte, failure.Failure](FetchPrivateMedia(context.Background(), peer.URL+"/large", actor, key, limits)) {
  /*line media_fetch_test.mygo:52:5*/		t.Fatal("oversized private media accepted")
  /*line media_fetch_test.mygo:51:3*/	} else {
- /*line zz_media_fetch.gen_test.go:59:1*/	}
- /*line media_fetch_test.mygo:54:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/foreign", actor, key, limits)) {
+ /*line zz_media_fetch.gen_test.go:60:1*/	}
+ /*line media_fetch_test.mygo:54:3*/	if MygoIN6ResultM4IsOk[[]byte, failure.Failure](FetchPrivateMedia(context.Background(), peer.URL+"/foreign", actor, key, limits)) {
  /*line media_fetch_test.mygo:55:5*/		t.Fatal("signature crossed origin redirect")
  /*line media_fetch_test.mygo:54:3*/	} else {
- /*line zz_media_fetch.gen_test.go:63:1*/	}
+ /*line zz_media_fetch.gen_test.go:64:1*/	}
  /*line media_fetch_test.mygo:11:1*/	ctx, cancel := context.WithCancel(context.Background())
  /*line media_fetch_test.mygo:58:3*/	cancel()
- /*line media_fetch_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(ctx, peer.URL+"/ok", actor, key, limits)) {
+ /*line media_fetch_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[[]byte, failure.Failure](FetchPrivateMedia(ctx, peer.URL+"/ok", actor, key, limits)) {
  /*line media_fetch_test.mygo:60:5*/		t.Fatal("canceled fetch continued")
  /*line media_fetch_test.mygo:59:3*/	} else {
- /*line zz_media_fetch.gen_test.go:69:1*/	}
- /*line media_fetch_test.mygo:62:3*/	if MygoIN6ResultM4IsOk[[]byte, string](FetchPrivateMedia(context.Background(), peer.URL+"/ok", actor, key, FetchLimits{MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2, AllowPrivate: false})) {
+ /*line zz_media_fetch.gen_test.go:70:1*/	}
+ /*line media_fetch_test.mygo:62:3*/	if MygoIN6ResultM4IsOk[[]byte, failure.Failure](FetchPrivateMedia(context.Background(), peer.URL+"/ok", actor, key, FetchLimits{MaxBytes: 1024, TimeoutSeconds: 2, MaxRedirects: 2, AllowPrivate: false})) {
  /*line media_fetch_test.mygo:74:5*/		t.Fatal("private address bypassed policy")
 		return
  /*line media_fetch_test.mygo:62:3*/	} else {
 		return
- /*line zz_media_fetch.gen_test.go:75:1*/	}
+ /*line zz_media_fetch.gen_test.go:76:1*/	}
 }

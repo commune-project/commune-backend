@@ -4,41 +4,42 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line collections_community.mygo:8:1*/func CountCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string) Result[int64, string] {
+ /*line collections_community.mygo:9:1*/func CountCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string) Result[int64, failure.Failure] {
 	var count int64 = int64(0)
 	query := publicObjectQuery(ctx, db, origin).Where("p.community_id = ?", communityID).Count(&count)
- /*line collections_community.mygo:11:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_community.mygo:12:12*/		return Err[int64, string]("collection unavailable")
- /*line collections_community.mygo:11:3*/	} else {
- /*line zz_collections_community.gen.go:15:1*/	}
- /*line collections_community.mygo:14:3*/	return Ok[int64, string](count)
- /*line zz_collections_community.gen.go:17:1*/}
- /*line collections_community.mygo:17:1*/func ListCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string, limit int, offset int) Result[[]PostRecord, string] {
+ /*line collections_community.mygo:12:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_community.mygo:13:12*/		return Err[int64, failure.Failure](Of("collection unavailable"))
+ /*line collections_community.mygo:12:3*/	} else {
+ /*line zz_collections_community.gen.go:16:1*/	}
+ /*line collections_community.mygo:15:3*/	return Ok[int64, failure.Failure](count)
+ /*line zz_collections_community.gen.go:18:1*/}
+ /*line collections_community.mygo:18:1*/func ListCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string, limit int, offset int) Result[[]PostRecord, failure.Failure] {
 	var records []PostRecord = []PostRecord{}
 	query := publicObjectQuery(ctx, db, origin).Where("p.community_id = ?", communityID).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line collections_community.mygo:20:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_community.mygo:21:12*/		return Err[[]PostRecord, string]("collection unavailable")
- /*line collections_community.mygo:20:3*/	} else {
- /*line zz_collections_community.gen.go:24:1*/	}
- /*line collections_community.mygo:23:3*/	return Ok[[]PostRecord, string](records)
- /*line zz_collections_community.gen.go:26:1*/}
- /*line collections_community.mygo:26:1*/func CountMemberCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string) Result[int64, string] {
+ /*line collections_community.mygo:21:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_community.mygo:22:12*/		return Err[[]PostRecord, failure.Failure](Of("collection unavailable"))
+ /*line collections_community.mygo:21:3*/	} else {
+ /*line zz_collections_community.gen.go:25:1*/	}
+ /*line collections_community.mygo:24:3*/	return Ok[[]PostRecord, failure.Failure](records)
+ /*line zz_collections_community.gen.go:27:1*/}
+ /*line collections_community.mygo:27:1*/func CountMemberCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string) Result[int64, failure.Failure] {
 	var count int64 = int64(0)
 	query := memberObjectQuery(ctx, db, origin, communityID).Count(&count)
- /*line collections_community.mygo:29:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_community.mygo:30:12*/		return Err[int64, string]("collection unavailable")
- /*line collections_community.mygo:29:3*/	} else {
- /*line zz_collections_community.gen.go:33:1*/	}
- /*line collections_community.mygo:32:3*/	return Ok[int64, string](count)
- /*line zz_collections_community.gen.go:35:1*/}
- /*line collections_community.mygo:35:1*/func ListMemberCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string, limit int, offset int) Result[[]PostRecord, string] {
+ /*line collections_community.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_community.mygo:31:12*/		return Err[int64, failure.Failure](Of("collection unavailable"))
+ /*line collections_community.mygo:30:3*/	} else {
+ /*line zz_collections_community.gen.go:34:1*/	}
+ /*line collections_community.mygo:33:3*/	return Ok[int64, failure.Failure](count)
+ /*line zz_collections_community.gen.go:36:1*/}
+ /*line collections_community.mygo:36:1*/func ListMemberCommunityObjects(ctx context.Context, db *gorm.DB, origin string, communityID string, limit int, offset int) Result[[]PostRecord, failure.Failure] {
 	var records []PostRecord = []PostRecord{}
 	query := memberObjectQuery(ctx, db, origin, communityID).Order("p.authored_at DESC, p.id").Limit(limit).Offset(offset).Find(&records)
- /*line collections_community.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line collections_community.mygo:39:12*/		return Err[[]PostRecord, string]("collection unavailable")
- /*line collections_community.mygo:38:3*/	} else {
- /*line zz_collections_community.gen.go:42:1*/	}
- /*line collections_community.mygo:41:3*/	return Ok[[]PostRecord, string](records)
- /*line zz_collections_community.gen.go:44:1*/}
+ /*line collections_community.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line collections_community.mygo:40:12*/		return Err[[]PostRecord, failure.Failure](Of("collection unavailable"))
+ /*line collections_community.mygo:39:3*/	} else {
+ /*line zz_collections_community.gen.go:43:1*/	}
+ /*line collections_community.mygo:42:3*/	return Ok[[]PostRecord, failure.Failure](records)
+ /*line zz_collections_community.gen.go:45:1*/}

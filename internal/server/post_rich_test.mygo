@@ -11,6 +11,7 @@ import federation "github.com/commune-project/commune-backend/internal/federatio
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestMentionDiscoveryCanonicalValidation(t: Ref[testing.T]) -> ()
   let fixture = transport.New().Unwrap()
@@ -20,7 +21,7 @@ func TestMentionDiscoveryCanonicalValidation(t: Ref[testing.T]) -> ()
   let site = settings.Sites.Get(0).Unwrap()
   var calls = 0
   var actorID = "https://remote.example/users/bob"
-  let fetcher = func(ctx: context.Context, options: config.Config, db: Ref[gorm.DB], current: config.Site, uri: String) -> Result[federation.FetchResult, String]
+  let fetcher = func(ctx: context.Context, options: config.Config, db: Ref[gorm.DB], current: config.Site, uri: String) -> Result[federation.FetchResult, failure.Failure]
     calls = calls + 1
     if strings.Contains(uri, "/.well-known/webfinger?") then
       if !strings.Contains(uri, "acct%3Abob%40remote.example") then
@@ -103,7 +104,7 @@ func TestPostgresRichBrowserAndDiscoveryBudget(t: Ref[testing.T]) -> ()
   ).Unwrap()
   let _ = communities.SetMember(ctx, local.ID, alice, false, bob.ActorURI, true).Unwrap()
   var discoveries = 0
-  let discover = func(bounded: context.Context, options: config.Config, connection: Ref[gorm.DB], current: config.Site, username: String, domain: String) -> Result[storage.ResolvedPostMention, String]
+  let discover = func(bounded: context.Context, options: config.Config, connection: Ref[gorm.DB], current: config.Site, username: String, domain: String) -> Result[storage.ResolvedPostMention, failure.Failure]
     discoveries = discoveries + 1
     Ok(storage.ResolvedPostMention{
       ActorURI: "https://remote.example/users/" + username,

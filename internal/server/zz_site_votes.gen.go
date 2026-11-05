@@ -8,64 +8,65 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line site_votes.mygo:9:1*/type SiteVoteSettingsOutput struct {
 	UpvotesEnabled   bool "json:\"upvotes_enabled\""
 	DownvotesEnabled bool "json:\"downvotes_enabled\""
- /*line zz_site_votes.gen.go:16:1*/}
+ /*line zz_site_votes.gen.go:17:1*/}
  /*line site_votes.mygo:14:1*/type SiteVoteSettingsPatch struct {
 	UpvotesEnabled   json.RawMessage "json:\"upvotes_enabled\""
 	DownvotesEnabled json.RawMessage "json:\"downvotes_enabled\""
- /*line zz_site_votes.gen.go:20:1*/}
+ /*line zz_site_votes.gen.go:21:1*/}
 
  /*line site_votes.mygo:19:1*/func SiteVoteSettingsDTO(up bool, down bool) SiteVoteSettingsOutput {
  /*line site_votes.mygo:20:3*/	return SiteVoteSettingsOutput{UpvotesEnabled: up, DownvotesEnabled: down}
- /*line zz_site_votes.gen.go:24:1*/}
+ /*line zz_site_votes.gen.go:25:1*/}
  /*line site_votes.mygo:23:1*/func SiteVoteRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
 	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
 	admin := resource == "admin"
  /*line site_votes.mygo:33:3*/	if resource != "site" && !admin || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "") != "vote-settings" {
  /*line site_votes.mygo:36:12*/		return false
  /*line site_votes.mygo:33:3*/	} else {
- /*line zz_site_votes.gen.go:31:1*/	}
+ /*line zz_site_votes.gen.go:32:1*/	}
  /*line site_votes.mygo:38:3*/	w.Header().Set("Cache-Control", "no-store")
  /*line site_votes.mygo:39:3*/	if !admin {
  /*line site_votes.mygo:40:5*/		if request.Method != "GET" {
  /*line site_votes.mygo:41:7*/			MethodNotAllowed(w, "GET")
  /*line site_votes.mygo:42:14*/			return true
  /*line site_votes.mygo:40:5*/		} else {
- /*line zz_site_votes.gen.go:38:1*/		}
+ /*line zz_site_votes.gen.go:39:1*/		}
  /*line site_votes.mygo:39:3*/		up := storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
 		down := storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
  /*line site_votes.mygo:46:5*/		WriteJSON(w, 200, SiteVoteSettingsDTO(up, down))
  /*line site_votes.mygo:47:12*/		return true
  /*line site_votes.mygo:39:3*/	} else {
- /*line zz_site_votes.gen.go:44:1*/	}
+ /*line zz_site_votes.gen.go:45:1*/	}
  /*line site_votes.mygo:49:3*/	if request.Method != "PUT" {
  /*line site_votes.mygo:50:5*/		MethodNotAllowed(w, "PUT")
  /*line site_votes.mygo:51:12*/		return true
  /*line site_votes.mygo:49:3*/	} else {
- /*line zz_site_votes.gen.go:49:1*/	}
+ /*line zz_site_votes.gen.go:50:1*/	}
  /*line site_votes.mygo:23:1*/	actor := RequireMutation(settings, db, site, request)
- /*line site_votes.mygo:54:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](actor) {
- /*line site_votes.mygo:55:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[auth.Identity, string](actor))
+ /*line site_votes.mygo:54:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](actor) {
+ /*line site_votes.mygo:55:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](actor))
  /*line site_votes.mygo:56:12*/		return true
  /*line site_votes.mygo:54:3*/	} else {
- /*line zz_site_votes.gen.go:55:1*/	}
+ /*line zz_site_votes.gen.go:56:1*/	}
  /*line site_votes.mygo:23:1*/	patch := Zero[SiteVoteSettingsPatch]()
- /*line site_votes.mygo:59:3*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &patch)) {
+ /*line site_votes.mygo:59:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &patch)) {
  /*line site_votes.mygo:60:5*/		WriteErrorJSON(w, 400, "invalid vote settings")
  /*line site_votes.mygo:61:12*/		return true
  /*line site_votes.mygo:59:3*/	} else {
- /*line zz_site_votes.gen.go:61:1*/	}
+ /*line zz_site_votes.gen.go:62:1*/	}
  /*line site_votes.mygo:23:1*/	hasUp := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.UpvotesEnabled)) > 0
 	hasDown := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.DownvotesEnabled)) > 0
  /*line site_votes.mygo:65:3*/	if !hasUp && !hasDown {
  /*line site_votes.mygo:66:5*/		WriteErrorJSON(w, 400, "invalid vote settings")
  /*line site_votes.mygo:67:12*/		return true
  /*line site_votes.mygo:65:3*/	} else {
- /*line zz_site_votes.gen.go:68:1*/	}
+ /*line zz_site_votes.gen.go:69:1*/	}
  /*line site_votes.mygo:23:1*/	up_1 := false
 	down_1 := false
  /*line site_votes.mygo:71:15*/	var __mygo_expr_1 Result[struct{}, error]
@@ -74,33 +75,33 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_site_votes.gen.go:77:1*/		}{})
+ /*line zz_site_votes.gen.go:78:1*/		}{})
 	}
  /*line site_votes.mygo:71:3*/	if hasUp && MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line site_votes.mygo:72:5*/		WriteErrorJSON(w, 400, "invalid vote settings")
  /*line site_votes.mygo:73:12*/		return true
  /*line site_votes.mygo:71:3*/	} else {
- /*line zz_site_votes.gen.go:83:1*/	}
+ /*line zz_site_votes.gen.go:84:1*/	}
  /*line site_votes.mygo:75:17*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal([]byte(patch.DownvotesEnabled), &down_1)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_site_votes.gen.go:90:1*/		}{})
+ /*line zz_site_votes.gen.go:91:1*/		}{})
 	}
  /*line site_votes.mygo:75:3*/	if hasDown && MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) {
  /*line site_votes.mygo:76:5*/		WriteErrorJSON(w, 400, "invalid vote settings")
  /*line site_votes.mygo:77:12*/		return true
  /*line site_votes.mygo:75:3*/	} else {
- /*line zz_site_votes.gen.go:96:1*/	}
- /*line site_votes.mygo:23:1*/	updated := storage.UpdateSiteVoteSettings(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, string](actor), up_1, down_1, hasUp, hasDown)
- /*line site_votes.mygo:89:3*/	if MygoIN6ResultM5IsErr[struct{}, string](updated) {
- /*line site_votes.mygo:90:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](updated))
+ /*line zz_site_votes.gen.go:97:1*/	}
+ /*line site_votes.mygo:23:1*/	updated := storage.UpdateSiteVoteSettings(request.Context(), db, site.ID, MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](actor), up_1, down_1, hasUp, hasDown)
+ /*line site_votes.mygo:89:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](updated) {
+ /*line site_votes.mygo:90:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](updated))
  /*line site_votes.mygo:89:3*/	} else {
 		savedUp := storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
 		savedDown := storage.SiteVoteDownEnabled(request.Context(), db, site.ID)
 		WriteJSON(w, 200, SiteVoteSettingsDTO(savedUp, savedDown))
- /*line zz_site_votes.gen.go:104:1*/	}
+ /*line zz_site_votes.gen.go:105:1*/	}
  /*line site_votes.mygo:96:3*/	return true
- /*line zz_site_votes.gen.go:106:1*/}
+ /*line zz_site_votes.gen.go:107:1*/}

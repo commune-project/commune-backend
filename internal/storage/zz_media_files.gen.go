@@ -16,123 +16,124 @@ import "image/jpeg"
 import "image/gif"
 import "net/http"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line media_files.mygo:20:1*/var mediaRasterMutex *sync.Mutex
- /*line zz_media_files.gen.go:22:1*/
- /*line media_files.mygo:20:1*/func init() {
+ /*line media_files.mygo:21:1*/var mediaRasterMutex *sync.Mutex
+ /*line zz_media_files.gen.go:23:1*/
+ /*line media_files.mygo:21:1*/func init() {
 	mediaRasterMutex = &[]sync.Mutex{sync.Mutex{}}[0]
- /*line zz_media_files.gen.go:25:1*/}
+ /*line zz_media_files.gen.go:26:1*/}
 
- /*line media_files.mygo:22:1*/type MediaFiles struct {
+ /*line media_files.mygo:23:1*/type MediaFiles struct {
 	Root *os.Root
- /*line zz_media_files.gen.go:29:1*/}
- /*line media_files.mygo:26:1*/type MediaInspected struct {
+ /*line zz_media_files.gen.go:30:1*/}
+ /*line media_files.mygo:27:1*/type MediaInspected struct {
 	Type        string
 	Size        int64
 	PreviewSize int64
- /*line zz_media_files.gen.go:34:1*/}
+ /*line zz_media_files.gen.go:35:1*/}
 
- /*line media_files.mygo:34:1*/func OpenMediaFiles(settings config.Media) Result[MediaFiles, string] {
- /*line media_files.mygo:35:3*/	if !settings.Enabled || !filepath.IsAbs(settings.Root) || filepath.Clean(settings.Root) == "/" {
- /*line media_files.mygo:36:12*/		return Err[MediaFiles, string]("media unavailable")
- /*line media_files.mygo:35:3*/	} else {
- /*line zz_media_files.gen.go:40:1*/	}
- /*line media_files.mygo:38:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line media_files.mygo:35:1*/func OpenMediaFiles(settings config.Media) Result[MediaFiles, failure.Failure] {
+ /*line media_files.mygo:36:3*/	if !settings.Enabled || !filepath.IsAbs(settings.Root) || filepath.Clean(settings.Root) == "/" {
+ /*line media_files.mygo:37:12*/		return Err[MediaFiles, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:36:3*/	} else {
+ /*line zz_media_files.gen.go:41:1*/	}
+ /*line media_files.mygo:39:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := os.MkdirAll(settings.Root, os.FileMode(448))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen.go:47:1*/		}{})
+ /*line zz_media_files.gen.go:48:1*/		}{})
 	}
- /*line media_files.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line media_files.mygo:39:12*/		return Err[MediaFiles, string]("media unavailable")
- /*line media_files.mygo:38:3*/	} else {
- /*line zz_media_files.gen.go:52:1*/	}
- /*line media_files.mygo:41:18*/	var __mygo_expr_3 Result[string, error]
+ /*line media_files.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line media_files.mygo:40:12*/		return Err[MediaFiles, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:39:3*/	} else {
+ /*line zz_media_files.gen.go:53:1*/	}
+ /*line media_files.mygo:42:18*/	var __mygo_expr_3 Result[string, error]
 	__mygo_expr_4, __mygo_expr_2 := filepath.EvalSymlinks(settings.Root)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[string, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[string, error](__mygo_expr_4)
- /*line zz_media_files.gen.go:59:1*/	}
- /*line media_files.mygo:34:1*/	resolved := __mygo_expr_3
- /*line media_files.mygo:42:3*/	if MygoIN6ResultM5IsErr[string, error](resolved) || MygoIN6ResultM6Unwrap[string, error](resolved) != filepath.Clean(settings.Root) {
- /*line media_files.mygo:43:12*/		return Err[MediaFiles, string]("media root must not contain symlinks")
- /*line media_files.mygo:42:3*/	} else {
- /*line zz_media_files.gen.go:64:1*/	}
- /*line media_files.mygo:45:16*/	var __mygo_expr_6 Result[*os.Root, error]
+ /*line zz_media_files.gen.go:60:1*/	}
+ /*line media_files.mygo:35:1*/	resolved := __mygo_expr_3
+ /*line media_files.mygo:43:3*/	if MygoIN6ResultM5IsErr[string, error](resolved) || MygoIN6ResultM6Unwrap[string, error](resolved) != filepath.Clean(settings.Root) {
+ /*line media_files.mygo:44:12*/		return Err[MediaFiles, failure.Failure](Of("media root must not contain symlinks"))
+ /*line media_files.mygo:43:3*/	} else {
+ /*line zz_media_files.gen.go:65:1*/	}
+ /*line media_files.mygo:46:16*/	var __mygo_expr_6 Result[*os.Root, error]
 	__mygo_expr_7, __mygo_expr_5 := os.OpenRoot(settings.Root)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[*os.Root, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[*os.Root, error](__mygo_expr_7)
- /*line zz_media_files.gen.go:71:1*/	}
- /*line media_files.mygo:34:1*/	opened := __mygo_expr_6
- /*line media_files.mygo:46:3*/	if MygoIN6ResultM5IsErr[*os.Root, error](opened) {
- /*line media_files.mygo:47:12*/		return Err[MediaFiles, string]("media unavailable")
- /*line media_files.mygo:46:3*/	} else {
- /*line zz_media_files.gen.go:76:1*/	}
- /*line media_files.mygo:34:1*/	root := MygoIN6ResultM6Unwrap[*os.Root, error](opened)
+ /*line zz_media_files.gen.go:72:1*/	}
+ /*line media_files.mygo:35:1*/	opened := __mygo_expr_6
+ /*line media_files.mygo:47:3*/	if MygoIN6ResultM5IsErr[*os.Root, error](opened) {
+ /*line media_files.mygo:48:12*/		return Err[MediaFiles, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:47:3*/	} else {
+ /*line zz_media_files.gen.go:77:1*/	}
+ /*line media_files.mygo:35:1*/	root := MygoIN6ResultM6Unwrap[*os.Root, error](opened)
 	var namespaces []string = []string{"temporary", "local", "previews", "private-cache"}
-	var failure bool = false
- /*line media_files.mygo:52:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(namespaces, func(name string) {
- /*line media_files.mygo:53:16*/		var __mygo_expr_9 Result[struct{}, error]
+	var failed bool = false
+ /*line media_files.mygo:53:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(namespaces, func(name string) {
+ /*line media_files.mygo:54:16*/		var __mygo_expr_9 Result[struct{}, error]
 		__mygo_expr_8 := root.Mkdir(name, os.FileMode(448))
 		if __mygo_expr_8 != nil {
 			__mygo_expr_9 = Err[struct{}, error](__mygo_expr_8)
 		} else {
 			__mygo_expr_9 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen.go:87:1*/			}{})
+ /*line zz_media_files.gen.go:88:1*/			}{})
 		}
- /*line media_files.mygo:52:19*/		made := __mygo_expr_9
- /*line media_files.mygo:54:5*/		if MygoIN6ResultM5IsErr[struct{}, error](made) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](made), os.ErrExist) {
-			failure = true
+ /*line media_files.mygo:53:19*/		made := __mygo_expr_9
+ /*line media_files.mygo:55:5*/		if MygoIN6ResultM5IsErr[struct{}, error](made) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](made), os.ErrExist) {
+			failed = true
 		} else {
- /*line zz_media_files.gen.go:93:1*/		}
- /*line media_files.mygo:57:16*/		var __mygo_expr_11 Result[os.FileInfo, error]
+ /*line zz_media_files.gen.go:94:1*/		}
+ /*line media_files.mygo:58:16*/		var __mygo_expr_11 Result[os.FileInfo, error]
 		__mygo_expr_12, __mygo_expr_10 := root.Lstat(name)
 		if __mygo_expr_10 != nil {
 			__mygo_expr_11 = Err[os.FileInfo, error](__mygo_expr_10)
 		} else {
 			__mygo_expr_11 = Ok[os.FileInfo, error](__mygo_expr_12)
- /*line zz_media_files.gen.go:100:1*/		}
- /*line media_files.mygo:52:19*/		info := __mygo_expr_11
- /*line media_files.mygo:58:5*/		if MygoIN6ResultM5IsErr[os.FileInfo, error](info) {
-			failure = true
+ /*line zz_media_files.gen.go:101:1*/		}
+ /*line media_files.mygo:53:19*/		info := __mygo_expr_11
+ /*line media_files.mygo:59:5*/		if MygoIN6ResultM5IsErr[os.FileInfo, error](info) {
+			failed = true
 			return
 		} else {
- /*line media_files.mygo:61:7*/			if !MygoIN6ResultM6Unwrap[os.FileInfo, error](info).IsDir() {
-				failure = true
+ /*line media_files.mygo:62:7*/			if !MygoIN6ResultM6Unwrap[os.FileInfo, error](info).IsDir() {
+				failed = true
 				return
 			} else {
- /*line media_files.mygo:61:7*/				return
- /*line zz_media_files.gen.go:111:1*/			}
+ /*line media_files.mygo:62:7*/				return
+ /*line zz_media_files.gen.go:112:1*/			}
 		}
 	})
- /*line media_files.mygo:66:3*/	if failure {
+ /*line media_files.mygo:67:3*/	if failed {
 		root.Close()
- /*line media_files.mygo:68:12*/		return Err[MediaFiles, string]("media namespace unavailable")
- /*line media_files.mygo:66:3*/	} else {
- /*line zz_media_files.gen.go:118:1*/	}
- /*line media_files.mygo:70:3*/	return Ok[MediaFiles, string](MediaFiles{Root: root})
- /*line zz_media_files.gen.go:120:1*/}
- /*line media_files.mygo:73:1*/func MediaFileID(id string) bool {
- /*line media_files.mygo:74:3*/	return MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(id) >= 16 && MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(id) <= 128 && MygoIN5SliceM3All(MygoIT9ISequenceFN15StringISequenceGN6StringN4RuneEM7ToSlice(id), func(ch rune) bool {
- /*line media_files.mygo:77:7*/		return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '-' || ch == '_'
- /*line zz_media_files.gen.go:124:1*/	})
+ /*line media_files.mygo:69:12*/		return Err[MediaFiles, failure.Failure](Of("media namespace unavailable"))
+ /*line media_files.mygo:67:3*/	} else {
+ /*line zz_media_files.gen.go:119:1*/	}
+ /*line media_files.mygo:71:3*/	return Ok[MediaFiles, failure.Failure](MediaFiles{Root: root})
+ /*line zz_media_files.gen.go:121:1*/}
+ /*line media_files.mygo:74:1*/func MediaFileID(id string) bool {
+ /*line media_files.mygo:75:3*/	return MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(id) >= 16 && MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(id) <= 128 && MygoIN5SliceM3All(MygoIT9ISequenceFN15StringISequenceGN6StringN4RuneEM7ToSlice(id), func(ch rune) bool {
+ /*line media_files.mygo:78:7*/		return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '-' || ch == '_'
+ /*line zz_media_files.gen.go:125:1*/	})
 }
- /*line media_files.mygo:85:1*/func MediaSafeName(name string) string {
+ /*line media_files.mygo:86:1*/func MediaSafeName(name string) string {
 	cleaned := MygoIN6StringM9FromRunes(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIT9ISequenceFN15StringISequenceGN6StringN4RuneEM7ToSlice(name), func(ch rune) rune {
- /*line media_files.mygo:86:53*/		code := int(ch)
- /*line media_files.mygo:88:5*/		if code < 32 || code == 127 || ch == '/' || ch == '\\' {
- /*line media_files.mygo:89:7*/			return '_'
- /*line media_files.mygo:88:5*/		} else {
- /*line media_files.mygo:91:7*/			return ch
- /*line zz_media_files.gen.go:133:1*/		}
+ /*line media_files.mygo:87:53*/		code := int(ch)
+ /*line media_files.mygo:89:5*/		if code < 32 || code == 127 || ch == '/' || ch == '\\' {
+ /*line media_files.mygo:90:7*/			return '_'
+ /*line media_files.mygo:89:5*/		} else {
+ /*line media_files.mygo:92:7*/			return ch
+ /*line zz_media_files.gen.go:134:1*/		}
 	}))
- /*line media_files.mygo:94:3*/	var __mygo_expr_0 string
+ /*line media_files.mygo:95:3*/	var __mygo_expr_0 string
 	if cleaned == "" {
 		__mygo_expr_0 = "download"
 	} else {
@@ -142,223 +143,225 @@ import . "github.com/mygo-lang/mygo/prelude"
 			if cleaned == ".." {
 				__mygo_expr_0 = "download"
 			} else {
- /*line media_files.mygo:98:15*/				var __mygo_expr_1 string
+ /*line media_files.mygo:99:15*/				var __mygo_expr_1 string
 				if MygoIT11IEnumerableFN17StringIEnumerableGN6StringN4RuneEM3Len(cleaned) > 180 {
 					__mygo_expr_1 = "download"
 				} else {
 					__mygo_expr_1 = cleaned
- /*line zz_media_files.gen.go:150:1*/				}
- /*line media_files.mygo:94:3*/				__mygo_expr_0 = __mygo_expr_1
- /*line zz_media_files.gen.go:152:1*/			}
+ /*line zz_media_files.gen.go:151:1*/				}
+ /*line media_files.mygo:95:3*/				__mygo_expr_0 = __mygo_expr_1
+ /*line zz_media_files.gen.go:153:1*/			}
 		}
 	}
- /*line media_files.mygo:94:3*/	return __mygo_expr_0
- /*line zz_media_files.gen.go:156:1*/}
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM4Open(self MediaFiles, namespace string, id string) Result[*os.File, string] {
- /*line media_files.mygo:104:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "previews" && namespace != "private-cache" && namespace != "temporary" {
- /*line media_files.mygo:105:14*/		return Err[*os.File, string]("not found")
- /*line media_files.mygo:104:5*/	} else {
- /*line zz_media_files.gen.go:161:1*/	}
- /*line media_files.mygo:102:1*/	flags := os.O_RDONLY | syscall.O_NOFOLLOW
- /*line media_files.mygo:108:18*/	var __mygo_expr_1 Result[*os.File, error]
+ /*line media_files.mygo:95:3*/	return __mygo_expr_0
+ /*line zz_media_files.gen.go:157:1*/}
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM4Open(self MediaFiles, namespace string, id string) Result[*os.File, failure.Failure] {
+ /*line media_files.mygo:105:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "previews" && namespace != "private-cache" && namespace != "temporary" {
+ /*line media_files.mygo:106:14*/		return Err[*os.File, failure.Failure](Of("not found"))
+ /*line media_files.mygo:105:5*/	} else {
+ /*line zz_media_files.gen.go:162:1*/	}
+ /*line media_files.mygo:103:1*/	flags := os.O_RDONLY | syscall.O_NOFOLLOW
+ /*line media_files.mygo:109:18*/	var __mygo_expr_1 Result[*os.File, error]
 	__mygo_expr_2, __mygo_expr_0 := self.Root.OpenFile(namespace+"/"+id, flags, os.FileMode(0))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*os.File, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*os.File, error](__mygo_expr_2)
- /*line zz_media_files.gen.go:169:1*/	}
- /*line media_files.mygo:102:1*/	opened := __mygo_expr_1
- /*line media_files.mygo:109:5*/	if MygoIN6ResultM5IsErr[*os.File, error](opened) {
- /*line media_files.mygo:110:14*/		return Err[*os.File, string]("media unavailable")
- /*line media_files.mygo:109:5*/	} else {
- /*line zz_media_files.gen.go:174:1*/	}
- /*line media_files.mygo:112:16*/	var __mygo_expr_4 Result[os.FileInfo, error]
+ /*line zz_media_files.gen.go:170:1*/	}
+ /*line media_files.mygo:103:1*/	opened := __mygo_expr_1
+ /*line media_files.mygo:110:5*/	if MygoIN6ResultM5IsErr[*os.File, error](opened) {
+ /*line media_files.mygo:111:14*/		return Err[*os.File, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:110:5*/	} else {
+ /*line zz_media_files.gen.go:175:1*/	}
+ /*line media_files.mygo:113:16*/	var __mygo_expr_4 Result[os.FileInfo, error]
 	__mygo_expr_5, __mygo_expr_3 := MygoIN6ResultM6Unwrap[*os.File, error](opened).Stat()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[os.FileInfo, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[os.FileInfo, error](__mygo_expr_5)
- /*line zz_media_files.gen.go:181:1*/	}
- /*line media_files.mygo:102:1*/	info := __mygo_expr_4
- /*line media_files.mygo:113:5*/	if MygoIN6ResultM5IsErr[os.FileInfo, error](info) {
+ /*line zz_media_files.gen.go:182:1*/	}
+ /*line media_files.mygo:103:1*/	info := __mygo_expr_4
+ /*line media_files.mygo:114:5*/	if MygoIN6ResultM5IsErr[os.FileInfo, error](info) {
 		MygoIN6ResultM6Unwrap[*os.File, error](opened).Close()
- /*line media_files.mygo:115:14*/		return Err[*os.File, string]("media unavailable")
- /*line media_files.mygo:113:5*/	} else {
- /*line zz_media_files.gen.go:187:1*/	}
- /*line media_files.mygo:102:1*/	stat := MygoIN6ResultM6Unwrap[os.FileInfo, error](info)
+ /*line media_files.mygo:116:14*/		return Err[*os.File, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:114:5*/	} else {
+ /*line zz_media_files.gen.go:188:1*/	}
+ /*line media_files.mygo:103:1*/	stat := MygoIN6ResultM6Unwrap[os.FileInfo, error](info)
 	regular := stat.Mode().IsRegular()
- /*line media_files.mygo:119:5*/	if !regular {
+ /*line media_files.mygo:120:5*/	if !regular {
 		MygoIN6ResultM6Unwrap[*os.File, error](opened).Close()
- /*line media_files.mygo:121:14*/		return Err[*os.File, string]("media unavailable")
- /*line media_files.mygo:119:5*/	} else {
- /*line zz_media_files.gen.go:194:1*/	}
- /*line media_files.mygo:123:5*/	return Ok[*os.File, string](MygoIN6ResultM6Unwrap[*os.File, error](opened))
- /*line zz_media_files.gen.go:196:1*/}
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM6Remove(self MediaFiles, namespace string, id string) Result[struct{}, string] {
- /*line media_files.mygo:127:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "previews" && namespace != "temporary" && namespace != "private-cache" {
- /*line media_files.mygo:128:14*/		return Err[struct{}, string]("invalid media path")
- /*line media_files.mygo:127:5*/	} else {
- /*line zz_media_files.gen.go:201:1*/	}
- /*line media_files.mygo:130:19*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line media_files.mygo:122:14*/		return Err[*os.File, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:120:5*/	} else {
+ /*line zz_media_files.gen.go:195:1*/	}
+ /*line media_files.mygo:124:5*/	return Ok[*os.File, failure.Failure](MygoIN6ResultM6Unwrap[*os.File, error](opened))
+ /*line zz_media_files.gen.go:197:1*/}
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM6Remove(self MediaFiles, namespace string, id string) Result[struct{}, failure.Failure] {
+ /*line media_files.mygo:128:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "previews" && namespace != "temporary" && namespace != "private-cache" {
+ /*line media_files.mygo:129:14*/		return Err[struct{}, failure.Failure](Of("invalid media path"))
+ /*line media_files.mygo:128:5*/	} else {
+ /*line zz_media_files.gen.go:202:1*/	}
+ /*line media_files.mygo:131:19*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := self.Root.Remove(namespace + "/" + id)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen.go:208:1*/		}{})
+ /*line zz_media_files.gen.go:209:1*/		}{})
 	}
- /*line media_files.mygo:102:1*/	removed := __mygo_expr_1
- /*line media_files.mygo:131:5*/	if MygoIN6ResultM5IsErr[struct{}, error](removed) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](removed), os.ErrNotExist) {
- /*line media_files.mygo:132:14*/		return Err[struct{}, string]("media unlink failed")
- /*line media_files.mygo:131:5*/	} else {
- /*line zz_media_files.gen.go:214:1*/	}
- /*line media_files.mygo:134:5*/	return Ok[struct{}, string](struct {
- /*line zz_media_files.gen.go:216:1*/	}{})
+ /*line media_files.mygo:103:1*/	removed := __mygo_expr_1
+ /*line media_files.mygo:132:5*/	if MygoIN6ResultM5IsErr[struct{}, error](removed) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](removed), os.ErrNotExist) {
+ /*line media_files.mygo:133:14*/		return Err[struct{}, failure.Failure](Of("media unlink failed"))
+ /*line media_files.mygo:132:5*/	} else {
+ /*line zz_media_files.gen.go:215:1*/	}
+ /*line media_files.mygo:135:5*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_media_files.gen.go:217:1*/	}{})
 }
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM6Stream(self MediaFiles, ctx context.Context, id string, reader io.Reader, limit int64) Result[int64, string] {
- /*line media_files.mygo:138:5*/	if !MediaFileID(id) || limit <= int64(0) {
- /*line media_files.mygo:139:14*/		return Err[int64, string]("invalid media path")
- /*line media_files.mygo:138:5*/	} else {
- /*line zz_media_files.gen.go:222:1*/	}
- /*line media_files.mygo:102:1*/	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW
- /*line media_files.mygo:142:18*/	var __mygo_expr_1 Result[*os.File, error]
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM6Stream(self MediaFiles, ctx context.Context, id string, reader io.Reader, limit int64) Result[int64, failure.Failure] {
+ /*line media_files.mygo:139:5*/	if !MediaFileID(id) || limit <= int64(0) {
+ /*line media_files.mygo:140:14*/		return Err[int64, failure.Failure](Of("invalid media path"))
+ /*line media_files.mygo:139:5*/	} else {
+ /*line zz_media_files.gen.go:223:1*/	}
+ /*line media_files.mygo:103:1*/	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW
+ /*line media_files.mygo:143:18*/	var __mygo_expr_1 Result[*os.File, error]
 	__mygo_expr_2, __mygo_expr_0 := self.Root.OpenFile("temporary/"+id, flags, os.FileMode(384))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*os.File, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*os.File, error](__mygo_expr_2)
- /*line zz_media_files.gen.go:230:1*/	}
- /*line media_files.mygo:102:1*/	opened := __mygo_expr_1
- /*line media_files.mygo:143:5*/	if MygoIN6ResultM5IsErr[*os.File, error](opened) {
- /*line media_files.mygo:144:14*/		return Err[int64, string]("media unavailable")
- /*line media_files.mygo:143:5*/	} else {
- /*line zz_media_files.gen.go:235:1*/	}
- /*line media_files.mygo:102:1*/	file := MygoIN6ResultM6Unwrap[*os.File, error](opened)
- /*line media_files.mygo:147:5*/	defer file.Close()
- /*line media_files.mygo:102:1*/	copied := func() Result[int64, string] {
- /*line media_files.mygo:149:18*/		var total int64
+ /*line zz_media_files.gen.go:231:1*/	}
+ /*line media_files.mygo:103:1*/	opened := __mygo_expr_1
+ /*line media_files.mygo:144:5*/	if MygoIN6ResultM5IsErr[*os.File, error](opened) {
+ /*line media_files.mygo:145:14*/		return Err[int64, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:144:5*/	} else {
+ /*line zz_media_files.gen.go:236:1*/	}
+ /*line media_files.mygo:103:1*/	file := MygoIN6ResultM6Unwrap[*os.File, error](opened)
+ /*line media_files.mygo:148:5*/	defer file.Close()
+ /*line media_files.mygo:103:1*/	copied := func() Result[int64, string] {
+ /*line media_files.mygo:150:18*/		var total int64
 		buf := make([]byte, 32768)
 		empty := 0
 		for {
 			if ctx.Err() != nil {
 				return Err[int64, string]("upload canceled")
- /*line zz_media_files.gen.go:245:1*/			}
- /*line media_files.mygo:149:18*/			remaining := limit + 1 - total
+ /*line zz_media_files.gen.go:246:1*/			}
+ /*line media_files.mygo:150:18*/			remaining := limit + 1 - total
 			if remaining < int64(len(buf)) {
 				buf = buf[:remaining]
- /*line zz_media_files.gen.go:249:1*/			}
- /*line media_files.mygo:149:18*/			n, e := reader.Read(buf)
+ /*line zz_media_files.gen.go:250:1*/			}
+ /*line media_files.mygo:150:18*/			n, e := reader.Read(buf)
 			if ctx.Err() != nil {
 				return Err[int64, string]("upload canceled")
- /*line zz_media_files.gen.go:253:1*/			}
- /*line media_files.mygo:149:18*/			if n > 0 {
+ /*line zz_media_files.gen.go:254:1*/			}
+ /*line media_files.mygo:150:18*/			if n > 0 {
 				empty = 0
 				if total+int64(n) > limit {
 					return Err[int64, string]("media too large")
- /*line zz_media_files.gen.go:258:1*/				}
- /*line media_files.mygo:149:18*/				written, werr := file.Write(buf[:n])
+ /*line zz_media_files.gen.go:259:1*/				}
+ /*line media_files.mygo:150:18*/				written, werr := file.Write(buf[:n])
 				total += int64(written)
 				if werr != nil || written != n {
 					return Err[int64, string]("media unavailable")
- /*line zz_media_files.gen.go:263:1*/				}
- /*line media_files.mygo:149:18*/			} else {
+ /*line zz_media_files.gen.go:264:1*/				}
+ /*line media_files.mygo:150:18*/			} else {
 				empty++
 				if empty > 100 {
 					return Err[int64, string]("invalid upload")
- /*line zz_media_files.gen.go:268:1*/				}
+ /*line zz_media_files.gen.go:269:1*/				}
 			}
- /*line media_files.mygo:149:18*/			if e == io.EOF {
+ /*line media_files.mygo:150:18*/			if e == io.EOF {
 				break
- /*line zz_media_files.gen.go:272:1*/			}
- /*line media_files.mygo:149:18*/			if e != nil {
+ /*line zz_media_files.gen.go:273:1*/			}
+ /*line media_files.mygo:150:18*/			if e != nil {
 				return Err[int64, string]("invalid upload")
- /*line zz_media_files.gen.go:275:1*/			}
+ /*line zz_media_files.gen.go:276:1*/			}
 		}
- /*line media_files.mygo:149:18*/		if total == 0 {
+ /*line media_files.mygo:150:18*/		if total == 0 {
 			return Err[int64, string]("invalid upload")
- /*line zz_media_files.gen.go:279:1*/		}
- /*line media_files.mygo:149:18*/		if file.Sync() != nil {
+ /*line zz_media_files.gen.go:280:1*/		}
+ /*line media_files.mygo:150:18*/		if file.Sync() != nil {
 			return Err[int64, string]("media unavailable")
- /*line zz_media_files.gen.go:282:1*/		}
- /*line media_files.mygo:149:18*/		return Ok[int64, string](total)
- /*line zz_media_files.gen.go:284:1*/	}()
- /*line media_files.mygo:150:5*/	if MygoIN6ResultM5IsErr[int64, string](copied) {
+ /*line zz_media_files.gen.go:283:1*/		}
+ /*line media_files.mygo:150:18*/		return Ok[int64, string](total)
+ /*line zz_media_files.gen.go:285:1*/	}()
+ /*line media_files.mygo:151:5*/	if MygoIN6ResultM5IsErr[int64, string](copied) {
 		MygoIN10MediaFilesM6Remove(self, "temporary", id)
 	} else {
- /*line zz_media_files.gen.go:288:1*/	}
- /*line media_files.mygo:153:5*/	return copied
- /*line zz_media_files.gen.go:290:1*/}
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM7Inspect(self MediaFiles, id string, declared string, purpose string, settings config.Media) Result[MediaInspected, string] {
- /*line media_files.mygo:157:5*/	return MygoIN10MediaFilesM14InspectContext(self, context.Background(), id, declared, purpose, settings)
- /*line zz_media_files.gen.go:293:1*/}
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM14InspectContext(self MediaFiles, ctx context.Context, id string, declared string, purpose string, settings config.Media) Result[MediaInspected, string] {
+ /*line zz_media_files.gen.go:289:1*/	}
+ /*line media_files.mygo:154:5*/	return MygoIN6ResultM6MapErr[int64](copied, func(reason string) failure.Failure {
+ /*line media_files.mygo:155:7*/		return Of(reason)
+ /*line zz_media_files.gen.go:292:1*/	})
+}
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM7Inspect(self MediaFiles, id string, declared string, purpose string, settings config.Media) Result[MediaInspected, failure.Failure] {
+ /*line media_files.mygo:160:5*/	return MygoIN10MediaFilesM14InspectContext(self, context.Background(), id, declared, purpose, settings)
+ /*line zz_media_files.gen.go:296:1*/}
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM14InspectContext(self MediaFiles, ctx context.Context, id string, declared string, purpose string, settings config.Media) Result[MediaInspected, failure.Failure] {
 	opened := MygoIN10MediaFilesM4Open(self, "temporary", id)
- /*line media_files.mygo:162:5*/	if MygoIN6ResultM5IsErr[*os.File, string](opened) {
- /*line media_files.mygo:163:14*/		return Err[MediaInspected, string](MygoIN6ResultM9UnwrapErr[*os.File, string](opened))
- /*line media_files.mygo:162:5*/	} else {
- /*line zz_media_files.gen.go:299:1*/	}
- /*line media_files.mygo:102:1*/	file := MygoIN6ResultM6Unwrap[*os.File, string](opened)
- /*line media_files.mygo:166:5*/	defer file.Close()
- /*line media_files.mygo:167:16*/	var __mygo_expr_1 Result[os.FileInfo, error]
+ /*line media_files.mygo:165:5*/	if MygoIN6ResultM5IsErr[*os.File, failure.Failure](opened) {
+ /*line media_files.mygo:166:14*/		return Err[MediaInspected, failure.Failure](MygoIN6ResultM9UnwrapErr[*os.File, failure.Failure](opened))
+ /*line media_files.mygo:165:5*/	} else {
+ /*line zz_media_files.gen.go:302:1*/	}
+ /*line media_files.mygo:103:1*/	file := MygoIN6ResultM6Unwrap[*os.File, failure.Failure](opened)
+ /*line media_files.mygo:169:5*/	defer file.Close()
+ /*line media_files.mygo:170:16*/	var __mygo_expr_1 Result[os.FileInfo, error]
 	__mygo_expr_2, __mygo_expr_0 := file.Stat()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[os.FileInfo, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[os.FileInfo, error](__mygo_expr_2)
- /*line zz_media_files.gen.go:308:1*/	}
- /*line media_files.mygo:102:1*/	stat := __mygo_expr_1
- /*line media_files.mygo:168:5*/	if MygoIN6ResultM5IsErr[os.FileInfo, error](stat) {
- /*line media_files.mygo:169:14*/		return Err[MediaInspected, string]("media unavailable")
- /*line media_files.mygo:168:5*/	} else {
- /*line zz_media_files.gen.go:313:1*/	}
- /*line media_files.mygo:102:1*/	size := MygoIN6ResultM6Unwrap[os.FileInfo, error](stat).Size()
+ /*line zz_media_files.gen.go:311:1*/	}
+ /*line media_files.mygo:103:1*/	stat := __mygo_expr_1
+ /*line media_files.mygo:171:5*/	if MygoIN6ResultM5IsErr[os.FileInfo, error](stat) {
+ /*line media_files.mygo:172:14*/		return Err[MediaInspected, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:171:5*/	} else {
+ /*line zz_media_files.gen.go:316:1*/	}
+ /*line media_files.mygo:103:1*/	size := MygoIN6ResultM6Unwrap[os.FileInfo, error](stat).Size()
 	mime := func() string {
- /*line media_files.mygo:172:16*/		b := make([]byte, 512)
+ /*line media_files.mygo:175:16*/		b := make([]byte, 512)
 		n, _ := file.Read(b)
 		_, _ = file.Seek(0, 0)
 		return http.DetectContentType(b[:n])
- /*line zz_media_files.gen.go:320:1*/	}()
- /*line media_files.mygo:102:1*/	raster := mime == "image/png" || mime == "image/jpeg" || mime == "image/gif"
- /*line media_files.mygo:174:5*/	if purpose == "avatar" && !raster {
- /*line media_files.mygo:175:14*/		return Err[MediaInspected, string]("unsupported media")
- /*line media_files.mygo:174:5*/	} else {
- /*line zz_media_files.gen.go:325:1*/	}
- /*line media_files.mygo:177:5*/	if strings.HasPrefix(declared, "image/") && declared != "image/svg+xml" && !raster {
- /*line media_files.mygo:178:14*/		return Err[MediaInspected, string]("invalid image")
+ /*line zz_media_files.gen.go:323:1*/	}()
+ /*line media_files.mygo:103:1*/	raster := mime == "image/png" || mime == "image/jpeg" || mime == "image/gif"
+ /*line media_files.mygo:177:5*/	if purpose == "avatar" && !raster {
+ /*line media_files.mygo:178:14*/		return Err[MediaInspected, failure.Failure](Of("unsupported media"))
  /*line media_files.mygo:177:5*/	} else {
- /*line zz_media_files.gen.go:329:1*/	}
- /*line media_files.mygo:180:5*/	if !raster {
- /*line media_files.mygo:181:14*/		return Ok[MediaInspected, string](MediaInspected{Type: mime, Size: size, PreviewSize: int64(0)})
+ /*line zz_media_files.gen.go:328:1*/	}
+ /*line media_files.mygo:180:5*/	if strings.HasPrefix(declared, "image/") && declared != "image/svg+xml" && !raster {
+ /*line media_files.mygo:181:14*/		return Err[MediaInspected, failure.Failure](Of("invalid image"))
  /*line media_files.mygo:180:5*/	} else {
- /*line zz_media_files.gen.go:333:1*/	}
- /*line media_files.mygo:183:5*/	if size > int64(settings.MaxImageBytes) {
- /*line media_files.mygo:184:14*/		return Err[MediaInspected, string]("media too large")
+ /*line zz_media_files.gen.go:332:1*/	}
+ /*line media_files.mygo:183:5*/	if !raster {
+ /*line media_files.mygo:184:14*/		return Ok[MediaInspected, failure.Failure](MediaInspected{Type: mime, Size: size, PreviewSize: int64(0)})
  /*line media_files.mygo:183:5*/	} else {
- /*line zz_media_files.gen.go:337:1*/	}
- /*line media_files.mygo:186:5*/	mediaRasterMutex.Lock()
- /*line media_files.mygo:102:1*/	guard := mediaRasterMutex
- /*line media_files.mygo:188:5*/	defer guard.Unlock()
- /*line media_files.mygo:189:5*/	if ctx.Err() != nil {
- /*line media_files.mygo:190:14*/		return Err[MediaInspected, string]("upload canceled")
- /*line media_files.mygo:189:5*/	} else {
- /*line zz_media_files.gen.go:344:1*/	}
- /*line media_files.mygo:102:1*/	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW
- /*line media_files.mygo:193:19*/	var __mygo_expr_4 Result[*os.File, error]
+ /*line zz_media_files.gen.go:336:1*/	}
+ /*line media_files.mygo:186:5*/	if size > int64(settings.MaxImageBytes) {
+ /*line media_files.mygo:187:14*/		return Err[MediaInspected, failure.Failure](Of("media too large"))
+ /*line media_files.mygo:186:5*/	} else {
+ /*line zz_media_files.gen.go:340:1*/	}
+ /*line media_files.mygo:189:5*/	mediaRasterMutex.Lock()
+ /*line media_files.mygo:103:1*/	guard := mediaRasterMutex
+ /*line media_files.mygo:191:5*/	defer guard.Unlock()
+ /*line media_files.mygo:192:5*/	if ctx.Err() != nil {
+ /*line media_files.mygo:193:14*/		return Err[MediaInspected, failure.Failure](Of("upload canceled"))
+ /*line media_files.mygo:192:5*/	} else {
+ /*line zz_media_files.gen.go:347:1*/	}
+ /*line media_files.mygo:103:1*/	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL | syscall.O_NOFOLLOW
+ /*line media_files.mygo:196:19*/	var __mygo_expr_4 Result[*os.File, error]
 	__mygo_expr_5, __mygo_expr_3 := self.Root.OpenFile("previews/"+id, flags, os.FileMode(384))
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*os.File, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*os.File, error](__mygo_expr_5)
- /*line zz_media_files.gen.go:352:1*/	}
- /*line media_files.mygo:102:1*/	preview := __mygo_expr_4
- /*line media_files.mygo:194:5*/	if MygoIN6ResultM5IsErr[*os.File, error](preview) {
- /*line media_files.mygo:195:14*/		return Err[MediaInspected, string]("media unavailable")
- /*line media_files.mygo:194:5*/	} else {
- /*line zz_media_files.gen.go:357:1*/	}
- /*line media_files.mygo:102:1*/	output := MygoIN6ResultM6Unwrap[*os.File, error](preview)
- /*line media_files.mygo:198:5*/	defer output.Close()
- /*line media_files.mygo:102:1*/	result := func() Result[int64, string] {
- /*line media_files.mygo:201:18*/		var cfg image.Config
+ /*line zz_media_files.gen.go:355:1*/	}
+ /*line media_files.mygo:103:1*/	preview := __mygo_expr_4
+ /*line media_files.mygo:197:5*/	if MygoIN6ResultM5IsErr[*os.File, error](preview) {
+ /*line media_files.mygo:198:14*/		return Err[MediaInspected, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:197:5*/	} else {
+ /*line zz_media_files.gen.go:360:1*/	}
+ /*line media_files.mygo:103:1*/	output := MygoIN6ResultM6Unwrap[*os.File, error](preview)
+ /*line media_files.mygo:201:5*/	defer output.Close()
+ /*line media_files.mygo:103:1*/	result := func() Result[int64, string] {
+ /*line media_files.mygo:204:18*/		var cfg image.Config
 		var err error
 		switch mime {
 		case "image/png":
@@ -367,14 +370,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 			cfg, err = jpeg.DecodeConfig(file)
 		case "image/gif":
 			cfg, err = gif.DecodeConfig(file)
- /*line zz_media_files.gen.go:370:1*/		}
- /*line media_files.mygo:201:18*/		if err != nil || cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > settings.MaxImageDimension || cfg.Height > settings.MaxImageDimension || int64(cfg.Width)*int64(cfg.Height) > int64(settings.MaxImagePixels) {
-			return Err[int64, string]("invalid image")
  /*line zz_media_files.gen.go:373:1*/		}
- /*line media_files.mygo:201:18*/		if _, err = file.Seek(0, 0); err != nil {
-			return Err[int64, string]("media unavailable")
+ /*line media_files.mygo:204:18*/		if err != nil || cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > settings.MaxImageDimension || cfg.Height > settings.MaxImageDimension || int64(cfg.Width)*int64(cfg.Height) > int64(settings.MaxImagePixels) {
+			return Err[int64, string]("invalid image")
  /*line zz_media_files.gen.go:376:1*/		}
- /*line media_files.mygo:201:18*/		var src image.Image
+ /*line media_files.mygo:204:18*/		if _, err = file.Seek(0, 0); err != nil {
+			return Err[int64, string]("media unavailable")
+ /*line zz_media_files.gen.go:379:1*/		}
+ /*line media_files.mygo:204:18*/		var src image.Image
 		switch mime {
 		case "image/png":
 			src, err = png.Decode(file)
@@ -382,11 +385,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 			src, err = jpeg.Decode(file)
 		case "image/gif":
 			src, err = gif.Decode(file)
- /*line zz_media_files.gen.go:385:1*/		}
- /*line media_files.mygo:201:18*/		if err != nil {
-			return Err[int64, string]("invalid image")
  /*line zz_media_files.gen.go:388:1*/		}
- /*line media_files.mygo:201:18*/		w, h := cfg.Width, cfg.Height
+ /*line media_files.mygo:204:18*/		if err != nil {
+			return Err[int64, string]("invalid image")
+ /*line zz_media_files.gen.go:391:1*/		}
+ /*line media_files.mygo:204:18*/		w, h := cfg.Width, cfg.Height
 		max := settings.PreviewDimension
 		if w > max || h > max {
 			if w >= h {
@@ -395,68 +398,73 @@ import . "github.com/mygo-lang/mygo/prelude"
 			} else {
 				w = w * max / h
 				h = max
- /*line zz_media_files.gen.go:398:1*/			}
+ /*line zz_media_files.gen.go:401:1*/			}
 		}
- /*line media_files.mygo:201:18*/		if w < 1 {
+ /*line media_files.mygo:204:18*/		if w < 1 {
 			w = 1
- /*line zz_media_files.gen.go:402:1*/		}
- /*line media_files.mygo:201:18*/		if h < 1 {
-			h = 1
  /*line zz_media_files.gen.go:405:1*/		}
- /*line media_files.mygo:201:18*/		dst := image.NewNRGBA(image.Rect(0, 0, w, h))
+ /*line media_files.mygo:204:18*/		if h < 1 {
+			h = 1
+ /*line zz_media_files.gen.go:408:1*/		}
+ /*line media_files.mygo:204:18*/		dst := image.NewNRGBA(image.Rect(0, 0, w, h))
 		bounds := src.Bounds()
 		for y := 0; y < h; y++ {
 			for x := 0; x < w; x++ {
 				dst.Set(x, y, src.At(bounds.Min.X+x*cfg.Width/w, bounds.Min.Y+y*cfg.Height/h))
- /*line zz_media_files.gen.go:411:1*/			}
+ /*line zz_media_files.gen.go:414:1*/			}
 		}
- /*line media_files.mygo:201:18*/		if err = png.Encode(output, dst); err != nil {
-			return Err[int64, string]("media unavailable")
- /*line zz_media_files.gen.go:415:1*/		}
- /*line media_files.mygo:201:18*/		if err = output.Sync(); err != nil {
+ /*line media_files.mygo:204:18*/		if err = png.Encode(output, dst); err != nil {
 			return Err[int64, string]("media unavailable")
  /*line zz_media_files.gen.go:418:1*/		}
- /*line media_files.mygo:201:18*/		info, err := output.Stat()
+ /*line media_files.mygo:204:18*/		if err = output.Sync(); err != nil {
+			return Err[int64, string]("media unavailable")
+ /*line zz_media_files.gen.go:421:1*/		}
+ /*line media_files.mygo:204:18*/		info, err := output.Stat()
 		if err != nil {
 			return Err[int64, string]("media unavailable")
- /*line zz_media_files.gen.go:422:1*/		}
- /*line media_files.mygo:201:18*/		return Ok[int64, string](info.Size())
- /*line zz_media_files.gen.go:424:1*/	}()
- /*line media_files.mygo:202:5*/	if MygoIN6ResultM5IsErr[int64, string](result) {
+ /*line zz_media_files.gen.go:425:1*/		}
+ /*line media_files.mygo:204:18*/		return Ok[int64, string](info.Size())
+ /*line zz_media_files.gen.go:427:1*/	}()
+ /*line media_files.mygo:205:5*/	if MygoIN6ResultM5IsErr[int64, string](result) {
 		MygoIN10MediaFilesM6Remove(self, "previews", id)
- /*line media_files.mygo:204:14*/		return Err[MediaInspected, string](MygoIN6ResultM9UnwrapErr[int64, string](result))
- /*line media_files.mygo:202:5*/	} else {
- /*line zz_media_files.gen.go:429:1*/	}
- /*line media_files.mygo:206:5*/	return Ok[MediaInspected, string](MediaInspected{Type: mime, Size: size, PreviewSize: MygoIN6ResultM6Unwrap[int64, string](result)})
- /*line zz_media_files.gen.go:431:1*/}
- /*line media_files.mygo:102:1*/func MygoIN10MediaFilesM7Publish(self MediaFiles, id string, namespace string) Result[struct{}, string] {
- /*line media_files.mygo:210:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "private-cache" {
- /*line media_files.mygo:211:14*/		return Err[struct{}, string]("invalid media path")
- /*line media_files.mygo:210:5*/	} else {
- /*line zz_media_files.gen.go:436:1*/	}
- /*line media_files.mygo:213:8*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line media_files.mygo:207:14*/		return Err[MediaInspected, failure.Failure](Of(MygoIN6ResultM9UnwrapErr[int64, string](result)))
+ /*line media_files.mygo:205:5*/	} else {
+ /*line zz_media_files.gen.go:432:1*/	}
+ /*line media_files.mygo:209:5*/	return Ok[MediaInspected, failure.Failure](MediaInspected{Type: mime, Size: size, PreviewSize: MygoIN6ResultM6Unwrap[int64, string](result)})
+ /*line zz_media_files.gen.go:434:1*/}
+ /*line media_files.mygo:103:1*/func MygoIN10MediaFilesM7Publish(self MediaFiles, id string, namespace string) Result[struct{}, failure.Failure] {
+ /*line media_files.mygo:213:5*/	if !MediaFileID(id) || namespace != "local" && namespace != "private-cache" {
+ /*line media_files.mygo:214:14*/		return Err[struct{}, failure.Failure](Of("invalid media path"))
+ /*line media_files.mygo:213:5*/	} else {
+ /*line zz_media_files.gen.go:439:1*/	}
+ /*line media_files.mygo:216:8*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := self.Root.Rename("temporary/"+id, namespace+"/"+id)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen.go:443:1*/		}{})
+ /*line zz_media_files.gen.go:446:1*/		}{})
 	}
- /*line media_files.mygo:213:5*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line media_files.mygo:214:14*/		return Err[struct{}, string]("media unavailable")
- /*line media_files.mygo:213:5*/	} else {
- /*line zz_media_files.gen.go:448:1*/	}
- /*line media_files.mygo:102:1*/	root := self.Root
- /*line media_files.mygo:218:5*/	for _, name := range []string{"temporary", namespace} {
-		d, e := root.Open(name)
-		if e != nil {
-			return Err[struct{}, string]("media unavailable")
- /*line zz_media_files.gen.go:454:1*/		}
- /*line media_files.mygo:218:5*/		e = d.Sync()
-		d.Close()
-		if e != nil {
-			return Err[struct{}, string]("media unavailable")
- /*line zz_media_files.gen.go:459:1*/		}
-	}
- /*line media_files.mygo:218:5*/	return Ok[struct{}, string](struct{}{})
- /*line zz_media_files.gen.go:462:1*/}
+ /*line media_files.mygo:216:5*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line media_files.mygo:217:14*/		return Err[struct{}, failure.Failure](Of("media unavailable"))
+ /*line media_files.mygo:216:5*/	} else {
+ /*line zz_media_files.gen.go:451:1*/	}
+ /*line media_files.mygo:103:1*/	root := self.Root
+	synced := func() Result[struct{}, string] {
+ /*line media_files.mygo:221:18*/		for _, name := range []string{"temporary", namespace} {
+			d, e := root.Open(name)
+			if e != nil {
+				return Err[struct{}, string]("media unavailable")
+ /*line zz_media_files.gen.go:458:1*/			}
+ /*line media_files.mygo:221:18*/			e = d.Sync()
+			d.Close()
+			if e != nil {
+				return Err[struct{}, string]("media unavailable")
+ /*line zz_media_files.gen.go:463:1*/			}
+		}
+ /*line media_files.mygo:221:18*/		return Ok[struct{}, string](struct{}{})
+ /*line zz_media_files.gen.go:466:1*/	}()
+ /*line media_files.mygo:222:5*/	return MygoIN6ResultM6MapErr[struct{}](synced, func(reason string) failure.Failure {
+ /*line media_files.mygo:223:7*/		return Of(reason)
+ /*line zz_media_files.gen.go:469:1*/	})
+}

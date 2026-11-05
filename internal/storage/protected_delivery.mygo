@@ -2,13 +2,14 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func IsCurrentMember(
   ctx: context.Context,
   db: Ref[gorm.DB],
   communityID: String,
   actorURI: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   if communityID == "" || actorURI == "" then
     return Ok(false)
   end
@@ -23,7 +24,7 @@ func CommunityReadPolicy(
   ctx: context.Context,
   db: Ref[gorm.DB],
   communityID: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let policy = ""
   let query = db.WithContext(ctx).Raw(
     "SELECT read_policy FROM communities WHERE id = ?",
@@ -36,14 +37,14 @@ func ProtectedMembers(
   ctx: context.Context,
   db: Ref[gorm.DB],
   communityID: String
-) -> Result[Slice[String], String]
+) -> Result[Slice[String], failure.Failure]
   var members: Slice[String] = []
   let query = db.WithContext(ctx).Table("community_members").Select("actor_uri").Where(
     "community_id = ? AND revoked_at IS NULL",
     communityID
   ).Order("actor_uri").Find(Ref.new(members))
   if MutationResult(query).IsErr() then
-    return Err("recipient expansion failed")
+    return Err(Of("recipient expansion failed"))
   end
   Ok(members)
 end
@@ -58,7 +59,7 @@ func PlanRestrictedDelivery(
   activityURI: String,
   signingActorURI: String,
   communityID: String
-) -> Result[PlanResult, String]
+) -> Result[PlanResult, failure.Failure]
   let excluded = IsLocalOnlyActivity(ctx, db, activityURI)
   if excluded.IsErr() then
     return Err(excluded.UnwrapErr())
@@ -110,7 +111,7 @@ func PlanRestrictedDelivery(
     end
   end)
   if failed then
-    return Err("recipient expansion failed")
+    return Err(Of("recipient expansion failed"))
   end
   Ok(PlanResult{Receipts: receipts, Jobs: jobs})
 end

@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,64 +22,64 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_modes.gen_test.go:24:1*/	}
+ /*line zz_federation_modes.gen_test.go:25:1*/	}
  /*line federation_modes_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	memberPost := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "memberpost", "MemberPost", "federated", "eligible_users", "members"))
-	memberRead := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "memberread", "MemberRead", "federated", "members", "members"))
-	authorKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	memberKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	memberPost := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "memberpost", "MemberPost", "federated", "eligible_users", "members"))
+	memberRead := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "memberread", "MemberRead", "federated", "members", "members"))
+	authorKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	memberKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	author := "https://peer.example/users/author"
 	member := "https://peer.example/users/member"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", author, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(authorKey)), member, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(memberKey)))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberPost.ID, member, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberRead.ID, member, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", memberPost.ID, author, "https://peer.example/activities/f1")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", author, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(authorKey)), member, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(memberKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberPost.ID, member, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", memberRead.ID, member, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", memberPost.ID, author, "https://peer.example/activities/f1")))
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	create := func(id string, actor string, target storage.CommunityRecord, extraTo string) string {
  /*line federation_modes_test.mygo:36:5*/		return "{\"id\":\"https://peer.example/activities/" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"Create\",\"to\":[\"" + target.ActorURI.String + "\",\"" + alice.ActorURI + "\"" + extraTo + "],\"object\":{\"id\":\"https://peer.example/objects/" + id + "\",\"type\":\"Page\",\"attributedTo\":\"" + actor + "\"}}"
- /*line zz_federation_modes.gen_test.go:49:1*/	}
+ /*line zz_federation_modes.gen_test.go:50:1*/	}
  /*line federation_modes_test.mygo:12:1*/	announced := func(target_1 storage.CommunityRecord) int64 {
  /*line federation_modes_test.mygo:38:19*/		var count int64 = int64(0)
-		MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", target_1.ActorURI.String).Count(&count)))
+		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", target_1.ActorURI.String).Count(&count)))
  /*line federation_modes_test.mygo:41:5*/		return count
- /*line zz_federation_modes.gen_test.go:54:1*/	}
+ /*line zz_federation_modes.gen_test.go:55:1*/	}
  /*line federation_modes_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", create("open-1", author, open, ""), author, authorKey, date)
  /*line federation_modes_test.mygo:44:3*/	if announced(open) != int64(1) {
  /*line federation_modes_test.mygo:45:5*/		t.Fatal("an eligible author could not post in an open community")
  /*line federation_modes_test.mygo:44:3*/	} else {
- /*line zz_federation_modes.gen_test.go:59:1*/	}
+ /*line zz_federation_modes.gen_test.go:60:1*/	}
  /*line federation_modes_test.mygo:12:1*/	subscriberPost := create("mp-1", author, memberPost, "")
 	signedPost(handler, a.Origin, "/users/alice/inbox", subscriberPost, author, authorKey, date)
  /*line federation_modes_test.mygo:49:3*/	if announced(memberPost) != int64(0) {
  /*line federation_modes_test.mygo:50:5*/		t.Fatal("a non-member subscriber posted in a members-posting community")
  /*line federation_modes_test.mygo:49:3*/	} else {
- /*line zz_federation_modes.gen_test.go:65:1*/	}
+ /*line zz_federation_modes.gen_test.go:66:1*/	}
  /*line federation_modes_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", create("mp-2", member, memberPost, ""), member, memberKey, date)
  /*line federation_modes_test.mygo:53:3*/	if announced(memberPost) != int64(1) {
  /*line federation_modes_test.mygo:54:5*/		t.Fatal("an approved member could not post in a members-posting community")
  /*line federation_modes_test.mygo:53:3*/	} else {
- /*line zz_federation_modes.gen_test.go:70:1*/	}
+ /*line zz_federation_modes.gen_test.go:71:1*/	}
  /*line federation_modes_test.mygo:12:1*/	publicRestricted := create("mr-1", member, memberRead, ",\"https://www.w3.org/ns/activitystreams#Public\"")
 	signedPost(handler, a.Origin, "/users/alice/inbox", publicRestricted, member, memberKey, date)
  /*line federation_modes_test.mygo:58:3*/	if announced(memberRead) != int64(0) {
  /*line federation_modes_test.mygo:59:5*/		t.Fatal("a public-addressed submission was accepted for a member-readable community")
  /*line federation_modes_test.mygo:58:3*/	} else {
- /*line zz_federation_modes.gen_test.go:76:1*/	}
- /*line federation_modes_test.mygo:12:1*/	stored := MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](storage.LoadActivityPayload(ctx, db, "https://peer.example/activities/mr-1"))
+ /*line zz_federation_modes.gen_test.go:77:1*/	}
+ /*line federation_modes_test.mygo:12:1*/	stored := MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](storage.LoadActivityPayload(ctx, db, "https://peer.example/activities/mr-1"))
  /*line federation_modes_test.mygo:62:3*/	if MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](stored) || string(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](stored).Payload) != publicRestricted {
  /*line federation_modes_test.mygo:63:5*/		t.Fatal("the rejected submission's original payload was rewritten or lost")
 		return
  /*line federation_modes_test.mygo:62:3*/	} else {
 		return
- /*line zz_federation_modes.gen_test.go:83:1*/	}
+ /*line zz_federation_modes.gen_test.go:84:1*/	}
 }

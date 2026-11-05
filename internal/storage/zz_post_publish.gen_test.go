@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,91 +18,91 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_post_publish.gen_test.go:20:1*/	}
+ /*line zz_post_publish.gen_test.go:21:1*/	}
  /*line post_publish_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-account-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-account-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-account-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	open := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	locked := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "locked", "Locked", "local_only", "eligible_users", "members"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	open := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	locked := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "locked", "Locked", "local_only", "eligible_users", "members"))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
  /*line post_publish_test.mygo:59:3*/	if topic.ObjectType != "Page" || topic.ParentID.Valid || !topic.ObjectURI.Valid || topic.FederationMode != "federated" {
  /*line post_publish_test.mygo:63:5*/		t.Fatal("federated topic identity or parent handling failed")
  /*line post_publish_test.mygo:59:3*/	} else {
- /*line zz_post_publish.gen_test.go:40:1*/	}
- /*line post_publish_test.mygo:9:1*/	reply := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	nested := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Body: "Nested", ParentID: reply.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+ /*line zz_post_publish.gen_test.go:41:1*/	}
+ /*line post_publish_test.mygo:9:1*/	reply := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, PublishInput{Body: "Reply", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	nested := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Body: "Nested", ParentID: reply.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
  /*line post_publish_test.mygo:97:3*/	if reply.ObjectType != "Note" || reply.ParentID.String != topic.ID || nested.ParentID.String != reply.ID || nested.ID == reply.ID {
  /*line post_publish_test.mygo:101:5*/		t.Fatal("nested reply parent relationships were not retained")
  /*line post_publish_test.mygo:97:3*/	} else {
- /*line zz_post_publish.gen_test.go:46:1*/	}
- /*line post_publish_test.mygo:103:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, PublishInput{Title: "T", Body: "B", ParentID: "missing", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
+ /*line zz_post_publish.gen_test.go:47:1*/	}
+ /*line post_publish_test.mygo:103:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, bob, false, PublishInput{Title: "T", Body: "B", ParentID: "missing", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
  /*line post_publish_test.mygo:119:5*/		t.Fatal("reply with unknown parent published")
  /*line post_publish_test.mygo:103:3*/	} else {
- /*line zz_post_publish.gen_test.go:50:1*/	}
+ /*line zz_post_publish.gen_test.go:51:1*/	}
  /*line post_publish_test.mygo:9:1*/	foreignReply := PublishInput{Body: "B", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}
- /*line post_publish_test.mygo:130:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, foreignReply)) {
+ /*line post_publish_test.mygo:130:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, foreignReply)) {
  /*line post_publish_test.mygo:131:5*/		t.Fatal("reply crossed community boundary")
  /*line post_publish_test.mygo:130:3*/	} else {
- /*line zz_post_publish.gen_test.go:55:1*/	}
- /*line post_publish_test.mygo:133:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, carol, false, PublishInput{Title: "T", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
+ /*line zz_post_publish.gen_test.go:56:1*/	}
+ /*line post_publish_test.mygo:133:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, carol, false, PublishInput{Title: "T", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
  /*line post_publish_test.mygo:149:5*/		t.Fatal("account of another site published")
  /*line post_publish_test.mygo:133:3*/	} else {
- /*line zz_post_publish.gen_test.go:59:1*/	}
- /*line post_publish_test.mygo:151:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, true, PublishInput{Title: "T", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
+ /*line zz_post_publish.gen_test.go:60:1*/	}
+ /*line post_publish_test.mygo:151:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, true, PublishInput{Title: "T", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
  /*line post_publish_test.mygo:167:5*/		t.Fatal("remote flag published without verification")
  /*line post_publish_test.mygo:151:3*/	} else {
- /*line zz_post_publish.gen_test.go:63:1*/	}
- /*line post_publish_test.mygo:169:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
+ /*line zz_post_publish.gen_test.go:64:1*/	}
+ /*line post_publish_test.mygo:169:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) || MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "", Body: "B", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""})) {
  /*line post_publish_test.mygo:201:5*/		t.Fatal("empty body topic published")
  /*line post_publish_test.mygo:169:3*/	} else {
- /*line zz_post_publish.gen_test.go:67:1*/	}
- /*line post_publish_test.mygo:9:1*/	local := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, PublishInput{Title: "Local", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+ /*line zz_post_publish.gen_test.go:68:1*/	}
+ /*line post_publish_test.mygo:9:1*/	local := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, alice, false, PublishInput{Title: "Local", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
  /*line post_publish_test.mygo:219:3*/	if local.ObjectURI.Valid || local.FederationMode != "local_only" {
  /*line post_publish_test.mygo:220:5*/		t.Fatal("local-only publication produced a canonical object URI")
  /*line post_publish_test.mygo:219:3*/	} else {
- /*line zz_post_publish.gen_test.go:72:1*/	}
+ /*line zz_post_publish.gen_test.go:73:1*/	}
  /*line post_publish_test.mygo:9:1*/	memberReply := PublishInput{Body: "Member reply", ParentID: local.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}
- /*line post_publish_test.mygo:231:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, bob, false, memberReply)) {
+ /*line post_publish_test.mygo:231:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, bob, false, memberReply)) {
  /*line post_publish_test.mygo:232:5*/		t.Fatal("non-member posted to a member-only community")
  /*line post_publish_test.mygo:231:3*/	} else {
- /*line zz_post_publish.gen_test.go:77:1*/	}
- /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", locked.ID, bob.ActorURI, alice.ActorURI)))
-	memberNested := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, bob, false, memberReply))
+ /*line zz_post_publish.gen_test.go:78:1*/	}
+ /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", locked.ID, bob.ActorURI, alice.ActorURI)))
+	memberNested := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, locked.ID, bob, false, memberReply))
  /*line post_publish_test.mygo:241:3*/	if memberNested.ObjectURI.Valid || memberNested.ParentID.String != local.ID {
  /*line post_publish_test.mygo:242:5*/		t.Fatal("member reply in a local community federated or lost its parent")
  /*line post_publish_test.mygo:241:3*/	} else {
- /*line zz_post_publish.gen_test.go:83:1*/	}
+ /*line zz_post_publish.gen_test.go:84:1*/	}
  /*line post_publish_test.mygo:9:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("activities").Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("activities").Count(&count)))
  /*line post_publish_test.mygo:246:3*/	if count != int64(0) {
  /*line post_publish_test.mygo:247:5*/		t.Fatal("local publication emitted protocol activities")
  /*line post_publish_test.mygo:246:3*/	} else {
- /*line zz_post_publish.gen_test.go:89:1*/	}
- /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("delivery_jobs").Count(&count)))
+ /*line zz_post_publish.gen_test.go:90:1*/	}
+ /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("delivery_jobs").Count(&count)))
  /*line post_publish_test.mygo:250:3*/	if count != int64(0) {
  /*line post_publish_test.mygo:251:5*/		t.Fatal("local publication scheduled federation delivery")
  /*line post_publish_test.mygo:250:3*/	} else {
- /*line zz_post_publish.gen_test.go:94:1*/	}
- /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("site_posts").Where("post_id=?", local.ID).Count(&count)))
+ /*line zz_post_publish.gen_test.go:95:1*/	}
+ /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("site_posts").Where("post_id=?", local.ID).Count(&count)))
  /*line post_publish_test.mygo:254:3*/	if count != int64(1) {
  /*line post_publish_test.mygo:255:5*/		t.Fatal("local post was received by another site")
  /*line post_publish_test.mygo:254:3*/	} else {
- /*line zz_post_publish.gen_test.go:99:1*/	}
- /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_audiences").Where("post_id=? AND community_id=?", topic.ID, open.ID).Count(&count)))
+ /*line zz_post_publish.gen_test.go:100:1*/	}
+ /*line post_publish_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("post_audiences").Where("post_id=? AND community_id=?", topic.ID, open.ID).Count(&count)))
  /*line post_publish_test.mygo:262:3*/	if count != int64(1) {
  /*line post_publish_test.mygo:263:5*/		t.Fatal("topic community association was not recorded once")
 		return
  /*line post_publish_test.mygo:262:3*/	} else {
 		return
- /*line zz_post_publish.gen_test.go:106:1*/	}
+ /*line zz_post_publish.gen_test.go:107:1*/	}
 }

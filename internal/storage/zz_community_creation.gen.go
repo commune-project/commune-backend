@@ -10,107 +10,108 @@ import "regexp"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line community_creation.mygo:12:1*/func MygoIN19CommunityRepositoryM6Create(self CommunityRepository, ctx context.Context, site config.Site, identity auth.Identity, name string, title string, mode string, read string, post string) Result[CommunityRecord, string] {
- /*line community_creation.mygo:24:5*/	return MygoIN19CommunityRepositoryM16CreateWithFollow(self, ctx, site, identity, name, title, mode, read, post, "")
- /*line zz_community_creation.gen.go:17:1*/}
- /*line community_creation.mygo:12:1*/func MygoIN19CommunityRepositoryM16CreateWithFollow(self CommunityRepository, ctx context.Context, site config.Site, identity auth.Identity, name string, title string, mode string, read string, post string, follow string) Result[CommunityRecord, string] {
+ /*line community_creation.mygo:13:1*/func MygoIN19CommunityRepositoryM6Create(self CommunityRepository, ctx context.Context, site config.Site, identity auth.Identity, name string, title string, mode string, read string, post string) Result[CommunityRecord, failure.Failure] {
+ /*line community_creation.mygo:25:5*/	return MygoIN19CommunityRepositoryM16CreateWithFollow(self, ctx, site, identity, name, title, mode, read, post, "")
+ /*line zz_community_creation.gen.go:18:1*/}
+ /*line community_creation.mygo:13:1*/func MygoIN19CommunityRepositoryM16CreateWithFollow(self CommunityRepository, ctx context.Context, site config.Site, identity auth.Identity, name string, title string, mode string, read string, post string, follow string) Result[CommunityRecord, failure.Failure] {
 	policyResult := auth.NewCommunityPolicy(self.SiteID, mode, read, post)
- /*line community_creation.mygo:39:5*/	if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
- /*line community_creation.mygo:40:14*/		return Err[CommunityRecord, string]("invalid community input")
- /*line community_creation.mygo:39:5*/	} else {
- /*line zz_community_creation.gen.go:23:1*/	}
- /*line community_creation.mygo:12:1*/	policy := MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)
+ /*line community_creation.mygo:40:5*/	if MygoIN6ResultM5IsErr[auth.CommunityPolicy, string](policyResult) {
+ /*line community_creation.mygo:41:14*/		return Err[CommunityRecord, failure.Failure](Of("invalid community input"))
+ /*line community_creation.mygo:40:5*/	} else {
+ /*line zz_community_creation.gen.go:24:1*/	}
+ /*line community_creation.mygo:13:1*/	policy := MygoIN6ResultM6Unwrap[auth.CommunityPolicy, string](policyResult)
 	var __mygo_expr_1 string
 	if follow == "" {
- /*line community_creation.mygo:44:7*/		var __mygo_expr_0 string
+ /*line community_creation.mygo:45:7*/		var __mygo_expr_0 string
 		if read == "members" {
 			__mygo_expr_0 = "members"
 		} else {
 			__mygo_expr_0 = "open"
- /*line zz_community_creation.gen.go:32:1*/		}
- /*line community_creation.mygo:12:1*/		__mygo_expr_1 = __mygo_expr_0
+ /*line zz_community_creation.gen.go:33:1*/		}
+ /*line community_creation.mygo:13:1*/		__mygo_expr_1 = __mygo_expr_0
 	} else {
 		__mygo_expr_1 = follow
- /*line zz_community_creation.gen.go:36:1*/	}
- /*line community_creation.mygo:12:1*/	followPolicy := __mygo_expr_1
- /*line community_creation.mygo:59:8*/	var __mygo_expr_3 Result[bool, error]
+ /*line zz_community_creation.gen.go:37:1*/	}
+ /*line community_creation.mygo:13:1*/	followPolicy := __mygo_expr_1
+ /*line community_creation.mygo:60:8*/	var __mygo_expr_3 Result[bool, error]
 	__mygo_expr_4, __mygo_expr_2 := regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", name)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[bool, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[bool, error](__mygo_expr_4)
- /*line zz_community_creation.gen.go:44:1*/	}
- /*line community_creation.mygo:52:5*/	if site.ID != self.SiteID || !auth.MygoIN8IdentityM9BelongsTo(identity, self.SiteID) || !auth.MygoIN15CommunityPolicyM5Valid(policy) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" || !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_3, false) || strings.TrimSpace(title) == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(title)) > 200 {
- /*line community_creation.mygo:62:14*/		return Err[CommunityRecord, string]("invalid community input")
- /*line community_creation.mygo:52:5*/	} else {
- /*line zz_community_creation.gen.go:48:1*/	}
- /*line community_creation.mygo:12:1*/	canonical := config.CanonicalURI(site, "communities", name)
- /*line community_creation.mygo:65:5*/	if MygoIN6ResultM5IsErr[string, string](canonical) {
- /*line community_creation.mygo:66:14*/		return Err[CommunityRecord, string]("invalid community input")
- /*line community_creation.mygo:65:5*/	} else {
- /*line zz_community_creation.gen.go:53:1*/	}
- /*line community_creation.mygo:72:17*/	var __mygo_expr_5 string
+ /*line zz_community_creation.gen.go:45:1*/	}
+ /*line community_creation.mygo:53:5*/	if site.ID != self.SiteID || !auth.MygoIN8IdentityM9BelongsTo(identity, self.SiteID) || !auth.MygoIN15CommunityPolicyM5Valid(policy) || followPolicy != "open" && followPolicy != "members" && followPolicy != "approval" && followPolicy != "disabled" || !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_3, false) || strings.TrimSpace(title) == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(title)) > 200 {
+ /*line community_creation.mygo:63:14*/		return Err[CommunityRecord, failure.Failure](Of("invalid community input"))
+ /*line community_creation.mygo:53:5*/	} else {
+ /*line zz_community_creation.gen.go:49:1*/	}
+ /*line community_creation.mygo:13:1*/	canonical := config.CanonicalURI(site, "communities", name)
+ /*line community_creation.mygo:66:5*/	if MygoIN6ResultM5IsErr[string, string](canonical) {
+ /*line community_creation.mygo:67:14*/		return Err[CommunityRecord, failure.Failure](Of("invalid community input"))
+ /*line community_creation.mygo:66:5*/	} else {
+ /*line zz_community_creation.gen.go:54:1*/	}
+ /*line community_creation.mygo:73:17*/	var __mygo_expr_5 string
 	if mode == "federated" {
 		__mygo_expr_5 = MygoIN6ResultM6Unwrap[string, string](canonical)
 	} else {
 		__mygo_expr_5 = ""
- /*line zz_community_creation.gen.go:59:1*/	}
- /*line community_creation.mygo:12:1*/	record := CommunityRecord{ID: rand.Text(), HostSiteID: site.ID, ActorURI: sql.NullString{String: __mygo_expr_5, Valid: mode == "federated"}, CreatorActorURI: identity.ActorURI, FederationMode: mode, ReadPolicy: read, PostPolicy: post, FollowPolicy: followPolicy, Name: name, Title: title, Description: "", PolicyVersion: int64(1)}
-	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line community_creation.mygo:92:7*/		active := QueryExists(tx.Table("accounts AS a").Joins("JOIN sites AS s ON s.id=a.site_id").Where("a.id=? AND a.site_id=? AND a.actor_uri=? AND NOT a.disabled AND s.canonical_origin=?", identity.AccountID, self.SiteID, identity.ActorURI, site.Origin))
- /*line community_creation.mygo:100:9*/		if MygoIN6ResultM5IsErr[bool, string](active) {
- /*line community_creation.mygo:101:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](active))
- /*line community_creation.mygo:100:9*/		} else {
- /*line zz_community_creation.gen.go:66:1*/		}
- /*line community_creation.mygo:103:9*/		if !MygoIN6ResultM6Unwrap[bool, string](active) {
- /*line community_creation.mygo:104:18*/			return Err[struct{}, string]("forbidden")
- /*line community_creation.mygo:103:9*/		} else {
- /*line zz_community_creation.gen.go:70:1*/		}
- /*line community_creation.mygo:92:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
+ /*line zz_community_creation.gen.go:60:1*/	}
+ /*line community_creation.mygo:13:1*/	record := CommunityRecord{ID: rand.Text(), HostSiteID: site.ID, ActorURI: sql.NullString{String: __mygo_expr_5, Valid: mode == "federated"}, CreatorActorURI: identity.ActorURI, FederationMode: mode, ReadPolicy: read, PostPolicy: post, FollowPolicy: followPolicy, Name: name, Title: title, Description: "", PolicyVersion: int64(1)}
+	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line community_creation.mygo:93:7*/		active := QueryExists(tx.Table("accounts AS a").Joins("JOIN sites AS s ON s.id=a.site_id").Where("a.id=? AND a.site_id=? AND a.actor_uri=? AND NOT a.disabled AND s.canonical_origin=?", identity.AccountID, self.SiteID, identity.ActorURI, site.Origin))
+ /*line community_creation.mygo:101:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](active) {
+ /*line community_creation.mygo:102:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](active))
+ /*line community_creation.mygo:101:9*/		} else {
+ /*line zz_community_creation.gen.go:67:1*/		}
+ /*line community_creation.mygo:104:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](active) {
+ /*line community_creation.mygo:105:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line community_creation.mygo:104:9*/		} else {
+ /*line zz_community_creation.gen.go:71:1*/		}
+ /*line community_creation.mygo:93:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
 		blocked := MygoIN14SiteRepositoryM9IsBlocked(repository, ctx, identity.ActorURI)
- /*line community_creation.mygo:108:9*/		if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line community_creation.mygo:109:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line community_creation.mygo:108:9*/		} else {
- /*line zz_community_creation.gen.go:76:1*/		}
- /*line community_creation.mygo:111:9*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line community_creation.mygo:112:18*/			return Err[struct{}, string]("forbidden")
- /*line community_creation.mygo:111:9*/		} else {
- /*line zz_community_creation.gen.go:80:1*/		}
- /*line community_creation.mygo:114:9*/		if mode == "federated" {
-			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Group',?)", MygoIN6ResultM6Unwrap[string, string](canonical), self.SiteID, MygoIN6ResultM6Unwrap[string, string](canonical)+"/inbox"))) {
- /*line community_creation.mygo:121:20*/				return Err[struct{}, string]("community creation failed")
- /*line community_creation.mygo:114:9*/			} else {
- /*line zz_community_creation.gen.go:85:1*/			}
- /*line community_creation.mygo:114:9*/		} else {
- /*line zz_community_creation.gen.go:87:1*/		}
- /*line community_creation.mygo:124:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,creator_kind,federation_mode,read_policy,post_policy,name,title,description,policy_version) VALUES (?,?,?,?,'Person',?,?,?,?,?,'',1)", record.ID, record.HostSiteID, record.ActorURI, record.CreatorActorURI, record.FederationMode, record.ReadPolicy, record.PostPolicy, record.Name, record.Title))) {
- /*line community_creation.mygo:136:18*/			return Err[struct{}, string]("community creation failed")
- /*line community_creation.mygo:124:9*/		} else {
- /*line zz_community_creation.gen.go:91:1*/		}
- /*line community_creation.mygo:92:7*/		followColumn := false
+ /*line community_creation.mygo:109:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line community_creation.mygo:110:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
+ /*line community_creation.mygo:109:9*/		} else {
+ /*line zz_community_creation.gen.go:77:1*/		}
+ /*line community_creation.mygo:112:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
+ /*line community_creation.mygo:113:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line community_creation.mygo:112:9*/		} else {
+ /*line zz_community_creation.gen.go:81:1*/		}
+ /*line community_creation.mygo:115:9*/		if mode == "federated" {
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Group',?)", MygoIN6ResultM6Unwrap[string, string](canonical), self.SiteID, MygoIN6ResultM6Unwrap[string, string](canonical)+"/inbox"))) {
+ /*line community_creation.mygo:122:20*/				return Err[struct{}, failure.Failure](Of("community creation failed"))
+ /*line community_creation.mygo:115:9*/			} else {
+ /*line zz_community_creation.gen.go:86:1*/			}
+ /*line community_creation.mygo:115:9*/		} else {
+ /*line zz_community_creation.gen.go:88:1*/		}
+ /*line community_creation.mygo:125:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO communities(id,host_site_id,actor_uri,creator_actor_uri,creator_kind,federation_mode,read_policy,post_policy,name,title,description,policy_version) VALUES (?,?,?,?,'Person',?,?,?,?,?,'',1)", record.ID, record.HostSiteID, record.ActorURI, record.CreatorActorURI, record.FederationMode, record.ReadPolicy, record.PostPolicy, record.Name, record.Title))) {
+ /*line community_creation.mygo:137:18*/			return Err[struct{}, failure.Failure](Of("community creation failed"))
+ /*line community_creation.mygo:125:9*/		} else {
+ /*line zz_community_creation.gen.go:92:1*/		}
+ /*line community_creation.mygo:93:7*/		followColumn := false
 		columnQuery := tx.Raw("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='communities' AND column_name='follow_policy')").Scan(&followColumn)
- /*line community_creation.mygo:140:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(columnQuery)) {
- /*line community_creation.mygo:141:18*/			return Err[struct{}, string]("community creation failed")
- /*line community_creation.mygo:140:9*/		} else {
- /*line zz_community_creation.gen.go:97:1*/		}
- /*line community_creation.mygo:143:9*/		if followColumn {
-			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE communities SET follow_policy=? WHERE id=?", followPolicy, record.ID))) {
- /*line community_creation.mygo:145:20*/				return Err[struct{}, string]("community creation failed")
- /*line community_creation.mygo:143:9*/			} else {
- /*line zz_community_creation.gen.go:102:1*/			}
- /*line community_creation.mygo:143:9*/		} else {
- /*line zz_community_creation.gen.go:104:1*/		}
- /*line community_creation.mygo:148:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", record.ID, identity.ActorURI, identity.ActorURI))) {
- /*line community_creation.mygo:154:18*/			return Err[struct{}, string]("community creation failed")
- /*line community_creation.mygo:148:9*/		} else {
- /*line zz_community_creation.gen.go:108:1*/		}
- /*line community_creation.mygo:156:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'community',?,'create-community',?)", identity.ActorURI, record.ID, record.ID))
- /*line zz_community_creation.gen.go:110:1*/	})
- /*line community_creation.mygo:164:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line community_creation.mygo:165:14*/		return Err[CommunityRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line community_creation.mygo:164:5*/	} else {
- /*line zz_community_creation.gen.go:114:1*/	}
- /*line community_creation.mygo:167:5*/	return Ok[CommunityRecord, string](record)
- /*line zz_community_creation.gen.go:116:1*/}
+ /*line community_creation.mygo:141:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(columnQuery)) {
+ /*line community_creation.mygo:142:18*/			return Err[struct{}, failure.Failure](Of("community creation failed"))
+ /*line community_creation.mygo:141:9*/		} else {
+ /*line zz_community_creation.gen.go:98:1*/		}
+ /*line community_creation.mygo:144:9*/		if followColumn {
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE communities SET follow_policy=? WHERE id=?", followPolicy, record.ID))) {
+ /*line community_creation.mygo:146:20*/				return Err[struct{}, failure.Failure](Of("community creation failed"))
+ /*line community_creation.mygo:144:9*/			} else {
+ /*line zz_community_creation.gen.go:103:1*/			}
+ /*line community_creation.mygo:144:9*/		} else {
+ /*line zz_community_creation.gen.go:105:1*/		}
+ /*line community_creation.mygo:149:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", record.ID, identity.ActorURI, identity.ActorURI))) {
+ /*line community_creation.mygo:155:18*/			return Err[struct{}, failure.Failure](Of("community creation failed"))
+ /*line community_creation.mygo:149:9*/		} else {
+ /*line zz_community_creation.gen.go:109:1*/		}
+ /*line community_creation.mygo:157:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'community',?,'create-community',?)", identity.ActorURI, record.ID, record.ID))
+ /*line zz_community_creation.gen.go:111:1*/	})
+ /*line community_creation.mygo:165:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line community_creation.mygo:166:14*/		return Err[CommunityRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line community_creation.mygo:165:5*/	} else {
+ /*line zz_community_creation.gen.go:115:1*/	}
+ /*line community_creation.mygo:168:5*/	return Ok[CommunityRecord, failure.Failure](record)
+ /*line zz_community_creation.gen.go:117:1*/}

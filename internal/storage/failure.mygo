@@ -1,0 +1,13 @@
+package storage
+
+import failure "github.com/commune-project/commune-backend/internal/failure"
+
+# Two-tier failed mapping: protocol-level reasons become typed variants, and
+# every other storage reason stays internal so its text and 503 status survive.
+func Of(reason: String) -> failure.Failure
+  switch failure.Parse(reason)
+    case Ok(value) => value
+    case Err(_) => failure.Failure.Internal(reason)
+  end
+end
+

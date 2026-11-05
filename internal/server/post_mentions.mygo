@@ -11,6 +11,7 @@ import auth "github.com/commune-project/commune-backend/internal/auth"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import content "github.com/commune-project/commune-backend/internal/content"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 # encoding/json preserves omitted/null versus an explicit empty JSON array.
 func PostAttachmentIDsMissing(ids: Slice[String]) -> Bool
   go[Bool] {
@@ -32,7 +33,7 @@ func ResolvePostMentions(
   body: String,
   format: String,
   editing: Bool
-) -> Result[Slice[storage.ResolvedPostMention], String]
+) -> Result[Slice[storage.ResolvedPostMention], failure.Failure]
   ResolvePostMentionsWith(
     ctx,
     settings,
@@ -57,12 +58,12 @@ func ResolvePostMentionsWith(
   body: String,
   format: String,
   editing: Bool,
-  discover: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String, String) -> Result[storage.ResolvedPostMention, String]
-) -> Result[Slice[storage.ResolvedPostMention], String]
+  discover: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String, String) -> Result[storage.ResolvedPostMention, failure.Failure]
+) -> Result[Slice[storage.ResolvedPostMention], failure.Failure]
   var resolved: Slice[storage.ResolvedPostMention] = []
   let source = strings.TrimSpace(body)
   if (source as Slice[Byte]).Len() > settings.Rendering.MaxSourceBytes then
-    return Err("invalid post input")
+    return Err(Of("invalid post input"))
   end
   if format != "markdown" then
     return Ok(resolved)
@@ -71,7 +72,7 @@ func ResolvePostMentionsWith(
   if candidates.IsErr() ||
     candidates.Unwrap().Len() > settings.Rendering.MaxMentions ||
     (source as Slice[Byte]).Len() > settings.Rendering.MaxSourceBytes then
-    return Err("invalid post input")
+    return Err(Of("invalid post input"))
   end
   if candidates.Unwrap().Len() == 0 then
     return Ok(resolved)
@@ -87,7 +88,7 @@ func ResolvePostMentionsWith(
   end
   if (!editing && !access.Unwrap().CanPost()) ||
     (editing && !access.Unwrap().CanEditBody(identity.ActorURI)) then
-    return Err("forbidden")
+    return Err(Of("forbidden"))
   end
   let (bounded, cancel) = context.WithTimeout(
     ctx,
@@ -158,10 +159,10 @@ func FetchMentionDocument(
   db: Ref[gorm.DB],
   site: config.Site,
   uri: String
-) -> Result[federation.FetchResult, String]
+) -> Result[federation.FetchResult, failure.Failure]
   let blocked = storage.SiteRepository{DB: db, SiteID: site.ID}.IsBlocked(ctx, uri)
   if blocked.IsErr() || blocked.Unwrap() then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   var limits = FetchLimitsFrom(settings)
   limits.MaxRedirects = 0
@@ -172,7 +173,7 @@ func FetchMentionDocument(
   if fetched.IsErr() ||
     fetched.Unwrap().Status != 200 ||
     federation.HasDuplicateKeys(fetched.Unwrap().Body) then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   fetched
 end
@@ -184,7 +185,7 @@ func DiscoverMentionActor(
   site: config.Site,
   username: String,
   domain: String
-) -> Result[storage.ResolvedPostMention, String]
+) -> Result[storage.ResolvedPostMention, failure.Failure]
   DiscoverMentionActorWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
 end
 
@@ -195,8 +196,8 @@ func DiscoverMentionActorWith(
   site: config.Site,
   username: String,
   domain: String,
-  fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, String]
-) -> Result[storage.ResolvedPostMention, String]
+  fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, failure.Failure]
+) -> Result[storage.ResolvedPostMention, failure.Failure]
   let account = "acct:" + username + "@" + domain
   let finger = fetcher(
     ctx,
@@ -206,12 +207,12 @@ func DiscoverMentionActorWith(
     "https://" + domain + "/.well-known/webfinger?resource=" + url.QueryEscape(account)
   )
   if finger.IsErr() then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   var document = Zero[federation.WebFingerDocument]()
   if json.Unmarshal(finger.Unwrap().Body, Ref.new(document)).IsErr() ||
     !strings.EqualFold(document.Subject, account) then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   let links = document.Links.Filter(func(link: federation.WebFingerLink) -> Bool
     link.Rel == "self" &&
@@ -219,17 +220,17 @@ func DiscoverMentionActorWith(
       storage.CanonicalObjectURI(link.Href)
   end)
   if links.Len() != 1 then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   let uri = links.Get(0).Unwrap().Href
   if settings.Sites.Any(func(local: config.Site) -> Bool
     strings.HasPrefix(uri, local.Origin + "/")
   end) then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   let fetched = fetcher(ctx, settings, db, site, uri)
   if fetched.IsErr() || !federation.WantsActivityJSON(fetched.Unwrap().ContentType) then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   var actor = Zero[federation.ActorRepresentation]()
   if json.Unmarshal(fetched.Unwrap().Body, Ref.new(actor)).IsErr() ||
@@ -237,7 +238,7 @@ func DiscoverMentionActorWith(
     actor.Type != "Person" ||
     !strings.EqualFold(actor.PreferredUsername, username) ||
     !storage.CanonicalObjectURI(actor.Inbox) then
-    return Err("unresolved mention")
+    return Err(Of("unresolved mention"))
   end
   Ok(storage.ResolvedPostMention{
     ActorURI: uri,

@@ -47,7 +47,7 @@ func NotificationRoute(
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   if method == "POST" && !AuthorizeMutation(settings, session.Unwrap(), request) then
@@ -57,13 +57,13 @@ func NotificationRoute(
   let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = repository.Viewer(request.Context(), session.Unwrap().Identity)
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return true
   end
   if list then
     let page = PageFromQuery(settings, request)
     if page.IsErr() then
-      Fail(w, page.UnwrapErr())
+      FailFailure(w, page.UnwrapErr())
     else
       let rows = repository.Notifications(
         request.Context(),
@@ -72,7 +72,7 @@ func NotificationRoute(
         settings.Runtime.MaxPageSize
       )
       if rows.IsErr() then
-        Fail(w, rows.UnwrapErr())
+        FailFailure(w, rows.UnwrapErr())
       else
         WriteJSON(w, 200, rows.Unwrap())
       end
@@ -80,7 +80,7 @@ func NotificationRoute(
   elsif count then
     let unread = repository.NotificationUnreadCount(request.Context(), viewer.Unwrap())
     if unread.IsErr() then
-      Fail(w, unread.UnwrapErr())
+      FailFailure(w, unread.UnwrapErr())
     else
       WriteJSON(w, 200, NotificationCountOutput{Count: unread.Unwrap()})
     end
@@ -88,7 +88,7 @@ func NotificationRoute(
     var input = Zero[NotificationReadAllInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
     else
       let cursor = storage.ParseNotificationCursor(input.ThroughCursor)
       if cursor.IsErr() then
@@ -96,7 +96,7 @@ func NotificationRoute(
       else
         let result = repository.ReadAllNotifications(request.Context(), viewer.Unwrap(), cursor.Unwrap())
         if result.IsErr() then
-          Fail(w, result.UnwrapErr())
+          FailFailure(w, result.UnwrapErr())
         else
           w.WriteHeader(204)
         end
@@ -111,7 +111,7 @@ func NotificationRoute(
     else
       let result = repository.ReadNotification(request.Context(), viewer.Unwrap(), id.Unwrap())
       if result.IsErr() then
-        Fail(w, result.UnwrapErr())
+        FailFailure(w, result.UnwrapErr())
       else
         w.WriteHeader(204)
       end

@@ -65,7 +65,7 @@ func TestPostgresReportsModerationAndBans(t: Ref[testing.T]) -> ()
   let reportID = reports.Get(0).Unwrap().ID
   let _ = ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled").Unwrap()
   let _ = ResolveReport(ctx, db, site.ID, admin, reportID, "resolved", "handled").Unwrap()
-  if ResolveReport(ctx, db, site.ID, admin, reportID, "rejected", "changed").UnwrapErr() !=
+  if ResolveReport(ctx, db, site.ID, admin, reportID, "rejected", "changed").UnwrapErr().Render() !=
     "report conflict" then
     t.Fatal("conflicting report resolution was not a conflict")
   end
@@ -88,7 +88,7 @@ func TestPostgresReportsModerationAndBans(t: Ref[testing.T]) -> ()
   if posts.Publish(ctx, site, community.ID, target, false, testPublishInput("Blocked", "blocked")).IsOk() then
     t.Fatal("community-banned actor published")
   end
-  if UnbanCommunity(ctx, db, site.ID, community.ID, admin, "https://missing.example/users/none").UnwrapErr() !=
+  if UnbanCommunity(ctx, db, site.ID, community.ID, admin, "https://missing.example/users/none").UnwrapErr().Render() !=
     "not found" then
     t.Fatal("unban of absent community ban was accepted")
   end

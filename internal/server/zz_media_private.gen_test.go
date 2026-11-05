@@ -17,70 +17,71 @@ import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line media_private_test.mygo:19:1*/func TestPostgresMediaPrivateHTTPACLAndPublicNoProxy(t *testing.T) {
+ /*line media_private_test.mygo:20:1*/func TestPostgresMediaPrivateHTTPACLAndPublicNoProxy(t *testing.T) {
 	ctx := context.Background()
- /*line media_private_test.mygo:21:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line media_private_test.mygo:22:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_media_private.gen_test.go:31:1*/	}
- /*line media_private_test.mygo:19:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+ /*line zz_media_private.gen_test.go:32:1*/	}
+ /*line media_private_test.mygo:20:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	site := config.Site{ID: "cache-http", RegistrationEnabled: false, Origin: "https://cache.example", Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password-long"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password-long"))
 	var author string = "https://remote.example/users/author"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/private','Group')", author)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote','https://remote.example/groups/private',?,'federated','members','members','remote','Remote')", author)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: Zero[sql.NullString](), Body: "Private", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, author, content.DefaultSanitizer))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?)", alice.ActorURI, author)))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Note", Title: Zero[sql.NullString](), Body: "Private", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, author, content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('remote',?,?)", alice.ActorURI, author)))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json")).Media
 	settings.Enabled = true
 	settings.Root = t.TempDir()
-	mediaFS := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](storage.OpenMediaFiles(settings))
- /*line media_private_test.mygo:83:3*/	t.Cleanup(func() {
- /*line media_private_test.mygo:83:13*/		mediaFS.Root.Close()
+	mediaFS := MygoIN6ResultM6Unwrap[storage.MediaFiles, failure.Failure](storage.OpenMediaFiles(settings))
+ /*line media_private_test.mygo:84:3*/	t.Cleanup(func() {
+ /*line media_private_test.mygo:84:13*/		mediaFS.Root.Close()
 		return
- /*line zz_media_private.gen_test.go:50:1*/	})
- /*line media_private_test.mygo:19:1*/	repo := storage.MediaRepository{DB: db, SiteID: site.ID, Settings: settings, Files: mediaFS}
-	cache := MygoIN6ResultM6Unwrap[storage.PrivateMediaCache, string](storage.RegisterPrivateMedia(ctx, db, site.ID, post.ID, "https://remote.example/media/one", "v1"))
+ /*line zz_media_private.gen_test.go:51:1*/	})
+ /*line media_private_test.mygo:20:1*/	repo := storage.MediaRepository{DB: db, SiteID: site.ID, Settings: settings, Files: mediaFS}
+	cache := MygoIN6ResultM6Unwrap[storage.PrivateMediaCache, failure.Failure](storage.RegisterPrivateMedia(ctx, db, site.ID, post.ID, "https://remote.example/media/one", "v1"))
 	var fetches int = 0
-	fetch := func(fetchCtx context.Context, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, string] {
- /*line media_private_test.mygo:94:15*/		fetches = fetches + 1
- /*line media_private_test.mygo:96:5*/		return Ok[io.ReadCloser, string](io.NopCloser(io.Reader(strings.NewReader("<svg onload='bad()'/>"))))
- /*line zz_media_private.gen_test.go:57:1*/	}
- /*line media_private_test.mygo:19:1*/	response := httptest.NewRecorder()
- /*line media_private_test.mygo:99:3*/	ServePrivateMedia(repo, alice, cache.ID, http.ResponseWriter(response), httptest.NewRequest("GET", "/", io.Reader(strings.NewReader(""))), fetch)
- /*line media_private_test.mygo:107:3*/	if response.Code != 200 || response.Header().Get("Content-Type") != "application/octet-stream" || !strings.HasPrefix(response.Header().Get("Content-Disposition"), "attachment") || fetches != 1 {
- /*line media_private_test.mygo:111:5*/		t.Fatal("private download unsafe or missing")
- /*line media_private_test.mygo:107:3*/	} else {
- /*line zz_media_private.gen_test.go:63:1*/	}
- /*line media_private_test.mygo:19:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", alice.ActorURI)))
+	fetch := func(fetchCtx context.Context, identity auth.Identity, row storage.PrivateMediaCache) Result[io.ReadCloser, failure.Failure] {
+ /*line media_private_test.mygo:95:15*/		fetches = fetches + 1
+ /*line media_private_test.mygo:97:5*/		return Ok[io.ReadCloser, failure.Failure](io.NopCloser(io.Reader(strings.NewReader("<svg onload='bad()'/>"))))
+ /*line zz_media_private.gen_test.go:58:1*/	}
+ /*line media_private_test.mygo:20:1*/	response := httptest.NewRecorder()
+ /*line media_private_test.mygo:100:3*/	ServePrivateMedia(repo, alice, cache.ID, http.ResponseWriter(response), httptest.NewRequest("GET", "/", io.Reader(strings.NewReader(""))), fetch)
+ /*line media_private_test.mygo:108:3*/	if response.Code != 200 || response.Header().Get("Content-Type") != "application/octet-stream" || !strings.HasPrefix(response.Header().Get("Content-Disposition"), "attachment") || fetches != 1 {
+ /*line media_private_test.mygo:112:5*/		t.Fatal("private download unsafe or missing")
+ /*line media_private_test.mygo:108:3*/	} else {
+ /*line zz_media_private.gen_test.go:64:1*/	}
+ /*line media_private_test.mygo:20:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", alice.ActorURI)))
 	denied := httptest.NewRecorder()
 	request := httptest.NewRequest("HEAD", "/", io.Reader(strings.NewReader("")))
- /*line media_private_test.mygo:119:3*/	request.Header.Set("Range", "bytes=0-1")
- /*line media_private_test.mygo:120:3*/	request.Header.Set("If-None-Match", response.Header().Get("ETag"))
- /*line media_private_test.mygo:121:3*/	ServePrivateMedia(repo, alice, cache.ID, http.ResponseWriter(denied), request, fetch)
- /*line media_private_test.mygo:122:3*/	if denied.Code == 200 || denied.Code == 206 || denied.Code == 304 || denied.Header().Get("ETag") != "" || fetches != 1 {
- /*line media_private_test.mygo:127:5*/		t.Fatal("revoked reader accessed cache metadata")
- /*line media_private_test.mygo:122:3*/	} else {
- /*line zz_media_private.gen_test.go:73:1*/	}
- /*line media_private_test.mygo:19:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE communities SET read_policy='eligible_users',post_policy='eligible_users' WHERE id='remote'")))
-	urls := MygoIN6ResultM6Unwrap[[]string, string](ReconcileRemoteMedia(ctx, db, site.ID, post, "v2", []federation.RichAttachment{federation.RichAttachment{Type: "Document", URL: "https://remote.example/media/public", MediaType: "", Name: ""}}))
- /*line media_private_test.mygo:143:3*/	if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(urls, 0)) != "https://remote.example/media/public" {
- /*line media_private_test.mygo:144:5*/		t.Fatal("public attachment proxied")
- /*line media_private_test.mygo:143:3*/	} else {
- /*line zz_media_private.gen_test.go:79:1*/	}
- /*line media_private_test.mygo:146:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.QueryExists(db.Table("media_private_cache").Where("origin_uri=?", "https://remote.example/media/public"))) || fetches != 1 {
- /*line media_private_test.mygo:151:5*/		t.Fatal("public attachment cached or fetched")
+ /*line media_private_test.mygo:120:3*/	request.Header.Set("Range", "bytes=0-1")
+ /*line media_private_test.mygo:121:3*/	request.Header.Set("If-None-Match", response.Header().Get("ETag"))
+ /*line media_private_test.mygo:122:3*/	ServePrivateMedia(repo, alice, cache.ID, http.ResponseWriter(denied), request, fetch)
+ /*line media_private_test.mygo:123:3*/	if denied.Code == 200 || denied.Code == 206 || denied.Code == 304 || denied.Header().Get("ETag") != "" || fetches != 1 {
+ /*line media_private_test.mygo:128:5*/		t.Fatal("revoked reader accessed cache metadata")
+ /*line media_private_test.mygo:123:3*/	} else {
+ /*line zz_media_private.gen_test.go:74:1*/	}
+ /*line media_private_test.mygo:20:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE communities SET read_policy='eligible_users',post_policy='eligible_users' WHERE id='remote'")))
+	urls := MygoIN6ResultM6Unwrap[[]string, failure.Failure](ReconcileRemoteMedia(ctx, db, site.ID, post, "v2", []federation.RichAttachment{federation.RichAttachment{Type: "Document", URL: "https://remote.example/media/public", MediaType: "", Name: ""}}))
+ /*line media_private_test.mygo:144:3*/	if MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(urls, 0)) != "https://remote.example/media/public" {
+ /*line media_private_test.mygo:145:5*/		t.Fatal("public attachment proxied")
+ /*line media_private_test.mygo:144:3*/	} else {
+ /*line zz_media_private.gen_test.go:80:1*/	}
+ /*line media_private_test.mygo:147:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.QueryExists(db.Table("media_private_cache").Where("origin_uri=?", "https://remote.example/media/public"))) || fetches != 1 {
+ /*line media_private_test.mygo:152:5*/		t.Fatal("public attachment cached or fetched")
 		return
- /*line media_private_test.mygo:146:3*/	} else {
+ /*line media_private_test.mygo:147:3*/	} else {
 		return
- /*line zz_media_private.gen_test.go:85:1*/	}
+ /*line zz_media_private.gen_test.go:86:1*/	}
 }

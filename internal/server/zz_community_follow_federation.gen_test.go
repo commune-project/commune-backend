@@ -13,6 +13,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -23,20 +24,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_community_follow_federation.gen_test.go:26:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:27:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
 	remoteAuthor := "https://peer.example/users/writer"
 	remoteGroup := "https://peer.example/communities/news"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?,'Person','https://peer.example/users/writer/inbox'),(?,'Group','https://peer.example/communities/news/inbox')", remoteAuthor, remoteGroup)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,follow_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','approval','remote','Remote')", remoteGroup, remoteAuthor)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Receive(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, storage.PostRecord{ID: "", ObjectURI: sql.NullString{String: "https://peer.example/objects/follow-post", Valid: true}, CommunityID: "remote", FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", ContentFormat: "legacy", SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: now, UpdatedAt: now, Version: int64(0), DeletedAt: Zero[sql.NullTime]()}, remoteAuthor, content.DefaultSanitizer))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "bob", "bob-password")
 	csrf := csrfOf(cookies)
@@ -45,87 +46,87 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line community_follow_federation_test.mygo:34:3*/	if doForum(handler, follow).Code != 204 {
  /*line community_follow_federation_test.mygo:35:5*/		t.Fatal("remote community follow failed")
  /*line community_follow_federation_test.mygo:34:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:48:1*/	}
- /*line community_follow_federation_test.mygo:37:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
+ /*line zz_community_follow_federation.gen_test.go:49:1*/	}
+ /*line community_follow_federation_test.mygo:37:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
  /*line community_follow_federation_test.mygo:38:5*/		t.Fatal("approval policy did not create a pending browser follow")
  /*line community_follow_federation_test.mygo:37:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:52:1*/	}
- /*line community_follow_federation_test.mygo:15:1*/	firstFollow := MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI))
+ /*line zz_community_follow_federation.gen_test.go:53:1*/	}
+ /*line community_follow_federation_test.mygo:15:1*/	firstFollow := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI))
 	jobs := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(&jobs)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(&jobs)))
  /*line community_follow_federation_test.mygo:43:3*/	if jobs != int64(1) || !storage.CanonicalObjectURI(firstFollow) {
  /*line community_follow_federation_test.mygo:44:5*/		t.Fatal("browser follow did not queue one canonical Follow")
  /*line community_follow_federation_test.mygo:43:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:59:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:60:1*/	}
  /*line community_follow_federation_test.mygo:46:3*/	if doForum(handler, follow).Code != 204 {
  /*line community_follow_federation_test.mygo:47:5*/		t.Fatal("repeat remote follow failed")
  /*line community_follow_federation_test.mygo:46:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:63:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:64:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	afterRepeat := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(&afterRepeat)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("signing_actor_uri=? AND recipient_actor_uri=?", bob.ActorURI, remoteGroup).Count(&afterRepeat)))
  /*line community_follow_federation_test.mygo:51:3*/	if afterRepeat != int64(1) {
  /*line community_follow_federation_test.mygo:52:5*/		t.Fatal("repeat follow queued another activity")
  /*line community_follow_federation_test.mygo:51:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:69:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:70:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	acceptPayload := "{\"id\":\"https://peer.example/activities/accept-1\",\"actor\":\"" + remoteGroup + "\",\"type\":\"Accept\",\"object\":\"" + firstFollow + "\"}"
-	accept := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(acceptPayload)))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
- /*line community_follow_federation_test.mygo:58:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "accepted" {
+	accept := MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](federation.ParseActivity([]byte(acceptPayload)))
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+ /*line community_follow_federation_test.mygo:58:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "accepted" {
  /*line community_follow_federation_test.mygo:59:5*/		t.Fatal("Accept did not update the remote follow")
  /*line community_follow_federation_test.mygo:58:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:77:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:78:1*/	}
  /*line community_follow_federation_test.mygo:61:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line community_follow_federation_test.mygo:62:5*/		t.Fatal("remote unfollow failed")
  /*line community_follow_federation_test.mygo:61:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:81:1*/	}
- /*line community_follow_federation_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "undone" || MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI)) != firstFollow {
+ /*line zz_community_follow_federation.gen_test.go:82:1*/	}
+ /*line community_follow_federation_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "undone" || MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI)) != firstFollow {
  /*line community_follow_federation_test.mygo:66:5*/		t.Fatal("unfollow did not preserve the original activity identity")
  /*line community_follow_federation_test.mygo:64:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:85:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:86:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	undos := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(&undos)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(&undos)))
  /*line community_follow_federation_test.mygo:70:3*/	if undos != int64(1) {
  /*line community_follow_federation_test.mygo:71:5*/		t.Fatal("remote unfollow did not queue one Undo")
  /*line community_follow_federation_test.mygo:70:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:91:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:92:1*/	}
  /*line community_follow_federation_test.mygo:73:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line community_follow_federation_test.mygo:74:5*/		t.Fatal("repeat remote unfollow failed")
  /*line community_follow_federation_test.mygo:73:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:95:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:96:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	repeatedUndos := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(&repeatedUndos)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Undo'", bob.ActorURI).Count(&repeatedUndos)))
  /*line community_follow_federation_test.mygo:78:3*/	if repeatedUndos != int64(1) {
  /*line community_follow_federation_test.mygo:79:5*/		t.Fatal("repeat unfollow queued another Undo")
  /*line community_follow_federation_test.mygo:78:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:101:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:102:1*/	}
  /*line community_follow_federation_test.mygo:81:3*/	if doForum(handler, follow).Code != 204 {
  /*line community_follow_federation_test.mygo:82:5*/		t.Fatal("re-follow failed")
  /*line community_follow_federation_test.mygo:81:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:105:1*/	}
- /*line community_follow_federation_test.mygo:15:1*/	secondFollow := MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI))
- /*line community_follow_federation_test.mygo:85:3*/	if secondFollow == firstFollow || MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
+ /*line zz_community_follow_federation.gen_test.go:106:1*/	}
+ /*line community_follow_federation_test.mygo:15:1*/	secondFollow := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowURI(ctx, db, "remote", bob.ActorURI))
+ /*line community_follow_federation_test.mygo:85:3*/	if secondFollow == firstFollow || MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
  /*line community_follow_federation_test.mygo:86:5*/		t.Fatal("re-follow did not create a new pending request")
  /*line community_follow_federation_test.mygo:85:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:110:1*/	}
- /*line community_follow_federation_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
- /*line community_follow_federation_test.mygo:89:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
+ /*line zz_community_follow_federation.gen_test.go:111:1*/	}
+ /*line community_follow_federation_test.mygo:15:1*/	MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyActivity(content.DefaultSanitizer, ctx, db, site, accept, []byte(acceptPayload), []string{bob.ActorURI}))
+ /*line community_follow_federation_test.mygo:89:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "pending" {
  /*line community_follow_federation_test.mygo:90:5*/		t.Fatal("stale Accept changed a newer follow")
  /*line community_follow_federation_test.mygo:89:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:115:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:116:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	rejectPayload := "{\"id\":\"https://peer.example/activities/reject-2\",\"actor\":\"" + remoteGroup + "\",\"type\":\"Reject\",\"object\":\"" + secondFollow + "\"}"
-	reject := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](federation.ParseActivity([]byte(rejectPayload)))
-	MygoIN6ResultM6Unwrap[bool, string](ApplyActivity(content.DefaultSanitizer, ctx, db, site, reject, []byte(rejectPayload), []string{bob.ActorURI}))
- /*line community_follow_federation_test.mygo:95:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "rejected" {
+	reject := MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](federation.ParseActivity([]byte(rejectPayload)))
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyActivity(content.DefaultSanitizer, ctx, db, site, reject, []byte(rejectPayload), []string{bob.ActorURI}))
+ /*line community_follow_federation_test.mygo:95:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityFollowState(ctx, db, "remote", bob.ActorURI)) != "rejected" {
  /*line community_follow_federation_test.mygo:96:5*/		t.Fatal("Reject did not update the current follow")
  /*line community_follow_federation_test.mygo:95:3*/	} else {
- /*line zz_community_follow_federation.gen_test.go:122:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:123:1*/	}
  /*line community_follow_federation_test.mygo:15:1*/	statePayload := "{\"id\":\"https://peer.example/activities/state-follow\",\"actor\":\"" + remoteGroup + "\",\"type\":\"Update\",\"object\":{\"id\":\"" + remoteGroup + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\",\"follow\":\"open\"}}}"
-	MygoIN6ResultM6Unwrap[bool, string](ApplyCommunityState(ctx, db, []byte(statePayload)))
- /*line community_follow_federation_test.mygo:100:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.LoadCommunityFollowRule(ctx, db, "remote")) != "open" {
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](ApplyCommunityState(ctx, db, []byte(statePayload)))
+ /*line community_follow_federation_test.mygo:100:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.LoadCommunityFollowRule(ctx, db, "remote")) != "open" {
  /*line community_follow_federation_test.mygo:101:5*/		t.Fatal("authoritative follow policy was not applied to the replica")
 		return
  /*line community_follow_federation_test.mygo:100:3*/	} else {
 		return
- /*line zz_community_follow_federation.gen_test.go:130:1*/	}
+ /*line zz_community_follow_federation.gen_test.go:131:1*/	}
 }

@@ -8,6 +8,7 @@ import io "go:io"
 import context "go:context"
 import time "go:time"
 import strings "go:strings"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct FetchLimits
   TimeoutSeconds: Int
@@ -34,45 +35,45 @@ func BlockedIP(text: String) -> Bool
   address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() || address.IsLinkLocalMulticast() || address.IsMulticast() || address.IsUnspecified()
 end
 
-func CheckHost(host: String, allowPrivate: Bool) -> Result[(), String]
+func CheckHost(host: String, allowPrivate: Bool) -> Result[(), failure.Failure]
   if allowPrivate then
     return Ok(())
   end
   let literal = netip.ParseAddr(host)
   if literal.IsOk() then
     if BlockedIP(literal.Unwrap().String()) then
-      return Err("blocked destination")
+      return Err(Of("blocked destination"))
     end
     return Ok(())
   end
   let resolved = net.LookupHost(host)
   if resolved.IsErr() then
-    return Err("unresolvable destination")
+    return Err(Of("unresolvable destination"))
   end
   let addresses = resolved.Unwrap()
   if addresses.Len() == 0 then
-    return Err("unresolvable destination")
+    return Err(Of("unresolvable destination"))
   end
   let blocked = addresses.Fold(false, func(found: Bool, address: String) -> Bool
     found || BlockedIP(address)
   end)
   if blocked then
-    return Err("blocked destination")
+    return Err(Of("blocked destination"))
   end
   Ok(())
 end
 
-func ValidateDestination(raw: String, allowPrivate: Bool) -> Result[(), String]
+func ValidateDestination(raw: String, allowPrivate: Bool) -> Result[(), failure.Failure]
   let parsed = url.Parse(raw)
   if parsed.IsErr() then
-    return Err("invalid destination")
+    return Err(Of("invalid destination"))
   end
   let target = parsed.Unwrap()
   if target.Scheme != "https" && !(allowPrivate && target.Scheme == "http") then
-    return Err("destination must use https")
+    return Err(Of("destination must use https"))
   end
   if target.Hostname() == "" then
-    return Err("invalid destination")
+    return Err(Of("invalid destination"))
   end
   CheckHost(target.Hostname(), allowPrivate)
 end
@@ -90,22 +91,22 @@ func DisableRedirects(client: Ref[http.Client]) -> ()
   }
 end
 
-func Fetch(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+func Fetch(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, failure.Failure]
   FetchWithAccept(ctx, raw, limits, activityJSON)
 end
 
-func FetchWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, String]
+func FetchWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, failure.Failure]
   let (bounded, cancel) = context.WithTimeout(ctx, limits.TimeoutSeconds as time.Duration * time.Second)
   let result = FetchBoundedWithAccept(bounded, raw, limits, accept)
   cancel()
   result
 end
 
-func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, String]
+func FetchBounded(ctx: context.Context, raw: String, limits: FetchLimits) -> Result[FetchResult, failure.Failure]
   FetchBoundedWithAccept(ctx, raw, limits, activityJSON)
 end
 
-func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, String]
+func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimits, accept: String) -> Result[FetchResult, failure.Failure]
   let client = Zero[http.Client]()
   DisableRedirects(Ref.new(client))
   var current = raw
@@ -121,12 +122,12 @@ func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimi
     end
     let request = http.NewRequestWithContext(ctx, "GET", current, strings.NewReader("") as io.Reader)
     if request.IsErr() then
-      return Err("invalid destination")
+      return Err(Of("invalid destination"))
     end
     request.Unwrap().Header.Set("Accept", accept)
     let response = client.Do(request.Unwrap())
     if response.IsErr() then
-      return Err("fetch failed")
+      return Err(Of("fetch failed"))
     end
     let res = response.Unwrap()
     if res.StatusCode >= 300 && res.StatusCode < 400 then
@@ -143,10 +144,10 @@ func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimi
       let data = io.ReadAll(limited)
       let _ = res.Body.Close()
       if data.IsErr() then
-        return Err("fetch failed")
+        return Err(Of("fetch failed"))
       end
       if data.Unwrap().Len() > limits.MaxBytes then
-        return Err("response too large")
+        return Err(Of("response too large"))
       end
       status = res.StatusCode
       payload = data.Unwrap()
@@ -155,19 +156,19 @@ func FetchBoundedWithAccept(ctx: context.Context, raw: String, limits: FetchLimi
     end
   end
   if !settled then
-    return Err("redirect limit exceeded")
+    return Err(Of("redirect limit exceeded"))
   end
   Ok(FetchResult{Status: status, Body: payload, ContentType: contentType, FinalURL: current})
 end
 
-func ResolveLocation(response: Ref[http.Response], location: String) -> Result[String, String]
+func ResolveLocation(response: Ref[http.Response], location: String) -> Result[String, failure.Failure]
   if location == "" then
-    return Err("redirect without location")
+    return Err(Of("redirect without location"))
   end
   let base = response.Request.URL
   let reference = url.Parse(location)
   if reference.IsErr() then
-    return Err("invalid redirect")
+    return Err(Of("invalid redirect"))
   end
   let resolved = base.ResolveReference(reference.Unwrap())
   Ok(resolved.String())

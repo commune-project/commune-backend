@@ -10,6 +10,7 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -93,7 +94,7 @@ func TestPostgresDiscussionContextCollection(t: Ref[testing.T]) -> ()
     t.Fatal("a revoked manager retained protected context access")
   end
   var fetchCount = 0
-  let fetcher = func(fetchCtx: context.Context, fetchSettings: config.Config, uri: String) -> Result[Slice[Byte], String]
+  let fetcher = func(fetchCtx: context.Context, fetchSettings: config.Config, uri: String) -> Result[Slice[Byte], failure.Failure]
     fetchCount = fetchCount + 1
     let body = "{\"id\":\"" + restrictedContext.ContextURI.String + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + restricted.ActorURI.String + "\"}"
     Ok(body as Slice[Byte])

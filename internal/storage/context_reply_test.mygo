@@ -62,7 +62,7 @@ func TestPostgresReplyContextIndependence(t: Ref[testing.T]) -> ()
     }
   )
   if published.IsErr() then
-    t.Fatalf("reply with a declared context failed: %s", published.UnwrapErr())
+    t.Fatalf("reply with a declared context failed: %s", published.UnwrapErr().Render())
   end
   let reply = published.Unwrap()
   if reply.ParentID.String != topic.ID then

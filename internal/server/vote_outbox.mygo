@@ -7,6 +7,7 @@ import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct LocalReactionActivity
   Context: String `json:"@context"`
@@ -22,7 +23,7 @@ func LocalVoteRecipients(
   post: storage.PostRecord,
   community: storage.CommunityRecord,
   actorURI: String
-) -> Result[Slice[String], String]
+) -> Result[Slice[String], failure.Failure]
   var recipients: Slice[String] = []
   if community.FederationMode != "federated" then
     return Ok(recipients)
@@ -35,7 +36,7 @@ func LocalVoteRecipients(
     community.ID
   ).Order("a.uri").Scan(Ref.new(recipients))
   if storage.MutationResult(query).IsErr() then
-    return Err("vote recipients unavailable")
+    return Err(Of("vote recipients unavailable"))
   end
   Ok(recipients)
 end
@@ -48,14 +49,14 @@ func ApplyLocalVote(
   postID: String,
   identity: auth.Identity,
   score: Int
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if score != -1 && score != 0 && score != 1 then
-    return Err("invalid vote")
+    return Err(Of("invalid vote"))
   end
   storage.RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let repository = storage.ReactionRepository{DB: tx, SiteID: site.ID}
       let previous = storage.CurrentReaction(ctx, tx, postID, identity.ActorURI)
       if previous.IsErr() then
@@ -68,12 +69,12 @@ func ApplyLocalVote(
       end
       let loaded = storage.LoadObjectByID(ctx, tx, postID)
       if loaded.IsErr() || loaded.Unwrap().IsNone() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let post = loaded.Unwrap().Unwrap()
       let communityResult = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
       if communityResult.IsErr() || communityResult.Unwrap().IsNone() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let community = communityResult.Unwrap().Unwrap()
       let recipients = LocalVoteRecipients(ctx, tx, post, community, identity.ActorURI)
@@ -106,7 +107,7 @@ func ApplyLocalVote(
         post.ObjectURI.String
       end
       if objectURI == "" then
-        return Err("reaction activity unavailable")
+        return Err(Of("reaction activity unavailable"))
       end
       let payload = json.Marshal(LocalReactionActivity{
         Context: activityContext,
@@ -116,7 +117,7 @@ func ApplyLocalVote(
         Object: objectURI,
       })
       if payload.IsErr() then
-        return Err("reaction activity unavailable")
+        return Err(Of("reaction activity unavailable"))
       end
       let key = storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
       if key.IsErr() then

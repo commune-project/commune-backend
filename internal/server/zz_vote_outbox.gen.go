@@ -9,131 +9,132 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line vote_outbox.mygo:11:1*/type LocalReactionActivity struct {
+ /*line vote_outbox.mygo:12:1*/type LocalReactionActivity struct {
 	Context string "json:\"@context\""
 	ID      string "json:\"id\""
 	Type    string "json:\"type\""
 	Actor   string "json:\"actor\""
 	Object  string "json:\"object\""
- /*line zz_vote_outbox.gen.go:20:1*/}
+ /*line zz_vote_outbox.gen.go:21:1*/}
 
- /*line vote_outbox.mygo:19:1*/func LocalVoteRecipients(ctx context.Context, db *gorm.DB, post storage.PostRecord, community storage.CommunityRecord, actorURI string) Result[[]string, string] {
+ /*line vote_outbox.mygo:20:1*/func LocalVoteRecipients(ctx context.Context, db *gorm.DB, post storage.PostRecord, community storage.CommunityRecord, actorURI string) Result[[]string, failure.Failure] {
 	var recipients []string = []string{}
- /*line vote_outbox.mygo:27:3*/	if community.FederationMode != "federated" {
- /*line vote_outbox.mygo:28:12*/		return Ok[[]string, string](recipients)
- /*line vote_outbox.mygo:27:3*/	} else {
- /*line zz_vote_outbox.gen.go:27:1*/	}
- /*line vote_outbox.mygo:19:1*/	query := db.WithContext(ctx).Table("actors AS a").Select("DISTINCT a.uri").Where("a.local_site_id IS NULL AND a.uri<>? AND (a.uri=? OR a.uri=? OR a.uri IN (SELECT f.actor_uri FROM follows f WHERE f.community_id=? AND f.state='accepted'))", actorURI, post.AuthorActorURI, community.ActorURI.String, community.ID).Order("a.uri").Scan(&recipients)
- /*line vote_outbox.mygo:37:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(query)) {
- /*line vote_outbox.mygo:38:12*/		return Err[[]string, string]("vote recipients unavailable")
- /*line vote_outbox.mygo:37:3*/	} else {
- /*line zz_vote_outbox.gen.go:32:1*/	}
- /*line vote_outbox.mygo:40:3*/	return Ok[[]string, string](recipients)
- /*line zz_vote_outbox.gen.go:34:1*/}
- /*line vote_outbox.mygo:43:1*/func ApplyLocalVote(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, postID string, identity auth.Identity, score int) Result[struct {
-}, string] {
- /*line vote_outbox.mygo:52:6*/	if score != -1 && score != 0 && score != 1 {
- /*line vote_outbox.mygo:53:12*/		return Err[struct{}, string]("invalid vote")
- /*line vote_outbox.mygo:52:3*/	} else {
- /*line zz_vote_outbox.gen.go:40:1*/	}
- /*line vote_outbox.mygo:55:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line vote_outbox.mygo:58:5*/		repository := storage.ReactionRepository{DB: tx, SiteID: site.ID}
+ /*line vote_outbox.mygo:28:3*/	if community.FederationMode != "federated" {
+ /*line vote_outbox.mygo:29:12*/		return Ok[[]string, failure.Failure](recipients)
+ /*line vote_outbox.mygo:28:3*/	} else {
+ /*line zz_vote_outbox.gen.go:28:1*/	}
+ /*line vote_outbox.mygo:20:1*/	query := db.WithContext(ctx).Table("actors AS a").Select("DISTINCT a.uri").Where("a.local_site_id IS NULL AND a.uri<>? AND (a.uri=? OR a.uri=? OR a.uri IN (SELECT f.actor_uri FROM follows f WHERE f.community_id=? AND f.state='accepted'))", actorURI, post.AuthorActorURI, community.ActorURI.String, community.ID).Order("a.uri").Scan(&recipients)
+ /*line vote_outbox.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(query)) {
+ /*line vote_outbox.mygo:39:12*/		return Err[[]string, failure.Failure](Of("vote recipients unavailable"))
+ /*line vote_outbox.mygo:38:3*/	} else {
+ /*line zz_vote_outbox.gen.go:33:1*/	}
+ /*line vote_outbox.mygo:41:3*/	return Ok[[]string, failure.Failure](recipients)
+ /*line zz_vote_outbox.gen.go:35:1*/}
+ /*line vote_outbox.mygo:44:1*/func ApplyLocalVote(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, postID string, identity auth.Identity, score int) Result[struct {
+}, failure.Failure] {
+ /*line vote_outbox.mygo:53:6*/	if score != -1 && score != 0 && score != 1 {
+ /*line vote_outbox.mygo:54:12*/		return Err[struct{}, failure.Failure](Of("invalid vote"))
+ /*line vote_outbox.mygo:53:3*/	} else {
+ /*line zz_vote_outbox.gen.go:41:1*/	}
+ /*line vote_outbox.mygo:56:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line vote_outbox.mygo:59:5*/		repository := storage.ReactionRepository{DB: tx, SiteID: site.ID}
 		previous := storage.CurrentReaction(ctx, tx, postID, identity.ActorURI)
- /*line vote_outbox.mygo:61:7*/		if MygoIN6ResultM5IsErr[storage.ReactionState, string](previous) {
- /*line vote_outbox.mygo:62:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.ReactionState, string](previous))
- /*line vote_outbox.mygo:61:7*/		} else {
- /*line zz_vote_outbox.gen.go:47:1*/		}
- /*line vote_outbox.mygo:58:5*/		before := MygoIN6ResultM6Unwrap[storage.ReactionState, string](previous)
- /*line vote_outbox.mygo:65:7*/		if score == 0 && !before.Active || score != 0 && before.Active && before.Score == score {
- /*line vote_outbox.mygo:67:16*/			return storage.MygoIN18ReactionRepositoryM4Vote(repository, ctx, postID, identity, false, score, before.URI)
- /*line vote_outbox.mygo:65:7*/		} else {
- /*line zz_vote_outbox.gen.go:52:1*/		}
- /*line vote_outbox.mygo:58:5*/		loaded := storage.LoadObjectByID(ctx, tx, postID)
- /*line vote_outbox.mygo:70:7*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded)) {
- /*line vote_outbox.mygo:71:16*/			return Err[struct{}, string]("not found")
- /*line vote_outbox.mygo:70:7*/		} else {
- /*line zz_vote_outbox.gen.go:57:1*/		}
- /*line vote_outbox.mygo:58:5*/		post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](loaded))
+ /*line vote_outbox.mygo:62:7*/		if MygoIN6ResultM5IsErr[storage.ReactionState, failure.Failure](previous) {
+ /*line vote_outbox.mygo:63:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.ReactionState, failure.Failure](previous))
+ /*line vote_outbox.mygo:62:7*/		} else {
+ /*line zz_vote_outbox.gen.go:48:1*/		}
+ /*line vote_outbox.mygo:59:5*/		before := MygoIN6ResultM6Unwrap[storage.ReactionState, failure.Failure](previous)
+ /*line vote_outbox.mygo:66:7*/		if score == 0 && !before.Active || score != 0 && before.Active && before.Score == score {
+ /*line vote_outbox.mygo:68:16*/			return storage.MygoIN18ReactionRepositoryM4Vote(repository, ctx, postID, identity, false, score, before.URI)
+ /*line vote_outbox.mygo:66:7*/		} else {
+ /*line zz_vote_outbox.gen.go:53:1*/		}
+ /*line vote_outbox.mygo:59:5*/		loaded := storage.LoadObjectByID(ctx, tx, postID)
+ /*line vote_outbox.mygo:71:7*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](loaded) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](loaded)) {
+ /*line vote_outbox.mygo:72:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line vote_outbox.mygo:71:7*/		} else {
+ /*line zz_vote_outbox.gen.go:58:1*/		}
+ /*line vote_outbox.mygo:59:5*/		post := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](loaded))
 		communityResult := storage.LoadCommunityByID(ctx, tx, post.CommunityID)
- /*line vote_outbox.mygo:75:7*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](communityResult) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](communityResult)) {
- /*line vote_outbox.mygo:76:16*/			return Err[struct{}, string]("not found")
- /*line vote_outbox.mygo:75:7*/		} else {
- /*line zz_vote_outbox.gen.go:63:1*/		}
- /*line vote_outbox.mygo:58:5*/		community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](communityResult))
+ /*line vote_outbox.mygo:76:7*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](communityResult) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](communityResult)) {
+ /*line vote_outbox.mygo:77:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line vote_outbox.mygo:76:7*/		} else {
+ /*line zz_vote_outbox.gen.go:64:1*/		}
+ /*line vote_outbox.mygo:59:5*/		community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](communityResult))
 		recipients := LocalVoteRecipients(ctx, tx, post, community, identity.ActorURI)
- /*line vote_outbox.mygo:80:7*/		if MygoIN6ResultM5IsErr[[]string, string](recipients) {
- /*line vote_outbox.mygo:81:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](recipients))
- /*line vote_outbox.mygo:80:7*/		} else {
- /*line zz_vote_outbox.gen.go:69:1*/		}
- /*line vote_outbox.mygo:58:5*/		activityURI := ""
- /*line vote_outbox.mygo:84:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]string, string](recipients)) > 0 && post.ObjectURI.Valid {
+ /*line vote_outbox.mygo:81:7*/		if MygoIN6ResultM5IsErr[[]string, failure.Failure](recipients) {
+ /*line vote_outbox.mygo:82:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]string, failure.Failure](recipients))
+ /*line vote_outbox.mygo:81:7*/		} else {
+ /*line zz_vote_outbox.gen.go:70:1*/		}
+ /*line vote_outbox.mygo:59:5*/		activityURI := ""
+ /*line vote_outbox.mygo:85:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]string, failure.Failure](recipients)) > 0 && post.ObjectURI.Valid {
 			activityURI = site.Origin + "/activities/" + rand.Text()
 		} else {
- /*line zz_vote_outbox.gen.go:74:1*/		}
- /*line vote_outbox.mygo:58:5*/		changed := storage.MygoIN18ReactionRepositoryM4Vote(repository, ctx, postID, identity, false, score, activityURI)
- /*line vote_outbox.mygo:88:7*/		if MygoIN6ResultM5IsErr[struct{}, string](changed) {
- /*line vote_outbox.mygo:89:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](changed))
- /*line vote_outbox.mygo:88:7*/		} else {
- /*line zz_vote_outbox.gen.go:79:1*/		}
- /*line vote_outbox.mygo:91:7*/		if activityURI == "" {
- /*line vote_outbox.mygo:92:16*/			return Ok[struct{}, string](struct {
- /*line zz_vote_outbox.gen.go:82:1*/			}{})
- /*line vote_outbox.mygo:91:7*/		} else {
- /*line zz_vote_outbox.gen.go:84:1*/		}
- /*line vote_outbox.mygo:58:5*/		var __mygo_expr_1 string
- /*line vote_outbox.mygo:94:21*/		if score == 1 {
- /*line vote_outbox.mygo:58:5*/			__mygo_expr_1 = "Like"
- /*line zz_vote_outbox.gen.go:88:1*/		} else {
- /*line vote_outbox.mygo:97:9*/			var __mygo_expr_0 string
- /*line vote_outbox.mygo:97:12*/			if score == -1 {
- /*line vote_outbox.mygo:97:9*/				__mygo_expr_0 = "Dislike"
+ /*line zz_vote_outbox.gen.go:75:1*/		}
+ /*line vote_outbox.mygo:59:5*/		changed := storage.MygoIN18ReactionRepositoryM4Vote(repository, ctx, postID, identity, false, score, activityURI)
+ /*line vote_outbox.mygo:89:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](changed) {
+ /*line vote_outbox.mygo:90:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](changed))
+ /*line vote_outbox.mygo:89:7*/		} else {
+ /*line zz_vote_outbox.gen.go:80:1*/		}
+ /*line vote_outbox.mygo:92:7*/		if activityURI == "" {
+ /*line vote_outbox.mygo:93:16*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_vote_outbox.gen.go:83:1*/			}{})
+ /*line vote_outbox.mygo:92:7*/		} else {
+ /*line zz_vote_outbox.gen.go:85:1*/		}
+ /*line vote_outbox.mygo:59:5*/		var __mygo_expr_1 string
+ /*line vote_outbox.mygo:95:21*/		if score == 1 {
+ /*line vote_outbox.mygo:59:5*/			__mygo_expr_1 = "Like"
+ /*line zz_vote_outbox.gen.go:89:1*/		} else {
+ /*line vote_outbox.mygo:98:9*/			var __mygo_expr_0 string
+ /*line vote_outbox.mygo:98:12*/			if score == -1 {
+ /*line vote_outbox.mygo:98:9*/				__mygo_expr_0 = "Dislike"
 			} else {
 				__mygo_expr_0 = "Undo"
- /*line zz_vote_outbox.gen.go:94:1*/			}
- /*line vote_outbox.mygo:58:5*/			__mygo_expr_1 = __mygo_expr_0
- /*line zz_vote_outbox.gen.go:96:1*/		}
- /*line vote_outbox.mygo:58:5*/		kind := __mygo_expr_1
+ /*line zz_vote_outbox.gen.go:95:1*/			}
+ /*line vote_outbox.mygo:59:5*/			__mygo_expr_1 = __mygo_expr_0
+ /*line zz_vote_outbox.gen.go:97:1*/		}
+ /*line vote_outbox.mygo:59:5*/		kind := __mygo_expr_1
 		var __mygo_expr_2 string
 		if score == 0 {
 			__mygo_expr_2 = before.URI
 		} else {
 			__mygo_expr_2 = post.ObjectURI.String
- /*line zz_vote_outbox.gen.go:103:1*/		}
- /*line vote_outbox.mygo:58:5*/		objectURI := __mygo_expr_2
- /*line vote_outbox.mygo:108:7*/		if objectURI == "" {
- /*line vote_outbox.mygo:109:16*/			return Err[struct{}, string]("reaction activity unavailable")
- /*line vote_outbox.mygo:108:7*/		} else {
- /*line zz_vote_outbox.gen.go:108:1*/		}
- /*line vote_outbox.mygo:111:21*/		var __mygo_expr_4 Result[[]byte, error]
+ /*line zz_vote_outbox.gen.go:104:1*/		}
+ /*line vote_outbox.mygo:59:5*/		objectURI := __mygo_expr_2
+ /*line vote_outbox.mygo:109:7*/		if objectURI == "" {
+ /*line vote_outbox.mygo:110:16*/			return Err[struct{}, failure.Failure](Of("reaction activity unavailable"))
+ /*line vote_outbox.mygo:109:7*/		} else {
+ /*line zz_vote_outbox.gen.go:109:1*/		}
+ /*line vote_outbox.mygo:112:21*/		var __mygo_expr_4 Result[[]byte, error]
 		__mygo_expr_5, __mygo_expr_3 := json.Marshal(LocalReactionActivity{Context: activityContext, ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
- /*line zz_vote_outbox.gen.go:115:1*/		}
- /*line vote_outbox.mygo:58:5*/		payload := __mygo_expr_4
- /*line vote_outbox.mygo:118:7*/		if MygoIN6ResultM5IsErr[[]byte, error](payload) {
- /*line vote_outbox.mygo:119:16*/			return Err[struct{}, string]("reaction activity unavailable")
- /*line vote_outbox.mygo:118:7*/		} else {
- /*line zz_vote_outbox.gen.go:120:1*/		}
- /*line vote_outbox.mygo:58:5*/		key := storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
- /*line vote_outbox.mygo:122:7*/		if MygoIN6ResultM5IsErr[string, string](key) {
- /*line vote_outbox.mygo:123:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](key))
- /*line vote_outbox.mygo:122:7*/		} else {
- /*line zz_vote_outbox.gen.go:125:1*/		}
- /*line vote_outbox.mygo:58:5*/		stored := storage.InsertActivityPayload(ctx, tx, activityURI, identity.ActorURI, kind, MygoIN6ResultM6Unwrap[[]byte, error](payload), community.ID)
- /*line vote_outbox.mygo:134:7*/		if MygoIN6ResultM5IsErr[struct{}, string](stored) {
- /*line vote_outbox.mygo:135:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](stored))
- /*line vote_outbox.mygo:134:7*/		} else {
- /*line zz_vote_outbox.gen.go:130:1*/		}
- /*line vote_outbox.mygo:58:5*/		planned := storage.PlanDelivery(ctx, tx, activityURI, identity.ActorURI, MygoIN6ResultM6Unwrap[[]string, string](recipients), community.ID)
- /*line vote_outbox.mygo:138:7*/		if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
- /*line vote_outbox.mygo:139:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned))
- /*line vote_outbox.mygo:138:7*/		} else {
- /*line zz_vote_outbox.gen.go:135:1*/		}
- /*line vote_outbox.mygo:141:7*/		return Ok[struct{}, string](struct {
- /*line zz_vote_outbox.gen.go:137:1*/		}{})
+ /*line zz_vote_outbox.gen.go:116:1*/		}
+ /*line vote_outbox.mygo:59:5*/		payload := __mygo_expr_4
+ /*line vote_outbox.mygo:119:7*/		if MygoIN6ResultM5IsErr[[]byte, error](payload) {
+ /*line vote_outbox.mygo:120:16*/			return Err[struct{}, failure.Failure](Of("reaction activity unavailable"))
+ /*line vote_outbox.mygo:119:7*/		} else {
+ /*line zz_vote_outbox.gen.go:121:1*/		}
+ /*line vote_outbox.mygo:59:5*/		key := storage.EnsureLocalKey(ctx, tx, identity.ActorURI)
+ /*line vote_outbox.mygo:123:7*/		if MygoIN6ResultM5IsErr[string, failure.Failure](key) {
+ /*line vote_outbox.mygo:124:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](key))
+ /*line vote_outbox.mygo:123:7*/		} else {
+ /*line zz_vote_outbox.gen.go:126:1*/		}
+ /*line vote_outbox.mygo:59:5*/		stored := storage.InsertActivityPayload(ctx, tx, activityURI, identity.ActorURI, kind, MygoIN6ResultM6Unwrap[[]byte, error](payload), community.ID)
+ /*line vote_outbox.mygo:135:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](stored) {
+ /*line vote_outbox.mygo:136:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](stored))
+ /*line vote_outbox.mygo:135:7*/		} else {
+ /*line zz_vote_outbox.gen.go:131:1*/		}
+ /*line vote_outbox.mygo:59:5*/		planned := storage.PlanDelivery(ctx, tx, activityURI, identity.ActorURI, MygoIN6ResultM6Unwrap[[]string, failure.Failure](recipients), community.ID)
+ /*line vote_outbox.mygo:139:7*/		if MygoIN6ResultM5IsErr[storage.PlanResult, failure.Failure](planned) {
+ /*line vote_outbox.mygo:140:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PlanResult, failure.Failure](planned))
+ /*line vote_outbox.mygo:139:7*/		} else {
+ /*line zz_vote_outbox.gen.go:136:1*/		}
+ /*line vote_outbox.mygo:142:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_vote_outbox.gen.go:138:1*/		}{})
 	})
 }

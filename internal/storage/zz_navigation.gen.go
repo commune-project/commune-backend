@@ -4,29 +4,30 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line navigation.mygo:9:1*/func NavigationRoot(ctx context.Context, db *gorm.DB, postID string) Result[PostRecord, string] {
+ /*line navigation.mygo:10:1*/func NavigationRoot(ctx context.Context, db *gorm.DB, postID string) Result[PostRecord, failure.Failure] {
 	current := Zero[PostRecord]()
 	loaded := db.WithContext(ctx).Table("posts").Where("id=? AND deleted_at IS NULL", postID).Limit(1).Find(&current)
- /*line navigation.mygo:12:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
- /*line navigation.mygo:13:12*/		return Err[PostRecord, string]("not found")
- /*line navigation.mygo:12:3*/	} else {
- /*line zz_navigation.gen.go:15:1*/	}
- /*line navigation.mygo:9:1*/	depth := 0
+ /*line navigation.mygo:13:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
+ /*line navigation.mygo:14:12*/		return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line navigation.mygo:13:3*/	} else {
+ /*line zz_navigation.gen.go:16:1*/	}
+ /*line navigation.mygo:10:1*/	depth := 0
 	for current.ParentID.Valid && depth < 64 {
 		parent := Zero[PostRecord]()
 		query := db.WithContext(ctx).Table("posts").Where("id=? AND deleted_at IS NULL", current.ParentID.String).Limit(1).Find(&parent)
-		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line navigation.mygo:20:14*/			return Err[PostRecord, string]("not found")
- /*line navigation.mygo:9:1*/		} else {
- /*line zz_navigation.gen.go:23:1*/		}
- /*line navigation.mygo:9:1*/		current = parent
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line navigation.mygo:21:14*/			return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line navigation.mygo:10:1*/		} else {
+ /*line zz_navigation.gen.go:24:1*/		}
+ /*line navigation.mygo:10:1*/		current = parent
 		depth = depth + 1
- /*line zz_navigation.gen.go:26:1*/	}
- /*line navigation.mygo:25:3*/	if current.ParentID.Valid {
- /*line navigation.mygo:26:12*/		return Err[PostRecord, string]("not found")
- /*line navigation.mygo:25:3*/	} else {
- /*line zz_navigation.gen.go:30:1*/	}
- /*line navigation.mygo:28:3*/	return Ok[PostRecord, string](current)
- /*line zz_navigation.gen.go:32:1*/}
+ /*line zz_navigation.gen.go:27:1*/	}
+ /*line navigation.mygo:26:3*/	if current.ParentID.Valid {
+ /*line navigation.mygo:27:12*/		return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line navigation.mygo:26:3*/	} else {
+ /*line zz_navigation.gen.go:31:1*/	}
+ /*line navigation.mygo:29:3*/	return Ok[PostRecord, failure.Failure](current)
+ /*line zz_navigation.gen.go:33:1*/}

@@ -11,6 +11,7 @@ import driver "go:database/sql/driver"
 import regexp "go:regexp"
 import gorm "go:gorm.io/gorm"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func catalog(t: Ref[testing.T]) -> Slice[Migration]
   t.Helper()
@@ -121,10 +122,10 @@ end
 func ExpectMigration(
   mock: sqlmock.Sqlmock,
   migrations: Slice[Migration],
-  failure: String,
+  fault: String,
   current: Bool
 ) -> ()
-  if failure == "begin" then
+  if fault == "begin" then
     let _ = mock.ExpectBegin().WillReturnError(transport.Failure)
   else
     let _ = mock.ExpectBegin()
@@ -133,17 +134,17 @@ func ExpectMigration(
       false,
       func(stopped: Bool, step: String) -> Bool
         if !stopped then
-          if failure == step then
+          if fault == step then
             let _ = mock.ExpectExec(step).WillReturnError(transport.Failure)
           else
             let _ = mock.ExpectExec(step).WillReturnResult(sqlmock.NewResult(0i64, 1i64))
           end
         end
-        stopped || failure == step
+        stopped || fault == step
       end
     )
     if !stopped then
-      if failure == "query" then
+      if fault == "query" then
         let _ = mock.ExpectQuery("SELECT version, name, checksum").WillReturnError(transport.Failure)
       else
         let rows = sqlmock.NewRows(["version", "name", "checksum"])
@@ -162,7 +163,7 @@ func ExpectMigration(
             false,
             func(stopped: Bool, migration: Migration) -> Bool
               if !stopped then
-                if failure == "DDL" then
+                if fault == "DDL" then
                   let _ = mock.ExpectExec(regexp.QuoteMeta(migration.SQL)).WillReturnError(transport.Failure)
                 else
                   let _ = mock.ExpectExec(regexp.QuoteMeta(migration.SQL)).WillReturnResult(sqlmock.NewResult(0i64, 1i64))
@@ -171,23 +172,23 @@ func ExpectMigration(
                     migration.Name as driver.Value,
                     migration.Checksum as driver.Value
                   )
-                  if failure == "record" then
+                  if fault == "record" then
                     let _ = record.WillReturnError(transport.Failure)
                   else
                     let _ = record.WillReturnResult(sqlmock.NewResult(0i64, 1i64))
                   end
                 end
               end
-              stopped || failure == "DDL" || failure == "record"
+              stopped || fault == "DDL" || fault == "record"
             end
           )
         end
       end
     end
-    if failure == "" then
+    if fault == "" then
       let _ = mock.ExpectCommit()
     else
-      if failure == "commit" then
+      if fault == "commit" then
         let _ = mock.ExpectCommit().WillReturnError(transport.Failure)
       else
         let _ = mock.ExpectRollback()
@@ -208,21 +209,21 @@ func TestExplicitMigration(t: Ref[testing.T]) -> ()
     "query",
     "commit",
   ]
-  failures.Each(func(failure: String) -> ()
+  failures.Each(func(fault: String) -> ()
     t.Run(
-      failure,
+      fault,
       func(t: Ref[testing.T]) -> ()
         let fixture = mockFixture(t)
         let migrations = catalog(t)
-        ExpectMigration(fixture.Mock, migrations, failure, false)
+        ExpectMigration(fixture.Mock, migrations, fault, false)
         let result = Migrate(context.Background(), fixture.DB)
-        if result.IsOk() != (failure == "") then
+        if result.IsOk() != (fault == "") then
           t.Fatal("migration error propagation failed")
         end
-        if result.IsErr() && strings.Contains(result.UnwrapErr(), "secret") then
+        if result.IsErr() && strings.Contains(result.UnwrapErr().Render(), "secret") then
           t.Fatal("migration error leaked credentials")
         end
-        if failure == "" then
+        if fault == "" then
           ExpectMigration(fixture.Mock, migrations, "", true)
           if Migrate(context.Background(), fixture.DB).IsErr() then
             t.Fatal("repeat migration failed")
@@ -257,46 +258,46 @@ end
 
 func TestGORMTransaction(t: Ref[testing.T]) -> ()
   let failures = ["", "begin", "callback", "commit", "panic"]
-  failures.Each(func(failure: String) -> ()
+  failures.Each(func(fault: String) -> ()
     t.Run(
-      failure,
+      fault,
       func(t: Ref[testing.T]) -> ()
         let fixture = mockFixture(t)
         let db = transport.ORM(fixture.DB).Unwrap()
-        if failure == "begin" then
+        if fault == "begin" then
           let _ = fixture.Mock.ExpectBegin().WillReturnError(transport.Failure)
         else
           let _ = fixture.Mock.ExpectBegin()
-          if failure == "callback" || failure == "panic" then
+          if fault == "callback" || fault == "panic" then
             let _ = fixture.Mock.ExpectRollback()
           else
-            if failure == "commit" then
+            if fault == "commit" then
               let _ = fixture.Mock.ExpectCommit().WillReturnError(transport.Failure)
             else
               let _ = fixture.Mock.ExpectCommit()
             end
           end
         end
-        let work = func(tx: Ref[gorm.DB]) -> Result[(), String]
+        let work = func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
           if !transport.DistinctTransaction(tx, db) then
             t.Fatal("callback lacks transaction handle")
           end
-          if failure == "panic" then
+          if fault == "panic" then
             transport.Panic()
           end
-          if failure == "callback" then
-            return Err("rejected")
+          if fault == "callback" then
+            return Err(Of("rejected"))
           end
           Ok(())
         end
-        if failure == "panic" then
+        if fault == "panic" then
           if !transport.Panics(func() -> ()
             let _ = RunTransaction(context.Background(), db, work)
           end) then
             t.Fatal("panic was swallowed")
           end
         else
-          if RunTransaction(context.Background(), db, work).IsOk() != (failure == "") then
+          if RunTransaction(context.Background(), db, work).IsOk() != (fault == "") then
             t.Fatal("transaction error propagation failed")
           end
         end

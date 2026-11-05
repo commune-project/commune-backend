@@ -6,68 +6,69 @@ import "gorm.io/gorm"
 import "context"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line sessions.mygo:8:1*/type SessionRecord struct {
+ /*line sessions.mygo:9:1*/type SessionRecord struct {
 	TokenHash []byte    "gorm:\"column:token_hash;primaryKey\""
 	SiteID    string    "gorm:\"column:site_id\""
 	AccountID int64     "gorm:\"column:account_id\""
 	CSRFHash  []byte    "gorm:\"column:csrf_hash\""
 	CreatedAt time.Time "gorm:\"column:created_at;autoCreateTime:false\""
 	ExpiresAt time.Time "gorm:\"column:expires_at\""
- /*line zz_sessions.gen.go:18:1*/}
- /*line sessions.mygo:17:1*/type SessionRepository struct {
+ /*line zz_sessions.gen.go:19:1*/}
+ /*line sessions.mygo:18:1*/type SessionRepository struct {
 	DB *gorm.DB
- /*line zz_sessions.gen.go:21:1*/}
- /*line sessions.mygo:21:1*/type AuthenticatedSession struct {
+ /*line zz_sessions.gen.go:22:1*/}
+ /*line sessions.mygo:22:1*/type AuthenticatedSession struct {
 	Identity  auth.Identity
 	CSRFHash  []byte
 	ExpiresAt time.Time
- /*line zz_sessions.gen.go:26:1*/}
+ /*line zz_sessions.gen.go:27:1*/}
 
- /*line sessions.mygo:27:1*/func MygoIN20AuthenticatedSessionM18AuthorizesMutation(self AuthenticatedSession, csrf string) bool {
- /*line sessions.mygo:29:5*/	return auth.VerifyCSRF(self.CSRFHash, csrf)
- /*line zz_sessions.gen.go:30:1*/}
- /*line sessions.mygo:33:1*/func MygoIN17SessionRepositoryM5Issue(self SessionRepository, ctx context.Context, identity auth.Identity, now time.Time) Result[auth.SessionTokens, string] {
+ /*line sessions.mygo:28:1*/func MygoIN20AuthenticatedSessionM18AuthorizesMutation(self AuthenticatedSession, csrf string) bool {
+ /*line sessions.mygo:30:5*/	return auth.VerifyCSRF(self.CSRFHash, csrf)
+ /*line zz_sessions.gen.go:31:1*/}
+ /*line sessions.mygo:34:1*/func MygoIN17SessionRepositoryM5Issue(self SessionRepository, ctx context.Context, identity auth.Identity, now time.Time) Result[auth.SessionTokens, failure.Failure] {
 	tokens := auth.NewSessionTokens()
 	expires := now.Add(time.Duration(24) * time.Hour)
 	query := self.DB.WithContext(ctx).Exec("INSERT INTO sessions(token_hash,site_id,account_id,csrf_hash,created_at,expires_at) SELECT ?,site_id,id,?,?,? FROM accounts WHERE site_id=? AND id=? AND actor_uri=? AND NOT disabled AND NOT EXISTS (SELECT 1 FROM site_bans b WHERE b.site_id=accounts.site_id AND b.actor_uri=accounts.actor_uri AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>?))", auth.MygoIN13SessionTokensM11SessionHash(tokens), auth.MygoIN13SessionTokensM8CSRFHash(tokens), now, expires, identity.SiteID, identity.AccountID, identity.ActorURI, now)
 	return Required(query, tokens, "session issuance failed")
- /*line zz_sessions.gen.go:36:1*/}
- /*line sessions.mygo:33:1*/func MygoIN17SessionRepositoryM7Resolve(self SessionRepository, ctx context.Context, siteID string, token string, now time.Time) Result[AuthenticatedSession, string] {
- /*line sessions.mygo:63:5*/	if siteID == "" || !auth.ValidToken(token) {
- /*line sessions.mygo:64:14*/		return Err[AuthenticatedSession, string]("unauthenticated")
- /*line sessions.mygo:63:5*/	} else {
- /*line zz_sessions.gen.go:41:1*/	}
- /*line sessions.mygo:33:1*/	session := Zero[SessionRecord]()
+ /*line zz_sessions.gen.go:37:1*/}
+ /*line sessions.mygo:34:1*/func MygoIN17SessionRepositoryM7Resolve(self SessionRepository, ctx context.Context, siteID string, token string, now time.Time) Result[AuthenticatedSession, failure.Failure] {
+ /*line sessions.mygo:64:5*/	if siteID == "" || !auth.ValidToken(token) {
+ /*line sessions.mygo:65:14*/		return Err[AuthenticatedSession, failure.Failure](Of("unauthenticated"))
+ /*line sessions.mygo:64:5*/	} else {
+ /*line zz_sessions.gen.go:42:1*/	}
+ /*line sessions.mygo:34:1*/	session := Zero[SessionRecord]()
 	query := self.DB.WithContext(ctx).Table("sessions").Where("site_id = ? AND token_hash = ? AND revoked_at IS NULL AND expires_at > ?", siteID, auth.TokenHash(token), now).Limit(1).Find(&session)
- /*line sessions.mygo:73:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line sessions.mygo:74:14*/		return Err[AuthenticatedSession, string]("authentication unavailable")
- /*line sessions.mygo:73:5*/	} else {
- /*line zz_sessions.gen.go:47:1*/	}
- /*line sessions.mygo:76:5*/	if query.RowsAffected != int64(1) {
- /*line sessions.mygo:77:14*/		return Err[AuthenticatedSession, string]("unauthenticated")
- /*line sessions.mygo:76:5*/	} else {
- /*line zz_sessions.gen.go:51:1*/	}
- /*line sessions.mygo:33:1*/	account := Zero[AccountRecord]()
+ /*line sessions.mygo:74:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line sessions.mygo:75:14*/		return Err[AuthenticatedSession, failure.Failure](Of("authentication unavailable"))
+ /*line sessions.mygo:74:5*/	} else {
+ /*line zz_sessions.gen.go:48:1*/	}
+ /*line sessions.mygo:77:5*/	if query.RowsAffected != int64(1) {
+ /*line sessions.mygo:78:14*/		return Err[AuthenticatedSession, failure.Failure](Of("unauthenticated"))
+ /*line sessions.mygo:77:5*/	} else {
+ /*line zz_sessions.gen.go:52:1*/	}
+ /*line sessions.mygo:34:1*/	account := Zero[AccountRecord]()
 	accountQuery := self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND id = ? AND NOT disabled AND NOT EXISTS (SELECT 1 FROM site_bans b WHERE b.site_id=accounts.site_id AND b.actor_uri=accounts.actor_uri AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>?))", siteID, session.AccountID, now).Limit(1).Find(&account)
- /*line sessions.mygo:86:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(accountQuery)) {
- /*line sessions.mygo:87:14*/		return Err[AuthenticatedSession, string]("authentication unavailable")
- /*line sessions.mygo:86:5*/	} else {
- /*line zz_sessions.gen.go:57:1*/	}
- /*line sessions.mygo:89:5*/	if accountQuery.RowsAffected != int64(1) {
- /*line sessions.mygo:90:14*/		return Err[AuthenticatedSession, string]("unauthenticated")
- /*line sessions.mygo:89:5*/	} else {
- /*line zz_sessions.gen.go:61:1*/	}
- /*line sessions.mygo:92:5*/	return Ok[AuthenticatedSession, string](AuthenticatedSession{Identity: MygoIN13AccountRecordM8Identity(account), CSRFHash: session.CSRFHash, ExpiresAt: session.ExpiresAt})
- /*line zz_sessions.gen.go:63:1*/}
- /*line sessions.mygo:33:1*/func MygoIN17SessionRepositoryM6Revoke(self SessionRepository, ctx context.Context, siteID string, token string, now time.Time) Result[struct{}, string] {
- /*line sessions.mygo:105:5*/	if !auth.ValidToken(token) {
- /*line sessions.mygo:106:14*/		return Err[struct{}, string]("unauthenticated")
- /*line sessions.mygo:105:5*/	} else {
- /*line zz_sessions.gen.go:68:1*/	}
- /*line sessions.mygo:108:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND token_hash=? AND revoked_at IS NULL", now, siteID, auth.TokenHash(token)))
- /*line zz_sessions.gen.go:70:1*/}
- /*line sessions.mygo:33:1*/func MygoIN17SessionRepositoryM12RevokeOthers(self SessionRepository, ctx context.Context, siteID string, accountID int64, keepHash []byte, now time.Time) Result[struct{}, string] {
- /*line sessions.mygo:123:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND token_hash<>? AND revoked_at IS NULL", now, siteID, accountID, keepHash))
- /*line zz_sessions.gen.go:73:1*/}
+ /*line sessions.mygo:87:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(accountQuery)) {
+ /*line sessions.mygo:88:14*/		return Err[AuthenticatedSession, failure.Failure](Of("authentication unavailable"))
+ /*line sessions.mygo:87:5*/	} else {
+ /*line zz_sessions.gen.go:58:1*/	}
+ /*line sessions.mygo:90:5*/	if accountQuery.RowsAffected != int64(1) {
+ /*line sessions.mygo:91:14*/		return Err[AuthenticatedSession, failure.Failure](Of("unauthenticated"))
+ /*line sessions.mygo:90:5*/	} else {
+ /*line zz_sessions.gen.go:62:1*/	}
+ /*line sessions.mygo:93:5*/	return Ok[AuthenticatedSession, failure.Failure](AuthenticatedSession{Identity: MygoIN13AccountRecordM8Identity(account), CSRFHash: session.CSRFHash, ExpiresAt: session.ExpiresAt})
+ /*line zz_sessions.gen.go:64:1*/}
+ /*line sessions.mygo:34:1*/func MygoIN17SessionRepositoryM6Revoke(self SessionRepository, ctx context.Context, siteID string, token string, now time.Time) Result[struct{}, failure.Failure] {
+ /*line sessions.mygo:106:5*/	if !auth.ValidToken(token) {
+ /*line sessions.mygo:107:14*/		return Err[struct{}, failure.Failure](Of("unauthenticated"))
+ /*line sessions.mygo:106:5*/	} else {
+ /*line zz_sessions.gen.go:69:1*/	}
+ /*line sessions.mygo:109:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND token_hash=? AND revoked_at IS NULL", now, siteID, auth.TokenHash(token)))
+ /*line zz_sessions.gen.go:71:1*/}
+ /*line sessions.mygo:34:1*/func MygoIN17SessionRepositoryM12RevokeOthers(self SessionRepository, ctx context.Context, siteID string, accountID int64, keepHash []byte, now time.Time) Result[struct{}, failure.Failure] {
+ /*line sessions.mygo:124:5*/	return MutationResult(self.DB.WithContext(ctx).Exec("UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND token_hash<>? AND revoked_at IS NULL", now, siteID, accountID, keepHash))
+ /*line zz_sessions.gen.go:74:1*/}

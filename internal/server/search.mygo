@@ -32,13 +32,13 @@ func SearchRoute(
   end
   let identity = BrowserIdentity(db, site, request, false)
   if identity.IsErr() then
-    Fail(w, identity.UnwrapErr())
+    FailFailure(w, identity.UnwrapErr())
     return true
   end
   let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = repository.Viewer(request.Context(), identity.Unwrap())
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return true
   end
   if kind == "communities" then
@@ -50,7 +50,7 @@ func SearchRoute(
       settings.Runtime.MaxPageSize
     )
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
       let outputs = rows.Unwrap().Map(func(view: storage.CommunityView) -> CommunityOutput
         BrowserCommunityDTO(request.Context(), repository, view, viewer.Unwrap())
@@ -74,11 +74,11 @@ func SearchRoute(
       settings.Runtime.MaxPageSize
     )
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
       let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), rows.Unwrap())
       if outputs.IsErr() then
-        Fail(w, outputs.UnwrapErr())
+        FailFailure(w, outputs.UnwrapErr())
       else
         WriteJSON(
           w,

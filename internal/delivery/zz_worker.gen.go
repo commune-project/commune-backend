@@ -13,216 +13,217 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line worker.mygo:15:1*/type Limits struct {
+ /*line worker.mygo:16:1*/type Limits struct {
 	BatchSize      int
 	LeaseSeconds   int64
 	MaxAttempts    int64
 	BackoffSeconds int64
- /*line zz_worker.gen.go:23:1*/}
- /*line worker.mygo:22:1*/type Outcome struct {
+ /*line zz_worker.gen.go:24:1*/}
+ /*line worker.mygo:23:1*/type Outcome struct {
 	Delivered  int
 	Retried    int
 	Failed     int
 	Suppressed int
- /*line zz_worker.gen.go:29:1*/}
+ /*line zz_worker.gen.go:30:1*/}
 
- /*line worker.mygo:31:1*/func RunOnce(ctx context.Context, db *gorm.DB, settings config.Config, limits Limits, poster func(string, string, string, []byte) Result[int, string]) Result[Outcome, string] {
+ /*line worker.mygo:32:1*/func RunOnce(ctx context.Context, db *gorm.DB, settings config.Config, limits Limits, poster func(string, string, string, []byte) Result[int, failure.Failure]) Result[Outcome, failure.Failure] {
 	claimed := storage.ClaimDeliveryJobs(ctx, db, limits.BatchSize, limits.LeaseSeconds)
- /*line worker.mygo:33:3*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, string](claimed) {
- /*line worker.mygo:34:5*/		slog.Warn("delivery claim failed", "reason", MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, string](claimed))
- /*line worker.mygo:35:12*/		return Err[Outcome, string](MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, string](claimed))
- /*line worker.mygo:33:3*/	} else {
- /*line zz_worker.gen.go:37:1*/	}
- /*line worker.mygo:31:1*/	outcome := Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: 0}
+ /*line worker.mygo:34:3*/	if MygoIN6ResultM5IsErr[[]storage.DeliveryJobRecord, failure.Failure](claimed) {
+ /*line worker.mygo:35:5*/		slog.Warn("delivery claim failed", "reason", MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, failure.Failure](claimed))
+ /*line worker.mygo:36:12*/		return Err[Outcome, failure.Failure](MygoIN6ResultM9UnwrapErr[[]storage.DeliveryJobRecord, failure.Failure](claimed))
+ /*line worker.mygo:34:3*/	} else {
+ /*line zz_worker.gen.go:38:1*/	}
+ /*line worker.mygo:32:1*/	outcome := Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: 0}
 	failed := false
- /*line worker.mygo:39:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(GroupJobs(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, string](claimed)), func(group []storage.DeliveryJobRecord) {
- /*line worker.mygo:39:36*/		settled := SendGroup(ctx, db, settings, limits, group, poster)
- /*line worker.mygo:41:5*/		if MygoIN6ResultM5IsErr[Outcome, string](settled) {
+ /*line worker.mygo:40:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(GroupJobs(MygoIN6ResultM6Unwrap[[]storage.DeliveryJobRecord, failure.Failure](claimed)), func(group []storage.DeliveryJobRecord) {
+ /*line worker.mygo:40:36*/		settled := SendGroup(ctx, db, settings, limits, group, poster)
+ /*line worker.mygo:42:5*/		if MygoIN6ResultM5IsErr[Outcome, failure.Failure](settled) {
 			failed = true
 			return
 		} else {
-			piece := MygoIN6ResultM6Unwrap[Outcome, string](settled)
+			piece := MygoIN6ResultM6Unwrap[Outcome, failure.Failure](settled)
 			outcome = Outcome{Delivered: outcome.Delivered + piece.Delivered, Retried: outcome.Retried + piece.Retried, Failed: outcome.Failed + piece.Failed, Suppressed: outcome.Suppressed + piece.Suppressed}
 			return
- /*line zz_worker.gen.go:49:1*/		}
+ /*line zz_worker.gen.go:50:1*/		}
 	})
- /*line worker.mygo:48:3*/	if failed {
- /*line worker.mygo:49:12*/		return Err[Outcome, string]("delivery attempt failed")
- /*line worker.mygo:48:3*/	} else {
- /*line zz_worker.gen.go:54:1*/	}
- /*line worker.mygo:51:3*/	return Ok[Outcome, string](outcome)
- /*line zz_worker.gen.go:56:1*/}
- /*line worker.mygo:54:1*/func SameDestination(first storage.DeliveryJobRecord, second storage.DeliveryJobRecord) bool {
- /*line worker.mygo:55:3*/	return first.ActivityURI == second.ActivityURI && first.SigningActorURI == second.SigningActorURI && first.TargetInbox == second.TargetInbox
- /*line zz_worker.gen.go:59:1*/}
- /*line worker.mygo:60:1*/func GroupJobs(jobs []storage.DeliveryJobRecord) [][]storage.DeliveryJobRecord {
+ /*line worker.mygo:49:3*/	if failed {
+ /*line worker.mygo:50:12*/		return Err[Outcome, failure.Failure](Of("delivery attempt failed"))
+ /*line worker.mygo:49:3*/	} else {
+ /*line zz_worker.gen.go:55:1*/	}
+ /*line worker.mygo:52:3*/	return Ok[Outcome, failure.Failure](outcome)
+ /*line zz_worker.gen.go:57:1*/}
+ /*line worker.mygo:55:1*/func SameDestination(first storage.DeliveryJobRecord, second storage.DeliveryJobRecord) bool {
+ /*line worker.mygo:56:3*/	return first.ActivityURI == second.ActivityURI && first.SigningActorURI == second.SigningActorURI && first.TargetInbox == second.TargetInbox
+ /*line zz_worker.gen.go:60:1*/}
+ /*line worker.mygo:61:1*/func GroupJobs(jobs []storage.DeliveryJobRecord) [][]storage.DeliveryJobRecord {
 	var groups [][]storage.DeliveryJobRecord = [][]storage.DeliveryJobRecord{}
- /*line worker.mygo:62:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(jobs, func(job storage.DeliveryJobRecord) {
- /*line worker.mygo:62:13*/		var updated [][]storage.DeliveryJobRecord = [][]storage.DeliveryJobRecord{}
+ /*line worker.mygo:63:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(jobs, func(job storage.DeliveryJobRecord) {
+ /*line worker.mygo:63:13*/		var updated [][]storage.DeliveryJobRecord = [][]storage.DeliveryJobRecord{}
 		placed := false
- /*line worker.mygo:65:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(groups, func(group []storage.DeliveryJobRecord) {
- /*line worker.mygo:66:7*/			if !placed && SameDestination(MygoIN6OptionM6Unwrap[storage.DeliveryJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(group, 0)), job) {
+ /*line worker.mygo:66:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(groups, func(group []storage.DeliveryJobRecord) {
+ /*line worker.mygo:67:7*/			if !placed && SameDestination(MygoIN6OptionM6Unwrap[storage.DeliveryJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(group, 0)), job) {
 				updated = MygoIN5SliceM6Append(updated, MygoIN5SliceM6Append(group, job))
 				placed = true
 				return
 			} else {
 				updated = MygoIN5SliceM6Append(updated, group)
 				return
- /*line zz_worker.gen.go:73:1*/			}
+ /*line zz_worker.gen.go:74:1*/			}
 		})
- /*line worker.mygo:73:5*/		if !placed {
+ /*line worker.mygo:74:5*/		if !placed {
 			updated = MygoIN5SliceM6Append(updated, []storage.DeliveryJobRecord{job})
 		} else {
- /*line zz_worker.gen.go:78:1*/		}
- /*line worker.mygo:62:13*/		groups = updated
+ /*line zz_worker.gen.go:79:1*/		}
+ /*line worker.mygo:63:13*/		groups = updated
 		return
- /*line zz_worker.gen.go:81:1*/	})
- /*line worker.mygo:78:3*/	return groups
- /*line zz_worker.gen.go:83:1*/}
- /*line worker.mygo:81:1*/func SendGroup(ctx context.Context, db *gorm.DB, settings config.Config, limits Limits, group []storage.DeliveryJobRecord, poster func(string, string, string, []byte) Result[int, string]) Result[Outcome, string] {
+ /*line zz_worker.gen.go:82:1*/	})
+ /*line worker.mygo:79:3*/	return groups
+ /*line zz_worker.gen.go:84:1*/}
+ /*line worker.mygo:82:1*/func SendGroup(ctx context.Context, db *gorm.DB, settings config.Config, limits Limits, group []storage.DeliveryJobRecord, poster func(string, string, string, []byte) Result[int, failure.Failure]) Result[Outcome, failure.Failure] {
 	job := MygoIN6OptionM6Unwrap[storage.DeliveryJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(group, 0))
- /*line worker.mygo:83:6*/	if job.CommunityID.Valid {
- /*line worker.mygo:83:3*/		excluded := storage.IsLocalOnlyCommunity(ctx, db, job.CommunityID.String)
- /*line worker.mygo:85:5*/		if MygoIN6ResultM5IsErr[bool, string](excluded) {
- /*line worker.mygo:86:14*/			return Err[Outcome, string](MygoIN6ResultM9UnwrapErr[bool, string](excluded))
- /*line worker.mygo:85:5*/		} else {
- /*line zz_worker.gen.go:91:1*/		}
- /*line worker.mygo:88:8*/		if MygoIN6ResultM6Unwrap[bool, string](excluded) {
- /*line worker.mygo:89:7*/			MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(stale storage.DeliveryJobRecord) {
- /*line worker.mygo:89:18*/				storage.SuppressDelivery(ctx, db, stale.ID, "local-only")
+ /*line worker.mygo:84:6*/	if job.CommunityID.Valid {
+ /*line worker.mygo:84:3*/		excluded := storage.IsLocalOnlyCommunity(ctx, db, job.CommunityID.String)
+ /*line worker.mygo:86:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](excluded) {
+ /*line worker.mygo:87:14*/			return Err[Outcome, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](excluded))
+ /*line worker.mygo:86:5*/		} else {
+ /*line zz_worker.gen.go:92:1*/		}
+ /*line worker.mygo:89:8*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](excluded) {
+ /*line worker.mygo:90:7*/			MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(stale storage.DeliveryJobRecord) {
+ /*line worker.mygo:90:18*/				storage.SuppressDelivery(ctx, db, stale.ID, "local-only")
 				return
- /*line zz_worker.gen.go:96:1*/			})
- /*line worker.mygo:92:14*/			return Ok[Outcome, string](Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(group)})
- /*line worker.mygo:88:5*/		} else {
- /*line zz_worker.gen.go:99:1*/		}
- /*line worker.mygo:83:3*/		policy := storage.CommunityReadPolicy(ctx, db, job.CommunityID.String)
- /*line worker.mygo:95:5*/		if MygoIN6ResultM5IsErr[string, string](policy) {
- /*line worker.mygo:96:14*/			return Err[Outcome, string](MygoIN6ResultM9UnwrapErr[string, string](policy))
- /*line worker.mygo:95:5*/		} else {
- /*line zz_worker.gen.go:104:1*/		}
- /*line worker.mygo:98:8*/		if MygoIN6ResultM6Unwrap[string, string](policy) == "members" {
- /*line worker.mygo:83:3*/			member := storage.IsCurrentMember(ctx, db, job.CommunityID.String, job.RecipientActorURI)
- /*line worker.mygo:100:7*/			if MygoIN6ResultM5IsErr[bool, string](member) {
- /*line worker.mygo:101:16*/				return Err[Outcome, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
- /*line worker.mygo:100:7*/			} else {
- /*line zz_worker.gen.go:110:1*/			}
- /*line worker.mygo:103:10*/			if !MygoIN6ResultM6Unwrap[bool, string](member) {
- /*line worker.mygo:104:9*/				MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(revoked storage.DeliveryJobRecord) {
- /*line worker.mygo:104:20*/					storage.SuppressDelivery(ctx, db, revoked.ID, "membership-revoked")
+ /*line zz_worker.gen.go:97:1*/			})
+ /*line worker.mygo:93:14*/			return Ok[Outcome, failure.Failure](Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(group)})
+ /*line worker.mygo:89:5*/		} else {
+ /*line zz_worker.gen.go:100:1*/		}
+ /*line worker.mygo:84:3*/		policy := storage.CommunityReadPolicy(ctx, db, job.CommunityID.String)
+ /*line worker.mygo:96:5*/		if MygoIN6ResultM5IsErr[string, failure.Failure](policy) {
+ /*line worker.mygo:97:14*/			return Err[Outcome, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](policy))
+ /*line worker.mygo:96:5*/		} else {
+ /*line zz_worker.gen.go:105:1*/		}
+ /*line worker.mygo:99:8*/		if MygoIN6ResultM6Unwrap[string, failure.Failure](policy) == "members" {
+ /*line worker.mygo:84:3*/			member := storage.IsCurrentMember(ctx, db, job.CommunityID.String, job.RecipientActorURI)
+ /*line worker.mygo:101:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](member) {
+ /*line worker.mygo:102:16*/				return Err[Outcome, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](member))
+ /*line worker.mygo:101:7*/			} else {
+ /*line zz_worker.gen.go:111:1*/			}
+ /*line worker.mygo:104:10*/			if !MygoIN6ResultM6Unwrap[bool, failure.Failure](member) {
+ /*line worker.mygo:105:9*/				MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(revoked storage.DeliveryJobRecord) {
+ /*line worker.mygo:105:20*/					storage.SuppressDelivery(ctx, db, revoked.ID, "membership-revoked")
 					return
- /*line zz_worker.gen.go:115:1*/				})
- /*line worker.mygo:107:16*/				return Ok[Outcome, string](Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(group)})
- /*line worker.mygo:83:3*/			} else {
- /*line zz_worker.gen.go:118:1*/			}
- /*line worker.mygo:83:3*/		} else {
- /*line zz_worker.gen.go:120:1*/		}
- /*line worker.mygo:83:3*/	} else {
- /*line zz_worker.gen.go:122:1*/	}
- /*line worker.mygo:81:1*/	payload := storage.LoadActivityPayload(ctx, db, job.ActivityURI)
- /*line worker.mygo:112:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](payload) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](payload)) {
- /*line worker.mygo:113:12*/		return Apply(ctx, db, limits, group, "missing-payload", 0)
- /*line worker.mygo:112:3*/	} else {
- /*line zz_worker.gen.go:127:1*/	}
- /*line worker.mygo:81:1*/	key := storage.LoadLocalPrivateKey(ctx, db, job.SigningActorURI)
- /*line worker.mygo:116:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
- /*line worker.mygo:117:12*/		return Apply(ctx, db, limits, group, "missing-signing-key", 0)
- /*line worker.mygo:116:3*/	} else {
- /*line zz_worker.gen.go:132:1*/	}
- /*line worker.mygo:81:1*/	status := poster(job.TargetInbox, job.SigningActorURI, MygoIN6ResultM6Unwrap[string, string](key), MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](payload)).Payload)
- /*line worker.mygo:120:3*/	if MygoIN6ResultM5IsErr[int, string](status) {
- /*line worker.mygo:121:12*/		return Apply(ctx, db, limits, group, MygoIN6ResultM9UnwrapErr[int, string](status), 0)
- /*line worker.mygo:120:3*/	} else {
- /*line zz_worker.gen.go:137:1*/	}
- /*line worker.mygo:123:3*/	if MygoIN6ResultM6Unwrap[int, string](status) >= 200 && MygoIN6ResultM6Unwrap[int, string](status) < 300 {
- /*line worker.mygo:124:12*/		return Apply(ctx, db, limits, group, "", 200)
- /*line worker.mygo:123:3*/	} else {
- /*line zz_worker.gen.go:141:1*/	}
- /*line worker.mygo:126:3*/	return Apply(ctx, db, limits, group, "http-"+MygoIT8ToStringFN3IntGN3IntEM8ToString(MygoIN6ResultM6Unwrap[int, string](status)), 0)
- /*line zz_worker.gen.go:143:1*/}
- /*line worker.mygo:129:1*/func Apply(ctx context.Context, db *gorm.DB, limits Limits, group []storage.DeliveryJobRecord, reason string, successStatus int) Result[Outcome, string] {
+ /*line zz_worker.gen.go:116:1*/				})
+ /*line worker.mygo:108:16*/				return Ok[Outcome, failure.Failure](Outcome{Delivered: 0, Retried: 0, Failed: 0, Suppressed: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(group)})
+ /*line worker.mygo:84:3*/			} else {
+ /*line zz_worker.gen.go:119:1*/			}
+ /*line worker.mygo:84:3*/		} else {
+ /*line zz_worker.gen.go:121:1*/		}
+ /*line worker.mygo:84:3*/	} else {
+ /*line zz_worker.gen.go:123:1*/	}
+ /*line worker.mygo:82:1*/	payload := storage.LoadActivityPayload(ctx, db, job.ActivityURI)
+ /*line worker.mygo:113:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], failure.Failure](payload) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](payload)) {
+ /*line worker.mygo:114:12*/		return Apply(ctx, db, limits, group, "missing-payload", 0)
+ /*line worker.mygo:113:3*/	} else {
+ /*line zz_worker.gen.go:128:1*/	}
+ /*line worker.mygo:82:1*/	key := storage.LoadLocalPrivateKey(ctx, db, job.SigningActorURI)
+ /*line worker.mygo:117:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](key) {
+ /*line worker.mygo:118:12*/		return Apply(ctx, db, limits, group, "missing-signing-key", 0)
+ /*line worker.mygo:117:3*/	} else {
+ /*line zz_worker.gen.go:133:1*/	}
+ /*line worker.mygo:82:1*/	status := poster(job.TargetInbox, job.SigningActorURI, MygoIN6ResultM6Unwrap[string, failure.Failure](key), MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](payload)).Payload)
+ /*line worker.mygo:121:3*/	if MygoIN6ResultM5IsErr[int, failure.Failure](status) {
+ /*line worker.mygo:122:12*/		return Apply(ctx, db, limits, group, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[int, failure.Failure](status)), 0)
+ /*line worker.mygo:121:3*/	} else {
+ /*line zz_worker.gen.go:138:1*/	}
+ /*line worker.mygo:124:3*/	if MygoIN6ResultM6Unwrap[int, failure.Failure](status) >= 200 && MygoIN6ResultM6Unwrap[int, failure.Failure](status) < 300 {
+ /*line worker.mygo:125:12*/		return Apply(ctx, db, limits, group, "", 200)
+ /*line worker.mygo:124:3*/	} else {
+ /*line zz_worker.gen.go:142:1*/	}
+ /*line worker.mygo:127:3*/	return Apply(ctx, db, limits, group, "http-"+MygoIT8ToStringFN3IntGN3IntEM8ToString(MygoIN6ResultM6Unwrap[int, failure.Failure](status)), 0)
+ /*line zz_worker.gen.go:144:1*/}
+ /*line worker.mygo:130:1*/func Apply(ctx context.Context, db *gorm.DB, limits Limits, group []storage.DeliveryJobRecord, reason string, successStatus int) Result[Outcome, failure.Failure] {
 	delivered := 0
 	retried := 0
 	failed := 0
- /*line worker.mygo:133:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(job storage.DeliveryJobRecord) {
- /*line worker.mygo:134:5*/		if successStatus == 200 {
+ /*line worker.mygo:134:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(group, func(job storage.DeliveryJobRecord) {
+ /*line worker.mygo:135:5*/		if successStatus == 200 {
 			storage.MarkDelivered(ctx, db, job.ID)
 			delivered = delivered + 1
 			return
 		} else {
- /*line worker.mygo:138:7*/			if job.Attempts >= limits.MaxAttempts {
+ /*line worker.mygo:139:7*/			if job.Attempts >= limits.MaxAttempts {
 				storage.MarkDeliveryFailed(ctx, db, job.ID, reason)
- /*line worker.mygo:140:9*/				slog.Warn("delivery failed", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", true)
- /*line worker.mygo:138:7*/				failed = failed + 1
+ /*line worker.mygo:141:9*/				slog.Warn("delivery failed", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", true)
+ /*line worker.mygo:139:7*/				failed = failed + 1
 				return
 			} else {
 				backoff := limits.BackoffSeconds * job.Attempts
 				storage.MarkDeliveryRetry(ctx, db, job.ID, reason, backoff)
- /*line worker.mygo:145:9*/				slog.Warn("delivery retry scheduled", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", false)
- /*line worker.mygo:138:7*/				retried = retried + 1
+ /*line worker.mygo:146:9*/				slog.Warn("delivery retry scheduled", "activity", job.ActivityURI, "recipient", job.RecipientActorURI, "reason", reason, "attempts", job.Attempts, "terminal", false)
+ /*line worker.mygo:139:7*/				retried = retried + 1
 				return
- /*line zz_worker.gen.go:165:1*/			}
+ /*line zz_worker.gen.go:166:1*/			}
 		}
 	})
- /*line worker.mygo:150:3*/	return Ok[Outcome, string](Outcome{Delivered: delivered, Retried: retried, Failed: failed, Suppressed: 0})
- /*line zz_worker.gen.go:169:1*/}
- /*line worker.mygo:155:1*/func Post(target string, actorURI string, privateKey string, payload []byte) Result[int, string] {
- /*line worker.mygo:156:3*/	return PostContext(context.Background(), target, actorURI, privateKey, payload)
- /*line zz_worker.gen.go:172:1*/}
- /*line worker.mygo:159:1*/func PostContext(ctx context.Context, target string, actorURI string, privateKey string, payload []byte) Result[int, string] {
- /*line worker.mygo:160:16*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line worker.mygo:151:3*/	return Ok[Outcome, failure.Failure](Outcome{Delivered: delivered, Retried: retried, Failed: failed, Suppressed: 0})
+ /*line zz_worker.gen.go:170:1*/}
+ /*line worker.mygo:156:1*/func Post(target string, actorURI string, privateKey string, payload []byte) Result[int, failure.Failure] {
+ /*line worker.mygo:157:3*/	return PostContext(context.Background(), target, actorURI, privateKey, payload)
+ /*line zz_worker.gen.go:173:1*/}
+ /*line worker.mygo:160:1*/func PostContext(ctx context.Context, target string, actorURI string, privateKey string, payload []byte) Result[int, failure.Failure] {
+ /*line worker.mygo:161:16*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(target)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_worker.gen.go:180:1*/	}
- /*line worker.mygo:159:1*/	parsed := __mygo_expr_1
- /*line worker.mygo:161:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
- /*line worker.mygo:162:12*/		return Err[int, string]("invalid-target")
- /*line worker.mygo:161:3*/	} else {
- /*line zz_worker.gen.go:185:1*/	}
- /*line worker.mygo:159:1*/	resource := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
+ /*line zz_worker.gen.go:181:1*/	}
+ /*line worker.mygo:160:1*/	parsed := __mygo_expr_1
+ /*line worker.mygo:162:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
+ /*line worker.mygo:163:12*/		return Err[int, failure.Failure](Of("invalid-target"))
+ /*line worker.mygo:162:3*/	} else {
+ /*line zz_worker.gen.go:186:1*/	}
+ /*line worker.mygo:160:1*/	resource := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	digest := federation.BodyDigest(payload)
 	signingString := federation.RequestSigningString("POST", resource.RequestURI(), resource.Host, date, digest)
 	signature := federation.SignSignature(privateKey, signingString)
- /*line worker.mygo:169:3*/	if MygoIN6ResultM5IsErr[string, string](signature) {
- /*line worker.mygo:170:12*/		return Err[int, string]("signing-failed")
- /*line worker.mygo:169:3*/	} else {
- /*line zz_worker.gen.go:194:1*/	}
- /*line worker.mygo:159:1*/	header := federation.FormatSignatureHeader(actorURI+"#main-key", MygoIN6ResultM6Unwrap[string, string](signature))
- /*line worker.mygo:173:17*/	var __mygo_expr_4 Result[*http.Request, error]
+ /*line worker.mygo:170:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](signature) {
+ /*line worker.mygo:171:12*/		return Err[int, failure.Failure](Of("signing-failed"))
+ /*line worker.mygo:170:3*/	} else {
+ /*line zz_worker.gen.go:195:1*/	}
+ /*line worker.mygo:160:1*/	header := federation.FormatSignatureHeader(actorURI+"#main-key", MygoIN6ResultM6Unwrap[string, failure.Failure](signature))
+ /*line worker.mygo:174:17*/	var __mygo_expr_4 Result[*http.Request, error]
 	__mygo_expr_5, __mygo_expr_3 := http.NewRequestWithContext(ctx, "POST", target, io.Reader(strings.NewReader(string(payload))))
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*http.Request, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*http.Request, error](__mygo_expr_5)
- /*line zz_worker.gen.go:202:1*/	}
- /*line worker.mygo:159:1*/	request := __mygo_expr_4
- /*line worker.mygo:174:3*/	if MygoIN6ResultM5IsErr[*http.Request, error](request) {
- /*line worker.mygo:175:12*/		return Err[int, string]("invalid-target")
- /*line worker.mygo:174:3*/	} else {
- /*line zz_worker.gen.go:207:1*/	}
- /*line worker.mygo:177:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Content-Type", federation.ActivityJSONType())
- /*line worker.mygo:178:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Date", date)
- /*line worker.mygo:179:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Digest", digest)
- /*line worker.mygo:180:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Signature", header)
- /*line worker.mygo:159:1*/	client := Zero[http.Client]()
+ /*line zz_worker.gen.go:203:1*/	}
+ /*line worker.mygo:160:1*/	request := __mygo_expr_4
+ /*line worker.mygo:175:3*/	if MygoIN6ResultM5IsErr[*http.Request, error](request) {
+ /*line worker.mygo:176:12*/		return Err[int, failure.Failure](Of("invalid-target"))
+ /*line worker.mygo:175:3*/	} else {
+ /*line zz_worker.gen.go:208:1*/	}
+ /*line worker.mygo:178:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Content-Type", federation.ActivityJSONType())
+ /*line worker.mygo:179:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Date", date)
+ /*line worker.mygo:180:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Digest", digest)
+ /*line worker.mygo:181:3*/	MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Signature", header)
+ /*line worker.mygo:160:1*/	client := Zero[http.Client]()
 	client.Timeout = time.Duration(15) * time.Second
- /*line worker.mygo:183:18*/	var __mygo_expr_7 Result[*http.Response, error]
+ /*line worker.mygo:184:18*/	var __mygo_expr_7 Result[*http.Response, error]
 	__mygo_expr_8, __mygo_expr_6 := client.Do(MygoIN6ResultM6Unwrap[*http.Request, error](request))
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[*http.Response, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[*http.Response, error](__mygo_expr_8)
- /*line zz_worker.gen.go:220:1*/	}
- /*line worker.mygo:159:1*/	response := __mygo_expr_7
- /*line worker.mygo:184:3*/	if MygoIN6ResultM5IsErr[*http.Response, error](response) {
- /*line worker.mygo:185:12*/		return Err[int, string]("unreachable")
- /*line worker.mygo:184:3*/	} else {
- /*line zz_worker.gen.go:225:1*/	}
- /*line worker.mygo:159:1*/	MygoIN6ResultM6Unwrap[*http.Response, error](response).Body.Close()
- /*line worker.mygo:188:3*/	return Ok[int, string](MygoIN6ResultM6Unwrap[*http.Response, error](response).StatusCode)
- /*line zz_worker.gen.go:228:1*/}
+ /*line zz_worker.gen.go:221:1*/	}
+ /*line worker.mygo:160:1*/	response := __mygo_expr_7
+ /*line worker.mygo:185:3*/	if MygoIN6ResultM5IsErr[*http.Response, error](response) {
+ /*line worker.mygo:186:12*/		return Err[int, failure.Failure](Of("unreachable"))
+ /*line worker.mygo:185:3*/	} else {
+ /*line zz_worker.gen.go:226:1*/	}
+ /*line worker.mygo:160:1*/	MygoIN6ResultM6Unwrap[*http.Response, error](response).Body.Close()
+ /*line worker.mygo:189:3*/	return Ok[int, failure.Failure](MygoIN6ResultM6Unwrap[*http.Response, error](response).StatusCode)
+ /*line zz_worker.gen.go:229:1*/}

@@ -18,13 +18,14 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line registration_test.mygo:20:1*/type RegistrationIPCase struct {
 	Peer      string
 	Forwarded string
 	Want      string
- /*line zz_registration.gen_test.go:27:1*/}
+ /*line zz_registration.gen_test.go:28:1*/}
 
  /*line registration_test.mygo:26:1*/func TestRegistrationClientIP(t *testing.T) {
 	settings := Zero[config.Config]()
@@ -34,14 +35,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[netip.Prefix, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[netip.Prefix, error](__mygo_expr_2)
- /*line zz_registration.gen_test.go:37:1*/	}
+ /*line zz_registration.gen_test.go:38:1*/	}
  /*line registration_test.mygo:30:5*/	var __mygo_expr_4 Result[netip.Prefix, error]
 	__mygo_expr_5, __mygo_expr_3 := netip.ParsePrefix("2001:db8::/32")
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[netip.Prefix, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[netip.Prefix, error](__mygo_expr_5)
- /*line zz_registration.gen_test.go:44:1*/	}
+ /*line zz_registration.gen_test.go:45:1*/	}
  /*line registration_test.mygo:26:1*/	settings.TrustedProxies = []netip.Prefix{MygoIN6ResultM6Unwrap[netip.Prefix, error](__mygo_expr_1), MygoIN6ResultM6Unwrap[netip.Prefix, error](__mygo_expr_4)}
 	var cases []RegistrationIPCase = []RegistrationIPCase{RegistrationIPCase{Peer: "198.51.100.10:1234", Forwarded: "203.0.113.9", Want: "198.51.100.10"}, RegistrationIPCase{Peer: "198.51.100.10:1234", Forwarded: "malformed", Want: "198.51.100.10"}, RegistrationIPCase{Forwarded: "", Peer: "[::ffff:198.51.100.10]:1234", Want: "198.51.100.10"}, RegistrationIPCase{Peer: "192.0.2.10:1234", Forwarded: "203.0.113.9", Want: "203.0.113.9"}, RegistrationIPCase{Peer: "[::ffff:192.0.2.10]:1234", Forwarded: "203.0.113.9", Want: "203.0.113.9"}, RegistrationIPCase{Peer: "192.0.2.10:1234", Forwarded: "spoofed, 203.0.113.9, 192.0.2.11", Want: "203.0.113.9"}, RegistrationIPCase{Peer: "[2001:db8::1]:1234", Forwarded: "2001:4860:4860::8888", Want: "2001:4860:4860::8888"}, RegistrationIPCase{Peer: "192.0.2.10:1234", Forwarded: "", Want: "192.0.2.10"}, RegistrationIPCase{Peer: "192.0.2.10:1234", Forwarded: "malformed", Want: ""}, RegistrationIPCase{Peer: "192.0.2.10:1234", Forwarded: "203.0.113.9,", Want: ""}, RegistrationIPCase{Peer: "hostname:1234", Forwarded: "203.0.113.9", Want: ""}, RegistrationIPCase{Peer: "192.0.2.10", Forwarded: "203.0.113.9", Want: ""}, RegistrationIPCase{Peer: "198.51.100.10:bad", Forwarded: "203.0.113.9", Want: ""}, RegistrationIPCase{Peer: "198.51.100.10:70000", Forwarded: "203.0.113.9", Want: ""}}
  /*line registration_test.mygo:60:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test RegistrationIPCase) {
@@ -50,30 +51,30 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:67:5*/		request.Header.Set("X-Forwarded-For", test.Forwarded)
  /*line registration_test.mygo:60:14*/		actual := RegistrationClientIP(settings, request)
  /*line registration_test.mygo:69:5*/		if test.Want == "" {
- /*line registration_test.mygo:70:7*/			if MygoIN6ResultM4IsOk[string, string](actual) {
+ /*line registration_test.mygo:70:7*/			if MygoIN6ResultM4IsOk[string, failure.Failure](actual) {
  /*line registration_test.mygo:71:9*/				t.Errorf("invalid client accepted: %s / %s", test.Peer, test.Forwarded)
 				return
  /*line registration_test.mygo:70:7*/			} else {
  /*line registration_test.mygo:70:7*/				return
- /*line zz_registration.gen_test.go:58:1*/			}
+ /*line zz_registration.gen_test.go:59:1*/			}
  /*line registration_test.mygo:69:5*/		} else {
- /*line registration_test.mygo:74:7*/			if MygoIN6ResultM5IsErr[string, string](actual) || MygoIN6ResultM6Unwrap[string, string](actual) != test.Want {
+ /*line registration_test.mygo:74:7*/			if MygoIN6ResultM5IsErr[string, failure.Failure](actual) || MygoIN6ResultM6Unwrap[string, failure.Failure](actual) != test.Want {
  /*line registration_test.mygo:75:9*/				t.Errorf("wrong trusted-proxy client: %s / %s", test.Peer, test.Forwarded)
 				return
  /*line registration_test.mygo:74:7*/			} else {
  /*line registration_test.mygo:74:7*/				return
- /*line zz_registration.gen_test.go:65:1*/			}
+ /*line zz_registration.gen_test.go:66:1*/			}
 		}
 	})
  /*line registration_test.mygo:60:3*/	return
- /*line zz_registration.gen_test.go:69:1*/}
+ /*line zz_registration.gen_test.go:70:1*/}
  /*line registration_test.mygo:81:1*/func registrationSettings() config.Config {
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	settings.Sites = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(settings.Sites, func(site config.Site) config.Site {
  /*line registration_test.mygo:83:39*/		enabled := site
 		enabled.RegistrationEnabled = true
  /*line registration_test.mygo:86:5*/		return enabled
- /*line zz_registration.gen_test.go:76:1*/	})
+ /*line zz_registration.gen_test.go:77:1*/	})
  /*line registration_test.mygo:81:1*/	settings.Registration.OutboxSecret = base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))
 	settings.Registration.IPLimit = 100
 	settings.Registration.EmailLimit = 100
@@ -83,10 +84,10 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[netip.Prefix, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[netip.Prefix, error](__mygo_expr_2)
- /*line zz_registration.gen_test.go:86:1*/	}
+ /*line zz_registration.gen_test.go:87:1*/	}
  /*line registration_test.mygo:81:1*/	settings.TrustedProxies = []netip.Prefix{MygoIN6ResultM6Unwrap[netip.Prefix, error](__mygo_expr_1)}
  /*line registration_test.mygo:92:3*/	return settings
- /*line zz_registration.gen_test.go:89:1*/}
+ /*line zz_registration.gen_test.go:90:1*/}
  /*line registration_test.mygo:95:1*/func registrationRequest(handler http.HandlerFunc, origin string, path string, payload string, peer string, forwarded string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest("POST", origin+path, io.Reader(strings.NewReader(payload)))
  /*line registration_test.mygo:104:3*/	request.Header.Set("Origin", origin)
@@ -96,7 +97,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	response := httptest.NewRecorder()
  /*line registration_test.mygo:109:3*/	handler.ServeHTTP(http.ResponseWriter(response), request)
  /*line registration_test.mygo:110:3*/	return response
- /*line zz_registration.gen_test.go:99:1*/}
+ /*line zz_registration.gen_test.go:100:1*/}
  /*line registration_test.mygo:113:1*/func assertRegistrationResponse(t *testing.T, response *httptest.ResponseRecorder, status int) {
  /*line registration_test.mygo:118:3*/	t.Helper()
  /*line registration_test.mygo:119:3*/	if response.Code != status || response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("Set-Cookie") != "" {
@@ -104,7 +105,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line registration_test.mygo:119:3*/	} else {
 		return
- /*line zz_registration.gen_test.go:107:1*/	}
+ /*line zz_registration.gen_test.go:108:1*/	}
 }
  /*line registration_test.mygo:131:1*/func registrationHTTPToken(db *gorm.DB, siteID string, origin string) string {
 	var payload []byte = []byte{}
@@ -114,11 +115,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_registration.gen_test.go:117:1*/		}{})
+ /*line zz_registration.gen_test.go:118:1*/		}{})
 	}
  /*line registration_test.mygo:131:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_1)
  /*line registration_test.mygo:137:3*/	return strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, string](auth.OpenVerification([]byte(strings.Repeat("k", 32)), payload)), origin+"/verify-email#token=")
- /*line zz_registration.gen_test.go:121:1*/}
+ /*line zz_registration.gen_test.go:122:1*/}
  /*line registration_test.mygo:143:1*/func TestPostgresRegistrationHTTPContract(t *testing.T) {
  /*line registration_test.mygo:144:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -126,15 +127,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_registration.gen_test.go:129:1*/	}
+ /*line zz_registration.gen_test.go:130:1*/	}
  /*line registration_test.mygo:143:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := registrationSettings()
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	other := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, other))
 	handler := Handler(settings, db)
 	var register string = "/api/v1/auth/register"
 	var confirm string = "/api/v1/auth/verification/confirm"
@@ -144,26 +145,26 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:167:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(payload string) {
  /*line registration_test.mygo:168:5*/		assertRegistrationResponse(t, registrationRequest(handler, site.Origin, register, payload, "198.51.100.10:1234", ""), 400)
 		return
- /*line zz_registration.gen_test.go:147:1*/	})
+ /*line zz_registration.gen_test.go:148:1*/	})
  /*line registration_test.mygo:143:1*/	first := registrationRequest(handler, site.Origin, register, initial, "198.51.100.10:1234", "")
  /*line registration_test.mygo:175:3*/	assertRegistrationResponse(t, first, 202)
  /*line registration_test.mygo:143:1*/	token := registrationHTTPToken(db, site.ID, site.Origin)
- /*line registration_test.mygo:177:3*/	if MygoIN6ResultM4IsOk[auth.Identity, string](storage.MygoIN17AccountRepositoryM12Authenticate(storage.AccountRepository{DB: db}, ctx, site.ID, "alice", "final-password-choice")) {
+ /*line registration_test.mygo:177:3*/	if MygoIN6ResultM4IsOk[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM12Authenticate(storage.AccountRepository{DB: db}, ctx, site.ID, "alice", "final-password-choice")) {
  /*line registration_test.mygo:178:5*/		t.Fatal("HTTP pending registration could log in")
  /*line registration_test.mygo:177:3*/	} else {
- /*line zz_registration.gen_test.go:154:1*/	}
+ /*line zz_registration.gen_test.go:155:1*/	}
  /*line registration_test.mygo:143:1*/	duplicate := registrationRequest(handler, site.Origin, register, "{\"username\":\"other\",\"email\":\"ALICE@example.com\"}", "198.51.100.10:1234", "")
  /*line registration_test.mygo:188:3*/	assertRegistrationResponse(t, duplicate, 202)
  /*line registration_test.mygo:189:3*/	if duplicate.Body.String() != first.Body.String() || registrationHTTPToken(db, site.ID, site.Origin) != token {
  /*line registration_test.mygo:191:5*/		t.Fatal("duplicate HTTP registration disclosed or replaced pending data")
  /*line registration_test.mygo:189:3*/	} else {
- /*line zz_registration.gen_test.go:160:1*/	}
+ /*line zz_registration.gen_test.go:161:1*/	}
  /*line registration_test.mygo:143:1*/	unknown := registrationRequest(handler, site.Origin, resend, "{\"email\":\"unknown@example.com\"}", "198.51.100.10:1234", "")
  /*line registration_test.mygo:201:3*/	assertRegistrationResponse(t, unknown, 202)
  /*line registration_test.mygo:202:3*/	if unknown.Body.String() != first.Body.String() {
  /*line registration_test.mygo:203:5*/		t.Fatal("unknown-email resend was not generic")
  /*line registration_test.mygo:202:3*/	} else {
- /*line zz_registration.gen_test.go:166:1*/	}
+ /*line zz_registration.gen_test.go:167:1*/	}
  /*line registration_test.mygo:205:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, confirm, "{\"token\":\""+token+"\"}", "198.51.100.10:1234", ""), 400)
  /*line registration_test.mygo:217:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, confirm, "{\"token\":\""+token+"\",\"password\":\"short\"}", "198.51.100.10:1234", ""), 400)
  /*line registration_test.mygo:229:3*/	assertRegistrationResponse(t, registrationRequest(handler, other.Origin, confirm, "{\"token\":\""+token+"\",\"password\":\"final-password-choice\"}", "198.51.100.10:1234", ""), 400)
@@ -174,7 +175,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:278:3*/	if replacement == token {
  /*line registration_test.mygo:279:5*/		t.Fatal("HTTP resend did not rotate verification token")
  /*line registration_test.mygo:278:3*/	} else {
- /*line zz_registration.gen_test.go:177:1*/	}
+ /*line zz_registration.gen_test.go:178:1*/	}
  /*line registration_test.mygo:281:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, confirm, "{\"token\":\""+token+"\",\"password\":\"final-password-choice\"}", "198.51.100.10:1234", ""), 400)
  /*line registration_test.mygo:143:1*/	token = replacement
 	accepted := registrationRequest(handler, site.Origin, confirm, "{\"token\":\""+token+"\",\"password\":\"final-password-choice\"}", "198.51.100.10:1234", "")
@@ -182,21 +183,21 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:303:3*/	if accepted.Body.String() != "" {
  /*line registration_test.mygo:304:5*/		t.Fatal("confirmation returned a response body")
  /*line registration_test.mygo:303:3*/	} else {
- /*line zz_registration.gen_test.go:185:1*/	}
+ /*line zz_registration.gen_test.go:186:1*/	}
  /*line registration_test.mygo:306:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, confirm, "{\"token\":\""+token+"\",\"password\":\"replacement-password\"}", "198.51.100.10:1234", ""), 400)
  /*line registration_test.mygo:143:1*/	existing := registrationRequest(handler, site.Origin, register, initial, "198.51.100.10:1234", "")
  /*line registration_test.mygo:326:3*/	assertRegistrationResponse(t, existing, 202)
  /*line registration_test.mygo:327:3*/	if existing.Body.String() != first.Body.String() {
  /*line registration_test.mygo:328:5*/		t.Fatal("existing account response disclosed ownership")
  /*line registration_test.mygo:327:3*/	} else {
- /*line zz_registration.gen_test.go:192:1*/	}
+ /*line zz_registration.gen_test.go:193:1*/	}
  /*line registration_test.mygo:143:1*/	loggedIn := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"final-password-choice\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin})
  /*line registration_test.mygo:342:3*/	if loggedIn.Code != 200 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(loggedIn.Result().Cookies()) != 2 {
  /*line registration_test.mygo:343:5*/		t.Fatalf("confirmed account failed normal login: %d", loggedIn.Code)
 		return
  /*line registration_test.mygo:342:3*/	} else {
 		return
- /*line zz_registration.gen_test.go:199:1*/	}
+ /*line zz_registration.gen_test.go:200:1*/	}
 }
  /*line registration_test.mygo:347:1*/func TestPostgresRegistrationHTTPGuardsAndRate(t *testing.T) {
  /*line registration_test.mygo:348:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -205,13 +206,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_registration.gen_test.go:208:1*/	}
+ /*line zz_registration.gen_test.go:209:1*/	}
  /*line registration_test.mygo:347:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := registrationSettings()
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	settings.Registration.IPLimit = 1
 	settings.Registration.RateWindowSeconds = 90
 	handler := Handler(settings, db)
@@ -227,12 +228,12 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[int, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[int, error](__mygo_expr_5)
- /*line zz_registration.gen_test.go:230:1*/	}
+ /*line zz_registration.gen_test.go:231:1*/	}
  /*line registration_test.mygo:347:1*/	retry := MygoIN6ResultM8UnwrapOr[int, error](__mygo_expr_4, 0)
  /*line registration_test.mygo:378:3*/	if retry < 1 || retry > 90 {
  /*line registration_test.mygo:379:5*/		t.Fatal("Retry-After ignored configured rate window")
  /*line registration_test.mygo:378:3*/	} else {
- /*line zz_registration.gen_test.go:235:1*/	}
+ /*line zz_registration.gen_test.go:236:1*/	}
  /*line registration_test.mygo:347:1*/	trustedFirst := registrationRequest(handler, site.Origin, path, payload, "192.0.2.10:1234", "spoof, 203.0.113.10, 192.0.2.11")
  /*line registration_test.mygo:389:3*/	assertRegistrationResponse(t, trustedFirst, 202)
  /*line registration_test.mygo:390:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, path, payload, "192.0.2.10:1234", "different-spoof, 203.0.113.10, 192.0.2.11"), 429)
@@ -248,18 +249,18 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:426:5*/		if methodResponse.Header().Get("Allow") != "POST" {
  /*line registration_test.mygo:427:7*/			t.Fatal("registration method omitted Allow")
  /*line registration_test.mygo:426:5*/		} else {
- /*line zz_registration.gen_test.go:251:1*/		}
+ /*line zz_registration.gen_test.go:252:1*/		}
  /*line registration_test.mygo:421:15*/		var origins []string = []string{"", "https://evil.example"}
  /*line registration_test.mygo:430:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(origins, func(origin string) {
  /*line registration_test.mygo:430:18*/			response := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: route, Payload: payload, Cookies: []*http.Cookie{}, CSRF: "", Source: origin})
  /*line registration_test.mygo:443:7*/			assertRegistrationResponse(t, response, 403)
 			return
- /*line zz_registration.gen_test.go:257:1*/		})
+ /*line zz_registration.gen_test.go:258:1*/		})
  /*line registration_test.mygo:421:15*/		disabled := settings
 		disabled.Sites = []config.Site{config.Site{ID: site.ID, RegistrationEnabled: false, Origin: site.Origin, Aliases: []string{}, Sanitizer: content.DefaultSanitizer}}
  /*line registration_test.mygo:447:5*/		assertRegistrationResponse(t, registrationRequest(Handler(disabled, db), site.Origin, route, payload, "198.51.100.30:1234", ""), 403)
 		return
- /*line zz_registration.gen_test.go:262:1*/	})
+ /*line zz_registration.gen_test.go:263:1*/	})
  /*line registration_test.mygo:347:1*/	contentType := httptest.NewRequest("POST", site.Origin+path, io.Reader(strings.NewReader(payload)))
  /*line registration_test.mygo:458:3*/	contentType.Header.Set("Origin", site.Origin)
  /*line registration_test.mygo:459:3*/	contentType.Header.Set("Content-Type", "text/plain")
@@ -269,7 +270,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line registration_test.mygo:347:1*/	small := settings
 	small.Runtime.MaxBodyBytes = 32
  /*line registration_test.mygo:465:3*/	assertRegistrationResponse(t, registrationRequest(Handler(small, db), site.Origin, path, payload, "198.51.100.30:1234", ""), 400)
- /*line registration_test.mygo:347:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE registration_rate_limits")))
+ /*line registration_test.mygo:347:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("DROP TABLE registration_rate_limits")))
  /*line registration_test.mygo:471:3*/	assertRegistrationResponse(t, registrationRequest(handler, site.Origin, path, payload, "198.51.100.40:1234", ""), 503)
 	return
- /*line zz_registration.gen_test.go:275:1*/}
+ /*line zz_registration.gen_test.go:276:1*/}

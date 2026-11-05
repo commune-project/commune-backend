@@ -10,6 +10,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct LoginInput
   Login: String `json:"login"`
@@ -34,7 +35,7 @@ func WriteIdentity(
   let browser = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = browser.Viewer(request.Context(), identity)
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return
   end
   let dto = IdentityOutput{
@@ -67,12 +68,12 @@ func SameOrigin(settings: config.Config, request: Ref[http.Request]) -> Bool
   authority.IsOk() && origin.Unwrap() == "https://" + authority.Unwrap()
 end
 
-func ReadSession(request: Ref[http.Request]) -> Result[String, String]
+func ReadSession(request: Ref[http.Request]) -> Result[String, failure.Failure]
   let cookies = request.Cookies().Filter(func(cookie: Ref[http.Cookie]) -> Bool
     cookie.Name == "__Host-commune_session"
   end)
   if cookies.Len() != 1 then
-    return Err("unauthenticated")
+    return Err(Of("unauthenticated"))
   end
   Ok(cookies.Get(0).Unwrap().Value)
 end
@@ -81,10 +82,10 @@ func ReadLogin(
   w: http.ResponseWriter,
   request: Ref[http.Request],
   maxBytes: Int
-) -> Result[LoginInput, String]
+) -> Result[LoginInput, failure.Failure]
   if strings.Split(request.Header.Get("Content-Type"), ";").Get(0).UnwrapOr("") !=
     "application/json" then
-    return Err("expected application/json")
+    return Err(Of("expected application/json"))
   end
   let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
   let result = DecodeLoginBody(reader as io.ReadCloser)
@@ -92,17 +93,17 @@ func ReadLogin(
   result
 end
 
-func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, String]
+func DecodeLoginBody(reader: io.ReadCloser) -> Result[LoginInput, failure.Failure]
   let decoder = json.NewDecoder(reader as io.Reader)
   decoder.DisallowUnknownFields()
   let input = Zero[LoginInput]()
   if decoder.Decode(Ref.new(input)).IsErr() then
-    return Err("invalid login request")
+    return Err(Of("invalid login request"))
   end
   let extra = [] as json.RawMessage
   let trailing = decoder.Decode(Ref.new(extra))
   if trailing.IsOk() || !errors.Is(trailing.UnwrapErr(), io.EOF) then
-    return Err("invalid login request")
+    return Err(Of("invalid login request"))
   end
   Ok(input)
 end
@@ -126,11 +127,11 @@ func AuthenticationRoute(
       else
         let input = ReadLogin(w, request, settings.Runtime.MaxBodyBytes)
         if input.IsErr() then
-          http.Error(w, input.UnwrapErr(), 400)
+          http.Error(w, input.UnwrapErr().Render(), 400)
         else
           let identity = accounts.Authenticate(request.Context(), site.ID, input.Unwrap().Login, input.Unwrap().Password)
           if identity.IsErr() then
-            let status = if identity.UnwrapErr() == "invalid credentials" then
+            let status = if identity.UnwrapErr().Render() == "invalid credentials" then
               401
             else
               503
@@ -176,7 +177,7 @@ func AuthenticationRoute(
       else
         let session = sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())
         if session.IsErr() then
-          let status = if session.UnwrapErr() == "unauthenticated" then
+          let status = if session.UnwrapErr().Render() == "unauthenticated" then
             401
           else
             503

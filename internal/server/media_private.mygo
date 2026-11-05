@@ -11,6 +11,7 @@ import gorm "go:gorm.io/gorm"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import strings "go:strings"
 import url "go:net/url"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func FetchAuthorizedPrivateMedia(
   ctx: context.Context,
@@ -18,36 +19,36 @@ func FetchAuthorizedPrivateMedia(
   db: Ref[gorm.DB],
   identity: auth.Identity,
   row: storage.PrivateMediaCache
-) -> Result[io.ReadCloser, String]
+) -> Result[io.ReadCloser, failure.Failure]
   let post = storage.LoadObjectByID(ctx, db, row.PostID)
   if post.IsErr() || post.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let community = storage.LoadCommunityByID(ctx, db, post.Unwrap().Unwrap().CommunityID)
   if community.IsErr() || community.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let current = community.Unwrap().Unwrap()
   let compatible = storage.PeerSupportsProtectedReads(ctx, db, row.OriginURI)
   if compatible.IsErr() || !compatible.Unwrap() || current.ReadPolicy != "members" then
-    return Err("incompatible protected peer")
+    return Err(Of("incompatible protected peer"))
   end
   let target = url.Parse(row.OriginURI)
   let owner = url.Parse(post.Unwrap().Unwrap().ObjectURI.String)
   let group = url.Parse(current.ActorURI.String)
   if target.IsErr() || owner.IsErr() || group.IsErr() then
-    return Err("protected media origin mismatch")
+    return Err(Of("protected media origin mismatch"))
   end
   let authorOrigin = target.Unwrap().Scheme == owner.Unwrap().Scheme &&
     target.Unwrap().Host == owner.Unwrap().Host
   let groupOrigin = target.Unwrap().Scheme == group.Unwrap().Scheme &&
     target.Unwrap().Host == group.Unwrap().Host
   if !authorOrigin && !groupOrigin then
-    return Err("protected media origin mismatch")
+    return Err(Of("protected media origin mismatch"))
   end
   let key = storage.LoadLocalPrivateKey(ctx, db, identity.ActorURI)
   if key.IsErr() then
-    return Err("media signing unavailable")
+    return Err(Of("media signing unavailable"))
   end
   let limits = federation.FetchLimits{
     TimeoutSeconds: settings.Federation.FetchTimeoutSeconds,
@@ -77,7 +78,7 @@ func PrivateMediaRoute(
   w: http.ResponseWriter,
   request: Ref[http.Request],
   parts: Slice[String],
-  fetch: func(context.Context, auth.Identity, storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+  fetch: func(context.Context, auth.Identity, storage.PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
 ) -> Bool
   if (parts.Len() != 5 && !(parts.Len() == 6 && parts.Get(5).UnwrapOr("") == "preview")) ||
     parts.Get(2).UnwrapOr("") != "media" ||
@@ -91,11 +92,11 @@ func PrivateMediaRoute(
   let session = Authenticated(db, site, request)
   if session.IsErr() then
     w.Header().Set("Cache-Control", "no-store")
-    MediaFailure(w, session.UnwrapErr())
+    MediaFailure(w, session.UnwrapErr().Render())
     return true
   end
   ServePrivateMedia(
-    storage.MediaRepository{
+    storage.MediaRepository {
       DB: db,
       SiteID: site.ID,
       Files: files,
@@ -120,13 +121,13 @@ func ReconcileRemoteMedia(
   post: storage.PostRecord,
   version: String,
   attachments: Slice[federation.RichAttachment]
-) -> Result[Slice[String], String]
+) -> Result[Slice[String], failure.Failure]
   let community = storage.LoadCommunityByID(ctx, tx, post.CommunityID)
   if community.IsErr() || community.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let current = community.Unwrap().Unwrap()
-  let repository = storage.MediaRepository{
+  let repository = storage.MediaRepository {
     DB: tx,
     SiteID: siteID,
     Files: Zero[storage.MediaFiles](),
@@ -148,24 +149,24 @@ func ReconcileRemoteMedia(
     return Err(invalidated.UnwrapErr())
   end
   var urls: Slice[String] = []
-  var failure: String = ""
+  var mediaFailure: Option[failure.Failure] = None
   attachments.Each(func(attachment: federation.RichAttachment) -> ()
-    if failure == "" then
+    if mediaFailure.IsNone() then
       if current.ReadPolicy != "members" then
         # No public cache row, proxy URL or network fetch is created here.
         urls = urls.Append(attachment.URL)
       else
         let registered = storage.RegisterPrivateMedia(ctx, tx, siteID, post.ID, attachment.URL, version)
         if registered.IsErr() then
-          failure = registered.UnwrapErr()
+          mediaFailure = Some(registered.UnwrapErr())
         else
           urls = urls.Append("/api/v1/media/private/" + registered.Unwrap().ID)
         end
       end
     end
   end)
-  if failure != "" then
-    return Err(failure)
+  if mediaFailure.IsSome() then
+    return Err(mediaFailure.Unwrap())
   end
   Ok(urls)
 end
@@ -179,7 +180,7 @@ func ServePrivateMedia(
   id: String,
   w: http.ResponseWriter,
   request: Ref[http.Request],
-  fetch: func(context.Context, auth.Identity, storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+  fetch: func(context.Context, auth.Identity, storage.PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
 ) -> ()
   w.Header().Set("Cache-Control", "no-store")
   w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -192,18 +193,18 @@ func ServePrivateMedia(
     http.NotFound(w, request)
     return
   end
-  let transfer = func(row: storage.PrivateMediaCache, file: Ref[os.File]) -> Result[(), String]
+  let transfer = func(row: storage.PrivateMediaCache, file: Ref[os.File]) -> Result[(), failure.Failure]
     if strings.HasSuffix(request.URL.Path, "/preview") then
       let preview = repository.Files.Open("previews", row.Generation)
       if preview.IsErr() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let opened = preview.Unwrap()
       go[()] { code: "defer {opened}.Close()"; in opened = opened }
       ServeMedia(
         w,
         request,
-        storage.MediaUpload{
+        storage.MediaUpload {
           ID: row.Generation,
           SiteID: "",
           OwnerAccountID: 0i64,
@@ -228,7 +229,7 @@ func ServePrivateMedia(
     ServeMedia(
       w,
       request,
-      storage.MediaUpload{
+      storage.MediaUpload {
         ID: row.Generation,
         SiteID: "",
         OwnerAccountID: 0i64,
@@ -251,7 +252,7 @@ func ServePrivateMedia(
   end
   let read = repository.ReadPrivateCache(request.Context(), identity, id, transfer)
   if read.IsErr() then
-    MediaFailure(w, read.UnwrapErr())
+    MediaFailure(w, read.UnwrapErr().Render())
     return
   end
   if read.Unwrap() then
@@ -261,12 +262,12 @@ func ServePrivateMedia(
   # refresh path as GET; a miss never exposes origin metadata to the caller.
   let fetched = repository.FetchPrivateCache(request.Context(), identity, id, fetch)
   if fetched.IsErr() then
-    MediaFailure(w, fetched.UnwrapErr())
+    MediaFailure(w, fetched.UnwrapErr().Render())
     return
   end
   let refreshed = repository.ReadPrivateCache(request.Context(), identity, id, transfer)
   if refreshed.IsErr() then
-    MediaFailure(w, refreshed.UnwrapErr())
+    MediaFailure(w, refreshed.UnwrapErr().Render())
     return
   end
   if !refreshed.Unwrap() then
@@ -280,6 +281,6 @@ func PrivateMediaUnavailable(
   ctx: context.Context,
   identity: auth.Identity,
   row: storage.PrivateMediaCache
-) -> Result[io.ReadCloser, String]
-  Err("protected media fetch unavailable")
+) -> Result[io.ReadCloser, failure.Failure]
+  Err(Of("protected media fetch unavailable"))
 end

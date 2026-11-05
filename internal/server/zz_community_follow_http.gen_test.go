@@ -12,6 +12,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,24 +23,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_community_follow_http.gen_test.go:25:1*/	}
+ /*line zz_community_follow_http.gen_test.go:26:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	accounts := storage.AccountRepository{DB: db}
-	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
-	member := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "member", "", "member-password"))
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "outsider", "", "outsider-password"))
+	creator := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
+	member := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "member", "", "member-password"))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "outsider", "", "outsider-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users", "open"))
-	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "restricted", "Restricted", "federated", "eligible_users", "eligible_users", "members"))
-	approval := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval"))
-	disabled := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "disabled", "Disabled", "federated", "eligible_users", "eligible_users", "disabled"))
-	private := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "private", "Private", "federated", "members", "members", "open"))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, restricted.ID, creator, false, member.ActorURI, true))
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users", "open"))
+	restricted := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "restricted", "Restricted", "federated", "eligible_users", "eligible_users", "members"))
+	approval := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval"))
+	disabled := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "disabled", "Disabled", "federated", "eligible_users", "eligible_users", "disabled"))
+	private := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM16CreateWithFollow(communities, ctx, site, creator, "private", "Private", "federated", "members", "members", "open"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN19CommunityRepositoryM9SetMember(communities, ctx, restricted.ID, creator, false, member.ActorURI, true))
 	handler := Handler(settings, db)
 	outsiderCookies := login(handler, site.Origin, "outsider", "outsider-password")
 	outsiderCSRF := csrfOf(outsiderCookies)
@@ -47,17 +48,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 	memberCSRF := csrfOf(memberCookies)
 	followPath := func(id string) string {
  /*line community_follow_http_test.mygo:37:5*/		return "/api/v1/communities/" + id + "/follow"
- /*line zz_community_follow_http.gen_test.go:50:1*/	}
+ /*line zz_community_follow_http.gen_test.go:51:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	follow := func(id_1 string, cookies []*http.Cookie, token string) *httptest.ResponseRecorder {
  /*line community_follow_http_test.mygo:40:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(id_1), Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin})
- /*line zz_community_follow_http.gen_test.go:53:1*/	}
+ /*line zz_community_follow_http.gen_test.go:54:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	unfollow := func(id_2 string, cookies_1 []*http.Cookie, token_1 string) *httptest.ResponseRecorder {
  /*line community_follow_http_test.mygo:43:5*/		return doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: followPath(id_2), Payload: "", Cookies: cookies_1, CSRF: token_1, Source: site.Origin})
- /*line zz_community_follow_http.gen_test.go:56:1*/	}
+ /*line zz_community_follow_http.gen_test.go:57:1*/	}
  /*line community_follow_http_test.mygo:45:3*/	if follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || follow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:46:5*/		t.Fatal("open follow was not idempotent")
  /*line community_follow_http_test.mygo:45:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:60:1*/	}
+ /*line zz_community_follow_http.gen_test.go:61:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	accepted := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:49:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+open.ID, outsiderCookies, 200).Body.Bytes(), &accepted)
@@ -65,13 +66,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_community_follow_http.gen_test.go:68:1*/		}{})
+ /*line zz_community_follow_http.gen_test.go:69:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
  /*line community_follow_http_test.mygo:50:3*/	if !accepted.Viewer.IsFollowing || accepted.Viewer.FollowState != "accepted" || accepted.Viewer.CanFollow || accepted.FollowerCount != int64(1) || accepted.FollowPolicy != "open" {
  /*line community_follow_http_test.mygo:52:5*/		t.Fatal("accepted follow projection was incorrect")
  /*line community_follow_http_test.mygo:50:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:74:1*/	}
+ /*line zz_community_follow_http.gen_test.go:75:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	anonymous := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:55:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+open.ID, []*http.Cookie{}, 200).Body.Bytes(), &anonymous)
@@ -79,21 +80,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_community_follow_http.gen_test.go:82:1*/		}{})
+ /*line zz_community_follow_http.gen_test.go:83:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
  /*line community_follow_http_test.mygo:59:3*/	if anonymous.Viewer.IsFollowing || anonymous.Viewer.FollowState != "none" || anonymous.Viewer.CanFollow || anonymous.FollowerCount != int64(0) || anonymous.FollowPolicy != "open" {
  /*line community_follow_http_test.mygo:62:5*/		t.Fatal("anonymous community follow projection leaked account state or counts")
  /*line community_follow_http_test.mygo:59:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:88:1*/	}
+ /*line zz_community_follow_http.gen_test.go:89:1*/	}
  /*line community_follow_http_test.mygo:64:3*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 || unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:66:5*/		t.Fatal("unfollow was not idempotent")
  /*line community_follow_http_test.mygo:64:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:92:1*/	}
+ /*line zz_community_follow_http.gen_test.go:93:1*/	}
  /*line community_follow_http_test.mygo:68:3*/	if follow(approval.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:69:5*/		t.Fatal("approval follow failed")
  /*line community_follow_http_test.mygo:68:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:96:1*/	}
+ /*line zz_community_follow_http.gen_test.go:97:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	pending := Zero[CommunityOutput]()
  /*line community_follow_http_test.mygo:72:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/communities/"+approval.ID, outsiderCookies, 200).Body.Bytes(), &pending)
@@ -101,41 +102,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
 	} else {
 		__mygo_expr_8 = Ok[struct{}, error](struct {
- /*line zz_community_follow_http.gen_test.go:104:1*/		}{})
+ /*line zz_community_follow_http.gen_test.go:105:1*/		}{})
 	}
  /*line community_follow_http_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
  /*line community_follow_http_test.mygo:73:3*/	if pending.Viewer.FollowState != "pending" || pending.Viewer.IsFollowing || pending.Viewer.CanFollow || pending.FollowerCount != int64(0) {
  /*line community_follow_http_test.mygo:75:5*/		t.Fatal("pending follow projection was incorrect")
  /*line community_follow_http_test.mygo:73:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:110:1*/	}
+ /*line zz_community_follow_http.gen_test.go:111:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	deniedMember := follow(restricted.ID, outsiderCookies, outsiderCSRF)
  /*line community_follow_http_test.mygo:78:3*/	if deniedMember.Code != 403 || deniedMember.Body.String() != "{\"error\":\"follow_requires_membership\"}" {
  /*line community_follow_http_test.mygo:79:5*/		t.Fatal("members follow policy did not reject a non-member")
  /*line community_follow_http_test.mygo:78:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:115:1*/	}
+ /*line zz_community_follow_http.gen_test.go:116:1*/	}
  /*line community_follow_http_test.mygo:81:3*/	if follow(restricted.ID, memberCookies, memberCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:82:5*/		t.Fatal("members stay could not follow")
  /*line community_follow_http_test.mygo:81:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:119:1*/	}
+ /*line zz_community_follow_http.gen_test.go:120:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	disabledFollow := follow(disabled.ID, outsiderCookies, outsiderCSRF)
  /*line community_follow_http_test.mygo:85:3*/	if disabledFollow.Code != 403 || disabledFollow.Body.String() != "{\"error\":\"feature_disabled\"}" {
  /*line community_follow_http_test.mygo:86:5*/		t.Fatal("disabled follow policy did not return feature_disabled")
  /*line community_follow_http_test.mygo:85:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:124:1*/	}
+ /*line zz_community_follow_http.gen_test.go:125:1*/	}
  /*line community_follow_http_test.mygo:88:3*/	if follow("missing", outsiderCookies, outsiderCSRF).Code != 404 || follow(private.ID, outsiderCookies, outsiderCSRF).Code != 404 {
  /*line community_follow_http_test.mygo:89:5*/		t.Fatal("missing or unreadable follow target did not return 404")
  /*line community_follow_http_test.mygo:88:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:128:1*/	}
+ /*line zz_community_follow_http.gen_test.go:129:1*/	}
  /*line community_follow_http_test.mygo:91:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: "", Source: site.Origin}).Code != 403 || doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: followPath(open.ID), Payload: "", Cookies: outsiderCookies, CSRF: outsiderCSRF, Source: "https://foreign.example"}).Code != 403 {
  /*line community_follow_http_test.mygo:93:5*/		t.Fatal("follow route accepted missing CSRF or foreign origin")
  /*line community_follow_http_test.mygo:91:3*/	} else {
- /*line zz_community_follow_http.gen_test.go:132:1*/	}
+ /*line zz_community_follow_http.gen_test.go:133:1*/	}
  /*line community_follow_http_test.mygo:13:1*/	follow(open.ID, outsiderCookies, outsiderCSRF)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN19CommunityRepositoryM12SetPolicyAll(communities, ctx, open.ID, creator, false, "eligible_users", "eligible_users", "disabled"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN19CommunityRepositoryM12SetPolicyAll(communities, ctx, open.ID, creator, false, "eligible_users", "eligible_users", "disabled"))
  /*line community_follow_http_test.mygo:97:3*/	if unfollow(open.ID, outsiderCookies, outsiderCSRF).Code != 204 {
  /*line community_follow_http_test.mygo:98:5*/		t.Fatal("existing follower could not unfollow after disabling new follows")
 		return
  /*line community_follow_http_test.mygo:97:3*/	} else {
 		return
- /*line zz_community_follow_http.gen_test.go:140:1*/	}
+ /*line zz_community_follow_http.gen_test.go:141:1*/	}
 }

@@ -9,6 +9,7 @@ import hash "go:hash"
 import rand "go:crypto/rand"
 import sql "go:database/sql"
 import functional "github.com/commune-project/commune-backend/internal/functional"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ReceiptRecord
   ActivityURI: String `gorm:"column:activity_uri"`
@@ -37,29 +38,29 @@ func ReceiveActivity(
   actorURI: String,
   kind: String,
   payload: Slice[Byte]
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   if siteID == "" ||
     activityURI == "" ||
     actorURI == "" ||
     recipients.Len() == 0 ||
     !strings.HasPrefix(activityURI, "https://") then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   if payload.Len() == 0 then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   var created = 0i64
   let result = RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec(
         "INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?) ON CONFLICT (uri) DO NOTHING",
         activityURI,
         actorURI,
         kind
       )).IsErr() then
-        return Err("invalid activity")
+        return Err(Of("invalid activity"))
       end
       var stored = Zero[ReceiptRecord]()
       let loaded = tx.Raw(
@@ -67,14 +68,14 @@ func ReceiveActivity(
         activityURI
       ).Scan(Ref.new(stored))
       if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
-        return Err("invalid activity")
+        return Err(Of("invalid activity"))
       end
       let actorCheck = QueryExists(tx.Table("activities").Where("uri = ? AND actor_uri = ? AND kind = ?", activityURI, actorURI, kind))
       if actorCheck.IsErr() then
-        return Err("invalid activity")
+        return Err(Of("invalid activity"))
       end
       if !actorCheck.Unwrap() then
-        return Err("conflicting activity")
+        return Err(Of("conflicting activity"))
       end
       let checksum = PayloadChecksum(payload)
       if MutationResult(tx.Exec(
@@ -83,14 +84,14 @@ func ReceiveActivity(
         payload,
         checksum
       )).IsErr() then
-        return Err("invalid activity")
+        return Err(Of("invalid activity"))
       end
       let payloadCheck = QueryExists(tx.Table("activity_payloads").Where("activity_uri = ? AND checksum = ?", activityURI, checksum))
       if payloadCheck.IsErr() then
-        return Err("invalid activity")
+        return Err(Of("invalid activity"))
       end
       if !payloadCheck.Unwrap() then
-        return Err("conflicting activity")
+        return Err(Of("conflicting activity"))
       end
       recipients.Each(func(recipient: String) -> ()
         let inserted = tx.Exec(
@@ -118,18 +119,18 @@ func LocalActors(
   db: Ref[gorm.DB],
   siteID: String,
   candidates: Slice[String]
-) -> Result[Slice[String], String]
-  let matched = candidates.Map(func(candidate: String) -> Result[Bool, String]
+) -> Result[Slice[String], failure.Failure]
+  let matched = candidates.Map(func(candidate: String) -> Result[Bool, failure.Failure]
     switch QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
-      case Err(_) => Err("receipt unavailable")
+      case Err(_) => Err(Of("receipt unavailable"))
       case Ok(value) => Ok(value)
     end
   end)
-  switch functional.Sequence(matched)
+  switch functional.SequenceFailure(matched)
     case Err(reason) => Err(reason)
     case Ok(flags) then
       let found = candidates.ZipWith(flags, func(candidate: String, exists: Bool) -> Option[String]
-        if exists then Some(candidate) else None end
+        if exists => Some(candidate) else None
       end).Fold([], func(acc: Slice[String], item: Option[String]) -> Slice[String]
         switch item
           case Some(value) => acc.Append(value)
@@ -148,7 +149,7 @@ func ClaimPendingReceipts(
   db: Ref[gorm.DB],
   limit: Int,
   leaseSeconds: Int64
-) -> Result[Slice[ReceiptRecord], String]
+) -> Result[Slice[ReceiptRecord], failure.Failure]
   var claimed: Slice[ReceiptRecord] = []
   let token = rand.Text()
   let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
@@ -159,7 +160,7 @@ func ClaimPendingReceipts(
     limit
   ).Scan(Ref.new(claimed))
   if MutationResult(query).IsErr() then
-    return Err("receipt unavailable")
+    return Err(Of("receipt unavailable"))
   end
   Ok(claimed)
 end
@@ -171,9 +172,9 @@ func SettleReceipt(
   siteID: String,
   recipient: String,
   state: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if state != "accepted" && state != "rejected" then
-    return Err("invalid state")
+    return Err(Of("invalid state"))
   end
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE inbox_receipts SET state=?, lease_token=NULL, lease_until=NULL WHERE activity_uri=? AND site_id=? AND recipient_actor_uri=?",

@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,67 +18,67 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_context_reply.gen_test.go:20:1*/	}
+ /*line zz_context_reply.gen_test.go:21:1*/	}
  /*line context_reply_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://forum-a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
-	homeContext := MygoIN6ResultM6Unwrap[DiscussionContextRecord, string](CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](AttachPostToContext(ctx, db, topic.ID, homeContext.ID))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	homeContext := MygoIN6ResultM6Unwrap[DiscussionContextRecord, failure.Failure](CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](AttachPostToContext(ctx, db, topic.ID, homeContext.ID))
 	remoteContext := "https://peer.example/contexts/remote"
 	published := MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Body: "Reply", ParentID: topic.ID, ContextURI: remoteContext, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", Title: ""})
- /*line context_reply_test.mygo:64:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](published) {
- /*line context_reply_test.mygo:65:5*/		t.Fatalf("reply with a declared context failed: %s", MygoIN6ResultM9UnwrapErr[PostRecord, string](published))
+ /*line context_reply_test.mygo:64:3*/	if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](published) {
+ /*line context_reply_test.mygo:65:5*/		t.Fatalf("reply with a declared context failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](published)))
  /*line context_reply_test.mygo:64:3*/	} else {
- /*line zz_context_reply.gen_test.go:39:1*/	}
- /*line context_reply_test.mygo:9:1*/	reply := MygoIN6ResultM6Unwrap[PostRecord, string](published)
+ /*line zz_context_reply.gen_test.go:40:1*/	}
+ /*line context_reply_test.mygo:9:1*/	reply := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](published)
  /*line context_reply_test.mygo:68:3*/	if reply.ParentID.String != topic.ID {
  /*line context_reply_test.mygo:69:5*/		t.Fatal("declaring a context changed the reply parent")
  /*line context_reply_test.mygo:68:3*/	} else {
- /*line zz_context_reply.gen_test.go:44:1*/	}
- /*line context_reply_test.mygo:9:1*/	uris := MygoIN6ResultM6Unwrap[[]string, string](PostContextURIs(ctx, db, reply.ID))
+ /*line zz_context_reply.gen_test.go:45:1*/	}
+ /*line context_reply_test.mygo:9:1*/	uris := MygoIN6ResultM6Unwrap[[]string, failure.Failure](PostContextURIs(ctx, db, reply.ID))
  /*line context_reply_test.mygo:72:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(uris) != 1 || MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(uris, 0)) != remoteContext {
  /*line context_reply_test.mygo:73:5*/		t.Fatal("the reply's declared context was not independent of its parent")
  /*line context_reply_test.mygo:72:3*/	} else {
- /*line zz_context_reply.gen_test.go:49:1*/	}
+ /*line zz_context_reply.gen_test.go:50:1*/	}
  /*line context_reply_test.mygo:9:1*/	stub := ""
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", remoteContext).Scan(&stub)))
-	declared := MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("post_contexts").Where("post_id = ? AND context_id = ?", reply.ID, stub)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", remoteContext).Scan(&stub)))
+	declared := MygoIN6ResultM6Unwrap[bool, failure.Failure](QueryExists(db.Table("post_contexts").Where("post_id = ? AND context_id = ?", reply.ID, stub)))
  /*line context_reply_test.mygo:85:3*/	if !declared {
  /*line context_reply_test.mygo:86:5*/		t.Fatal("the declared remote context was not recorded")
  /*line context_reply_test.mygo:85:3*/	} else {
- /*line zz_context_reply.gen_test.go:56:1*/	}
- /*line context_reply_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](AttachDeclaredPostContext(ctx, db, reply.ID, homeContext.ID))
-	pendingHome := MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'pending'", reply.ID, homeContext.ID)))
+ /*line zz_context_reply.gen_test.go:57:1*/	}
+ /*line context_reply_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](AttachDeclaredPostContext(ctx, db, reply.ID, homeContext.ID))
+	pendingHome := MygoIN6ResultM6Unwrap[bool, failure.Failure](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'pending'", reply.ID, homeContext.ID)))
  /*line context_reply_test.mygo:94:3*/	if !pendingHome {
  /*line context_reply_test.mygo:95:5*/		t.Fatal("a declared local claim was not recorded as pending")
  /*line context_reply_test.mygo:94:3*/	} else {
- /*line zz_context_reply.gen_test.go:62:1*/	}
- /*line context_reply_test.mygo:97:3*/	if MygoIN6ResultM6Unwrap[int64, string](CountContextPosts(ctx, db, homeContext.ID)) != int64(1) {
+ /*line zz_context_reply.gen_test.go:63:1*/	}
+ /*line context_reply_test.mygo:97:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](CountContextPosts(ctx, db, homeContext.ID)) != int64(1) {
  /*line context_reply_test.mygo:98:5*/		t.Fatal("a pending declaration entered the accepted context collection")
  /*line context_reply_test.mygo:97:3*/	} else {
- /*line zz_context_reply.gen_test.go:66:1*/	}
+ /*line zz_context_reply.gen_test.go:67:1*/	}
  /*line context_reply_test.mygo:9:1*/	deduped := UniqueRecipients([]string{"https://peer.example/users/a", "https://peer.example/users/b", "https://peer.example/users/a"})
  /*line context_reply_test.mygo:105:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(deduped) != 2 {
  /*line context_reply_test.mygo:106:5*/		t.Fatal("recipient deduplication failed")
  /*line context_reply_test.mygo:105:3*/	} else {
- /*line zz_context_reply.gen_test.go:71:1*/	}
+ /*line zz_context_reply.gen_test.go:72:1*/	}
  /*line context_reply_test.mygo:9:1*/	activityURI := "https://forum-a.example/activities/ctx-1"
-	MygoIN6ResultM6Unwrap[string, string](EnsureLocalKey(ctx, db, alice.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](InsertActivityPayload(ctx, db, activityURI, alice.ActorURI, "Create", []byte("{}"), community.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/a','Person','https://peer.example/inbox')")))
-	planned := MygoIN6ResultM6Unwrap[PlanResult, string](PlanDelivery(ctx, db, activityURI, alice.ActorURI, []string{"https://peer.example/users/a", "https://peer.example/users/a"}, community.ID))
+	MygoIN6ResultM6Unwrap[string, failure.Failure](EnsureLocalKey(ctx, db, alice.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](InsertActivityPayload(ctx, db, activityURI, alice.ActorURI, "Create", []byte("{}"), community.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES ('https://peer.example/users/a','Person','https://peer.example/inbox')")))
+	planned := MygoIN6ResultM6Unwrap[PlanResult, failure.Failure](PlanDelivery(ctx, db, activityURI, alice.ActorURI, []string{"https://peer.example/users/a", "https://peer.example/users/a"}, community.ID))
  /*line context_reply_test.mygo:131:3*/	if planned.Jobs != int64(1) {
  /*line context_reply_test.mygo:132:5*/		t.Fatalf("duplicate destinations produced duplicate jobs: %d", planned.Jobs)
 		return
  /*line context_reply_test.mygo:131:3*/	} else {
 		return
- /*line zz_context_reply.gen_test.go:82:1*/	}
+ /*line zz_context_reply.gen_test.go:83:1*/	}
 }

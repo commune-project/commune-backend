@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -23,14 +24,14 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_topic_sort.gen_test.go:26:1*/		}{})
+ /*line zz_topic_sort.gen_test.go:27:1*/		}{})
 	}
  /*line topic_sort_test.mygo:15:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
  /*line topic_sort_test.mygo:16:5*/		t.Fatalf("invalid topic page: %s", response.Body.String())
  /*line topic_sort_test.mygo:15:3*/	} else {
- /*line zz_topic_sort.gen_test.go:31:1*/	}
+ /*line zz_topic_sort.gen_test.go:32:1*/	}
  /*line topic_sort_test.mygo:18:3*/	return output
- /*line zz_topic_sort.gen_test.go:33:1*/}
+ /*line zz_topic_sort.gen_test.go:34:1*/}
  /*line topic_sort_test.mygo:21:1*/func TestPostgresTopicSortModes(t *testing.T) {
  /*line topic_sort_test.mygo:22:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -38,85 +39,85 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_topic_sort.gen_test.go:41:1*/	}
+ /*line zz_topic_sort.gen_test.go:42:1*/	}
  /*line topic_sort_test.mygo:21:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := storage.AccountRepository{DB: db}
-	author := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "author", "", "author-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
-	dave := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "dave", "", "dave-password"))
-	erin := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "erin", "", "erin-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	author := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "author", "", "author-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "carol", "", "carol-password"))
+	dave := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "dave", "", "dave-password"))
+	erin := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "erin", "", "erin-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	p1 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Old", Body: "old", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	p2 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Middle", Body: "middle", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	p3 := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "New", Body: "new", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id=?", p1.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-15T00:00:00Z',updated_at='2026-01-15T00:00:00Z' WHERE id=?", p2.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET authored_at=now(),updated_at=now() WHERE id=?", p3.ID)))
+	p1 := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Old", Body: "old", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	p2 := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "Middle", Body: "middle", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	p3 := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, storage.PublishInput{Title: "New", Body: "new", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-01T00:00:00Z',updated_at='2026-01-01T00:00:00Z' WHERE id=?", p1.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE posts SET authored_at='2026-01-15T00:00:00Z',updated_at='2026-01-15T00:00:00Z' WHERE id=?", p2.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE posts SET authored_at=now(),updated_at=now() WHERE id=?", p3.ID)))
 	reactions := storage.ReactionRepository{DB: db, SiteID: site.ID}
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p1.ID, bob, false, 1, ""))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p1.ID, carol, false, 1, ""))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, bob, false, 1, ""))
- /*line topic_sort_test.mygo:47:11*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, carol, false, -1, ""))
- /*line topic_sort_test.mygo:21:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p3.ID, bob, false, 1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p1.ID, bob, false, 1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p1.ID, carol, false, 1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, bob, false, 1, ""))
+ /*line topic_sort_test.mygo:47:11*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, carol, false, -1, ""))
+ /*line topic_sort_test.mygo:21:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p3.ID, bob, false, 1, ""))
 	handler := Handler(settings, db)
 	global := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top")
  /*line topic_sort_test.mygo:51:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(global.Items) != 3 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(global.Items, 0)).ID != p1.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(global.Items, 1)).ID != p3.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(global.Items, 2)).ID != p2.ID {
  /*line topic_sort_test.mygo:52:5*/		fatalTopicOrder(t, "global top", global)
  /*line topic_sort_test.mygo:51:3*/	} else {
- /*line zz_topic_sort.gen_test.go:74:1*/	}
+ /*line zz_topic_sort.gen_test.go:75:1*/	}
  /*line topic_sort_test.mygo:21:1*/	communityTop := topicOrderPage(t, handler, site.Origin, "/api/v1/communities/"+community.ID+"/topics?sort=top")
  /*line topic_sort_test.mygo:55:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(communityTop.Items) != 3 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(communityTop.Items, 0)).ID != p1.ID {
  /*line topic_sort_test.mygo:56:5*/		fatalTopicOrder(t, "community top", communityTop)
  /*line topic_sort_test.mygo:55:3*/	} else {
- /*line zz_topic_sort.gen_test.go:79:1*/	}
+ /*line zz_topic_sort.gen_test.go:80:1*/	}
  /*line topic_sort_test.mygo:21:1*/	newest := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=new")
 	oldest := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=old")
  /*line topic_sort_test.mygo:60:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(newest.Items, 0)).ID != p3.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(oldest.Items, 0)).ID != p1.ID {
  /*line topic_sort_test.mygo:61:5*/		t.Fatal("new or old topic ordering was incorrect")
  /*line topic_sort_test.mygo:60:3*/	} else {
- /*line zz_topic_sort.gen_test.go:85:1*/	}
+ /*line zz_topic_sort.gen_test.go:86:1*/	}
  /*line topic_sort_test.mygo:21:1*/	controversial := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=controversial")
  /*line topic_sort_test.mygo:64:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(controversial.Items, 0)).ID != p2.ID {
  /*line topic_sort_test.mygo:65:5*/		t.Fatal("controversial ordering did not favour opposing votes")
  /*line topic_sort_test.mygo:64:3*/	} else {
- /*line zz_topic_sort.gen_test.go:90:1*/	}
+ /*line zz_topic_sort.gen_test.go:91:1*/	}
  /*line topic_sort_test.mygo:21:1*/	hot := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=hot")
  /*line topic_sort_test.mygo:68:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(hot.Items, 0)).ID != p3.ID {
  /*line topic_sort_test.mygo:69:5*/		t.Fatal("hot ordering did not combine recency and score")
  /*line topic_sort_test.mygo:68:3*/	} else {
- /*line zz_topic_sort.gen_test.go:95:1*/	}
+ /*line zz_topic_sort.gen_test.go:96:1*/	}
  /*line topic_sort_test.mygo:21:1*/	browserGet(t, handler, site.Origin, "/api/v1/topics?sort=random", []*http.Cookie{}, 400)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, dave, false, 1, ""))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, erin, false, 1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, dave, false, 1, ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN18ReactionRepositoryM4Vote(reactions, ctx, p2.ID, erin, false, 1, ""))
 	changed := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top&limit=1")
  /*line topic_sort_test.mygo:75:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(changed.Items) != 1 || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(changed.Items, 0)).ID != p2.ID {
  /*line topic_sort_test.mygo:76:5*/		t.Fatal("score changes did not affect the next top page")
  /*line topic_sort_test.mygo:75:3*/	} else {
- /*line zz_topic_sort.gen_test.go:103:1*/	}
- /*line topic_sort_test.mygo:21:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "admin"))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
+ /*line zz_topic_sort.gen_test.go:104:1*/	}
+ /*line topic_sort_test.mygo:21:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], failure.Failure](storage.FindAccount(ctx, db, site.ID, "admin"))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, true, false, false, true))
 	disabled := topicOrderPage(t, handler, site.Origin, "/api/v1/topics?sort=top")
  /*line topic_sort_test.mygo:81:3*/	if MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(disabled.Items, 0)).ID != p2.ID || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(disabled.Items, 0)).Score != int64(3) || MygoIN6OptionM6Unwrap[PostOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(disabled.Items, 0)).Downvotes != int64(0) {
  /*line topic_sort_test.mygo:83:5*/		t.Fatal("disabled downvotes were not excluded from ordering")
 		return
  /*line topic_sort_test.mygo:81:3*/	} else {
 		return
- /*line zz_topic_sort.gen_test.go:112:1*/	}
+ /*line zz_topic_sort.gen_test.go:113:1*/	}
 }
  /*line topic_sort_test.mygo:87:1*/func fatalTopicOrder(t *testing.T, label string, page PostPage) {
 	ids := ""
  /*line topic_sort_test.mygo:89:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(page.Items, func(item PostOutput) {
  /*line topic_sort_test.mygo:89:19*/		ids = ids + item.ID + ","
 		return
- /*line zz_topic_sort.gen_test.go:119:1*/	})
+ /*line zz_topic_sort.gen_test.go:120:1*/	})
  /*line topic_sort_test.mygo:92:3*/	t.Fatalf("%s order was %s", label, ids)
 	return
- /*line zz_topic_sort.gen_test.go:122:1*/}
+ /*line zz_topic_sort.gen_test.go:123:1*/}

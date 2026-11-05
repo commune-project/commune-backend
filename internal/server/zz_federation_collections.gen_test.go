@@ -10,6 +10,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -20,23 +21,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_collections.gen_test.go:23:1*/	}
+ /*line zz_federation_collections.gen_test.go:24:1*/	}
  /*line federation_collections_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
 	posts := storage.PostRepository{DB: db, SiteID: a.ID}
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	first := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "One", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Two", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: first.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	local := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "local", "Local", "local_only", "eligible_users", "eligible_users"))
+	first := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "One", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "Two", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: first.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, a, local.ID, alice, false, storage.PublishInput{Title: "Private", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	accept := "application/activity+json"
 	outbox := getAP(handler, a.Origin, "/users/alice/outbox", accept)
@@ -44,62 +45,62 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_collections_test.mygo:32:3*/	if outbox.Code != 200 || !strings.Contains(outbox.Body.String(), "\"type\":\"OrderedCollection\"") || !strings.Contains(outbox.Body.String(), "\"totalItems\":3") {
  /*line federation_collections_test.mygo:33:5*/		t.Fatalf("outbox collection was wrong: %d %s", outbox.Code, outbox.Body.String())
  /*line federation_collections_test.mygo:32:3*/	} else {
- /*line zz_federation_collections.gen_test.go:47:1*/	}
+ /*line zz_federation_collections.gen_test.go:48:1*/	}
  /*line federation_collections_test.mygo:35:3*/	if !strings.Contains(outbox.Body.String(), outboxID+"?page=1") {
  /*line federation_collections_test.mygo:36:5*/		t.Fatal("outbox first page link was not canonical")
  /*line federation_collections_test.mygo:35:3*/	} else {
- /*line zz_federation_collections.gen_test.go:51:1*/	}
+ /*line zz_federation_collections.gen_test.go:52:1*/	}
  /*line federation_collections_test.mygo:38:3*/	if strings.Contains(outbox.Body.String(), "Private") {
  /*line federation_collections_test.mygo:39:5*/		t.Fatal("local-only post leaked into the outbox")
  /*line federation_collections_test.mygo:38:3*/	} else {
- /*line zz_federation_collections.gen_test.go:55:1*/	}
+ /*line zz_federation_collections.gen_test.go:56:1*/	}
  /*line federation_collections_test.mygo:11:1*/	outboxPage := getAP(handler, a.Origin, "/users/alice/outbox?page=1", accept)
  /*line federation_collections_test.mygo:42:3*/	if outboxPage.Code != 200 || !strings.Contains(outboxPage.Body.String(), "\"type\":\"OrderedCollectionPage\"") || !strings.Contains(outboxPage.Body.String(), "\"partOf\":\""+outboxID+"\"") {
  /*line federation_collections_test.mygo:43:5*/		t.Fatalf("outbox page was wrong: %d %s", outboxPage.Code, outboxPage.Body.String())
  /*line federation_collections_test.mygo:42:3*/	} else {
- /*line zz_federation_collections.gen_test.go:60:1*/	}
+ /*line zz_federation_collections.gen_test.go:61:1*/	}
  /*line federation_collections_test.mygo:45:3*/	if !strings.Contains(outboxPage.Body.String(), "\"id\":\""+outboxID+"?page=1\"") {
  /*line federation_collections_test.mygo:46:5*/		t.Fatal("outbox page id was not canonical")
  /*line federation_collections_test.mygo:45:3*/	} else {
- /*line zz_federation_collections.gen_test.go:64:1*/	}
+ /*line zz_federation_collections.gen_test.go:65:1*/	}
  /*line federation_collections_test.mygo:48:3*/	if strings.Contains(outboxPage.Body.String(), "\"next\"") {
  /*line federation_collections_test.mygo:49:5*/		t.Fatal("single-page outbox advertised a next link")
  /*line federation_collections_test.mygo:48:3*/	} else {
- /*line zz_federation_collections.gen_test.go:68:1*/	}
+ /*line zz_federation_collections.gen_test.go:69:1*/	}
  /*line federation_collections_test.mygo:11:1*/	secondPage := getAP(handler, a.Origin, "/users/alice/outbox?page=2", accept)
  /*line federation_collections_test.mygo:52:3*/	if secondPage.Code != 200 || !strings.Contains(secondPage.Body.String(), "\"prev\":\""+outboxID+"?page=1\"") || !strings.Contains(secondPage.Body.String(), "\"orderedItems\":[]") {
  /*line federation_collections_test.mygo:53:5*/		t.Fatal("out-of-range page did not expose a prev link and empty items")
  /*line federation_collections_test.mygo:52:3*/	} else {
- /*line zz_federation_collections.gen_test.go:73:1*/	}
+ /*line zz_federation_collections.gen_test.go:74:1*/	}
  /*line federation_collections_test.mygo:11:1*/	inbox := getAP(handler, a.Origin, "/users/alice/inbox", accept)
  /*line federation_collections_test.mygo:56:3*/	if inbox.Code != 200 || !strings.Contains(inbox.Body.String(), "\"totalItems\":0") || strings.Contains(inbox.Body.String(), "page=1") {
  /*line federation_collections_test.mygo:57:5*/		t.Fatal("inbox exposed content or a page link")
  /*line federation_collections_test.mygo:56:3*/	} else {
- /*line zz_federation_collections.gen_test.go:78:1*/	}
+ /*line zz_federation_collections.gen_test.go:79:1*/	}
  /*line federation_collections_test.mygo:11:1*/	replies := getAP(handler, a.Origin, "/objects/"+first.ID+"/replies", accept)
 	repliesID := first.ObjectURI.String + "/replies"
  /*line federation_collections_test.mygo:61:3*/	if replies.Code != 200 || !strings.Contains(replies.Body.String(), "\"totalItems\":1") || !strings.Contains(replies.Body.String(), repliesID+"?page=1") {
  /*line federation_collections_test.mygo:62:5*/		t.Fatalf("replies collection was wrong: %d %s", replies.Code, replies.Body.String())
  /*line federation_collections_test.mygo:61:3*/	} else {
- /*line zz_federation_collections.gen_test.go:84:1*/	}
+ /*line zz_federation_collections.gen_test.go:85:1*/	}
  /*line federation_collections_test.mygo:11:1*/	repliesPage := getAP(handler, a.Origin, "/objects/"+first.ID+"/replies?page=1", accept)
  /*line federation_collections_test.mygo:65:3*/	if repliesPage.Code != 200 || !strings.Contains(repliesPage.Body.String(), "\"type\":\"Note\"") || !strings.Contains(repliesPage.Body.String(), "\"partOf\":\""+repliesID+"\"") {
  /*line federation_collections_test.mygo:66:5*/		t.Fatal("reply page did not list the reply under its canonical collection")
  /*line federation_collections_test.mygo:65:3*/	} else {
- /*line zz_federation_collections.gen_test.go:89:1*/	}
+ /*line zz_federation_collections.gen_test.go:90:1*/	}
  /*line federation_collections_test.mygo:11:1*/	followers := getAP(handler, a.Origin, "/communities/open/followers", accept)
  /*line federation_collections_test.mygo:69:3*/	if followers.Code != 200 || !strings.Contains(followers.Body.String(), "\"totalItems\":0") {
  /*line federation_collections_test.mygo:70:5*/		t.Fatal("followers collection was wrong")
  /*line federation_collections_test.mygo:69:3*/	} else {
- /*line zz_federation_collections.gen_test.go:94:1*/	}
+ /*line zz_federation_collections.gen_test.go:95:1*/	}
  /*line federation_collections_test.mygo:72:3*/	if getAP(handler, a.Origin, "/communities/local/outbox", accept).Code != 404 {
  /*line federation_collections_test.mygo:73:5*/		t.Fatal("local-only community exposed a collection")
  /*line federation_collections_test.mygo:72:3*/	} else {
- /*line zz_federation_collections.gen_test.go:98:1*/	}
+ /*line zz_federation_collections.gen_test.go:99:1*/	}
  /*line federation_collections_test.mygo:75:3*/	if getAP(handler, a.Origin, "/users/nobody/outbox", accept).Code != 404 {
  /*line federation_collections_test.mygo:76:5*/		t.Fatal("unknown actor exposed a collection")
 		return
  /*line federation_collections_test.mygo:75:3*/	} else {
 		return
- /*line zz_federation_collections.gen_test.go:104:1*/	}
+ /*line zz_federation_collections.gen_test.go:105:1*/	}
 }

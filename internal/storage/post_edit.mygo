@@ -7,6 +7,7 @@ import strings "go:strings"
 import time "go:time"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 impl PostRepository
   func Edit(
@@ -19,7 +20,7 @@ impl PostRepository
     body: String,
     expectedVersion: Int64,
     sanitizer: content.Sanitizer
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     self.EditResolvedContent(
       ctx,
       id,
@@ -47,7 +48,7 @@ impl PostRepository
     attachmentIDs: Slice[String],
     expectedVersion: Int64,
     sanitizer: content.Sanitizer
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     self.EditResolvedContent(
       ctx,
       id,
@@ -77,28 +78,28 @@ impl PostRepository
     replaceAttachments: Bool,
     expectedVersion: Int64,
     sanitizer: content.Sanitizer
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     let trimmed = strings.TrimSpace(body)
     let cleanTitle = strings.TrimSpace(title)
     if trimmed == "" ||
       (trimmed as Slice[Byte]).Len() > 65536 ||
       (cleanTitle as Slice[Byte]).Len() > 200 then
-      return Err("invalid post input")
+      return Err(Of("invalid post input"))
     end
     self.MutateAuthor(
       ctx,
       id,
       identity,
       remoteVerified,
-      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), failure.Failure]
         if post.DeletedAt.Valid then
-          return Err("not found")
+          return Err(Of("not found"))
         end
         if expectedVersion <= 0i64 then
-          return Err("invalid expected version")
+          return Err(Of("invalid expected version"))
         end
         if post.Version != expectedVersion then
-          return Err("edit_conflict")
+          return Err(Of("edit_conflict"))
         end
         let format = if contentFormat == "" then
           if post.ContentFormat == "" then
@@ -110,14 +111,14 @@ impl PostRepository
           contentFormat
         end
         if format != "legacy" && format != "markdown" then
-          return Err("invalid content format")
+          return Err(Of("invalid content format"))
         end
         if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" then
-          return Err("invalid post input")
+          return Err(Of("invalid post input"))
         end
         let plain = content.PlainRichText(sanitizer, trimmed, format)
         if plain.IsErr() then
-          return Err("invalid post input")
+          return Err(Of("invalid post input"))
         end
         let updated = MutationResult(tx.Exec(
           "UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=?,version=version+1 WHERE id=? AND deleted_at IS NULL",
@@ -141,7 +142,7 @@ impl PostRepository
         if !replaceAttachments then
           let states = LoadPostRichStates(ctx, tx, [post.ID])
           if states.IsErr() || states.Unwrap().Len() != 1 then
-            return Err("post content unavailable")
+            return Err(Of("post content unavailable"))
           end
           let media = states.Unwrap().Get(0).Unwrap().RichMedia()
           if media.IsErr() then
@@ -163,19 +164,19 @@ impl PostRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let result = self.MutateAuthor(
       ctx,
       id,
       identity,
       remoteVerified,
-      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), String]
+      func(tx: Ref[gorm.DB], post: PostRecord) -> Result[(), failure.Failure]
         if post.DeletedAt.Valid then
           return Ok(())
         end
         if MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", id)).IsErr() ||
           MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", id)).IsErr() then
-          return Err("post content unavailable")
+          return Err(Of("post content unavailable"))
         end
         MutationResult(tx.Exec(
           "UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=?,version=version+1 WHERE id=?",
@@ -196,13 +197,13 @@ impl PostRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool,
-    work: func(Ref[gorm.DB], PostRecord) -> Result[(), String]
-  ) -> Result[PostRecord, String]
+    work: func(Ref[gorm.DB], PostRecord) -> Result[(), failure.Failure]
+  ) -> Result[PostRecord, failure.Failure]
     var stored = Zero[PostRecord]()
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let loaded = loadPostForUpdate(tx, id)
         if loaded.IsErr() then
           return Err(loaded.UnwrapErr())
@@ -217,7 +218,7 @@ impl PostRepository
           return Err(received.UnwrapErr())
         end
         if !received.Unwrap() then
-          return Err("not found")
+          return Err(Of("not found"))
         end
         let community = CommunityRepository { DB: tx, SiteID: self.SiteID }
         let access = community.CheckAuthorship(ctx, post.CommunityID, identity, remoteVerified)
@@ -225,14 +226,14 @@ impl PostRepository
           return Err(access.UnwrapErr())
         end
         if !access.Unwrap().CanEditBody(post.AuthorActorURI) then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let changed = work(tx, post)
         if changed.IsErr() then
           return Err(changed.UnwrapErr())
         end
         if MutationResult(tx.Table("posts").Where("id=?", id).Find(Ref.new(stored))).IsErr() then
-          return Err("post update failed")
+          return Err(Of("post update failed"))
         end
         Ok(())
       end
@@ -244,14 +245,14 @@ impl PostRepository
   end
 end
 
-func loadPostForUpdate(tx: Ref[gorm.DB], id: String) -> Result[PostRecord, String]
+func loadPostForUpdate(tx: Ref[gorm.DB], id: String) -> Result[PostRecord, failure.Failure]
   let record = Zero[PostRecord]()
   let found = tx.Raw("SELECT * FROM posts WHERE id=? FOR UPDATE", id).Scan(Ref.new(record))
   if MutationResult(found).IsErr() then
-    return Err("post unavailable")
+    return Err(Of("post unavailable"))
   end
   if found.RowsAffected != 1i64 then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   Ok(record)
 end

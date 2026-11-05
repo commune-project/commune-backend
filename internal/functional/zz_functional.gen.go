@@ -4,12 +4,12 @@ package functional
 
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line functional.mygo:6:2*/func Sequence[T any](items []Result[T, string]) Result[[]T, string] {
+ /*line functional.mygo:6:1*/func Sequence[T any](items []Result[T, string]) Result[[]T, string] {
 	var seed Result[[]T, string] = Ok[[]T, string]([]T{})
- /*line functional.mygo:8:4*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(items, seed, func(acc Result[[]T, string], item Result[T, string]) Result[[]T, string] {
- /*line functional.mygo:9:6*/		return MygoIN6ResultM7AndThen[[]T, string, []T](acc, func(done []T) Result[[]T, string] {
- /*line functional.mygo:10:8*/			return MygoIN6ResultM3Map[T, string](item, func(value T) []T {
- /*line functional.mygo:11:10*/				return MygoIN5SliceM6Append(done, value)
+ /*line functional.mygo:8:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(items, seed, func(acc Result[[]T, string], item Result[T, string]) Result[[]T, string] {
+ /*line functional.mygo:11:7*/		return MygoIN6ResultM7AndThen[[]T, string, []T](acc, func(done []T) Result[[]T, string] {
+ /*line functional.mygo:12:9*/			return MygoIN6ResultM3Map[T, string](item, func(value T) []T {
+ /*line functional.mygo:13:11*/				return MygoIN5SliceM6Append(done, value)
  /*line zz_functional.gen.go:13:1*/			})
 		})
 	})

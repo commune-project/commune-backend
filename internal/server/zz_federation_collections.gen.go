@@ -8,152 +8,153 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "context"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_collections.mygo:10:1*/func CollectionPageSize(settings config.Config) int {
- /*line federation_collections.mygo:11:3*/	return settings.Runtime.MaxPageSize
- /*line zz_federation_collections.gen.go:16:1*/}
- /*line federation_collections.mygo:14:1*/func OutboxHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, actorURI string, communityID string, membersOnly bool) {
+ /*line federation_collections.mygo:11:1*/func CollectionPageSize(settings config.Config) int {
+ /*line federation_collections.mygo:12:3*/	return settings.Runtime.MaxPageSize
+ /*line zz_federation_collections.gen.go:17:1*/}
+ /*line federation_collections.mygo:15:1*/func OutboxHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, actorURI string, communityID string, membersOnly bool) {
 	totalItems := storage.CountActorObjects(request.Context(), db, actorURI, site.Origin)
- /*line federation_collections.mygo:16:3*/	if communityID != "" {
+ /*line federation_collections.mygo:17:3*/	if communityID != "" {
 		totalItems = storage.CountCommunityObjects(request.Context(), db, site.Origin, communityID)
 	} else {
- /*line zz_federation_collections.gen.go:22:1*/	}
- /*line federation_collections.mygo:19:3*/	if membersOnly && communityID != "" {
+ /*line zz_federation_collections.gen.go:23:1*/	}
+ /*line federation_collections.mygo:20:3*/	if membersOnly && communityID != "" {
 		totalItems = storage.CountMemberCommunityObjects(request.Context(), db, site.Origin, communityID)
 	} else {
- /*line zz_federation_collections.gen.go:26:1*/	}
- /*line federation_collections.mygo:22:3*/	if membersOnly && communityID == "" {
+ /*line zz_federation_collections.gen.go:27:1*/	}
+ /*line federation_collections.mygo:23:3*/	if membersOnly && communityID == "" {
 		totalItems = storage.CountMemberObjects(request.Context(), db, actorURI, site.Origin, communityID)
 	} else {
- /*line zz_federation_collections.gen.go:30:1*/	}
- /*line federation_collections.mygo:25:3*/	if MygoIN6ResultM5IsErr[int64, string](totalItems) {
- /*line federation_collections.mygo:26:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:25:3*/		return
+ /*line zz_federation_collections.gen.go:31:1*/	}
+ /*line federation_collections.mygo:26:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](totalItems) {
+ /*line federation_collections.mygo:27:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:26:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:35:1*/	}
- /*line federation_collections.mygo:29:3*/	if request.URL.Query().Get("page") == "" {
- /*line federation_collections.mygo:30:5*/		WriteActivity(w, 200, federation.BuildOutbox(actorURI, MygoIN6ResultM6Unwrap[int64, string](totalItems)))
- /*line federation_collections.mygo:29:3*/		return
+ /*line zz_federation_collections.gen.go:36:1*/	}
+ /*line federation_collections.mygo:30:3*/	if request.URL.Query().Get("page") == "" {
+ /*line federation_collections.mygo:31:5*/		WriteActivity(w, 200, federation.BuildOutbox(actorURI, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems)))
+ /*line federation_collections.mygo:30:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:40:1*/	}
- /*line federation_collections.mygo:14:1*/	size := CollectionPageSize(settings)
+ /*line zz_federation_collections.gen.go:41:1*/	}
+ /*line federation_collections.mygo:15:1*/	size := CollectionPageSize(settings)
 	page := federation.PageParam(request.URL.Query().Get("page"))
 	listed := storage.ListActorObjects(request.Context(), db, actorURI, site.Origin, size, (page-1)*size)
- /*line federation_collections.mygo:36:6*/	if communityID != "" {
- /*line federation_collections.mygo:37:5*/		listed = storage.ListCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page-1)*size)
- /*line federation_collections.mygo:36:3*/	} else {
- /*line zz_federation_collections.gen.go:47:1*/	}
- /*line federation_collections.mygo:39:6*/	if membersOnly && communityID != "" {
- /*line federation_collections.mygo:40:5*/		listed = storage.ListMemberCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page-1)*size)
- /*line federation_collections.mygo:39:3*/	} else {
- /*line zz_federation_collections.gen.go:51:1*/	}
- /*line federation_collections.mygo:42:6*/	if membersOnly && communityID == "" {
- /*line federation_collections.mygo:43:5*/		listed = storage.ListMemberObjects(request.Context(), db, actorURI, site.Origin, communityID, size, (page-1)*size)
- /*line federation_collections.mygo:42:3*/	} else {
- /*line zz_federation_collections.gen.go:55:1*/	}
- /*line federation_collections.mygo:45:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, string](listed) {
- /*line federation_collections.mygo:46:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:45:3*/		return
+ /*line federation_collections.mygo:37:6*/	if communityID != "" {
+ /*line federation_collections.mygo:38:5*/		listed = storage.ListCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page-1)*size)
+ /*line federation_collections.mygo:37:3*/	} else {
+ /*line zz_federation_collections.gen.go:48:1*/	}
+ /*line federation_collections.mygo:40:6*/	if membersOnly && communityID != "" {
+ /*line federation_collections.mygo:41:5*/		listed = storage.ListMemberCommunityObjects(request.Context(), db, site.Origin, communityID, size, (page-1)*size)
+ /*line federation_collections.mygo:40:3*/	} else {
+ /*line zz_federation_collections.gen.go:52:1*/	}
+ /*line federation_collections.mygo:43:6*/	if membersOnly && communityID == "" {
+ /*line federation_collections.mygo:44:5*/		listed = storage.ListMemberObjects(request.Context(), db, actorURI, site.Origin, communityID, size, (page-1)*size)
+ /*line federation_collections.mygo:43:3*/	} else {
+ /*line zz_federation_collections.gen.go:56:1*/	}
+ /*line federation_collections.mygo:46:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](listed) {
+ /*line federation_collections.mygo:47:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:46:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:60:1*/	}
- /*line federation_collections.mygo:14:1*/	items := BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](listed))
- /*line federation_collections.mygo:50:3*/	if MygoIN6ResultM5IsErr[[]federation.ObjectRepresentation, string](items) {
- /*line federation_collections.mygo:51:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:50:3*/		return
+ /*line zz_federation_collections.gen.go:61:1*/	}
+ /*line federation_collections.mygo:15:1*/	items := BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](listed))
+ /*line federation_collections.mygo:51:3*/	if MygoIN6ResultM5IsErr[[]federation.ObjectRepresentation, failure.Failure](items) {
+ /*line federation_collections.mygo:52:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:51:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:66:1*/	}
- /*line federation_collections.mygo:54:3*/	WriteActivity(w, 200, federation.BuildObjectPage(actorURI+"/outbox", page, size, MygoIN6ResultM6Unwrap[int64, string](totalItems), MygoIN6ResultM6Unwrap[[]federation.ObjectRepresentation, string](items)))
+ /*line zz_federation_collections.gen.go:67:1*/	}
+ /*line federation_collections.mygo:55:3*/	WriteActivity(w, 200, federation.BuildObjectPage(actorURI+"/outbox", page, size, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems), MygoIN6ResultM6Unwrap[[]federation.ObjectRepresentation, failure.Failure](items)))
 	return
- /*line zz_federation_collections.gen.go:69:1*/}
- /*line federation_collections.mygo:57:1*/func BuildObjectItems(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, records []storage.PostRecord) Result[[]federation.ObjectRepresentation, string] {
+ /*line zz_federation_collections.gen.go:70:1*/}
+ /*line federation_collections.mygo:58:1*/func BuildObjectItems(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, records []storage.PostRecord) Result[[]federation.ObjectRepresentation, failure.Failure] {
 	var items []federation.ObjectRepresentation = []federation.ObjectRepresentation{}
 	failed := false
- /*line federation_collections.mygo:60:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(records, func(record storage.PostRecord) {
- /*line federation_collections.mygo:60:16*/		community := storage.LoadCommunityByID(ctx, db, record.CommunityID)
- /*line federation_collections.mygo:62:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)) {
+ /*line federation_collections.mygo:61:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(records, func(record storage.PostRecord) {
+ /*line federation_collections.mygo:61:16*/		community := storage.LoadCommunityByID(ctx, db, record.CommunityID)
+ /*line federation_collections.mygo:63:5*/		if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](community) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](community)) {
 			failed = true
 			return
 		} else {
 			contextURI := storage.PrimaryPostContextURI(ctx, db, record.ID)
-			enriched := BuildRichObject(sanitizer, ctx, db, record, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](community)), contextURI)
- /*line federation_collections.mygo:67:7*/			if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, string](enriched) {
+			enriched := BuildRichObject(sanitizer, ctx, db, record, MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](community)), contextURI)
+ /*line federation_collections.mygo:68:7*/			if MygoIN6ResultM5IsErr[federation.ObjectRepresentation, failure.Failure](enriched) {
 				failed = true
 				return
 			} else {
-				items = MygoIN5SliceM6Append(items, MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, string](enriched))
+				items = MygoIN5SliceM6Append(items, MygoIN6ResultM6Unwrap[federation.ObjectRepresentation, failure.Failure](enriched))
 				return
- /*line zz_federation_collections.gen.go:87:1*/			}
+ /*line zz_federation_collections.gen.go:88:1*/			}
 		}
 	})
- /*line federation_collections.mygo:74:3*/	if failed {
- /*line federation_collections.mygo:75:12*/		return Err[[]federation.ObjectRepresentation, string]("collection unavailable")
- /*line federation_collections.mygo:74:3*/	} else {
- /*line zz_federation_collections.gen.go:93:1*/	}
- /*line federation_collections.mygo:77:3*/	return Ok[[]federation.ObjectRepresentation, string](items)
- /*line zz_federation_collections.gen.go:95:1*/}
- /*line federation_collections.mygo:80:1*/func FollowersHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, actorURI string, communityID string) {
- /*line federation_collections.mygo:81:3*/	if communityID == "" {
- /*line federation_collections.mygo:82:5*/		PersonFollowersHandler(settings, db, w, request, actorURI)
- /*line federation_collections.mygo:81:3*/		return
+ /*line federation_collections.mygo:75:3*/	if failed {
+ /*line federation_collections.mygo:76:12*/		return Err[[]federation.ObjectRepresentation, failure.Failure](Of("collection unavailable"))
+ /*line federation_collections.mygo:75:3*/	} else {
+ /*line zz_federation_collections.gen.go:94:1*/	}
+ /*line federation_collections.mygo:78:3*/	return Ok[[]federation.ObjectRepresentation, failure.Failure](items)
+ /*line zz_federation_collections.gen.go:96:1*/}
+ /*line federation_collections.mygo:81:1*/func FollowersHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, actorURI string, communityID string) {
+ /*line federation_collections.mygo:82:3*/	if communityID == "" {
+ /*line federation_collections.mygo:83:5*/		PersonFollowersHandler(settings, db, w, request, actorURI)
+ /*line federation_collections.mygo:82:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:101:1*/	}
- /*line federation_collections.mygo:80:1*/	totalItems := storage.CountAcceptedFollowers(request.Context(), db, communityID)
- /*line federation_collections.mygo:86:3*/	if MygoIN6ResultM5IsErr[int64, string](totalItems) {
- /*line federation_collections.mygo:87:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:86:3*/		return
+ /*line zz_federation_collections.gen.go:102:1*/	}
+ /*line federation_collections.mygo:81:1*/	totalItems := storage.CountAcceptedFollowers(request.Context(), db, communityID)
+ /*line federation_collections.mygo:87:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](totalItems) {
+ /*line federation_collections.mygo:88:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:87:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:107:1*/	}
- /*line federation_collections.mygo:90:3*/	if request.URL.Query().Get("page") == "" {
- /*line federation_collections.mygo:91:5*/		WriteActivity(w, 200, federation.BuildFollowers(actorURI, MygoIN6ResultM6Unwrap[int64, string](totalItems)))
- /*line federation_collections.mygo:90:3*/		return
+ /*line zz_federation_collections.gen.go:108:1*/	}
+ /*line federation_collections.mygo:91:3*/	if request.URL.Query().Get("page") == "" {
+ /*line federation_collections.mygo:92:5*/		WriteActivity(w, 200, federation.BuildFollowers(actorURI, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems)))
+ /*line federation_collections.mygo:91:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:112:1*/	}
- /*line federation_collections.mygo:80:1*/	size := CollectionPageSize(settings)
+ /*line zz_federation_collections.gen.go:113:1*/	}
+ /*line federation_collections.mygo:81:1*/	size := CollectionPageSize(settings)
 	page := federation.PageParam(request.URL.Query().Get("page"))
 	listed := storage.ListAcceptedFollowers(request.Context(), db, communityID, size, (page-1)*size)
- /*line federation_collections.mygo:97:3*/	if MygoIN6ResultM5IsErr[[]string, string](listed) {
- /*line federation_collections.mygo:98:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:97:3*/		return
+ /*line federation_collections.mygo:98:3*/	if MygoIN6ResultM5IsErr[[]string, failure.Failure](listed) {
+ /*line federation_collections.mygo:99:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:98:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:120:1*/	}
- /*line federation_collections.mygo:101:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/followers", page, size, MygoIN6ResultM6Unwrap[int64, string](totalItems), MygoIN6ResultM6Unwrap[[]string, string](listed)))
+ /*line zz_federation_collections.gen.go:121:1*/	}
+ /*line federation_collections.mygo:102:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/followers", page, size, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems), MygoIN6ResultM6Unwrap[[]string, failure.Failure](listed)))
 	return
- /*line zz_federation_collections.gen.go:123:1*/}
- /*line federation_collections.mygo:104:1*/func RepliesHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, objectID string) {
+ /*line zz_federation_collections.gen.go:124:1*/}
+ /*line federation_collections.mygo:105:1*/func RepliesHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, objectID string) {
 	object := storage.LoadObjectByID(request.Context(), db, objectID)
- /*line federation_collections.mygo:106:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](object) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](object)) || !MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](object)).ObjectURI.Valid {
- /*line federation_collections.mygo:107:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:106:3*/		return
+ /*line federation_collections.mygo:107:3*/	if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](object) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](object)) || !MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](object)).ObjectURI.Valid {
+ /*line federation_collections.mygo:108:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:107:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:130:1*/	}
- /*line federation_collections.mygo:104:1*/	actorURI := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](object)).ObjectURI.String
+ /*line zz_federation_collections.gen.go:131:1*/	}
+ /*line federation_collections.mygo:105:1*/	actorURI := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](object)).ObjectURI.String
 	totalItems := storage.CountObjectReplies(request.Context(), db, objectID, site.Origin)
- /*line federation_collections.mygo:112:3*/	if MygoIN6ResultM5IsErr[int64, string](totalItems) {
- /*line federation_collections.mygo:113:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:112:3*/		return
+ /*line federation_collections.mygo:113:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](totalItems) {
+ /*line federation_collections.mygo:114:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:113:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:137:1*/	}
- /*line federation_collections.mygo:116:3*/	if request.URL.Query().Get("page") == "" {
- /*line federation_collections.mygo:117:5*/		WriteActivity(w, 200, federation.BuildReplies(actorURI, MygoIN6ResultM6Unwrap[int64, string](totalItems)))
- /*line federation_collections.mygo:116:3*/		return
+ /*line zz_federation_collections.gen.go:138:1*/	}
+ /*line federation_collections.mygo:117:3*/	if request.URL.Query().Get("page") == "" {
+ /*line federation_collections.mygo:118:5*/		WriteActivity(w, 200, federation.BuildReplies(actorURI, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems)))
+ /*line federation_collections.mygo:117:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:142:1*/	}
- /*line federation_collections.mygo:104:1*/	size := CollectionPageSize(settings)
+ /*line zz_federation_collections.gen.go:143:1*/	}
+ /*line federation_collections.mygo:105:1*/	size := CollectionPageSize(settings)
 	page := federation.PageParam(request.URL.Query().Get("page"))
 	listed := storage.ListObjectReplies(request.Context(), db, objectID, site.Origin, size, (page-1)*size)
- /*line federation_collections.mygo:123:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, string](listed) {
- /*line federation_collections.mygo:124:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:123:3*/		return
+ /*line federation_collections.mygo:124:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](listed) {
+ /*line federation_collections.mygo:125:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:124:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:150:1*/	}
- /*line federation_collections.mygo:104:1*/	items := BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](listed))
- /*line federation_collections.mygo:128:3*/	if MygoIN6ResultM5IsErr[[]federation.ObjectRepresentation, string](items) {
- /*line federation_collections.mygo:129:5*/		http.NotFound(w, request)
- /*line federation_collections.mygo:128:3*/		return
+ /*line zz_federation_collections.gen.go:151:1*/	}
+ /*line federation_collections.mygo:105:1*/	items := BuildObjectItems(settings.Rendering.Sanitizer, request.Context(), db, MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](listed))
+ /*line federation_collections.mygo:129:3*/	if MygoIN6ResultM5IsErr[[]federation.ObjectRepresentation, failure.Failure](items) {
+ /*line federation_collections.mygo:130:5*/		http.NotFound(w, request)
+ /*line federation_collections.mygo:129:3*/		return
 	} else {
- /*line zz_federation_collections.gen.go:156:1*/	}
- /*line federation_collections.mygo:132:3*/	WriteActivity(w, 200, federation.BuildObjectPage(actorURI+"/replies", page, size, MygoIN6ResultM6Unwrap[int64, string](totalItems), MygoIN6ResultM6Unwrap[[]federation.ObjectRepresentation, string](items)))
+ /*line zz_federation_collections.gen.go:157:1*/	}
+ /*line federation_collections.mygo:133:3*/	WriteActivity(w, 200, federation.BuildObjectPage(actorURI+"/replies", page, size, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems), MygoIN6ResultM6Unwrap[[]federation.ObjectRepresentation, failure.Failure](items)))
 	return
- /*line zz_federation_collections.gen.go:159:1*/}
+ /*line zz_federation_collections.gen.go:160:1*/}

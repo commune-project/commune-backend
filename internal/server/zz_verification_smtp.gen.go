@@ -9,312 +9,313 @@ import "time"
 import "strconv"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "io"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line verification_smtp.mygo:11:1*/func SendVerificationSMTP(settings config.SMTP, recipient string, link string) Result[struct {
-}, string] {
- /*line verification_smtp.mygo:16:3*/	if strings.ContainsAny(recipient+settings.From, "\r\n") {
- /*line verification_smtp.mygo:17:12*/		return Err[struct{}, string]("invalid mail address")
- /*line verification_smtp.mygo:16:3*/	} else {
- /*line zz_verification_smtp.gen.go:20:1*/	}
- /*line verification_smtp.mygo:11:1*/	address := net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
+ /*line verification_smtp.mygo:12:1*/func SendVerificationSMTP(settings config.SMTP, recipient string, link string) Result[struct {
+}, failure.Failure] {
+ /*line verification_smtp.mygo:17:3*/	if strings.ContainsAny(recipient+settings.From, "\r\n") {
+ /*line verification_smtp.mygo:18:12*/		return Err[struct{}, failure.Failure](Of("invalid mail address"))
+ /*line verification_smtp.mygo:17:3*/	} else {
+ /*line zz_verification_smtp.gen.go:21:1*/	}
+ /*line verification_smtp.mygo:12:1*/	address := net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
 	timeout := time.Duration(settings.TimeoutSeconds) * time.Second
-	var connection Result[net.Conn, string] = Err[net.Conn, string]("smtp unavailable")
- /*line verification_smtp.mygo:22:3*/	if settings.TLSMode == "tls" {
+	var connection Result[net.Conn, failure.Failure] = Err[net.Conn, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:23:3*/	if settings.TLSMode == "tls" {
 		dialer := Zero[net.Dialer]()
 		dialer.Timeout = timeout
 		security := Zero[tls.Config]()
 		security.ServerName = settings.Host
 		security.MinVersion = uint16(tls.VersionTLS12)
- /*line verification_smtp.mygo:28:19*/		var __mygo_expr_1 Result[*tls.Conn, error]
+ /*line verification_smtp.mygo:29:19*/		var __mygo_expr_1 Result[*tls.Conn, error]
 		__mygo_expr_2, __mygo_expr_0 := tls.DialWithDialer(&dialer, "tcp", address, &security)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[*tls.Conn, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[*tls.Conn, error](__mygo_expr_2)
- /*line zz_verification_smtp.gen.go:36:1*/		}
- /*line verification_smtp.mygo:22:3*/		secured := __mygo_expr_1
+ /*line zz_verification_smtp.gen.go:37:1*/		}
+ /*line verification_smtp.mygo:23:3*/		secured := __mygo_expr_1
 		if MygoIN6ResultM4IsOk[*tls.Conn, error](secured) {
-			connection = Ok[net.Conn, string](net.Conn(MygoIN6ResultM6Unwrap[*tls.Conn, error](secured)))
+			connection = Ok[net.Conn, failure.Failure](net.Conn(MygoIN6ResultM6Unwrap[*tls.Conn, error](secured)))
 		} else {
- /*line zz_verification_smtp.gen.go:41:1*/		}
- /*line verification_smtp.mygo:22:3*/	} else {
- /*line verification_smtp.mygo:33:17*/		var __mygo_expr_4 Result[net.Conn, error]
+ /*line zz_verification_smtp.gen.go:42:1*/		}
+ /*line verification_smtp.mygo:23:3*/	} else {
+ /*line verification_smtp.mygo:34:17*/		var __mygo_expr_4 Result[net.Conn, error]
 		__mygo_expr_5, __mygo_expr_3 := net.DialTimeout("tcp", address, timeout)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[net.Conn, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[net.Conn, error](__mygo_expr_5)
- /*line zz_verification_smtp.gen.go:49:1*/		}
- /*line verification_smtp.mygo:22:3*/		plain := __mygo_expr_4
+ /*line zz_verification_smtp.gen.go:50:1*/		}
+ /*line verification_smtp.mygo:23:3*/		plain := __mygo_expr_4
 		if MygoIN6ResultM4IsOk[net.Conn, error](plain) {
-			connection = Ok[net.Conn, string](MygoIN6ResultM6Unwrap[net.Conn, error](plain))
+			connection = Ok[net.Conn, failure.Failure](MygoIN6ResultM6Unwrap[net.Conn, error](plain))
 		} else {
- /*line zz_verification_smtp.gen.go:54:1*/		}
+ /*line zz_verification_smtp.gen.go:55:1*/		}
 	}
- /*line verification_smtp.mygo:38:3*/	if MygoIN6ResultM5IsErr[net.Conn, string](connection) {
- /*line verification_smtp.mygo:39:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:38:3*/	} else {
- /*line zz_verification_smtp.gen.go:59:1*/	}
- /*line verification_smtp.mygo:11:1*/	socket := MygoIN6ResultM6Unwrap[net.Conn, string](connection)
+ /*line verification_smtp.mygo:39:3*/	if MygoIN6ResultM5IsErr[net.Conn, failure.Failure](connection) {
+ /*line verification_smtp.mygo:40:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:39:3*/	} else {
+ /*line zz_verification_smtp.gen.go:60:1*/	}
+ /*line verification_smtp.mygo:12:1*/	socket := MygoIN6ResultM6Unwrap[net.Conn, failure.Failure](connection)
 	socket.SetDeadline(time.Now().Add(timeout))
- /*line verification_smtp.mygo:43:16*/	var __mygo_expr_7 Result[*smtp.Client, error]
+ /*line verification_smtp.mygo:44:16*/	var __mygo_expr_7 Result[*smtp.Client, error]
 	__mygo_expr_8, __mygo_expr_6 := smtp.NewClient(socket, settings.Host)
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[*smtp.Client, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[*smtp.Client, error](__mygo_expr_8)
- /*line zz_verification_smtp.gen.go:68:1*/	}
- /*line verification_smtp.mygo:11:1*/	client := __mygo_expr_7
- /*line verification_smtp.mygo:44:3*/	if MygoIN6ResultM5IsErr[*smtp.Client, error](client) {
+ /*line zz_verification_smtp.gen.go:69:1*/	}
+ /*line verification_smtp.mygo:12:1*/	client := __mygo_expr_7
+ /*line verification_smtp.mygo:45:3*/	if MygoIN6ResultM5IsErr[*smtp.Client, error](client) {
 		socket.Close()
- /*line verification_smtp.mygo:46:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:44:3*/	} else {
- /*line zz_verification_smtp.gen.go:74:1*/	}
- /*line verification_smtp.mygo:11:1*/	mailer := MygoIN6ResultM6Unwrap[*smtp.Client, error](client)
- /*line verification_smtp.mygo:49:3*/	defer mailer.Close()
- /*line verification_smtp.mygo:50:3*/	if settings.TLSMode == "starttls" {
+ /*line verification_smtp.mygo:47:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:45:3*/	} else {
+ /*line zz_verification_smtp.gen.go:75:1*/	}
+ /*line verification_smtp.mygo:12:1*/	mailer := MygoIN6ResultM6Unwrap[*smtp.Client, error](client)
+ /*line verification_smtp.mygo:50:3*/	defer mailer.Close()
+ /*line verification_smtp.mygo:51:3*/	if settings.TLSMode == "starttls" {
 		security_1 := Zero[tls.Config]()
 		security_1.ServerName = settings.Host
 		security_1.MinVersion = uint16(tls.VersionTLS12)
- /*line verification_smtp.mygo:54:8*/		var __mygo_expr_10 Result[struct{}, error]
+ /*line verification_smtp.mygo:55:8*/		var __mygo_expr_10 Result[struct{}, error]
 		__mygo_expr_9 := mailer.StartTLS(&security_1)
 		if __mygo_expr_9 != nil {
 			__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
 		} else {
 			__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:87:1*/			}{})
+ /*line zz_verification_smtp.gen.go:88:1*/			}{})
 		}
- /*line verification_smtp.mygo:50:3*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
- /*line verification_smtp.mygo:55:14*/			return Err[struct{}, string]("smtp TLS unavailable")
- /*line verification_smtp.mygo:50:3*/		} else {
- /*line zz_verification_smtp.gen.go:92:1*/		}
- /*line verification_smtp.mygo:50:3*/	} else {
- /*line zz_verification_smtp.gen.go:94:1*/	}
- /*line verification_smtp.mygo:58:3*/	if settings.Username != "" {
- /*line verification_smtp.mygo:60:7*/		var __mygo_expr_12 Result[struct{}, error]
+ /*line verification_smtp.mygo:51:3*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
+ /*line verification_smtp.mygo:56:14*/			return Err[struct{}, failure.Failure](Of("smtp TLS unavailable"))
+ /*line verification_smtp.mygo:51:3*/		} else {
+ /*line zz_verification_smtp.gen.go:93:1*/		}
+ /*line verification_smtp.mygo:51:3*/	} else {
+ /*line zz_verification_smtp.gen.go:95:1*/	}
+ /*line verification_smtp.mygo:59:3*/	if settings.Username != "" {
+ /*line verification_smtp.mygo:61:7*/		var __mygo_expr_12 Result[struct{}, error]
 		__mygo_expr_11 := mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host))
 		if __mygo_expr_11 != nil {
 			__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
 		} else {
 			__mygo_expr_12 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:102:1*/			}{})
+ /*line zz_verification_smtp.gen.go:103:1*/			}{})
 		}
- /*line verification_smtp.mygo:58:3*/		if settings.TLSMode == "test" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) {
- /*line verification_smtp.mygo:61:14*/			return Err[struct{}, string]("smtp authentication failed")
- /*line verification_smtp.mygo:58:3*/		} else {
- /*line zz_verification_smtp.gen.go:107:1*/		}
- /*line verification_smtp.mygo:58:3*/	} else {
- /*line zz_verification_smtp.gen.go:109:1*/	}
- /*line verification_smtp.mygo:64:6*/	var __mygo_expr_14 Result[struct{}, error]
+ /*line verification_smtp.mygo:59:3*/		if settings.TLSMode == "test" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) {
+ /*line verification_smtp.mygo:62:14*/			return Err[struct{}, failure.Failure](Of("smtp authentication failed"))
+ /*line verification_smtp.mygo:59:3*/		} else {
+ /*line zz_verification_smtp.gen.go:108:1*/		}
+ /*line verification_smtp.mygo:59:3*/	} else {
+ /*line zz_verification_smtp.gen.go:110:1*/	}
+ /*line verification_smtp.mygo:65:6*/	var __mygo_expr_14 Result[struct{}, error]
 	__mygo_expr_13 := mailer.Mail(settings.From)
 	if __mygo_expr_13 != nil {
 		__mygo_expr_14 = Err[struct{}, error](__mygo_expr_13)
 	} else {
 		__mygo_expr_14 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:116:1*/		}{})
+ /*line zz_verification_smtp.gen.go:117:1*/		}{})
 	}
- /*line verification_smtp.mygo:64:44*/	var __mygo_expr_16 Result[struct{}, error]
+ /*line verification_smtp.mygo:65:44*/	var __mygo_expr_16 Result[struct{}, error]
 	__mygo_expr_15 := mailer.Rcpt(recipient)
 	if __mygo_expr_15 != nil {
 		__mygo_expr_16 = Err[struct{}, error](__mygo_expr_15)
 	} else {
 		__mygo_expr_16 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:124:1*/		}{})
+ /*line zz_verification_smtp.gen.go:125:1*/		}{})
 	}
- /*line verification_smtp.mygo:64:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_16) {
- /*line verification_smtp.mygo:65:12*/		return Err[struct{}, string]("smtp recipient unavailable")
- /*line verification_smtp.mygo:64:3*/	} else {
- /*line zz_verification_smtp.gen.go:129:1*/	}
- /*line verification_smtp.mygo:67:16*/	var __mygo_expr_18 Result[io.WriteCloser, error]
+ /*line verification_smtp.mygo:65:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_16) {
+ /*line verification_smtp.mygo:66:12*/		return Err[struct{}, failure.Failure](Of("smtp recipient unavailable"))
+ /*line verification_smtp.mygo:65:3*/	} else {
+ /*line zz_verification_smtp.gen.go:130:1*/	}
+ /*line verification_smtp.mygo:68:16*/	var __mygo_expr_18 Result[io.WriteCloser, error]
 	__mygo_expr_19, __mygo_expr_17 := mailer.Data()
 	if __mygo_expr_17 != nil {
 		__mygo_expr_18 = Err[io.WriteCloser, error](__mygo_expr_17)
 	} else {
 		__mygo_expr_18 = Ok[io.WriteCloser, error](__mygo_expr_19)
- /*line zz_verification_smtp.gen.go:136:1*/	}
- /*line verification_smtp.mygo:11:1*/	output := __mygo_expr_18
- /*line verification_smtp.mygo:68:3*/	if MygoIN6ResultM5IsErr[io.WriteCloser, error](output) {
- /*line verification_smtp.mygo:69:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:68:3*/	} else {
- /*line zz_verification_smtp.gen.go:141:1*/	}
- /*line verification_smtp.mygo:11:1*/	message := "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Verify your Commune email\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nComplete registration and choose your password:\r\n" + link + "\r\n"
- /*line verification_smtp.mygo:78:17*/	var __mygo_expr_21 Result[int, error]
+ /*line zz_verification_smtp.gen.go:137:1*/	}
+ /*line verification_smtp.mygo:12:1*/	output := __mygo_expr_18
+ /*line verification_smtp.mygo:69:3*/	if MygoIN6ResultM5IsErr[io.WriteCloser, error](output) {
+ /*line verification_smtp.mygo:70:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:69:3*/	} else {
+ /*line zz_verification_smtp.gen.go:142:1*/	}
+ /*line verification_smtp.mygo:12:1*/	message := "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Verify your Commune email\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nComplete registration and choose your password:\r\n" + link + "\r\n"
+ /*line verification_smtp.mygo:79:17*/	var __mygo_expr_21 Result[int, error]
 	__mygo_expr_22, __mygo_expr_20 := MygoIN6ResultM6Unwrap[io.WriteCloser, error](output).Write([]byte(message))
 	if __mygo_expr_20 != nil {
 		__mygo_expr_21 = Err[int, error](__mygo_expr_20)
 	} else {
 		__mygo_expr_21 = Ok[int, error](__mygo_expr_22)
- /*line zz_verification_smtp.gen.go:149:1*/	}
- /*line verification_smtp.mygo:11:1*/	written := __mygo_expr_21
- /*line verification_smtp.mygo:79:16*/	var __mygo_expr_24 Result[struct{}, error]
+ /*line zz_verification_smtp.gen.go:150:1*/	}
+ /*line verification_smtp.mygo:12:1*/	written := __mygo_expr_21
+ /*line verification_smtp.mygo:80:16*/	var __mygo_expr_24 Result[struct{}, error]
 	__mygo_expr_23 := MygoIN6ResultM6Unwrap[io.WriteCloser, error](output).Close()
 	if __mygo_expr_23 != nil {
 		__mygo_expr_24 = Err[struct{}, error](__mygo_expr_23)
 	} else {
 		__mygo_expr_24 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:157:1*/		}{})
+ /*line zz_verification_smtp.gen.go:158:1*/		}{})
 	}
- /*line verification_smtp.mygo:11:1*/	closed := __mygo_expr_24
- /*line verification_smtp.mygo:80:3*/	if MygoIN6ResultM5IsErr[int, error](written) || MygoIN6ResultM5IsErr[struct{}, error](closed) {
- /*line verification_smtp.mygo:81:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:80:3*/	} else {
- /*line zz_verification_smtp.gen.go:163:1*/	}
- /*line verification_smtp.mygo:11:1*/	mailer.Quit()
- /*line verification_smtp.mygo:84:3*/	return Ok[struct{}, string](struct {
- /*line zz_verification_smtp.gen.go:166:1*/	}{})
+ /*line verification_smtp.mygo:12:1*/	closed := __mygo_expr_24
+ /*line verification_smtp.mygo:81:3*/	if MygoIN6ResultM5IsErr[int, error](written) || MygoIN6ResultM5IsErr[struct{}, error](closed) {
+ /*line verification_smtp.mygo:82:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:81:3*/	} else {
+ /*line zz_verification_smtp.gen.go:164:1*/	}
+ /*line verification_smtp.mygo:12:1*/	mailer.Quit()
+ /*line verification_smtp.mygo:85:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_verification_smtp.gen.go:167:1*/	}{})
 }
- /*line verification_smtp.mygo:87:1*/func SendPasswordResetSMTP(settings config.SMTP, recipient string, link string) Result[struct {
-}, string] {
- /*line verification_smtp.mygo:92:3*/	if strings.ContainsAny(recipient+settings.From, "\r\n") {
- /*line verification_smtp.mygo:93:12*/		return Err[struct{}, string]("invalid mail address")
- /*line verification_smtp.mygo:92:3*/	} else {
- /*line zz_verification_smtp.gen.go:173:1*/	}
- /*line verification_smtp.mygo:87:1*/	address := net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
+ /*line verification_smtp.mygo:88:1*/func SendPasswordResetSMTP(settings config.SMTP, recipient string, link string) Result[struct {
+}, failure.Failure] {
+ /*line verification_smtp.mygo:93:3*/	if strings.ContainsAny(recipient+settings.From, "\r\n") {
+ /*line verification_smtp.mygo:94:12*/		return Err[struct{}, failure.Failure](Of("invalid mail address"))
+ /*line verification_smtp.mygo:93:3*/	} else {
+ /*line zz_verification_smtp.gen.go:174:1*/	}
+ /*line verification_smtp.mygo:88:1*/	address := net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port))
 	timeout := time.Duration(settings.TimeoutSeconds) * time.Second
-	var connection Result[net.Conn, string] = Err[net.Conn, string]("smtp unavailable")
- /*line verification_smtp.mygo:98:3*/	if settings.TLSMode == "tls" {
+	var connection Result[net.Conn, failure.Failure] = Err[net.Conn, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:99:3*/	if settings.TLSMode == "tls" {
 		dialer := Zero[net.Dialer]()
 		dialer.Timeout = timeout
 		security := Zero[tls.Config]()
 		security.ServerName = settings.Host
 		security.MinVersion = uint16(tls.VersionTLS12)
- /*line verification_smtp.mygo:104:19*/		var __mygo_expr_1 Result[*tls.Conn, error]
+ /*line verification_smtp.mygo:105:19*/		var __mygo_expr_1 Result[*tls.Conn, error]
 		__mygo_expr_2, __mygo_expr_0 := tls.DialWithDialer(&dialer, "tcp", address, &security)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[*tls.Conn, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[*tls.Conn, error](__mygo_expr_2)
- /*line zz_verification_smtp.gen.go:189:1*/		}
- /*line verification_smtp.mygo:98:3*/		secured := __mygo_expr_1
+ /*line zz_verification_smtp.gen.go:190:1*/		}
+ /*line verification_smtp.mygo:99:3*/		secured := __mygo_expr_1
 		if MygoIN6ResultM4IsOk[*tls.Conn, error](secured) {
-			connection = Ok[net.Conn, string](net.Conn(MygoIN6ResultM6Unwrap[*tls.Conn, error](secured)))
+			connection = Ok[net.Conn, failure.Failure](net.Conn(MygoIN6ResultM6Unwrap[*tls.Conn, error](secured)))
 		} else {
- /*line zz_verification_smtp.gen.go:194:1*/		}
- /*line verification_smtp.mygo:98:3*/	} else {
- /*line verification_smtp.mygo:109:17*/		var __mygo_expr_4 Result[net.Conn, error]
+ /*line zz_verification_smtp.gen.go:195:1*/		}
+ /*line verification_smtp.mygo:99:3*/	} else {
+ /*line verification_smtp.mygo:110:17*/		var __mygo_expr_4 Result[net.Conn, error]
 		__mygo_expr_5, __mygo_expr_3 := net.DialTimeout("tcp", address, timeout)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[net.Conn, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[net.Conn, error](__mygo_expr_5)
- /*line zz_verification_smtp.gen.go:202:1*/		}
- /*line verification_smtp.mygo:98:3*/		plain := __mygo_expr_4
+ /*line zz_verification_smtp.gen.go:203:1*/		}
+ /*line verification_smtp.mygo:99:3*/		plain := __mygo_expr_4
 		if MygoIN6ResultM4IsOk[net.Conn, error](plain) {
-			connection = Ok[net.Conn, string](MygoIN6ResultM6Unwrap[net.Conn, error](plain))
+			connection = Ok[net.Conn, failure.Failure](MygoIN6ResultM6Unwrap[net.Conn, error](plain))
 		} else {
- /*line zz_verification_smtp.gen.go:207:1*/		}
+ /*line zz_verification_smtp.gen.go:208:1*/		}
 	}
- /*line verification_smtp.mygo:114:3*/	if MygoIN6ResultM5IsErr[net.Conn, string](connection) {
- /*line verification_smtp.mygo:115:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:114:3*/	} else {
- /*line zz_verification_smtp.gen.go:212:1*/	}
- /*line verification_smtp.mygo:87:1*/	socket := MygoIN6ResultM6Unwrap[net.Conn, string](connection)
+ /*line verification_smtp.mygo:115:3*/	if MygoIN6ResultM5IsErr[net.Conn, failure.Failure](connection) {
+ /*line verification_smtp.mygo:116:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:115:3*/	} else {
+ /*line zz_verification_smtp.gen.go:213:1*/	}
+ /*line verification_smtp.mygo:88:1*/	socket := MygoIN6ResultM6Unwrap[net.Conn, failure.Failure](connection)
 	socket.SetDeadline(time.Now().Add(timeout))
- /*line verification_smtp.mygo:119:16*/	var __mygo_expr_7 Result[*smtp.Client, error]
+ /*line verification_smtp.mygo:120:16*/	var __mygo_expr_7 Result[*smtp.Client, error]
 	__mygo_expr_8, __mygo_expr_6 := smtp.NewClient(socket, settings.Host)
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[*smtp.Client, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[*smtp.Client, error](__mygo_expr_8)
- /*line zz_verification_smtp.gen.go:221:1*/	}
- /*line verification_smtp.mygo:87:1*/	client := __mygo_expr_7
- /*line verification_smtp.mygo:120:3*/	if MygoIN6ResultM5IsErr[*smtp.Client, error](client) {
+ /*line zz_verification_smtp.gen.go:222:1*/	}
+ /*line verification_smtp.mygo:88:1*/	client := __mygo_expr_7
+ /*line verification_smtp.mygo:121:3*/	if MygoIN6ResultM5IsErr[*smtp.Client, error](client) {
 		socket.Close()
- /*line verification_smtp.mygo:122:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:120:3*/	} else {
- /*line zz_verification_smtp.gen.go:227:1*/	}
- /*line verification_smtp.mygo:87:1*/	mailer := MygoIN6ResultM6Unwrap[*smtp.Client, error](client)
- /*line verification_smtp.mygo:125:3*/	defer mailer.Close()
- /*line verification_smtp.mygo:126:3*/	if settings.TLSMode == "starttls" {
+ /*line verification_smtp.mygo:123:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:121:3*/	} else {
+ /*line zz_verification_smtp.gen.go:228:1*/	}
+ /*line verification_smtp.mygo:88:1*/	mailer := MygoIN6ResultM6Unwrap[*smtp.Client, error](client)
+ /*line verification_smtp.mygo:126:3*/	defer mailer.Close()
+ /*line verification_smtp.mygo:127:3*/	if settings.TLSMode == "starttls" {
 		security_1 := Zero[tls.Config]()
 		security_1.ServerName = settings.Host
 		security_1.MinVersion = uint16(tls.VersionTLS12)
- /*line verification_smtp.mygo:130:8*/		var __mygo_expr_10 Result[struct{}, error]
+ /*line verification_smtp.mygo:131:8*/		var __mygo_expr_10 Result[struct{}, error]
 		__mygo_expr_9 := mailer.StartTLS(&security_1)
 		if __mygo_expr_9 != nil {
 			__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
 		} else {
 			__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:240:1*/			}{})
+ /*line zz_verification_smtp.gen.go:241:1*/			}{})
 		}
- /*line verification_smtp.mygo:126:3*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
- /*line verification_smtp.mygo:131:14*/			return Err[struct{}, string]("smtp TLS unavailable")
- /*line verification_smtp.mygo:126:3*/		} else {
- /*line zz_verification_smtp.gen.go:245:1*/		}
- /*line verification_smtp.mygo:126:3*/	} else {
- /*line zz_verification_smtp.gen.go:247:1*/	}
- /*line verification_smtp.mygo:134:3*/	if settings.Username != "" {
- /*line verification_smtp.mygo:136:7*/		var __mygo_expr_12 Result[struct{}, error]
+ /*line verification_smtp.mygo:127:3*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
+ /*line verification_smtp.mygo:132:14*/			return Err[struct{}, failure.Failure](Of("smtp TLS unavailable"))
+ /*line verification_smtp.mygo:127:3*/		} else {
+ /*line zz_verification_smtp.gen.go:246:1*/		}
+ /*line verification_smtp.mygo:127:3*/	} else {
+ /*line zz_verification_smtp.gen.go:248:1*/	}
+ /*line verification_smtp.mygo:135:3*/	if settings.Username != "" {
+ /*line verification_smtp.mygo:137:7*/		var __mygo_expr_12 Result[struct{}, error]
 		__mygo_expr_11 := mailer.Auth(smtp.PlainAuth("", settings.Username, settings.Password, settings.Host))
 		if __mygo_expr_11 != nil {
 			__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
 		} else {
 			__mygo_expr_12 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:255:1*/			}{})
+ /*line zz_verification_smtp.gen.go:256:1*/			}{})
 		}
- /*line verification_smtp.mygo:134:3*/		if settings.TLSMode == "test" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) {
- /*line verification_smtp.mygo:137:14*/			return Err[struct{}, string]("smtp authentication failed")
- /*line verification_smtp.mygo:134:3*/		} else {
- /*line zz_verification_smtp.gen.go:260:1*/		}
- /*line verification_smtp.mygo:134:3*/	} else {
- /*line zz_verification_smtp.gen.go:262:1*/	}
- /*line verification_smtp.mygo:140:6*/	var __mygo_expr_14 Result[struct{}, error]
+ /*line verification_smtp.mygo:135:3*/		if settings.TLSMode == "test" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_12) {
+ /*line verification_smtp.mygo:138:14*/			return Err[struct{}, failure.Failure](Of("smtp authentication failed"))
+ /*line verification_smtp.mygo:135:3*/		} else {
+ /*line zz_verification_smtp.gen.go:261:1*/		}
+ /*line verification_smtp.mygo:135:3*/	} else {
+ /*line zz_verification_smtp.gen.go:263:1*/	}
+ /*line verification_smtp.mygo:141:6*/	var __mygo_expr_14 Result[struct{}, error]
 	__mygo_expr_13 := mailer.Mail(settings.From)
 	if __mygo_expr_13 != nil {
 		__mygo_expr_14 = Err[struct{}, error](__mygo_expr_13)
 	} else {
 		__mygo_expr_14 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:269:1*/		}{})
+ /*line zz_verification_smtp.gen.go:270:1*/		}{})
 	}
- /*line verification_smtp.mygo:140:44*/	var __mygo_expr_16 Result[struct{}, error]
+ /*line verification_smtp.mygo:141:44*/	var __mygo_expr_16 Result[struct{}, error]
 	__mygo_expr_15 := mailer.Rcpt(recipient)
 	if __mygo_expr_15 != nil {
 		__mygo_expr_16 = Err[struct{}, error](__mygo_expr_15)
 	} else {
 		__mygo_expr_16 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:277:1*/		}{})
+ /*line zz_verification_smtp.gen.go:278:1*/		}{})
 	}
- /*line verification_smtp.mygo:140:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_16) {
- /*line verification_smtp.mygo:141:12*/		return Err[struct{}, string]("smtp recipient unavailable")
- /*line verification_smtp.mygo:140:3*/	} else {
- /*line zz_verification_smtp.gen.go:282:1*/	}
- /*line verification_smtp.mygo:143:16*/	var __mygo_expr_18 Result[io.WriteCloser, error]
+ /*line verification_smtp.mygo:141:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_14) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_16) {
+ /*line verification_smtp.mygo:142:12*/		return Err[struct{}, failure.Failure](Of("smtp recipient unavailable"))
+ /*line verification_smtp.mygo:141:3*/	} else {
+ /*line zz_verification_smtp.gen.go:283:1*/	}
+ /*line verification_smtp.mygo:144:16*/	var __mygo_expr_18 Result[io.WriteCloser, error]
 	__mygo_expr_19, __mygo_expr_17 := mailer.Data()
 	if __mygo_expr_17 != nil {
 		__mygo_expr_18 = Err[io.WriteCloser, error](__mygo_expr_17)
 	} else {
 		__mygo_expr_18 = Ok[io.WriteCloser, error](__mygo_expr_19)
- /*line zz_verification_smtp.gen.go:289:1*/	}
- /*line verification_smtp.mygo:87:1*/	output := __mygo_expr_18
- /*line verification_smtp.mygo:144:3*/	if MygoIN6ResultM5IsErr[io.WriteCloser, error](output) {
- /*line verification_smtp.mygo:145:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:144:3*/	} else {
- /*line zz_verification_smtp.gen.go:294:1*/	}
- /*line verification_smtp.mygo:87:1*/	message := "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Reset your Commune password\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nChoose a new password:\r\n" + link + "\r\n"
- /*line verification_smtp.mygo:154:17*/	var __mygo_expr_21 Result[int, error]
+ /*line zz_verification_smtp.gen.go:290:1*/	}
+ /*line verification_smtp.mygo:88:1*/	output := __mygo_expr_18
+ /*line verification_smtp.mygo:145:3*/	if MygoIN6ResultM5IsErr[io.WriteCloser, error](output) {
+ /*line verification_smtp.mygo:146:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:145:3*/	} else {
+ /*line zz_verification_smtp.gen.go:295:1*/	}
+ /*line verification_smtp.mygo:88:1*/	message := "From: " + settings.From + "\r\nTo: " + recipient + "\r\nSubject: Reset your Commune password\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nChoose a new password:\r\n" + link + "\r\n"
+ /*line verification_smtp.mygo:155:17*/	var __mygo_expr_21 Result[int, error]
 	__mygo_expr_22, __mygo_expr_20 := MygoIN6ResultM6Unwrap[io.WriteCloser, error](output).Write([]byte(message))
 	if __mygo_expr_20 != nil {
 		__mygo_expr_21 = Err[int, error](__mygo_expr_20)
 	} else {
 		__mygo_expr_21 = Ok[int, error](__mygo_expr_22)
- /*line zz_verification_smtp.gen.go:302:1*/	}
- /*line verification_smtp.mygo:87:1*/	written := __mygo_expr_21
- /*line verification_smtp.mygo:155:16*/	var __mygo_expr_24 Result[struct{}, error]
+ /*line zz_verification_smtp.gen.go:303:1*/	}
+ /*line verification_smtp.mygo:88:1*/	written := __mygo_expr_21
+ /*line verification_smtp.mygo:156:16*/	var __mygo_expr_24 Result[struct{}, error]
 	__mygo_expr_23 := MygoIN6ResultM6Unwrap[io.WriteCloser, error](output).Close()
 	if __mygo_expr_23 != nil {
 		__mygo_expr_24 = Err[struct{}, error](__mygo_expr_23)
 	} else {
 		__mygo_expr_24 = Ok[struct{}, error](struct {
- /*line zz_verification_smtp.gen.go:310:1*/		}{})
+ /*line zz_verification_smtp.gen.go:311:1*/		}{})
 	}
- /*line verification_smtp.mygo:87:1*/	closed := __mygo_expr_24
- /*line verification_smtp.mygo:156:3*/	if MygoIN6ResultM5IsErr[int, error](written) || MygoIN6ResultM5IsErr[struct{}, error](closed) {
- /*line verification_smtp.mygo:157:12*/		return Err[struct{}, string]("smtp unavailable")
- /*line verification_smtp.mygo:156:3*/	} else {
- /*line zz_verification_smtp.gen.go:316:1*/	}
- /*line verification_smtp.mygo:87:1*/	mailer.Quit()
- /*line verification_smtp.mygo:160:3*/	return Ok[struct{}, string](struct {
- /*line zz_verification_smtp.gen.go:319:1*/	}{})
+ /*line verification_smtp.mygo:88:1*/	closed := __mygo_expr_24
+ /*line verification_smtp.mygo:157:3*/	if MygoIN6ResultM5IsErr[int, error](written) || MygoIN6ResultM5IsErr[struct{}, error](closed) {
+ /*line verification_smtp.mygo:158:12*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line verification_smtp.mygo:157:3*/	} else {
+ /*line zz_verification_smtp.gen.go:317:1*/	}
+ /*line verification_smtp.mygo:88:1*/	mailer.Quit()
+ /*line verification_smtp.mygo:161:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_verification_smtp.gen.go:320:1*/	}{})
 }

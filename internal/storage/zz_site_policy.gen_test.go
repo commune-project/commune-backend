@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,59 +18,59 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_site_policy.gen_test.go:20:1*/	}
+ /*line zz_site_policy.gen_test.go:21:1*/	}
  /*line site_policy_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	a := testSite("a", "https://a.example")
 	b := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, a, "admin", "administrator-password", false))
 	accounts := AccountRepository{DB: db}
-	admin := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, a.ID, "admin", "administrator-password"))
-	user := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "user", "", "ordinary-user-password"))
+	admin := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, a.ID, "admin", "administrator-password"))
+	user := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "user", "", "ordinary-user-password"))
 	first := SiteRepository{DB: db, SiteID: a.ID}
 	second := SiteRepository{DB: db, SiteID: b.ID}
- /*line site_policy_test.mygo:23:3*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM15IsAdministrator(first, ctx, admin)) || MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM15IsAdministrator(second, ctx, admin)) || MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM15IsAdministrator(second, ctx, user)) {
+ /*line site_policy_test.mygo:23:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM15IsAdministrator(first, ctx, admin)) || MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM15IsAdministrator(second, ctx, admin)) || MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM15IsAdministrator(second, ctx, user)) {
  /*line site_policy_test.mygo:26:5*/		t.Fatal("site administrator authority crossed site boundaries")
  /*line site_policy_test.mygo:23:3*/	} else {
- /*line zz_site_policy.gen_test.go:37:1*/	}
- /*line site_policy_test.mygo:28:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN14SiteRepositoryM15SetActorBlocked(second, ctx, admin, user.ActorURI, true)) {
+ /*line zz_site_policy.gen_test.go:38:1*/	}
+ /*line site_policy_test.mygo:28:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN14SiteRepositoryM15SetActorBlocked(second, ctx, admin, user.ActorURI, true)) {
  /*line site_policy_test.mygo:29:5*/		t.Fatal("foreign administrator changed site policy")
  /*line site_policy_test.mygo:28:3*/	} else {
- /*line zz_site_policy.gen_test.go:41:1*/	}
- /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, true))
- /*line site_policy_test.mygo:32:3*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, user.ActorURI)) || MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(second, ctx, user.ActorURI)) {
+ /*line zz_site_policy.gen_test.go:42:1*/	}
+ /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, true))
+ /*line site_policy_test.mygo:32:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, user.ActorURI)) || MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(second, ctx, user.ActorURI)) {
  /*line site_policy_test.mygo:34:5*/		t.Fatal("actor block was not scoped to its site")
  /*line site_policy_test.mygo:32:3*/	} else {
- /*line zz_site_policy.gen_test.go:46:1*/	}
- /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, false))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "REMOTE.EXAMPLE.", true))
- /*line site_policy_test.mygo:38:3*/	if !MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://remote.example:8443/users/x")) || MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://other.example/users/x")) || MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(second, ctx, "https://remote.example/users/x")) {
+ /*line zz_site_policy.gen_test.go:47:1*/	}
+ /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "REMOTE.EXAMPLE.", true))
+ /*line site_policy_test.mygo:38:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://remote.example:8443/users/x")) || MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://other.example/users/x")) || MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(second, ctx, "https://remote.example/users/x")) {
  /*line site_policy_test.mygo:41:5*/		t.Fatal("domain block normalization or site isolation failed")
  /*line site_policy_test.mygo:38:3*/	} else {
- /*line zz_site_policy.gen_test.go:52:1*/	}
- /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "remote.example", false))
- /*line site_policy_test.mygo:44:3*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://remote.example/users/x")) {
+ /*line zz_site_policy.gen_test.go:53:1*/	}
+ /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "remote.example", false))
+ /*line site_policy_test.mygo:44:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "https://remote.example/users/x")) {
  /*line site_policy_test.mygo:45:5*/		t.Fatal("domain block revocation was not immediate")
  /*line site_policy_test.mygo:44:3*/	} else {
- /*line zz_site_policy.gen_test.go:57:1*/	}
- /*line site_policy_test.mygo:47:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "remote.example/path", true)) || MygoIN6ResultM4IsOk[bool, string](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "not-an-actor")) {
+ /*line zz_site_policy.gen_test.go:58:1*/	}
+ /*line site_policy_test.mygo:47:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN14SiteRepositoryM16SetDomainBlocked(first, ctx, admin, "remote.example/path", true)) || MygoIN6ResultM4IsOk[bool, failure.Failure](MygoIN14SiteRepositoryM9IsBlocked(first, ctx, "not-an-actor")) {
  /*line site_policy_test.mygo:49:5*/		t.Fatal("invalid block identity accepted")
  /*line site_policy_test.mygo:47:3*/	} else {
- /*line zz_site_policy.gen_test.go:61:1*/	}
+ /*line zz_site_policy.gen_test.go:62:1*/	}
  /*line site_policy_test.mygo:9:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("audit_events").Where("scope_kind = 'site' AND scope_id = ? AND action IN ('block-actor','unblock-actor','block-domain','unblock-domain')", a.ID).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("audit_events").Where("scope_kind = 'site' AND scope_id = ? AND action IN ('block-actor','unblock-actor','block-domain','unblock-domain')", a.ID).Count(&count)))
  /*line site_policy_test.mygo:56:3*/	if count != int64(4) {
  /*line site_policy_test.mygo:57:5*/		t.Fatal("site policy mutations were not audited")
  /*line site_policy_test.mygo:56:3*/	} else {
- /*line zz_site_policy.gen_test.go:67:1*/	}
- /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id = ? AND account_id = ?", a.ID, admin.AccountID)))
- /*line site_policy_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[bool, string](MygoIN14SiteRepositoryM15IsAdministrator(first, ctx, admin)) || MygoIN6ResultM4IsOk[struct{}, string](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, true)) {
+ /*line zz_site_policy.gen_test.go:68:1*/	}
+ /*line site_policy_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("DELETE FROM site_roles WHERE site_id = ? AND account_id = ?", a.ID, admin.AccountID)))
+ /*line site_policy_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](MygoIN14SiteRepositoryM15IsAdministrator(first, ctx, admin)) || MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN14SiteRepositoryM15SetActorBlocked(first, ctx, admin, user.ActorURI, true)) {
  /*line site_policy_test.mygo:66:5*/		t.Fatal("revoked administrator retained policy authority")
 		return
  /*line site_policy_test.mygo:64:3*/	} else {
 		return
- /*line zz_site_policy.gen_test.go:74:1*/	}
+ /*line zz_site_policy.gen_test.go:75:1*/	}
 }

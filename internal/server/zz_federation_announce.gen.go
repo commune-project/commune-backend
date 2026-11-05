@@ -9,135 +9,136 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_announce.mygo:11:1*/func FindHostedGroup(ctx context.Context, db *gorm.DB, site config.Site, addressed []string) Result[Option[storage.CommunityRecord], string] {
+ /*line federation_announce.mygo:12:1*/func FindHostedGroup(ctx context.Context, db *gorm.DB, site config.Site, addressed []string) Result[Option[storage.CommunityRecord], failure.Failure] {
 	var found Option[storage.CommunityRecord] = None[storage.CommunityRecord]()
 	failed := false
- /*line federation_announce.mygo:14:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(addressed, func(address string) {
- /*line federation_announce.mygo:15:5*/		if !failed && MygoIN6OptionM6IsNone[storage.CommunityRecord](found) {
+ /*line federation_announce.mygo:15:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(addressed, func(address string) {
+ /*line federation_announce.mygo:16:5*/		if !failed && MygoIN6OptionM6IsNone[storage.CommunityRecord](found) {
 			candidate := storage.LoadHostedCommunityByActor(ctx, db, site.ID, address)
- /*line federation_announce.mygo:17:7*/			if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](candidate) {
+ /*line federation_announce.mygo:18:7*/			if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](candidate) {
 				failed = true
 				return
 			} else {
- /*line federation_announce.mygo:20:9*/				if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](candidate)) && federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](candidate))) {
-					found = MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](candidate)
+ /*line federation_announce.mygo:21:9*/				if MygoIN6OptionM6IsSome[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](candidate)) && federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](candidate))) {
+					found = MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](candidate)
 					return
 				} else {
- /*line federation_announce.mygo:20:9*/					return
- /*line zz_federation_announce.gen.go:29:1*/				}
+ /*line federation_announce.mygo:21:9*/					return
+ /*line zz_federation_announce.gen.go:30:1*/				}
 			}
- /*line federation_announce.mygo:15:5*/		} else {
+ /*line federation_announce.mygo:16:5*/		} else {
 			return
- /*line zz_federation_announce.gen.go:33:1*/		}
+ /*line zz_federation_announce.gen.go:34:1*/		}
 	})
- /*line federation_announce.mygo:26:3*/	if failed {
- /*line federation_announce.mygo:27:12*/		return Err[Option[storage.CommunityRecord], string]("community unavailable")
- /*line federation_announce.mygo:26:3*/	} else {
- /*line zz_federation_announce.gen.go:38:1*/	}
- /*line federation_announce.mygo:29:3*/	return Ok[Option[storage.CommunityRecord], string](found)
- /*line zz_federation_announce.gen.go:40:1*/}
- /*line federation_announce.mygo:36:1*/func ApplyCreateSubmission(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte, addressed []string) Result[struct {
-}, string] {
+ /*line federation_announce.mygo:27:3*/	if failed {
+ /*line federation_announce.mygo:28:12*/		return Err[Option[storage.CommunityRecord], failure.Failure](Of("community unavailable"))
+ /*line federation_announce.mygo:27:3*/	} else {
+ /*line zz_federation_announce.gen.go:39:1*/	}
+ /*line federation_announce.mygo:30:3*/	return Ok[Option[storage.CommunityRecord], failure.Failure](found)
+ /*line zz_federation_announce.gen.go:41:1*/}
+ /*line federation_announce.mygo:37:1*/func ApplyCreateSubmission(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity, payload []byte, addressed []string) Result[struct {
+}, failure.Failure] {
 	group := FindHostedGroup(ctx, db, site, addressed)
- /*line federation_announce.mygo:38:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](group) {
- /*line federation_announce.mygo:39:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.CommunityRecord], string](group))
- /*line federation_announce.mygo:38:3*/	} else {
- /*line zz_federation_announce.gen.go:47:1*/	}
- /*line federation_announce.mygo:41:3*/	if MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](group)) {
- /*line federation_announce.mygo:42:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:50:1*/		}{})
- /*line federation_announce.mygo:41:3*/	} else {
- /*line zz_federation_announce.gen.go:52:1*/	}
- /*line federation_announce.mygo:36:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](group))
- /*line federation_announce.mygo:47:3*/	if community.ReadPolicy == "members" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(addressed, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) {
- /*line federation_announce.mygo:48:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:56:1*/		}{})
- /*line federation_announce.mygo:47:3*/	} else {
- /*line zz_federation_announce.gen.go:58:1*/	}
- /*line federation_announce.mygo:36:1*/	siteRepo := storage.SiteRepository{DB: db, SiteID: site.ID}
+ /*line federation_announce.mygo:39:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](group) {
+ /*line federation_announce.mygo:40:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[Option[storage.CommunityRecord], failure.Failure](group))
+ /*line federation_announce.mygo:39:3*/	} else {
+ /*line zz_federation_announce.gen.go:48:1*/	}
+ /*line federation_announce.mygo:42:3*/	if MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](group)) {
+ /*line federation_announce.mygo:43:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:51:1*/		}{})
+ /*line federation_announce.mygo:42:3*/	} else {
+ /*line zz_federation_announce.gen.go:53:1*/	}
+ /*line federation_announce.mygo:37:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](group))
+ /*line federation_announce.mygo:48:3*/	if community.ReadPolicy == "members" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(addressed, "https://www.w3.org/ns/activitystreams#Public", MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line federation_announce.mygo:49:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:57:1*/		}{})
+ /*line federation_announce.mygo:48:3*/	} else {
+ /*line zz_federation_announce.gen.go:59:1*/	}
+ /*line federation_announce.mygo:37:1*/	siteRepo := storage.SiteRepository{DB: db, SiteID: site.ID}
 	blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(siteRepo, ctx, activity.Actor)
- /*line federation_announce.mygo:52:3*/	if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line federation_announce.mygo:53:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line federation_announce.mygo:52:3*/	} else {
- /*line zz_federation_announce.gen.go:64:1*/	}
- /*line federation_announce.mygo:55:3*/	if MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line federation_announce.mygo:56:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:67:1*/		}{})
- /*line federation_announce.mygo:55:3*/	} else {
- /*line zz_federation_announce.gen.go:69:1*/	}
- /*line federation_announce.mygo:58:3*/	if community.PostPolicy != "eligible_users" {
+ /*line federation_announce.mygo:53:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line federation_announce.mygo:54:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
+ /*line federation_announce.mygo:53:3*/	} else {
+ /*line zz_federation_announce.gen.go:65:1*/	}
+ /*line federation_announce.mygo:56:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
+ /*line federation_announce.mygo:57:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:68:1*/		}{})
+ /*line federation_announce.mygo:56:3*/	} else {
+ /*line zz_federation_announce.gen.go:70:1*/	}
+ /*line federation_announce.mygo:59:3*/	if community.PostPolicy != "eligible_users" {
 		member := storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
- /*line federation_announce.mygo:60:5*/		if MygoIN6ResultM5IsErr[bool, string](member) {
- /*line federation_announce.mygo:61:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
- /*line federation_announce.mygo:60:5*/		} else {
- /*line zz_federation_announce.gen.go:75:1*/		}
- /*line federation_announce.mygo:58:3*/		if !MygoIN6ResultM6Unwrap[bool, string](member) {
- /*line federation_announce.mygo:64:14*/			return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:78:1*/			}{})
- /*line federation_announce.mygo:58:3*/		} else {
- /*line zz_federation_announce.gen.go:80:1*/		}
- /*line federation_announce.mygo:58:3*/	} else {
- /*line zz_federation_announce.gen.go:82:1*/	}
- /*line federation_announce.mygo:67:6*/	if MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && (MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Page" || MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Note") {
- /*line federation_announce.mygo:67:3*/		received := ReceiveRichActivity(sanitizer, ctx, db, site, activity, payload, community.ID)
-		if MygoIN6ResultM5IsErr[struct{}, string](received) {
- /*line federation_announce.mygo:69:37*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](received))
- /*line federation_announce.mygo:67:3*/		} else {
- /*line zz_federation_announce.gen.go:88:1*/		}
- /*line federation_announce.mygo:67:3*/	} else {
- /*line zz_federation_announce.gen.go:90:1*/	}
- /*line federation_announce.mygo:71:3*/	return PublishGroupAnnouncement(ctx, db, site, community, payload)
- /*line zz_federation_announce.gen.go:92:1*/}
- /*line federation_announce.mygo:76:1*/func PublishGroupAnnouncement(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, payload []byte) Result[struct {
-}, string] {
- /*line federation_announce.mygo:77:3*/	return PublishGroupAnnouncementTo(ctx, db, site, community, payload, []string{})
- /*line zz_federation_announce.gen.go:96:1*/}
- /*line federation_announce.mygo:82:1*/func PublishGroupAnnouncementTo(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, payload []byte, extra []string) Result[struct {
-}, string] {
+ /*line federation_announce.mygo:61:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](member) {
+ /*line federation_announce.mygo:62:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](member))
+ /*line federation_announce.mygo:61:5*/		} else {
+ /*line zz_federation_announce.gen.go:76:1*/		}
+ /*line federation_announce.mygo:59:3*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](member) {
+ /*line federation_announce.mygo:65:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:79:1*/			}{})
+ /*line federation_announce.mygo:59:3*/		} else {
+ /*line zz_federation_announce.gen.go:81:1*/		}
+ /*line federation_announce.mygo:59:3*/	} else {
+ /*line zz_federation_announce.gen.go:83:1*/	}
+ /*line federation_announce.mygo:68:6*/	if MygoIN6OptionM6IsSome[federation.EmbeddedActivity](activity.Embedded) && (MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Page" || MygoIN6OptionM6Unwrap[federation.EmbeddedActivity](activity.Embedded).Type == "Note") {
+ /*line federation_announce.mygo:68:3*/		received := ReceiveRichActivity(sanitizer, ctx, db, site, activity, payload, community.ID)
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](received) {
+ /*line federation_announce.mygo:70:37*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](received))
+ /*line federation_announce.mygo:68:3*/		} else {
+ /*line zz_federation_announce.gen.go:89:1*/		}
+ /*line federation_announce.mygo:68:3*/	} else {
+ /*line zz_federation_announce.gen.go:91:1*/	}
+ /*line federation_announce.mygo:72:3*/	return PublishGroupAnnouncement(ctx, db, site, community, payload)
+ /*line zz_federation_announce.gen.go:93:1*/}
+ /*line federation_announce.mygo:77:1*/func PublishGroupAnnouncement(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, payload []byte) Result[struct {
+}, failure.Failure] {
+ /*line federation_announce.mygo:78:3*/	return PublishGroupAnnouncementTo(ctx, db, site, community, payload, []string{})
+ /*line zz_federation_announce.gen.go:97:1*/}
+ /*line federation_announce.mygo:83:1*/func PublishGroupAnnouncementTo(ctx context.Context, db *gorm.DB, site config.Site, community storage.CommunityRecord, payload []byte, extra []string) Result[struct {
+}, failure.Failure] {
 	key := storage.EnsureLocalKey(ctx, db, community.ActorURI.String)
- /*line federation_announce.mygo:84:3*/	if MygoIN6ResultM5IsErr[string, string](key) {
- /*line federation_announce.mygo:85:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](key))
- /*line federation_announce.mygo:84:3*/	} else {
- /*line zz_federation_announce.gen.go:103:1*/	}
- /*line federation_announce.mygo:82:1*/	announceURI := site.Origin + "/activities/" + rand.Text()
+ /*line federation_announce.mygo:85:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](key) {
+ /*line federation_announce.mygo:86:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](key))
+ /*line federation_announce.mygo:85:3*/	} else {
+ /*line zz_federation_announce.gen.go:104:1*/	}
+ /*line federation_announce.mygo:83:1*/	announceURI := site.Origin + "/activities/" + rand.Text()
 	announce := "{\"@context\":\"https://www.w3.org/ns/activitystreams\",\"id\":\"" + announceURI + "\",\"type\":\"Announce\",\"actor\":\"" + community.ActorURI.String + "\",\"object\":" + string(payload) + "}"
 	excluded := storage.IsLocalOnlyActivity(ctx, db, announceURI)
- /*line federation_announce.mygo:90:3*/	if MygoIN6ResultM5IsErr[bool, string](excluded) || MygoIN6ResultM6Unwrap[bool, string](excluded) {
- /*line federation_announce.mygo:91:12*/		return Err[struct{}, string]("announce suppressed")
- /*line federation_announce.mygo:90:3*/	} else {
- /*line zz_federation_announce.gen.go:110:1*/	}
- /*line federation_announce.mygo:93:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line federation_announce.mygo:93:35*/		stored := storage.InsertActivityPayload(ctx, tx, announceURI, community.ActorURI.String, "Announce", []byte(announce), community.ID)
- /*line federation_announce.mygo:95:5*/		if MygoIN6ResultM5IsErr[struct{}, string](stored) {
- /*line federation_announce.mygo:96:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](stored))
- /*line federation_announce.mygo:95:5*/		} else {
- /*line zz_federation_announce.gen.go:116:1*/		}
- /*line federation_announce.mygo:98:5*/		if community.ReadPolicy == "members" {
+ /*line federation_announce.mygo:91:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](excluded) || MygoIN6ResultM6Unwrap[bool, failure.Failure](excluded) {
+ /*line federation_announce.mygo:92:12*/		return Err[struct{}, failure.Failure](Of("announce suppressed"))
+ /*line federation_announce.mygo:91:3*/	} else {
+ /*line zz_federation_announce.gen.go:111:1*/	}
+ /*line federation_announce.mygo:94:3*/	return storage.RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line federation_announce.mygo:94:35*/		stored := storage.InsertActivityPayload(ctx, tx, announceURI, community.ActorURI.String, "Announce", []byte(announce), community.ID)
+ /*line federation_announce.mygo:96:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](stored) {
+ /*line federation_announce.mygo:97:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](stored))
+ /*line federation_announce.mygo:96:5*/		} else {
+ /*line zz_federation_announce.gen.go:117:1*/		}
+ /*line federation_announce.mygo:99:5*/		if community.ReadPolicy == "members" {
 			planned := storage.PlanRestrictedDelivery(ctx, tx, announceURI, community.ActorURI.String, community.ID)
- /*line federation_announce.mygo:100:7*/			if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
- /*line federation_announce.mygo:101:16*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned))
- /*line federation_announce.mygo:100:7*/			} else {
- /*line zz_federation_announce.gen.go:122:1*/			}
- /*line federation_announce.mygo:103:14*/			return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:124:1*/			}{})
- /*line federation_announce.mygo:98:5*/		} else {
- /*line zz_federation_announce.gen.go:126:1*/		}
- /*line federation_announce.mygo:93:35*/		followers := storage.ListAcceptedFollowers(ctx, db, community.ID, 1000, 0)
- /*line federation_announce.mygo:106:5*/		if MygoIN6ResultM5IsErr[[]string, string](followers) {
- /*line federation_announce.mygo:107:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]string, string](followers))
- /*line federation_announce.mygo:106:5*/		} else {
- /*line zz_federation_announce.gen.go:131:1*/		}
- /*line federation_announce.mygo:93:35*/		recipients := storage.UniqueRecipients(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]string, string](followers), extra, func(acc []string, item string) []string {
- /*line federation_announce.mygo:110:7*/			return MygoIN5SliceM6Append(acc, item)
- /*line zz_federation_announce.gen.go:134:1*/		}))
- /*line federation_announce.mygo:93:35*/		planned_1 := storage.PlanDelivery(ctx, tx, announceURI, community.ActorURI.String, recipients, community.ID)
- /*line federation_announce.mygo:113:5*/		if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned_1) {
- /*line federation_announce.mygo:114:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned_1))
- /*line federation_announce.mygo:113:5*/		} else {
- /*line zz_federation_announce.gen.go:139:1*/		}
- /*line federation_announce.mygo:116:5*/		return Ok[struct{}, string](struct {
- /*line zz_federation_announce.gen.go:141:1*/		}{})
+ /*line federation_announce.mygo:101:7*/			if MygoIN6ResultM5IsErr[storage.PlanResult, failure.Failure](planned) {
+ /*line federation_announce.mygo:102:16*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PlanResult, failure.Failure](planned))
+ /*line federation_announce.mygo:101:7*/			} else {
+ /*line zz_federation_announce.gen.go:123:1*/			}
+ /*line federation_announce.mygo:104:14*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:125:1*/			}{})
+ /*line federation_announce.mygo:99:5*/		} else {
+ /*line zz_federation_announce.gen.go:127:1*/		}
+ /*line federation_announce.mygo:94:35*/		followers := storage.ListAcceptedFollowers(ctx, db, community.ID, 1000, 0)
+ /*line federation_announce.mygo:107:5*/		if MygoIN6ResultM5IsErr[[]string, failure.Failure](followers) {
+ /*line federation_announce.mygo:108:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]string, failure.Failure](followers))
+ /*line federation_announce.mygo:107:5*/		} else {
+ /*line zz_federation_announce.gen.go:132:1*/		}
+ /*line federation_announce.mygo:94:35*/		recipients := storage.UniqueRecipients(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]string, failure.Failure](followers), extra, func(acc []string, item string) []string {
+ /*line federation_announce.mygo:111:7*/			return MygoIN5SliceM6Append(acc, item)
+ /*line zz_federation_announce.gen.go:135:1*/		}))
+ /*line federation_announce.mygo:94:35*/		planned_1 := storage.PlanDelivery(ctx, tx, announceURI, community.ActorURI.String, recipients, community.ID)
+ /*line federation_announce.mygo:114:5*/		if MygoIN6ResultM5IsErr[storage.PlanResult, failure.Failure](planned_1) {
+ /*line federation_announce.mygo:115:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PlanResult, failure.Failure](planned_1))
+ /*line federation_announce.mygo:114:5*/		} else {
+ /*line zz_federation_announce.gen.go:140:1*/		}
+ /*line federation_announce.mygo:117:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_announce.gen.go:142:1*/		}{})
 	})
 }

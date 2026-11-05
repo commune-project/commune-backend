@@ -5,15 +5,16 @@ import gorm "go:gorm.io/gorm"
 import url "go:net/url"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
-func ActorDomain(actorURI: String) -> Result[String, String]
+func ActorDomain(actorURI: String) -> Result[String, failure.Failure]
   let parsed = url.Parse(actorURI)
   if parsed.IsErr() || parsed.Unwrap().Hostname() == "" then
-    return Err("invalid actor")
+    return Err(Of("invalid actor"))
   end
   let host = strings.ToLower(strings.TrimSuffix(parsed.Unwrap().Hostname(), "."))
   if !config.ValidDomain(host) then
-    return Err("invalid actor")
+    return Err(Of("invalid actor"))
   end
   Ok(host)
 end
@@ -23,10 +24,10 @@ func SetPeerProtectedReads(
   db: Ref[gorm.DB],
   domain: String,
   supported: Bool
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let normalized = strings.ToLower(strings.TrimSuffix(domain, "."))
   if !config.ValidDomain(normalized) then
-    return Err("invalid domain")
+    return Err(Of("invalid domain"))
   end
   MutationResult(db.WithContext(ctx).Exec(
     "INSERT INTO peer_capabilities(domain,protected_reads) VALUES (?,?) ON CONFLICT (domain) DO UPDATE SET protected_reads=EXCLUDED.protected_reads, updated_at=now()",
@@ -41,7 +42,7 @@ func PeerSupportsProtectedReads(
   ctx: context.Context,
   db: Ref[gorm.DB],
   actorURI: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   let domain = ActorDomain(actorURI)
   if domain.IsErr() then
     return Ok(false)

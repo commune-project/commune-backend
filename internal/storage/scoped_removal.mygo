@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 # Community moderation removes a post from that community's presentation. The
 # shared object, its author and other communities are untouched.
 func RecordScopedRemoval(
@@ -11,7 +12,7 @@ func RecordScopedRemoval(
   communityID: String,
   authorityActorURI: String,
   evidenceURI: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   let changed = db.WithContext(ctx).Exec(
     "INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'removed') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO UPDATE SET state='removed', authority_actor_uri=EXCLUDED.authority_actor_uri, updated_at=now() WHERE collection_memberships.state IS DISTINCT FROM 'removed'",
     postID,
@@ -20,7 +21,7 @@ func RecordScopedRemoval(
     evidenceURI
   )
   if MutationResult(changed).IsErr() then
-    return Err("removal failed")
+    return Err(Of("removal failed"))
   end
   Ok(changed.RowsAffected)
 end
@@ -30,7 +31,7 @@ func IsCommunityRemoval(
   db: Ref[gorm.DB],
   postID: String,
   communityID: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   QueryExists(db.WithContext(ctx).Table("collection_memberships").Where(
     "post_id = ? AND community_id = ? AND state = 'removed'",
     postID,

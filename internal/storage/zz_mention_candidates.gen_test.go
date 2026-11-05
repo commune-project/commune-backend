@@ -8,6 +8,7 @@ import "strings"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -15,135 +16,135 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mention_candidates_test.mygo:11:3*/	return MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(rows, func(row MentionCandidateRecord) bool {
  /*line mention_candidates_test.mygo:12:5*/		return row.ActorURI == actorURI
  /*line mention_candidates_test.mygo:13:12*/	}), 0)
- /*line zz_mention_candidates.gen_test.go:18:1*/}
+ /*line zz_mention_candidates.gen_test.go:19:1*/}
  /*line mention_candidates_test.mygo:16:1*/func TestPostgresMentionCandidates(t *testing.T) {
  /*line mention_candidates_test.mygo:17:3*/	if ValidMentionCandidateQuery("a") || ValidMentionCandidateQuery(strings.Repeat("a", 65)) || !ValidMentionCandidateQuery(" ab ") || !ValidMentionCandidateQuery("中文") || ValidMentionCandidateLimit(0) || ValidMentionCandidateLimit(21) || !ValidMentionCandidateLimit(8) {
  /*line mention_candidates_test.mygo:24:5*/		t.Fatal("mention candidate bounds failed")
  /*line mention_candidates_test.mygo:17:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:23:1*/	}
+ /*line zz_mention_candidates.gen_test.go:24:1*/	}
  /*line mention_candidates_test.mygo:26:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_mention_candidates.gen_test.go:30:1*/	}
+ /*line zz_mention_candidates.gen_test.go:31:1*/	}
  /*line mention_candidates_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	alicia := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alicia", "", "alicia-password"))
-	rainbow := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "rainbow", "", "rainbow-password"))
-	dave := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "dave", "", "dave-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-password"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", dave.AccountID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", bob.ActorURI, "Bobby", "https://a.example/avatar/bob.png")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", rainbow.ActorURI, "O'Brien Rainbow 100%Real")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", carol.ActorURI, "Bonnie", "https://b.example/avatar/carol.png")))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	alicia := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alicia", "", "alicia-password"))
+	rainbow := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "rainbow", "", "rainbow-password"))
+	dave := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "dave", "", "dave-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", dave.AccountID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", bob.ActorURI, "Bobby", "https://a.example/avatar/bob.png")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", rainbow.ActorURI, "O'Brien Rainbow 100%Real")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", carol.ActorURI, "Bonnie", "https://b.example/avatar/carol.png")))
 	remyURI := "https://remote.example/users/remy"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remyURI, "https://remote.example/inbox", "remy@remote.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES ('https://remote.example/users/ghost','Person','https://remote.example/inbox','')")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remyURI, "https://remote.example/inbox", "remy@remote.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES ('https://remote.example/users/ghost','Person','https://remote.example/inbox','')")))
 	targetURI := "https://blocked.example/users/target"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", targetURI, "https://blocked.example/inbox", "target@blocked.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", targetURI, "https://blocked.example/inbox", "target@blocked.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,'blocked.example')", site.ID)))
 	blockedURI := "https://remote.example/users/blocked"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", blockedURI, "https://remote.example/inbox", "blocked@remote.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, blockedURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", blockedURI, "https://remote.example/inbox", "blocked@remote.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", site.ID, blockedURI)))
 	bannedURI := "https://remote.example/users/banned"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", bannedURI, "https://remote.example/inbox", "banned@remote.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason) VALUES (?,?,?,?)", site.ID, bannedURI, alice.ActorURI, "test ban")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", bannedURI, "https://remote.example/inbox", "banned@remote.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason) VALUES (?,?,?,?)", site.ID, bannedURI, alice.ActorURI, "test ban")))
 	personalURI := "https://remote.example/users/personal"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", personalURI, "https://remote.example/inbox", "personal@remote.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,'person',?)", site.ID, alice.AccountID, personalURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", personalURI, "https://remote.example/inbox", "personal@remote.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,'person',?)", site.ID, alice.AccountID, personalURI)))
 	tieA := "https://tie-a.example/users/tie"
 	tieZ := "https://tie-z.example/users/tie"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieA, "https://tie-a.example/inbox", "Tie@tie.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieZ, "https://tie-z.example/inbox", "tie@tie.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieA, "https://tie-a.example/inbox", "Tie@tie.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", tieZ, "https://tie-z.example/inbox", "tie@tie.example")))
 	repository := MentionCandidateRepository{DB: db, SiteID: site.ID}
- /*line mention_candidates_test.mygo:65:3*/	if MygoIN6ResultM4IsOk[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "a", 8)) || MygoIN6ResultM4IsOk[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ab", 0)) || MygoIN6ResultM4IsOk[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ab", 21)) {
+ /*line mention_candidates_test.mygo:65:3*/	if MygoIN6ResultM4IsOk[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "a", 8)) || MygoIN6ResultM4IsOk[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ab", 0)) || MygoIN6ResultM4IsOk[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ab", 21)) {
  /*line mention_candidates_test.mygo:68:5*/		t.Fatal("storage accepted invalid mention candidate input")
  /*line mention_candidates_test.mygo:65:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:73:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	aliciaRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "alici", 8))
+ /*line zz_mention_candidates.gen_test.go:74:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	aliciaRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "alici", 8))
  /*line mention_candidates_test.mygo:71:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(aliciaRows) != 1 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(aliciaRows, 0)).ActorURI != alicia.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(aliciaRows, 0)).Acct != "alicia@a.example" || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(aliciaRows, 0)).DisplayName != "alicia" || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(aliciaRows, 0)).Avatar != "" {
  /*line mention_candidates_test.mygo:72:5*/		t.Fatal("local account fallback projection failed")
  /*line mention_candidates_test.mygo:71:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:78:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	bobRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bobby", 8))
+ /*line zz_mention_candidates.gen_test.go:79:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	bobRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bobby", 8))
 	bobCandidate := MygoIN6OptionM6Unwrap[MentionCandidateRecord](mentionCandidateFor(bobRows, bob.ActorURI))
  /*line mention_candidates_test.mygo:76:3*/	if bobCandidate.Acct != "bob@a.example" || bobCandidate.DisplayName != "Bobby" || bobCandidate.Avatar != "https://a.example/avatar/bob.png" {
  /*line mention_candidates_test.mygo:77:5*/		t.Fatal("local profile projection failed")
  /*line mention_candidates_test.mygo:76:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:84:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	remRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "rem", 8))
+ /*line zz_mention_candidates.gen_test.go:85:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	remRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "rem", 8))
 	remCandidate := MygoIN6OptionM6Unwrap[MentionCandidateRecord](mentionCandidateFor(remRows, remyURI))
  /*line mention_candidates_test.mygo:81:3*/	if remCandidate.Acct != "remy@remote.example" || remCandidate.DisplayName != "Remy" || remCandidate.Avatar != "https://remote.example/avatar/remy.png" {
  /*line mention_candidates_test.mygo:82:5*/		t.Fatal("stored remote projection failed")
  /*line mention_candidates_test.mygo:81:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:90:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	carolRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "carol", 8))
+ /*line zz_mention_candidates.gen_test.go:91:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	carolRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "carol", 8))
 	carolCandidate := MygoIN6OptionM6Unwrap[MentionCandidateRecord](mentionCandidateFor(carolRows, carol.ActorURI))
  /*line mention_candidates_test.mygo:86:3*/	if carolCandidate.Acct != "carol@b.example" || carolCandidate.DisplayName != "Bonnie" {
  /*line mention_candidates_test.mygo:87:5*/		t.Fatal("colocated site handle projection failed")
  /*line mention_candidates_test.mygo:86:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:96:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	prefixRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 8))
+ /*line zz_mention_candidates.gen_test.go:97:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	prefixRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 8))
  /*line mention_candidates_test.mygo:90:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(prefixRows) != 3 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(prefixRows, 0)).ActorURI != bob.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(prefixRows, 1)).ActorURI != carol.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(prefixRows, 2)).ActorURI != rainbow.ActorURI {
  /*line mention_candidates_test.mygo:91:5*/		t.Fatal("prefix ranking or deterministic ordering failed")
  /*line mention_candidates_test.mygo:90:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:101:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	limited := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 1))
+ /*line zz_mention_candidates.gen_test.go:102:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	limited := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 1))
  /*line mention_candidates_test.mygo:94:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(limited) != 1 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(limited, 0)).ActorURI != bob.ActorURI {
  /*line mention_candidates_test.mygo:95:5*/		t.Fatal("candidate limit was not applied after ordering")
  /*line mention_candidates_test.mygo:94:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:106:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	ties := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "tie", 8))
+ /*line zz_mention_candidates.gen_test.go:107:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	ties := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "tie", 8))
  /*line mention_candidates_test.mygo:98:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ties) != 2 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(ties, 0)).ActorURI != tieA || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(ties, 1)).ActorURI != tieZ {
  /*line mention_candidates_test.mygo:99:5*/		t.Fatal("case-insensitive handle tie did not fall back to Actor URI")
  /*line mention_candidates_test.mygo:98:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:111:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	percentRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "%r", 8))
+ /*line zz_mention_candidates.gen_test.go:112:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	percentRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "%r", 8))
  /*line mention_candidates_test.mygo:102:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(percentRows) != 1 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(percentRows, 0)).ActorURI != rainbow.ActorURI {
  /*line mention_candidates_test.mygo:103:5*/		t.Fatal("percent was treated as a wildcard")
  /*line mention_candidates_test.mygo:102:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:116:1*/	}
- /*line mention_candidates_test.mygo:105:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "b_b", 8))) != 0 {
+ /*line zz_mention_candidates.gen_test.go:117:1*/	}
+ /*line mention_candidates_test.mygo:105:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "b_b", 8))) != 0 {
  /*line mention_candidates_test.mygo:106:5*/		t.Fatal("underscore was treated as a wildcard")
  /*line mention_candidates_test.mygo:105:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:120:1*/	}
- /*line mention_candidates_test.mygo:16:1*/	quoteRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "O'", 8))
+ /*line zz_mention_candidates.gen_test.go:121:1*/	}
+ /*line mention_candidates_test.mygo:16:1*/	quoteRows := MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "O'", 8))
  /*line mention_candidates_test.mygo:109:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(quoteRows) != 1 || MygoIN6OptionM6Unwrap[MentionCandidateRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(quoteRows, 0)).ActorURI != rainbow.ActorURI {
  /*line mention_candidates_test.mygo:110:5*/		t.Fatal("quote was not treated literally")
  /*line mention_candidates_test.mygo:109:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:125:1*/	}
- /*line mention_candidates_test.mygo:112:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "alice", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "dave", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ghost", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "target@", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "blocked@remote", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "banned@remote", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "personal@remote", 8))) != 0 {
+ /*line zz_mention_candidates.gen_test.go:126:1*/	}
+ /*line mention_candidates_test.mygo:112:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "alice", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "dave", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "ghost", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "target@", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "blocked@remote", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "banned@remote", 8))) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "personal@remote", 8))) != 0 {
  /*line mention_candidates_test.mygo:119:5*/		t.Fatal("self, disabled, missing-handle, blocked, banned, or personally blocked candidate leaked")
  /*line mention_candidates_test.mygo:112:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:129:1*/	}
+ /*line zz_mention_candidates.gen_test.go:130:1*/	}
  /*line mention_candidates_test.mygo:16:1*/	var jobsBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Count(&jobsBefore)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Count(&jobsBefore)))
 	var notificationsBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("notification_events").Count(&notificationsBefore)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("notification_events").Count(&notificationsBefore)))
 	var deliveriesBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("delivery_jobs").Count(&deliveriesBefore)))
-	MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, string](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 8))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("delivery_jobs").Count(&deliveriesBefore)))
+	MygoIN6ResultM6Unwrap[[]MentionCandidateRecord, failure.Failure](MygoIN26MentionCandidateRepositoryM6Search(repository, ctx, alice, "bo", 8))
 	var jobsAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Count(&jobsAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Count(&jobsAfter)))
 	var notificationsAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("notification_events").Count(&notificationsAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("notification_events").Count(&notificationsAfter)))
 	var deliveriesAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("delivery_jobs").Count(&deliveriesAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("delivery_jobs").Count(&deliveriesAfter)))
  /*line mention_candidates_test.mygo:134:3*/	if jobsAfter != jobsBefore || notificationsAfter != notificationsBefore || deliveriesAfter != deliveriesBefore {
  /*line mention_candidates_test.mygo:135:5*/		t.Fatal("candidate lookup wrote federation or notification state")
 		return
  /*line mention_candidates_test.mygo:134:3*/	} else {
 		return
- /*line zz_mention_candidates.gen_test.go:148:1*/	}
+ /*line zz_mention_candidates.gen_test.go:149:1*/	}
 }

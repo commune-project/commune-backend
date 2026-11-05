@@ -3,6 +3,7 @@ package storage
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ContentStateRepository
   DB: Ref[gorm.DB]
@@ -29,7 +30,7 @@ impl ContentStateRepository
     ctx: context.Context,
     postID: String,
     saved: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let query = if saved then
       self.DB.WithContext(ctx).Exec(
         "INSERT INTO saved_posts(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
@@ -46,7 +47,7 @@ impl ContentStateRepository
       )
     end
     if MutationResult(query).IsErr() then
-      return Err("content state unavailable")
+      return Err(Of("content state unavailable"))
     end
     Ok(())
   end
@@ -54,7 +55,7 @@ impl ContentStateRepository
     self: ContentStateRepository,
     ctx: context.Context,
     postID: String
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let query = self.DB.WithContext(ctx).Exec(
       "INSERT INTO post_reads(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
       self.SiteID,
@@ -62,7 +63,7 @@ impl ContentStateRepository
       postID
     )
     if MutationResult(query).IsErr() then
-      return Err("content state unavailable")
+      return Err(Of("content state unavailable"))
     end
     Ok(())
   end
@@ -71,7 +72,7 @@ impl ContentStateRepository
     ctx: context.Context,
     postID: String,
     hidden: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let query = if hidden then
       self.DB.WithContext(ctx).Exec(
         "INSERT INTO post_hidden(site_id,account_id,post_id) VALUES (?,?,?) ON CONFLICT DO NOTHING",
@@ -88,7 +89,7 @@ impl ContentStateRepository
       )
     end
     if MutationResult(query).IsErr() then
-      return Err("content state unavailable")
+      return Err(Of("content state unavailable"))
     end
     Ok(())
   end
@@ -96,7 +97,7 @@ impl ContentStateRepository
     self: ContentStateRepository,
     ctx: context.Context,
     ids: Slice[String]
-  ) -> Result[ContentStateFlags, String]
+  ) -> Result[ContentStateFlags, failure.Failure]
     var saved: Slice[String] = []
     var read: Slice[String] = []
     var hidden: Slice[String] = []
@@ -117,7 +118,7 @@ impl ContentStateRepository
       ids
     ).Scan(Ref.new(rows))
     if MutationResult(query).IsErr() then
-      return Err("content state unavailable")
+      return Err(Of("content state unavailable"))
     end
     rows.Each(func(row: ContentStateRow) -> ()
       if row.Saved then
@@ -142,9 +143,9 @@ impl BrowserRepository
     page: Page,
     max: Int,
     source: String
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     if !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     var records: Slice[PostRecord] = []
     let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable")
@@ -190,7 +191,7 @@ impl BrowserRepository
     end
     query = query.Where("NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))")
     if MutationResult(query.Order("p.id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(records))).IsErr() then
-      return Err("content state unavailable")
+      return Err(Of("content state unavailable"))
     end
     Ok(records)
   end
@@ -200,7 +201,7 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     self.accountPosts(ctx, viewer, page, max, "saved")
   end
   func ReadPosts(
@@ -209,7 +210,7 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     self.accountPosts(ctx, viewer, page, max, "read")
   end
   func HiddenPosts(
@@ -218,7 +219,7 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     self.accountPosts(ctx, viewer, page, max, "hidden")
   end
   func LikedPosts(
@@ -227,7 +228,7 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
     if !up then
       let empty: Slice[PostRecord] = []

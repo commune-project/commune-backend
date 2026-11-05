@@ -6,6 +6,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func CollectionPageSize(settings: config.Config) -> Int
   settings.Runtime.MaxPageSize
@@ -54,7 +55,7 @@ func OutboxHandler(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
   WriteActivity(w, 200, federation.BuildObjectPage(actorURI + "/outbox", page, size, totalItems.Unwrap(), items.Unwrap()))
 end
 
-func BuildObjectItems(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], records: Slice[storage.PostRecord]) -> Result[Slice[federation.ObjectRepresentation], String]
+func BuildObjectItems(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], records: Slice[storage.PostRecord]) -> Result[Slice[federation.ObjectRepresentation], failure.Failure]
   var items: Slice[federation.ObjectRepresentation] = []
   var failed = false
   records.Each(func(record: storage.PostRecord) -> ()
@@ -72,7 +73,7 @@ func BuildObjectItems(sanitizer: content.Sanitizer, ctx: context.Context, db: Re
     end
   end)
   if failed then
-    return Err("collection unavailable")
+    return Err(Of("collection unavailable"))
   end
   Ok(items)
 end

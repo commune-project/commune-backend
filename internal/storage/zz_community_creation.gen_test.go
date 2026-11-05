@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,17 +18,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_community_creation.gen_test.go:20:1*/	}
+ /*line zz_community_creation.gen_test.go:21:1*/	}
  /*line community_creation_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
-	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "community-creator-password"))
-	foreign := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "bob", "", "foreign-creator-password"))
+	creator := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "community-creator-password"))
+	foreign := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "bob", "", "foreign-creator-password"))
 	repository := CommunityRepository{DB: db, SiteID: site.ID}
 	modes := []string{"local_only", "federated"}
  /*line community_creation_test.mygo:22:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(modes, func(mode string) {
@@ -35,57 +36,57 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line community_creation_test.mygo:24:7*/			MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"eligible_users", "members"}, func(post string) {
  /*line community_creation_test.mygo:25:12*/				if read != "members" || post == "members" {
  /*line community_creation_test.mygo:25:9*/					name := mode + "_" + read + "_" + post
-					community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, name, "Community", mode, read, post))
-					access := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM5Check(repository, ctx, community.ID, creator, false))
+					community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, name, "Community", mode, read, post))
+					access := MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](MygoIN19CommunityRepositoryM5Check(repository, ctx, community.ID, creator, false))
  /*line community_creation_test.mygo:29:14*/					if !MygoIN15CommunityAccessM7CanRead(access) || !MygoIN15CommunityAccessM7CanPost(access) || access.Authority.Scope != "community" || community.ActorURI.Valid != (mode == "federated") {
  /*line community_creation_test.mygo:30:13*/						t.Fatal("creation lost initial membership, creator authority or immutable participation")
  /*line community_creation_test.mygo:29:11*/					} else {
- /*line zz_community_creation.gen_test.go:43:1*/					}
- /*line community_creation_test.mygo:32:11*/					if MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, name, "Replacement", mode, read, post)) {
+ /*line zz_community_creation.gen_test.go:44:1*/					}
+ /*line community_creation_test.mygo:32:11*/					if MygoIN6ResultM4IsOk[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, name, "Replacement", mode, read, post)) {
  /*line community_creation_test.mygo:33:13*/						t.Fatal("duplicate community name replaced an existing community")
 						return
  /*line community_creation_test.mygo:32:11*/					} else {
 						return
- /*line zz_community_creation.gen_test.go:49:1*/					}
+ /*line zz_community_creation.gen_test.go:50:1*/					}
  /*line community_creation_test.mygo:25:9*/				} else {
 					return
- /*line zz_community_creation.gen_test.go:52:1*/				}
+ /*line zz_community_creation.gen_test.go:53:1*/				}
 			})
  /*line community_creation_test.mygo:24:7*/			return
- /*line zz_community_creation.gen_test.go:55:1*/		})
+ /*line zz_community_creation.gen_test.go:56:1*/		})
  /*line community_creation_test.mygo:23:5*/		return
- /*line zz_community_creation.gen_test.go:57:1*/	})
- /*line community_creation_test.mygo:39:3*/	if MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, foreign, "foreign", "Community", "local_only", "eligible_users", "eligible_users")) || MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, "invalid", "Community", "local_only", "members", "eligible_users")) {
+ /*line zz_community_creation.gen_test.go:58:1*/	})
+ /*line community_creation_test.mygo:39:3*/	if MygoIN6ResultM4IsOk[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, foreign, "foreign", "Community", "local_only", "eligible_users", "eligible_users")) || MygoIN6ResultM4IsOk[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, "invalid", "Community", "local_only", "members", "eligible_users")) {
  /*line community_creation_test.mygo:40:5*/		t.Fatal("cross-site creation or invalid policy accepted")
  /*line community_creation_test.mygo:39:3*/	} else {
- /*line zz_community_creation.gen_test.go:61:1*/	}
+ /*line zz_community_creation.gen_test.go:62:1*/	}
  /*line community_creation_test.mygo:9:1*/	forged := testSite("a", "https://forged.example")
- /*line community_creation_test.mygo:43:3*/	if MygoIN6ResultM4IsOk[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, forged, creator, "forged", "Community", "federated", "eligible_users", "eligible_users")) {
+ /*line community_creation_test.mygo:43:3*/	if MygoIN6ResultM4IsOk[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, forged, creator, "forged", "Community", "federated", "eligible_users", "eligible_users")) {
  /*line community_creation_test.mygo:44:5*/		t.Fatal("community actor used an unconfigured origin")
  /*line community_creation_test.mygo:43:3*/	} else {
- /*line zz_community_creation.gen_test.go:66:1*/	}
+ /*line zz_community_creation.gen_test.go:67:1*/	}
  /*line community_creation_test.mygo:9:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actors").Where("kind='Group'").Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actors").Where("kind='Group'").Count(&count)))
  /*line community_creation_test.mygo:48:3*/	if count != int64(3) {
  /*line community_creation_test.mygo:49:5*/		t.Fatal("local-only creation emitted a Group actor or duplicate leaked one")
  /*line community_creation_test.mygo:48:3*/	} else {
- /*line zz_community_creation.gen_test.go:72:1*/	}
- /*line community_creation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("communities").Count(&count)))
+ /*line zz_community_creation.gen_test.go:73:1*/	}
+ /*line community_creation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("communities").Count(&count)))
  /*line community_creation_test.mygo:52:3*/	if count != int64(6) {
- /*line community_creation_test.mygo:53:5*/		t.Fatal("creation failure did not roll back community state")
+ /*line community_creation_test.mygo:53:5*/		t.Fatal("creation failed did not roll back community state")
  /*line community_creation_test.mygo:52:3*/	} else {
- /*line zz_community_creation.gen_test.go:77:1*/	}
+ /*line zz_community_creation.gen_test.go:78:1*/	}
  /*line community_creation_test.mygo:9:1*/	localRow := Zero[CommunityRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("communities").Where("federation_mode='local_only'").Limit(1).Find(&localRow)))
- /*line community_creation_test.mygo:57:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("UPDATE communities SET federation_mode='federated', actor_uri=? WHERE id=?", "https://a.example/communities/converted", localRow.ID))) {
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("communities").Where("federation_mode='local_only'").Limit(1).Find(&localRow)))
+ /*line community_creation_test.mygo:57:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE communities SET federation_mode='federated', actor_uri=? WHERE id=?", "https://a.example/communities/converted", localRow.ID))) {
  /*line community_creation_test.mygo:58:5*/		t.Fatal("local-only community was converted to federated")
  /*line community_creation_test.mygo:57:3*/	} else {
- /*line zz_community_creation.gen_test.go:83:1*/	}
- /*line community_creation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("delivery_jobs").Count(&count)))
+ /*line zz_community_creation.gen_test.go:84:1*/	}
+ /*line community_creation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("delivery_jobs").Count(&count)))
  /*line community_creation_test.mygo:61:3*/	if count != int64(0) {
  /*line community_creation_test.mygo:62:5*/		t.Fatal("creation scheduled unintended federation delivery")
 		return
  /*line community_creation_test.mygo:61:3*/	} else {
 		return
- /*line zz_community_creation.gen_test.go:90:1*/	}
+ /*line zz_community_creation.gen_test.go:91:1*/	}
 }

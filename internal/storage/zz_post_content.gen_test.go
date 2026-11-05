@@ -10,6 +10,7 @@ import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -20,101 +21,101 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_post_content.gen_test.go:23:1*/	}
+ /*line zz_post_content.gen_test.go:24:1*/	}
  /*line post_content_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	outsider := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "outsider", "", "outsider-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	outsider := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "outsider", "", "outsider-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "Private", "local_only", "members", "members"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(communities, ctx, community.ID, alice, false, bob.ActorURI, true))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "Private", "local_only", "members", "members"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM9SetMember(communities, ctx, community.ID, alice, false, bob.ActorURI, true))
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	source := "中文 **内容** @bob @bob @outsider `@alice`"
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: source, ContentFormat: "markdown", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContextURI: "", ParentID: ""}))
+	post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: source, ContentFormat: "markdown", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContextURI: "", ParentID: ""}))
  /*line post_content_test.mygo:52:3*/	if post.Body != source || post.ContentFormat != "markdown" || strings.Contains(post.SearchText, "**") || !strings.Contains(post.SearchText, "中文 内容") {
  /*line post_content_test.mygo:56:5*/		t.Fatal("source/format/search text not preserved correctly")
  /*line post_content_test.mygo:52:3*/	} else {
- /*line zz_post_content.gen_test.go:42:1*/	}
+ /*line zz_post_content.gen_test.go:43:1*/	}
  /*line post_content_test.mygo:12:1*/	var mentions []PostMentionRecord = []PostMentionRecord{}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&mentions)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&mentions)))
  /*line post_content_test.mygo:60:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(mentions) != 1 || MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).ActorURI != bob.ActorURI {
  /*line post_content_test.mygo:61:5*/		t.Fatal("mention deduplication or private audience filtering failed")
  /*line post_content_test.mygo:60:3*/	} else {
- /*line zz_post_content.gen_test.go:48:1*/	}
+ /*line zz_post_content.gen_test.go:49:1*/	}
  /*line post_content_test.mygo:12:1*/	occurrence := MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).ID
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "prefix "+source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	unchanged := Zero[PostMentionRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&unchanged)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&unchanged)))
  /*line post_content_test.mygo:78:3*/	if unchanged.ID != occurrence || unchanged.SourceStart == MygoIN6OptionM6Unwrap[PostMentionRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(mentions, 0)).SourceStart {
  /*line post_content_test.mygo:80:5*/		t.Fatal("unchanged actor renotified or source span did not move")
  /*line post_content_test.mygo:78:3*/	} else {
- /*line zz_post_content.gen_test.go:56:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
+ /*line zz_post_content.gen_test.go:57:1*/	}
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", "removed", "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	var retired int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(&retired)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("notification_events").Where("kind='mention' AND occurrence=? AND retired_at IS NOT NULL", occurrence).Count(&retired)))
  /*line post_content_test.mygo:99:3*/	if retired != int64(1) {
  /*line post_content_test.mygo:100:5*/		t.Fatal("removed mention notification remained active")
  /*line post_content_test.mygo:99:3*/	} else {
- /*line zz_post_content.gen_test.go:63:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
+ /*line zz_post_content.gen_test.go:64:1*/	}
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", source, "", []string{}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
 	reintroduced := Zero[PostMentionRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&reintroduced)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("post_mentions").Where("post_id=? AND active", post.ID).Find(&reintroduced)))
  /*line post_content_test.mygo:116:3*/	if reintroduced.ID == occurrence {
  /*line post_content_test.mygo:117:5*/		t.Fatal("reintroduction reused retired occurrence")
  /*line post_content_test.mygo:116:3*/	} else {
- /*line zz_post_content.gen_test.go:70:1*/	}
+ /*line zz_post_content.gen_test.go:71:1*/	}
  /*line post_content_test.mygo:12:1*/	expires := time.Now().Add(time.Hour)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,preview_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('owned',?,?,'post','ready',100,20,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
 	illustrated := "![图](/api/v1/media/owned) @bob"
-	saved := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
-	state := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
-	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(state))
-	rendered := MygoIN6ResultM6Unwrap[string, string](RenderStoredPost(content.DefaultSanitizer, saved, state, false))
+	saved := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Topic", illustrated, "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
+	state := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
+	media := MygoIN6ResultM6Unwrap[[]content.RichMedia, failure.Failure](MygoIN13PostRichStateM9RichMedia(state))
+	rendered := MygoIN6ResultM6Unwrap[string, failure.Failure](RenderStoredPost(content.DefaultSanitizer, saved, state, false))
  /*line post_content_test.mygo:144:3*/	if saved.Body != illustrated || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(media) != 1 || !strings.Contains(rendered, "/api/v1/media/"+MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(media, 0)).BindingID+"/preview") || strings.Contains(rendered, "src=\"/api/v1/media/owned\"") {
  /*line post_content_test.mygo:148:5*/		t.Fatal("display binding rewrite changed source or missed safe preview")
  /*line post_content_test.mygo:144:3*/	} else {
- /*line zz_post_content.gen_test.go:81:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
+ /*line zz_post_content.gen_test.go:82:1*/	}
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('replacement',?,?,'post','ready',100,20,'image/png',?,'lease',?)", site.ID, alice.AccountID, expires, expires)))
 	stale := MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![new](/api/v1/media/replacement)", "markdown", []string{"replacement"}, saved.Version-int64(1), content.DefaultSanitizer)
- /*line post_content_test.mygo:170:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](stale) || MygoIN6ResultM9UnwrapErr[PostRecord, string](stale) != "edit_conflict" {
+ /*line post_content_test.mygo:170:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](stale) || failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](stale)) != "edit_conflict" {
  /*line post_content_test.mygo:171:5*/		t.Fatal("stale attachment save did not conflict")
  /*line post_content_test.mygo:170:3*/	} else {
- /*line zz_post_content.gen_test.go:87:1*/	}
- /*line post_content_test.mygo:173:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"}, saved.Version, content.DefaultSanitizer)) {
+ /*line zz_post_content.gen_test.go:88:1*/	}
+ /*line post_content_test.mygo:173:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, alice, false, "Changed", "![foreign](/api/v1/media/foreign)", "markdown", []string{"replacement"}, saved.Version, content.DefaultSanitizer)) {
  /*line post_content_test.mygo:185:5*/		t.Fatal("unbound source reference accepted")
  /*line post_content_test.mygo:173:3*/	} else {
- /*line zz_post_content.gen_test.go:91:1*/	}
- /*line post_content_test.mygo:12:1*/	after := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID)))
-	afterState := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
- /*line post_content_test.mygo:189:3*/	if after.Body != illustrated || after.Version != saved.Version || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(afterState)), 0)).UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON {
+ /*line zz_post_content.gen_test.go:92:1*/	}
+ /*line post_content_test.mygo:12:1*/	after := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID)))
+	afterState := MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](LoadPostRichStates(ctx, db, []string{post.ID})), 0))
+ /*line post_content_test.mygo:189:3*/	if after.Body != illustrated || after.Version != saved.Version || MygoIN6OptionM6Unwrap[content.RichMedia](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]content.RichMedia, failure.Failure](MygoIN13PostRichStateM9RichMedia(afterState)), 0)).UploadID != "owned" || afterState.MentionsJSON != state.MentionsJSON {
  /*line post_content_test.mygo:193:5*/		t.Fatal("failed edit leaked body or binding changes")
  /*line post_content_test.mygo:189:3*/	} else {
- /*line zz_post_content.gen_test.go:97:1*/	}
+ /*line zz_post_content.gen_test.go:98:1*/	}
  /*line post_content_test.mygo:12:1*/	var rolledBack int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("media_bindings").Where("upload_id='replacement'").Count(&rolledBack)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("media_bindings").Where("upload_id='replacement'").Count(&rolledBack)))
  /*line post_content_test.mygo:197:3*/	if rolledBack != int64(0) {
  /*line post_content_test.mygo:198:5*/		t.Fatal("failed edit left a new binding")
  /*line post_content_test.mygo:197:3*/	} else {
- /*line zz_post_content.gen_test.go:103:1*/	}
- /*line post_content_test.mygo:200:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer)) {
+ /*line zz_post_content.gen_test.go:104:1*/	}
+ /*line post_content_test.mygo:200:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14PostRepositoryM11EditContent(posts, ctx, post.ID, outsider, false, "Topic", "stolen", "markdown", []string{"owned"}, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer)) {
  /*line post_content_test.mygo:212:5*/		t.Fatal("foreign owner edited content/bindings")
  /*line post_content_test.mygo:200:3*/	} else {
- /*line zz_post_content.gen_test.go:107:1*/	}
- /*line post_content_test.mygo:12:1*/	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
- /*line post_content_test.mygo:224:3*/	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
+ /*line zz_post_content.gen_test.go:108:1*/	}
+ /*line post_content_test.mygo:12:1*/	beforeDelete := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM4Edit(posts, ctx, post.ID, alice, false, "Topic", illustrated, MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, post.ID))).Version, content.DefaultSanitizer))
+ /*line post_content_test.mygo:224:3*/	if beforeDelete.ContentFormat != "markdown" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, failure.Failure](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 1 {
  /*line post_content_test.mygo:227:5*/		t.Fatal("legacy edit API cleared format/attachments")
  /*line post_content_test.mygo:224:3*/	} else {
- /*line zz_post_content.gen_test.go:112:1*/	}
- /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, post.ID, alice, false))
- /*line post_content_test.mygo:230:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 0 {
+ /*line zz_post_content.gen_test.go:113:1*/	}
+ /*line post_content_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14PostRepositoryM6Delete(posts, ctx, post.ID, alice, false))
+ /*line post_content_test.mygo:230:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]content.RichMedia, failure.Failure](MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](LoadPostRichStates(ctx, db, []string{post.ID})), 0))))) != 0 {
  /*line post_content_test.mygo:232:5*/		t.Fatal("deletion left readable bindings")
 		return
  /*line post_content_test.mygo:230:3*/	} else {
 		return
- /*line zz_post_content.gen_test.go:119:1*/	}
+ /*line zz_post_content.gen_test.go:120:1*/	}
 }

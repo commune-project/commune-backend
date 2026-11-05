@@ -5,38 +5,39 @@ package storage
 import "context"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line feed.mygo:7:1*/type FeedRepository struct {
+ /*line feed.mygo:8:1*/type FeedRepository struct {
 	DB     *gorm.DB
 	SiteID string
- /*line zz_feed.gen.go:13:1*/}
- /*line feed.mygo:12:1*/type Page struct {
+ /*line zz_feed.gen.go:14:1*/}
+ /*line feed.mygo:13:1*/type Page struct {
 	Limit  int
 	Offset int
- /*line zz_feed.gen.go:17:1*/}
+ /*line zz_feed.gen.go:18:1*/}
 
- /*line feed.mygo:17:1*/func MygoIN4PageM5Valid(self Page, max int) bool {
- /*line feed.mygo:19:5*/	return self.Limit > 0 && self.Limit <= max && self.Offset >= 0
- /*line zz_feed.gen.go:21:1*/}
+ /*line feed.mygo:18:1*/func MygoIN4PageM5Valid(self Page, max int) bool {
+ /*line feed.mygo:20:5*/	return self.Limit > 0 && self.Limit <= max && self.Offset >= 0
+ /*line zz_feed.gen.go:22:1*/}
 
- /*line feed.mygo:23:1*/type ThreadRow struct {
+ /*line feed.mygo:24:1*/type ThreadRow struct {
 	Post     PostRecord "gorm:\"embedded\""
 	Depth    int        "gorm:\"column:depth\""
 	RootRank int        "gorm:\"column:root_rank\""
- /*line zz_feed.gen.go:27:1*/}
+ /*line zz_feed.gen.go:28:1*/}
 
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM6Thread(self FeedRepository, ctx context.Context, communityID string, parentID string, identity auth.Identity, remoteVerified bool, page Page, maxPages int, maxDepth int, sort string) Result[[]ThreadRow, string] {
- /*line feed.mygo:42:5*/	if !MygoIN4PageM5Valid(page, maxPages) || maxDepth < 1 || maxDepth > 8 {
- /*line feed.mygo:43:14*/		return Err[[]ThreadRow, string]("invalid page")
- /*line feed.mygo:42:5*/	} else {
- /*line zz_feed.gen.go:33:1*/	}
- /*line feed.mygo:29:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, communityID, identity, remoteVerified)
- /*line feed.mygo:46:5*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line feed.mygo:47:14*/		return Err[[]ThreadRow, string](MygoIN6ResultM9UnwrapErr[struct{}, string](allowed))
- /*line feed.mygo:46:5*/	} else {
- /*line zz_feed.gen.go:38:1*/	}
- /*line feed.mygo:29:1*/	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM6Thread(self FeedRepository, ctx context.Context, communityID string, parentID string, identity auth.Identity, remoteVerified bool, page Page, maxPages int, maxDepth int, sort string) Result[[]ThreadRow, failure.Failure] {
+ /*line feed.mygo:43:5*/	if !MygoIN4PageM5Valid(page, maxPages) || maxDepth < 1 || maxDepth > 8 {
+ /*line feed.mygo:44:14*/		return Err[[]ThreadRow, failure.Failure](Of("invalid page"))
+ /*line feed.mygo:43:5*/	} else {
+ /*line zz_feed.gen.go:34:1*/	}
+ /*line feed.mygo:30:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, communityID, identity, remoteVerified)
+ /*line feed.mygo:47:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed) {
+ /*line feed.mygo:48:14*/		return Err[[]ThreadRow, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](allowed))
+ /*line feed.mygo:47:5*/	} else {
+ /*line zz_feed.gen.go:39:1*/	}
+ /*line feed.mygo:30:1*/	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
 	down := SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
 	order := PostSortSQL("p", sort, up, down)
 	rootVisible := "p.deleted_at IS NULL AND sp.hidden_at IS NULL AND " + PersonalBlockPArgs + " AND NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id) AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected')) "
@@ -44,134 +45,134 @@ import . "github.com/mygo-lang/mygo/prelude"
 	sql := "WITH RECURSIVE roots AS (SELECT p.id, ROW_NUMBER() OVER (ORDER BY " + order + ") AS root_rank FROM posts p JOIN site_posts sp ON sp.post_id=p.id AND sp.site_id=? WHERE p.community_id=? AND p.parent_id=? AND " + rootVisible + " ORDER BY " + order + " LIMIT ? OFFSET ?), tree AS (SELECT p.*, 1 AS depth, r.root_rank FROM posts p JOIN roots r ON p.id=r.id UNION ALL SELECT c.*, t.depth+1, t.root_rank FROM posts c JOIN tree t ON c.parent_id=t.id JOIN site_posts sp2 ON sp2.post_id=c.id AND sp2.site_id=? WHERE t.depth < ? AND " + childVisible + ") SELECT * FROM tree ORDER BY root_rank,depth,authored_at,id"
 	var rows []ThreadRow = []ThreadRow{}
 	query := self.DB.WithContext(ctx).Raw(sql, self.SiteID, communityID, parentID, self.SiteID, identity.AccountID, self.SiteID, identity.AccountID, page.Limit, page.Offset, self.SiteID, maxDepth, self.SiteID, identity.AccountID, self.SiteID, identity.AccountID).Scan(&rows)
- /*line feed.mygo:86:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line feed.mygo:87:14*/		return Err[[]ThreadRow, string]("feed unavailable")
- /*line feed.mygo:86:5*/	} else {
- /*line zz_feed.gen.go:50:1*/	}
- /*line feed.mygo:89:5*/	return Ok[[]ThreadRow, string](rows)
- /*line zz_feed.gen.go:52:1*/}
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM10ListTopics(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool, page Page, maxPage int) Result[[]PostRecord, string] {
- /*line feed.mygo:103:5*/	return MygoIN14FeedRepositoryM16ListTopicsSorted(self, ctx, communityID, identity, remoteVerified, page, maxPage, "new")
- /*line zz_feed.gen.go:55:1*/}
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM16ListTopicsSorted(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool, page Page, maxPage int, sort string) Result[[]PostRecord, string] {
- /*line feed.mygo:115:5*/	if !MygoIN4PageM5Valid(page, maxPage) {
- /*line feed.mygo:116:14*/		return Err[[]PostRecord, string]("invalid page")
- /*line feed.mygo:115:5*/	} else {
- /*line zz_feed.gen.go:60:1*/	}
- /*line feed.mygo:29:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, communityID, identity, remoteVerified)
- /*line feed.mygo:119:5*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line feed.mygo:120:14*/		return Err[[]PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](allowed))
- /*line feed.mygo:119:5*/	} else {
- /*line zz_feed.gen.go:65:1*/	}
- /*line feed.mygo:29:1*/	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
+ /*line feed.mygo:87:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line feed.mygo:88:14*/		return Err[[]ThreadRow, failure.Failure](Of("feed unavailable"))
+ /*line feed.mygo:87:5*/	} else {
+ /*line zz_feed.gen.go:51:1*/	}
+ /*line feed.mygo:90:5*/	return Ok[[]ThreadRow, failure.Failure](rows)
+ /*line zz_feed.gen.go:53:1*/}
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM10ListTopics(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool, page Page, maxPage int) Result[[]PostRecord, failure.Failure] {
+ /*line feed.mygo:104:5*/	return MygoIN14FeedRepositoryM16ListTopicsSorted(self, ctx, communityID, identity, remoteVerified, page, maxPage, "new")
+ /*line zz_feed.gen.go:56:1*/}
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM16ListTopicsSorted(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool, page Page, maxPage int, sort string) Result[[]PostRecord, failure.Failure] {
+ /*line feed.mygo:116:5*/	if !MygoIN4PageM5Valid(page, maxPage) {
+ /*line feed.mygo:117:14*/		return Err[[]PostRecord, failure.Failure](Of("invalid page"))
+ /*line feed.mygo:116:5*/	} else {
+ /*line zz_feed.gen.go:61:1*/	}
+ /*line feed.mygo:30:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, communityID, identity, remoteVerified)
+ /*line feed.mygo:120:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed) {
+ /*line feed.mygo:121:14*/		return Err[[]PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](allowed))
+ /*line feed.mygo:120:5*/	} else {
+ /*line zz_feed.gen.go:66:1*/	}
+ /*line feed.mygo:30:1*/	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
 	down := SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
 	var records []PostRecord = []PostRecord{}
 	query := self.DB.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts AS sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.community_id=? AND p.parent_id IS NULL AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND "+PersonalBlockPArgs+" AND NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id) AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", communityID, self.SiteID, identity.AccountID, self.SiteID, identity.AccountID).Order(PostSortSQL("p", sort, up, down)).Limit(page.Limit).Offset(page.Offset).Find(&records)
- /*line feed.mygo:138:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line feed.mygo:139:14*/		return Err[[]PostRecord, string]("feed unavailable")
- /*line feed.mygo:138:5*/	} else {
- /*line zz_feed.gen.go:73:1*/	}
- /*line feed.mygo:141:5*/	return Ok[[]PostRecord, string](records)
- /*line zz_feed.gen.go:75:1*/}
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM5Count(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool) Result[int64, string] {
+ /*line feed.mygo:139:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line feed.mygo:140:14*/		return Err[[]PostRecord, failure.Failure](Of("feed unavailable"))
+ /*line feed.mygo:139:5*/	} else {
+ /*line zz_feed.gen.go:74:1*/	}
+ /*line feed.mygo:142:5*/	return Ok[[]PostRecord, failure.Failure](records)
+ /*line zz_feed.gen.go:76:1*/}
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM5Count(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool) Result[int64, failure.Failure] {
 	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, communityID, identity, remoteVerified)
- /*line feed.mygo:151:5*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line feed.mygo:152:14*/		return Err[int64, string](MygoIN6ResultM9UnwrapErr[struct{}, string](allowed))
- /*line feed.mygo:151:5*/	} else {
- /*line zz_feed.gen.go:81:1*/	}
- /*line feed.mygo:29:1*/	var count int64 = int64(0)
+ /*line feed.mygo:152:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed) {
+ /*line feed.mygo:153:14*/		return Err[int64, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](allowed))
+ /*line feed.mygo:152:5*/	} else {
+ /*line zz_feed.gen.go:82:1*/	}
+ /*line feed.mygo:30:1*/	var count int64 = int64(0)
 	query := self.DB.WithContext(ctx).Table("posts AS p").Joins("JOIN site_posts AS sp ON sp.post_id=p.id AND sp.site_id=?", self.SiteID).Where("p.community_id=? AND p.deleted_at IS NULL AND sp.hidden_at IS NULL AND "+PersonalBlockPArgs+" AND NOT EXISTS (SELECT 1 FROM post_hidden h WHERE h.site_id=? AND h.account_id=? AND h.post_id=p.id) AND NOT EXISTS (SELECT 1 FROM collection_memberships cm WHERE cm.post_id=p.id AND cm.community_id=p.community_id AND cm.state IN ('removed','rejected'))", communityID, self.SiteID, identity.AccountID, self.SiteID, identity.AccountID).Count(&count)
- /*line feed.mygo:168:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line feed.mygo:169:14*/		return Err[int64, string]("feed unavailable")
- /*line feed.mygo:168:5*/	} else {
- /*line zz_feed.gen.go:87:1*/	}
- /*line feed.mygo:171:5*/	return Ok[int64, string](count)
- /*line zz_feed.gen.go:89:1*/}
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM10ReadObject(self FeedRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[PostRecord, string] {
+ /*line feed.mygo:169:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line feed.mygo:170:14*/		return Err[int64, failure.Failure](Of("feed unavailable"))
+ /*line feed.mygo:169:5*/	} else {
+ /*line zz_feed.gen.go:88:1*/	}
+ /*line feed.mygo:172:5*/	return Ok[int64, failure.Failure](count)
+ /*line zz_feed.gen.go:90:1*/}
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM10ReadObject(self FeedRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[PostRecord, failure.Failure] {
 	loaded := loadPostForUpdate(self.DB, id)
- /*line feed.mygo:181:5*/	if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line feed.mygo:182:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[PostRecord, string](loaded))
- /*line feed.mygo:181:5*/	} else {
- /*line zz_feed.gen.go:95:1*/	}
- /*line feed.mygo:29:1*/	post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
+ /*line feed.mygo:182:5*/	if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](loaded) {
+ /*line feed.mygo:183:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](loaded))
+ /*line feed.mygo:182:5*/	} else {
+ /*line zz_feed.gen.go:96:1*/	}
+ /*line feed.mygo:30:1*/	post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](loaded)
 	hidden := QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, id))
- /*line feed.mygo:190:5*/	if MygoIN6ResultM5IsErr[bool, string](hidden) {
- /*line feed.mygo:191:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[bool, string](hidden))
- /*line feed.mygo:190:5*/	} else {
- /*line zz_feed.gen.go:101:1*/	}
- /*line feed.mygo:193:5*/	if !MygoIN6ResultM6Unwrap[bool, string](hidden) {
- /*line feed.mygo:194:14*/		return Err[PostRecord, string]("not found")
- /*line feed.mygo:193:5*/	} else {
- /*line zz_feed.gen.go:105:1*/	}
- /*line feed.mygo:29:1*/	personallyBlocked := PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, id)
- /*line feed.mygo:197:5*/	if MygoIN6ResultM5IsErr[bool, string](personallyBlocked) {
- /*line feed.mygo:198:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[bool, string](personallyBlocked))
- /*line feed.mygo:197:5*/	} else {
- /*line zz_feed.gen.go:110:1*/	}
- /*line feed.mygo:200:5*/	if MygoIN6ResultM6Unwrap[bool, string](personallyBlocked) {
- /*line feed.mygo:201:14*/		return Err[PostRecord, string]("not found")
- /*line feed.mygo:200:5*/	} else {
- /*line zz_feed.gen.go:114:1*/	}
- /*line feed.mygo:29:1*/	ancestorID := post.ParentID
+ /*line feed.mygo:191:5*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](hidden) {
+ /*line feed.mygo:192:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](hidden))
+ /*line feed.mygo:191:5*/	} else {
+ /*line zz_feed.gen.go:102:1*/	}
+ /*line feed.mygo:194:5*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](hidden) {
+ /*line feed.mygo:195:14*/		return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:194:5*/	} else {
+ /*line zz_feed.gen.go:106:1*/	}
+ /*line feed.mygo:30:1*/	personallyBlocked := PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, id)
+ /*line feed.mygo:198:5*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](personallyBlocked) {
+ /*line feed.mygo:199:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](personallyBlocked))
+ /*line feed.mygo:198:5*/	} else {
+ /*line zz_feed.gen.go:111:1*/	}
+ /*line feed.mygo:201:5*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](personallyBlocked) {
+ /*line feed.mygo:202:14*/		return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:201:5*/	} else {
+ /*line zz_feed.gen.go:115:1*/	}
+ /*line feed.mygo:30:1*/	ancestorID := post.ParentID
 	for ancestorID.Valid {
 		ancestor := Zero[PostRecord]()
 		loadedAncestor := self.DB.WithContext(ctx).Table("posts").Where("id=? AND community_id=? AND deleted_at IS NULL", ancestorID.String, post.CommunityID).Limit(1).Find(&ancestor)
-		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loadedAncestor)) || loadedAncestor.RowsAffected != int64(1) {
- /*line feed.mygo:212:16*/			return Err[PostRecord, string]("not found")
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:122:1*/		}
- /*line feed.mygo:29:1*/		receivedAncestor := QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, ancestor.ID))
-		if MygoIN6ResultM5IsErr[bool, string](receivedAncestor) {
- /*line feed.mygo:220:16*/			return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[bool, string](receivedAncestor))
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:127:1*/		}
- /*line feed.mygo:29:1*/		if !MygoIN6ResultM6Unwrap[bool, string](receivedAncestor) {
- /*line feed.mygo:223:16*/			return Err[PostRecord, string]("not found")
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:131:1*/		}
- /*line feed.mygo:29:1*/		includedAncestor := QueryExists(self.DB.WithContext(ctx).Table("collection_memberships").Where("post_id=? AND community_id=? AND state IN ('removed','rejected')", ancestor.ID, ancestor.CommunityID))
-		if MygoIN6ResultM5IsErr[bool, string](includedAncestor) {
- /*line feed.mygo:231:16*/			return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[bool, string](includedAncestor))
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:136:1*/		}
- /*line feed.mygo:29:1*/		if MygoIN6ResultM6Unwrap[bool, string](includedAncestor) {
- /*line feed.mygo:234:16*/			return Err[PostRecord, string]("not found")
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:140:1*/		}
- /*line feed.mygo:29:1*/		blockedAncestor := PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, ancestor.ID)
-		if MygoIN6ResultM5IsErr[bool, string](blockedAncestor) {
- /*line feed.mygo:238:16*/			return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[bool, string](blockedAncestor))
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:145:1*/		}
- /*line feed.mygo:29:1*/		if MygoIN6ResultM6Unwrap[bool, string](blockedAncestor) {
- /*line feed.mygo:241:16*/			return Err[PostRecord, string]("not found")
- /*line feed.mygo:29:1*/		} else {
- /*line zz_feed.gen.go:149:1*/		}
- /*line feed.mygo:29:1*/		ancestorID = ancestor.ParentID
- /*line zz_feed.gen.go:151:1*/	}
- /*line feed.mygo:29:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, post.CommunityID, identity, remoteVerified)
- /*line feed.mygo:246:5*/	if MygoIN6ResultM5IsErr[struct{}, string](allowed) {
- /*line feed.mygo:247:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](allowed))
- /*line feed.mygo:246:5*/	} else {
- /*line zz_feed.gen.go:156:1*/	}
- /*line feed.mygo:249:5*/	return Ok[PostRecord, string](post)
- /*line zz_feed.gen.go:158:1*/}
- /*line feed.mygo:29:1*/func MygoIN14FeedRepositoryM9AllowRead(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loadedAncestor)) || loadedAncestor.RowsAffected != int64(1) {
+ /*line feed.mygo:213:16*/			return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:123:1*/		}
+ /*line feed.mygo:30:1*/		receivedAncestor := QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, ancestor.ID))
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](receivedAncestor) {
+ /*line feed.mygo:221:16*/			return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](receivedAncestor))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:128:1*/		}
+ /*line feed.mygo:30:1*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](receivedAncestor) {
+ /*line feed.mygo:224:16*/			return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:132:1*/		}
+ /*line feed.mygo:30:1*/		includedAncestor := QueryExists(self.DB.WithContext(ctx).Table("collection_memberships").Where("post_id=? AND community_id=? AND state IN ('removed','rejected')", ancestor.ID, ancestor.CommunityID))
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](includedAncestor) {
+ /*line feed.mygo:232:16*/			return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](includedAncestor))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:137:1*/		}
+ /*line feed.mygo:30:1*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](includedAncestor) {
+ /*line feed.mygo:235:16*/			return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:141:1*/		}
+ /*line feed.mygo:30:1*/		blockedAncestor := PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, ancestor.ID)
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](blockedAncestor) {
+ /*line feed.mygo:239:16*/			return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blockedAncestor))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:146:1*/		}
+ /*line feed.mygo:30:1*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](blockedAncestor) {
+ /*line feed.mygo:242:16*/			return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line feed.mygo:30:1*/		} else {
+ /*line zz_feed.gen.go:150:1*/		}
+ /*line feed.mygo:30:1*/		ancestorID = ancestor.ParentID
+ /*line zz_feed.gen.go:152:1*/	}
+ /*line feed.mygo:30:1*/	allowed := MygoIN14FeedRepositoryM9AllowRead(self, ctx, post.CommunityID, identity, remoteVerified)
+ /*line feed.mygo:247:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](allowed) {
+ /*line feed.mygo:248:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](allowed))
+ /*line feed.mygo:247:5*/	} else {
+ /*line zz_feed.gen.go:157:1*/	}
+ /*line feed.mygo:250:5*/	return Ok[PostRecord, failure.Failure](post)
+ /*line zz_feed.gen.go:159:1*/}
+ /*line feed.mygo:30:1*/func MygoIN14FeedRepositoryM9AllowRead(self FeedRepository, ctx context.Context, communityID string, identity auth.Identity, remoteVerified bool) Result[struct{}, failure.Failure] {
 	community := CommunityRepository{DB: self.DB, SiteID: self.SiteID}
 	loaded := MygoIN19CommunityRepositoryM4Open(community, ctx, communityID, false)
- /*line feed.mygo:260:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, string](loaded) {
- /*line feed.mygo:261:14*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityRecord, string](loaded))
- /*line feed.mygo:260:5*/	} else {
- /*line zz_feed.gen.go:165:1*/	}
- /*line feed.mygo:29:1*/	access := MygoIN19CommunityRepositoryM6Access(community, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, string](loaded), identity, remoteVerified)
- /*line feed.mygo:264:5*/	if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line feed.mygo:265:14*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line feed.mygo:264:5*/	} else {
- /*line zz_feed.gen.go:170:1*/	}
- /*line feed.mygo:267:5*/	if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line feed.mygo:268:14*/		return Err[struct{}, string]("not found")
- /*line feed.mygo:267:5*/	} else {
- /*line zz_feed.gen.go:174:1*/	}
- /*line feed.mygo:270:5*/	return Ok[struct{}, string](struct {
- /*line zz_feed.gen.go:176:1*/	}{})
+ /*line feed.mygo:261:5*/	if MygoIN6ResultM5IsErr[CommunityRecord, failure.Failure](loaded) {
+ /*line feed.mygo:262:14*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityRecord, failure.Failure](loaded))
+ /*line feed.mygo:261:5*/	} else {
+ /*line zz_feed.gen.go:166:1*/	}
+ /*line feed.mygo:30:1*/	access := MygoIN19CommunityRepositoryM6Access(community, ctx, MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](loaded), identity, remoteVerified)
+ /*line feed.mygo:265:5*/	if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) {
+ /*line feed.mygo:266:14*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](access))
+ /*line feed.mygo:265:5*/	} else {
+ /*line zz_feed.gen.go:171:1*/	}
+ /*line feed.mygo:268:5*/	if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access)) {
+ /*line feed.mygo:269:14*/		return Err[struct{}, failure.Failure](Of("not found"))
+ /*line feed.mygo:268:5*/	} else {
+ /*line zz_feed.gen.go:175:1*/	}
+ /*line feed.mygo:271:5*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_feed.gen.go:177:1*/	}{})
 }

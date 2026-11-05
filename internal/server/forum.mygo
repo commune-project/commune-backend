@@ -186,9 +186,9 @@ func DecodeJSON[T](
   request: Ref[http.Request],
   maxBytes: Int,
   target: Ref[T]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if request.Header.Get("Content-Type").Split(";").Get(0).UnwrapOr("") != "application/json" then
-    return Err("expected application/json")
+    return Err(Of("expected application/json"))
   end
   let reader = http.MaxBytesReader(w, request.Body, maxBytes as Int64)
   let result = DecodeJSONBody(reader as io.ReadCloser, target)
@@ -196,16 +196,16 @@ func DecodeJSON[T](
   result
 end
 
-func DecodeJSONBody[T](reader: io.ReadCloser, target: Ref[T]) -> Result[(), String]
+func DecodeJSONBody[T](reader: io.ReadCloser, target: Ref[T]) -> Result[(), failure.Failure]
   let decoder = json.NewDecoder(reader as io.Reader)
   decoder.DisallowUnknownFields()
   if decoder.Decode(target).IsErr() then
-    return Err("invalid request body")
+    return Err(Of("invalid request body"))
   end
   let extra = [] as json.RawMessage
   let trailing = decoder.Decode(Ref.new(extra))
   if trailing.IsOk() || !errors.Is(trailing.UnwrapErr(), io.EOF) then
-    return Err("invalid request body")
+    return Err(Of("invalid request body"))
   end
   Ok(())
 end
@@ -213,27 +213,27 @@ end
 func PageFromQuery(
   settings: config.Config,
   request: Ref[http.Request]
-) -> Result[storage.Page, String]
+) -> Result[storage.Page, failure.Failure]
   let query = request.URL.Query()
   var limit = 20
   var offset = 0
   if query.Get("limit") != "" then
     let parsed = strconv.Atoi(query.Get("limit"))
     if parsed.IsErr() then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     limit = parsed.Unwrap()
   end
   if query.Get("offset") != "" then
     let parsed = strconv.Atoi(query.Get("offset"))
     if parsed.IsErr() then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     offset = parsed.Unwrap()
   end
   let page = storage.Page { Limit: limit, Offset: offset }
   if !page.Valid(settings.Runtime.MaxPageSize) then
-    return Err("invalid page")
+    return Err(Of("invalid page"))
   end
   Ok(page)
 end
@@ -242,10 +242,10 @@ func Authenticated(
   db: Ref[gorm.DB],
   site: config.Site,
   request: Ref[http.Request]
-) -> Result[storage.AuthenticatedSession, String]
+) -> Result[storage.AuthenticatedSession, failure.Failure]
   let token = ReadSession(request)
   if token.IsErr() then
-    return Err("unauthenticated")
+    return Err(Of("unauthenticated"))
   end
   let sessions = storage.SessionRepository { DB: db }
   sessions.Resolve(request.Context(), site.ID, token.Unwrap(), time.Now())

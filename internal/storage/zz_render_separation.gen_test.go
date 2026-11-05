@@ -8,6 +8,7 @@ import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -18,36 +19,36 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_render_separation.gen_test.go:21:1*/	}
+ /*line zz_render_separation.gen_test.go:22:1*/	}
  /*line render_separation_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	raw := "<script>alert(1)</script><p>hello</p>"
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "T", Body: raw, ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "T", Body: raw, ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
 	stored := Zero[PostRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&stored)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&stored)))
  /*line render_separation_test.mygo:49:3*/	if stored.Body != raw {
  /*line render_separation_test.mygo:50:5*/		t.Fatal("stored protocol body was rewritten by display logic")
  /*line render_separation_test.mygo:49:3*/	} else {
- /*line zz_render_separation.gen_test.go:39:1*/	}
+ /*line zz_render_separation.gen_test.go:40:1*/	}
  /*line render_separation_test.mygo:10:1*/	display := content.RenderText(stored.Body)
  /*line render_separation_test.mygo:53:3*/	if display != "hello" || content.RenderText(stored.Body) != display {
  /*line render_separation_test.mygo:54:5*/		t.Fatal("display rendering was unsafe or not deterministic")
  /*line render_separation_test.mygo:53:3*/	} else {
- /*line zz_render_separation.gen_test.go:44:1*/	}
+ /*line zz_render_separation.gen_test.go:45:1*/	}
  /*line render_separation_test.mygo:10:1*/	again := Zero[PostRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&again)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("posts").Where("id=?", post.ID).Find(&again)))
  /*line render_separation_test.mygo:58:3*/	if again.Body != raw {
  /*line render_separation_test.mygo:59:5*/		t.Fatal("rendering mutated the retained inbound payload")
 		return
  /*line render_separation_test.mygo:58:3*/	} else {
 		return
- /*line zz_render_separation.gen_test.go:52:1*/	}
+ /*line zz_render_separation.gen_test.go:53:1*/	}
 }

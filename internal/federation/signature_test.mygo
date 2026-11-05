@@ -23,7 +23,7 @@ func TestSigningAndVerification(t: Ref[testing.T]) -> ()
   let header = FormatSignatureHeader("https://peer.example/users/alice#main-key", signature)
   let verified = VerifyRequest(publicKey, "POST", target, host, date, digest, header, now, 3600i64)
   if verified.IsErr() then
-    t.Fatalf("valid signed request was rejected: %s", verified.UnwrapErr())
+    t.Fatalf("valid signed request was rejected: %s", verified.UnwrapErr().Render())
   end
   if verified.Unwrap().KeyID != "https://peer.example/users/alice#main-key" then
     t.Fatal("verified request lost the key identifier")
@@ -38,7 +38,7 @@ func TestSigningAndVerification(t: Ref[testing.T]) -> ()
     t.Fatal("signature verified under a different request target")
   end
   let stale = VerifyRequest(publicKey, "POST", target, host, date, digest, header, now.Add(2 as time.Duration * time.Hour), 3600i64)
-  if stale.IsOk() || stale.UnwrapErr() != "stale request" then
+  if stale.IsOk() || stale.UnwrapErr().Render() != "stale request" then
     t.Fatal("stale request was accepted")
   end
   let otherKey = storage.PublicPEMFromPrivate(storage.GeneratePrivatePEM().Unwrap()).Unwrap()

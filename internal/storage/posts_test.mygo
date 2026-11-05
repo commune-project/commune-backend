@@ -9,6 +9,7 @@ import testsupport "github.com/commune-project/commune-backend/internal/testsupp
 import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -61,7 +62,7 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
   let post = makePost(uri, author, "same text", authored, false)
   let ready = concurrency.MakeChan[()](2)
   let start = concurrency.MakeChan[()](2)
-  let results = concurrency.MakeChan[Result[PostRecord, String]](2)
+  let results = concurrency.MakeChan[Result[PostRecord, failure.Failure]](2)
   [first, second].Each(func(repository: PostRepository) -> ()
     concurrency.Spawn(func() -> ()
       ready.Send(())
@@ -144,6 +145,6 @@ func TestPostgresSharedPostIdentity(t: Ref[testing.T]) -> ()
     "https://remote.example/objects/rollback"
   ).Count(Ref.new(count))).Unwrap()
   if count != 0i64 then
-    t.Fatal("reception failure left an uncommitted object")
+    t.Fatal("reception failed left an uncommitted object")
   end
 end

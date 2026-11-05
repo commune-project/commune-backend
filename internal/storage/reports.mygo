@@ -8,6 +8,7 @@ import strconv "go:strconv"
 import strings "go:strings"
 import utf8 "go:unicode/utf8"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ReportRecord
   ID: Int64 `gorm:"column:id" json:"id"`
@@ -54,22 +55,22 @@ func CheckModerationScope(
   siteID: String,
   identity: auth.Identity,
   communityID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let site = SiteRepository{DB: db, SiteID: siteID}
   let admin = site.IsAdministrator(ctx, identity)
   let deployment = site.IsDeploymentAdministrator(ctx, identity)
   if admin.IsErr() || deployment.IsErr() then
-    return Err("moderation unavailable")
+    return Err(Of("moderation unavailable"))
   end
   if communityID != "" then
     let community = CommunityRepository{DB: db, SiteID: siteID}.Check(ctx, communityID, identity, false)
     if community.IsErr() || !community.Unwrap().Authority.Allows("manage-community") then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     return Ok(())
   end
   if !admin.Unwrap() && !deployment.Unwrap() then
-    return Err("forbidden")
+    return Err(Of("forbidden"))
   end
   Ok(())
 end
@@ -84,7 +85,7 @@ func WriteModerationLog(
   targetKind: String,
   targetID: String,
   reason: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let community = if communityID == "" then
     Zero[sql.NullString]()
   else
@@ -115,19 +116,19 @@ func CreateReport(
   targetID: String,
   communityID: String,
   reason: String
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   let text = strings.TrimSpace(reason)
   if !ReportTargetValid(targetKind) ||
     targetID == "" ||
     text == "" ||
     utf8.RuneCountInString(text) > 1000 then
-    return Err("invalid report")
+    return Err(Of("invalid report"))
   end
   var inserted = false
   let result = RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let community = if communityID == "" then
         Zero[sql.NullString]()
       else
@@ -146,7 +147,7 @@ func CreateReport(
         text
       )
       if QueryFailed(query) then
-        return Err("report unavailable")
+        return Err(Of("report unavailable"))
       end
       inserted = query.RowsAffected == 1i64
       Ok(())
@@ -167,9 +168,9 @@ func ListReports(
   communityID: String,
   limit: Int,
   offset: Int
-) -> Result[Slice[ReportRecord], String]
+) -> Result[Slice[ReportRecord], failure.Failure]
   if state != "" && state != "open" && state != "resolved" && state != "rejected" then
-    return Err("invalid report state")
+    return Err(Of("invalid report state"))
   end
   let visible = CheckModerationScope(ctx, db, siteID, identity, communityID)
   if visible.IsErr() then
@@ -185,7 +186,7 @@ func ListReports(
     communityID
   ).Order("created_at DESC,id DESC").Limit(limit).Offset(offset).Find(Ref.new(rows))
   if MutationResult(query).IsErr() then
-    return Err("reports unavailable")
+    return Err(Of("reports unavailable"))
   end
   Ok(rows)
 end
@@ -198,24 +199,24 @@ func ResolveReport(
   id: Int64,
   state: String,
   note: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if state != "resolved" && state != "rejected" then
-    return Err("invalid report state")
+    return Err(Of("invalid report state"))
   end
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       var report = Zero[ReportRecord]()
       let loaded = tx.WithContext(ctx).Raw("SELECT * FROM reports WHERE id=? AND site_id=? FOR UPDATE", id, siteID).Scan(Ref.new(report))
       if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let site = SiteRepository{DB: tx, SiteID: siteID}
       let admin = site.IsAdministrator(ctx, identity)
       let deployment = site.IsDeploymentAdministrator(ctx, identity)
       if admin.IsErr() || deployment.IsErr() then
-        return Err("reports unavailable")
+        return Err(Of("reports unavailable"))
       end
       var allowed = admin.Unwrap() || deployment.Unwrap()
       if report.CommunityID.Valid then
@@ -226,13 +227,13 @@ func ResolveReport(
         allowed = community.IsOk() && community.Unwrap().Authority.Allows("manage-community")
       end
       if !allowed then
-        return Err("forbidden")
+        return Err(Of("forbidden"))
       end
       if report.State == state then
         return Ok(())
       end
       if report.State != "open" then
-        return Err("report conflict")
+        return Err(Of("report conflict"))
       end
       if MutationResult(tx.Exec(
         "UPDATE reports SET state=?,resolver_account_id=?,resolution_note=?,resolved_at=now() WHERE id=?",
@@ -241,7 +242,7 @@ func ResolveReport(
         note,
         id
       )).IsErr() then
-        return Err("report unavailable")
+        return Err(Of("report unavailable"))
       end
       let communityID = if report.CommunityID.Valid then
         report.CommunityID.String
@@ -255,7 +256,7 @@ func ResolveReport(
         report.ReporterAccountID
       ).Limit(1).Scan(Ref.new(reporter))
       if MutationResult(reporterQuery).IsErr() then
-        return Err("report unavailable")
+        return Err(Of("report unavailable"))
       end
       if reporter != "" && reporter != identity.ActorURI then
         let event = "report:" + strconv.FormatInt(id, 10) + ":" + state
@@ -296,7 +297,7 @@ func ModerationLog(
   communityID: String,
   limit: Int,
   offset: Int
-) -> Result[Slice[ModerationLogRecord], String]
+) -> Result[Slice[ModerationLogRecord], failure.Failure]
   let visible = CheckModerationScope(ctx, db, siteID, identity, communityID)
   if visible.IsErr() then
     return Err(visible.UnwrapErr())
@@ -309,7 +310,7 @@ func ModerationLog(
     communityID
   ).Order("created_at DESC,id DESC").Limit(limit).Offset(offset).Find(Ref.new(rows))
   if MutationResult(query).IsErr() then
-    return Err("modlog unavailable")
+    return Err(Of("modlog unavailable"))
   end
   Ok(rows)
 end
@@ -323,13 +324,13 @@ func BanCommunity(
   actorURI: String,
   reason: String,
   expiresAt: sql.NullTime
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let text = strings.TrimSpace(reason)
   if actorURI == "" ||
     actorURI == identity.ActorURI ||
     text == "" ||
     utf8.RuneCountInString(text) > 1000 then
-    return Err("invalid ban")
+    return Err(Of("invalid ban"))
   end
   CommunityRepository{DB: db, SiteID: siteID}.Manage(
     ctx,
@@ -338,10 +339,10 @@ func BanCommunity(
     false,
     "ban-member",
     actorURI,
-    func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
+    func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), failure.Failure]
       let known = QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
       if known.IsErr() || !known.Unwrap() then
-        return Err("invalid ban")
+        return Err(Of("invalid ban"))
       end
       if MutationResult(tx.Exec(
         "INSERT INTO community_bans(community_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()",
@@ -351,7 +352,7 @@ func BanCommunity(
         text,
         expiresAt
       )).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       let recipient = ""
       let found = tx.WithContext(ctx).Table("accounts").Select("actor_uri").Where(
@@ -360,7 +361,7 @@ func BanCommunity(
         actorURI
       ).Limit(1).Scan(Ref.new(recipient))
       if MutationResult(found).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if recipient != "" then
         let notified = QueueModerationNotification(
@@ -389,7 +390,7 @@ func UnbanCommunity(
   communityID: String,
   identity: auth.Identity,
   actorURI: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   CommunityRepository{DB: db, SiteID: siteID}.Manage(
     ctx,
     communityID,
@@ -397,17 +398,17 @@ func UnbanCommunity(
     false,
     "unban-member",
     actorURI,
-    func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), String]
+    func(tx: Ref[gorm.DB], community: CommunityRecord) -> Result[(), failure.Failure]
       let changed = tx.Exec(
         "UPDATE community_bans SET revoked_at=now() WHERE community_id=? AND actor_uri=? AND revoked_at IS NULL",
         communityID,
         actorURI
       )
       if MutationResult(changed).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if changed.RowsAffected != 1i64 then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       WriteModerationLog(ctx, tx, siteID, communityID, identity, "unban-member", "person", actorURI, "")
     end
@@ -422,30 +423,30 @@ func BanSite(
   actorURI: String,
   reason: String,
   expiresAt: sql.NullTime
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let text = strings.TrimSpace(reason)
   if actorURI == "" ||
     actorURI == identity.ActorURI ||
     text == "" ||
     utf8.RuneCountInString(text) > 1000 then
-    return Err("invalid ban")
+    return Err(Of("invalid ban"))
   end
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let site = SiteRepository{DB: tx, SiteID: siteID}
       let admin = site.IsAdministrator(ctx, identity)
       let deployment = site.IsDeploymentAdministrator(ctx, identity)
       if admin.IsErr() || deployment.IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if !admin.Unwrap() && !deployment.Unwrap() then
-        return Err("forbidden")
+        return Err(Of("forbidden"))
       end
       let known = QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
       if known.IsErr() || !known.Unwrap() then
-        return Err("invalid ban")
+        return Err(Of("invalid ban"))
       end
       if MutationResult(tx.Exec(
         "INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (site_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()",
@@ -455,7 +456,7 @@ func BanSite(
         text,
         expiresAt
       )).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       let recipient = ""
       let found = tx.WithContext(ctx).Table("accounts").Select("actor_uri").Where(
@@ -464,7 +465,7 @@ func BanSite(
         actorURI
       ).Limit(1).Scan(Ref.new(recipient))
       if MutationResult(found).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if recipient != "" then
         let notified = QueueModerationNotification(
@@ -487,7 +488,7 @@ func BanSite(
         siteID,
         actorURI
       )).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       WriteModerationLog(ctx, tx, siteID, "", identity, "ban-site", "person", actorURI, text)
     end
@@ -500,19 +501,19 @@ func UnbanSite(
   siteID: String,
   identity: auth.Identity,
   actorURI: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let site = SiteRepository{DB: tx, SiteID: siteID}
       let admin = site.IsAdministrator(ctx, identity)
       let deployment = site.IsDeploymentAdministrator(ctx, identity)
       if admin.IsErr() || deployment.IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if !admin.Unwrap() && !deployment.Unwrap() then
-        return Err("forbidden")
+        return Err(Of("forbidden"))
       end
       let changed = tx.Exec(
         "UPDATE site_bans SET revoked_at=now() WHERE site_id=? AND actor_uri=? AND revoked_at IS NULL",
@@ -520,10 +521,10 @@ func UnbanSite(
         actorURI
       )
       if MutationResult(changed).IsErr() then
-        return Err("ban unavailable")
+        return Err(Of("ban unavailable"))
       end
       if changed.RowsAffected != 1i64 then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       WriteModerationLog(ctx, tx, siteID, "", identity, "unban-site", "person", actorURI, "")
     end
@@ -536,7 +537,7 @@ func ActiveCommunityBan(
   communityID: String,
   actorURI: String,
   now: time.Time
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   QueryExists(db.WithContext(ctx).Table("community_bans").Where(
     "community_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)",
     communityID,
@@ -551,7 +552,7 @@ func ActiveSiteBan(
   siteID: String,
   actorURI: String,
   now: time.Time
-) -> Result[Bool, String]
+) -> Result[Bool, failure.Failure]
   QueryExists(db.WithContext(ctx).Table("site_bans").Where(
     "site_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)",
     siteID,

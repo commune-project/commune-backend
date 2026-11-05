@@ -6,13 +6,14 @@ import "context"
 import "database/sql"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line browser.mygo:8:1*/type ViewerRoles struct {
+ /*line browser.mygo:9:1*/type ViewerRoles struct {
 	SiteAdministrator            bool "json:\"site_administrator\""
 	DeploymentSuperadministrator bool "json:\"deployment_superadministrator\""
- /*line zz_browser.gen.go:14:1*/}
- /*line browser.mygo:13:1*/type BrowserViewer struct {
+ /*line zz_browser.gen.go:15:1*/}
+ /*line browser.mygo:14:1*/type BrowserViewer struct {
 	Identity           auth.Identity
 	Verified           bool
 	Blocked            bool
@@ -20,74 +21,74 @@ import . "github.com/mygo-lang/mygo/prelude"
 	UpvotesEnabled     bool
 	DownvotesEnabled   bool
 	VoteSettingsLoaded bool
- /*line zz_browser.gen.go:23:1*/}
- /*line browser.mygo:23:1*/type CommunityView struct {
+ /*line zz_browser.gen.go:24:1*/}
+ /*line browser.mygo:24:1*/type CommunityView struct {
 	Record        CommunityRecord "gorm:\"embedded\""
 	Member        bool            "gorm:\"column:member\""
 	Manager       bool            "gorm:\"column:manager\""
 	FollowState   sql.NullString  "gorm:\"column:follow_state\""
 	FollowerCount int64           "gorm:\"column:follower_count\""
- /*line zz_browser.gen.go:30:1*/}
- /*line browser.mygo:31:1*/type BrowserRepository struct {
+ /*line zz_browser.gen.go:31:1*/}
+ /*line browser.mygo:32:1*/type BrowserRepository struct {
 	DB     *gorm.DB
 	SiteID string
- /*line zz_browser.gen.go:34:1*/}
- /*line browser.mygo:36:1*/type BrowserAudit struct {
+ /*line zz_browser.gen.go:35:1*/}
+ /*line browser.mygo:37:1*/type BrowserAudit struct {
 	ActingActorURI string "gorm:\"column:acting_actor_uri\""
 	ScopeKind      string "gorm:\"column:scope_kind\""
 	ScopeID        string "gorm:\"column:scope_id\""
 	Action         string "gorm:\"column:action\""
 	TargetID       string "gorm:\"column:target_id\""
- /*line zz_browser.gen.go:41:1*/}
+ /*line zz_browser.gen.go:42:1*/}
 
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM6Viewer(self BrowserRepository, ctx context.Context, identity auth.Identity) Result[BrowserViewer, string] {
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM6Viewer(self BrowserRepository, ctx context.Context, identity auth.Identity) Result[BrowserViewer, failure.Failure] {
 	up := SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
 	down := SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
- /*line browser.mygo:48:5*/	if identity.AccountID <= int64(0) {
- /*line browser.mygo:49:14*/		return Ok[BrowserViewer, string](BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
- /*line browser.mygo:48:5*/	} else {
- /*line zz_browser.gen.go:49:1*/	}
- /*line browser.mygo:44:1*/	verified := QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
- /*line browser.mygo:52:5*/	if MygoIN6ResultM5IsErr[bool, string](verified) {
- /*line browser.mygo:53:14*/		return Err[BrowserViewer, string](MygoIN6ResultM9UnwrapErr[bool, string](verified))
- /*line browser.mygo:52:5*/	} else {
- /*line zz_browser.gen.go:54:1*/	}
- /*line browser.mygo:55:5*/	if !MygoIN6ResultM6Unwrap[bool, string](verified) {
- /*line browser.mygo:56:14*/		return Ok[BrowserViewer, string](BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
- /*line browser.mygo:55:5*/	} else {
- /*line zz_browser.gen.go:58:1*/	}
- /*line browser.mygo:44:1*/	site := SiteRepository{DB: self.DB, SiteID: self.SiteID}
+ /*line browser.mygo:49:5*/	if identity.AccountID <= int64(0) {
+ /*line browser.mygo:50:14*/		return Ok[BrowserViewer, failure.Failure](BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
+ /*line browser.mygo:49:5*/	} else {
+ /*line zz_browser.gen.go:50:1*/	}
+ /*line browser.mygo:45:1*/	verified := QueryExists(self.DB.WithContext(ctx).Table("accounts").Where("id=? AND site_id=? AND actor_uri=? AND NOT disabled", identity.AccountID, identity.SiteID, identity.ActorURI))
+ /*line browser.mygo:53:5*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](verified) {
+ /*line browser.mygo:54:14*/		return Err[BrowserViewer, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](verified))
+ /*line browser.mygo:53:5*/	} else {
+ /*line zz_browser.gen.go:55:1*/	}
+ /*line browser.mygo:56:5*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](verified) {
+ /*line browser.mygo:57:14*/		return Ok[BrowserViewer, failure.Failure](BrowserViewer{Identity: auth.Identity{SiteID: "", AccountID: int64(0), ActorURI: "", Username: ""}, Verified: false, Blocked: false, Roles: ViewerRoles{SiteAdministrator: false, DeploymentSuperadministrator: false}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
+ /*line browser.mygo:56:5*/	} else {
+ /*line zz_browser.gen.go:59:1*/	}
+ /*line browser.mygo:45:1*/	site := SiteRepository{DB: self.DB, SiteID: self.SiteID}
 	blocked := MygoIN14SiteRepositoryM9IsBlocked(site, ctx, identity.ActorURI)
 	admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 	deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line browser.mygo:62:5*/	if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line browser.mygo:63:14*/		return Err[BrowserViewer, string]("policy unavailable")
- /*line browser.mygo:62:5*/	} else {
- /*line zz_browser.gen.go:66:1*/	}
- /*line browser.mygo:65:5*/	return Ok[BrowserViewer, string](BrowserViewer{Identity: identity, Verified: true, Blocked: MygoIN6ResultM6Unwrap[bool, string](blocked), Roles: ViewerRoles{SiteAdministrator: MygoIN6ResultM6Unwrap[bool, string](admin), DeploymentSuperadministrator: MygoIN6ResultM6Unwrap[bool, string](deployment)}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
- /*line zz_browser.gen.go:68:1*/}
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM16CommunitiesQuery(self BrowserRepository, ctx context.Context, viewer BrowserViewer, tail string) *gorm.DB {
+ /*line browser.mygo:63:5*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) || MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line browser.mygo:64:14*/		return Err[BrowserViewer, failure.Failure](Of("policy unavailable"))
+ /*line browser.mygo:63:5*/	} else {
+ /*line zz_browser.gen.go:67:1*/	}
+ /*line browser.mygo:66:5*/	return Ok[BrowserViewer, failure.Failure](BrowserViewer{Identity: identity, Verified: true, Blocked: MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked), Roles: ViewerRoles{SiteAdministrator: MygoIN6ResultM6Unwrap[bool, failure.Failure](admin), DeploymentSuperadministrator: MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment)}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
+ /*line zz_browser.gen.go:69:1*/}
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM16CommunitiesQuery(self BrowserRepository, ctx context.Context, viewer BrowserViewer, tail string) *gorm.DB {
 	var facts string = "WITH facts AS (SELECT c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=@actor AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=@actor LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count FROM communities c), eligible AS (SELECT facts.*, (@verified AND NOT @blocked AND @actor <> '' AND (federation_mode='federated' OR (host_site_id=@identity_site AND @account > 0))) AS eligible, (federation_mode IN ('federated','local_only') AND (federation_mode<>'local_only' OR host_site_id IS NOT NULL) AND read_policy IN ('eligible_users','members') AND post_policy IN ('eligible_users','members') AND (read_policy<>'members' OR post_policy='members')) AS valid FROM facts), access AS (SELECT eligible.*, (NOT @blocked AND valid AND ((federation_mode='federated' AND read_policy='eligible_users') OR (eligible AND (read_policy='eligible_users' OR member)))) AS ordinary_read, (host_site_id=@site AND @verified AND NOT @blocked AND (@deployment OR @admin OR (valid AND eligible AND (creator_actor_uri=@actor OR manager)))) AS managed FROM eligible), readable AS (SELECT * FROM access WHERE (ordinary_read OR managed) AND NOT EXISTS (SELECT 1 FROM account_blocks b WHERE b.site_id=@site AND b.account_id=@account AND b.kind='community' AND b.target=access.id)) "
- /*line browser.mygo:72:5*/	return self.DB.WithContext(ctx).Raw(facts+tail, sql.Named("actor", viewer.Identity.ActorURI), sql.Named("site", self.SiteID), sql.Named("identity_site", viewer.Identity.SiteID), sql.Named("account", viewer.Identity.AccountID), sql.Named("verified", viewer.Verified), sql.Named("blocked", viewer.Blocked), sql.Named("admin", viewer.Roles.SiteAdministrator), sql.Named("deployment", viewer.Roles.DeploymentSuperadministrator))
- /*line zz_browser.gen.go:72:1*/}
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM6Access(self BrowserRepository, view CommunityView, viewer BrowserViewer) CommunityAccess {
+ /*line browser.mygo:73:5*/	return self.DB.WithContext(ctx).Raw(facts+tail, sql.Named("actor", viewer.Identity.ActorURI), sql.Named("site", self.SiteID), sql.Named("identity_site", viewer.Identity.SiteID), sql.Named("account", viewer.Identity.AccountID), sql.Named("verified", viewer.Verified), sql.Named("blocked", viewer.Blocked), sql.Named("admin", viewer.Roles.SiteAdministrator), sql.Named("deployment", viewer.Roles.DeploymentSuperadministrator))
+ /*line zz_browser.gen.go:73:1*/}
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM6Access(self BrowserRepository, view CommunityView, viewer BrowserViewer) CommunityAccess {
 	subject := auth.AccessSubject{SiteID: viewer.Identity.SiteID, AccountID: viewer.Identity.AccountID, ActorURI: viewer.Identity.ActorURI, Verified: viewer.Verified, Member: view.Member, Blocked: viewer.Blocked}
- /*line browser.mygo:77:5*/	return ProjectCommunityAccess(self.SiteID, view.Record, subject, view.Manager, viewer.Roles.SiteAdministrator, viewer.Roles.DeploymentSuperadministrator)
- /*line zz_browser.gen.go:76:1*/}
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM5Views(self BrowserRepository, ctx context.Context, viewer BrowserViewer, ids []string) Result[[]CommunityView, string] {
+ /*line browser.mygo:78:5*/	return ProjectCommunityAccess(self.SiteID, view.Record, subject, view.Manager, viewer.Roles.SiteAdministrator, viewer.Roles.DeploymentSuperadministrator)
+ /*line zz_browser.gen.go:77:1*/}
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM5Views(self BrowserRepository, ctx context.Context, viewer BrowserViewer, ids []string) Result[[]CommunityView, failure.Failure] {
 	var views []CommunityView = []CommunityView{}
- /*line browser.mygo:82:5*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
- /*line browser.mygo:83:14*/		return Ok[[]CommunityView, string](views)
- /*line browser.mygo:82:5*/	} else {
- /*line zz_browser.gen.go:82:1*/	}
- /*line browser.mygo:44:1*/	query := self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=? LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count", viewer.Identity.ActorURI, viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(&views)
- /*line browser.mygo:87:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line browser.mygo:88:14*/		return Err[[]CommunityView, string]("community unavailable")
- /*line browser.mygo:87:5*/	} else {
- /*line zz_browser.gen.go:87:1*/	}
- /*line browser.mygo:90:5*/	return Ok[[]CommunityView, string](views)
- /*line zz_browser.gen.go:89:1*/}
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM10AuditViews(self BrowserRepository, ctx context.Context, viewer BrowserViewer, views []CommunityView) Result[struct{}, string] {
+ /*line browser.mygo:83:5*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) == 0 {
+ /*line browser.mygo:84:14*/		return Ok[[]CommunityView, failure.Failure](views)
+ /*line browser.mygo:83:5*/	} else {
+ /*line zz_browser.gen.go:83:1*/	}
+ /*line browser.mygo:45:1*/	query := self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=? LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count", viewer.Identity.ActorURI, viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(&views)
+ /*line browser.mygo:88:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line browser.mygo:89:14*/		return Err[[]CommunityView, failure.Failure](Of("community unavailable"))
+ /*line browser.mygo:88:5*/	} else {
+ /*line zz_browser.gen.go:88:1*/	}
+ /*line browser.mygo:91:5*/	return Ok[[]CommunityView, failure.Failure](views)
+ /*line zz_browser.gen.go:90:1*/}
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM10AuditViews(self BrowserRepository, ctx context.Context, viewer BrowserViewer, views []CommunityView) Result[struct{}, failure.Failure] {
 	var rows []BrowserAudit = []BrowserAudit{}
 	var index int = 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(views) {
@@ -100,44 +101,44 @@ import . "github.com/mygo-lang/mygo/prelude"
 			if scope == "deployment" {
 				__mygo_expr_1 = "deployment"
 			} else {
- /*line browser.mygo:102:71*/				var __mygo_expr_0 string
+ /*line browser.mygo:103:71*/				var __mygo_expr_0 string
 				if scope == "site" {
 					__mygo_expr_0 = self.SiteID
 				} else {
 					__mygo_expr_0 = view.Record.ID
- /*line zz_browser.gen.go:108:1*/				}
- /*line browser.mygo:44:1*/				__mygo_expr_1 = __mygo_expr_0
- /*line zz_browser.gen.go:110:1*/			}
- /*line browser.mygo:44:1*/			scopeID := __mygo_expr_1
+ /*line zz_browser.gen.go:109:1*/				}
+ /*line browser.mygo:45:1*/				__mygo_expr_1 = __mygo_expr_0
+ /*line zz_browser.gen.go:111:1*/			}
+ /*line browser.mygo:45:1*/			scopeID := __mygo_expr_1
 			rows = MygoIN5SliceM6Append(rows, BrowserAudit{ActingActorURI: viewer.Identity.ActorURI, ScopeKind: scope, ScopeID: scopeID, Action: "read-community", TargetID: view.Record.ID})
 		} else {
- /*line zz_browser.gen.go:114:1*/		}
+ /*line zz_browser.gen.go:115:1*/		}
 	}
- /*line browser.mygo:106:5*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rows) == 0 {
- /*line browser.mygo:107:14*/		return Ok[struct{}, string](struct {
- /*line zz_browser.gen.go:118:1*/		}{})
- /*line browser.mygo:106:5*/	} else {
- /*line zz_browser.gen.go:120:1*/	}
- /*line browser.mygo:109:5*/	return MutationResult(self.DB.WithContext(ctx).Table("audit_events").Create(&rows))
- /*line zz_browser.gen.go:122:1*/}
- /*line browser.mygo:44:1*/func MygoIN17BrowserRepositoryM15ListCommunities(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]CommunityView, string] {
- /*line browser.mygo:113:5*/	if !MygoIN4PageM5Valid(page, max) {
- /*line browser.mygo:114:14*/		return Err[[]CommunityView, string]("invalid page")
- /*line browser.mygo:113:5*/	} else {
- /*line zz_browser.gen.go:127:1*/	}
- /*line browser.mygo:44:1*/	var views []CommunityView = []CommunityView{}
+ /*line browser.mygo:107:5*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rows) == 0 {
+ /*line browser.mygo:108:14*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_browser.gen.go:119:1*/		}{})
+ /*line browser.mygo:107:5*/	} else {
+ /*line zz_browser.gen.go:121:1*/	}
+ /*line browser.mygo:110:5*/	return MutationResult(self.DB.WithContext(ctx).Table("audit_events").Create(&rows))
+ /*line zz_browser.gen.go:123:1*/}
+ /*line browser.mygo:45:1*/func MygoIN17BrowserRepositoryM15ListCommunities(self BrowserRepository, ctx context.Context, viewer BrowserViewer, page Page, max int) Result[[]CommunityView, failure.Failure] {
+ /*line browser.mygo:114:5*/	if !MygoIN4PageM5Valid(page, max) {
+ /*line browser.mygo:115:14*/		return Err[[]CommunityView, failure.Failure](Of("invalid page"))
+ /*line browser.mygo:114:5*/	} else {
+ /*line zz_browser.gen.go:128:1*/	}
+ /*line browser.mygo:45:1*/	var views []CommunityView = []CommunityView{}
 	readable := MygoIN17BrowserRepositoryM16CommunitiesQuery(self, ctx, viewer, "SELECT * FROM readable")
 	query := self.DB.WithContext(ctx).Table("(?) AS c", readable)
 	query = query.Where("host_site_id=? OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=? AND p.community_id=c.id))", self.SiteID, self.SiteID)
 	scanned := query.Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(&views)
- /*line browser.mygo:121:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(scanned)) {
- /*line browser.mygo:122:14*/		return Err[[]CommunityView, string]("community unavailable")
- /*line browser.mygo:121:5*/	} else {
- /*line zz_browser.gen.go:136:1*/	}
- /*line browser.mygo:44:1*/	audit := MygoIN17BrowserRepositoryM10AuditViews(self, ctx, viewer, views)
- /*line browser.mygo:125:5*/	if MygoIN6ResultM5IsErr[struct{}, string](audit) {
- /*line browser.mygo:126:14*/		return Err[[]CommunityView, string](MygoIN6ResultM9UnwrapErr[struct{}, string](audit))
- /*line browser.mygo:125:5*/	} else {
- /*line zz_browser.gen.go:141:1*/	}
- /*line browser.mygo:128:5*/	return Ok[[]CommunityView, string](views)
- /*line zz_browser.gen.go:143:1*/}
+ /*line browser.mygo:122:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(scanned)) {
+ /*line browser.mygo:123:14*/		return Err[[]CommunityView, failure.Failure](Of("community unavailable"))
+ /*line browser.mygo:122:5*/	} else {
+ /*line zz_browser.gen.go:137:1*/	}
+ /*line browser.mygo:45:1*/	audit := MygoIN17BrowserRepositoryM10AuditViews(self, ctx, viewer, views)
+ /*line browser.mygo:126:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](audit) {
+ /*line browser.mygo:127:14*/		return Err[[]CommunityView, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](audit))
+ /*line browser.mygo:126:5*/	} else {
+ /*line zz_browser.gen.go:142:1*/	}
+ /*line browser.mygo:129:5*/	return Ok[[]CommunityView, failure.Failure](views)
+ /*line zz_browser.gen.go:144:1*/}

@@ -6,52 +6,77 @@ import "context"
 import "gorm.io/gorm"
 import "database/sql"
 import "crypto/rand"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line context_stub.mygo:11:1*/func EnsureContextStub(ctx context.Context, db *gorm.DB, contextURI string) Result[string, string] {
+ /*line context_stub.mygo:11:1*/func EnsureContextStub(ctx context.Context, db *gorm.DB, contextURI string) Result[string, failure.Failure] {
 	existing := ""
 	lookup := db.WithContext(ctx).Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", contextURI).Scan(&existing)
- /*line context_stub.mygo:14:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(lookup)) {
- /*line context_stub.mygo:15:12*/		return Err[string, string]("context unavailable")
- /*line context_stub.mygo:14:3*/	} else {
- /*line zz_context_stub.gen.go:17:1*/	}
- /*line context_stub.mygo:17:3*/	if lookup.RowsAffected == int64(1) {
- /*line context_stub.mygo:18:12*/		return Ok[string, string](existing)
- /*line context_stub.mygo:17:3*/	} else {
- /*line zz_context_stub.gen.go:21:1*/	}
+ /*line context_stub.mygo:21:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(lookup)) {
+ /*line context_stub.mygo:22:12*/		return Err[string, failure.Failure](Of("context unavailable"))
+ /*line context_stub.mygo:21:3*/	} else {
+ /*line zz_context_stub.gen.go:18:1*/	}
+ /*line context_stub.mygo:24:3*/	if lookup.RowsAffected == int64(1) {
+ /*line context_stub.mygo:25:12*/		return Ok[string, failure.Failure](existing)
+ /*line context_stub.mygo:24:3*/	} else {
+ /*line zz_context_stub.gen.go:22:1*/	}
  /*line context_stub.mygo:11:1*/	id := rand.Text()
 	inserted := db.WithContext(ctx).Exec("INSERT INTO discussion_contexts(id,context_uri,resolution_state) VALUES (?,?,'unresolved') ON CONFLICT (context_uri) DO NOTHING", id, sql.NullString{String: contextURI, Valid: true})
- /*line context_stub.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line context_stub.mygo:23:12*/		return Err[string, string]("context creation failed")
- /*line context_stub.mygo:22:3*/	} else {
- /*line zz_context_stub.gen.go:27:1*/	}
+ /*line context_stub.mygo:36:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line context_stub.mygo:37:12*/		return Err[string, failure.Failure](Of("context creation failed"))
+ /*line context_stub.mygo:36:3*/	} else {
+ /*line zz_context_stub.gen.go:28:1*/	}
  /*line context_stub.mygo:11:1*/	resolved := ""
 	query := db.WithContext(ctx).Raw("SELECT id FROM discussion_contexts WHERE context_uri = ?", contextURI).Scan(&resolved)
 	return Required(query, resolved, "context creation failed")
- /*line zz_context_stub.gen.go:31:1*/}
- /*line context_stub.mygo:32:1*/func UniqueRecipients(recipients []string) []string {
- /*line context_stub.mygo:33:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(recipients, []string{}, func(acc []string, item string) []string {
- /*line context_stub.mygo:34:5*/		if item == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(acc, item, MygoIT2EqFN6StringGN6StringEM6Equals) {
- /*line context_stub.mygo:35:7*/			return acc
- /*line context_stub.mygo:34:5*/		} else {
- /*line context_stub.mygo:37:7*/			return MygoIN5SliceM6Append(acc, item)
- /*line zz_context_stub.gen.go:38:1*/		}
+ /*line zz_context_stub.gen.go:32:1*/}
+ /*line context_stub.mygo:49:1*/func UniqueRecipients(recipients []string) []string {
+ /*line context_stub.mygo:50:3*/	return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(recipients, []string{}, func(acc []string, item string) []string {
+ /*line context_stub.mygo:53:7*/		if item == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(acc, item, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line context_stub.mygo:54:9*/			return acc
+ /*line context_stub.mygo:53:7*/		} else {
+ /*line context_stub.mygo:56:9*/			return MygoIN5SliceM6Append(acc, item)
+ /*line zz_context_stub.gen.go:39:1*/		}
 	})
 }
- /*line context_stub.mygo:42:1*/func PostContextURIs(ctx context.Context, db *gorm.DB, postID string) Result[[]string, string] {
+ /*line context_stub.mygo:62:1*/func PostContextURIs(ctx context.Context, db *gorm.DB, postID string) Result[[]string, failure.Failure] {
 	var uris []string = []string{}
 	query := db.WithContext(ctx).Raw("SELECT coalesce(dc.context_uri,'') AS uri FROM post_contexts pc JOIN discussion_contexts dc ON dc.id = pc.context_id WHERE pc.post_id = ? AND dc.context_uri IS NOT NULL ORDER BY dc.id", postID).Scan(&uris)
- /*line context_stub.mygo:45:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line context_stub.mygo:46:12*/		return Err[[]string, string]("context unavailable")
- /*line context_stub.mygo:45:3*/	} else {
- /*line zz_context_stub.gen.go:47:1*/	}
- /*line context_stub.mygo:48:3*/	return Ok[[]string, string](uris)
- /*line zz_context_stub.gen.go:49:1*/}
- /*line context_stub.mygo:51:1*/func PrimaryPostContextURI(ctx context.Context, db *gorm.DB, postID string) string {
-	uris := PostContextURIs(ctx, db, postID)
- /*line context_stub.mygo:53:3*/	if MygoIN6ResultM5IsErr[[]string, string](uris) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]string, string](uris)) == 0 {
- /*line context_stub.mygo:54:12*/		return ""
- /*line context_stub.mygo:53:3*/	} else {
- /*line zz_context_stub.gen.go:55:1*/	}
- /*line context_stub.mygo:56:3*/	return MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]string, string](uris), 0))
- /*line zz_context_stub.gen.go:57:1*/}
+ /*line context_stub.mygo:72:3*/	__mygo_expr_0 := MutationResult(query)
+	var __mygo_expr_1 Result[[]string, failure.Failure]
+	if _, ok := __mygo_expr_0.(Result__Err[struct{}, failure.Failure]); ok {
+		__mygo_expr_1 = Err[[]string, failure.Failure](Of("context unavailable"))
+	} else {
+		if _, ok := __mygo_expr_0.(Result__Ok[struct{}, failure.Failure]); ok {
+			__mygo_expr_1 = Ok[[]string, failure.Failure](uris)
+		} else {
+ /*line zz_context_stub.gen.go:53:1*/		}
+	}
+ /*line context_stub.mygo:72:3*/	return __mygo_expr_1
+ /*line zz_context_stub.gen.go:56:1*/}
+ /*line context_stub.mygo:78:1*/func PrimaryPostContextURI(ctx context.Context, db *gorm.DB, postID string) string {
+ /*line context_stub.mygo:79:3*/	__mygo_expr_0 := PostContextURIs(ctx, db, postID)
+	__mygo_switch_matched___mygo_expr_1 := false
+	var __mygo_expr_2 string
+	if !__mygo_switch_matched___mygo_expr_1 {
+		if _, ok := __mygo_expr_0.(Result__Err[[]string, failure.Failure]); ok {
+			__mygo_switch_matched___mygo_expr_1 = true
+			__mygo_expr_2 = ""
+ /*line zz_context_stub.gen.go:65:1*/		}
+	}
+ /*line context_stub.mygo:79:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+		if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Ok[[]string, failure.Failure]); ok {
+ /*line context_stub.mygo:81:22*/			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(__mygo_match___mygo_expr_3.F0) == 0 {
+ /*line context_stub.mygo:79:3*/				__mygo_switch_matched___mygo_expr_1 = true
+				__mygo_expr_2 = ""
+ /*line zz_context_stub.gen.go:72:1*/			}
+		}
+	}
+ /*line context_stub.mygo:79:3*/	if !__mygo_switch_matched___mygo_expr_1 {
+		if __mygo_match___mygo_expr_4, ok := __mygo_expr_0.(Result__Ok[[]string, failure.Failure]); ok {
+			__mygo_switch_matched___mygo_expr_1 = true
+			__mygo_expr_2 = MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(__mygo_match___mygo_expr_4.F0, 0))
+ /*line zz_context_stub.gen.go:79:1*/		}
+	}
+ /*line context_stub.mygo:79:3*/	return __mygo_expr_2
+ /*line zz_context_stub.gen.go:82:1*/}

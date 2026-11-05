@@ -13,6 +13,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "net/http"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -24,62 +25,62 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_media.gen_test.go:27:1*/	}
+ /*line zz_federation_media.gen_test.go:28:1*/	}
  /*line federation_media_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	settings.Media.Enabled = true
 	settings.Media.Root = t.TempDir()
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "private", "Private", "federated", "members", "members"))
-	mediaFS := MygoIN6ResultM6Unwrap[storage.MediaFiles, string](storage.OpenMediaFiles(settings.Media))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	group := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "private", "Private", "federated", "members", "members"))
+	mediaFS := MygoIN6ResultM6Unwrap[storage.MediaFiles, failure.Failure](storage.OpenMediaFiles(settings.Media))
  /*line federation_media_test.mygo:25:3*/	t.Cleanup(func() {
  /*line federation_media_test.mygo:25:13*/		mediaFS.Root.Close()
 		return
- /*line zz_federation_media.gen_test.go:41:1*/	})
+ /*line zz_federation_media.gen_test.go:42:1*/	})
  /*line federation_media_test.mygo:13:1*/	repository := storage.MediaRepository{DB: db, SiteID: site.ID, Files: mediaFS, Settings: settings.Media}
-	uploaded := MygoIN6ResultM6Unwrap[storage.MediaUpload, string](storage.MygoIN15MediaRepositoryM6Upload(repository, ctx, alice, "post", "note.txt", "text/plain", io.Reader(strings.NewReader("private file"))))
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Private", Body: "[file](/api/v1/media/", ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: []string{uploaded.ID}, Mentions: []storage.ResolvedPostMention{}}))
+	uploaded := MygoIN6ResultM6Unwrap[storage.MediaUpload, failure.Failure](storage.MygoIN15MediaRepositoryM6Upload(repository, ctx, alice, "post", "note.txt", "text/plain", io.Reader(strings.NewReader("private file"))))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Private", Body: "[file](/api/v1/media/", ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: []string{uploaded.ID}, Mentions: []storage.ResolvedPostMention{}}))
 	var binding string = ""
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT id FROM media_bindings WHERE post_id=? AND active", post.ID).Scan(&binding)))
-	key := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	publicKey := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(key))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Raw("SELECT id FROM media_bindings WHERE post_id=? AND active", post.ID).Scan(&binding)))
+	key := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	publicKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(key))
 	member := "https://peer.example/users/member"
 	outsider := "https://peer.example/users/outsider"
 	instance := "https://peer.example/instance"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?,'Person',?),(?,'Person',?),(?,'Group',?)", member, publicKey, outsider, publicKey, instance, publicKey)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.SetPeerProtectedReads(ctx, db, "peer.example", true))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", group.ID, member, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?,'Person',?),(?,'Person',?),(?,'Group',?)", member, publicKey, outsider, publicKey, instance, publicKey)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.SetPeerProtectedReads(ctx, db, "peer.example", true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?)", group.ID, member, alice.ActorURI)))
 	handler := Handler(settings, db)
 	path := "/federation-media/" + binding
 	date := time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05 GMT")
  /*line federation_media_test.mygo:42:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""}).Code != 404 {
  /*line federation_media_test.mygo:42:147*/		t.Fatal("unsigned request read private attachment")
  /*line federation_media_test.mygo:42:3*/	} else {
- /*line zz_federation_media.gen_test.go:61:1*/	}
+ /*line zz_federation_media.gen_test.go:62:1*/	}
  /*line federation_media_test.mygo:13:1*/	allowed := signedGet(handler, site.Origin, path, member, key, date)
  /*line federation_media_test.mygo:44:3*/	if allowed.Code != 200 || allowed.Body.String() != "private file" {
  /*line federation_media_test.mygo:44:74*/		t.Fatalf("authorized Actor denied attachment: %d %s", allowed.Code, allowed.Body.String())
  /*line federation_media_test.mygo:44:3*/	} else {
- /*line zz_federation_media.gen_test.go:66:1*/	}
+ /*line zz_federation_media.gen_test.go:67:1*/	}
  /*line federation_media_test.mygo:45:3*/	if signedGet(handler, site.Origin, path, outsider, key, date).Code != 404 || signedGet(handler, site.Origin, path, instance, key, date).Code != 404 {
  /*line federation_media_test.mygo:45:156*/		t.Fatal("non-member or server-only signature read private media")
  /*line federation_media_test.mygo:45:3*/	} else {
- /*line zz_federation_media.gen_test.go:70:1*/	}
+ /*line zz_federation_media.gen_test.go:71:1*/	}
  /*line federation_media_test.mygo:13:1*/	var activityID string = ""
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Raw("SELECT uri FROM activities WHERE actor_uri=? AND kind='Create'", alice.ActorURI).Scan(&activityID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Raw("SELECT uri FROM activities WHERE actor_uri=? AND kind='Create'", alice.ActorURI).Scan(&activityID)))
 	activityPath := strings.TrimPrefix(activityID, site.Origin)
  /*line federation_media_test.mygo:49:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: activityPath, Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""}).Code != 404 || signedGet(handler, site.Origin, activityPath, member, key, date).Code != 200 {
  /*line federation_media_test.mygo:49:235*/		t.Fatal("private canonical activity lacks Actor authorization")
  /*line federation_media_test.mygo:49:3*/	} else {
- /*line zz_federation_media.gen_test.go:77:1*/	}
- /*line federation_media_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", member)))
+ /*line zz_federation_media.gen_test.go:78:1*/	}
+ /*line federation_media_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=now() WHERE actor_uri=?", member)))
  /*line federation_media_test.mygo:51:3*/	if signedGet(handler, site.Origin, path, member, key, date).Code != 404 {
  /*line federation_media_test.mygo:51:80*/		t.Fatal("revoked member retained origin media access")
 		return
  /*line federation_media_test.mygo:51:3*/	} else {
 		return
- /*line zz_federation_media.gen_test.go:84:1*/	}
+ /*line zz_federation_media.gen_test.go:85:1*/	}
 }

@@ -3,113 +3,114 @@
 package federation
 
 import "encoding/json"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line collection_traversal.mygo:5:1*/type CollectionTraversal struct {
+ /*line collection_traversal.mygo:6:1*/type CollectionTraversal struct {
 	ID    string
 	First string
 	Next  string
 	Items []string
- /*line zz_collection_traversal.gen.go:13:1*/}
- /*line collection_traversal.mygo:12:1*/type CollectionDocument struct {
+ /*line zz_collection_traversal.gen.go:14:1*/}
+ /*line collection_traversal.mygo:13:1*/type CollectionDocument struct {
 	ID           string          "json:\"id\""
 	Type         string          "json:\"type\""
 	First        json.RawMessage "json:\"first\""
 	Next         json.RawMessage "json:\"next\""
 	OrderedItems json.RawMessage "json:\"orderedItems\""
 	Items        json.RawMessage "json:\"items\""
- /*line zz_collection_traversal.gen.go:21:1*/}
- /*line collection_traversal.mygo:21:1*/type CollectionItemView struct {
+ /*line zz_collection_traversal.gen.go:22:1*/}
+ /*line collection_traversal.mygo:22:1*/type CollectionItemView struct {
 	ID   string "json:\"id\""
 	Href string "json:\"href\""
- /*line zz_collection_traversal.gen.go:25:1*/}
+ /*line zz_collection_traversal.gen.go:26:1*/}
 
- /*line collection_traversal.mygo:28:1*/func ParseCollectionTraversal(payload []byte) Result[CollectionTraversal, string] {
+ /*line collection_traversal.mygo:29:1*/func ParseCollectionTraversal(payload []byte) Result[CollectionTraversal, failure.Failure] {
 	document := Zero[CollectionDocument]()
- /*line collection_traversal.mygo:30:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line collection_traversal.mygo:31:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &document)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_collection_traversal.gen.go:35:1*/		}{})
+ /*line zz_collection_traversal.gen.go:36:1*/		}{})
 	}
- /*line collection_traversal.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line collection_traversal.mygo:31:12*/		return Err[CollectionTraversal, string]("invalid collection")
- /*line collection_traversal.mygo:30:3*/	} else {
- /*line zz_collection_traversal.gen.go:40:1*/	}
- /*line collection_traversal.mygo:33:3*/	if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" {
- /*line collection_traversal.mygo:34:12*/		return Err[CollectionTraversal, string]("not a collection")
- /*line collection_traversal.mygo:33:3*/	} else {
- /*line zz_collection_traversal.gen.go:44:1*/	}
- /*line collection_traversal.mygo:28:1*/	var __mygo_expr_2 json.RawMessage
+ /*line collection_traversal.mygo:31:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line collection_traversal.mygo:32:12*/		return Err[CollectionTraversal, failure.Failure](Of("invalid collection"))
+ /*line collection_traversal.mygo:31:3*/	} else {
+ /*line zz_collection_traversal.gen.go:41:1*/	}
+ /*line collection_traversal.mygo:34:3*/	if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" {
+ /*line collection_traversal.mygo:35:12*/		return Err[CollectionTraversal, failure.Failure](Of("not a collection"))
+ /*line collection_traversal.mygo:34:3*/	} else {
+ /*line zz_collection_traversal.gen.go:45:1*/	}
+ /*line collection_traversal.mygo:29:1*/	var __mygo_expr_2 json.RawMessage
 	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.OrderedItems)) > 0 {
 		__mygo_expr_2 = document.OrderedItems
 	} else {
 		__mygo_expr_2 = document.Items
- /*line zz_collection_traversal.gen.go:50:1*/	}
- /*line collection_traversal.mygo:28:1*/	rawItems := __mygo_expr_2
+ /*line zz_collection_traversal.gen.go:51:1*/	}
+ /*line collection_traversal.mygo:29:1*/	rawItems := __mygo_expr_2
 	var items []string = []string{}
- /*line collection_traversal.mygo:38:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(rawItems)) > 0 {
- /*line collection_traversal.mygo:38:3*/		var elements []json.RawMessage = []json.RawMessage{}
- /*line collection_traversal.mygo:40:8*/		var __mygo_expr_4 Result[struct{}, error]
+ /*line collection_traversal.mygo:39:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(rawItems)) > 0 {
+ /*line collection_traversal.mygo:39:3*/		var elements []json.RawMessage = []json.RawMessage{}
+ /*line collection_traversal.mygo:41:8*/		var __mygo_expr_4 Result[struct{}, error]
 		__mygo_expr_3 := json.Unmarshal([]byte(rawItems), &elements)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_collection_traversal.gen.go:61:1*/			}{})
+ /*line zz_collection_traversal.gen.go:62:1*/			}{})
 		}
- /*line collection_traversal.mygo:40:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
- /*line collection_traversal.mygo:41:14*/			return Err[CollectionTraversal, string]("invalid collection items")
- /*line collection_traversal.mygo:40:5*/		} else {
- /*line zz_collection_traversal.gen.go:66:1*/		}
- /*line collection_traversal.mygo:43:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(elements, func(element json.RawMessage) {
- /*line collection_traversal.mygo:43:19*/			uri := DecodeCollectionItemURI(element)
- /*line collection_traversal.mygo:45:7*/			if uri != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(items, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line collection_traversal.mygo:41:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line collection_traversal.mygo:42:14*/			return Err[CollectionTraversal, failure.Failure](Of("invalid collection items"))
+ /*line collection_traversal.mygo:41:5*/		} else {
+ /*line zz_collection_traversal.gen.go:67:1*/		}
+ /*line collection_traversal.mygo:44:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(elements, func(element json.RawMessage) {
+ /*line collection_traversal.mygo:44:19*/			uri := DecodeCollectionItemURI(element)
+ /*line collection_traversal.mygo:46:7*/			if uri != "" && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(items, uri, MygoIT2EqFN6StringGN6StringEM6Equals) {
 				items = MygoIN5SliceM6Append(items, uri)
 				return
 			} else {
 				return
- /*line zz_collection_traversal.gen.go:74:1*/			}
+ /*line zz_collection_traversal.gen.go:75:1*/			}
 		})
- /*line collection_traversal.mygo:38:3*/	} else {
- /*line zz_collection_traversal.gen.go:77:1*/	}
- /*line collection_traversal.mygo:50:3*/	return Ok[CollectionTraversal, string](CollectionTraversal{ID: document.ID, First: DecodeCollectionLink(document.First), Next: DecodeCollectionLink(document.Next), Items: items})
- /*line zz_collection_traversal.gen.go:79:1*/}
- /*line collection_traversal.mygo:58:1*/func DecodeCollectionItemURI(raw json.RawMessage) string {
+ /*line collection_traversal.mygo:39:3*/	} else {
+ /*line zz_collection_traversal.gen.go:78:1*/	}
+ /*line collection_traversal.mygo:51:3*/	return Ok[CollectionTraversal, failure.Failure](CollectionTraversal{ID: document.ID, First: DecodeCollectionLink(document.First), Next: DecodeCollectionLink(document.Next), Items: items})
+ /*line zz_collection_traversal.gen.go:80:1*/}
+ /*line collection_traversal.mygo:59:1*/func DecodeCollectionItemURI(raw json.RawMessage) string {
 	uri := ""
- /*line collection_traversal.mygo:60:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line collection_traversal.mygo:61:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal([]byte(raw), &uri)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_collection_traversal.gen.go:88:1*/		}{})
+ /*line zz_collection_traversal.gen.go:89:1*/		}{})
 	}
- /*line collection_traversal.mygo:60:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
- /*line collection_traversal.mygo:61:12*/		return uri
- /*line collection_traversal.mygo:60:3*/	} else {
- /*line zz_collection_traversal.gen.go:93:1*/	}
- /*line collection_traversal.mygo:58:1*/	item := Zero[CollectionItemView]()
- /*line collection_traversal.mygo:64:6*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line collection_traversal.mygo:61:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
+ /*line collection_traversal.mygo:62:12*/		return uri
+ /*line collection_traversal.mygo:61:3*/	} else {
+ /*line zz_collection_traversal.gen.go:94:1*/	}
+ /*line collection_traversal.mygo:59:1*/	item := Zero[CollectionItemView]()
+ /*line collection_traversal.mygo:65:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal([]byte(raw), &item)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_collection_traversal.gen.go:101:1*/		}{})
+ /*line zz_collection_traversal.gen.go:102:1*/		}{})
 	}
- /*line collection_traversal.mygo:64:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) {
- /*line collection_traversal.mygo:65:12*/		return ""
- /*line collection_traversal.mygo:64:3*/	} else {
- /*line zz_collection_traversal.gen.go:106:1*/	}
- /*line collection_traversal.mygo:67:3*/	if item.ID != "" {
- /*line collection_traversal.mygo:68:12*/		return item.ID
- /*line collection_traversal.mygo:67:3*/	} else {
- /*line zz_collection_traversal.gen.go:110:1*/	}
- /*line collection_traversal.mygo:70:3*/	return item.Href
- /*line zz_collection_traversal.gen.go:112:1*/}
- /*line collection_traversal.mygo:73:1*/func DecodeCollectionLink(raw json.RawMessage) string {
- /*line collection_traversal.mygo:74:3*/	return DecodeCollectionItemURI(raw)
- /*line zz_collection_traversal.gen.go:115:1*/}
+ /*line collection_traversal.mygo:65:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) {
+ /*line collection_traversal.mygo:66:12*/		return ""
+ /*line collection_traversal.mygo:65:3*/	} else {
+ /*line zz_collection_traversal.gen.go:107:1*/	}
+ /*line collection_traversal.mygo:68:3*/	if item.ID != "" {
+ /*line collection_traversal.mygo:69:12*/		return item.ID
+ /*line collection_traversal.mygo:68:3*/	} else {
+ /*line zz_collection_traversal.gen.go:111:1*/	}
+ /*line collection_traversal.mygo:71:3*/	return item.Href
+ /*line zz_collection_traversal.gen.go:113:1*/}
+ /*line collection_traversal.mygo:74:1*/func DecodeCollectionLink(raw json.RawMessage) string {
+ /*line collection_traversal.mygo:75:3*/	return DecodeCollectionItemURI(raw)
+ /*line zz_collection_traversal.gen.go:116:1*/}

@@ -12,6 +12,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestNotificationCursor(t: Ref[testing.T]) -> ()
   let cursor = NotificationCursor{Time: time.Now().UTC().Truncate(time.Microsecond), ID: 73i64}
@@ -117,7 +118,7 @@ func notificationFixture(t: Ref[testing.T]) -> NotificationTestFixture
     testPublishInput("Parent", "body")
   )
   if published.IsErr() then
-    t.Fatalf("notification fixture publication failed: %s", published.UnwrapErr())
+    t.Fatalf("notification fixture publication failed: %s", published.UnwrapErr().Render())
   end
   let parent = published.Unwrap()
   NotificationTestFixture {
@@ -139,7 +140,7 @@ func TestPostgresNotificationTargetBackfill(t: Ref[testing.T]) -> ()
   let prepared = ApplyTransaction(ctx, tx, migrations.Take(20))
   if prepared.IsErr() then
     let _ = tx.Rollback()
-    t.Fatalf("cannot prepare pre-target notification schema: %s", prepared.UnwrapErr())
+    t.Fatalf("cannot prepare pre-target notification schema: %s", prepared.UnwrapErr().Render())
   end
   if tx.Commit().IsErr() then
     t.Fatal("cannot commit pre-target notification schema")
@@ -311,7 +312,7 @@ func TestPostgresNotificationsConcurrentProjectionSnapshot(t: Ref[testing.T]) ->
   t.Cleanup(cancel)
   let reactions = ReactionRepository{DB: f.DB, SiteID: f.Site.ID}
   let _ = reactions.Like(ctx, f.Parent.ID, f.Bob, false, "").Unwrap()
-  let results = concurrency.MakeChan[Result[(), String]](2)
+  let results = concurrency.MakeChan[Result[(), failure.Failure]](2)
   let workers: Slice[Int] = [1, 2]
   workers.Each(func(worker: Int) -> ()
     concurrency.Spawn(func() -> ()
@@ -408,15 +409,15 @@ func TestPostgresNotificationsOccurrenceAndPrivacy(t: Ref[testing.T]) -> ()
   let rollback = RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec(
         "INSERT INTO post_mentions(id,post_id,actor_uri) VALUES ('rolled-back',?,?)",
         reply.ID,
         alice.ActorURI
       )).IsErr() then
-        return Err("fixture failed")
+        return Err(Of("fixture failed"))
       end
-      Err("deliberate rollback")
+      Err(Of("deliberate rollback"))
     end
   )
   if rollback.IsOk() then

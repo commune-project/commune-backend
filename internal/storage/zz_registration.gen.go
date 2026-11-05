@@ -11,9 +11,10 @@ import "net/mail"
 import "crypto/rand"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line registration.mygo:13:1*/type PendingRegistration struct {
+ /*line registration.mygo:14:1*/type PendingRegistration struct {
 	ID         string    "gorm:\"column:id\""
 	SiteID     string    "gorm:\"column:site_id\""
 	Username   string    "gorm:\"column:username\""
@@ -22,8 +23,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	Generation int64     "gorm:\"column:generation\""
 	CreatedAt  time.Time "gorm:\"column:created_at\""
 	ExpiresAt  time.Time "gorm:\"column:expires_at\""
- /*line zz_registration.gen.go:25:1*/}
- /*line registration.mygo:24:1*/type RegistrationRepository struct {
+ /*line zz_registration.gen.go:26:1*/}
+ /*line registration.mygo:25:1*/type RegistrationRepository struct {
 	DB                *gorm.DB
 	Site              config.Site
 	EncryptionKey     []byte
@@ -31,25 +32,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 	EmailAttempts     int
 	TokenTTLSeconds   int
 	RateWindowSeconds int
- /*line zz_registration.gen.go:34:1*/}
+ /*line zz_registration.gen.go:35:1*/}
 
- /*line registration.mygo:34:1*/func RegistrationEmail(email string) Result[string, string] {
+ /*line registration.mygo:35:1*/func RegistrationEmail(email string) Result[string, failure.Failure] {
 	address := strings.ToLower(strings.TrimSpace(email))
- /*line registration.mygo:36:16*/	var __mygo_expr_1 Result[*mail.Address, error]
+ /*line registration.mygo:37:16*/	var __mygo_expr_1 Result[*mail.Address, error]
 	__mygo_expr_2, __mygo_expr_0 := mail.ParseAddress(address)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*mail.Address, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*mail.Address, error](__mygo_expr_2)
- /*line zz_registration.gen.go:44:1*/	}
- /*line registration.mygo:34:1*/	parsed := __mygo_expr_1
- /*line registration.mygo:37:3*/	if address == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(address)) > 254 || MygoIN6ResultM5IsErr[*mail.Address, error](parsed) || MygoIN6ResultM6Unwrap[*mail.Address, error](parsed).Address != address {
- /*line registration.mygo:41:12*/		return Err[string, string]("invalid registration input")
- /*line registration.mygo:37:3*/	} else {
- /*line zz_registration.gen.go:49:1*/	}
- /*line registration.mygo:43:3*/	return Ok[string, string](address)
- /*line zz_registration.gen.go:51:1*/}
- /*line registration.mygo:46:1*/func MygoIN22RegistrationRepositoryM6Charge(self RegistrationRepository, ctx context.Context, ip string, email string, now time.Time) Result[struct{}, string] {
+ /*line zz_registration.gen.go:45:1*/	}
+ /*line registration.mygo:35:1*/	parsed := __mygo_expr_1
+ /*line registration.mygo:38:3*/	if address == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(address)) > 254 || MygoIN6ResultM5IsErr[*mail.Address, error](parsed) || MygoIN6ResultM6Unwrap[*mail.Address, error](parsed).Address != address {
+ /*line registration.mygo:42:12*/		return Err[string, failure.Failure](Of("invalid registration input"))
+ /*line registration.mygo:38:3*/	} else {
+ /*line zz_registration.gen.go:50:1*/	}
+ /*line registration.mygo:44:3*/	return Ok[string, failure.Failure](address)
+ /*line zz_registration.gen.go:52:1*/}
+ /*line registration.mygo:47:1*/func MygoIN22RegistrationRepositoryM6Charge(self RegistrationRepository, ctx context.Context, ip string, email string, now time.Time) Result[struct{}, failure.Failure] {
 	start := now.Truncate(time.Duration(self.RateWindowSeconds) * time.Second)
 	var dimensions []string = []string{"ip", "email"}
 	var subjects []string = []string{ip, email}
@@ -59,151 +60,151 @@ import . "github.com/mygo-lang/mygo/prelude"
 		count := 0
 		query := self.DB.WithContext(ctx).Raw("INSERT INTO registration_rate_limits(site_id,dimension,subject_hash,window_start,attempts) VALUES (?,?,?,?,1) ON CONFLICT(site_id,dimension,subject_hash,window_start) DO UPDATE SET attempts=registration_rate_limits.attempts+1 RETURNING attempts", self.Site.ID, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(dimensions, index)), auth.TokenHash(MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(subjects, index))), start).Scan(&count)
 		if QueryFailed(query) {
- /*line registration.mygo:70:16*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:46:1*/		} else {
- /*line zz_registration.gen.go:64:1*/		}
- /*line registration.mygo:46:1*/		if count > MygoIN6OptionM6Unwrap[int](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(limits, index)) {
- /*line registration.mygo:73:16*/			return Err[struct{}, string]("registration rate limited")
- /*line registration.mygo:46:1*/		} else {
- /*line zz_registration.gen.go:68:1*/		}
- /*line registration.mygo:46:1*/		index = index + 1
- /*line zz_registration.gen.go:70:1*/	}
- /*line registration.mygo:77:5*/	return Ok[struct{}, string](struct {
- /*line zz_registration.gen.go:72:1*/	}{})
+ /*line registration.mygo:71:16*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:47:1*/		} else {
+ /*line zz_registration.gen.go:65:1*/		}
+ /*line registration.mygo:47:1*/		if count > MygoIN6OptionM6Unwrap[int](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(limits, index)) {
+ /*line registration.mygo:74:16*/			return Err[struct{}, failure.Failure](Of("registration rate limited"))
+ /*line registration.mygo:47:1*/		} else {
+ /*line zz_registration.gen.go:69:1*/		}
+ /*line registration.mygo:47:1*/		index = index + 1
+ /*line zz_registration.gen.go:71:1*/	}
+ /*line registration.mygo:78:5*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_registration.gen.go:73:1*/	}{})
 }
- /*line registration.mygo:46:1*/func MygoIN22RegistrationRepositoryM7Enqueue(self RegistrationRepository, tx *gorm.DB, pending PendingRegistration, token string, now time.Time) Result[struct{}, string] {
+ /*line registration.mygo:47:1*/func MygoIN22RegistrationRepositoryM7Enqueue(self RegistrationRepository, tx *gorm.DB, pending PendingRegistration, token string, now time.Time) Result[struct{}, failure.Failure] {
 	link := self.Site.Origin + "/verify-email#token=" + token
 	sealed := auth.SealVerification(self.EncryptionKey, link)
- /*line registration.mygo:88:5*/	if MygoIN6ResultM5IsErr[[]byte, string](sealed) {
- /*line registration.mygo:89:14*/		return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:88:5*/	} else {
- /*line zz_registration.gen.go:80:1*/	}
- /*line registration.mygo:91:5*/	return MutationResult(tx.Exec("INSERT INTO verification_mail_jobs(id,registration_id,generation,encrypted_payload,available_at) VALUES (?,?,?,?,?)", rand.Text(), pending.ID, pending.Generation, MygoIN6ResultM6Unwrap[[]byte, string](sealed), now))
- /*line zz_registration.gen.go:82:1*/}
- /*line registration.mygo:46:1*/func MygoIN22RegistrationRepositoryM8Register(self RegistrationRepository, ctx context.Context, username string, email string, ip string, now time.Time) Result[struct{}, string] {
+ /*line registration.mygo:89:5*/	if MygoIN6ResultM5IsErr[[]byte, string](sealed) {
+ /*line registration.mygo:90:14*/		return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:89:5*/	} else {
+ /*line zz_registration.gen.go:81:1*/	}
+ /*line registration.mygo:92:5*/	return MutationResult(tx.Exec("INSERT INTO verification_mail_jobs(id,registration_id,generation,encrypted_payload,available_at) VALUES (?,?,?,?,?)", rand.Text(), pending.ID, pending.Generation, MygoIN6ResultM6Unwrap[[]byte, string](sealed), now))
+ /*line zz_registration.gen.go:83:1*/}
+ /*line registration.mygo:47:1*/func MygoIN22RegistrationRepositoryM8Register(self RegistrationRepository, ctx context.Context, username string, email string, ip string, now time.Time) Result[struct{}, failure.Failure] {
 	normalized := RegistrationEmail(email)
- /*line registration.mygo:110:8*/	var __mygo_expr_1 Result[bool, error]
+ /*line registration.mygo:111:8*/	var __mygo_expr_1 Result[bool, error]
 	__mygo_expr_2, __mygo_expr_0 := regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[bool, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[bool, error](__mygo_expr_2)
- /*line zz_registration.gen.go:91:1*/	}
- /*line registration.mygo:109:5*/	if MygoIN6ResultM5IsErr[string, string](normalized) || !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
- /*line registration.mygo:111:14*/		return Err[struct{}, string]("invalid registration input")
- /*line registration.mygo:109:5*/	} else {
- /*line zz_registration.gen.go:95:1*/	}
- /*line registration.mygo:46:1*/	address := MygoIN6ResultM6Unwrap[string, string](normalized)
+ /*line zz_registration.gen.go:92:1*/	}
+ /*line registration.mygo:110:5*/	if MygoIN6ResultM5IsErr[string, failure.Failure](normalized) || !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
+ /*line registration.mygo:112:14*/		return Err[struct{}, failure.Failure](Of("invalid registration input"))
+ /*line registration.mygo:110:5*/	} else {
+ /*line zz_registration.gen.go:96:1*/	}
+ /*line registration.mygo:47:1*/	address := MygoIN6ResultM6Unwrap[string, failure.Failure](normalized)
 	charged := MygoIN22RegistrationRepositoryM6Charge(self, ctx, ip, address, now)
- /*line registration.mygo:115:5*/	if MygoIN6ResultM5IsErr[struct{}, string](charged) {
- /*line registration.mygo:116:14*/		return charged
- /*line registration.mygo:115:5*/	} else {
- /*line zz_registration.gen.go:101:1*/	}
- /*line registration.mygo:118:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line registration.mygo:122:9*/		if QueryFailed(tx.Exec("DELETE FROM pending_registrations WHERE site_id=? AND expires_at<=?", self.Site.ID, now)) {
- /*line registration.mygo:123:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:122:9*/		} else {
- /*line zz_registration.gen.go:106:1*/		}
- /*line registration.mygo:121:7*/		exists := QueryExists(tx.Table("accounts").Where("site_id=? AND (email=? OR username=?)", self.Site.ID, address, username))
- /*line registration.mygo:126:9*/		if MygoIN6ResultM5IsErr[bool, string](exists) {
- /*line registration.mygo:127:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:126:9*/		} else {
- /*line zz_registration.gen.go:111:1*/		}
- /*line registration.mygo:129:9*/		if MygoIN6ResultM6Unwrap[bool, string](exists) {
- /*line registration.mygo:130:18*/			return Ok[struct{}, string](struct {
- /*line zz_registration.gen.go:114:1*/			}{})
- /*line registration.mygo:129:9*/		} else {
- /*line zz_registration.gen.go:116:1*/		}
- /*line registration.mygo:121:7*/		token := rand.Text()
+ /*line registration.mygo:116:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](charged) {
+ /*line registration.mygo:117:14*/		return charged
+ /*line registration.mygo:116:5*/	} else {
+ /*line zz_registration.gen.go:102:1*/	}
+ /*line registration.mygo:119:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line registration.mygo:123:9*/		if QueryFailed(tx.Exec("DELETE FROM pending_registrations WHERE site_id=? AND expires_at<=?", self.Site.ID, now)) {
+ /*line registration.mygo:124:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:123:9*/		} else {
+ /*line zz_registration.gen.go:107:1*/		}
+ /*line registration.mygo:122:7*/		exists := QueryExists(tx.Table("accounts").Where("site_id=? AND (email=? OR username=?)", self.Site.ID, address, username))
+ /*line registration.mygo:127:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](exists) {
+ /*line registration.mygo:128:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:127:9*/		} else {
+ /*line zz_registration.gen.go:112:1*/		}
+ /*line registration.mygo:130:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](exists) {
+ /*line registration.mygo:131:18*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_registration.gen.go:115:1*/			}{})
+ /*line registration.mygo:130:9*/		} else {
+ /*line zz_registration.gen.go:117:1*/		}
+ /*line registration.mygo:122:7*/		token := rand.Text()
 		pending := PendingRegistration{ID: rand.Text(), SiteID: self.Site.ID, Username: username, Email: address, TokenHash: auth.TokenHash(token), Generation: int64(1), CreatedAt: now, ExpiresAt: now.Add(time.Duration(self.TokenTTLSeconds) * time.Second)}
 		inserted := tx.Exec("INSERT INTO pending_registrations(id,site_id,username,email,token_hash,generation,created_at,expires_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING", pending.ID, pending.SiteID, pending.Username, pending.Email, pending.TokenHash, pending.Generation, pending.CreatedAt, pending.ExpiresAt)
- /*line registration.mygo:154:9*/		if QueryFailed(inserted) {
- /*line registration.mygo:155:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:154:9*/		} else {
- /*line zz_registration.gen.go:123:1*/		}
- /*line registration.mygo:157:9*/		if inserted.RowsAffected == int64(0) {
- /*line registration.mygo:158:18*/			return Ok[struct{}, string](struct {
- /*line zz_registration.gen.go:126:1*/			}{})
- /*line registration.mygo:157:9*/		} else {
- /*line zz_registration.gen.go:128:1*/		}
- /*line registration.mygo:160:9*/		return MygoIN22RegistrationRepositoryM7Enqueue(self, tx, pending, token, now)
- /*line zz_registration.gen.go:130:1*/	})
+ /*line registration.mygo:155:9*/		if QueryFailed(inserted) {
+ /*line registration.mygo:156:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:155:9*/		} else {
+ /*line zz_registration.gen.go:124:1*/		}
+ /*line registration.mygo:158:9*/		if inserted.RowsAffected == int64(0) {
+ /*line registration.mygo:159:18*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_registration.gen.go:127:1*/			}{})
+ /*line registration.mygo:158:9*/		} else {
+ /*line zz_registration.gen.go:129:1*/		}
+ /*line registration.mygo:161:9*/		return MygoIN22RegistrationRepositoryM7Enqueue(self, tx, pending, token, now)
+ /*line zz_registration.gen.go:131:1*/	})
 }
- /*line registration.mygo:46:1*/func MygoIN22RegistrationRepositoryM6Resend(self RegistrationRepository, ctx context.Context, email string, ip string, now time.Time) Result[struct{}, string] {
+ /*line registration.mygo:47:1*/func MygoIN22RegistrationRepositoryM6Resend(self RegistrationRepository, ctx context.Context, email string, ip string, now time.Time) Result[struct{}, failure.Failure] {
 	address := RegistrationEmail(email)
- /*line registration.mygo:172:5*/	if MygoIN6ResultM5IsErr[string, string](address) {
- /*line registration.mygo:173:14*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](address))
- /*line registration.mygo:172:5*/	} else {
- /*line zz_registration.gen.go:137:1*/	}
- /*line registration.mygo:46:1*/	charged := MygoIN22RegistrationRepositoryM6Charge(self, ctx, ip, MygoIN6ResultM6Unwrap[string, string](address), now)
- /*line registration.mygo:176:5*/	if MygoIN6ResultM5IsErr[struct{}, string](charged) {
- /*line registration.mygo:177:14*/		return charged
- /*line registration.mygo:176:5*/	} else {
- /*line zz_registration.gen.go:142:1*/	}
- /*line registration.mygo:179:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line registration.mygo:182:7*/		token := rand.Text()
+ /*line registration.mygo:173:5*/	if MygoIN6ResultM5IsErr[string, failure.Failure](address) {
+ /*line registration.mygo:174:14*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](address))
+ /*line registration.mygo:173:5*/	} else {
+ /*line zz_registration.gen.go:138:1*/	}
+ /*line registration.mygo:47:1*/	charged := MygoIN22RegistrationRepositoryM6Charge(self, ctx, ip, MygoIN6ResultM6Unwrap[string, failure.Failure](address), now)
+ /*line registration.mygo:177:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](charged) {
+ /*line registration.mygo:178:14*/		return charged
+ /*line registration.mygo:177:5*/	} else {
+ /*line zz_registration.gen.go:143:1*/	}
+ /*line registration.mygo:180:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line registration.mygo:183:7*/		token := rand.Text()
 		pending := Zero[PendingRegistration]()
-		query := tx.Raw("UPDATE pending_registrations SET token_hash=?,generation=generation+1,expires_at=? WHERE site_id=? AND email=? AND expires_at>? RETURNING *", auth.TokenHash(token), now.Add(time.Duration(self.TokenTTLSeconds)*time.Second), self.Site.ID, MygoIN6ResultM6Unwrap[string, string](address), now).Scan(&pending)
- /*line registration.mygo:193:9*/		if QueryFailed(query) {
- /*line registration.mygo:194:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:193:9*/		} else {
- /*line zz_registration.gen.go:150:1*/		}
- /*line registration.mygo:196:9*/		if query.RowsAffected == int64(0) {
- /*line registration.mygo:197:18*/			return Ok[struct{}, string](struct {
- /*line zz_registration.gen.go:153:1*/			}{})
- /*line registration.mygo:196:9*/		} else {
- /*line zz_registration.gen.go:155:1*/		}
- /*line registration.mygo:199:9*/		if QueryFailed(tx.Exec("UPDATE verification_mail_jobs SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL WHERE registration_id=? AND state IN ('pending','leased')", pending.ID)) {
- /*line registration.mygo:203:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:199:9*/		} else {
- /*line zz_registration.gen.go:159:1*/		}
- /*line registration.mygo:205:9*/		return MygoIN22RegistrationRepositoryM7Enqueue(self, tx, pending, token, now)
- /*line zz_registration.gen.go:161:1*/	})
+		query := tx.Raw("UPDATE pending_registrations SET token_hash=?,generation=generation+1,expires_at=? WHERE site_id=? AND email=? AND expires_at>? RETURNING *", auth.TokenHash(token), now.Add(time.Duration(self.TokenTTLSeconds)*time.Second), self.Site.ID, MygoIN6ResultM6Unwrap[string, failure.Failure](address), now).Scan(&pending)
+ /*line registration.mygo:194:9*/		if QueryFailed(query) {
+ /*line registration.mygo:195:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:194:9*/		} else {
+ /*line zz_registration.gen.go:151:1*/		}
+ /*line registration.mygo:197:9*/		if query.RowsAffected == int64(0) {
+ /*line registration.mygo:198:18*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_registration.gen.go:154:1*/			}{})
+ /*line registration.mygo:197:9*/		} else {
+ /*line zz_registration.gen.go:156:1*/		}
+ /*line registration.mygo:200:9*/		if QueryFailed(tx.Exec("UPDATE verification_mail_jobs SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL WHERE registration_id=? AND state IN ('pending','leased')", pending.ID)) {
+ /*line registration.mygo:204:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:200:9*/		} else {
+ /*line zz_registration.gen.go:160:1*/		}
+ /*line registration.mygo:206:9*/		return MygoIN22RegistrationRepositoryM7Enqueue(self, tx, pending, token, now)
+ /*line zz_registration.gen.go:162:1*/	})
 }
- /*line registration.mygo:46:1*/func MygoIN22RegistrationRepositoryM7Confirm(self RegistrationRepository, ctx context.Context, token string, password string, now time.Time) Result[struct{}, string] {
- /*line registration.mygo:216:5*/	if !auth.ValidToken(token) {
- /*line registration.mygo:217:14*/		return Err[struct{}, string]("invalid verification token")
- /*line registration.mygo:216:5*/	} else {
- /*line zz_registration.gen.go:167:1*/	}
- /*line registration.mygo:46:1*/	hash := auth.HashPassword(password)
- /*line registration.mygo:220:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
- /*line registration.mygo:221:14*/		return Err[struct{}, string]("invalid registration password")
- /*line registration.mygo:220:5*/	} else {
- /*line zz_registration.gen.go:172:1*/	}
- /*line registration.mygo:223:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line registration.mygo:226:7*/		pending := Zero[PendingRegistration]()
+ /*line registration.mygo:47:1*/func MygoIN22RegistrationRepositoryM7Confirm(self RegistrationRepository, ctx context.Context, token string, password string, now time.Time) Result[struct{}, failure.Failure] {
+ /*line registration.mygo:217:5*/	if !auth.ValidToken(token) {
+ /*line registration.mygo:218:14*/		return Err[struct{}, failure.Failure](Of("invalid verification token"))
+ /*line registration.mygo:217:5*/	} else {
+ /*line zz_registration.gen.go:168:1*/	}
+ /*line registration.mygo:47:1*/	hash := auth.HashPassword(password)
+ /*line registration.mygo:221:5*/	if MygoIN6ResultM5IsErr[string, string](hash) {
+ /*line registration.mygo:222:14*/		return Err[struct{}, failure.Failure](Of("invalid registration password"))
+ /*line registration.mygo:221:5*/	} else {
+ /*line zz_registration.gen.go:173:1*/	}
+ /*line registration.mygo:224:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line registration.mygo:227:7*/		pending := Zero[PendingRegistration]()
 		query := tx.Raw("SELECT * FROM pending_registrations WHERE site_id=? AND token_hash=? AND expires_at>? FOR UPDATE", self.Site.ID, auth.TokenHash(token), now).Scan(&pending)
- /*line registration.mygo:234:9*/		if QueryFailed(query) {
- /*line registration.mygo:235:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:234:9*/		} else {
- /*line zz_registration.gen.go:179:1*/		}
- /*line registration.mygo:237:9*/		if query.RowsAffected != int64(1) {
- /*line registration.mygo:238:18*/			return Err[struct{}, string]("invalid verification token")
- /*line registration.mygo:237:9*/		} else {
- /*line zz_registration.gen.go:183:1*/		}
- /*line registration.mygo:226:7*/		uri := config.CanonicalURI(self.Site, "users", pending.Username)
- /*line registration.mygo:241:9*/		if MygoIN6ResultM5IsErr[string, string](uri) {
- /*line registration.mygo:242:18*/			return Err[struct{}, string]("invalid registration input")
- /*line registration.mygo:241:9*/		} else {
- /*line zz_registration.gen.go:188:1*/		}
- /*line registration.mygo:226:7*/		actors := tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT DO NOTHING", MygoIN6ResultM6Unwrap[string, string](uri), self.Site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox")
- /*line registration.mygo:250:9*/		if QueryFailed(actors) {
- /*line registration.mygo:251:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:250:9*/		} else {
- /*line zz_registration.gen.go:193:1*/		}
- /*line registration.mygo:253:9*/		if actors.RowsAffected != int64(1) {
- /*line registration.mygo:254:18*/			return Err[struct{}, string]("registration conflict")
- /*line registration.mygo:253:9*/		} else {
- /*line zz_registration.gen.go:197:1*/		}
- /*line registration.mygo:226:7*/		accounts := tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING", self.Site.ID, MygoIN6ResultM6Unwrap[string, string](uri), pending.Username, pending.Email, MygoIN6ResultM6Unwrap[string, string](hash))
- /*line registration.mygo:264:9*/		if QueryFailed(accounts) {
- /*line registration.mygo:265:18*/			return Err[struct{}, string]("registration unavailable")
- /*line registration.mygo:264:9*/		} else {
- /*line zz_registration.gen.go:202:1*/		}
- /*line registration.mygo:267:9*/		if accounts.RowsAffected != int64(1) {
- /*line registration.mygo:268:18*/			return Err[struct{}, string]("registration conflict")
- /*line registration.mygo:267:9*/		} else {
- /*line zz_registration.gen.go:206:1*/		}
- /*line registration.mygo:270:9*/		return MutationResult(tx.Exec("DELETE FROM pending_registrations WHERE id=?", pending.ID))
- /*line zz_registration.gen.go:208:1*/	})
+ /*line registration.mygo:235:9*/		if QueryFailed(query) {
+ /*line registration.mygo:236:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:235:9*/		} else {
+ /*line zz_registration.gen.go:180:1*/		}
+ /*line registration.mygo:238:9*/		if query.RowsAffected != int64(1) {
+ /*line registration.mygo:239:18*/			return Err[struct{}, failure.Failure](Of("invalid verification token"))
+ /*line registration.mygo:238:9*/		} else {
+ /*line zz_registration.gen.go:184:1*/		}
+ /*line registration.mygo:227:7*/		uri := config.CanonicalURI(self.Site, "users", pending.Username)
+ /*line registration.mygo:242:9*/		if MygoIN6ResultM5IsErr[string, string](uri) {
+ /*line registration.mygo:243:18*/			return Err[struct{}, failure.Failure](Of("invalid registration input"))
+ /*line registration.mygo:242:9*/		} else {
+ /*line zz_registration.gen.go:189:1*/		}
+ /*line registration.mygo:227:7*/		actors := tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?) ON CONFLICT DO NOTHING", MygoIN6ResultM6Unwrap[string, string](uri), self.Site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox")
+ /*line registration.mygo:251:9*/		if QueryFailed(actors) {
+ /*line registration.mygo:252:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:251:9*/		} else {
+ /*line zz_registration.gen.go:194:1*/		}
+ /*line registration.mygo:254:9*/		if actors.RowsAffected != int64(1) {
+ /*line registration.mygo:255:18*/			return Err[struct{}, failure.Failure](Of("registration conflict"))
+ /*line registration.mygo:254:9*/		} else {
+ /*line zz_registration.gen.go:198:1*/		}
+ /*line registration.mygo:227:7*/		accounts := tx.Exec("INSERT INTO accounts(site_id,actor_uri,username,email,password_hash) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING", self.Site.ID, MygoIN6ResultM6Unwrap[string, string](uri), pending.Username, pending.Email, MygoIN6ResultM6Unwrap[string, string](hash))
+ /*line registration.mygo:265:9*/		if QueryFailed(accounts) {
+ /*line registration.mygo:266:18*/			return Err[struct{}, failure.Failure](Of("registration unavailable"))
+ /*line registration.mygo:265:9*/		} else {
+ /*line zz_registration.gen.go:203:1*/		}
+ /*line registration.mygo:268:9*/		if accounts.RowsAffected != int64(1) {
+ /*line registration.mygo:269:18*/			return Err[struct{}, failure.Failure](Of("registration conflict"))
+ /*line registration.mygo:268:9*/		} else {
+ /*line zz_registration.gen.go:207:1*/		}
+ /*line registration.mygo:271:9*/		return MutationResult(tx.Exec("DELETE FROM pending_registrations WHERE id=?", pending.ID))
+ /*line zz_registration.gen.go:209:1*/	})
 }

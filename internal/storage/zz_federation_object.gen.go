@@ -4,22 +4,23 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_object.mygo:6:1*/func LoadObjectByURI(ctx context.Context, db *gorm.DB, uri string) Result[Option[PostRecord], string] {
- /*line federation_object.mygo:7:3*/	if uri == "" {
- /*line federation_object.mygo:8:12*/		return Err[Option[PostRecord], string]("invalid object")
- /*line federation_object.mygo:7:3*/	} else {
- /*line zz_federation_object.gen.go:13:1*/	}
- /*line federation_object.mygo:6:1*/	record := Zero[PostRecord]()
+ /*line federation_object.mygo:7:1*/func LoadObjectByURI(ctx context.Context, db *gorm.DB, uri string) Result[Option[PostRecord], failure.Failure] {
+ /*line federation_object.mygo:8:3*/	if uri == "" {
+ /*line federation_object.mygo:9:12*/		return Err[Option[PostRecord], failure.Failure](Of("invalid object"))
+ /*line federation_object.mygo:8:3*/	} else {
+ /*line zz_federation_object.gen.go:14:1*/	}
+ /*line federation_object.mygo:7:1*/	record := Zero[PostRecord]()
 	query := db.WithContext(ctx).Table("posts").Where("object_uri = ?", uri).Limit(1).Find(&record)
- /*line federation_object.mygo:12:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation_object.mygo:13:12*/		return Err[Option[PostRecord], string]("object unavailable")
- /*line federation_object.mygo:12:3*/	} else {
- /*line zz_federation_object.gen.go:19:1*/	}
- /*line federation_object.mygo:15:3*/	if query.RowsAffected != int64(1) {
- /*line federation_object.mygo:16:12*/		return Ok[Option[PostRecord], string](None[PostRecord]())
- /*line federation_object.mygo:15:3*/	} else {
- /*line zz_federation_object.gen.go:23:1*/	}
- /*line federation_object.mygo:18:3*/	return Ok[Option[PostRecord], string](Some[PostRecord](record))
- /*line zz_federation_object.gen.go:25:1*/}
+ /*line federation_object.mygo:13:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line federation_object.mygo:14:12*/		return Err[Option[PostRecord], failure.Failure](Of("object unavailable"))
+ /*line federation_object.mygo:13:3*/	} else {
+ /*line zz_federation_object.gen.go:20:1*/	}
+ /*line federation_object.mygo:16:3*/	if query.RowsAffected != int64(1) {
+ /*line federation_object.mygo:17:12*/		return Ok[Option[PostRecord], failure.Failure](None[PostRecord]())
+ /*line federation_object.mygo:16:3*/	} else {
+ /*line zz_federation_object.gen.go:24:1*/	}
+ /*line federation_object.mygo:19:3*/	return Ok[Option[PostRecord], failure.Failure](Some[PostRecord](record))
+ /*line zz_federation_object.gen.go:26:1*/}

@@ -1,6 +1,7 @@
 package federation
 
 import json "go:encoding/json"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct CollectionTraversal
   ID: String
@@ -25,20 +26,20 @@ end
 
 # Collection traversal returns only canonical item identities. Callers fetch each
 # object from its advertised URI so that the object body's id can be verified.
-func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversal, String]
+func ParseCollectionTraversal(payload: Slice[Byte]) -> Result[CollectionTraversal, failure.Failure]
   let document = Zero[CollectionDocument]()
   if json.Unmarshal(payload, Ref.new(document)).IsErr() then
-    return Err("invalid collection")
+    return Err(Of("invalid collection"))
   end
   if document.Type != "Collection" && document.Type != "OrderedCollection" && document.Type != "CollectionPage" && document.Type != "OrderedCollectionPage" then
-    return Err("not a collection")
+    return Err(Of("not a collection"))
   end
   let rawItems = if (document.OrderedItems as Slice[Byte]).Len() > 0 then document.OrderedItems else document.Items end
   var items: Slice[String] = []
   if (rawItems as Slice[Byte]).Len() > 0 then
     var elements: Slice[json.RawMessage] = []
     if json.Unmarshal(rawItems as Slice[Byte], Ref.new(elements)).IsErr() then
-      return Err("invalid collection items")
+      return Err(Of("invalid collection items"))
     end
     elements.Each(func(element: json.RawMessage) -> ()
       let uri = DecodeCollectionItemURI(element)

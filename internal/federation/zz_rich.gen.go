@@ -6,29 +6,30 @@ import "encoding/json"
 import "time"
 import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line rich.mygo:8:1*/type RichSource struct {
+ /*line rich.mygo:9:1*/type RichSource struct {
 	Content   string "json:\"content\""
 	MediaType string "json:\"mediaType\""
- /*line zz_rich.gen.go:14:1*/}
- /*line rich.mygo:13:1*/type RichAttachment struct {
+ /*line zz_rich.gen.go:15:1*/}
+ /*line rich.mygo:14:1*/type RichAttachment struct {
 	Type      string "json:\"type\""
 	URL       string "json:\"url\""
 	MediaType string "json:\"mediaType,omitempty\""
 	Name      string "json:\"name,omitempty\""
- /*line zz_rich.gen.go:20:1*/}
- /*line rich.mygo:20:1*/type RichMention struct {
+ /*line zz_rich.gen.go:21:1*/}
+ /*line rich.mygo:21:1*/type RichMention struct {
 	Type string "json:\"type\""
 	Href string "json:\"href\""
 	Name string "json:\"name,omitempty\""
- /*line zz_rich.gen.go:25:1*/}
- /*line rich.mygo:26:1*/type RichMetadata struct {
+ /*line zz_rich.gen.go:26:1*/}
+ /*line rich.mygo:27:1*/type RichMetadata struct {
 	Source     RichSource       "json:\"source,omitzero\""
 	Attachment []RichAttachment "json:\"attachment,omitempty\""
 	Tag        []RichMention    "json:\"tag,omitempty\""
- /*line zz_rich.gen.go:30:1*/}
- /*line rich.mygo:32:1*/type RichObject struct {
+ /*line zz_rich.gen.go:31:1*/}
+ /*line rich.mygo:33:1*/type RichObject struct {
 	ID           string           "json:\"id\""
 	Type         string           "json:\"type\""
 	AttributedTo string           "json:\"attributedTo\""
@@ -43,68 +44,68 @@ import . "github.com/mygo-lang/mygo/prelude"
 	InReplyTo    string           "json:\"inReplyTo\""
 	Published    time.Time        "json:\"published\""
 	Updated      time.Time        "json:\"updated\""
- /*line zz_rich.gen.go:46:1*/}
+ /*line zz_rich.gen.go:47:1*/}
 
- /*line rich.mygo:51:1*/func ParseRichObject(sanitizer content.Sanitizer, payload []byte) Result[RichObject, string] {
+ /*line rich.mygo:52:1*/func ParseRichObject(sanitizer content.Sanitizer, payload []byte) Result[RichObject, failure.Failure] {
 	object := Zero[RichObject]()
- /*line rich.mygo:53:35*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line rich.mygo:54:35*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &object)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_rich.gen.go:56:1*/		}{})
+ /*line zz_rich.gen.go:57:1*/		}{})
 	}
- /*line rich.mygo:53:3*/	if HasDuplicateKeys(payload) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line rich.mygo:54:12*/		return Err[RichObject, string]("invalid rich object")
- /*line rich.mygo:53:3*/	} else {
- /*line zz_rich.gen.go:61:1*/	}
- /*line rich.mygo:56:3*/	if !storage.CanonicalObjectURI(object.ID) || !storage.CanonicalObjectURI(object.AttributedTo) || object.Type != "Page" && object.Type != "Note" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.Attachment) > 32 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.Tag) > 100 {
- /*line rich.mygo:57:12*/		return Err[RichObject, string]("invalid rich object")
- /*line rich.mygo:56:3*/	} else {
- /*line zz_rich.gen.go:65:1*/	}
- /*line rich.mygo:59:3*/	if object.MediaType != "" && object.MediaType != "text/html" && object.MediaType != "text/plain" {
- /*line rich.mygo:60:12*/		return Err[RichObject, string]("unsupported object media type")
- /*line rich.mygo:59:3*/	} else {
- /*line zz_rich.gen.go:69:1*/	}
- /*line rich.mygo:62:3*/	if !object.Updated.IsZero() && object.Updated.Before(object.Published) {
- /*line rich.mygo:63:12*/		return Err[RichObject, string]("invalid object version")
- /*line rich.mygo:62:3*/	} else {
- /*line zz_rich.gen.go:73:1*/	}
- /*line rich.mygo:65:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Source.Content)) > 1048576 {
- /*line rich.mygo:66:12*/		return Err[RichObject, string]("invalid source")
- /*line rich.mygo:65:3*/	} else {
- /*line zz_rich.gen.go:77:1*/	}
- /*line rich.mygo:68:52*/	var __mygo_expr_2 string
+ /*line rich.mygo:54:3*/	if HasDuplicateKeys(payload) || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line rich.mygo:55:12*/		return Err[RichObject, failure.Failure](Of("invalid rich object"))
+ /*line rich.mygo:54:3*/	} else {
+ /*line zz_rich.gen.go:62:1*/	}
+ /*line rich.mygo:57:3*/	if !storage.CanonicalObjectURI(object.ID) || !storage.CanonicalObjectURI(object.AttributedTo) || object.Type != "Page" && object.Type != "Note" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.Attachment) > 32 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(object.Tag) > 100 {
+ /*line rich.mygo:58:12*/		return Err[RichObject, failure.Failure](Of("invalid rich object"))
+ /*line rich.mygo:57:3*/	} else {
+ /*line zz_rich.gen.go:66:1*/	}
+ /*line rich.mygo:60:3*/	if object.MediaType != "" && object.MediaType != "text/html" && object.MediaType != "text/plain" {
+ /*line rich.mygo:61:12*/		return Err[RichObject, failure.Failure](Of("unsupported object media type"))
+ /*line rich.mygo:60:3*/	} else {
+ /*line zz_rich.gen.go:70:1*/	}
+ /*line rich.mygo:63:3*/	if !object.Updated.IsZero() && object.Updated.Before(object.Published) {
+ /*line rich.mygo:64:12*/		return Err[RichObject, failure.Failure](Of("invalid object version"))
+ /*line rich.mygo:63:3*/	} else {
+ /*line zz_rich.gen.go:74:1*/	}
+ /*line rich.mygo:66:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Source.Content)) > 1048576 {
+ /*line rich.mygo:67:12*/		return Err[RichObject, failure.Failure](Of("invalid source"))
+ /*line rich.mygo:66:3*/	} else {
+ /*line zz_rich.gen.go:78:1*/	}
+ /*line rich.mygo:69:52*/	var __mygo_expr_2 string
 	if object.MediaType == "text/plain" {
 		__mygo_expr_2 = "legacy"
 	} else {
 		__mygo_expr_2 = "html"
- /*line zz_rich.gen.go:83:1*/	}
- /*line rich.mygo:68:3*/	if MygoIN6ResultM5IsErr[string, string](content.RenderRich(sanitizer, object.Content, __mygo_expr_2)) {
- /*line rich.mygo:69:12*/		return Err[RichObject, string]("invalid object content")
- /*line rich.mygo:68:3*/	} else {
- /*line zz_rich.gen.go:87:1*/	}
- /*line rich.mygo:51:1*/	var valid bool = true
- /*line rich.mygo:72:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(object.Attachment, func(item RichAttachment) {
- /*line rich.mygo:73:5*/		if !storage.CanonicalObjectURI(item.URL) {
+ /*line zz_rich.gen.go:84:1*/	}
+ /*line rich.mygo:69:3*/	if MygoIN6ResultM5IsErr[string, string](content.RenderRich(sanitizer, object.Content, __mygo_expr_2)) {
+ /*line rich.mygo:70:12*/		return Err[RichObject, failure.Failure](Of("invalid object content"))
+ /*line rich.mygo:69:3*/	} else {
+ /*line zz_rich.gen.go:88:1*/	}
+ /*line rich.mygo:52:1*/	var valid bool = true
+ /*line rich.mygo:73:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(object.Attachment, func(item RichAttachment) {
+ /*line rich.mygo:74:5*/		if !storage.CanonicalObjectURI(item.URL) {
 			valid = false
 			return
 		} else {
 			return
- /*line zz_rich.gen.go:95:1*/		}
+ /*line zz_rich.gen.go:96:1*/		}
 	})
- /*line rich.mygo:75:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(object.Tag, func(item_1 RichMention) {
- /*line rich.mygo:76:5*/		if item_1.Type == "Mention" && !storage.CanonicalObjectURI(item_1.Href) {
+ /*line rich.mygo:76:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(object.Tag, func(item_1 RichMention) {
+ /*line rich.mygo:77:5*/		if item_1.Type == "Mention" && !storage.CanonicalObjectURI(item_1.Href) {
 			valid = false
 			return
 		} else {
 			return
- /*line zz_rich.gen.go:103:1*/		}
+ /*line zz_rich.gen.go:104:1*/		}
 	})
- /*line rich.mygo:78:3*/	if !valid {
- /*line rich.mygo:78:25*/		return Err[RichObject, string]("invalid rich metadata")
- /*line rich.mygo:78:3*/	} else {
- /*line zz_rich.gen.go:108:1*/	}
- /*line rich.mygo:79:3*/	return Ok[RichObject, string](object)
- /*line zz_rich.gen.go:110:1*/}
+ /*line rich.mygo:79:3*/	if !valid {
+ /*line rich.mygo:79:25*/		return Err[RichObject, failure.Failure](Of("invalid rich metadata"))
+ /*line rich.mygo:79:3*/	} else {
+ /*line zz_rich.gen.go:109:1*/	}
+ /*line rich.mygo:80:3*/	return Ok[RichObject, failure.Failure](object)
+ /*line zz_rich.gen.go:111:1*/}

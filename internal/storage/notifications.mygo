@@ -5,6 +5,7 @@ import strconv "go:strconv"
 import strings "go:strings"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct NotificationRecord
   ID: Int64 `gorm:"column:id" json:"id"`
@@ -29,18 +30,18 @@ struct NotificationPage
   ThroughCursor: String `json:"through_cursor"`
 end
 
-func ParseNotificationCursor(value: String) -> Result[NotificationCursor, String]
+func ParseNotificationCursor(value: String) -> Result[NotificationCursor, failure.Failure]
   let parts = strings.Split(value, "|")
   if parts.Len() != 2 then
-    return Err("invalid page")
+    return Err(Of("invalid page"))
   end
   let stamp = time.Parse(time.RFC3339Nano, parts.Get(0).Unwrap())
   let id = strconv.ParseInt(parts.Get(1).Unwrap(), 10, 64)
   if stamp.IsErr() || id.IsErr() then
-    return Err("invalid page")
+    return Err(Of("invalid page"))
   end
   if id.Unwrap() < 0i64 || stamp.Unwrap().After(time.Now()) then
-    return Err("invalid page")
+    return Err(Of("invalid page"))
   end
   Ok(NotificationCursor{Time: stamp.Unwrap(), ID: id.Unwrap()})
 end
@@ -58,12 +59,12 @@ func QueueModerationNotification(
   recipientURI: String,
   actorURI: String,
   occurrence: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if (kind != "report" && kind != "moderation") ||
     targetID == "" ||
     recipientURI == "" ||
     actorURI == "" then
-    return Err("invalid notification")
+    return Err(Of("invalid notification"))
   end
   MutationResult(tx.WithContext(ctx).Exec(
     "INSERT INTO notification_events(kind,occurrence,post_id,target_kind,target_id,actor_uri,recipient_uri) VALUES (?,?,NULL,?,?,?,?) ON CONFLICT DO NOTHING",
@@ -109,16 +110,16 @@ end
 # Projection holds row locks until commit, so crash/rollback makes the batch
 # immediately retryable. The advisory lock also serializes snapshot capture;
 # no uncommitted projection can arrive behind an already issued cursor.
-func ProjectNotifications(ctx: context.Context, db: Ref[gorm.DB], limit: Int) -> Result[(), String]
+func ProjectNotifications(ctx: context.Context, db: Ref[gorm.DB], limit: Int) -> Result[(), failure.Failure]
   if limit < 1 || limit > 1000 then
-    return Err("invalid page")
+    return Err(Of("invalid page"))
   end
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)")).IsErr() then
-        return Err("notifications unavailable")
+        return Err(Of("notifications unavailable"))
       end
       let query: String = "WITH batch AS (SELECT id FROM notification_events WHERE NOT projected ORDER BY id LIMIT ? FOR UPDATE SKIP LOCKED), inserted AS (INSERT INTO notifications(event_id,site_id,account_id) SELECT e.id,a.site_id,a.id FROM notification_events e JOIN batch b ON b.id=e.id JOIN accounts a ON a.actor_uri=e.recipient_uri WHERE NOT a.disabled AND e.retired_at IS NULL AND (e.target_kind<>'post' OR commune_notification_eligible(a.id,e.post_id,e.actor_uri)) ON CONFLICT DO NOTHING RETURNING id) UPDATE notification_events SET projected=true WHERE id IN (SELECT id FROM batch)"
       MutationResult(tx.Exec(query, limit))
@@ -196,9 +197,9 @@ impl BrowserRepository
     viewer: BrowserViewer,
     page: Page,
     max: Int
-  ) -> Result[NotificationPage, String]
+  ) -> Result[NotificationPage, failure.Failure]
     if !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     var output = NotificationPage{
       Items: [],
@@ -209,14 +210,14 @@ impl BrowserRepository
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         if MutationResult(tx.Exec("SELECT pg_advisory_xact_lock(739124097)")).IsErr() then
-          return Err("notifications unavailable")
+          return Err(Of("notifications unavailable"))
         end
         let repository = BrowserRepository{DB: tx, SiteID: self.SiteID}
         let top = Zero[NotificationRecord]()
         if MutationResult(repository.NotificationsQuery(ctx, viewer).Order("created_at DESC,id DESC").Limit(1).Scan(Ref.new(top))).IsErr() then
-          return Err("notifications unavailable")
+          return Err(Of("notifications unavailable"))
         end
         let cursor = NotificationCursor{
           Time: if top.ID == 0i64 then
@@ -228,7 +229,7 @@ impl BrowserRepository
         }
         var rows: Slice[NotificationRecord] = []
         if MutationResult(repository.NotificationsQuery(ctx, viewer).Order("created_at DESC,id DESC").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))).IsErr() then
-          return Err("notifications unavailable")
+          return Err(Of("notifications unavailable"))
         end
         output = NotificationPage{
           Items: rows,
@@ -248,12 +249,12 @@ impl BrowserRepository
     self: BrowserRepository,
     ctx: context.Context,
     viewer: BrowserViewer
-  ) -> Result[Int64, String]
+  ) -> Result[Int64, failure.Failure]
     var count: Int64 = 0i64
     let visible = self.NotificationsQuery(ctx, viewer)
     let query = self.DB.WithContext(ctx).Table("(?) AS unread", visible).Where("NOT unread.read").Select("count(*) AS count").Scan(Ref.new(count))
     if MutationResult(query).IsErr() then
-      return Err("notifications unavailable")
+      return Err(Of("notifications unavailable"))
     end
     Ok(count)
   end
@@ -262,17 +263,17 @@ impl BrowserRepository
     ctx: context.Context,
     viewer: BrowserViewer,
     id: Int64
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let eligible = self.NotificationsQuery(ctx, viewer).Select("n.id")
     let result = self.DB.WithContext(ctx).Table("notifications").Where("id=? AND id IN (?)", id, eligible).Update(
       "read_at",
       gorm.Expr("coalesce(read_at,clock_timestamp())")
     )
     if MutationResult(result).IsErr() then
-      return Err("notifications unavailable")
+      return Err(Of("notifications unavailable"))
     end
     if result.RowsAffected != 1i64 then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     Ok(())
   end
@@ -281,7 +282,7 @@ impl BrowserRepository
     ctx: context.Context,
     viewer: BrowserViewer,
     cursor: NotificationCursor
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let eligible = self.NotificationsQuery(ctx, viewer).Select("n.id")
     MutationResult(self.DB.WithContext(ctx).Table("notifications").Where(
       "(created_at,id)<=(?,?)",

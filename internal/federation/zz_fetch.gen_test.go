@@ -7,6 +7,7 @@ import "context"
 import "net/http"
 import "net/http/httptest"
 import "strings"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line fetch_test.mygo:9:1*/func TestBlockedDestinations(t *testing.T) {
@@ -17,7 +18,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line fetch_test.mygo:21:5*/		} else {
 			return
- /*line zz_fetch.gen_test.go:20:1*/		}
+ /*line zz_fetch.gen_test.go:21:1*/		}
 	})
  /*line fetch_test.mygo:25:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"8.8.8.8", "1.1.1.1", "2606:4700:4700::1111"}, func(address_1 string) {
  /*line fetch_test.mygo:26:5*/		if BlockedIP(address_1) {
@@ -25,26 +26,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line fetch_test.mygo:26:5*/		} else {
 			return
- /*line zz_fetch.gen_test.go:28:1*/		}
+ /*line zz_fetch.gen_test.go:29:1*/		}
 	})
- /*line fetch_test.mygo:30:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ValidateDestination("http://peer.example/objects/1", false)) {
+ /*line fetch_test.mygo:30:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](ValidateDestination("http://peer.example/objects/1", false)) {
  /*line fetch_test.mygo:31:5*/		t.Fatal("plain http destination was accepted")
  /*line fetch_test.mygo:30:3*/	} else {
- /*line zz_fetch.gen_test.go:33:1*/	}
- /*line fetch_test.mygo:33:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ValidateDestination("https://127.0.0.1/objects/1", false)) {
+ /*line zz_fetch.gen_test.go:34:1*/	}
+ /*line fetch_test.mygo:33:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](ValidateDestination("https://127.0.0.1/objects/1", false)) {
  /*line fetch_test.mygo:34:5*/		t.Fatal("loopback destination was accepted")
  /*line fetch_test.mygo:33:3*/	} else {
- /*line zz_fetch.gen_test.go:37:1*/	}
- /*line fetch_test.mygo:36:3*/	if MygoIN6ResultM4IsOk[struct{}, string](ValidateDestination("https://169.254.169.254/latest/meta-data", false)) {
+ /*line zz_fetch.gen_test.go:38:1*/	}
+ /*line fetch_test.mygo:36:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](ValidateDestination("https://169.254.169.254/latest/meta-data", false)) {
  /*line fetch_test.mygo:37:5*/		t.Fatal("metadata destination was accepted")
  /*line fetch_test.mygo:36:3*/	} else {
- /*line zz_fetch.gen_test.go:41:1*/	}
- /*line fetch_test.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, string](ValidateDestination("http://127.0.0.1:8080/objects/1", true)) {
+ /*line zz_fetch.gen_test.go:42:1*/	}
+ /*line fetch_test.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](ValidateDestination("http://127.0.0.1:8080/objects/1", true)) {
  /*line fetch_test.mygo:40:5*/		t.Fatal("explicit test-network configuration did not permit a local destination")
 		return
  /*line fetch_test.mygo:39:3*/	} else {
 		return
- /*line zz_fetch.gen_test.go:47:1*/	}
+ /*line zz_fetch.gen_test.go:48:1*/	}
 }
  /*line fetch_test.mygo:44:1*/func TestFetchLimitsAndRedirects(t *testing.T) {
 	handler := func(w http.ResponseWriter, request *http.Request) {
@@ -68,39 +69,39 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line fetch_test.mygo:60:11*/					w.Header().Set("Location", "/ok")
  /*line fetch_test.mygo:61:11*/					w.WriteHeader(302)
 					return
- /*line zz_fetch.gen_test.go:71:1*/				}
+ /*line zz_fetch.gen_test.go:72:1*/				}
 			}
 		}
 	}
  /*line fetch_test.mygo:44:1*/	server := httptest.NewServer(http.HandlerFunc(handler))
 	limits := FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 3, AllowPrivate: true}
-	ok := MygoIN6ResultM6Unwrap[FetchResult, string](Fetch(context.Background(), server.URL+"/ok", limits))
+	ok := MygoIN6ResultM6Unwrap[FetchResult, failure.Failure](Fetch(context.Background(), server.URL+"/ok", limits))
  /*line fetch_test.mygo:69:3*/	if ok.Status != 200 || !WantsActivityJSON(ok.ContentType) || ok.FinalURL != server.URL+"/ok" {
  /*line fetch_test.mygo:72:5*/		t.Fatal("bounded fetch did not return the expected response")
  /*line fetch_test.mygo:69:3*/	} else {
- /*line zz_fetch.gen_test.go:81:1*/	}
- /*line fetch_test.mygo:74:3*/	if MygoIN6ResultM4IsOk[FetchResult, string](Fetch(context.Background(), server.URL+"/large", limits)) {
+ /*line zz_fetch.gen_test.go:82:1*/	}
+ /*line fetch_test.mygo:74:3*/	if MygoIN6ResultM4IsOk[FetchResult, failure.Failure](Fetch(context.Background(), server.URL+"/large", limits)) {
  /*line fetch_test.mygo:75:5*/		t.Fatal("oversized response was accepted")
  /*line fetch_test.mygo:74:3*/	} else {
- /*line zz_fetch.gen_test.go:85:1*/	}
- /*line fetch_test.mygo:44:1*/	followed := MygoIN6ResultM6Unwrap[FetchResult, string](Fetch(context.Background(), server.URL+"/redirect", limits))
+ /*line zz_fetch.gen_test.go:86:1*/	}
+ /*line fetch_test.mygo:44:1*/	followed := MygoIN6ResultM6Unwrap[FetchResult, failure.Failure](Fetch(context.Background(), server.URL+"/redirect", limits))
  /*line fetch_test.mygo:78:3*/	if followed.Status != 200 || followed.FinalURL != server.URL+"/ok" {
  /*line fetch_test.mygo:79:5*/		t.Fatal("in-range redirect was not followed")
  /*line fetch_test.mygo:78:3*/	} else {
- /*line zz_fetch.gen_test.go:90:1*/	}
+ /*line zz_fetch.gen_test.go:91:1*/	}
  /*line fetch_test.mygo:44:1*/	capped := Fetch(context.Background(), server.URL+"/loop", limits)
- /*line fetch_test.mygo:82:3*/	if MygoIN6ResultM4IsOk[FetchResult, string](capped) || MygoIN6ResultM9UnwrapErr[FetchResult, string](capped) != "redirect limit exceeded" {
+ /*line fetch_test.mygo:82:3*/	if MygoIN6ResultM4IsOk[FetchResult, failure.Failure](capped) || failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[FetchResult, failure.Failure](capped)) != "redirect limit exceeded" {
  /*line fetch_test.mygo:83:5*/		t.Fatal("redirect loop was not stopped")
  /*line fetch_test.mygo:82:3*/	} else {
- /*line zz_fetch.gen_test.go:95:1*/	}
+ /*line zz_fetch.gen_test.go:96:1*/	}
  /*line fetch_test.mygo:44:1*/	strict := FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 3, AllowPrivate: false}
- /*line fetch_test.mygo:86:3*/	if MygoIN6ResultM4IsOk[FetchResult, string](Fetch(context.Background(), server.URL+"/ok", strict)) {
+ /*line fetch_test.mygo:86:3*/	if MygoIN6ResultM4IsOk[FetchResult, failure.Failure](Fetch(context.Background(), server.URL+"/ok", strict)) {
  /*line fetch_test.mygo:87:5*/		t.Fatal("fetch to a blocked destination succeeded without explicit test configuration")
  /*line fetch_test.mygo:86:3*/	} else {
- /*line zz_fetch.gen_test.go:100:1*/	}
+ /*line zz_fetch.gen_test.go:101:1*/	}
  /*line fetch_test.mygo:89:3*/	server.Close()
 	return
- /*line zz_fetch.gen_test.go:103:1*/}
+ /*line zz_fetch.gen_test.go:104:1*/}
  /*line fetch_test.mygo:92:1*/func TestFetchAcceptVariants(t *testing.T) {
 	handler := func(w http.ResponseWriter, request *http.Request) {
  /*line fetch_test.mygo:94:5*/		if request.URL.Path == "/webfinger" {
@@ -108,30 +109,30 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line fetch_test.mygo:96:9*/				w.WriteHeader(400)
  /*line fetch_test.mygo:95:7*/				return
 			} else {
- /*line zz_fetch.gen_test.go:111:1*/			}
+ /*line zz_fetch.gen_test.go:112:1*/			}
  /*line fetch_test.mygo:94:5*/			w.Header().Set("Content-Type", webFingerJSON)
 		} else {
  /*line fetch_test.mygo:101:7*/			if request.Header.Get("Accept") != activityJSON {
  /*line fetch_test.mygo:102:9*/				w.WriteHeader(400)
  /*line fetch_test.mygo:101:7*/				return
 			} else {
- /*line zz_fetch.gen_test.go:118:1*/			}
+ /*line zz_fetch.gen_test.go:119:1*/			}
  /*line fetch_test.mygo:94:5*/			w.Header().Set("Content-Type", activityJSON)
- /*line zz_fetch.gen_test.go:120:1*/		}
+ /*line zz_fetch.gen_test.go:121:1*/		}
  /*line fetch_test.mygo:107:5*/		w.WriteHeader(200)
  /*line fetch_test.mygo:93:17*/		w.Write([]byte("{}"))
 		return
- /*line zz_fetch.gen_test.go:124:1*/	}
+ /*line zz_fetch.gen_test.go:125:1*/	}
  /*line fetch_test.mygo:92:1*/	server := httptest.NewServer(http.HandlerFunc(handler))
 	limits := FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 0, AllowPrivate: true}
- /*line fetch_test.mygo:112:3*/	if MygoIN6ResultM5IsErr[FetchResult, string](Fetch(context.Background(), server.URL+"/actor", limits)) {
+ /*line fetch_test.mygo:112:3*/	if MygoIN6ResultM5IsErr[FetchResult, failure.Failure](Fetch(context.Background(), server.URL+"/actor", limits)) {
  /*line fetch_test.mygo:113:5*/		t.Fatal("default ActivityPub Accept changed")
  /*line fetch_test.mygo:112:3*/	} else {
- /*line zz_fetch.gen_test.go:130:1*/	}
- /*line fetch_test.mygo:115:3*/	if MygoIN6ResultM5IsErr[FetchResult, string](FetchWithAccept(context.Background(), server.URL+"/webfinger", limits, webFingerJSON)) {
+ /*line zz_fetch.gen_test.go:131:1*/	}
+ /*line fetch_test.mygo:115:3*/	if MygoIN6ResultM5IsErr[FetchResult, failure.Failure](FetchWithAccept(context.Background(), server.URL+"/webfinger", limits, webFingerJSON)) {
  /*line fetch_test.mygo:116:5*/		t.Fatal("WebFinger Accept was not sent")
  /*line fetch_test.mygo:115:3*/	} else {
- /*line zz_fetch.gen_test.go:134:1*/	}
+ /*line zz_fetch.gen_test.go:135:1*/	}
  /*line fetch_test.mygo:118:3*/	server.Close()
 	return
- /*line zz_fetch.gen_test.go:137:1*/}
+ /*line zz_fetch.gen_test.go:138:1*/}

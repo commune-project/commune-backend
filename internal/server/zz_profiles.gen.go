@@ -14,203 +14,204 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line profiles.mygo:16:1*/type ProfilePatch struct {
+ /*line profiles.mygo:17:1*/type ProfilePatch struct {
 	DisplayName    json.RawMessage "json:\"display_name\""
 	Biography      json.RawMessage "json:\"biography\""
 	AvatarUploadID json.RawMessage "json:\"avatar_upload_id\""
- /*line zz_profiles.gen.go:23:1*/}
- /*line profiles.mygo:22:1*/type AvatarBinding struct {
+ /*line zz_profiles.gen.go:24:1*/}
+ /*line profiles.mygo:23:1*/type AvatarBinding struct {
 	ID  string
 	URL string
- /*line zz_profiles.gen.go:27:1*/}
+ /*line zz_profiles.gen.go:28:1*/}
 
- /*line profiles.mygo:27:1*/func BindProfileAvatar(ctx context.Context, tx *gorm.DB, site config.Site, settings config.Config, identity auth.Identity, uploadID string) Result[AvatarBinding, string] {
+ /*line profiles.mygo:28:1*/func BindProfileAvatar(ctx context.Context, tx *gorm.DB, site config.Site, settings config.Config, identity auth.Identity, uploadID string) Result[AvatarBinding, failure.Failure] {
 	var media storage.MediaRepository = storage.MediaRepository{DB: tx, SiteID: site.ID, Files: Zero[storage.MediaFiles](), Settings: settings.Media}
 	bound := storage.MygoIN15MediaRepositoryM12BindAvatarTx(media, ctx, tx, identity, uploadID)
- /*line profiles.mygo:42:3*/	if MygoIN6ResultM5IsErr[string, string](bound) {
- /*line profiles.mygo:43:12*/		return Err[AvatarBinding, string](MygoIN6ResultM9UnwrapErr[string, string](bound))
- /*line profiles.mygo:42:3*/	} else {
- /*line zz_profiles.gen.go:35:1*/	}
- /*line profiles.mygo:45:3*/	if MygoIN6ResultM6Unwrap[string, string](bound) == "" {
- /*line profiles.mygo:46:12*/		return Ok[AvatarBinding, string](Zero[AvatarBinding]())
- /*line profiles.mygo:45:3*/	} else {
- /*line zz_profiles.gen.go:39:1*/	}
- /*line profiles.mygo:48:3*/	return Ok[AvatarBinding, string](AvatarBinding{ID: strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, string](bound), "/api/v1/media/"), URL: site.Origin + MygoIN6ResultM6Unwrap[string, string](bound)})
- /*line zz_profiles.gen.go:41:1*/}
- /*line profiles.mygo:55:1*/func ProfilesRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line profiles.mygo:63:3*/	return ProfileRoute(settings, db, site, w, request, parts)
- /*line zz_profiles.gen.go:44:1*/}
- /*line profiles.mygo:66:1*/func ProfileRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line profiles.mygo:43:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](bound) {
+ /*line profiles.mygo:44:12*/		return Err[AvatarBinding, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](bound))
+ /*line profiles.mygo:43:3*/	} else {
+ /*line zz_profiles.gen.go:36:1*/	}
+ /*line profiles.mygo:46:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](bound) == "" {
+ /*line profiles.mygo:47:12*/		return Ok[AvatarBinding, failure.Failure](Zero[AvatarBinding]())
+ /*line profiles.mygo:46:3*/	} else {
+ /*line zz_profiles.gen.go:40:1*/	}
+ /*line profiles.mygo:49:3*/	return Ok[AvatarBinding, failure.Failure](AvatarBinding{ID: strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, failure.Failure](bound), "/api/v1/media/"), URL: site.Origin + MygoIN6ResultM6Unwrap[string, failure.Failure](bound)})
+ /*line zz_profiles.gen.go:42:1*/}
+ /*line profiles.mygo:56:1*/func ProfilesRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line profiles.mygo:64:3*/	return ProfileRoute(settings, db, site, w, request, parts)
+ /*line zz_profiles.gen.go:45:1*/}
+ /*line profiles.mygo:67:1*/func ProfileRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
 	resource := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "")
 	publicRead := resource == "profiles" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 4
 	current := resource == "profile" && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 3
- /*line profiles.mygo:77:3*/	if !publicRead && !current {
- /*line profiles.mygo:78:12*/		return false
- /*line profiles.mygo:77:3*/	} else {
- /*line zz_profiles.gen.go:52:1*/	}
- /*line profiles.mygo:80:3*/	w.Header().Set("Cache-Control", "no-store")
- /*line profiles.mygo:81:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
- /*line profiles.mygo:82:3*/	if publicRead {
- /*line profiles.mygo:83:5*/		if request.Method != "GET" {
- /*line profiles.mygo:84:7*/			MethodNotAllowed(w, "GET")
- /*line profiles.mygo:85:14*/			return true
- /*line profiles.mygo:83:5*/		} else {
- /*line zz_profiles.gen.go:60:1*/		}
- /*line profiles.mygo:82:3*/		loaded := storage.PublicProfile(request.Context(), db, site.ID, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)))
- /*line profiles.mygo:88:5*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](loaded) {
- /*line profiles.mygo:89:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, string](loaded))
- /*line profiles.mygo:88:5*/		} else {
- /*line profiles.mygo:91:7*/			WriteJSON(w, 200, MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](loaded))
- /*line zz_profiles.gen.go:66:1*/		}
- /*line profiles.mygo:93:12*/		return true
- /*line profiles.mygo:82:3*/	} else {
- /*line zz_profiles.gen.go:69:1*/	}
- /*line profiles.mygo:95:3*/	if request.Method != "GET" && request.Method != "PATCH" {
- /*line profiles.mygo:96:5*/		MethodNotAllowed(w, "GET, PATCH")
- /*line profiles.mygo:97:12*/		return true
- /*line profiles.mygo:95:3*/	} else {
- /*line zz_profiles.gen.go:74:1*/	}
- /*line profiles.mygo:66:1*/	session := Authenticated(db, site, request)
- /*line profiles.mygo:100:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line profiles.mygo:101:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line profiles.mygo:102:12*/		return true
- /*line profiles.mygo:100:3*/	} else {
- /*line zz_profiles.gen.go:80:1*/	}
- /*line profiles.mygo:66:1*/	identity := MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity
- /*line profiles.mygo:105:3*/	if request.Method == "GET" {
+ /*line profiles.mygo:78:3*/	if !publicRead && !current {
+ /*line profiles.mygo:79:12*/		return false
+ /*line profiles.mygo:78:3*/	} else {
+ /*line zz_profiles.gen.go:53:1*/	}
+ /*line profiles.mygo:81:3*/	w.Header().Set("Cache-Control", "no-store")
+ /*line profiles.mygo:82:3*/	w.Header().Set("Referrer-Policy", "no-referrer")
+ /*line profiles.mygo:83:3*/	if publicRead {
+ /*line profiles.mygo:84:5*/		if request.Method != "GET" {
+ /*line profiles.mygo:85:7*/			MethodNotAllowed(w, "GET")
+ /*line profiles.mygo:86:14*/			return true
+ /*line profiles.mygo:84:5*/		} else {
+ /*line zz_profiles.gen.go:61:1*/		}
+ /*line profiles.mygo:83:3*/		loaded := storage.PublicProfile(request.Context(), db, site.ID, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3)))
+ /*line profiles.mygo:89:5*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, failure.Failure](loaded) {
+ /*line profiles.mygo:90:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, failure.Failure](loaded))
+ /*line profiles.mygo:89:5*/		} else {
+ /*line profiles.mygo:92:7*/			WriteJSON(w, 200, MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](loaded))
+ /*line zz_profiles.gen.go:67:1*/		}
+ /*line profiles.mygo:94:12*/		return true
+ /*line profiles.mygo:83:3*/	} else {
+ /*line zz_profiles.gen.go:70:1*/	}
+ /*line profiles.mygo:96:3*/	if request.Method != "GET" && request.Method != "PATCH" {
+ /*line profiles.mygo:97:5*/		MethodNotAllowed(w, "GET, PATCH")
+ /*line profiles.mygo:98:12*/		return true
+ /*line profiles.mygo:96:3*/	} else {
+ /*line zz_profiles.gen.go:75:1*/	}
+ /*line profiles.mygo:67:1*/	session := Authenticated(db, site, request)
+ /*line profiles.mygo:101:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
+ /*line profiles.mygo:102:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
+ /*line profiles.mygo:103:12*/		return true
+ /*line profiles.mygo:101:3*/	} else {
+ /*line zz_profiles.gen.go:81:1*/	}
+ /*line profiles.mygo:67:1*/	identity := MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity
+ /*line profiles.mygo:106:3*/	if request.Method == "GET" {
 		loaded_1 := storage.PublicProfile(request.Context(), db, site.ID, identity.Username)
- /*line profiles.mygo:107:5*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](loaded_1) {
- /*line profiles.mygo:108:7*/			Fail(w, MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, string](loaded_1))
- /*line profiles.mygo:107:5*/		} else {
- /*line profiles.mygo:110:7*/			WriteJSON(w, 200, MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](loaded_1))
- /*line zz_profiles.gen.go:88:1*/		}
- /*line profiles.mygo:112:12*/		return true
- /*line profiles.mygo:105:3*/	} else {
- /*line zz_profiles.gen.go:91:1*/	}
- /*line profiles.mygo:114:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
- /*line profiles.mygo:115:5*/		WriteErrorJSON(w, 403, "CSRF denied")
- /*line profiles.mygo:116:12*/		return true
- /*line profiles.mygo:114:3*/	} else {
- /*line zz_profiles.gen.go:96:1*/	}
- /*line profiles.mygo:66:1*/	var patch ProfilePatch = Zero[ProfilePatch]()
- /*line profiles.mygo:119:3*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &patch)) {
- /*line profiles.mygo:120:5*/		WriteErrorJSON(w, 400, "invalid profile input")
- /*line profiles.mygo:121:12*/		return true
- /*line profiles.mygo:119:3*/	} else {
- /*line zz_profiles.gen.go:102:1*/	}
- /*line profiles.mygo:66:1*/	var output storage.ProfileRecord = Zero[storage.ProfileRecord]()
-	result := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line profiles.mygo:127:5*/		locked := storage.LockProfileOwner(request.Context(), tx, site.ID, identity)
- /*line profiles.mygo:129:7*/		if MygoIN6ResultM5IsErr[struct{}, string](locked) {
- /*line profiles.mygo:130:16*/			return locked
- /*line profiles.mygo:129:7*/		} else {
- /*line zz_profiles.gen.go:109:1*/		}
- /*line profiles.mygo:127:5*/		loaded_2 := storage.LoadProfile(request.Context(), tx, identity.ActorURI)
- /*line profiles.mygo:133:7*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, string](loaded_2) {
- /*line profiles.mygo:134:16*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, string](loaded_2))
- /*line profiles.mygo:133:7*/		} else {
- /*line zz_profiles.gen.go:114:1*/		}
- /*line profiles.mygo:127:5*/		profile := MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](loaded_2)
+ /*line profiles.mygo:108:5*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, failure.Failure](loaded_1) {
+ /*line profiles.mygo:109:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, failure.Failure](loaded_1))
+ /*line profiles.mygo:108:5*/		} else {
+ /*line profiles.mygo:111:7*/			WriteJSON(w, 200, MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](loaded_1))
+ /*line zz_profiles.gen.go:89:1*/		}
+ /*line profiles.mygo:113:12*/		return true
+ /*line profiles.mygo:106:3*/	} else {
+ /*line zz_profiles.gen.go:92:1*/	}
+ /*line profiles.mygo:115:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session), request) {
+ /*line profiles.mygo:116:5*/		WriteErrorJSON(w, 403, "CSRF denied")
+ /*line profiles.mygo:117:12*/		return true
+ /*line profiles.mygo:115:3*/	} else {
+ /*line zz_profiles.gen.go:97:1*/	}
+ /*line profiles.mygo:67:1*/	var patch ProfilePatch = Zero[ProfilePatch]()
+ /*line profiles.mygo:120:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &patch)) {
+ /*line profiles.mygo:121:5*/		WriteErrorJSON(w, 400, "invalid profile input")
+ /*line profiles.mygo:122:12*/		return true
+ /*line profiles.mygo:120:3*/	} else {
+ /*line zz_profiles.gen.go:103:1*/	}
+ /*line profiles.mygo:67:1*/	var output storage.ProfileRecord = Zero[storage.ProfileRecord]()
+	result := storage.RunTransaction(request.Context(), db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line profiles.mygo:128:5*/		locked := storage.LockProfileOwner(request.Context(), tx, site.ID, identity)
+ /*line profiles.mygo:130:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](locked) {
+ /*line profiles.mygo:131:16*/			return locked
+ /*line profiles.mygo:130:7*/		} else {
+ /*line zz_profiles.gen.go:110:1*/		}
+ /*line profiles.mygo:128:5*/		loaded_2 := storage.LoadProfile(request.Context(), tx, identity.ActorURI)
+ /*line profiles.mygo:134:7*/		if MygoIN6ResultM5IsErr[storage.ProfileRecord, failure.Failure](loaded_2) {
+ /*line profiles.mygo:135:16*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, failure.Failure](loaded_2))
+ /*line profiles.mygo:134:7*/		} else {
+ /*line zz_profiles.gen.go:115:1*/		}
+ /*line profiles.mygo:128:5*/		profile := MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](loaded_2)
 		profile.Username = identity.Username
- /*line profiles.mygo:138:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.DisplayName)) > 0 {
+ /*line profiles.mygo:139:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.DisplayName)) > 0 {
 			name := ""
- /*line profiles.mygo:141:11*/			var __mygo_expr_1 Result[struct{}, error]
+ /*line profiles.mygo:142:11*/			var __mygo_expr_1 Result[struct{}, error]
 			__mygo_expr_0 := json.Unmarshal([]byte(patch.DisplayName), &name)
 			if __mygo_expr_0 != nil {
 				__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 			} else {
 				__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_profiles.gen.go:125:1*/				}{})
+ /*line zz_profiles.gen.go:126:1*/				}{})
 			}
- /*line profiles.mygo:140:9*/			if string(patch.DisplayName) == "null" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !utf8.ValidString(name) || utf8.RuneCountInString(name) > settings.Rendering.MaxDisplayNameLength {
- /*line profiles.mygo:144:18*/				return Err[struct{}, string]("invalid profile input")
- /*line profiles.mygo:140:9*/			} else {
- /*line zz_profiles.gen.go:130:1*/			}
- /*line profiles.mygo:138:7*/			profile.DisplayName = content.RenderText(name)
+ /*line profiles.mygo:141:9*/			if string(patch.DisplayName) == "null" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !utf8.ValidString(name) || utf8.RuneCountInString(name) > settings.Rendering.MaxDisplayNameLength {
+ /*line profiles.mygo:145:18*/				return Err[struct{}, failure.Failure](Of("invalid profile input"))
+ /*line profiles.mygo:141:9*/			} else {
+ /*line zz_profiles.gen.go:131:1*/			}
+ /*line profiles.mygo:139:7*/			profile.DisplayName = content.RenderText(name)
 		} else {
- /*line zz_profiles.gen.go:133:1*/		}
- /*line profiles.mygo:148:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.Biography)) > 0 {
+ /*line zz_profiles.gen.go:134:1*/		}
+ /*line profiles.mygo:149:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.Biography)) > 0 {
 			biography := ""
- /*line profiles.mygo:151:11*/			var __mygo_expr_3 Result[struct{}, error]
+ /*line profiles.mygo:152:11*/			var __mygo_expr_3 Result[struct{}, error]
 			__mygo_expr_2 := json.Unmarshal([]byte(patch.Biography), &biography)
 			if __mygo_expr_2 != nil {
 				__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 			} else {
 				__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_profiles.gen.go:142:1*/				}{})
+ /*line zz_profiles.gen.go:143:1*/				}{})
 			}
- /*line profiles.mygo:150:9*/			if string(patch.Biography) == "null" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || !utf8.ValidString(biography) || utf8.RuneCountInString(biography) > settings.Rendering.MaxBiographyLength {
- /*line profiles.mygo:154:18*/				return Err[struct{}, string]("invalid profile input")
- /*line profiles.mygo:150:9*/			} else {
- /*line zz_profiles.gen.go:147:1*/			}
- /*line profiles.mygo:148:7*/			rendered := content.RenderRich(settings.Rendering.Sanitizer, biography, "markdown")
- /*line profiles.mygo:157:9*/			if MygoIN6ResultM5IsErr[string, string](rendered) {
- /*line profiles.mygo:158:18*/				return Err[struct{}, string]("invalid profile input")
- /*line profiles.mygo:157:9*/			} else {
- /*line zz_profiles.gen.go:152:1*/			}
- /*line profiles.mygo:148:7*/			profile.Biography = biography
+ /*line profiles.mygo:151:9*/			if string(patch.Biography) == "null" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || !utf8.ValidString(biography) || utf8.RuneCountInString(biography) > settings.Rendering.MaxBiographyLength {
+ /*line profiles.mygo:155:18*/				return Err[struct{}, failure.Failure](Of("invalid profile input"))
+ /*line profiles.mygo:151:9*/			} else {
+ /*line zz_profiles.gen.go:148:1*/			}
+ /*line profiles.mygo:149:7*/			rendered := content.RenderRich(settings.Rendering.Sanitizer, biography, "markdown")
+ /*line profiles.mygo:158:9*/			if MygoIN6ResultM5IsErr[string, string](rendered) {
+ /*line profiles.mygo:159:18*/				return Err[struct{}, failure.Failure](Of("invalid profile input"))
+ /*line profiles.mygo:158:9*/			} else {
+ /*line zz_profiles.gen.go:153:1*/			}
+ /*line profiles.mygo:149:7*/			profile.Biography = biography
 			profile.BiographyHTML = MygoIN6ResultM6Unwrap[string, string](rendered)
 		} else {
- /*line zz_profiles.gen.go:156:1*/		}
- /*line profiles.mygo:163:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.AvatarUploadID)) > 0 {
+ /*line zz_profiles.gen.go:157:1*/		}
+ /*line profiles.mygo:164:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(patch.AvatarUploadID)) > 0 {
 			upload := ""
- /*line profiles.mygo:166:11*/			var __mygo_expr_5 Result[struct{}, error]
+ /*line profiles.mygo:167:11*/			var __mygo_expr_5 Result[struct{}, error]
 			__mygo_expr_4 := json.Unmarshal([]byte(patch.AvatarUploadID), &upload)
 			if __mygo_expr_4 != nil {
 				__mygo_expr_5 = Err[struct{}, error](__mygo_expr_4)
 			} else {
 				__mygo_expr_5 = Ok[struct{}, error](struct {
- /*line zz_profiles.gen.go:165:1*/				}{})
+ /*line zz_profiles.gen.go:166:1*/				}{})
 			}
- /*line profiles.mygo:165:9*/			if string(patch.AvatarUploadID) != "null" && MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
- /*line profiles.mygo:167:18*/				return Err[struct{}, string]("invalid profile input")
- /*line profiles.mygo:165:9*/			} else {
- /*line zz_profiles.gen.go:170:1*/			}
- /*line profiles.mygo:163:7*/			binding := BindProfileAvatar(request.Context(), tx, site, settings, identity, upload)
- /*line profiles.mygo:170:9*/			if MygoIN6ResultM5IsErr[AvatarBinding, string](binding) {
- /*line profiles.mygo:171:18*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[AvatarBinding, string](binding))
- /*line profiles.mygo:170:9*/			} else {
- /*line zz_profiles.gen.go:175:1*/			}
- /*line profiles.mygo:163:7*/			profile.AvatarBindingID = MygoIN6ResultM6Unwrap[AvatarBinding, string](binding).ID
-			profile.AvatarURL = MygoIN6ResultM6Unwrap[AvatarBinding, string](binding).URL
+ /*line profiles.mygo:166:9*/			if string(patch.AvatarUploadID) != "null" && MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
+ /*line profiles.mygo:168:18*/				return Err[struct{}, failure.Failure](Of("invalid profile input"))
+ /*line profiles.mygo:166:9*/			} else {
+ /*line zz_profiles.gen.go:171:1*/			}
+ /*line profiles.mygo:164:7*/			binding := BindProfileAvatar(request.Context(), tx, site, settings, identity, upload)
+ /*line profiles.mygo:171:9*/			if MygoIN6ResultM5IsErr[AvatarBinding, failure.Failure](binding) {
+ /*line profiles.mygo:172:18*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[AvatarBinding, failure.Failure](binding))
+ /*line profiles.mygo:171:9*/			} else {
+ /*line zz_profiles.gen.go:176:1*/			}
+ /*line profiles.mygo:164:7*/			profile.AvatarBindingID = MygoIN6ResultM6Unwrap[AvatarBinding, failure.Failure](binding).ID
+			profile.AvatarURL = MygoIN6ResultM6Unwrap[AvatarBinding, failure.Failure](binding).URL
 		} else {
- /*line zz_profiles.gen.go:179:1*/		}
- /*line profiles.mygo:127:5*/		now := time.Now()
- /*line profiles.mygo:177:27*/		var __mygo_expr_6 time.Time
+ /*line zz_profiles.gen.go:180:1*/		}
+ /*line profiles.mygo:128:5*/		now := time.Now()
+ /*line profiles.mygo:178:27*/		var __mygo_expr_6 time.Time
 		if now.After(profile.UpdatedAt) {
 			__mygo_expr_6 = now
 		} else {
 			__mygo_expr_6 = profile.UpdatedAt.Add(time.Microsecond)
- /*line zz_profiles.gen.go:186:1*/		}
- /*line profiles.mygo:127:5*/		profile.UpdatedAt = __mygo_expr_6
+ /*line zz_profiles.gen.go:187:1*/		}
+ /*line profiles.mygo:128:5*/		profile.UpdatedAt = __mygo_expr_6
 		saved := storage.SaveProfile(request.Context(), tx, identity, profile)
- /*line profiles.mygo:183:7*/		if MygoIN6ResultM5IsErr[struct{}, string](saved) {
- /*line profiles.mygo:184:16*/			return saved
- /*line profiles.mygo:183:7*/		} else {
- /*line zz_profiles.gen.go:192:1*/		}
- /*line profiles.mygo:127:5*/		queued := federation.QueueProfileUpdate(request.Context(), tx, site, profile)
- /*line profiles.mygo:187:7*/		if MygoIN6ResultM5IsErr[struct{}, string](queued) {
- /*line profiles.mygo:188:16*/			return queued
- /*line profiles.mygo:187:7*/		} else {
- /*line zz_profiles.gen.go:197:1*/		}
- /*line profiles.mygo:127:5*/		output = profile
- /*line profiles.mygo:191:7*/		return Ok[struct{}, string](struct {
- /*line zz_profiles.gen.go:200:1*/		}{})
+ /*line profiles.mygo:184:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](saved) {
+ /*line profiles.mygo:185:16*/			return saved
+ /*line profiles.mygo:184:7*/		} else {
+ /*line zz_profiles.gen.go:193:1*/		}
+ /*line profiles.mygo:128:5*/		queued := federation.QueueProfileUpdate(request.Context(), tx, site, profile)
+ /*line profiles.mygo:188:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](queued) {
+ /*line profiles.mygo:189:16*/			return queued
+ /*line profiles.mygo:188:7*/		} else {
+ /*line zz_profiles.gen.go:198:1*/		}
+ /*line profiles.mygo:128:5*/		output = profile
+ /*line profiles.mygo:192:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_profiles.gen.go:201:1*/		}{})
 	})
- /*line profiles.mygo:194:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
-		if MygoIN6ResultM9UnwrapErr[struct{}, string](result) == "invalid profile input" || MygoIN6ResultM9UnwrapErr[struct{}, string](result) == "invalid media binding" {
- /*line profiles.mygo:197:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line profiles.mygo:194:3*/		} else {
-			if MygoIN6ResultM9UnwrapErr[struct{}, string](result) == "media binding conflict" {
- /*line profiles.mygo:200:9*/				WriteErrorJSON(w, 409, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line profiles.mygo:194:3*/			} else {
- /*line profiles.mygo:202:9*/				Fail(w, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line zz_profiles.gen.go:210:1*/			}
+ /*line profiles.mygo:195:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+		if failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)) == "invalid profile input" || failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)) == "invalid media binding" {
+ /*line profiles.mygo:198:7*/			WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)))
+ /*line profiles.mygo:195:3*/		} else {
+			if failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)) == "media binding conflict" {
+ /*line profiles.mygo:201:9*/				WriteErrorJSON(w, 409, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)))
+ /*line profiles.mygo:195:3*/			} else {
+ /*line profiles.mygo:203:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line zz_profiles.gen.go:211:1*/			}
 		}
- /*line profiles.mygo:194:3*/	} else {
- /*line profiles.mygo:206:5*/		WriteJSON(w, 200, output)
- /*line zz_profiles.gen.go:214:1*/	}
- /*line profiles.mygo:208:3*/	return true
- /*line zz_profiles.gen.go:216:1*/}
+ /*line profiles.mygo:195:3*/	} else {
+ /*line profiles.mygo:207:5*/		WriteJSON(w, 200, output)
+ /*line zz_profiles.gen.go:215:1*/	}
+ /*line profiles.mygo:209:3*/	return true
+ /*line zz_profiles.gen.go:217:1*/}

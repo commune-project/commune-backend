@@ -79,7 +79,7 @@ func TestFetchLimitsAndRedirects(t: Ref[testing.T]) -> ()
     t.Fatal("in-range redirect was not followed")
   end
   let capped = Fetch(context.Background(), server.URL + "/loop", limits)
-  if capped.IsOk() || capped.UnwrapErr() != "redirect limit exceeded" then
+  if capped.IsOk() || capped.UnwrapErr().Render() != "redirect limit exceeded" then
     t.Fatal("redirect loop was not stopped")
   end
   let strict = FetchLimits{TimeoutSeconds: 5, MaxBytes: 1024, MaxRedirects: 3, AllowPrivate: false}

@@ -13,12 +13,13 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_authority_test.mygo:14:1*/func announceBody(id string, actor string, inner string, recipients string) string {
  /*line federation_authority_test.mygo:15:3*/	return "{\"id\":\"" + id + "\",\"actor\":\"" + actor + "\",\"type\":\"Announce\",\"to\":[" + recipients + "],\"object\":" + inner + "}"
- /*line zz_federation_authority.gen_test.go:21:1*/}
+ /*line zz_federation_authority.gen_test.go:22:1*/}
  /*line federation_authority_test.mygo:18:1*/func TestPostgresNestedAndActionAuthority(t *testing.T) {
  /*line federation_authority_test.mygo:19:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -26,26 +27,26 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_authority.gen_test.go:29:1*/	}
+ /*line zz_federation_authority.gen_test.go:30:1*/	}
  /*line federation_authority_test.mygo:18:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	settings.Federation.AllowPrivateNetwork = true
 	settings.Federation.FetchTimeoutSeconds = 5
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
-	hoaxKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	victimKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	hoaxKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	victimKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	hoax := "https://hoax.example/users/hopper"
 	victim := "https://victim.example/users/vera"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", hoax, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(hoaxKey)), victim, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(victimKey)))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group')", victim+"/communities/c1")))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('c1',?,?,'federated','eligible_users','eligible_users','c1','C1')", victim+"/communities/c1", victim)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", hoax, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(hoaxKey)), victim, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(victimKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group')", victim+"/communities/c1")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('c1',?,?,'federated','eligible_users','eligible_users','c1','C1')", victim+"/communities/c1", victim)))
 	objectURI := victim + "/objects/1"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1',?,'c1','federated',?,'Page','T','B', now(), now())", objectURI, victim)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1',?,'c1','federated',?,'Page','T','B', now(), now())", objectURI, victim)))
 	handler := Handler(settings, db)
 	now := time.Now().UTC()
 	date := now.Format(http.TimeFormat)
@@ -56,19 +57,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_authority_test.mygo:45:3*/	if unreachableResult.Code != 403 || !strings.Contains(unreachableResult.Body.String(), "unverifiable") {
  /*line federation_authority_test.mygo:46:5*/		t.Fatalf("unverifiable embedded author was accepted: %d %s", unreachableResult.Code, unreachableResult.Body.String())
  /*line federation_authority_test.mygo:45:3*/	} else {
- /*line zz_federation_authority.gen_test.go:59:1*/	}
+ /*line zz_federation_authority.gen_test.go:60:1*/	}
  /*line federation_authority_test.mygo:18:1*/	trustedBody := "{\"id\":\"" + hoax + "/objects/9\",\"actor\":\"" + hoax + "\",\"type\":\"Create\"}"
 	trusted := announceBody("https://hoax.example/activities/a2", hoax, trustedBody, recipients)
  /*line federation_authority_test.mygo:50:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", trusted, hoax, hoaxKey, date).Code != 202 {
  /*line federation_authority_test.mygo:51:5*/		t.Fatal("an activity embedded by its own signer was rejected")
  /*line federation_authority_test.mygo:50:3*/	} else {
- /*line zz_federation_authority.gen_test.go:65:1*/	}
+ /*line zz_federation_authority.gen_test.go:66:1*/	}
  /*line federation_authority_test.mygo:18:1*/	peerHandler := func(w http.ResponseWriter, request *http.Request) {
  /*line federation_authority_test.mygo:54:5*/		w.Header().Set("Content-Type", "application/activity+json")
  /*line federation_authority_test.mygo:53:21*/		document := "{\"id\":\"http://" + request.Host + "/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\",\"object\":\"" + victim + "/objects/2\"}"
 		w.Write([]byte(document))
 		return
- /*line zz_federation_authority.gen_test.go:71:1*/	}
+ /*line zz_federation_authority.gen_test.go:72:1*/	}
  /*line federation_authority_test.mygo:18:1*/	peer := httptest.NewServer(http.HandlerFunc(peerHandler))
 	reachableInner := "{\"id\":\"" + peer.URL + "/activities/inner\",\"actor\":\"" + victim + "\",\"type\":\"Create\"}"
 	relayed := announceBody("https://hoax.example/activities/a3", hoax, reachableInner, recipients)
@@ -76,19 +77,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_authority_test.mygo:62:3*/	if relayedResult.Code != 202 {
  /*line federation_authority_test.mygo:63:5*/		t.Fatalf("canonically confirmed embedded activity was rejected: %d %s", relayedResult.Code, relayedResult.Body.String())
  /*line federation_authority_test.mygo:62:3*/	} else {
- /*line zz_federation_authority.gen_test.go:79:1*/	}
+ /*line zz_federation_authority.gen_test.go:80:1*/	}
  /*line federation_authority_test.mygo:65:3*/	peer.Close()
  /*line federation_authority_test.mygo:18:1*/	forgedUpdate := "{\"id\":\"https://hoax.example/activities/a4\",\"actor\":\"" + hoax + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
 	forgedResult := signedPost(handler, a.Origin, "/users/alice/inbox", forgedUpdate, hoax, hoaxKey, date)
  /*line federation_authority_test.mygo:68:3*/	if forgedResult.Code != 403 || !strings.Contains(forgedResult.Body.String(), "forged mutation") {
  /*line federation_authority_test.mygo:69:5*/		t.Fatalf("a signed update of another author's object was accepted: %d %s", forgedResult.Code, forgedResult.Body.String())
  /*line federation_authority_test.mygo:68:3*/	} else {
- /*line zz_federation_authority.gen_test.go:86:1*/	}
+ /*line zz_federation_authority.gen_test.go:87:1*/	}
  /*line federation_authority_test.mygo:18:1*/	ownerUpdate := "{\"id\":\"https://victim.example/activities/u1\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"" + objectURI + "\"}"
  /*line federation_authority_test.mygo:72:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", ownerUpdate, victim, victimKey, date).Code != 202 {
  /*line federation_authority_test.mygo:73:5*/		t.Fatal("the object owner's own update was rejected")
  /*line federation_authority_test.mygo:72:3*/	} else {
- /*line zz_federation_authority.gen_test.go:91:1*/	}
+ /*line zz_federation_authority.gen_test.go:92:1*/	}
  /*line federation_authority_test.mygo:18:1*/	unknownUpdate := "{\"id\":\"https://victim.example/activities/u2\",\"actor\":\"" + victim + "\",\"type\":\"Update\",\"to\":[" + recipients + "],\"object\":\"https://victim.example/objects/absent\"}"
 	unknownResult := signedPost(handler, a.Origin, "/users/alice/inbox", unknownUpdate, victim, victimKey, date)
  /*line federation_authority_test.mygo:77:3*/	if unknownResult.Code != 403 || !strings.Contains(unknownResult.Body.String(), "unknown object") {
@@ -96,5 +97,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line federation_authority_test.mygo:77:3*/	} else {
 		return
- /*line zz_federation_authority.gen_test.go:99:1*/	}
+ /*line zz_federation_authority.gen_test.go:100:1*/	}
 }

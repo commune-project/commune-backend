@@ -13,6 +13,7 @@ import testsupport "github.com/commune-project/commune-backend/internal/testsupp
 import concurrency "github.com/mygo-lang/mygo/lib/concurrency"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func registrationFixture(t: Ref[testing.T]) -> RegistrationRepository
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -90,12 +91,12 @@ func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
   let tx = begin.Unwrap()
   let catalog = MigrationCatalog()
   if catalog.IsErr() then
-    t.Fatalf("catalog: %s", catalog.UnwrapErr())
+    t.Fatalf("catalog: %s", catalog.UnwrapErr().Render())
     return
   end
   let applied = ApplyTransaction(ctx, tx, catalog.Unwrap().Take(5))
   if applied.IsErr() then
-    t.Fatalf("apply five: %s", applied.UnwrapErr())
+    t.Fatalf("apply five: %s", applied.UnwrapErr().Render())
     return
   end
   let committed = tx.Commit()
@@ -107,7 +108,7 @@ func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
   let site = testSite("a", "https://a.example")
   let provisionedSite = ProvisionSite(ctx, db, site)
   if provisionedSite.IsErr() then
-    t.Fatalf("provision site: %s", provisionedSite.UnwrapErr())
+    t.Fatalf("provision site: %s", provisionedSite.UnwrapErr().Render())
     return
   end
   let accounts = AccountRepository{DB: db}
@@ -119,7 +120,7 @@ func TestPostgresRegistrationMigrationUpgrade(t: Ref[testing.T]) -> ()
     "existing-account-password"
   )
   if existing.IsErr() then
-    t.Fatalf("create pre-registration account: %s", existing.UnwrapErr())
+    t.Fatalf("create pre-registration account: %s", existing.UnwrapErr().Render())
   end
   let provisioned = existing.Unwrap()
   let issued = auth.NewSessionTokens()
@@ -189,7 +190,7 @@ func TestPostgresRegistrationFinalPassword(t: Ref[testing.T]) -> ()
   end
   let passwords: Slice[String] = ["", "short", strings.Repeat("x", 73)]
   passwords.Each(func(password: String) -> ()
-    if repository.Confirm(ctx, token, password, now).UnwrapErr() != "invalid registration password" ||
+    if repository.Confirm(ctx, token, password, now).UnwrapErr().Render() != "invalid registration password" ||
       registrationCount(db, "SELECT count(*) FROM pending_registrations") != 1 then
       t.Fatal("invalid password consumed verification token")
     end
@@ -306,14 +307,14 @@ func TestPostgresRegistrationDuplicatesAndRateLimits(t: Ref[testing.T]) -> ()
   end)
   repository.EmailAttempts = 1
   let _ = repository.Resend(ctx, "limited@example.com", "192.0.2.20", now).Unwrap()
-  if repository.Resend(ctx, " LIMITED@EXAMPLE.COM ", "192.0.2.21", now).UnwrapErr() !=
+  if repository.Resend(ctx, " LIMITED@EXAMPLE.COM ", "192.0.2.21", now).UnwrapErr().Render() !=
     "registration rate limited" then
     t.Fatal("email rate limit bypassed by normalization or another IP")
   end
   let _ = repository.Resend(ctx, "limited@example.com", "192.0.2.21", now.Add(time.Hour)).Unwrap()
   repository.IPAttempts = 1
   let _ = repository.Resend(ctx, "one@example.com", "192.0.2.30", now).Unwrap()
-  if repository.Resend(ctx, "two@example.com", "192.0.2.30", now).UnwrapErr() !=
+  if repository.Resend(ctx, "two@example.com", "192.0.2.30", now).UnwrapErr().Render() !=
     "registration rate limited" then
     t.Fatal("IP rate limit bypassed with another email")
   end
@@ -337,7 +338,7 @@ func TestPostgresRegistrationConcurrentRedemption(t: Ref[testing.T]) -> ()
   let token = registrationToken(repository, "alice@example.com")
   let ready = concurrency.MakeChan[()](2)
   let start = concurrency.MakeChan[()](2)
-  let results = concurrency.MakeChan[Result[(), String]](2)
+  let results = concurrency.MakeChan[Result[(), failure.Failure]](2)
   let passwords: Slice[String] = ["first-final-password", "second-final-password"]
   passwords.Each(func(password: String) -> ()
     concurrency.Spawn(func() -> ()
@@ -394,7 +395,7 @@ func TestPostgresRegistrationConflictRollbackAndProvisionedLogin(t: Ref[testing.
     "alice@example.com",
     "winner-account-password"
   ).Unwrap()
-  if repository.Confirm(ctx, token, "chosen-final-password", now).UnwrapErr() !=
+  if repository.Confirm(ctx, token, "chosen-final-password", now).UnwrapErr().Render() !=
     "registration conflict" then
     t.Fatal("account uniqueness race did not report a conflict")
   end
@@ -422,7 +423,7 @@ func TestPostgresRegistrationConcurrentRateCharge(t: Ref[testing.T]) -> ()
   let now = time.Unix(1800000000, 0)
   let start = concurrency.MakeChan[()](2)
   let ready = concurrency.MakeChan[()](2)
-  let results = concurrency.MakeChan[Result[(), String]](2)
+  let results = concurrency.MakeChan[Result[(), failure.Failure]](2)
   let names: Slice[String] = ["first", "second"]
   names.Each(func(name: String) -> ()
     concurrency.Spawn(func() -> ()

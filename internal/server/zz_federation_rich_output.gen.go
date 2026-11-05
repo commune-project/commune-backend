@@ -9,95 +9,96 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_rich_output.mygo:11:1*/type FederationAttachmentRow struct {
+ /*line federation_rich_output.mygo:12:1*/type FederationAttachmentRow struct {
 	ID           string
 	MediaType    string
 	OriginalName string
- /*line zz_federation_rich_output.gen.go:18:1*/}
+ /*line zz_federation_rich_output.gen.go:19:1*/}
 
- /*line federation_rich_output.mygo:19:1*/func BuildRichObject(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, post storage.PostRecord, community storage.CommunityRecord, contextURI string) Result[federation.ObjectRepresentation, string] {
+ /*line federation_rich_output.mygo:20:1*/func BuildRichObject(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, post storage.PostRecord, community storage.CommunityRecord, contextURI string) Result[federation.ObjectRepresentation, failure.Failure] {
 	output := federation.BuildObjectRepresentationWithContext(sanitizer, post, community, contextURI)
- /*line federation_rich_output.mygo:28:3*/	if post.ParentID.Valid {
+ /*line federation_rich_output.mygo:29:3*/	if post.ParentID.Valid {
 		parent := storage.LoadObjectByID(ctx, db, post.ParentID.String)
- /*line federation_rich_output.mygo:30:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], string](parent) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parent)) {
- /*line federation_rich_output.mygo:31:14*/			return Err[federation.ObjectRepresentation, string]("parent unavailable")
- /*line federation_rich_output.mygo:30:5*/		} else {
- /*line zz_federation_rich_output.gen.go:27:1*/		}
- /*line federation_rich_output.mygo:28:3*/		output.InReplyTo = MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](parent)).ObjectURI.String
+ /*line federation_rich_output.mygo:31:5*/		if MygoIN6ResultM5IsErr[Option[storage.PostRecord], failure.Failure](parent) || MygoIN6OptionM6IsNone[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](parent)) {
+ /*line federation_rich_output.mygo:32:14*/			return Err[federation.ObjectRepresentation, failure.Failure](Of("parent unavailable"))
+ /*line federation_rich_output.mygo:31:5*/		} else {
+ /*line zz_federation_rich_output.gen.go:28:1*/		}
+ /*line federation_rich_output.mygo:29:3*/		output.InReplyTo = MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](parent)).ObjectURI.String
 	} else {
- /*line zz_federation_rich_output.gen.go:30:1*/	}
- /*line federation_rich_output.mygo:35:6*/	if post.RichMetadata != "" {
- /*line federation_rich_output.mygo:35:3*/		metadata := Zero[federation.RichMetadata]()
- /*line federation_rich_output.mygo:37:8*/		var __mygo_expr_1 Result[struct{}, error]
+ /*line zz_federation_rich_output.gen.go:31:1*/	}
+ /*line federation_rich_output.mygo:36:6*/	if post.RichMetadata != "" {
+ /*line federation_rich_output.mygo:36:3*/		metadata := Zero[federation.RichMetadata]()
+ /*line federation_rich_output.mygo:38:8*/		var __mygo_expr_1 Result[struct{}, error]
 		__mygo_expr_0 := json.Unmarshal([]byte(post.RichMetadata), &metadata)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_federation_rich_output.gen.go:39:1*/			}{})
+ /*line zz_federation_rich_output.gen.go:40:1*/			}{})
 		}
- /*line federation_rich_output.mygo:37:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line federation_rich_output.mygo:38:14*/			return Err[federation.ObjectRepresentation, string]("rich metadata unavailable")
- /*line federation_rich_output.mygo:37:5*/		} else {
- /*line zz_federation_rich_output.gen.go:44:1*/		}
- /*line federation_rich_output.mygo:35:3*/		output.Source = metadata.Source
+ /*line federation_rich_output.mygo:38:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line federation_rich_output.mygo:39:14*/			return Err[federation.ObjectRepresentation, failure.Failure](Of("rich metadata unavailable"))
+ /*line federation_rich_output.mygo:38:5*/		} else {
+ /*line zz_federation_rich_output.gen.go:45:1*/		}
+ /*line federation_rich_output.mygo:36:3*/		output.Source = metadata.Source
 		output.Attachment = metadata.Attachment
 		output.Tag = metadata.Tag
- /*line zz_federation_rich_output.gen.go:48:1*/	} else {
- /*line federation_rich_output.mygo:35:3*/		var rows []FederationAttachmentRow = []FederationAttachmentRow{}
+ /*line zz_federation_rich_output.gen.go:49:1*/	} else {
+ /*line federation_rich_output.mygo:36:3*/		var rows []FederationAttachmentRow = []FederationAttachmentRow{}
 		queried := db.WithContext(ctx).Raw("SELECT b.id,u.media_type,u.original_name FROM media_bindings b JOIN media_uploads u ON u.id=b.upload_id WHERE b.post_id=? AND b.active AND u.state='ready' ORDER BY b.id", post.ID).Scan(&rows)
- /*line federation_rich_output.mygo:49:5*/		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(queried)) {
- /*line federation_rich_output.mygo:50:14*/			return Err[federation.ObjectRepresentation, string]("media unavailable")
- /*line federation_rich_output.mygo:49:5*/		} else {
- /*line zz_federation_rich_output.gen.go:54:1*/		}
- /*line federation_rich_output.mygo:35:3*/		origin := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(post.ObjectURI.String, "/objects/"), 0), "")
+ /*line federation_rich_output.mygo:50:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(queried)) {
+ /*line federation_rich_output.mygo:51:14*/			return Err[federation.ObjectRepresentation, failure.Failure](Of("media unavailable"))
+ /*line federation_rich_output.mygo:50:5*/		} else {
+ /*line zz_federation_rich_output.gen.go:55:1*/		}
+ /*line federation_rich_output.mygo:36:3*/		origin := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(post.ObjectURI.String, "/objects/"), 0), "")
 		output.Attachment = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(rows, func(row FederationAttachmentRow) federation.RichAttachment {
- /*line federation_rich_output.mygo:55:15*/			var __mygo_expr_2 string
+ /*line federation_rich_output.mygo:56:15*/			var __mygo_expr_2 string
 			if MygoIN6StringM9HasPrefix(row.MediaType, "image/") {
 				__mygo_expr_2 = "Image"
 			} else {
 				__mygo_expr_2 = "Document"
- /*line zz_federation_rich_output.gen.go:62:1*/			}
- /*line federation_rich_output.mygo:54:7*/			return federation.RichAttachment{Type: __mygo_expr_2, URL: origin + "/federation-media/" + row.ID, MediaType: row.MediaType, Name: row.OriginalName}
- /*line zz_federation_rich_output.gen.go:64:1*/		})
- /*line federation_rich_output.mygo:35:3*/		states := storage.LoadPostRichStates(ctx, db, []string{post.ID})
- /*line federation_rich_output.mygo:62:5*/		if MygoIN6ResultM5IsErr[[]storage.PostRichState, string](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.PostRichState, string](states)) != 1 {
- /*line federation_rich_output.mygo:63:14*/			return Err[federation.ObjectRepresentation, string]("post content unavailable")
- /*line federation_rich_output.mygo:62:5*/		} else {
- /*line zz_federation_rich_output.gen.go:69:1*/		}
- /*line federation_rich_output.mygo:35:3*/		rendered := storage.RenderStoredPost(sanitizer, post, MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.PostRichState, string](states), 0)), false)
- /*line federation_rich_output.mygo:66:5*/		if MygoIN6ResultM5IsErr[string, string](rendered) {
- /*line federation_rich_output.mygo:67:14*/			return Err[federation.ObjectRepresentation, string](MygoIN6ResultM9UnwrapErr[string, string](rendered))
- /*line federation_rich_output.mygo:66:5*/		} else {
- /*line zz_federation_rich_output.gen.go:74:1*/		}
- /*line federation_rich_output.mygo:35:3*/		var references []content.RemoteMediaReference = []content.RemoteMediaReference{}
- /*line federation_rich_output.mygo:70:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(rows, func(row_1 FederationAttachmentRow) {
- /*line federation_rich_output.mygo:70:15*/			target := origin + "/federation-media/" + row_1.ID
+ /*line zz_federation_rich_output.gen.go:63:1*/			}
+ /*line federation_rich_output.mygo:55:7*/			return federation.RichAttachment{Type: __mygo_expr_2, URL: origin + "/federation-media/" + row.ID, MediaType: row.MediaType, Name: row.OriginalName}
+ /*line zz_federation_rich_output.gen.go:65:1*/		})
+ /*line federation_rich_output.mygo:36:3*/		states := storage.LoadPostRichStates(ctx, db, []string{post.ID})
+ /*line federation_rich_output.mygo:63:5*/		if MygoIN6ResultM5IsErr[[]storage.PostRichState, failure.Failure](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.PostRichState, failure.Failure](states)) != 1 {
+ /*line federation_rich_output.mygo:64:14*/			return Err[federation.ObjectRepresentation, failure.Failure](Of("post content unavailable"))
+ /*line federation_rich_output.mygo:63:5*/		} else {
+ /*line zz_federation_rich_output.gen.go:70:1*/		}
+ /*line federation_rich_output.mygo:36:3*/		rendered := storage.RenderStoredPost(sanitizer, post, MygoIN6OptionM6Unwrap[storage.PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]storage.PostRichState, failure.Failure](states), 0)), false)
+ /*line federation_rich_output.mygo:67:5*/		if MygoIN6ResultM5IsErr[string, failure.Failure](rendered) {
+ /*line federation_rich_output.mygo:68:14*/			return Err[federation.ObjectRepresentation, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](rendered))
+ /*line federation_rich_output.mygo:67:5*/		} else {
+ /*line zz_federation_rich_output.gen.go:75:1*/		}
+ /*line federation_rich_output.mygo:36:3*/		var references []content.RemoteMediaReference = []content.RemoteMediaReference{}
+ /*line federation_rich_output.mygo:71:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(rows, func(row_1 FederationAttachmentRow) {
+ /*line federation_rich_output.mygo:71:15*/			target := origin + "/federation-media/" + row_1.ID
 			references = MygoIN5SliceM6Append(references, content.RemoteMediaReference{Origin: "/api/v1/media/" + row_1.ID, URL: target})
 			references = MygoIN5SliceM6Append(references, content.RemoteMediaReference{Origin: "/api/v1/media/" + row_1.ID + "/preview", URL: target})
 			return
- /*line zz_federation_rich_output.gen.go:81:1*/		})
- /*line federation_rich_output.mygo:35:3*/		output.Content = content.RewriteMediaReferences(sanitizer, MygoIN6ResultM6Unwrap[string, string](rendered), references, false)
- /*line zz_federation_rich_output.gen.go:83:1*/	}
- /*line federation_rich_output.mygo:19:1*/	var mentions []storage.PostMentionRecord = []storage.PostMentionRecord{}
- /*line federation_rich_output.mygo:84:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(db.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Order("actor_uri").Find(&mentions))) {
- /*line federation_rich_output.mygo:88:12*/		return Err[federation.ObjectRepresentation, string]("mentions unavailable")
- /*line federation_rich_output.mygo:84:3*/	} else {
- /*line zz_federation_rich_output.gen.go:88:1*/	}
- /*line federation_rich_output.mygo:90:3*/	if post.RichMetadata == "" {
+ /*line zz_federation_rich_output.gen.go:82:1*/		})
+ /*line federation_rich_output.mygo:36:3*/		output.Content = content.RewriteMediaReferences(sanitizer, MygoIN6ResultM6Unwrap[string, failure.Failure](rendered), references, false)
+ /*line zz_federation_rich_output.gen.go:84:1*/	}
+ /*line federation_rich_output.mygo:20:1*/	var mentions []storage.PostMentionRecord = []storage.PostMentionRecord{}
+ /*line federation_rich_output.mygo:85:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(db.WithContext(ctx).Table("post_mentions").Where("post_id=? AND active", post.ID).Order("actor_uri").Find(&mentions))) {
+ /*line federation_rich_output.mygo:89:12*/		return Err[federation.ObjectRepresentation, failure.Failure](Of("mentions unavailable"))
+ /*line federation_rich_output.mygo:85:3*/	} else {
+ /*line zz_federation_rich_output.gen.go:89:1*/	}
+ /*line federation_rich_output.mygo:91:3*/	if post.RichMetadata == "" {
 		output.Tag = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(mentions, func(mention storage.PostMentionRecord) federation.RichMention {
- /*line federation_rich_output.mygo:92:7*/			return federation.RichMention{Type: "Mention", Href: mention.ActorURI, Name: ""}
- /*line zz_federation_rich_output.gen.go:92:1*/		})
- /*line federation_rich_output.mygo:90:3*/	} else {
- /*line zz_federation_rich_output.gen.go:94:1*/	}
- /*line federation_rich_output.mygo:19:1*/	output.CC = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(mentions, output.CC, func(recipients []string, mention_1 storage.PostMentionRecord) []string {
- /*line federation_rich_output.mygo:98:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(recipients, mention_1.ActorURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
- /*line federation_rich_output.mygo:99:9*/			return recipients
- /*line federation_rich_output.mygo:98:7*/		} else {
- /*line federation_rich_output.mygo:101:9*/			return MygoIN5SliceM6Append(recipients, mention_1.ActorURI)
- /*line zz_federation_rich_output.gen.go:100:1*/		}
+ /*line federation_rich_output.mygo:93:7*/			return federation.RichMention{Type: "Mention", Href: mention.ActorURI, Name: ""}
+ /*line zz_federation_rich_output.gen.go:93:1*/		})
+ /*line federation_rich_output.mygo:91:3*/	} else {
+ /*line zz_federation_rich_output.gen.go:95:1*/	}
+ /*line federation_rich_output.mygo:20:1*/	output.CC = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(mentions, output.CC, func(recipients []string, mention_1 storage.PostMentionRecord) []string {
+ /*line federation_rich_output.mygo:99:7*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(recipients, mention_1.ActorURI, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line federation_rich_output.mygo:100:9*/			return recipients
+ /*line federation_rich_output.mygo:99:7*/		} else {
+ /*line federation_rich_output.mygo:102:9*/			return MygoIN5SliceM6Append(recipients, mention_1.ActorURI)
+ /*line zz_federation_rich_output.gen.go:101:1*/		}
 	})
- /*line federation_rich_output.mygo:105:3*/	return Ok[federation.ObjectRepresentation, string](output)
- /*line zz_federation_rich_output.gen.go:103:1*/}
+ /*line federation_rich_output.mygo:106:3*/	return Ok[federation.ObjectRepresentation, failure.Failure](output)
+ /*line zz_federation_rich_output.gen.go:104:1*/}

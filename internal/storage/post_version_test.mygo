@@ -12,7 +12,7 @@ func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
   let pool = testsupport.Postgres(t)
   let catalog = MigrationCatalog()
   if catalog.IsErr() then
-    t.Fatalf("load migration catalog: %s", catalog.UnwrapErr())
+    t.Fatalf("load migration catalog: %s", catalog.UnwrapErr().Render())
   end
   let begin = pool.BeginTx(ctx, Ref.new(sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}))
   if begin.IsErr() then
@@ -21,7 +21,7 @@ func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
   let tx = begin.Unwrap()
   let applied = ApplyTransaction(ctx, tx, catalog.Unwrap().Take(12))
   if applied.IsErr() then
-    t.Fatalf("apply first twelve migrations: %s", applied.UnwrapErr())
+    t.Fatalf("apply first twelve migrations: %s", applied.UnwrapErr().Render())
   end
   let committed = tx.Commit()
   if committed.IsErr() then
@@ -31,7 +31,7 @@ func TestPostgresPostVersionMigration(t: Ref[testing.T]) -> ()
   let site = testSite("a", "https://a.example")
   let provisioned = ProvisionSite(ctx, db, site)
   if provisioned.IsErr() then
-    t.Fatalf("provision site: %s", provisioned.UnwrapErr())
+    t.Fatalf("provision site: %s", provisioned.UnwrapErr().Render())
   end
   let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
   let group = CommunityRepository{DB: db, SiteID: site.ID}.Create(

@@ -7,143 +7,144 @@ import "errors"
 import "gorm.io/driver/postgres"
 import "gorm.io/gorm/logger"
 import "context"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line gorm.mygo:11:1*/func QueryFailed(query *gorm.DB) bool {
- /*line gorm.mygo:12:3*/	return query.Error != nil
- /*line zz_gorm.gen.go:15:1*/}
- /*line gorm.mygo:16:1*/func OpenPostgres(dsn string) Result[*gorm.DB, string] {
+ /*line gorm.mygo:12:1*/func QueryFailed(query *gorm.DB) bool {
+ /*line gorm.mygo:13:3*/	return query.Error != nil
+ /*line zz_gorm.gen.go:16:1*/}
+ /*line gorm.mygo:17:1*/func OpenPostgres(dsn string) Result[*gorm.DB, failure.Failure] {
 	settings := Zero[gorm.Config]()
 	settings.DisableAutomaticPing = true
 	settings.Logger = logger.Discard
 	dialector := postgres.Open(dsn)
- /*line gorm.mygo:21:16*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line gorm.mygo:22:16*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := gorm.Open(dialector, gorm.Option(&settings))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_gorm.gen.go:27:1*/	}
- /*line gorm.mygo:16:1*/	opened := __mygo_expr_1
- /*line gorm.mygo:22:3*/	var __mygo_expr_3 Result[*gorm.DB, string]
+ /*line zz_gorm.gen.go:28:1*/	}
+ /*line gorm.mygo:17:1*/	opened := __mygo_expr_1
+ /*line gorm.mygo:23:3*/	var __mygo_expr_3 Result[*gorm.DB, failure.Failure]
 	if _, ok := opened.(Result__Err[*gorm.DB, error]); ok {
-		__mygo_expr_3 = Err[*gorm.DB, string]("cannot configure PostgreSQL connection")
- /*line zz_gorm.gen.go:32:1*/	} else {
- /*line gorm.mygo:22:3*/		if __mygo_match___mygo_expr_4, ok := opened.(Result__Ok[*gorm.DB, error]); ok {
- /*line gorm.mygo:25:7*/			var __mygo_expr_6 Result[*sql.DB, error]
+		__mygo_expr_3 = Err[*gorm.DB, failure.Failure](Of("cannot configure PostgreSQL connection"))
+ /*line zz_gorm.gen.go:33:1*/	} else {
+ /*line gorm.mygo:23:3*/		if __mygo_match___mygo_expr_4, ok := opened.(Result__Ok[*gorm.DB, error]); ok {
+ /*line gorm.mygo:26:7*/			var __mygo_expr_6 Result[*sql.DB, error]
 			__mygo_expr_7, __mygo_expr_5 := __mygo_match___mygo_expr_4.F0.DB()
 			if __mygo_expr_5 != nil {
 				__mygo_expr_6 = Err[*sql.DB, error](__mygo_expr_5)
 			} else {
 				__mygo_expr_6 = Ok[*sql.DB, error](__mygo_expr_7)
- /*line zz_gorm.gen.go:40:1*/			}
- /*line gorm.mygo:25:7*/			__mygo_expr_8 := __mygo_expr_6
-			var __mygo_expr_9 Result[*gorm.DB, string]
+ /*line zz_gorm.gen.go:41:1*/			}
+ /*line gorm.mygo:26:7*/			__mygo_expr_8 := __mygo_expr_6
+			var __mygo_expr_9 Result[*gorm.DB, failure.Failure]
 			if _, ok := __mygo_expr_8.(Result__Err[*sql.DB, error]); ok {
-				__mygo_expr_9 = Err[*gorm.DB, string]("cannot access PostgreSQL connection pool")
- /*line zz_gorm.gen.go:45:1*/			} else {
- /*line gorm.mygo:25:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[*sql.DB, error]); ok {
- /*line gorm.mygo:28:11*/					__mygo_match___mygo_expr_10.F0.SetMaxOpenConns(16)
- /*line gorm.mygo:29:11*/					__mygo_match___mygo_expr_10.F0.SetMaxIdleConns(4)
- /*line gorm.mygo:25:7*/					__mygo_expr_9 = Ok[*gorm.DB, string](__mygo_match___mygo_expr_4.F0)
+				__mygo_expr_9 = Err[*gorm.DB, failure.Failure](Of("cannot access PostgreSQL connection pool"))
+ /*line zz_gorm.gen.go:46:1*/			} else {
+ /*line gorm.mygo:26:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[*sql.DB, error]); ok {
+ /*line gorm.mygo:29:11*/					__mygo_match___mygo_expr_10.F0.SetMaxOpenConns(16)
+ /*line gorm.mygo:30:11*/					__mygo_match___mygo_expr_10.F0.SetMaxIdleConns(4)
+ /*line gorm.mygo:26:7*/					__mygo_expr_9 = Ok[*gorm.DB, failure.Failure](__mygo_match___mygo_expr_4.F0)
 				} else {
- /*line zz_gorm.gen.go:51:1*/				}
+ /*line zz_gorm.gen.go:52:1*/				}
 			}
- /*line gorm.mygo:22:3*/			__mygo_expr_3 = __mygo_expr_9
+ /*line gorm.mygo:23:3*/			__mygo_expr_3 = __mygo_expr_9
 		} else {
- /*line zz_gorm.gen.go:55:1*/		}
+ /*line zz_gorm.gen.go:56:1*/		}
 	}
- /*line gorm.mygo:22:3*/	return __mygo_expr_3
- /*line zz_gorm.gen.go:58:1*/}
- /*line gorm.mygo:37:1*/func MigrateGORM(ctx context.Context, db *gorm.DB) Result[struct {
-}, string] {
- /*line gorm.mygo:38:14*/	var __mygo_expr_1 Result[*sql.DB, error]
+ /*line gorm.mygo:23:3*/	return __mygo_expr_3
+ /*line zz_gorm.gen.go:59:1*/}
+ /*line gorm.mygo:38:1*/func MigrateGORM(ctx context.Context, db *gorm.DB) Result[struct {
+}, failure.Failure] {
+ /*line gorm.mygo:39:14*/	var __mygo_expr_1 Result[*sql.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := db.DB()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.DB, error](__mygo_expr_2)
- /*line zz_gorm.gen.go:67:1*/	}
- /*line gorm.mygo:37:1*/	pool := __mygo_expr_1
- /*line gorm.mygo:39:3*/	if MygoIN6ResultM5IsErr[*sql.DB, error](pool) {
- /*line gorm.mygo:40:12*/		return Err[struct{}, string]("cannot access migration connection pool")
- /*line gorm.mygo:39:3*/	} else {
- /*line zz_gorm.gen.go:72:1*/	}
- /*line gorm.mygo:42:3*/	return Migrate(ctx, MygoIN6ResultM6Unwrap[*sql.DB, error](pool))
- /*line zz_gorm.gen.go:74:1*/}
- /*line gorm.mygo:45:1*/func CheckGORM(ctx context.Context, db *gorm.DB) Result[struct {
-}, string] {
- /*line gorm.mygo:46:14*/	var __mygo_expr_1 Result[*sql.DB, error]
+ /*line zz_gorm.gen.go:68:1*/	}
+ /*line gorm.mygo:38:1*/	pool := __mygo_expr_1
+ /*line gorm.mygo:40:3*/	if MygoIN6ResultM5IsErr[*sql.DB, error](pool) {
+ /*line gorm.mygo:41:12*/		return Err[struct{}, failure.Failure](Of("cannot access migration connection pool"))
+ /*line gorm.mygo:40:3*/	} else {
+ /*line zz_gorm.gen.go:73:1*/	}
+ /*line gorm.mygo:43:3*/	return Migrate(ctx, MygoIN6ResultM6Unwrap[*sql.DB, error](pool))
+ /*line zz_gorm.gen.go:75:1*/}
+ /*line gorm.mygo:46:1*/func CheckGORM(ctx context.Context, db *gorm.DB) Result[struct {
+}, failure.Failure] {
+ /*line gorm.mygo:47:14*/	var __mygo_expr_1 Result[*sql.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := db.DB()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.DB, error](__mygo_expr_2)
- /*line zz_gorm.gen.go:83:1*/	}
- /*line gorm.mygo:45:1*/	pool := __mygo_expr_1
- /*line gorm.mygo:47:3*/	if MygoIN6ResultM5IsErr[*sql.DB, error](pool) {
- /*line gorm.mygo:48:12*/		return Err[struct{}, string]("cannot access readiness connection pool")
- /*line gorm.mygo:47:3*/	} else {
- /*line zz_gorm.gen.go:88:1*/	}
- /*line gorm.mygo:50:3*/	return CheckSchema(ctx, MygoIN6ResultM6Unwrap[*sql.DB, error](pool))
- /*line zz_gorm.gen.go:90:1*/}
- /*line gorm.mygo:54:1*/func AccountQuery(ctx context.Context, db *gorm.DB, siteID string, username string) *gorm.DB {
- /*line gorm.mygo:55:3*/	return db.WithContext(ctx).Table("accounts").Where("site_id = ? AND username = ?", siteID, username)
- /*line zz_gorm.gen.go:93:1*/}
- /*line gorm.mygo:58:1*/func FindAccount(ctx context.Context, db *gorm.DB, siteID string, username string) Result[Option[AccountRecord], string] {
- /*line gorm.mygo:59:3*/	if siteID == "" || username == "" {
- /*line gorm.mygo:60:12*/		return Err[Option[AccountRecord], string]("account lookup requires site and username")
- /*line gorm.mygo:59:3*/	} else {
- /*line zz_gorm.gen.go:98:1*/	}
- /*line gorm.mygo:58:1*/	account := Zero[AccountRecord]()
+ /*line zz_gorm.gen.go:84:1*/	}
+ /*line gorm.mygo:46:1*/	pool := __mygo_expr_1
+ /*line gorm.mygo:48:3*/	if MygoIN6ResultM5IsErr[*sql.DB, error](pool) {
+ /*line gorm.mygo:49:12*/		return Err[struct{}, failure.Failure](Of("cannot access readiness connection pool"))
+ /*line gorm.mygo:48:3*/	} else {
+ /*line zz_gorm.gen.go:89:1*/	}
+ /*line gorm.mygo:51:3*/	return CheckSchema(ctx, MygoIN6ResultM6Unwrap[*sql.DB, error](pool))
+ /*line zz_gorm.gen.go:91:1*/}
+ /*line gorm.mygo:55:1*/func AccountQuery(ctx context.Context, db *gorm.DB, siteID string, username string) *gorm.DB {
+ /*line gorm.mygo:56:3*/	return db.WithContext(ctx).Table("accounts").Where("site_id = ? AND username = ?", siteID, username)
+ /*line zz_gorm.gen.go:94:1*/}
+ /*line gorm.mygo:59:1*/func FindAccount(ctx context.Context, db *gorm.DB, siteID string, username string) Result[Option[AccountRecord], failure.Failure] {
+ /*line gorm.mygo:60:3*/	if siteID == "" || username == "" {
+ /*line gorm.mygo:61:12*/		return Err[Option[AccountRecord], failure.Failure](Of("account lookup requires site and username"))
+ /*line gorm.mygo:60:3*/	} else {
+ /*line zz_gorm.gen.go:99:1*/	}
+ /*line gorm.mygo:59:1*/	account := Zero[AccountRecord]()
 	query := AccountQuery(ctx, db, siteID, username).Limit(1).Find(&account)
 	failed := QueryFailed(query)
- /*line gorm.mygo:65:3*/	if failed {
- /*line gorm.mygo:66:12*/		return Err[Option[AccountRecord], string]("account lookup failed")
- /*line gorm.mygo:65:3*/	} else {
- /*line zz_gorm.gen.go:105:1*/	}
- /*line gorm.mygo:68:3*/	if query.RowsAffected == int64(0) {
+ /*line gorm.mygo:66:3*/	if failed {
+ /*line gorm.mygo:67:12*/		return Err[Option[AccountRecord], failure.Failure](Of("account lookup failed"))
+ /*line gorm.mygo:66:3*/	} else {
+ /*line zz_gorm.gen.go:106:1*/	}
+ /*line gorm.mygo:69:3*/	if query.RowsAffected == int64(0) {
 		var missing Option[AccountRecord] = None[AccountRecord]()
- /*line gorm.mygo:70:12*/		return Ok[Option[AccountRecord], string](missing)
- /*line gorm.mygo:68:3*/	} else {
- /*line zz_gorm.gen.go:110:1*/	}
- /*line gorm.mygo:72:3*/	return Ok[Option[AccountRecord], string](Some[AccountRecord](account))
- /*line zz_gorm.gen.go:112:1*/}
- /*line gorm.mygo:75:1*/func RunTransaction(ctx context.Context, db *gorm.DB, work func(*gorm.DB) Result[struct {
-}, string]) Result[struct {
-}, string] {
+ /*line gorm.mygo:71:12*/		return Ok[Option[AccountRecord], failure.Failure](missing)
+ /*line gorm.mygo:69:3*/	} else {
+ /*line zz_gorm.gen.go:111:1*/	}
+ /*line gorm.mygo:73:3*/	return Ok[Option[AccountRecord], failure.Failure](Some[AccountRecord](account))
+ /*line zz_gorm.gen.go:113:1*/}
+ /*line gorm.mygo:76:1*/func RunTransaction(ctx context.Context, db *gorm.DB, work func(*gorm.DB) Result[struct {
+}, failure.Failure]) Result[struct {
+}, failure.Failure] {
 	var reason string = "repository transaction unavailable"
 	callback := func(tx *gorm.DB) error {
- /*line gorm.mygo:77:18*/		result := work(tx)
- /*line gorm.mygo:79:5*/		if MygoIN6ResultM5IsErr[struct{}, string](result) {
-			reason = MygoIN6ResultM9UnwrapErr[struct{}, string](result)
- /*line gorm.mygo:81:14*/			return errors.New(reason)
- /*line gorm.mygo:79:5*/		} else {
- /*line zz_gorm.gen.go:123:1*/		}
- /*line gorm.mygo:83:5*/		return nil
- /*line zz_gorm.gen.go:125:1*/	}
- /*line gorm.mygo:75:1*/	completed := db.WithContext(ctx).Transaction(callback) == nil
- /*line gorm.mygo:93:3*/	if !completed {
- /*line gorm.mygo:93:29*/		return Err[struct{}, string](reason)
- /*line gorm.mygo:93:3*/	} else {
- /*line zz_gorm.gen.go:130:1*/	}
- /*line gorm.mygo:94:3*/	return Ok[struct{}, string](struct {
- /*line zz_gorm.gen.go:132:1*/	}{})
+ /*line gorm.mygo:78:18*/		result := work(tx)
+ /*line gorm.mygo:80:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+			reason = failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line gorm.mygo:82:14*/			return errors.New(reason)
+ /*line gorm.mygo:80:5*/		} else {
+ /*line zz_gorm.gen.go:124:1*/		}
+ /*line gorm.mygo:84:5*/		return nil
+ /*line zz_gorm.gen.go:126:1*/	}
+ /*line gorm.mygo:76:1*/	completed := db.WithContext(ctx).Transaction(callback) == nil
+ /*line gorm.mygo:94:3*/	if !completed {
+ /*line gorm.mygo:94:29*/		return Err[struct{}, failure.Failure](Of(reason))
+ /*line gorm.mygo:94:3*/	} else {
+ /*line zz_gorm.gen.go:131:1*/	}
+ /*line gorm.mygo:95:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_gorm.gen.go:133:1*/	}{})
 }
- /*line gorm.mygo:99:1*/func Mutation(query *gorm.DB, reason string) Result[struct {
-}, string] {
- /*line gorm.mygo:100:3*/	if QueryFailed(query) {
- /*line gorm.mygo:101:5*/		return Err[struct{}, string](reason)
- /*line gorm.mygo:100:3*/	} else {
- /*line gorm.mygo:103:5*/		return Ok[struct{}, string](struct {
- /*line zz_gorm.gen.go:140:1*/		}{})
+ /*line gorm.mygo:100:1*/func Mutation(query *gorm.DB, reason string) Result[struct {
+}, failure.Failure] {
+ /*line gorm.mygo:101:3*/	if QueryFailed(query) {
+ /*line gorm.mygo:102:5*/		return Err[struct{}, failure.Failure](Of(reason))
+ /*line gorm.mygo:101:3*/	} else {
+ /*line gorm.mygo:104:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_gorm.gen.go:141:1*/		}{})
 	}
 }
- /*line gorm.mygo:108:1*/func Required[T any](query *gorm.DB, record T, reason string) Result[T, string] {
- /*line gorm.mygo:109:3*/	if QueryFailed(query) || query.RowsAffected != int64(1) {
- /*line gorm.mygo:110:5*/		return Err[T, string](reason)
- /*line gorm.mygo:109:3*/	} else {
- /*line gorm.mygo:112:5*/		return Ok[T, string](record)
- /*line zz_gorm.gen.go:148:1*/	}
+ /*line gorm.mygo:109:1*/func Required[T any](query *gorm.DB, record T, reason string) Result[T, failure.Failure] {
+ /*line gorm.mygo:110:3*/	if QueryFailed(query) || query.RowsAffected != int64(1) {
+ /*line gorm.mygo:111:5*/		return Err[T, failure.Failure](Of(reason))
+ /*line gorm.mygo:110:3*/	} else {
+ /*line gorm.mygo:113:5*/		return Ok[T, failure.Failure](record)
+ /*line zz_gorm.gen.go:149:1*/	}
 }

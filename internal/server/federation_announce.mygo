@@ -7,8 +7,9 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
-func FindHostedGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, addressed: Slice[String]) -> Result[Option[storage.CommunityRecord], String]
+func FindHostedGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, addressed: Slice[String]) -> Result[Option[storage.CommunityRecord], failure.Failure]
   var found: Option[storage.CommunityRecord] = None
   var failed = false
   addressed.Each(func(address: String) -> ()
@@ -24,7 +25,7 @@ func FindHostedGroup(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, 
     end
   end)
   if failed then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   Ok(found)
 end
@@ -33,7 +34,7 @@ end
 # in an Announce by that Group. The original Create bytes are embedded verbatim so
 # unknown properties and proofs survive forwarding. A blocked author or a
 # disallowed posting policy produces no announcement at all.
-func ApplyCreateSubmission(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[(), String]
+func ApplyCreateSubmission(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[(), failure.Failure]
   let group = FindHostedGroup(ctx, db, site, addressed)
   if group.IsErr() then
     return Err(group.UnwrapErr())
@@ -73,13 +74,13 @@ end
 
 # Wraps an accepted activity in an Announce by the Group and fans it out to
 # eligible followers (or protected members). The inner bytes are embedded intact.
-func PublishGroupAnnouncement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte]) -> Result[(), String]
+func PublishGroupAnnouncement(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte]) -> Result[(), failure.Failure]
   PublishGroupAnnouncementTo(ctx, db, site, community, payload, [])
 end
 
 # Additional destinations (such as a joined remote context's authority) are
 # deduplicated against followers before expansion.
-func PublishGroupAnnouncementTo(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte], extra: Slice[String]) -> Result[(), String]
+func PublishGroupAnnouncementTo(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, payload: Slice[Byte], extra: Slice[String]) -> Result[(), failure.Failure]
   let key = storage.EnsureLocalKey(ctx, db, community.ActorURI.String)
   if key.IsErr() then
     return Err(key.UnwrapErr())
@@ -88,9 +89,9 @@ func PublishGroupAnnouncementTo(ctx: context.Context, db: Ref[gorm.DB], site: co
   let announce = `{"@context":"https://www.w3.org/ns/activitystreams","id":"` + announceURI + `","type":"Announce","actor":"` + community.ActorURI.String + `","object":` + (payload as String) + `}`
   let excluded = storage.IsLocalOnlyActivity(ctx, db, announceURI)
   if excluded.IsErr() || excluded.Unwrap() then
-    return Err("announce suppressed")
+    return Err(Of("announce suppressed"))
   end
-  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let stored = storage.InsertActivityPayload(ctx, tx, announceURI, community.ActorURI.String, "Announce", announce as Slice[Byte], community.ID)
     if stored.IsErr() then
       return Err(stored.UnwrapErr())

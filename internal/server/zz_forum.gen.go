@@ -152,9 +152,9 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum.gen.go:152:1*/	})
 }
  /*line forum.mygo:184:1*/func DecodeJSON[T any](w http.ResponseWriter, request *http.Request, maxBytes int, target *T) Result[struct {
-}, string] {
+}, failure.Failure] {
  /*line forum.mygo:190:3*/	if MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6StringM5Split(request.Header.Get("Content-Type"), ";"), 0), "") != "application/json" {
- /*line forum.mygo:191:12*/		return Err[struct{}, string]("expected application/json")
+ /*line forum.mygo:191:12*/		return Err[struct{}, failure.Failure](Of("expected application/json"))
  /*line forum.mygo:190:3*/	} else {
  /*line zz_forum.gen.go:159:1*/	}
  /*line forum.mygo:184:1*/	reader := http.MaxBytesReader(w, request.Body, int64(maxBytes))
@@ -163,7 +163,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line forum.mygo:196:3*/	return result
  /*line zz_forum.gen.go:164:1*/}
  /*line forum.mygo:199:1*/func DecodeJSONBody[T any](reader io.ReadCloser, target *T) Result[struct {
-}, string] {
+}, failure.Failure] {
 	decoder := json.NewDecoder(io.Reader(reader))
  /*line forum.mygo:201:3*/	decoder.DisallowUnknownFields()
  /*line forum.mygo:202:6*/	var __mygo_expr_1 Result[struct{}, error]
@@ -175,7 +175,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum.gen.go:175:1*/		}{})
 	}
  /*line forum.mygo:202:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line forum.mygo:203:12*/		return Err[struct{}, string]("invalid request body")
+ /*line forum.mygo:203:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
  /*line forum.mygo:202:3*/	} else {
  /*line zz_forum.gen.go:180:1*/	}
  /*line forum.mygo:199:1*/	extra := json.RawMessage{}
@@ -189,13 +189,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line forum.mygo:199:1*/	trailing := __mygo_expr_3
  /*line forum.mygo:207:3*/	if MygoIN6ResultM4IsOk[struct{}, error](trailing) || !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](trailing), io.EOF) {
- /*line forum.mygo:208:12*/		return Err[struct{}, string]("invalid request body")
+ /*line forum.mygo:208:12*/		return Err[struct{}, failure.Failure](Of("invalid request body"))
  /*line forum.mygo:207:3*/	} else {
  /*line zz_forum.gen.go:194:1*/	}
- /*line forum.mygo:210:3*/	return Ok[struct{}, string](struct {
+ /*line forum.mygo:210:3*/	return Ok[struct{}, failure.Failure](struct {
  /*line zz_forum.gen.go:196:1*/	}{})
 }
- /*line forum.mygo:213:1*/func PageFromQuery(settings config.Config, request *http.Request) Result[storage.Page, string] {
+ /*line forum.mygo:213:1*/func PageFromQuery(settings config.Config, request *http.Request) Result[storage.Page, failure.Failure] {
 	query := request.URL.Query()
 	limit := 20
 	offset := 0
@@ -209,7 +209,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum.gen.go:209:1*/		}
  /*line forum.mygo:220:3*/		parsed := __mygo_expr_1
  /*line forum.mygo:222:5*/		if MygoIN6ResultM5IsErr[int, error](parsed) {
- /*line forum.mygo:223:14*/			return Err[storage.Page, string]("invalid page")
+ /*line forum.mygo:223:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
  /*line forum.mygo:222:5*/		} else {
  /*line zz_forum.gen.go:214:1*/		}
  /*line forum.mygo:220:3*/		limit = MygoIN6ResultM6Unwrap[int, error](parsed)
@@ -225,7 +225,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum.gen.go:225:1*/		}
  /*line forum.mygo:227:3*/		parsed_1 := __mygo_expr_4
  /*line forum.mygo:229:5*/		if MygoIN6ResultM5IsErr[int, error](parsed_1) {
- /*line forum.mygo:230:14*/			return Err[storage.Page, string]("invalid page")
+ /*line forum.mygo:230:14*/			return Err[storage.Page, failure.Failure](Of("invalid page"))
  /*line forum.mygo:229:5*/		} else {
  /*line zz_forum.gen.go:230:1*/		}
  /*line forum.mygo:227:3*/		offset = MygoIN6ResultM6Unwrap[int, error](parsed_1)
@@ -233,19 +233,19 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_forum.gen.go:233:1*/	}
  /*line forum.mygo:213:1*/	page := storage.Page{Limit: limit, Offset: offset}
  /*line forum.mygo:235:3*/	if !storage.MygoIN4PageM5Valid(page, settings.Runtime.MaxPageSize) {
- /*line forum.mygo:236:12*/		return Err[storage.Page, string]("invalid page")
+ /*line forum.mygo:236:12*/		return Err[storage.Page, failure.Failure](Of("invalid page"))
  /*line forum.mygo:235:3*/	} else {
  /*line zz_forum.gen.go:238:1*/	}
- /*line forum.mygo:238:3*/	return Ok[storage.Page, string](page)
+ /*line forum.mygo:238:3*/	return Ok[storage.Page, failure.Failure](page)
  /*line zz_forum.gen.go:240:1*/}
- /*line forum.mygo:241:1*/func Authenticated(db *gorm.DB, site config.Site, request *http.Request) Result[storage.AuthenticatedSession, string] {
+ /*line forum.mygo:241:1*/func Authenticated(db *gorm.DB, site config.Site, request *http.Request) Result[storage.AuthenticatedSession, failure.Failure] {
 	token := ReadSession(request)
- /*line forum.mygo:247:3*/	if MygoIN6ResultM5IsErr[string, string](token) {
- /*line forum.mygo:248:12*/		return Err[storage.AuthenticatedSession, string]("unauthenticated")
+ /*line forum.mygo:247:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](token) {
+ /*line forum.mygo:248:12*/		return Err[storage.AuthenticatedSession, failure.Failure](Of("unauthenticated"))
  /*line forum.mygo:247:3*/	} else {
  /*line zz_forum.gen.go:246:1*/	}
  /*line forum.mygo:241:1*/	sessions := storage.SessionRepository{DB: db}
- /*line forum.mygo:251:3*/	return storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, string](token), time.Now())
+ /*line forum.mygo:251:3*/	return storage.MygoIN17SessionRepositoryM7Resolve(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[string, failure.Failure](token), time.Now())
  /*line zz_forum.gen.go:249:1*/}
  /*line forum.mygo:254:1*/func AuthorizeMutation(settings config.Config, session storage.AuthenticatedSession, request *http.Request) bool {
  /*line forum.mygo:259:3*/	return SameOrigin(settings, request) && storage.MygoIN20AuthenticatedSessionM18AuthorizesMutation(session, request.Header.Get("X-CSRF-Token"))

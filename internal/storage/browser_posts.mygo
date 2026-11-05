@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PostStats
   ID: String `gorm:"column:id"`
@@ -24,13 +25,13 @@ struct RosterEntry
 end
 
 impl BrowserRepository
-  func Latest(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[PostRecord], String]
+  func Latest(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[PostRecord], failure.Failure]
     self.LatestSorted(ctx, viewer, page, max, "new")
   end
 
-  func LatestSorted(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int, sort: String) -> Result[Slice[PostRecord], String]
+  func LatestSorted(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int, sort: String) -> Result[Slice[PostRecord], failure.Failure]
     if !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     let up = if viewer.VoteSettingsLoaded then viewer.UpvotesEnabled else true end
     let down = if viewer.VoteSettingsLoaded then viewer.DownvotesEnabled else true end
@@ -39,12 +40,12 @@ impl BrowserRepository
     var query = self.DB.WithContext(ctx).Table("(?) AS page", readable)
     query = query.Order(PostSortSQL("page", sort, up, down)).Limit(page.Limit).Offset(page.Offset)
     if MutationResult(query.Scan(Ref.new(records))).IsErr() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     Ok(records)
   end
 
-  func Stats(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, ids: Slice[String]) -> Result[Slice[PostStats], String]
+  func Stats(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, ids: Slice[String]) -> Result[Slice[PostStats], failure.Failure]
     var stats: Slice[PostStats] = []
     if ids.Len() == 0 then
       return Ok(stats)
@@ -56,14 +57,14 @@ impl BrowserRepository
       up, down, up, up, down, viewer.Identity.ActorURI, up, viewer.Identity.ActorURI, self.SiteID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, self.SiteID, viewer.Identity.AccountID, ids
     ).Scan(Ref.new(stats))
     if MutationResult(query).IsErr() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     Ok(stats)
   end
 
-  func Roster(self: BrowserRepository, ctx: context.Context, id: String, viewer: BrowserViewer, managers: Bool, page: Page, max: Int) -> Result[Slice[RosterEntry], String]
+  func Roster(self: BrowserRepository, ctx: context.Context, id: String, viewer: BrowserViewer, managers: Bool, page: Page, max: Int) -> Result[Slice[RosterEntry], failure.Failure]
     if !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     let repository = CommunityRepository{DB: self.DB, SiteID: self.SiteID}
     let checked = repository.Check(ctx, id, viewer.Identity, false)
@@ -72,10 +73,10 @@ impl BrowserRepository
     end
     let access = checked.Unwrap()
     if !access.CanRead() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     if !access.Authority.Allows("manage-community") then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     var rows: Slice[RosterEntry] = []
     let query = if managers then
@@ -85,7 +86,7 @@ impl BrowserRepository
       self.DB.WithContext(ctx).Table("community_members").Select("actor_uri,false AS is_creator,false AS is_manager").Where("community_id=? AND revoked_at IS NULL", id).Order("actor_uri").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(rows))
     end
     if MutationResult(query).IsErr() then
-      return Err("roster unavailable")
+      return Err(Of("roster unavailable"))
     end
     let audited = repository.Audit(ctx, access, "read-roster", id)
     if audited.IsErr() then

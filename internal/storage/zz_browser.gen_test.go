@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line browser_test.mygo:13:1*/func TestPostgresBrowserPolicyParity(t *testing.T) {
@@ -20,24 +21,24 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_browser.gen_test.go:23:1*/	}
+ /*line zz_browser.gen_test.go:24:1*/	}
  /*line browser_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, other))
 	accounts := AccountRepository{DB: db}
-	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
-	member := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "member", "", "member-password"))
-	outsider := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "outsider", "", "outsider-password"))
-	manager := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "manager", "", "manager-password"))
-	ordinary := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "ordinary", "", "ordinary-password"))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, other, "super", "superadministrator-password", true))
-	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, site.ID, "admin"))))
-	super := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, other.ID, "super"))))
+	creator := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
+	member := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "member", "", "member-password"))
+	outsider := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "outsider", "", "outsider-password"))
+	manager := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "manager", "", "manager-password"))
+	ordinary := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "ordinary", "", "ordinary-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, other, "super", "superadministrator-password", true))
+	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(ctx, db, site.ID, "admin"))))
+	super := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(ctx, db, other.ID, "super"))))
 	repository := CommunityRepository{DB: db, SiteID: site.ID}
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
 	var modes []string = []string{"federated", "local_only"}
@@ -50,22 +51,22 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line browser_test.mygo:40:12*/				if read != "members" || write == "members" {
  /*line browser_test.mygo:40:9*/					serial = serial + 1
 					var names []string = []string{"one", "two", "three", "four", "five", "six"}
-					community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, serial-1)), "Community", mode, read, write))
-					MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, community.ID, creator, false, member.ActorURI, true))
-					MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, community.ID, creator, false, manager.ActorURI, true))
+					community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(repository, ctx, site, creator, MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(names, serial-1)), "Community", mode, read, write))
+					MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, community.ID, creator, false, member.ActorURI, true))
+					MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10SetManager(repository, ctx, community.ID, creator, false, manager.ActorURI, true))
 					var identities []auth.Identity = []auth.Identity{Zero[auth.Identity](), creator, member, manager, ordinary, outsider, admin, super}
  /*line browser_test.mygo:66:11*/					MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(identities, func(identity auth.Identity) {
- /*line browser_test.mygo:66:27*/						viewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, identity))
+ /*line browser_test.mygo:66:27*/						viewer := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, identity))
 						var ids []string = []string{community.ID}
-						view := MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM5Views(browser, ctx, viewer, ids)), 0))
+						view := MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM5Views(browser, ctx, viewer, ids)), 0))
 						projected := MygoIN17BrowserRepositoryM6Access(browser, view, viewer)
-						canonical := MygoIN6ResultM6Unwrap[CommunityAccess, string](MygoIN19CommunityRepositoryM6Access(repository, ctx, community, identity, false))
+						canonical := MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](MygoIN19CommunityRepositoryM6Access(repository, ctx, community, identity, false))
 						var sqlRows []CommunityView = []CommunityView{}
 						result := MygoIN17BrowserRepositoryM16CommunitiesQuery(browser, ctx, viewer, "SELECT * FROM readable").Scan(&sqlRows)
  /*line browser_test.mygo:74:13*/						if QueryFailed(result) {
  /*line browser_test.mygo:75:15*/							t.Fatalf("readable query failed: %v", result.Error)
  /*line browser_test.mygo:74:13*/						} else {
- /*line zz_browser.gen_test.go:68:1*/						}
+ /*line zz_browser.gen_test.go:69:1*/						}
  /*line browser_test.mygo:66:27*/						sqlReadable := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(sqlRows, func(row CommunityView) bool {
  /*line browser_test.mygo:78:15*/							return row.Record.ID == community.ID
  /*line browser_test.mygo:80:15*/						})) == 1
@@ -74,33 +75,33 @@ import . "github.com/mygo-lang/mygo/prelude"
 							return
  /*line browser_test.mygo:81:13*/						} else {
 							return
- /*line zz_browser.gen_test.go:77:1*/						}
+ /*line zz_browser.gen_test.go:78:1*/						}
 					})
- /*line browser_test.mygo:40:9*/					MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, community.ID, creator, false, member.ActorURI, false))
- /*line browser_test.mygo:89:11*/					if MygoIN17BrowserRepositoryM6Access(browser, MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM5Views(browser, ctx, MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, member)), []string{community.ID})), 0)), MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, member))).Subject.Member {
+ /*line browser_test.mygo:40:9*/					MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM9SetMember(repository, ctx, community.ID, creator, false, member.ActorURI, false))
+ /*line browser_test.mygo:89:11*/					if MygoIN17BrowserRepositoryM6Access(browser, MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM5Views(browser, ctx, MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, member)), []string{community.ID})), 0)), MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, member))).Subject.Member {
  /*line browser_test.mygo:93:13*/						t.Fatal("revoked membership remained projected")
 						return
  /*line browser_test.mygo:89:11*/					} else {
 						return
- /*line zz_browser.gen_test.go:85:1*/					}
+ /*line zz_browser.gen_test.go:86:1*/					}
  /*line browser_test.mygo:40:9*/				} else {
 					return
- /*line zz_browser.gen_test.go:88:1*/				}
+ /*line zz_browser.gen_test.go:89:1*/				}
 			})
  /*line browser_test.mygo:39:7*/			return
- /*line zz_browser.gen_test.go:91:1*/		})
+ /*line zz_browser.gen_test.go:92:1*/		})
  /*line browser_test.mygo:38:5*/		return
- /*line zz_browser.gen_test.go:93:1*/	})
- /*line browser_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14SiteRepositoryM15SetActorBlocked(SiteRepository{DB: db, SiteID: site.ID}, ctx, admin, ordinary.ActorURI, true))
-	blocked := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, ordinary))
+ /*line zz_browser.gen_test.go:94:1*/	})
+ /*line browser_test.mygo:13:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14SiteRepositoryM15SetActorBlocked(SiteRepository{DB: db, SiteID: site.ID}, ctx, admin, ordinary.ActorURI, true))
+	blocked := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, ordinary))
 	var blockedRows []CommunityView = []CommunityView{}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(MygoIN17BrowserRepositoryM16CommunitiesQuery(browser, ctx, blocked, "SELECT * FROM readable").Scan(&blockedRows)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(MygoIN17BrowserRepositoryM16CommunitiesQuery(browser, ctx, blocked, "SELECT * FROM readable").Scan(&blockedRows)))
  /*line browser_test.mygo:108:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(blockedRows) != 0 {
  /*line browser_test.mygo:109:5*/		t.Fatal("blocked actor retained discovery access")
 		return
  /*line browser_test.mygo:108:3*/	} else {
 		return
- /*line zz_browser.gen_test.go:103:1*/	}
+ /*line zz_browser.gen_test.go:104:1*/	}
 }
  /*line browser_test.mygo:113:1*/func TestPostgresBrowserFilteredPagesAndReplica(t *testing.T) {
  /*line browser_test.mygo:114:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -109,73 +110,73 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_browser.gen_test.go:112:1*/	}
+ /*line zz_browser.gen_test.go:113:1*/	}
  /*line browser_test.mygo:113:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	a := testSite("a", "https://a.example")
 	b := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "alice", "", "alice-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, b))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "alice", "", "alice-password"))
 	communities := CommunityRepository{DB: db, SiteID: a.ID}
-	open := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	open := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: a.ID}
 	var records []PostRecord = []PostRecord{}
 	var i int = 0
 	for i < 6 {
-		records = MygoIN5SliceM6Append(records, MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, testPublishInput("Topic", "body"))))
+		records = MygoIN5SliceM6Append(records, MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, testPublishInput("Topic", "body"))))
 		i = i + 1
- /*line zz_browser.gen_test.go:129:1*/	}
+ /*line zz_browser.gen_test.go:130:1*/	}
  /*line browser_test.mygo:113:1*/	fixed := time.Now().UTC().Truncate(time.Microsecond)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=?", fixed, fixed)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", a.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 0)).ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 1)).ID, alice, false))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 2)).ID, alice, false, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 3)).ID, alice, false, "rejected"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=?", fixed, fixed)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", a.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 0)).ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14PostRepositoryM6Delete(posts, ctx, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 1)).ID, alice, false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 2)).ID, alice, false, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 3)).ID, alice, false, "rejected"))
 	browser := BrowserRepository{DB: db, SiteID: a.ID}
-	anonymous := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
-	all := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
-	first := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 1, Offset: 0}, 50))
-	second := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 1, Offset: 1}, 50))
+	anonymous := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
+	all := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
+	first := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 1, Offset: 0}, 50))
+	second := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 1, Offset: 1}, 50))
  /*line browser_test.mygo:162:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(all) != 2 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(first, 0)).ID != MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(all, 0)).ID || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(second, 0)).ID != MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(all, 1)).ID {
  /*line browser_test.mygo:165:5*/		t.Fatal("filtered/tied topic pagination was inconsistent")
  /*line browser_test.mygo:162:3*/	} else {
- /*line zz_browser.gen_test.go:144:1*/	}
+ /*line zz_browser.gen_test.go:145:1*/	}
  /*line browser_test.mygo:113:1*/	author := "https://remote.example/users/author"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/news','Group')", author)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica','https://remote.example/groups/news',?,'federated','eligible_users','eligible_users','remote','Remote')", author)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),('https://remote.example/groups/news','Group')", author)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica','https://remote.example/groups/news',?,'federated','eligible_users','eligible_users','remote','Remote')", author)))
 	incoming := PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: "replica", FederationMode: "federated", AuthorActorURI: author, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: fixed, UpdatedAt: fixed, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}
-	remote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: b.ID}, ctx, incoming, author, content.DefaultSanitizer))
-	before := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
+	remote := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(PostRepository{DB: db, SiteID: b.ID}, ctx, incoming, author, content.DefaultSanitizer))
+	before := MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
  /*line browser_test.mygo:205:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(before) != 1 {
  /*line browser_test.mygo:206:5*/		t.Fatal("unreceived replica appeared in discovery")
  /*line browser_test.mygo:205:3*/	} else {
- /*line zz_browser.gen_test.go:154:1*/	}
- /*line browser_test.mygo:113:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", a.ID, remote.ID)))
-	after := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
- /*line browser_test.mygo:214:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(after) != 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))) != 3 {
+ /*line zz_browser.gen_test.go:155:1*/	}
+ /*line browser_test.mygo:113:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", a.ID, remote.ID)))
+	after := MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))
+ /*line browser_test.mygo:214:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(after) != 2 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, anonymous, Page{Limit: 20, Offset: 0}, 50))) != 3 {
  /*line browser_test.mygo:216:5*/		t.Fatal("received replica missing from discovery/feed")
  /*line browser_test.mygo:214:3*/	} else {
- /*line zz_browser.gen_test.go:160:1*/	}
+ /*line zz_browser.gen_test.go:161:1*/	}
  /*line browser_test.mygo:113:1*/	topic := MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(records, 4))
-	visible := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "visible", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	hidden := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "hidden", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	deleted := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "deleted", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	removed := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "removed", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	rejected := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "rejected", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	unreceived := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "unreceived", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Title: "", Body: "nested", ParentID: visible.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", hidden.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14PostRepositoryM6Delete(posts, ctx, deleted.ID, alice, false))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, removed.ID, alice, false, true))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, rejected.ID, alice, false, "rejected"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", unreceived.ID)))
-	stats := MygoIN6OptionM6Unwrap[PostStats](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostStats, string](MygoIN17BrowserRepositoryM5Stats(browser, ctx, anonymous, []string{topic.ID})), 0))
+	visible := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "visible", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	hidden := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "hidden", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	deleted := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "deleted", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	removed := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "removed", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	rejected := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "rejected", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	unreceived := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Body: "unreceived", ParentID: topic.ID, Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: "", Title: ""}))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, a, open.ID, alice, false, PublishInput{Title: "", Body: "nested", ParentID: visible.ID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE post_id=?", hidden.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14PostRepositoryM6Delete(posts, ctx, deleted.ID, alice, false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, removed.ID, alice, false, true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, rejected.ID, alice, false, "rejected"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("DELETE FROM site_posts WHERE post_id=?", unreceived.ID)))
+	stats := MygoIN6OptionM6Unwrap[PostStats](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostStats, failure.Failure](MygoIN17BrowserRepositoryM5Stats(browser, ctx, anonymous, []string{topic.ID})), 0))
  /*line browser_test.mygo:337:3*/	if stats.ReplyCount != int64(1) {
  /*line browser_test.mygo:338:5*/		t.Fatalf("direct visible reply count = %d", stats.ReplyCount)
 		return
  /*line browser_test.mygo:337:3*/	} else {
 		return
- /*line zz_browser.gen_test.go:180:1*/	}
+ /*line zz_browser.gen_test.go:181:1*/	}
 }

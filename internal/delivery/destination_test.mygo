@@ -6,6 +6,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresDestinationPlanning(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -51,7 +52,7 @@ func TestPostgresDestinationPlanning(t: Ref[testing.T]) -> ()
   end
   let _ = storage.MutationResult(db.Exec("UPDATE delivery_jobs SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")).Unwrap()
   var calls = 0
-  let counting = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, String]
+  let counting = func(target: String, actorURI: String, privateKey: String, body: Slice[Byte]) -> Result[Int, failure.Failure]
     calls = calls + 1
     Ok(202)
   end

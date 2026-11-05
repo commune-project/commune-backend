@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,59 +22,59 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_management.gen_test.go:24:1*/	}
+ /*line zz_federation_management.gen_test.go:25:1*/	}
  /*line federation_management_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
-	managerKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	strangerKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
+	managerKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	strangerKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	manager := "https://peer.example/users/manager"
 	stranger := "https://evil.example/users/stranger"
 	target := "https://peer.example/users/newcomer"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?), (?, 'Person', NULL)", manager, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(managerKey)), stranger, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(strangerKey)), target)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", community.ID, manager, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?), (?, 'Person', NULL)", manager, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(managerKey)), stranger, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(strangerKey)), target)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", community.ID, manager, alice.ActorURI)))
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	add := "{\"id\":\"https://peer.example/activities/add-1\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"member\"}"
  /*line federation_management_test.mygo:33:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", add, manager, managerKey, date).Code != 202 {
  /*line federation_management_test.mygo:34:5*/		t.Fatal("a community manager could not add a member")
  /*line federation_management_test.mygo:33:3*/	} else {
- /*line zz_federation_management.gen_test.go:48:1*/	}
- /*line federation_management_test.mygo:36:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, target)) {
+ /*line zz_federation_management.gen_test.go:49:1*/	}
+ /*line federation_management_test.mygo:36:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, community.ID, target)) {
  /*line federation_management_test.mygo:37:5*/		t.Fatal("the authorized membership change was not applied")
  /*line federation_management_test.mygo:36:3*/	} else {
- /*line zz_federation_management.gen_test.go:52:1*/	}
+ /*line zz_federation_management.gen_test.go:53:1*/	}
  /*line federation_management_test.mygo:12:1*/	forged := "{\"id\":\"https://evil.example/activities/add-1\",\"actor\":\"" + stranger + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + stranger + "\",\"commune:role\":\"member\"}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", forged, stranger, strangerKey, date)
- /*line federation_management_test.mygo:41:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, stranger)) {
+ /*line federation_management_test.mygo:41:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, community.ID, stranger)) {
  /*line federation_management_test.mygo:42:5*/		t.Fatal("a signature alone granted membership")
  /*line federation_management_test.mygo:41:3*/	} else {
- /*line zz_federation_management.gen_test.go:58:1*/	}
+ /*line zz_federation_management.gen_test.go:59:1*/	}
  /*line federation_management_test.mygo:12:1*/	addManager := "{\"id\":\"https://peer.example/activities/add-2\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"manager\"}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", addManager, manager, managerKey, date)
- /*line federation_management_test.mygo:46:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityManager(ctx, db, community.ID, target)) {
+ /*line federation_management_test.mygo:46:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCommunityManager(ctx, db, community.ID, target)) {
  /*line federation_management_test.mygo:47:5*/		t.Fatal("an authorized administrator assignment was not applied")
  /*line federation_management_test.mygo:46:3*/	} else {
- /*line zz_federation_management.gen_test.go:64:1*/	}
+ /*line zz_federation_management.gen_test.go:65:1*/	}
  /*line federation_management_test.mygo:12:1*/	remove := "{\"id\":\"https://peer.example/activities/remove-1\",\"actor\":\"" + manager + "\",\"type\":\"Remove\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + community.ActorURI.String + "\",\"object\":\"" + target + "\",\"commune:role\":\"member\"}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", remove, manager, managerKey, date)
- /*line federation_management_test.mygo:51:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, target)) {
+ /*line federation_management_test.mygo:51:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, community.ID, target)) {
  /*line federation_management_test.mygo:52:5*/		t.Fatal("an authorized removal did not revoke membership")
  /*line federation_management_test.mygo:51:3*/	} else {
- /*line zz_federation_management.gen_test.go:70:1*/	}
+ /*line zz_federation_management.gen_test.go:71:1*/	}
  /*line federation_management_test.mygo:12:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("audit_events").Where("scope_kind='community' AND scope_id=? AND action IN ('approve-member','assign-manager','revoke-member')", community.ID).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("audit_events").Where("scope_kind='community' AND scope_id=? AND action IN ('approve-member','assign-manager','revoke-member')", community.ID).Count(&count)))
  /*line federation_management_test.mygo:56:3*/	if count != int64(3) {
  /*line federation_management_test.mygo:57:5*/		t.Fatal("management actions were not audited")
 		return
  /*line federation_management_test.mygo:56:3*/	} else {
 		return
- /*line zz_federation_management.gen_test.go:78:1*/	}
+ /*line zz_federation_management.gen_test.go:79:1*/	}
 }

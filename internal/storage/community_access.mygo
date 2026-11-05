@@ -5,6 +5,7 @@ import gorm "go:gorm.io/gorm"
 import clause "go:gorm.io/gorm/clause"
 import sql "go:database/sql"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct CommunityRecord
   ID: String `gorm:"column:id"`
@@ -68,8 +69,10 @@ func ProjectCommunityAccess(
 end
 
 impl CommunityRecord
-  func Policy(self: CommunityRecord) -> Result[auth.CommunityPolicy, String]
-    auth.NewCommunityPolicy(self.HostSiteID, self.FederationMode, self.ReadPolicy, self.PostPolicy)
+  func Policy(self: CommunityRecord) -> Result[auth.CommunityPolicy, failure.Failure]
+    auth.NewCommunityPolicy(self.HostSiteID, self.FederationMode, self.ReadPolicy, self.PostPolicy).MapErr(func(reason: String) -> failure.Failure
+      Of(reason)
+    end)
   end
 end
 
@@ -106,7 +109,7 @@ impl CommunityRepository
     ctx: context.Context,
     id: String,
     lock: Bool
-  ) -> Result[CommunityRecord, String]
+  ) -> Result[CommunityRecord, failure.Failure]
     let record = Zero[CommunityRecord]()
     let query = self.DB.WithContext(ctx).Table("communities").Where("id = ? AND host_site_id = ?", id, self.SiteID)
     let locking = clause.Locking {
@@ -122,10 +125,10 @@ impl CommunityRepository
     end
     let found = scoped.Limit(1).Find(Ref.new(record))
     if MutationResult(found).IsErr() then
-      return Err("community unavailable")
+      return Err(Of("community unavailable"))
     end
     if found.RowsAffected != 1i64 then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     Ok(record)
   end
@@ -135,7 +138,7 @@ impl CommunityRepository
     community: CommunityRecord,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[CommunityAccess, String]
+  ) -> Result[CommunityAccess, failure.Failure]
     let hosted = community.HostSiteID == self.SiteID
     let local = identity.AccountID > 0i64
     let verified = if local then
@@ -227,7 +230,7 @@ impl CommunityRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[CommunityAccess, String]
+  ) -> Result[CommunityAccess, failure.Failure]
     let loaded = self.Load(ctx, id, false)
     if loaded.IsErr() then
       return Err(loaded.UnwrapErr())
@@ -240,7 +243,7 @@ impl CommunityRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[CommunityAccess, String]
+  ) -> Result[CommunityAccess, failure.Failure]
     let loaded = self.Load(ctx, id, false)
     if loaded.IsErr() then
       return Err(loaded.UnwrapErr())
@@ -253,9 +256,9 @@ impl CommunityRepository
     access: CommunityAccess,
     action: String,
     target: String
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     if !access.Authority.Allows("manage-community") then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     let scopeID = if access.Authority.Scope == "deployment" then
       "deployment"
@@ -281,12 +284,12 @@ impl CommunityRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[CommunityRecord, String]
+  ) -> Result[CommunityRecord, failure.Failure]
     var record = Zero[CommunityRecord]()
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let repository = CommunityRepository{DB: tx, SiteID: self.SiteID}
         let loaded = repository.Load(ctx, id, true)
         if loaded.IsErr() then
@@ -297,7 +300,7 @@ impl CommunityRepository
           return Err(access.UnwrapErr())
         end
         if !access.Unwrap().CanRead() then
-          return Err("not found")
+          return Err(Of("not found"))
         end
         if access.Unwrap().Authority.Allows("manage-community") then
           let audited = repository.Audit(ctx, access.Unwrap(), "read-community", id)
@@ -319,7 +322,7 @@ impl CommunityRepository
     ctx: context.Context,
     id: String,
     lock: Bool
-  ) -> Result[CommunityRecord, String]
+  ) -> Result[CommunityRecord, failure.Failure]
     let record = Zero[CommunityRecord]()
     let query = self.DB.WithContext(ctx).Table("communities").Where("id = ?", id)
     let locking = clause.Locking {
@@ -335,10 +338,10 @@ impl CommunityRepository
     end
     let found = scoped.Limit(1).Find(Ref.new(record))
     if MutationResult(found).IsErr() then
-      return Err("community unavailable")
+      return Err(Of("community unavailable"))
     end
     if found.RowsAffected != 1i64 then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     Ok(record)
   end

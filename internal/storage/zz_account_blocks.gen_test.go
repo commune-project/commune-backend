@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,62 +22,62 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:24:1*/	}
+ /*line zz_account_blocks.gen_test.go:25:1*/	}
  /*line account_blocks_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	creator := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
-	viewer := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	creator := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "creator", "", "creator-password"))
+	viewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, creator, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	local := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, creator, false, testPublishInput("Local", "local")))
+	local := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, creator, false, testPublishInput("Local", "local")))
 	remoteAuthor := "https://remote.example/users/writer"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remoteAuthor)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", remoteAuthor)))
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	incoming := PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: community.ID, FederationMode: "federated", AuthorActorURI: remoteAuthor, ObjectType: "Page", Title: sql.NullString{String: "Remote", Valid: true}, Body: "remote", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}
-	remote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remoteAuthor, content.DefaultSanitizer))
+	remote := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, incoming, remoteAuthor, content.DefaultSanitizer))
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	identity := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
+	identity := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
 	blocks := AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
- /*line account_blocks_test.mygo:72:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))) != 2 {
+ /*line account_blocks_test.mygo:72:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))) != 2 {
  /*line account_blocks_test.mygo:73:5*/		t.Fatal("unblocked posts were filtered")
  /*line account_blocks_test.mygo:72:3*/	} else {
- /*line zz_account_blocks.gen_test.go:48:1*/	}
- /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", creator.ActorURI))
-	personRows := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))
+ /*line zz_account_blocks.gen_test.go:49:1*/	}
+ /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", creator.ActorURI))
+	personRows := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))
  /*line account_blocks_test.mygo:77:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(personRows) != 1 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(personRows, 0)).ID != remote.ID || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(personRows, 0)).ID == local.ID {
  /*line account_blocks_test.mygo:80:5*/		t.Fatal("person block did not filter only the blocked author")
  /*line account_blocks_test.mygo:77:3*/	} else {
- /*line zz_account_blocks.gen_test.go:54:1*/	}
- /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "person", creator.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
-	instanceRows := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))
+ /*line zz_account_blocks.gen_test.go:55:1*/	}
+ /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "person", creator.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
+	instanceRows := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))
  /*line account_blocks_test.mygo:85:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(instanceRows) != 1 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(instanceRows, 0)).ID != local.ID {
  /*line account_blocks_test.mygo:86:5*/		t.Fatal("instance block did not filter only the blocked instance")
  /*line account_blocks_test.mygo:85:3*/	} else {
- /*line zz_account_blocks.gen_test.go:61:1*/	}
- /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "instance", "remote.example"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", community.ID))
- /*line account_blocks_test.mygo:90:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))) != 0 {
+ /*line zz_account_blocks.gen_test.go:62:1*/	}
+ /*line account_blocks_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "instance", "remote.example"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", community.ID))
+ /*line account_blocks_test.mygo:90:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, identity, Page{Limit: 20, Offset: 0}, 50))) != 0 {
  /*line account_blocks_test.mygo:91:5*/		t.Fatal("community block did not filter its posts")
 		return
  /*line account_blocks_test.mygo:90:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:69:1*/	}
+ /*line zz_account_blocks.gen_test.go:70:1*/	}
 }
  /*line account_blocks_test.mygo:95:1*/func testSite(id string, origin string) config.Site {
  /*line account_blocks_test.mygo:96:3*/	return config.Site{ID: id, RegistrationEnabled: false, Origin: origin, Aliases: []string{}, Sanitizer: content.DefaultSanitizer}
- /*line zz_account_blocks.gen_test.go:73:1*/}
+ /*line zz_account_blocks.gen_test.go:74:1*/}
  /*line account_blocks_test.mygo:99:1*/func testPublishInput(title string, body string) PublishInput {
  /*line account_blocks_test.mygo:100:3*/	return PublishInput{Title: title, Body: body, ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}
- /*line zz_account_blocks.gen_test.go:76:1*/}
+ /*line zz_account_blocks.gen_test.go:77:1*/}
  /*line account_blocks_test.mygo:103:1*/func testReplyInput(body string, parentID string) PublishInput {
  /*line account_blocks_test.mygo:104:3*/	return PublishInput{Title: "", Body: body, ParentID: parentID, ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []ResolvedPostMention{}}
- /*line zz_account_blocks.gen_test.go:79:1*/}
+ /*line zz_account_blocks.gen_test.go:80:1*/}
  /*line account_blocks_test.mygo:107:1*/func TestPostgresAccountBlockRepository(t *testing.T) {
  /*line account_blocks_test.mygo:108:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -84,49 +85,49 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:87:1*/	}
+ /*line zz_account_blocks.gen_test.go:88:1*/	}
  /*line account_blocks_test.mygo:107:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	a := testSite("a", "https://a.example")
 	b := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, b))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "bob", "", "bob-password"))
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: a.ID}, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "bob", "", "bob-password"))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: a.ID}, ctx, a, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	blocks := AccountBlockRepository{DB: db, SiteID: a.ID, AccountID: alice.AccountID}
- /*line account_blocks_test.mygo:129:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", alice.ActorURI)) {
+ /*line account_blocks_test.mygo:129:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", alice.ActorURI)) {
  /*line account_blocks_test.mygo:130:5*/		t.Fatal("self block was accepted")
  /*line account_blocks_test.mygo:129:3*/	} else {
- /*line zz_account_blocks.gen_test.go:103:1*/	}
- /*line account_blocks_test.mygo:132:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", bob.ActorURI)) || MygoIN6ResultM5IsErr[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", bob.ActorURI)) {
+ /*line zz_account_blocks.gen_test.go:104:1*/	}
+ /*line account_blocks_test.mygo:132:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", bob.ActorURI)) || MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "person", bob.ActorURI)) {
  /*line account_blocks_test.mygo:134:5*/		t.Fatal("idempotent person block failed")
  /*line account_blocks_test.mygo:132:3*/	} else {
- /*line zz_account_blocks.gen_test.go:107:1*/	}
- /*line account_blocks_test.mygo:107:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "community", community.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "instance", "remote.example"))
-	rows := MygoIN6ResultM6Unwrap[[]AccountBlockRecord, string](MygoIN22AccountBlockRepositoryM4List(blocks, ctx))
+ /*line zz_account_blocks.gen_test.go:108:1*/	}
+ /*line account_blocks_test.mygo:107:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "community", community.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, alice, "instance", "remote.example"))
+	rows := MygoIN6ResultM6Unwrap[[]AccountBlockRecord, failure.Failure](MygoIN22AccountBlockRepositoryM4List(blocks, ctx))
  /*line account_blocks_test.mygo:139:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(rows) != 3 {
  /*line account_blocks_test.mygo:140:5*/		t.Fatal("list did not contain one row per block target")
  /*line account_blocks_test.mygo:139:3*/	} else {
- /*line zz_account_blocks.gen_test.go:114:1*/	}
- /*line account_blocks_test.mygo:142:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, alice, "person", bob.ActorURI)) || MygoIN6ResultM5IsErr[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, alice, "person", bob.ActorURI)) {
+ /*line zz_account_blocks.gen_test.go:115:1*/	}
+ /*line account_blocks_test.mygo:142:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, alice, "person", bob.ActorURI)) || MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, alice, "person", bob.ActorURI)) {
  /*line account_blocks_test.mygo:144:5*/		t.Fatal("idempotent person unblock failed")
  /*line account_blocks_test.mygo:142:3*/	} else {
- /*line zz_account_blocks.gen_test.go:118:1*/	}
- /*line account_blocks_test.mygo:146:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]AccountBlockRecord, string](MygoIN22AccountBlockRepositoryM4List(blocks, ctx))) != 2 {
+ /*line zz_account_blocks.gen_test.go:119:1*/	}
+ /*line account_blocks_test.mygo:146:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]AccountBlockRecord, failure.Failure](MygoIN22AccountBlockRepositoryM4List(blocks, ctx))) != 2 {
  /*line account_blocks_test.mygo:147:5*/		t.Fatal("removed block remained listed")
  /*line account_blocks_test.mygo:146:3*/	} else {
- /*line zz_account_blocks.gen_test.go:122:1*/	}
+ /*line zz_account_blocks.gen_test.go:123:1*/	}
  /*line account_blocks_test.mygo:107:1*/	otherSite := AccountBlockRepository{DB: db, SiteID: b.ID, AccountID: alice.AccountID}
- /*line account_blocks_test.mygo:150:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(otherSite, ctx, alice, "instance", "elsewhere.example")) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]AccountBlockRecord, string](MygoIN22AccountBlockRepositoryM4List(otherSite, ctx))) != 0 {
+ /*line account_blocks_test.mygo:150:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(otherSite, ctx, alice, "instance", "elsewhere.example")) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]AccountBlockRecord, failure.Failure](MygoIN22AccountBlockRepositoryM4List(otherSite, ctx))) != 0 {
  /*line account_blocks_test.mygo:152:5*/		t.Fatal("account block repository crossed site scope")
 		return
  /*line account_blocks_test.mygo:150:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:129:1*/	}
+ /*line zz_account_blocks.gen_test.go:130:1*/	}
 }
  /*line account_blocks_test.mygo:156:1*/func TestPostgresPersonalBlocksBeforePaginationAndDetail(t *testing.T) {
  /*line account_blocks_test.mygo:157:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -135,71 +136,71 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:138:1*/	}
+ /*line zz_account_blocks.gen_test.go:139:1*/	}
  /*line account_blocks_test.mygo:156:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	viewer := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	viewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users"))
-	hiddenCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "hidden", "Hidden", "federated", "eligible_users", "eligible_users"))
+	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users"))
+	hiddenCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "hidden", "Hidden", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	visibleLocal := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible local", "one")))
-	blockedPerson := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "two")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")))
+	visibleLocal := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible local", "one")))
+	blockedPerson := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "two")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	blockedInstance := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "three", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
-	visibleRemote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "four", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://good.example/users/writer", content.DefaultSanitizer))
-	blockedCommunityPost := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, hiddenCommunity.ID, alice, false, testPublishInput("Blocked community", "five")))
+	blockedInstance := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "three", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
+	visibleRemote := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/one", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "four", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://good.example/users/writer", content.DefaultSanitizer))
+	blockedCommunityPost := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, hiddenCommunity.ID, alice, false, testPublishInput("Blocked community", "five")))
 	var stamps []string = []string{"2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z", "2026-01-01T00:00:02Z", "2026-01-01T00:00:03Z", "2026-01-01T00:00:04Z"}
 	var ids []string = []string{visibleLocal.ID, blockedCommunityPost.ID, blockedInstance.ID, blockedPerson.ID, visibleRemote.ID}
 	index := 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(ids) {
-		MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=? WHERE id=?", MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(stamps, index)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(stamps, index)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(ids, index)))))
+		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET authored_at=?,updated_at=? WHERE id=?", MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(stamps, index)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(stamps, index)), MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(ids, index)))))
 		index = index + 1
- /*line zz_account_blocks.gen_test.go:165:1*/	}
+ /*line zz_account_blocks.gen_test.go:166:1*/	}
  /*line account_blocks_test.mygo:156:1*/	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
+	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
 	blocks := AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", hiddenCommunity.ID))
-	discovered := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, browserViewer, Page{Limit: 20, Offset: 0}, 50))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", hiddenCommunity.ID))
+	discovered := MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, browserViewer, Page{Limit: 20, Offset: 0}, 50))
  /*line account_blocks_test.mygo:303:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(discovered) != 1 || MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(discovered, 0)).Record.ID != visibleCommunity.ID {
  /*line account_blocks_test.mygo:304:5*/		t.Fatal("blocked community was not removed from discovery")
  /*line account_blocks_test.mygo:303:3*/	} else {
- /*line zz_account_blocks.gen_test.go:176:1*/	}
- /*line account_blocks_test.mygo:156:1*/	latest := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM6Latest(browser, ctx, browserViewer, Page{Limit: 2, Offset: 0}, 50))
+ /*line zz_account_blocks.gen_test.go:177:1*/	}
+ /*line account_blocks_test.mygo:156:1*/	latest := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM6Latest(browser, ctx, browserViewer, Page{Limit: 2, Offset: 0}, 50))
  /*line account_blocks_test.mygo:307:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(latest) != 2 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest, 0)).ID != visibleRemote.ID || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(latest, 1)).ID != visibleLocal.ID {
  /*line account_blocks_test.mygo:310:5*/		t.Fatal("blocked rows consumed latest page slots")
  /*line account_blocks_test.mygo:307:3*/	} else {
- /*line zz_account_blocks.gen_test.go:181:1*/	}
+ /*line zz_account_blocks.gen_test.go:182:1*/	}
  /*line account_blocks_test.mygo:156:1*/	feed := FeedRepository{DB: db, SiteID: site.ID}
-	topics := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, visibleCommunity.ID, viewer, false, Page{Limit: 20, Offset: 0}, 50))
+	topics := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feed, ctx, visibleCommunity.ID, viewer, false, Page{Limit: 20, Offset: 0}, 50))
  /*line account_blocks_test.mygo:321:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(topics) != 2 {
  /*line account_blocks_test.mygo:322:5*/		t.Fatal("community topic listing leaked blocked authors or instances")
  /*line account_blocks_test.mygo:321:3*/	} else {
- /*line zz_account_blocks.gen_test.go:187:1*/	}
- /*line account_blocks_test.mygo:324:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedPerson.ID, viewer, false)) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedInstance.ID, viewer, false)) || MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedCommunityPost.ID, viewer, false)) {
+ /*line zz_account_blocks.gen_test.go:188:1*/	}
+ /*line account_blocks_test.mygo:324:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedPerson.ID, viewer, false)) || MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedInstance.ID, viewer, false)) || MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, blockedCommunityPost.ID, viewer, false)) {
  /*line account_blocks_test.mygo:327:5*/		t.Fatal("direct blocked post read leaked content")
  /*line account_blocks_test.mygo:324:3*/	} else {
- /*line zz_account_blocks.gen_test.go:191:1*/	}
- /*line account_blocks_test.mygo:329:3*/	if MygoIN6ResultM5IsErr[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, visibleLocal.ID, viewer, false)) {
+ /*line zz_account_blocks.gen_test.go:192:1*/	}
+ /*line account_blocks_test.mygo:329:3*/	if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, visibleLocal.ID, viewer, false)) {
  /*line account_blocks_test.mygo:330:5*/		t.Fatal("direct read rejected an unblocked post")
  /*line account_blocks_test.mygo:329:3*/	} else {
- /*line zz_account_blocks.gen_test.go:195:1*/	}
- /*line account_blocks_test.mygo:156:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", alice.ActorURI))
- /*line account_blocks_test.mygo:333:3*/	if MygoIN6ResultM4IsOk[PostRecord, string](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, visibleLocal.ID, viewer, false)) {
+ /*line zz_account_blocks.gen_test.go:196:1*/	}
+ /*line account_blocks_test.mygo:156:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", alice.ActorURI))
+ /*line account_blocks_test.mygo:333:3*/	if MygoIN6ResultM4IsOk[PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ReadObject(feed, ctx, visibleLocal.ID, viewer, false)) {
  /*line account_blocks_test.mygo:334:5*/		t.Fatal("block created after a successful read did not hide the post")
 		return
  /*line account_blocks_test.mygo:333:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:202:1*/	}
+ /*line zz_account_blocks.gen_test.go:203:1*/	}
 }
  /*line account_blocks_test.mygo:338:1*/func TestPostgresPersonalBlocksBeforeSearchPagination(t *testing.T) {
  /*line account_blocks_test.mygo:339:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -208,45 +209,45 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:211:1*/	}
+ /*line zz_account_blocks.gen_test.go:212:1*/	}
  /*line account_blocks_test.mygo:338:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	viewer := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	viewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Needle visible", "federated", "eligible_users", "eligible_users"))
-	blockedCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "blocked", "Needle blocked", "federated", "eligible_users", "eligible_users"))
+	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Needle visible", "federated", "eligible_users", "eligible_users"))
+	blockedCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "blocked", "Needle blocked", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	visibleLocal := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible local", "needle")))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "needle")))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, blockedCommunity.ID, alice, false, testPublishInput("Blocked community", "needle")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")))
+	visibleLocal := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible local", "needle")))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "needle")))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, blockedCommunity.ID, alice, false, testPublishInput("Blocked community", "needle")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person'),('https://good.example/users/writer','Person')")))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
-	visibleRemote := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://good.example/users/writer", content.DefaultSanitizer))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
+	visibleRemote := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://good.example/posts/search", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://good.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Visible remote", Valid: true}, Body: "needle", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://good.example/users/writer", content.DefaultSanitizer))
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
+	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
 	blocks := AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", blockedCommunity.ID))
-	postsPage := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, browserViewer, "needle", Page{Limit: 2, Offset: 0}, 50))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", blockedCommunity.ID))
+	postsPage := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, browserViewer, "needle", Page{Limit: 2, Offset: 0}, 50))
  /*line account_blocks_test.mygo:461:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(postsPage) != 2 || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(postsPage, 0)).ID != visibleLocal.ID && MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(postsPage, 0)).ID != visibleRemote.ID || MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(postsPage, 1)).ID != visibleLocal.ID && MygoIN6OptionM6Unwrap[PostRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(postsPage, 1)).ID != visibleRemote.ID {
  /*line account_blocks_test.mygo:466:5*/		t.Fatal("blocked search rows consumed post page slots")
  /*line account_blocks_test.mygo:461:3*/	} else {
- /*line zz_account_blocks.gen_test.go:242:1*/	}
- /*line account_blocks_test.mygo:338:1*/	communityPage := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM17SearchCommunities(browser, ctx, browserViewer, "Needle", Page{Limit: 1, Offset: 0}, 50))
+ /*line zz_account_blocks.gen_test.go:243:1*/	}
+ /*line account_blocks_test.mygo:338:1*/	communityPage := MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM17SearchCommunities(browser, ctx, browserViewer, "Needle", Page{Limit: 1, Offset: 0}, 50))
  /*line account_blocks_test.mygo:478:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(communityPage) != 1 || MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(communityPage, 0)).Record.ID != visibleCommunity.ID {
  /*line account_blocks_test.mygo:479:5*/		t.Fatal("blocked community consumed search page slot")
 		return
  /*line account_blocks_test.mygo:478:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:249:1*/	}
+ /*line zz_account_blocks.gen_test.go:250:1*/	}
 }
  /*line account_blocks_test.mygo:483:1*/func TestPostgresPersonalBlocksNotificationsAndAccountLists(t *testing.T) {
  /*line account_blocks_test.mygo:484:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -255,90 +256,90 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_account_blocks.gen_test.go:258:1*/	}
+ /*line zz_account_blocks.gen_test.go:259:1*/	}
  /*line account_blocks_test.mygo:483:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	viewer := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	viewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "viewer", "", "viewer-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
-	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users"))
-	blockedCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "blocked", "Blocked", "federated", "eligible_users", "eligible_users"))
+	visibleCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "visible", "Visible", "federated", "eligible_users", "eligible_users"))
+	blockedCommunity := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "blocked", "Blocked", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	visible := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible", "visible")))
-	blockedPerson := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "person")))
-	blockedCommunityPost := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, blockedCommunity.ID, alice, false, testPublishInput("Blocked community", "community")))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person')")))
+	visible := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, alice, false, testPublishInput("Visible", "visible")))
+	blockedPerson := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, visibleCommunity.ID, bob, false, testPublishInput("Blocked person", "person")))
+	blockedCommunityPost := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, blockedCommunity.ID, alice, false, testPublishInput("Blocked community", "community")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES ('https://remote.example/users/writer','Person')")))
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	blockedInstance := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/account-list", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "instance", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
+	blockedInstance := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Receive(posts, ctx, PostRecord{ObjectURI: sql.NullString{String: "https://remote.example/posts/account-list", Valid: true}, CommunityID: visibleCommunity.ID, FederationMode: "federated", AuthorActorURI: "https://remote.example/users/writer", ObjectType: "Page", Title: sql.NullString{String: "Blocked instance", Valid: true}, Body: "instance", AuthoredAt: now, UpdatedAt: now, DeletedAt: Zero[sql.NullTime](), Version: int64(0), ParentID: sql.NullString{String: "", Valid: false}, RichMetadata: "", SearchText: "", ContentFormat: "", ID: ""}, "https://remote.example/users/writer", content.DefaultSanitizer))
 	state := ContentStateRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
 	reactions := ReactionRepository{DB: db, SiteID: site.ID}
 	var allPosts []string = []string{visible.ID, blockedPerson.ID, blockedCommunityPost.ID, blockedInstance.ID}
  /*line account_blocks_test.mygo:578:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(allPosts, func(id string) {
- /*line account_blocks_test.mygo:578:17*/		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Save(state, ctx, id, true))
-		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22ContentStateRepositoryM4Read(state, ctx, id))
-		MygoIN6ResultM6Unwrap[struct{}, string](MygoIN18ReactionRepositoryM4Like(reactions, ctx, id, viewer, false, ""))
+ /*line account_blocks_test.mygo:578:17*/		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Save(state, ctx, id, true))
+		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22ContentStateRepositoryM4Read(state, ctx, id))
+		MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN18ReactionRepositoryM4Like(reactions, ctx, id, viewer, false, ""))
 		return
- /*line zz_account_blocks.gen_test.go:286:1*/	})
- /*line account_blocks_test.mygo:483:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','event-bob',?,?,?),( 'reply','event-remote',?,?,?),( 'reply','event-visible',?,?,?)", blockedPerson.ID, bob.ActorURI, viewer.ActorURI, blockedInstance.ID, "https://remote.example/users/writer", viewer.ActorURI, visible.ID, alice.ActorURI, viewer.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
+ /*line zz_account_blocks.gen_test.go:287:1*/	})
+ /*line account_blocks_test.mygo:483:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO notification_events(kind,occurrence,post_id,actor_uri,recipient_uri) VALUES ('reply','event-bob',?,?,?),( 'reply','event-remote',?,?,?),( 'reply','event-visible',?,?,?)", blockedPerson.ID, bob.ActorURI, viewer.ActorURI, blockedInstance.ID, "https://remote.example/users/writer", viewer.ActorURI, visible.ID, alice.ActorURI, viewer.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProjectNotifications(ctx, db, 100))
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
+	browserViewer := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, viewer))
 	page := Page{Limit: 20, Offset: 0}
 	var diagnosticRows []NotificationRecord = []NotificationRecord{}
 	diagnostic := MygoIN17BrowserRepositoryM18NotificationsQuery(browser, ctx, browserViewer).Scan(&diagnosticRows)
  /*line account_blocks_test.mygo:601:3*/	if QueryFailed(diagnostic) {
  /*line account_blocks_test.mygo:602:5*/		t.Fatalf("notification target eligibility SQL failed: %v", diagnostic.Error)
  /*line account_blocks_test.mygo:601:3*/	} else {
- /*line zz_account_blocks.gen_test.go:297:1*/	}
- /*line account_blocks_test.mygo:604:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(3) {
+ /*line zz_account_blocks.gen_test.go:298:1*/	}
+ /*line account_blocks_test.mygo:604:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(3) {
  /*line account_blocks_test.mygo:605:5*/		t.Fatal("notification fixture was not projected")
  /*line account_blocks_test.mygo:604:3*/	} else {
- /*line zz_account_blocks.gen_test.go:301:1*/	}
+ /*line zz_account_blocks.gen_test.go:302:1*/	}
  /*line account_blocks_test.mygo:483:1*/	blocks := AccountBlockRepository{DB: db, SiteID: site.ID, AccountID: viewer.AccountID}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", blockedCommunity.ID))
- /*line account_blocks_test.mygo:611:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(1) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, browserViewer, page, 50)).Items) != 1 {
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "person", bob.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "instance", "remote.example"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM3Add(blocks, ctx, viewer, "community", blockedCommunity.ID))
+ /*line account_blocks_test.mygo:611:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(1) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, failure.Failure](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, browserViewer, page, 50)).Items) != 1 {
  /*line account_blocks_test.mygo:613:5*/		t.Fatal("blocked notifications remained in list or unread count")
  /*line account_blocks_test.mygo:611:3*/	} else {
- /*line zz_account_blocks.gen_test.go:309:1*/	}
- /*line account_blocks_test.mygo:483:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "person", bob.ActorURI))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "instance", "remote.example"))
- /*line account_blocks_test.mygo:617:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(1) {
+ /*line zz_account_blocks.gen_test.go:310:1*/	}
+ /*line account_blocks_test.mygo:483:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "person", bob.ActorURI))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22AccountBlockRepositoryM6Remove(blocks, ctx, viewer, "instance", "remote.example"))
+ /*line account_blocks_test.mygo:617:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, browserViewer)) != int64(1) {
  /*line account_blocks_test.mygo:618:5*/		t.Fatal("unblocking resurrected retired notifications")
  /*line account_blocks_test.mygo:617:3*/	} else {
- /*line zz_account_blocks.gen_test.go:315:1*/	}
- /*line account_blocks_test.mygo:483:1*/	saved := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM10SavedPosts(browser, ctx, browserViewer, page, 50))
-	read := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM9ReadPosts(browser, ctx, browserViewer, page, 50))
-	liked := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN17BrowserRepositoryM10LikedPosts(browser, ctx, browserViewer, page, 50))
+ /*line zz_account_blocks.gen_test.go:316:1*/	}
+ /*line account_blocks_test.mygo:483:1*/	saved := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM10SavedPosts(browser, ctx, browserViewer, page, 50))
+	read := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM9ReadPosts(browser, ctx, browserViewer, page, 50))
+	liked := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN17BrowserRepositoryM10LikedPosts(browser, ctx, browserViewer, page, 50))
 	var allowed []string = []string{visible.ID, blockedPerson.ID, blockedInstance.ID}
 	complete := func(posts_1 []PostRecord) bool {
  /*line account_blocks_test.mygo:624:18*/		ids := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(posts_1, func(post PostRecord) string {
  /*line account_blocks_test.mygo:625:58*/			return post.ID
- /*line zz_account_blocks.gen_test.go:323:1*/		})
+ /*line zz_account_blocks.gen_test.go:324:1*/		})
  /*line account_blocks_test.mygo:626:5*/		return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(posts_1) == MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(allowed) && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(allowed, true, func(valid bool, id_1 string) bool {
  /*line account_blocks_test.mygo:628:9*/			return valid && MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(ids, id_1, MygoIT2EqFN6StringGN6StringEM6Equals)
- /*line zz_account_blocks.gen_test.go:326:1*/		})
+ /*line zz_account_blocks.gen_test.go:327:1*/		})
 	}
  /*line account_blocks_test.mygo:631:3*/	if !complete(saved) || !complete(read) || !complete(liked) {
 		ids_1 := func(posts_2 []PostRecord) []string {
  /*line account_blocks_test.mygo:633:7*/			return MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(posts_2, func(post_1 PostRecord) string {
  /*line account_blocks_test.mygo:633:50*/				return post_1.ID
- /*line zz_account_blocks.gen_test.go:332:1*/			})
+ /*line zz_account_blocks.gen_test.go:333:1*/			})
 		}
  /*line account_blocks_test.mygo:631:3*/		t.Fatalf("blocked rows leaked through account content lists saved=%v read=%v liked=%v", ids_1(saved), ids_1(read), ids_1(liked))
 	} else {
- /*line zz_account_blocks.gen_test.go:336:1*/	}
- /*line account_blocks_test.mygo:483:1*/	discovery := MygoIN6ResultM6Unwrap[[]CommunityView, string](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, browserViewer, page, 50))
+ /*line zz_account_blocks.gen_test.go:337:1*/	}
+ /*line account_blocks_test.mygo:483:1*/	discovery := MygoIN6ResultM6Unwrap[[]CommunityView, failure.Failure](MygoIN17BrowserRepositoryM15ListCommunities(browser, ctx, browserViewer, page, 50))
  /*line account_blocks_test.mygo:643:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(discovery) != 1 || MygoIN6OptionM6Unwrap[CommunityView](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(discovery, 0)).Record.ID != visibleCommunity.ID {
  /*line account_blocks_test.mygo:644:5*/		t.Fatal("blocked community remained in discovery counts")
 		return
  /*line account_blocks_test.mygo:643:3*/	} else {
 		return
- /*line zz_account_blocks.gen_test.go:343:1*/	}
+ /*line zz_account_blocks.gen_test.go:344:1*/	}
 }

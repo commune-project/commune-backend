@@ -8,6 +8,7 @@ import rand "go:crypto/rand"
 import io "go:io"
 import os "go:os"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PrivateMediaCache
   ID: String `gorm:"column:id"`
@@ -35,9 +36,9 @@ func RegisterPrivateMedia(
   postID: String,
   originURI: String,
   version: String
-) -> Result[PrivateMediaCache, String]
+) -> Result[PrivateMediaCache, failure.Failure]
   if !CanonicalObjectURI(originURI) || version == "" || (version as Slice[Byte]).Len() > 512 then
-    return Err("invalid media binding")
+    return Err(Of("invalid media binding"))
   end
   var post = Zero[PostRecord]()
   let loaded = tx.WithContext(ctx).Raw(
@@ -46,10 +47,10 @@ func RegisterPrivateMedia(
     postID
   ).Scan(Ref.new(post))
   if QueryFailed(loaded) then
-    return Err("media unavailable")
+    return Err(Of("media unavailable"))
   end
   if loaded.RowsAffected != 1i64 then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let id = rand.Text()
   let inserted = tx.Exec(
@@ -63,7 +64,7 @@ func RegisterPrivateMedia(
     rand.Text()
   )
   if QueryFailed(inserted) then
-    return Err("media unavailable")
+    return Err(Of("media unavailable"))
   end
   var row = Zero[PrivateMediaCache]()
   let found = tx.Table("media_private_cache").Where(
@@ -75,7 +76,7 @@ func RegisterPrivateMedia(
     post.CommunityID
   ).Find(Ref.new(row))
   if QueryFailed(found) || found.RowsAffected != 1i64 then
-    return Err("media unavailable")
+    return Err(Of("media unavailable"))
   end
   Ok(row)
 end
@@ -89,12 +90,12 @@ impl MediaRepository
     tx: Ref[gorm.DB],
     identity: auth.Identity,
     row: PrivateMediaCache
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     if row.SiteID != self.SiteID ||
       identity.SiteID != self.SiteID ||
       identity.AccountID <= 0i64 ||
       row.ErrorState == "invalidated" then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     let allowed = self.AllowPost(ctx, tx, identity, row.PostID)
     if allowed.IsErr() then
@@ -106,10 +107,10 @@ impl MediaRepository
       row.AccessScope
     ))
     if classified.IsErr() then
-      return Err("media unavailable")
+      return Err(Of("media unavailable"))
     end
     if !classified.Unwrap() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     Ok(())
   end
@@ -121,20 +122,20 @@ impl MediaRepository
     ctx: context.Context,
     identity: auth.Identity,
     id: String,
-    work: func(PrivateMediaCache, Ref[os.File]) -> Result[(), String]
-  ) -> Result[Bool, String]
+    work: func(PrivateMediaCache, Ref[os.File]) -> Result[(), failure.Failure]
+  ) -> Result[Bool, failure.Failure]
     var hit: Bool = false
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         var row = Zero[PrivateMediaCache]()
         let loaded = tx.Raw("SELECT * FROM media_private_cache WHERE id=? AND site_id=? FOR SHARE", id, self.SiteID).Scan(Ref.new(row))
         if QueryFailed(loaded) then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         if loaded.RowsAffected != 1i64 then
-          return Err("not found")
+          return Err(Of("not found"))
         end
         let allowed = self.AllowPrivateCache(ctx, tx, identity, row)
         if allowed.IsErr() then
@@ -147,7 +148,7 @@ impl MediaRepository
         end
         let file = self.Files.Open("private-cache", row.Generation)
         if file.IsErr() then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         let opened = file.Unwrap()
         go[()] { code: "defer {opened}.Close()"; in opened = opened }
@@ -173,8 +174,8 @@ impl MediaRepository
     ctx: context.Context,
     identity: auth.Identity,
     id: String,
-    fetch: func(context.Context, auth.Identity, PrivateMediaCache) -> Result[io.ReadCloser, String]
-  ) -> Result[(), String]
+    fetch: func(context.Context, auth.Identity, PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
+  ) -> Result[(), failure.Failure]
     var claimed = Zero[PrivateMediaCache]()
     let token = rand.Text()
     let lease = time.Now().Add(10 as time.Duration * time.Minute)
@@ -183,18 +184,18 @@ impl MediaRepository
     let claim = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let site: String = ""
         if QueryFailed(tx.Raw("SELECT id FROM sites WHERE id=? FOR UPDATE", self.SiteID).Scan(Ref.new(site))) then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         var row = Zero[PrivateMediaCache]()
         let loaded = tx.Raw("SELECT * FROM media_private_cache WHERE id=? AND site_id=? FOR UPDATE", id, self.SiteID).Scan(Ref.new(row))
         if QueryFailed(loaded) then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         if loaded.RowsAffected != 1i64 then
-          return Err("not found")
+          return Err(Of("not found"))
         end
         let allowed = self.AllowPrivateCache(ctx, tx, identity, row)
         if allowed.IsErr() then
@@ -204,13 +205,13 @@ impl MediaRepository
           return Ok(())
         end
         if row.State == "fetching" && row.LeaseUntil.After(time.Now()) then
-          return Err("media cache busy")
+          return Err(Of("media cache busy"))
         end
         # Exclusive row lock proves no in-flight reader can hold these bytes.
         if self.Files.Remove("private-cache", row.Generation).IsErr() ||
           self.Files.Remove("temporary", row.Generation).IsErr() ||
           self.Files.Remove("previews", row.Generation).IsErr() then
-          return Err("media unlink failed")
+          return Err(Of("media unlink failed"))
         end
         let used: Int64 = 0i64
         if QueryFailed(tx.Raw(
@@ -219,10 +220,10 @@ impl MediaRepository
           self.SiteID,
           row.ID
         ).Scan(Ref.new(used))) then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         if reserve > self.Settings.SiteQuotaBytes as Int64 - used then
-          return Err("media quota exceeded")
+          return Err(Of("media quota exceeded"))
         end
         row.Generation = rand.Text()
         row.LeaseToken = token
@@ -250,7 +251,7 @@ impl MediaRepository
     let response = fetch(fetchCtx, identity, claimed)
     if response.IsErr() then
       let _ = self.FailPrivateCache(context.Background(), claimed, "origin denied or unavailable")
-      return Err("protected media fetch failed")
+      return Err(Of("protected media fetch failed"))
     end
     let body = response.Unwrap()
     go[()] { code: "defer {body}.Close()"; in body = body }
@@ -272,7 +273,7 @@ impl MediaRepository
     let finalized = RunTransaction(
       fetchCtx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         var current = Zero[PrivateMediaCache]()
         let found = tx.Raw(
           "SELECT * FROM media_private_cache WHERE id=? AND state='fetching' AND generation=? AND lease_token=? AND lease_until>? FOR UPDATE",
@@ -282,7 +283,7 @@ impl MediaRepository
           time.Now()
         ).Scan(Ref.new(current))
         if QueryFailed(found) || found.RowsAffected != 1i64 then
-          return Err("media cache lease lost")
+          return Err(Of("media cache lease lost"))
         end
         let allowed = self.AllowPrivateCache(fetchCtx, tx, identity, current)
         if allowed.IsErr() then
@@ -314,7 +315,7 @@ impl MediaRepository
     ctx: context.Context,
     row: PrivateMediaCache,
     reason: String
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     MutationResult(self.DB.WithContext(ctx).Exec(
       "UPDATE media_private_cache SET state='deleting',lease_until=?,error_state=? WHERE id=? AND generation=? AND state='fetching' AND lease_token=?",
       time.Now(),
@@ -333,7 +334,7 @@ impl MediaRepository
     tx: Ref[gorm.DB],
     postID: String,
     originURI: String
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     MutationResult(tx.WithContext(ctx).Exec(
       "UPDATE media_private_cache SET state='deleting',lease_until=?,error_state='invalidated' WHERE site_id=? AND post_id=? AND (?='' OR origin_uri=?)",
       time.Now(),
@@ -348,9 +349,9 @@ impl MediaRepository
     ctx: context.Context,
     now: time.Time,
     max: Int
-  ) -> Result[Int, String]
+  ) -> Result[Int, failure.Failure]
     if max < 1 || max > 1000 then
-      return Err("invalid cleanup limit")
+      return Err(Of("invalid cleanup limit"))
     end
     var count: Int = 0
     while count < max
@@ -358,7 +359,7 @@ impl MediaRepository
       let result = RunTransaction(
         ctx,
         self.DB,
-        func(tx: Ref[gorm.DB]) -> Result[(), String]
+        func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
           var row = Zero[PrivateMediaCache]()
           let selected = tx.Raw(
             "SELECT * FROM media_private_cache WHERE site_id=? AND ((state='ready' AND expires_at<=?) OR (state='fetching' AND lease_until<=?) OR state='deleting') ORDER BY lease_until,id LIMIT 1 FOR UPDATE SKIP LOCKED",
@@ -367,7 +368,7 @@ impl MediaRepository
             now
           ).Scan(Ref.new(row))
           if QueryFailed(selected) then
-            return Err("media unavailable")
+            return Err(Of("media unavailable"))
           end
           if selected.RowsAffected == 0i64 then
             return Ok(())
@@ -376,7 +377,7 @@ impl MediaRepository
           if self.Files.Remove("private-cache", row.Generation).IsErr() ||
             self.Files.Remove("temporary", row.Generation).IsErr() ||
             self.Files.Remove("previews", row.Generation).IsErr() then
-            return Err("media unlink failed")
+            return Err(Of("media unlink failed"))
           end
 
           # Metadata and immutable origin identity survive every expiry cycle.

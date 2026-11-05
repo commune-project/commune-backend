@@ -8,6 +8,7 @@ import "database/sql"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -15,68 +16,68 @@ import . "github.com/mygo-lang/mygo/prelude"
 	ctx := context.Background()
 	pool := testsupport.Postgres(t)
 	catalog := MigrationCatalog()
- /*line post_version_test.mygo:14:3*/	if MygoIN6ResultM5IsErr[[]Migration, string](catalog) {
- /*line post_version_test.mygo:15:5*/		t.Fatalf("load migration catalog: %s", MygoIN6ResultM9UnwrapErr[[]Migration, string](catalog))
+ /*line post_version_test.mygo:14:3*/	if MygoIN6ResultM5IsErr[[]Migration, failure.Failure](catalog) {
+ /*line post_version_test.mygo:15:5*/		t.Fatalf("load migration catalog: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[[]Migration, failure.Failure](catalog)))
  /*line post_version_test.mygo:14:3*/	} else {
- /*line zz_post_version.gen_test.go:21:1*/	}
+ /*line zz_post_version.gen_test.go:22:1*/	}
  /*line post_version_test.mygo:17:15*/	var __mygo_expr_1 Result[*sql.Tx, error]
 	__mygo_expr_2, __mygo_expr_0 := pool.BeginTx(ctx, &[]sql.TxOptions{sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}}[0])
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*sql.Tx, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.Tx, error](__mygo_expr_2)
- /*line zz_post_version.gen_test.go:28:1*/	}
+ /*line zz_post_version.gen_test.go:29:1*/	}
  /*line post_version_test.mygo:10:1*/	begin := __mygo_expr_1
  /*line post_version_test.mygo:18:3*/	if MygoIN6ResultM5IsErr[*sql.Tx, error](begin) {
  /*line post_version_test.mygo:19:5*/		t.Fatalf("begin migration transaction: %s", MygoIN6ResultM9UnwrapErr[*sql.Tx, error](begin))
  /*line post_version_test.mygo:18:3*/	} else {
- /*line zz_post_version.gen_test.go:33:1*/	}
+ /*line zz_post_version.gen_test.go:34:1*/	}
  /*line post_version_test.mygo:10:1*/	tx := MygoIN6ResultM6Unwrap[*sql.Tx, error](begin)
-	applied := ApplyTransaction(ctx, tx, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MygoIN6ResultM6Unwrap[[]Migration, string](catalog), 12))
- /*line post_version_test.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, string](applied) {
- /*line post_version_test.mygo:24:5*/		t.Fatalf("apply first twelve migrations: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](applied))
+	applied := ApplyTransaction(ctx, tx, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MygoIN6ResultM6Unwrap[[]Migration, failure.Failure](catalog), 12))
+ /*line post_version_test.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](applied) {
+ /*line post_version_test.mygo:24:5*/		t.Fatalf("apply first twelve migrations: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](applied)))
  /*line post_version_test.mygo:23:3*/	} else {
- /*line zz_post_version.gen_test.go:39:1*/	}
+ /*line zz_post_version.gen_test.go:40:1*/	}
  /*line post_version_test.mygo:26:19*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := tx.Commit()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_post_version.gen_test.go:46:1*/		}{})
+ /*line zz_post_version.gen_test.go:47:1*/		}{})
 	}
  /*line post_version_test.mygo:10:1*/	committed := __mygo_expr_4
  /*line post_version_test.mygo:27:3*/	if MygoIN6ResultM5IsErr[struct{}, error](committed) {
  /*line post_version_test.mygo:28:5*/		t.Fatalf("commit first twelve migrations: %s", MygoIN6ResultM9UnwrapErr[struct{}, error](committed))
  /*line post_version_test.mygo:27:3*/	} else {
- /*line zz_post_version.gen_test.go:52:1*/	}
+ /*line zz_post_version.gen_test.go:53:1*/	}
  /*line post_version_test.mygo:30:12*/	var __mygo_expr_6 Result[*gorm.DB, error]
 	__mygo_expr_7, __mygo_expr_5 := transport.ORM(pool)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[*gorm.DB, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[*gorm.DB, error](__mygo_expr_7)
- /*line zz_post_version.gen_test.go:59:1*/	}
+ /*line zz_post_version.gen_test.go:60:1*/	}
  /*line post_version_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_6)
 	site := testSite("a", "https://a.example")
 	provisioned := ProvisionSite(ctx, db, site)
- /*line post_version_test.mygo:33:3*/	if MygoIN6ResultM5IsErr[struct{}, string](provisioned) {
- /*line post_version_test.mygo:34:5*/		t.Fatalf("provision site: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](provisioned))
+ /*line post_version_test.mygo:33:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](provisioned) {
+ /*line post_version_test.mygo:34:5*/		t.Fatalf("provision site: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](provisioned)))
  /*line post_version_test.mygo:33:3*/	} else {
- /*line zz_post_version.gen_test.go:66:1*/	}
- /*line post_version_test.mygo:10:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	group := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "old", "Old", "local_only", "members", "members"))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO posts(id,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('old',?,'local_only',?,'Page','Old','preserved','2026-01-01','2026-01-02')", group.ID, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
-	post := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], string](LoadObjectByID(ctx, db, "old")))
+ /*line zz_post_version.gen_test.go:67:1*/	}
+ /*line post_version_test.mygo:10:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	group := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "old", "Old", "local_only", "members", "members"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO posts(id,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('old',?,'local_only',?,'Page','Old','preserved','2026-01-01','2026-01-02')", group.ID, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
+	post := MygoIN6OptionM6Unwrap[PostRecord](MygoIN6ResultM6Unwrap[Option[PostRecord], failure.Failure](LoadObjectByID(ctx, db, "old")))
  /*line post_version_test.mygo:55:3*/	if post.Version != int64(1) || post.Body != "preserved" || post.AuthoredAt.Format("2006-01-02") != "2026-01-01" || post.UpdatedAt.Format("2006-01-02") != "2026-01-02" {
  /*line post_version_test.mygo:59:5*/		t.Fatal("revision migration changed existing content/timestamps")
  /*line post_version_test.mygo:55:3*/	} else {
- /*line zz_post_version.gen_test.go:75:1*/	}
- /*line post_version_test.mygo:61:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("UPDATE posts SET version=0 WHERE id='old'"))) || MygoIN6ResultM4IsOk[struct{}, string](MutationResult(db.Exec("UPDATE posts SET version=-1 WHERE id='old'"))) {
+ /*line zz_post_version.gen_test.go:76:1*/	}
+ /*line post_version_test.mygo:61:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET version=0 WHERE id='old'"))) || MygoIN6ResultM4IsOk[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE posts SET version=-1 WHERE id='old'"))) {
  /*line post_version_test.mygo:63:5*/		t.Fatal("non-positive revision accepted")
 		return
  /*line post_version_test.mygo:61:3*/	} else {
 		return
- /*line zz_post_version.gen_test.go:81:1*/	}
+ /*line zz_post_version.gen_test.go:82:1*/	}
 }

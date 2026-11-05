@@ -4,6 +4,7 @@ import http "go:net/http"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func AccountContentRoute(
   settings: config.Config,
@@ -26,21 +27,21 @@ func AccountContentRoute(
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   let page = PageFromQuery(settings, request)
   if page.IsErr() then
-    Fail(w, page.UnwrapErr())
+    FailFailure(w, page.UnwrapErr())
     return true
   end
   let repository = storage.BrowserRepository{DB: db, SiteID: site.ID}
   let viewer = repository.Viewer(request.Context(), session.Unwrap().Identity)
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return true
   end
-  var records: Result[Slice[storage.PostRecord], String] = Err("not found")
+  var records: Result[Slice[storage.PostRecord], failure.Failure] = Err(Of("not found"))
   if source == "saved" then
     records = repository.SavedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
   else if source == "read" then
@@ -51,12 +52,12 @@ func AccountContentRoute(
     records = repository.LikedPosts(request.Context(), viewer.Unwrap(), page.Unwrap(), settings.Runtime.MaxPageSize)
   end end end
   if records.IsErr() then
-    Fail(w, records.UnwrapErr())
+    FailFailure(w, records.UnwrapErr())
     return true
   end
   let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), records.Unwrap())
   if outputs.IsErr() then
-    Fail(w, outputs.UnwrapErr())
+    FailFailure(w, outputs.UnwrapErr())
   else
     WriteJSON(w, 200, PostPage{Items: outputs.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
   end

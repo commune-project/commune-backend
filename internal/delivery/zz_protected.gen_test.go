@@ -8,94 +8,95 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line protected_test.mygo:10:1*/func TestPostgresProtectedRecipientExpansion(t *testing.T) {
- /*line protected_test.mygo:11:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line protected_test.mygo:11:1*/func TestPostgresProtectedRecipientExpansion(t *testing.T) {
+ /*line protected_test.mygo:12:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_protected.gen_test.go:22:1*/	}
- /*line protected_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_protected.gen_test.go:23:1*/	}
+ /*line protected_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	b := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, b))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
-	colocated := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
-	MygoIN6ResultM6Unwrap[string, string](storage.EnsureLocalKey(ctx, db, alice.ActorURI))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	colocated := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
+	MygoIN6ResultM6Unwrap[string, failure.Failure](storage.EnsureLocalKey(ctx, db, alice.ActorURI))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "restricted", "Restricted", "federated", "members", "members"))
 	capableMember := "https://peer.example/users/member"
 	weakMember := "https://weak.example/users/member"
 	outsider := "https://other.example/users/stranger"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Person'), (?, 'Person'), (?, 'Person')", capableMember, weakMember, outsider)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.SetPeerProtectedReads(ctx, db, "peer.example", true))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?),(?,?,?),(?,?,?)", community.ID, capableMember, alice.ActorURI, community.ID, weakMember, alice.ActorURI, community.ID, colocated.ActorURI, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Person'), (?, 'Person'), (?, 'Person')", capableMember, weakMember, outsider)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.SetPeerProtectedReads(ctx, db, "peer.example", true))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES (?,?,?),(?,?,?),(?,?,?)", community.ID, capableMember, alice.ActorURI, community.ID, weakMember, alice.ActorURI, community.ID, colocated.ActorURI, alice.ActorURI)))
 	activityURI := "https://forum-a.example/activities/restricted-1"
 	payload := "{\"id\":\"" + activityURI + "\",\"type\":\"Create\"}"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, community.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
-	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, string](storage.PlanRestrictedDelivery(ctx, db, activityURI, alice.ActorURI, community.ID))
- /*line protected_test.mygo:36:3*/	if planned.Jobs != int64(1) || planned.Receipts != int64(2) {
- /*line protected_test.mygo:37:5*/		t.Fatalf("restricted expansion did not address exactly the capable, local and colocated members: %d/%d", planned.Jobs, planned.Receipts)
- /*line protected_test.mygo:36:3*/	} else {
- /*line zz_protected.gen_test.go:51:1*/	}
- /*line protected_test.mygo:10:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", weakMember).Count(&count)))
- /*line protected_test.mygo:41:3*/	if count != int64(0) {
- /*line protected_test.mygo:42:5*/		t.Fatal("an incompatible peer received restricted content")
- /*line protected_test.mygo:41:3*/	} else {
- /*line zz_protected.gen_test.go:57:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", outsider).Count(&count)))
- /*line protected_test.mygo:45:3*/	if count != int64(0) {
- /*line protected_test.mygo:46:5*/		t.Fatal("a non-member received restricted content")
- /*line protected_test.mygo:45:3*/	} else {
- /*line zz_protected.gen_test.go:62:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("target_inbox = ?", capableMember+"/inbox").Count(&count)))
- /*line protected_test.mygo:49:3*/	if count != int64(1) {
- /*line protected_test.mygo:50:5*/		t.Fatal("restricted delivery did not target the member's personal inbox")
- /*line protected_test.mygo:49:3*/	} else {
- /*line zz_protected.gen_test.go:67:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", colocated.ActorURI).Count(&count)))
- /*line protected_test.mygo:53:3*/	if count != int64(1) {
- /*line protected_test.mygo:54:5*/		t.Fatal("a colocated member did not receive a local receipt")
- /*line protected_test.mygo:53:3*/	} else {
- /*line zz_protected.gen_test.go:72:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'a' AND recipient_actor_uri = ?", alice.ActorURI).Count(&count)))
- /*line protected_test.mygo:57:3*/	if count != int64(1) {
- /*line protected_test.mygo:58:5*/		t.Fatal("a local member did not receive a local receipt")
- /*line protected_test.mygo:57:3*/	} else {
- /*line zz_protected.gen_test.go:77:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("recipient_actor_uri = ?", outsider).Count(&count)))
- /*line protected_test.mygo:61:3*/	if count != int64(0) {
- /*line protected_test.mygo:62:5*/		t.Fatal("a non-member received a restricted receipt")
- /*line protected_test.mygo:61:3*/	} else {
- /*line zz_protected.gen_test.go:82:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, capableMember)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activities(uri,actor_uri,kind,community_id) VALUES (?,?,'Create',?)", activityURI, alice.ActorURI, community.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, []byte(payload), storage.PayloadChecksum([]byte(payload)))))
+	planned := MygoIN6ResultM6Unwrap[storage.PlanResult, failure.Failure](storage.PlanRestrictedDelivery(ctx, db, activityURI, alice.ActorURI, community.ID))
+ /*line protected_test.mygo:37:3*/	if planned.Jobs != int64(1) || planned.Receipts != int64(2) {
+ /*line protected_test.mygo:38:5*/		t.Fatalf("restricted expansion did not address exactly the capable, local and colocated members: %d/%d", planned.Jobs, planned.Receipts)
+ /*line protected_test.mygo:37:3*/	} else {
+ /*line zz_protected.gen_test.go:52:1*/	}
+ /*line protected_test.mygo:11:1*/	var count int64 = int64(0)
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", weakMember).Count(&count)))
+ /*line protected_test.mygo:42:3*/	if count != int64(0) {
+ /*line protected_test.mygo:43:5*/		t.Fatal("an incompatible peer received restricted content")
+ /*line protected_test.mygo:42:3*/	} else {
+ /*line zz_protected.gen_test.go:58:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", outsider).Count(&count)))
+ /*line protected_test.mygo:46:3*/	if count != int64(0) {
+ /*line protected_test.mygo:47:5*/		t.Fatal("a non-member received restricted content")
+ /*line protected_test.mygo:46:3*/	} else {
+ /*line zz_protected.gen_test.go:63:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("target_inbox = ?", capableMember+"/inbox").Count(&count)))
+ /*line protected_test.mygo:50:3*/	if count != int64(1) {
+ /*line protected_test.mygo:51:5*/		t.Fatal("restricted delivery did not target the member's personal inbox")
+ /*line protected_test.mygo:50:3*/	} else {
+ /*line zz_protected.gen_test.go:68:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'b' AND recipient_actor_uri = ?", colocated.ActorURI).Count(&count)))
+ /*line protected_test.mygo:54:3*/	if count != int64(1) {
+ /*line protected_test.mygo:55:5*/		t.Fatal("a colocated member did not receive a local receipt")
+ /*line protected_test.mygo:54:3*/	} else {
+ /*line zz_protected.gen_test.go:73:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("site_id = 'a' AND recipient_actor_uri = ?", alice.ActorURI).Count(&count)))
+ /*line protected_test.mygo:58:3*/	if count != int64(1) {
+ /*line protected_test.mygo:59:5*/		t.Fatal("a local member did not receive a local receipt")
+ /*line protected_test.mygo:58:3*/	} else {
+ /*line zz_protected.gen_test.go:78:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("recipient_actor_uri = ?", outsider).Count(&count)))
+ /*line protected_test.mygo:62:3*/	if count != int64(0) {
+ /*line protected_test.mygo:63:5*/		t.Fatal("a non-member received a restricted receipt")
+ /*line protected_test.mygo:62:3*/	} else {
+ /*line zz_protected.gen_test.go:83:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, capableMember)))
 	calls := 0
-	counting := func(target string, actorURI string, privateKey string, body []byte) Result[int, string] {
- /*line protected_test.mygo:66:18*/		calls = calls + 1
- /*line protected_test.mygo:68:5*/		return Ok[int, string](202)
- /*line zz_protected.gen_test.go:88:1*/	}
- /*line protected_test.mygo:10:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, string](RunOnce(ctx, db, settings, Limits{BatchSize: 5, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
- /*line protected_test.mygo:71:3*/	if calls != 0 || outcome.Suppressed != 1 || outcome.Delivered != 0 {
- /*line protected_test.mygo:72:5*/		t.Fatalf("a revoked member's queued restricted delivery was not suppressed: calls=%d suppressed=%d", calls, outcome.Suppressed)
- /*line protected_test.mygo:71:3*/	} else {
- /*line zz_protected.gen_test.go:93:1*/	}
- /*line protected_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'suppressed' AND error_code = 'membership-revoked'").Count(&count)))
- /*line protected_test.mygo:75:3*/	if count != int64(1) {
- /*line protected_test.mygo:76:5*/		t.Fatal("revoked-member suppression was not recorded")
+	counting := func(target string, actorURI string, privateKey string, body []byte) Result[int, failure.Failure] {
+ /*line protected_test.mygo:67:18*/		calls = calls + 1
+ /*line protected_test.mygo:69:5*/		return Ok[int, failure.Failure](202)
+ /*line zz_protected.gen_test.go:89:1*/	}
+ /*line protected_test.mygo:11:1*/	outcome := MygoIN6ResultM6Unwrap[Outcome, failure.Failure](RunOnce(ctx, db, settings, Limits{BatchSize: 5, LeaseSeconds: int64(60), MaxAttempts: int64(2), BackoffSeconds: int64(30)}, counting))
+ /*line protected_test.mygo:72:3*/	if calls != 0 || outcome.Suppressed != 1 || outcome.Delivered != 0 {
+ /*line protected_test.mygo:73:5*/		t.Fatalf("a revoked member's queued restricted delivery was not suppressed: calls=%d suppressed=%d", calls, outcome.Suppressed)
+ /*line protected_test.mygo:72:3*/	} else {
+ /*line zz_protected.gen_test.go:94:1*/	}
+ /*line protected_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("state = 'suppressed' AND error_code = 'membership-revoked'").Count(&count)))
+ /*line protected_test.mygo:76:3*/	if count != int64(1) {
+ /*line protected_test.mygo:77:5*/		t.Fatal("revoked-member suppression was not recorded")
 		return
- /*line protected_test.mygo:75:3*/	} else {
+ /*line protected_test.mygo:76:3*/	} else {
 		return
- /*line zz_protected.gen_test.go:100:1*/	}
+ /*line zz_protected.gen_test.go:101:1*/	}
 }

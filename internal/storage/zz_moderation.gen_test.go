@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,96 +18,96 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_moderation.gen_test.go:20:1*/	}
+ /*line zz_moderation.gen_test.go:21:1*/	}
  /*line moderation_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, other))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-account-password"))
-	admin := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "admin", "administrator-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-account-password"))
+	admin := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM12Authenticate(accounts, ctx, "a", "admin", "administrator-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
 	importer := PostRepository{DB: db, SiteID: "b"}
 	feedA := FeedRepository{DB: db, SiteID: "a"}
 	feedB := FeedRepository{DB: db, SiteID: "b"}
 	page := Page{Limit: 50, Offset: 0}
-	open := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "Body text", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
-	MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM6Import(importer, ctx, topic.ID, carol, false))
-	beforeA := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))
-	beforeB := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
+	open := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, PublishInput{Title: "T", Body: "Body text", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM6Import(importer, ctx, topic.ID, carol, false))
+	beforeA := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))
+	beforeB := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
  /*line moderation_test.mygo:33:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(beforeA) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(beforeB) != 1 {
  /*line moderation_test.mygo:34:5*/		t.Fatal("initial listing did not show the topic at both sites")
  /*line moderation_test.mygo:33:3*/	} else {
- /*line zz_moderation.gen_test.go:47:1*/	}
- /*line moderation_test.mygo:36:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, true, carol)) {
+ /*line zz_moderation.gen_test.go:48:1*/	}
+ /*line moderation_test.mygo:36:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, true, carol)) {
  /*line moderation_test.mygo:37:5*/		t.Fatal("non-administrator hid a post")
  /*line moderation_test.mygo:36:3*/	} else {
- /*line zz_moderation.gen_test.go:51:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, true, admin))
-	hiddenA := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))
-	stillB := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
+ /*line zz_moderation.gen_test.go:52:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, true, admin))
+	hiddenA := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))
+	stillB := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
  /*line moderation_test.mygo:42:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hiddenA) != 0 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(stillB) != 1 {
  /*line moderation_test.mygo:43:5*/		t.Fatal("site hiding leaked across sites or failed to hide locally")
  /*line moderation_test.mygo:42:3*/	} else {
- /*line zz_moderation.gen_test.go:58:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, false, admin))
- /*line moderation_test.mygo:46:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 1 {
+ /*line zz_moderation.gen_test.go:59:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14FeedRepositoryM9SetHidden(feedA, ctx, topic.ID, false, admin))
+ /*line moderation_test.mygo:46:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 1 {
  /*line moderation_test.mygo:47:5*/		t.Fatal("unhide did not restore the site listing")
  /*line moderation_test.mygo:46:3*/	} else {
- /*line zz_moderation.gen_test.go:63:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, alice, false, true))
- /*line moderation_test.mygo:50:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 0 {
+ /*line zz_moderation.gen_test.go:64:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, alice, false, true))
+ /*line moderation_test.mygo:50:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 0 {
  /*line moderation_test.mygo:51:5*/		t.Fatal("community removal did not exclude the post from the community")
  /*line moderation_test.mygo:50:3*/	} else {
- /*line zz_moderation.gen_test.go:68:1*/	}
+ /*line zz_moderation.gen_test.go:69:1*/	}
  /*line moderation_test.mygo:9:1*/	intact := Zero[PostRecord]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("posts").Where("id=?", topic.ID).Find(&intact)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("posts").Where("id=?", topic.ID).Find(&intact)))
  /*line moderation_test.mygo:55:3*/	if intact.Body != "Body text" || intact.DeletedAt.Valid {
  /*line moderation_test.mygo:56:5*/		t.Fatal("community removal became a global deletion")
  /*line moderation_test.mygo:55:3*/	} else {
- /*line zz_moderation.gen_test.go:74:1*/	}
- /*line moderation_test.mygo:9:1*/	communityScopeB := MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
+ /*line zz_moderation.gen_test.go:75:1*/	}
+ /*line moderation_test.mygo:9:1*/	communityScopeB := MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedB, ctx, open.ID, carol, false, page, 50))
  /*line moderation_test.mygo:59:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(communityScopeB) != 0 {
  /*line moderation_test.mygo:60:5*/		t.Fatal("community removal did not apply to the shared community at site B")
  /*line moderation_test.mygo:59:3*/	} else {
- /*line zz_moderation.gen_test.go:79:1*/	}
- /*line moderation_test.mygo:62:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, carol, false, true)) {
+ /*line zz_moderation.gen_test.go:80:1*/	}
+ /*line moderation_test.mygo:62:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, carol, false, true)) {
  /*line moderation_test.mygo:63:5*/		t.Fatal("non-manager removed a post from the community")
  /*line moderation_test.mygo:62:3*/	} else {
- /*line zz_moderation.gen_test.go:83:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, alice, false, false))
- /*line moderation_test.mygo:66:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 1 {
+ /*line zz_moderation.gen_test.go:84:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM10RemovePost(communities, ctx, open.ID, topic.ID, alice, false, false))
+ /*line moderation_test.mygo:66:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 1 {
  /*line moderation_test.mygo:67:5*/		t.Fatal("restore did not re-include the post")
  /*line moderation_test.mygo:66:3*/	} else {
- /*line zz_moderation.gen_test.go:88:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "rejected"))
- /*line moderation_test.mygo:70:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, string](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 0 {
+ /*line zz_moderation.gen_test.go:89:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "rejected"))
+ /*line moderation_test.mygo:70:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRecord, failure.Failure](MygoIN14FeedRepositoryM10ListTopics(feedA, ctx, open.ID, alice, false, page, 50))) != 0 {
  /*line moderation_test.mygo:71:5*/		t.Fatal("rejected submission was still shown as accepted content")
  /*line moderation_test.mygo:70:3*/	} else {
- /*line zz_moderation.gen_test.go:93:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "pending"))
- /*line moderation_test.mygo:74:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "bogus")) {
+ /*line zz_moderation.gen_test.go:94:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "pending"))
+ /*line moderation_test.mygo:74:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN19CommunityRepositoryM13SetSubmission(communities, ctx, open.ID, topic.ID, alice, false, "bogus")) {
  /*line moderation_test.mygo:75:5*/		t.Fatal("invalid submission state accepted")
  /*line moderation_test.mygo:74:3*/	} else {
- /*line zz_moderation.gen_test.go:98:1*/	}
+ /*line zz_moderation.gen_test.go:99:1*/	}
  /*line moderation_test.mygo:9:1*/	logCount := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("moderation_log").Where("community_id=? AND action IN ('remove-post','restore-post')", open.ID).Count(&logCount)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("moderation_log").Where("community_id=? AND action IN ('remove-post','restore-post')", open.ID).Count(&logCount)))
  /*line moderation_test.mygo:82:3*/	if logCount != int64(2) {
  /*line moderation_test.mygo:83:5*/		t.Fatal("community post removal and restore were not logged")
  /*line moderation_test.mygo:82:3*/	} else {
- /*line zz_moderation.gen_test.go:104:1*/	}
- /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("moderation_log").Where("site_id=? AND community_id IS NULL AND action IN ('hide-post','unhide-post')", site.ID).Count(&logCount)))
+ /*line zz_moderation.gen_test.go:105:1*/	}
+ /*line moderation_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("moderation_log").Where("site_id=? AND community_id IS NULL AND action IN ('hide-post','unhide-post')", site.ID).Count(&logCount)))
  /*line moderation_test.mygo:89:3*/	if logCount != int64(2) {
  /*line moderation_test.mygo:90:5*/		t.Fatal("site post hide and unhide were not logged")
 		return
  /*line moderation_test.mygo:89:3*/	} else {
 		return
- /*line zz_moderation.gen_test.go:111:1*/	}
+ /*line zz_moderation.gen_test.go:112:1*/	}
 }

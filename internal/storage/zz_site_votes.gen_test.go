@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,43 +18,43 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_site_votes.gen_test.go:20:1*/	}
+ /*line zz_site_votes.gen_test.go:21:1*/	}
  /*line site_votes_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	a := testSite("a", "https://a.example")
 	b := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, a, "admin-a", "admin-a-password", false))
-	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, a.ID, "admin-a"))))
-	ordinary := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "ordinary", "", "ordinary-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, a, "admin-a", "admin-a-password", false))
+	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(ctx, db, a.ID, "admin-a"))))
+	ordinary := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "ordinary", "", "ordinary-password"))
  /*line site_votes_test.mygo:20:3*/	if !SiteVoteUpEnabled(ctx, db, a.ID) || !SiteVoteDownEnabled(ctx, db, a.ID) {
  /*line site_votes_test.mygo:21:5*/		t.Fatal("site vote settings did not default enabled")
  /*line site_votes_test.mygo:20:3*/	} else {
- /*line zz_site_votes.gen_test.go:34:1*/	}
+ /*line zz_site_votes.gen_test.go:35:1*/	}
  /*line site_votes_test.mygo:9:1*/	updated := UpdateSiteVoteSettings(ctx, db, a.ID, admin, false, false, false, true)
- /*line site_votes_test.mygo:24:3*/	if MygoIN6ResultM5IsErr[struct{}, string](updated) || !SiteVoteUpEnabled(ctx, db, a.ID) || SiteVoteDownEnabled(ctx, db, a.ID) {
+ /*line site_votes_test.mygo:24:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](updated) || !SiteVoteUpEnabled(ctx, db, a.ID) || SiteVoteDownEnabled(ctx, db, a.ID) {
  /*line site_votes_test.mygo:25:5*/		t.Fatal("partial downvote update failed")
  /*line site_votes_test.mygo:24:3*/	} else {
- /*line zz_site_votes.gen_test.go:39:1*/	}
+ /*line zz_site_votes.gen_test.go:40:1*/	}
  /*line site_votes_test.mygo:27:3*/	if !SiteVoteUpEnabled(ctx, db, b.ID) || !SiteVoteDownEnabled(ctx, db, b.ID) {
  /*line site_votes_test.mygo:28:5*/		t.Fatal("site A vote settings leaked into site B")
  /*line site_votes_test.mygo:27:3*/	} else {
- /*line zz_site_votes.gen_test.go:43:1*/	}
- /*line site_votes_test.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, string](UpdateSiteVoteSettings(ctx, db, a.ID, admin, false, true, true, false)) || SiteVoteUpEnabled(ctx, db, a.ID) || SiteVoteDownEnabled(ctx, db, a.ID) {
+ /*line zz_site_votes.gen_test.go:44:1*/	}
+ /*line site_votes_test.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](UpdateSiteVoteSettings(ctx, db, a.ID, admin, false, true, true, false)) || SiteVoteUpEnabled(ctx, db, a.ID) || SiteVoteDownEnabled(ctx, db, a.ID) {
  /*line site_votes_test.mygo:33:5*/		t.Fatal("second partial update did not preserve the existing direction")
  /*line site_votes_test.mygo:30:3*/	} else {
- /*line zz_site_votes.gen_test.go:47:1*/	}
- /*line site_votes_test.mygo:35:3*/	if MygoIN6ResultM4IsOk[struct{}, string](UpdateSiteVoteSettings(ctx, db, a.ID, ordinary, true, true, true, true)) {
+ /*line zz_site_votes.gen_test.go:48:1*/	}
+ /*line site_votes_test.mygo:35:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](UpdateSiteVoteSettings(ctx, db, a.ID, ordinary, true, true, true, true)) {
  /*line site_votes_test.mygo:36:5*/		t.Fatal("ordinary account changed site vote settings")
  /*line site_votes_test.mygo:35:3*/	} else {
- /*line zz_site_votes.gen_test.go:51:1*/	}
+ /*line zz_site_votes.gen_test.go:52:1*/	}
  /*line site_votes_test.mygo:9:1*/	audits := int64(0)
- /*line site_votes_test.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(db.Table("audit_events").Where("scope_kind='site' AND scope_id=? AND action='set-vote-settings'", a.ID).Count(&audits))) || audits != int64(2) {
+ /*line site_votes_test.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(db.Table("audit_events").Where("scope_kind='site' AND scope_id=? AND action='set-vote-settings'", a.ID).Count(&audits))) || audits != int64(2) {
  /*line site_votes_test.mygo:44:5*/		t.Fatal("vote setting updates were not audited exactly once")
 		return
  /*line site_votes_test.mygo:39:3*/	} else {
 		return
- /*line zz_site_votes.gen_test.go:58:1*/	}
+ /*line zz_site_votes.gen_test.go:59:1*/	}
 }

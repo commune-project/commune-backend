@@ -9,165 +9,166 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_group_follows.mygo:13:1*/func ApplyFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
-}, string] {
- /*line federation_group_follows.mygo:14:3*/	if activity.ObjectURI == "" {
- /*line federation_group_follows.mygo:15:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:18:1*/		}{})
- /*line federation_group_follows.mygo:14:3*/	} else {
- /*line zz_federation_group_follows.gen.go:20:1*/	}
- /*line federation_group_follows.mygo:13:1*/	target := storage.LoadActor(ctx, db, activity.ObjectURI)
- /*line federation_group_follows.mygo:18:3*/	if MygoIN6ResultM4IsOk[Option[storage.ActorRecord], string](target) && MygoIN6OptionM6IsSome[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](target)) && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](target)).LocalSiteID.Valid && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](target)).LocalSiteID.String == site.ID && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](target)).Kind == "Person" {
- /*line federation_group_follows.mygo:19:12*/		return ApplyPersonFollow(ctx, db, site, activity)
- /*line federation_group_follows.mygo:18:3*/	} else {
- /*line zz_federation_group_follows.gen.go:25:1*/	}
- /*line federation_group_follows.mygo:13:1*/	return ApplyGroupFollow(ctx, db, site, activity)
- /*line zz_federation_group_follows.gen.go:27:1*/}
- /*line federation_group_follows.mygo:27:1*/func ApplyGroupFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
-}, string] {
+ /*line federation_group_follows.mygo:14:1*/func ApplyFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
+}, failure.Failure] {
+ /*line federation_group_follows.mygo:15:3*/	if activity.ObjectURI == "" {
+ /*line federation_group_follows.mygo:16:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:19:1*/		}{})
+ /*line federation_group_follows.mygo:15:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:21:1*/	}
+ /*line federation_group_follows.mygo:14:1*/	target := storage.LoadActor(ctx, db, activity.ObjectURI)
+ /*line federation_group_follows.mygo:19:3*/	if MygoIN6ResultM4IsOk[Option[storage.ActorRecord], failure.Failure](target) && MygoIN6OptionM6IsSome[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](target)) && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](target)).LocalSiteID.Valid && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](target)).LocalSiteID.String == site.ID && MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](target)).Kind == "Person" {
+ /*line federation_group_follows.mygo:20:12*/		return ApplyPersonFollow(ctx, db, site, activity)
+ /*line federation_group_follows.mygo:19:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:26:1*/	}
+ /*line federation_group_follows.mygo:14:1*/	return ApplyGroupFollow(ctx, db, site, activity)
+ /*line zz_federation_group_follows.gen.go:28:1*/}
+ /*line federation_group_follows.mygo:28:1*/func ApplyGroupFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
+}, failure.Failure] {
 	found := storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
- /*line federation_group_follows.mygo:29:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))) {
- /*line federation_group_follows.mygo:30:12*/		return Err[struct{}, string]("unknown follow target")
- /*line federation_group_follows.mygo:29:3*/	} else {
- /*line zz_federation_group_follows.gen.go:34:1*/	}
- /*line federation_group_follows.mygo:27:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
+ /*line federation_group_follows.mygo:30:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](found)) || !federation.FederatedCommunity(MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](found))) {
+ /*line federation_group_follows.mygo:31:12*/		return Err[struct{}, failure.Failure](Of("unknown follow target"))
+ /*line federation_group_follows.mygo:30:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:35:1*/	}
+ /*line federation_group_follows.mygo:28:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](found))
 	existingURI := storage.CommunityFollowURI(ctx, db, community.ID, activity.Actor)
- /*line federation_group_follows.mygo:34:3*/	if MygoIN6ResultM4IsOk[string, string](existingURI) && MygoIN6ResultM6Unwrap[string, string](existingURI) == activity.ID {
- /*line federation_group_follows.mygo:35:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:39:1*/		}{})
- /*line federation_group_follows.mygo:34:3*/	} else {
- /*line zz_federation_group_follows.gen.go:41:1*/	}
- /*line federation_group_follows.mygo:27:1*/	member := storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
+ /*line federation_group_follows.mygo:35:3*/	if MygoIN6ResultM4IsOk[string, failure.Failure](existingURI) && MygoIN6ResultM6Unwrap[string, failure.Failure](existingURI) == activity.ID {
+ /*line federation_group_follows.mygo:36:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:40:1*/		}{})
+ /*line federation_group_follows.mygo:35:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:42:1*/	}
+ /*line federation_group_follows.mygo:28:1*/	member := storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
 	manager := storage.IsCommunityManager(ctx, db, community.ID, activity.Actor)
- /*line federation_group_follows.mygo:39:3*/	if MygoIN6ResultM5IsErr[bool, string](member) || MygoIN6ResultM5IsErr[bool, string](manager) {
- /*line federation_group_follows.mygo:40:12*/		return Err[struct{}, string]("follow unavailable")
- /*line federation_group_follows.mygo:39:3*/	} else {
- /*line zz_federation_group_follows.gen.go:47:1*/	}
- /*line federation_group_follows.mygo:27:1*/	rule := storage.LoadCommunityFollowRule(ctx, db, community.ID)
- /*line federation_group_follows.mygo:43:3*/	if MygoIN6ResultM5IsErr[string, string](rule) {
- /*line federation_group_follows.mygo:44:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[string, string](rule))
- /*line federation_group_follows.mygo:43:3*/	} else {
- /*line zz_federation_group_follows.gen.go:52:1*/	}
- /*line federation_group_follows.mygo:27:1*/	state := "accepted"
- /*line federation_group_follows.mygo:47:3*/	if MygoIN6ResultM6Unwrap[string, string](rule) == "disabled" || MygoIN6ResultM6Unwrap[string, string](rule) == "members" && !MygoIN6ResultM6Unwrap[bool, string](member) && !MygoIN6ResultM6Unwrap[bool, string](manager) {
+ /*line federation_group_follows.mygo:40:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](member) || MygoIN6ResultM5IsErr[bool, failure.Failure](manager) {
+ /*line federation_group_follows.mygo:41:12*/		return Err[struct{}, failure.Failure](Of("follow unavailable"))
+ /*line federation_group_follows.mygo:40:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:48:1*/	}
+ /*line federation_group_follows.mygo:28:1*/	rule := storage.LoadCommunityFollowRule(ctx, db, community.ID)
+ /*line federation_group_follows.mygo:44:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](rule) {
+ /*line federation_group_follows.mygo:45:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](rule))
+ /*line federation_group_follows.mygo:44:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:53:1*/	}
+ /*line federation_group_follows.mygo:28:1*/	state := "accepted"
+ /*line federation_group_follows.mygo:48:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](rule) == "disabled" || MygoIN6ResultM6Unwrap[string, failure.Failure](rule) == "members" && !MygoIN6ResultM6Unwrap[bool, failure.Failure](member) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](manager) {
 		state = "rejected"
 	} else {
- /*line zz_federation_group_follows.gen.go:57:1*/	}
- /*line federation_group_follows.mygo:50:3*/	if MygoIN6ResultM6Unwrap[string, string](rule) == "approval" && !MygoIN6ResultM6Unwrap[bool, string](member) && !MygoIN6ResultM6Unwrap[bool, string](manager) {
+ /*line zz_federation_group_follows.gen.go:58:1*/	}
+ /*line federation_group_follows.mygo:51:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](rule) == "approval" && !MygoIN6ResultM6Unwrap[bool, failure.Failure](member) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](manager) {
 		state = "pending"
 	} else {
- /*line zz_federation_group_follows.gen.go:61:1*/	}
- /*line federation_group_follows.mygo:27:1*/	recorded := storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, state)
- /*line federation_group_follows.mygo:54:3*/	if MygoIN6ResultM5IsErr[struct{}, string](recorded) {
- /*line federation_group_follows.mygo:55:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](recorded))
- /*line federation_group_follows.mygo:54:3*/	} else {
- /*line zz_federation_group_follows.gen.go:66:1*/	}
- /*line federation_group_follows.mygo:57:3*/	if state == "accepted" {
+ /*line zz_federation_group_follows.gen.go:62:1*/	}
+ /*line federation_group_follows.mygo:28:1*/	recorded := storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, state)
+ /*line federation_group_follows.mygo:55:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](recorded) {
+ /*line federation_group_follows.mygo:56:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](recorded))
+ /*line federation_group_follows.mygo:55:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:67:1*/	}
+ /*line federation_group_follows.mygo:58:3*/	if state == "accepted" {
 		responded := SendFollowResponse(ctx, db, site, community.ActorURI.String, activity.Actor, activity.ID, "Accept")
-		if MygoIN6ResultM5IsErr[struct{}, string](responded) {
- /*line federation_group_follows.mygo:59:38*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](responded))
- /*line federation_group_follows.mygo:57:3*/		} else {
- /*line zz_federation_group_follows.gen.go:72:1*/		}
- /*line federation_group_follows.mygo:57:3*/	} else {
- /*line zz_federation_group_follows.gen.go:74:1*/	}
- /*line federation_group_follows.mygo:61:3*/	if state == "rejected" {
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](responded) {
+ /*line federation_group_follows.mygo:60:38*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](responded))
+ /*line federation_group_follows.mygo:58:3*/		} else {
+ /*line zz_federation_group_follows.gen.go:73:1*/		}
+ /*line federation_group_follows.mygo:58:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:75:1*/	}
+ /*line federation_group_follows.mygo:62:3*/	if state == "rejected" {
 		responded_1 := SendFollowResponse(ctx, db, site, community.ActorURI.String, activity.Actor, activity.ID, "Reject")
-		if MygoIN6ResultM5IsErr[struct{}, string](responded_1) {
- /*line federation_group_follows.mygo:63:38*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](responded_1))
- /*line federation_group_follows.mygo:61:3*/		} else {
- /*line zz_federation_group_follows.gen.go:80:1*/		}
- /*line federation_group_follows.mygo:61:3*/	} else {
- /*line zz_federation_group_follows.gen.go:82:1*/	}
- /*line federation_group_follows.mygo:65:3*/	return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:84:1*/	}{})
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](responded_1) {
+ /*line federation_group_follows.mygo:64:38*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](responded_1))
+ /*line federation_group_follows.mygo:62:3*/		} else {
+ /*line zz_federation_group_follows.gen.go:81:1*/		}
+ /*line federation_group_follows.mygo:62:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:83:1*/	}
+ /*line federation_group_follows.mygo:66:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:85:1*/	}{})
 }
- /*line federation_group_follows.mygo:69:1*/func ApplyGroupUndoFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
-}, string] {
+ /*line federation_group_follows.mygo:70:1*/func ApplyGroupUndoFollow(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
+}, failure.Failure] {
 	found := storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
- /*line federation_group_follows.mygo:71:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found)) {
- /*line federation_group_follows.mygo:72:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:91:1*/		}{})
- /*line federation_group_follows.mygo:71:3*/	} else {
- /*line zz_federation_group_follows.gen.go:93:1*/	}
- /*line federation_group_follows.mygo:69:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](found))
+ /*line federation_group_follows.mygo:72:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](found) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](found)) {
+ /*line federation_group_follows.mygo:73:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:92:1*/		}{})
+ /*line federation_group_follows.mygo:72:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:94:1*/	}
+ /*line federation_group_follows.mygo:70:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](found))
 	current := storage.CommunityFollowURI(ctx, db, community.ID, activity.Actor)
- /*line federation_group_follows.mygo:76:3*/	if MygoIN6ResultM5IsErr[string, string](current) || MygoIN6ResultM6Unwrap[string, string](current) != activity.ID {
- /*line federation_group_follows.mygo:77:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:98:1*/		}{})
- /*line federation_group_follows.mygo:76:3*/	} else {
- /*line zz_federation_group_follows.gen.go:100:1*/	}
- /*line federation_group_follows.mygo:79:3*/	return storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, "undone")
- /*line zz_federation_group_follows.gen.go:102:1*/}
- /*line federation_group_follows.mygo:82:1*/func ApplyFollowResponse(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
-}, string] {
- /*line federation_group_follows.mygo:83:3*/	if activity.ObjectURI == "" {
- /*line federation_group_follows.mygo:84:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:107:1*/		}{})
- /*line federation_group_follows.mygo:83:3*/	} else {
- /*line zz_federation_group_follows.gen.go:109:1*/	}
- /*line federation_group_follows.mygo:82:1*/	stored := storage.LoadActivityPayload(ctx, db, activity.ObjectURI)
- /*line federation_group_follows.mygo:87:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], string](stored) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](stored)) {
- /*line federation_group_follows.mygo:88:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:113:1*/		}{})
- /*line federation_group_follows.mygo:87:3*/	} else {
- /*line zz_federation_group_follows.gen.go:115:1*/	}
- /*line federation_group_follows.mygo:82:1*/	parsed := federation.ParseActivity(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](stored)).Payload)
- /*line federation_group_follows.mygo:91:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, string](parsed) || MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed).Type != "Follow" {
- /*line federation_group_follows.mygo:92:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:119:1*/		}{})
- /*line federation_group_follows.mygo:91:3*/	} else {
- /*line zz_federation_group_follows.gen.go:121:1*/	}
- /*line federation_group_follows.mygo:82:1*/	follow := MygoIN6ResultM6Unwrap[federation.ParsedActivity, string](parsed)
- /*line federation_group_follows.mygo:95:3*/	if follow.Actor == "" || follow.ObjectURI == "" || activity.Actor != follow.ObjectURI {
- /*line federation_group_follows.mygo:96:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:125:1*/		}{})
- /*line federation_group_follows.mygo:95:3*/	} else {
- /*line zz_federation_group_follows.gen.go:127:1*/	}
- /*line federation_group_follows.mygo:82:1*/	communityID := ""
+ /*line federation_group_follows.mygo:77:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](current) || MygoIN6ResultM6Unwrap[string, failure.Failure](current) != activity.ID {
+ /*line federation_group_follows.mygo:78:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:99:1*/		}{})
+ /*line federation_group_follows.mygo:77:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:101:1*/	}
+ /*line federation_group_follows.mygo:80:3*/	return storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, "undone")
+ /*line zz_federation_group_follows.gen.go:103:1*/}
+ /*line federation_group_follows.mygo:83:1*/func ApplyFollowResponse(ctx context.Context, db *gorm.DB, site config.Site, activity federation.ParsedActivity) Result[struct {
+}, failure.Failure] {
+ /*line federation_group_follows.mygo:84:3*/	if activity.ObjectURI == "" {
+ /*line federation_group_follows.mygo:85:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:108:1*/		}{})
+ /*line federation_group_follows.mygo:84:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:110:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	stored := storage.LoadActivityPayload(ctx, db, activity.ObjectURI)
+ /*line federation_group_follows.mygo:88:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActivityPayloadRecord], failure.Failure](stored) || MygoIN6OptionM6IsNone[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](stored)) {
+ /*line federation_group_follows.mygo:89:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:114:1*/		}{})
+ /*line federation_group_follows.mygo:88:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:116:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	parsed := federation.ParseActivity(MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](stored)).Payload)
+ /*line federation_group_follows.mygo:92:3*/	if MygoIN6ResultM5IsErr[federation.ParsedActivity, failure.Failure](parsed) || MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](parsed).Type != "Follow" {
+ /*line federation_group_follows.mygo:93:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:120:1*/		}{})
+ /*line federation_group_follows.mygo:92:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:122:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	follow := MygoIN6ResultM6Unwrap[federation.ParsedActivity, failure.Failure](parsed)
+ /*line federation_group_follows.mygo:96:3*/	if follow.Actor == "" || follow.ObjectURI == "" || activity.Actor != follow.ObjectURI {
+ /*line federation_group_follows.mygo:97:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:126:1*/		}{})
+ /*line federation_group_follows.mygo:96:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:128:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	communityID := ""
 	found := db.WithContext(ctx).Raw("SELECT id FROM communities WHERE actor_uri=? AND host_site_id IS NULL AND federation_mode='federated'", follow.ObjectURI).Scan(&communityID)
- /*line federation_group_follows.mygo:100:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(found)) || found.RowsAffected != int64(1) {
- /*line federation_group_follows.mygo:101:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:132:1*/		}{})
- /*line federation_group_follows.mygo:100:3*/	} else {
- /*line zz_federation_group_follows.gen.go:134:1*/	}
- /*line federation_group_follows.mygo:82:1*/	current := storage.CommunityFollowURI(ctx, db, communityID, follow.Actor)
- /*line federation_group_follows.mygo:104:3*/	if MygoIN6ResultM5IsErr[string, string](current) || MygoIN6ResultM6Unwrap[string, string](current) != follow.ID {
- /*line federation_group_follows.mygo:105:12*/		return Ok[struct{}, string](struct {
- /*line zz_federation_group_follows.gen.go:138:1*/		}{})
- /*line federation_group_follows.mygo:104:3*/	} else {
- /*line zz_federation_group_follows.gen.go:140:1*/	}
- /*line federation_group_follows.mygo:82:1*/	var __mygo_expr_0 string
+ /*line federation_group_follows.mygo:101:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(found)) || found.RowsAffected != int64(1) {
+ /*line federation_group_follows.mygo:102:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:133:1*/		}{})
+ /*line federation_group_follows.mygo:101:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:135:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	current := storage.CommunityFollowURI(ctx, db, communityID, follow.Actor)
+ /*line federation_group_follows.mygo:105:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](current) || MygoIN6ResultM6Unwrap[string, failure.Failure](current) != follow.ID {
+ /*line federation_group_follows.mygo:106:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_group_follows.gen.go:139:1*/		}{})
+ /*line federation_group_follows.mygo:105:3*/	} else {
+ /*line zz_federation_group_follows.gen.go:141:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	var __mygo_expr_0 string
 	if activity.Type == "Accept" {
 		__mygo_expr_0 = "accepted"
 	} else {
 		__mygo_expr_0 = "rejected"
- /*line zz_federation_group_follows.gen.go:146:1*/	}
- /*line federation_group_follows.mygo:82:1*/	state := __mygo_expr_0
- /*line federation_group_follows.mygo:108:3*/	return storage.SetCommunityFollow(ctx, db, communityID, follow.Actor, follow.ID, state)
- /*line zz_federation_group_follows.gen.go:149:1*/}
- /*line federation_group_follows.mygo:111:1*/func ModeratorsHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, communityID string) {
+ /*line zz_federation_group_follows.gen.go:147:1*/	}
+ /*line federation_group_follows.mygo:83:1*/	state := __mygo_expr_0
+ /*line federation_group_follows.mygo:109:3*/	return storage.SetCommunityFollow(ctx, db, communityID, follow.Actor, follow.ID, state)
+ /*line zz_federation_group_follows.gen.go:150:1*/}
+ /*line federation_group_follows.mygo:112:1*/func ModeratorsHandler(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, communityID string) {
 	managers := storage.CommunityManagers(request.Context(), db, communityID)
- /*line federation_group_follows.mygo:113:3*/	if MygoIN6ResultM5IsErr[[]string, string](managers) {
- /*line federation_group_follows.mygo:114:5*/		http.NotFound(w, request)
- /*line federation_group_follows.mygo:113:3*/		return
+ /*line federation_group_follows.mygo:114:3*/	if MygoIN6ResultM5IsErr[[]string, failure.Failure](managers) {
+ /*line federation_group_follows.mygo:115:5*/		http.NotFound(w, request)
+ /*line federation_group_follows.mygo:114:3*/		return
 	} else {
- /*line zz_federation_group_follows.gen.go:156:1*/	}
- /*line federation_group_follows.mygo:111:1*/	loaded := storage.LoadCommunityByID(request.Context(), db, communityID)
- /*line federation_group_follows.mygo:118:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
- /*line federation_group_follows.mygo:119:5*/		http.NotFound(w, request)
- /*line federation_group_follows.mygo:118:3*/		return
+ /*line zz_federation_group_follows.gen.go:157:1*/	}
+ /*line federation_group_follows.mygo:112:1*/	loaded := storage.LoadCommunityByID(request.Context(), db, communityID)
+ /*line federation_group_follows.mygo:119:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](loaded)) {
+ /*line federation_group_follows.mygo:120:5*/		http.NotFound(w, request)
+ /*line federation_group_follows.mygo:119:3*/		return
 	} else {
- /*line zz_federation_group_follows.gen.go:162:1*/	}
- /*line federation_group_follows.mygo:111:1*/	actorURI := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)).ActorURI.String
- /*line federation_group_follows.mygo:123:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/moderators", 1, settings.Runtime.MaxPageSize, int64(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]string, string](managers))), MygoIN6ResultM6Unwrap[[]string, string](managers)))
+ /*line zz_federation_group_follows.gen.go:163:1*/	}
+ /*line federation_group_follows.mygo:112:1*/	actorURI := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](loaded)).ActorURI.String
+ /*line federation_group_follows.mygo:124:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/moderators", 1, settings.Runtime.MaxPageSize, int64(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]string, failure.Failure](managers))), MygoIN6ResultM6Unwrap[[]string, failure.Failure](managers)))
 	return
- /*line zz_federation_group_follows.gen.go:166:1*/}
- /*line federation_group_follows.mygo:127:1*/func SendFollowResponse(ctx context.Context, db *gorm.DB, site config.Site, localActorURI string, follower string, followURI string, kind string) Result[struct {
-}, string] {
- /*line federation_group_follows.mygo:128:3*/	return SendFollowReply(ctx, db, site, localActorURI, follower, followURI, kind)
- /*line zz_federation_group_follows.gen.go:170:1*/}
- /*line federation_group_follows.mygo:131:1*/func FollowResponderIdentity() auth.Identity {
- /*line federation_group_follows.mygo:132:3*/	return Zero[auth.Identity]()
- /*line zz_federation_group_follows.gen.go:173:1*/}
+ /*line zz_federation_group_follows.gen.go:167:1*/}
+ /*line federation_group_follows.mygo:128:1*/func SendFollowResponse(ctx context.Context, db *gorm.DB, site config.Site, localActorURI string, follower string, followURI string, kind string) Result[struct {
+}, failure.Failure] {
+ /*line federation_group_follows.mygo:129:3*/	return SendFollowReply(ctx, db, site, localActorURI, follower, followURI, kind)
+ /*line zz_federation_group_follows.gen.go:171:1*/}
+ /*line federation_group_follows.mygo:132:1*/func FollowResponderIdentity() auth.Identity {
+ /*line federation_group_follows.mygo:133:3*/	return Zero[auth.Identity]()
+ /*line zz_federation_group_follows.gen.go:174:1*/}

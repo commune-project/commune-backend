@@ -10,96 +10,97 @@ import "gorm.io/gorm/logger"
 import sqlmock "github.com/DATA-DOG/go-sqlmock"
 import "database/sql/driver"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line sqlite_test.mygo:12:1*/func requireGORM(t *testing.T, result *gorm.DB) {
+ /*line sqlite_test.mygo:13:1*/func requireGORM(t *testing.T, result *gorm.DB) {
 	failed := QueryFailed(result)
- /*line sqlite_test.mygo:14:3*/	if failed {
- /*line sqlite_test.mygo:15:5*/		t.Fatal("GORM operation failed")
+ /*line sqlite_test.mygo:15:3*/	if failed {
+ /*line sqlite_test.mygo:16:5*/		t.Fatal("GORM operation failed")
 		return
- /*line sqlite_test.mygo:14:3*/	} else {
+ /*line sqlite_test.mygo:15:3*/	} else {
 		return
- /*line zz_sqlite.gen_test.go:23:1*/	}
+ /*line zz_sqlite.gen_test.go:24:1*/	}
 }
- /*line sqlite_test.mygo:19:1*/func TestGORMMappingAndScopedQuery(t *testing.T) {
+ /*line sqlite_test.mygo:20:1*/func TestGORMMappingAndScopedQuery(t *testing.T) {
 	settings := Zero[gorm.Config]()
 	settings.Logger = logger.Discard
- /*line sqlite_test.mygo:22:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line sqlite_test.mygo:23:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), gorm.Option(&settings))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_sqlite.gen_test.go:34:1*/	}
- /*line sqlite_test.mygo:19:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
- /*line sqlite_test.mygo:26:14*/	var __mygo_expr_4 Result[*sql.DB, error]
+ /*line zz_sqlite.gen_test.go:35:1*/	}
+ /*line sqlite_test.mygo:20:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line sqlite_test.mygo:27:14*/	var __mygo_expr_4 Result[*sql.DB, error]
 	__mygo_expr_5, __mygo_expr_3 := db.DB()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[*sql.DB, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*sql.DB, error](__mygo_expr_5)
- /*line zz_sqlite.gen_test.go:42:1*/	}
- /*line sqlite_test.mygo:19:1*/	pool := MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_4)
- /*line sqlite_test.mygo:27:3*/	pool.SetMaxOpenConns(1)
- /*line sqlite_test.mygo:28:3*/	t.Cleanup(func() {
- /*line sqlite_test.mygo:28:13*/		pool.Close()
+ /*line zz_sqlite.gen_test.go:43:1*/	}
+ /*line sqlite_test.mygo:20:1*/	pool := MygoIN6ResultM6Unwrap[*sql.DB, error](__mygo_expr_4)
+ /*line sqlite_test.mygo:28:3*/	pool.SetMaxOpenConns(1)
+ /*line sqlite_test.mygo:29:3*/	t.Cleanup(func() {
+ /*line sqlite_test.mygo:29:13*/		pool.Close()
 		return
- /*line zz_sqlite.gen_test.go:48:1*/	})
- /*line sqlite_test.mygo:32:3*/	requireGORM(t, db.Exec("CREATE TABLE accounts (id INTEGER PRIMARY KEY, site_id TEXT, actor_uri TEXT, actor_kind TEXT, username TEXT, email TEXT, password_hash TEXT, disabled BOOLEAN, created_at DATETIME)"))
- /*line sqlite_test.mygo:19:1*/	username := "alice' OR 1=1 --"
- /*line sqlite_test.mygo:37:3*/	requireGORM(t, db.Exec("INSERT INTO accounts VALUES (1, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-a", "https://a.example/users/alice", username))
- /*line sqlite_test.mygo:46:3*/	requireGORM(t, db.Exec("INSERT INTO accounts VALUES (2, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-b", "https://b.example/users/alice", username))
- /*line sqlite_test.mygo:19:1*/	account := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-a", username)))
- /*line sqlite_test.mygo:56:3*/	if account.ID != int64(1) || account.SiteID != "site-a" || account.Username != username || account.Email.Valid {
- /*line sqlite_test.mygo:60:5*/		t.Fatal("model mapping or site isolation failed")
- /*line sqlite_test.mygo:56:3*/	} else {
- /*line zz_sqlite.gen_test.go:57:1*/	}
- /*line sqlite_test.mygo:62:3*/	if MygoIN6OptionM6IsSome[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-c", username))) {
- /*line sqlite_test.mygo:63:5*/		t.Fatal("cross-site lookup returned account")
- /*line sqlite_test.mygo:62:3*/	} else {
- /*line zz_sqlite.gen_test.go:61:1*/	}
- /*line sqlite_test.mygo:19:1*/	work := func(tx *gorm.DB) Result[struct{}, string] {
- /*line sqlite_test.mygo:66:5*/		requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
- /*line sqlite_test.mygo:67:5*/		return Err[struct{}, string]("reject")
- /*line zz_sqlite.gen_test.go:65:1*/	}
- /*line sqlite_test.mygo:69:3*/	if MygoIN6ResultM4IsOk[struct{}, string](RunTransaction(context.Background(), db, work)) || MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-a", username))).Disabled {
- /*line sqlite_test.mygo:71:5*/		t.Fatal("transaction failed to roll back")
- /*line sqlite_test.mygo:69:3*/	} else {
- /*line zz_sqlite.gen_test.go:69:1*/	}
- /*line sqlite_test.mygo:19:1*/	commit := func(tx_1 *gorm.DB) Result[struct{}, string] {
- /*line sqlite_test.mygo:74:5*/		requireGORM(t, tx_1.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
- /*line sqlite_test.mygo:75:5*/		return Ok[struct{}, string](struct {
- /*line zz_sqlite.gen_test.go:73:1*/		}{})
+ /*line zz_sqlite.gen_test.go:49:1*/	})
+ /*line sqlite_test.mygo:33:3*/	requireGORM(t, db.Exec("CREATE TABLE accounts (id INTEGER PRIMARY KEY, site_id TEXT, actor_uri TEXT, actor_kind TEXT, username TEXT, email TEXT, password_hash TEXT, disabled BOOLEAN, created_at DATETIME)"))
+ /*line sqlite_test.mygo:20:1*/	username := "alice' OR 1=1 --"
+ /*line sqlite_test.mygo:38:3*/	requireGORM(t, db.Exec("INSERT INTO accounts VALUES (1, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-a", "https://a.example/users/alice", username))
+ /*line sqlite_test.mygo:47:3*/	requireGORM(t, db.Exec("INSERT INTO accounts VALUES (2, ?, ?, 'Person', ?, NULL, 'hash', false, CURRENT_TIMESTAMP)", "site-b", "https://b.example/users/alice", username))
+ /*line sqlite_test.mygo:20:1*/	account := MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-a", username)))
+ /*line sqlite_test.mygo:57:3*/	if account.ID != int64(1) || account.SiteID != "site-a" || account.Username != username || account.Email.Valid {
+ /*line sqlite_test.mygo:61:5*/		t.Fatal("model mapping or site isolation failed")
+ /*line sqlite_test.mygo:57:3*/	} else {
+ /*line zz_sqlite.gen_test.go:58:1*/	}
+ /*line sqlite_test.mygo:63:3*/	if MygoIN6OptionM6IsSome[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-c", username))) {
+ /*line sqlite_test.mygo:64:5*/		t.Fatal("cross-site lookup returned account")
+ /*line sqlite_test.mygo:63:3*/	} else {
+ /*line zz_sqlite.gen_test.go:62:1*/	}
+ /*line sqlite_test.mygo:20:1*/	work := func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line sqlite_test.mygo:67:5*/		requireGORM(t, tx.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
+ /*line sqlite_test.mygo:68:5*/		return Err[struct{}, failure.Failure](Of("reject"))
+ /*line zz_sqlite.gen_test.go:66:1*/	}
+ /*line sqlite_test.mygo:70:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](RunTransaction(context.Background(), db, work)) || MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-a", username))).Disabled {
+ /*line sqlite_test.mygo:72:5*/		t.Fatal("transaction failed to roll back")
+ /*line sqlite_test.mygo:70:3*/	} else {
+ /*line zz_sqlite.gen_test.go:70:1*/	}
+ /*line sqlite_test.mygo:20:1*/	commit := func(tx_1 *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line sqlite_test.mygo:75:5*/		requireGORM(t, tx_1.Exec("UPDATE accounts SET disabled = true WHERE site_id = ?", "site-a"))
+ /*line sqlite_test.mygo:76:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_sqlite.gen_test.go:74:1*/		}{})
 	}
- /*line sqlite_test.mygo:77:3*/	if MygoIN6ResultM5IsErr[struct{}, string](RunTransaction(context.Background(), db, commit)) || !MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-a", username))).Disabled {
- /*line sqlite_test.mygo:79:5*/		t.Fatal("transaction failed to commit")
- /*line sqlite_test.mygo:77:3*/	} else {
- /*line zz_sqlite.gen_test.go:78:1*/	}
- /*line sqlite_test.mygo:81:3*/	requireGORM(t, db.Exec("DROP TABLE accounts"))
- /*line sqlite_test.mygo:82:3*/	if MygoIN6ResultM4IsOk[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-a", username)) {
- /*line sqlite_test.mygo:83:5*/		t.Fatal("query error ignored")
+ /*line sqlite_test.mygo:78:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](RunTransaction(context.Background(), db, commit)) || !MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-a", username))).Disabled {
+ /*line sqlite_test.mygo:80:5*/		t.Fatal("transaction failed to commit")
+ /*line sqlite_test.mygo:78:3*/	} else {
+ /*line zz_sqlite.gen_test.go:79:1*/	}
+ /*line sqlite_test.mygo:82:3*/	requireGORM(t, db.Exec("DROP TABLE accounts"))
+ /*line sqlite_test.mygo:83:3*/	if MygoIN6ResultM4IsOk[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-a", username)) {
+ /*line sqlite_test.mygo:84:5*/		t.Fatal("query error ignored")
 		return
- /*line sqlite_test.mygo:82:3*/	} else {
+ /*line sqlite_test.mygo:83:3*/	} else {
 		return
- /*line zz_sqlite.gen_test.go:85:1*/	}
+ /*line zz_sqlite.gen_test.go:86:1*/	}
 }
- /*line sqlite_test.mygo:87:1*/func TestPostgresParameterBinding(t *testing.T) {
+ /*line sqlite_test.mygo:88:1*/func TestPostgresParameterBinding(t *testing.T) {
 	fixture := mockFixture(t)
- /*line sqlite_test.mygo:89:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line sqlite_test.mygo:90:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(fixture.DB)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_sqlite.gen_test.go:95:1*/	}
- /*line sqlite_test.mygo:87:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_sqlite.gen_test.go:96:1*/	}
+ /*line sqlite_test.mygo:88:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	username := "alice' OR 1=1 --"
 	fixture.Mock.ExpectQuery("site_id = \\$1 AND username = \\$2").WithArgs(driver.Value("site-a"), driver.Value(username), driver.Value(1)).WillReturnRows(sqlmock.NewRows([]string{"id"}))
- /*line sqlite_test.mygo:96:3*/	if MygoIN6OptionM6IsSome[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(context.Background(), db, "site-a", username))) {
- /*line sqlite_test.mygo:97:5*/		t.Fatal("empty result did not map to None")
+ /*line sqlite_test.mygo:97:3*/	if MygoIN6OptionM6IsSome[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(context.Background(), db, "site-a", username))) {
+ /*line sqlite_test.mygo:98:5*/		t.Fatal("empty result did not map to None")
 		return
- /*line sqlite_test.mygo:96:3*/	} else {
+ /*line sqlite_test.mygo:97:3*/	} else {
 		return
- /*line zz_sqlite.gen_test.go:104:1*/	}
+ /*line zz_sqlite.gen_test.go:105:1*/	}
 }

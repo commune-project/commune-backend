@@ -3,12 +3,13 @@
 package federation
 
 import "crypto/rsa"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line keyassert.mygo:8:1*/func AsRSAPublicKey(key any) Result[*rsa.PublicKey, string] {
- /*line keyassert.mygo:9:3*/	typed, ok := key.(*rsa.PublicKey)
+ /*line keyassert.mygo:9:1*/func AsRSAPublicKey(key any) Result[*rsa.PublicKey, failure.Failure] {
+ /*line keyassert.mygo:10:3*/	typed, ok := key.(*rsa.PublicKey)
 	if !ok {
 		return Err[*rsa.PublicKey, string]("unsupported key type")
- /*line zz_keyassert.gen.go:12:1*/	}
- /*line keyassert.mygo:9:3*/	return Ok[*rsa.PublicKey, string](typed)
- /*line zz_keyassert.gen.go:14:1*/}
+ /*line zz_keyassert.gen.go:13:1*/	}
+ /*line keyassert.mygo:10:3*/	return Ok[*rsa.PublicKey, string](typed)
+ /*line zz_keyassert.gen.go:15:1*/}

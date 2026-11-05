@@ -50,7 +50,7 @@ func TestPostgresCommunityCreation(t: Ref[testing.T]) -> ()
   end
   let _ = MutationResult(db.Table("communities").Count(Ref.new(count))).Unwrap()
   if count != 6i64 then
-    t.Fatal("creation failure did not roll back community state")
+    t.Fatal("creation failed did not roll back community state")
   end
   let localRow = Zero[CommunityRecord]()
   let _ = MutationResult(db.Table("communities").Where("federation_mode='local_only'").Limit(1).Find(Ref.new(localRow))).Unwrap()

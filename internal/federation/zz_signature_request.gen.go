@@ -6,135 +6,136 @@ import "strings"
 import "time"
 import "net/http"
 import "regexp"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line signature_request.mygo:8:1*/type SignatureParameters struct {
+ /*line signature_request.mygo:9:1*/type SignatureParameters struct {
 	KeyID     string
 	Algorithm string
 	Headers   string
 	Signature string
- /*line zz_signature_request.gen.go:16:1*/}
- /*line signature_request.mygo:15:1*/type VerifiedRequest struct {
+ /*line zz_signature_request.gen.go:17:1*/}
+ /*line signature_request.mygo:16:1*/type VerifiedRequest struct {
 	KeyID string
- /*line zz_signature_request.gen.go:19:1*/}
+ /*line zz_signature_request.gen.go:20:1*/}
 
- /*line signature_request.mygo:19:1*/func RequiredHeaders() string {
- /*line signature_request.mygo:20:3*/	return "(request-target) host date digest"
- /*line zz_signature_request.gen.go:23:1*/}
- /*line signature_request.mygo:25:1*/func RequiredGetHeaders() string {
- /*line signature_request.mygo:26:3*/	return "(request-target) host date"
- /*line zz_signature_request.gen.go:26:1*/}
- /*line signature_request.mygo:29:1*/func GetSigningString(method string, requestTarget string, host string, date string) string {
- /*line signature_request.mygo:30:3*/	return "(request-target): " + strings.ToLower(method) + " " + requestTarget + "\nhost: " + host + "\ndate: " + date
- /*line zz_signature_request.gen.go:29:1*/}
- /*line signature_request.mygo:34:1*/func VerifySignedGet(publicPEM string, method string, requestTarget string, host string, date string, signatureHeader string, now time.Time, windowSeconds int64) Result[VerifiedRequest, string] {
+ /*line signature_request.mygo:20:1*/func RequiredHeaders() string {
+ /*line signature_request.mygo:21:3*/	return "(request-target) host date digest"
+ /*line zz_signature_request.gen.go:24:1*/}
+ /*line signature_request.mygo:26:1*/func RequiredGetHeaders() string {
+ /*line signature_request.mygo:27:3*/	return "(request-target) host date"
+ /*line zz_signature_request.gen.go:27:1*/}
+ /*line signature_request.mygo:30:1*/func GetSigningString(method string, requestTarget string, host string, date string) string {
+ /*line signature_request.mygo:31:3*/	return "(request-target): " + strings.ToLower(method) + " " + requestTarget + "\nhost: " + host + "\ndate: " + date
+ /*line zz_signature_request.gen.go:30:1*/}
+ /*line signature_request.mygo:35:1*/func VerifySignedGet(publicPEM string, method string, requestTarget string, host string, date string, signatureHeader string, now time.Time, windowSeconds int64) Result[VerifiedRequest, failure.Failure] {
 	header := ParseSignatureHeader(signatureHeader)
- /*line signature_request.mygo:45:3*/	if MygoIN6ResultM5IsErr[SignatureParameters, string](header) {
- /*line signature_request.mygo:46:12*/		return Err[VerifiedRequest, string]("invalid signature header")
- /*line signature_request.mygo:45:3*/	} else {
- /*line zz_signature_request.gen.go:35:1*/	}
- /*line signature_request.mygo:34:1*/	params := MygoIN6ResultM6Unwrap[SignatureParameters, string](header)
- /*line signature_request.mygo:49:3*/	if params.Algorithm != "rsa-sha256" || params.Headers != RequiredGetHeaders() {
- /*line signature_request.mygo:50:12*/		return Err[VerifiedRequest, string]("unsupported signature")
- /*line signature_request.mygo:49:3*/	} else {
- /*line zz_signature_request.gen.go:40:1*/	}
- /*line signature_request.mygo:52:3*/	if !FreshDate(date, now, windowSeconds) {
- /*line signature_request.mygo:53:12*/		return Err[VerifiedRequest, string]("stale request")
- /*line signature_request.mygo:52:3*/	} else {
- /*line zz_signature_request.gen.go:44:1*/	}
- /*line signature_request.mygo:34:1*/	signing := GetSigningString(method, requestTarget, host, date)
+ /*line signature_request.mygo:46:3*/	if MygoIN6ResultM5IsErr[SignatureParameters, failure.Failure](header) {
+ /*line signature_request.mygo:47:12*/		return Err[VerifiedRequest, failure.Failure](Of("invalid signature header"))
+ /*line signature_request.mygo:46:3*/	} else {
+ /*line zz_signature_request.gen.go:36:1*/	}
+ /*line signature_request.mygo:35:1*/	params := MygoIN6ResultM6Unwrap[SignatureParameters, failure.Failure](header)
+ /*line signature_request.mygo:50:3*/	if params.Algorithm != "rsa-sha256" || params.Headers != RequiredGetHeaders() {
+ /*line signature_request.mygo:51:12*/		return Err[VerifiedRequest, failure.Failure](Of("unsupported signature"))
+ /*line signature_request.mygo:50:3*/	} else {
+ /*line zz_signature_request.gen.go:41:1*/	}
+ /*line signature_request.mygo:53:3*/	if !FreshDate(date, now, windowSeconds) {
+ /*line signature_request.mygo:54:12*/		return Err[VerifiedRequest, failure.Failure](Of("stale request"))
+ /*line signature_request.mygo:53:3*/	} else {
+ /*line zz_signature_request.gen.go:45:1*/	}
+ /*line signature_request.mygo:35:1*/	signing := GetSigningString(method, requestTarget, host, date)
 	valid := VerifySignature(publicPEM, signing, params.Signature)
- /*line signature_request.mygo:57:3*/	if MygoIN6ResultM5IsErr[bool, string](valid) {
- /*line signature_request.mygo:58:12*/		return Err[VerifiedRequest, string](MygoIN6ResultM9UnwrapErr[bool, string](valid))
- /*line signature_request.mygo:57:3*/	} else {
- /*line zz_signature_request.gen.go:50:1*/	}
- /*line signature_request.mygo:60:3*/	if !MygoIN6ResultM6Unwrap[bool, string](valid) {
- /*line signature_request.mygo:61:12*/		return Err[VerifiedRequest, string]("invalid signature")
- /*line signature_request.mygo:60:3*/	} else {
- /*line zz_signature_request.gen.go:54:1*/	}
- /*line signature_request.mygo:63:3*/	return Ok[VerifiedRequest, string](VerifiedRequest{KeyID: params.KeyID})
- /*line zz_signature_request.gen.go:56:1*/}
- /*line signature_request.mygo:66:1*/func ExtractSignatureParam(header string, name string) Result[string, string] {
+ /*line signature_request.mygo:58:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](valid) {
+ /*line signature_request.mygo:59:12*/		return Err[VerifiedRequest, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](valid))
+ /*line signature_request.mygo:58:3*/	} else {
+ /*line zz_signature_request.gen.go:51:1*/	}
+ /*line signature_request.mygo:61:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](valid) {
+ /*line signature_request.mygo:62:12*/		return Err[VerifiedRequest, failure.Failure](Of("invalid signature"))
+ /*line signature_request.mygo:61:3*/	} else {
+ /*line zz_signature_request.gen.go:55:1*/	}
+ /*line signature_request.mygo:64:3*/	return Ok[VerifiedRequest, failure.Failure](VerifiedRequest{KeyID: params.KeyID})
+ /*line zz_signature_request.gen.go:57:1*/}
+ /*line signature_request.mygo:67:1*/func ExtractSignatureParam(header string, name string) Result[string, failure.Failure] {
 	pattern := regexp.MustCompile(name + "=\"([^\"]*)\"")
 	match := pattern.FindStringSubmatch(header)
- /*line signature_request.mygo:69:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(match) < 2 {
- /*line signature_request.mygo:70:12*/		return Err[string, string]("missing " + name)
- /*line signature_request.mygo:69:3*/	} else {
- /*line zz_signature_request.gen.go:63:1*/	}
- /*line signature_request.mygo:72:3*/	return Ok[string, string](MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(match, 1)))
- /*line zz_signature_request.gen.go:65:1*/}
- /*line signature_request.mygo:75:1*/func ParseSignatureHeader(header string) Result[SignatureParameters, string] {
+ /*line signature_request.mygo:70:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(match) < 2 {
+ /*line signature_request.mygo:71:12*/		return Err[string, failure.Failure](Of("missing " + name))
+ /*line signature_request.mygo:70:3*/	} else {
+ /*line zz_signature_request.gen.go:64:1*/	}
+ /*line signature_request.mygo:73:3*/	return Ok[string, failure.Failure](MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(match, 1)))
+ /*line zz_signature_request.gen.go:66:1*/}
+ /*line signature_request.mygo:76:1*/func ParseSignatureHeader(header string) Result[SignatureParameters, failure.Failure] {
 	keyID := ExtractSignatureParam(header, "keyId")
- /*line signature_request.mygo:77:3*/	if MygoIN6ResultM5IsErr[string, string](keyID) {
- /*line signature_request.mygo:78:12*/		return Err[SignatureParameters, string](MygoIN6ResultM9UnwrapErr[string, string](keyID))
- /*line signature_request.mygo:77:3*/	} else {
- /*line zz_signature_request.gen.go:71:1*/	}
- /*line signature_request.mygo:75:1*/	algorithm := ExtractSignatureParam(header, "algorithm")
- /*line signature_request.mygo:81:3*/	if MygoIN6ResultM5IsErr[string, string](algorithm) {
- /*line signature_request.mygo:82:12*/		return Err[SignatureParameters, string](MygoIN6ResultM9UnwrapErr[string, string](algorithm))
- /*line signature_request.mygo:81:3*/	} else {
- /*line zz_signature_request.gen.go:76:1*/	}
- /*line signature_request.mygo:75:1*/	headers := ExtractSignatureParam(header, "headers")
- /*line signature_request.mygo:85:3*/	if MygoIN6ResultM5IsErr[string, string](headers) {
- /*line signature_request.mygo:86:12*/		return Err[SignatureParameters, string](MygoIN6ResultM9UnwrapErr[string, string](headers))
- /*line signature_request.mygo:85:3*/	} else {
- /*line zz_signature_request.gen.go:81:1*/	}
- /*line signature_request.mygo:75:1*/	signature := ExtractSignatureParam(header, "signature")
- /*line signature_request.mygo:89:3*/	if MygoIN6ResultM5IsErr[string, string](signature) {
- /*line signature_request.mygo:90:12*/		return Err[SignatureParameters, string](MygoIN6ResultM9UnwrapErr[string, string](signature))
- /*line signature_request.mygo:89:3*/	} else {
- /*line zz_signature_request.gen.go:86:1*/	}
- /*line signature_request.mygo:92:3*/	return Ok[SignatureParameters, string](SignatureParameters{KeyID: MygoIN6ResultM6Unwrap[string, string](keyID), Algorithm: MygoIN6ResultM6Unwrap[string, string](algorithm), Headers: strings.ToLower(MygoIN6ResultM6Unwrap[string, string](headers)), Signature: MygoIN6ResultM6Unwrap[string, string](signature)})
- /*line zz_signature_request.gen.go:88:1*/}
- /*line signature_request.mygo:100:1*/func RequestSigningString(method string, requestTarget string, host string, date string, digest string) string {
- /*line signature_request.mygo:107:3*/	return "(request-target): " + strings.ToLower(method) + " " + requestTarget + "\nhost: " + host + "\ndate: " + date + "\ndigest: " + digest
- /*line zz_signature_request.gen.go:91:1*/}
- /*line signature_request.mygo:119:1*/func FormatSignatureHeader(keyID string, signature string) string {
- /*line signature_request.mygo:120:3*/	return "keyId=\"" + keyID + "\",algorithm=\"rsa-sha256\",headers=\"" + RequiredHeaders() + "\",signature=\"" + signature + "\""
- /*line zz_signature_request.gen.go:94:1*/}
- /*line signature_request.mygo:129:1*/func FreshDate(date string, now time.Time, windowSeconds int64) bool {
- /*line signature_request.mygo:130:16*/	var __mygo_expr_1 Result[time.Time, error]
+ /*line signature_request.mygo:78:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](keyID) {
+ /*line signature_request.mygo:79:12*/		return Err[SignatureParameters, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](keyID))
+ /*line signature_request.mygo:78:3*/	} else {
+ /*line zz_signature_request.gen.go:72:1*/	}
+ /*line signature_request.mygo:76:1*/	algorithm := ExtractSignatureParam(header, "algorithm")
+ /*line signature_request.mygo:82:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](algorithm) {
+ /*line signature_request.mygo:83:12*/		return Err[SignatureParameters, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](algorithm))
+ /*line signature_request.mygo:82:3*/	} else {
+ /*line zz_signature_request.gen.go:77:1*/	}
+ /*line signature_request.mygo:76:1*/	headers := ExtractSignatureParam(header, "headers")
+ /*line signature_request.mygo:86:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](headers) {
+ /*line signature_request.mygo:87:12*/		return Err[SignatureParameters, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](headers))
+ /*line signature_request.mygo:86:3*/	} else {
+ /*line zz_signature_request.gen.go:82:1*/	}
+ /*line signature_request.mygo:76:1*/	signature := ExtractSignatureParam(header, "signature")
+ /*line signature_request.mygo:90:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](signature) {
+ /*line signature_request.mygo:91:12*/		return Err[SignatureParameters, failure.Failure](MygoIN6ResultM9UnwrapErr[string, failure.Failure](signature))
+ /*line signature_request.mygo:90:3*/	} else {
+ /*line zz_signature_request.gen.go:87:1*/	}
+ /*line signature_request.mygo:93:3*/	return Ok[SignatureParameters, failure.Failure](SignatureParameters{KeyID: MygoIN6ResultM6Unwrap[string, failure.Failure](keyID), Algorithm: MygoIN6ResultM6Unwrap[string, failure.Failure](algorithm), Headers: strings.ToLower(MygoIN6ResultM6Unwrap[string, failure.Failure](headers)), Signature: MygoIN6ResultM6Unwrap[string, failure.Failure](signature)})
+ /*line zz_signature_request.gen.go:89:1*/}
+ /*line signature_request.mygo:101:1*/func RequestSigningString(method string, requestTarget string, host string, date string, digest string) string {
+ /*line signature_request.mygo:108:3*/	return "(request-target): " + strings.ToLower(method) + " " + requestTarget + "\nhost: " + host + "\ndate: " + date + "\ndigest: " + digest
+ /*line zz_signature_request.gen.go:92:1*/}
+ /*line signature_request.mygo:120:1*/func FormatSignatureHeader(keyID string, signature string) string {
+ /*line signature_request.mygo:121:3*/	return "keyId=\"" + keyID + "\",algorithm=\"rsa-sha256\",headers=\"" + RequiredHeaders() + "\",signature=\"" + signature + "\""
+ /*line zz_signature_request.gen.go:95:1*/}
+ /*line signature_request.mygo:130:1*/func FreshDate(date string, now time.Time, windowSeconds int64) bool {
+ /*line signature_request.mygo:131:16*/	var __mygo_expr_1 Result[time.Time, error]
 	__mygo_expr_2, __mygo_expr_0 := http.ParseTime(date)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[time.Time, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[time.Time, error](__mygo_expr_2)
- /*line zz_signature_request.gen.go:102:1*/	}
- /*line signature_request.mygo:129:1*/	parsed := __mygo_expr_1
- /*line signature_request.mygo:131:3*/	if MygoIN6ResultM5IsErr[time.Time, error](parsed) {
- /*line signature_request.mygo:132:12*/		return false
- /*line signature_request.mygo:131:3*/	} else {
- /*line zz_signature_request.gen.go:107:1*/	}
- /*line signature_request.mygo:129:1*/	bound := time.Duration(windowSeconds) * time.Second
- /*line signature_request.mygo:135:3*/	return now.Sub(MygoIN6ResultM6Unwrap[time.Time, error](parsed)).Abs() <= bound
- /*line zz_signature_request.gen.go:110:1*/}
- /*line signature_request.mygo:140:1*/func KeyOwnedByActor(keyID string, actorURI string) bool {
- /*line signature_request.mygo:141:3*/	return actorURI != "" && keyID == actorURI+"#main-key"
- /*line zz_signature_request.gen.go:113:1*/}
- /*line signature_request.mygo:144:1*/func VerifyRequest(publicPEM string, method string, requestTarget string, host string, date string, digest string, signatureHeader string, now time.Time, windowSeconds int64) Result[VerifiedRequest, string] {
+ /*line zz_signature_request.gen.go:103:1*/	}
+ /*line signature_request.mygo:130:1*/	parsed := __mygo_expr_1
+ /*line signature_request.mygo:132:3*/	if MygoIN6ResultM5IsErr[time.Time, error](parsed) {
+ /*line signature_request.mygo:133:12*/		return false
+ /*line signature_request.mygo:132:3*/	} else {
+ /*line zz_signature_request.gen.go:108:1*/	}
+ /*line signature_request.mygo:130:1*/	bound := time.Duration(windowSeconds) * time.Second
+ /*line signature_request.mygo:136:3*/	return now.Sub(MygoIN6ResultM6Unwrap[time.Time, error](parsed)).Abs() <= bound
+ /*line zz_signature_request.gen.go:111:1*/}
+ /*line signature_request.mygo:141:1*/func KeyOwnedByActor(keyID string, actorURI string) bool {
+ /*line signature_request.mygo:142:3*/	return actorURI != "" && keyID == actorURI+"#main-key"
+ /*line zz_signature_request.gen.go:114:1*/}
+ /*line signature_request.mygo:145:1*/func VerifyRequest(publicPEM string, method string, requestTarget string, host string, date string, digest string, signatureHeader string, now time.Time, windowSeconds int64) Result[VerifiedRequest, failure.Failure] {
 	header := ParseSignatureHeader(signatureHeader)
- /*line signature_request.mygo:156:3*/	if MygoIN6ResultM5IsErr[SignatureParameters, string](header) {
- /*line signature_request.mygo:157:12*/		return Err[VerifiedRequest, string]("invalid signature header")
- /*line signature_request.mygo:156:3*/	} else {
- /*line zz_signature_request.gen.go:119:1*/	}
- /*line signature_request.mygo:144:1*/	params := MygoIN6ResultM6Unwrap[SignatureParameters, string](header)
- /*line signature_request.mygo:160:3*/	if params.Algorithm != "rsa-sha256" || params.Headers != RequiredHeaders() {
- /*line signature_request.mygo:161:12*/		return Err[VerifiedRequest, string]("unsupported signature")
- /*line signature_request.mygo:160:3*/	} else {
- /*line zz_signature_request.gen.go:124:1*/	}
- /*line signature_request.mygo:163:3*/	if !FreshDate(date, now, windowSeconds) {
- /*line signature_request.mygo:164:12*/		return Err[VerifiedRequest, string]("stale request")
- /*line signature_request.mygo:163:3*/	} else {
- /*line zz_signature_request.gen.go:128:1*/	}
- /*line signature_request.mygo:144:1*/	signing := RequestSigningString(method, requestTarget, host, date, digest)
+ /*line signature_request.mygo:157:3*/	if MygoIN6ResultM5IsErr[SignatureParameters, failure.Failure](header) {
+ /*line signature_request.mygo:158:12*/		return Err[VerifiedRequest, failure.Failure](Of("invalid signature header"))
+ /*line signature_request.mygo:157:3*/	} else {
+ /*line zz_signature_request.gen.go:120:1*/	}
+ /*line signature_request.mygo:145:1*/	params := MygoIN6ResultM6Unwrap[SignatureParameters, failure.Failure](header)
+ /*line signature_request.mygo:161:3*/	if params.Algorithm != "rsa-sha256" || params.Headers != RequiredHeaders() {
+ /*line signature_request.mygo:162:12*/		return Err[VerifiedRequest, failure.Failure](Of("unsupported signature"))
+ /*line signature_request.mygo:161:3*/	} else {
+ /*line zz_signature_request.gen.go:125:1*/	}
+ /*line signature_request.mygo:164:3*/	if !FreshDate(date, now, windowSeconds) {
+ /*line signature_request.mygo:165:12*/		return Err[VerifiedRequest, failure.Failure](Of("stale request"))
+ /*line signature_request.mygo:164:3*/	} else {
+ /*line zz_signature_request.gen.go:129:1*/	}
+ /*line signature_request.mygo:145:1*/	signing := RequestSigningString(method, requestTarget, host, date, digest)
 	valid := VerifySignature(publicPEM, signing, params.Signature)
- /*line signature_request.mygo:168:3*/	if MygoIN6ResultM5IsErr[bool, string](valid) {
- /*line signature_request.mygo:169:12*/		return Err[VerifiedRequest, string](MygoIN6ResultM9UnwrapErr[bool, string](valid))
- /*line signature_request.mygo:168:3*/	} else {
- /*line zz_signature_request.gen.go:134:1*/	}
- /*line signature_request.mygo:171:3*/	if !MygoIN6ResultM6Unwrap[bool, string](valid) {
- /*line signature_request.mygo:172:12*/		return Err[VerifiedRequest, string]("invalid signature")
- /*line signature_request.mygo:171:3*/	} else {
- /*line zz_signature_request.gen.go:138:1*/	}
- /*line signature_request.mygo:174:3*/	return Ok[VerifiedRequest, string](VerifiedRequest{KeyID: params.KeyID})
- /*line zz_signature_request.gen.go:140:1*/}
+ /*line signature_request.mygo:169:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](valid) {
+ /*line signature_request.mygo:170:12*/		return Err[VerifiedRequest, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](valid))
+ /*line signature_request.mygo:169:3*/	} else {
+ /*line zz_signature_request.gen.go:135:1*/	}
+ /*line signature_request.mygo:172:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](valid) {
+ /*line signature_request.mygo:173:12*/		return Err[VerifiedRequest, failure.Failure](Of("invalid signature"))
+ /*line signature_request.mygo:172:3*/	} else {
+ /*line zz_signature_request.gen.go:139:1*/	}
+ /*line signature_request.mygo:175:3*/	return Ok[VerifiedRequest, failure.Failure](VerifiedRequest{KeyID: params.KeyID})
+ /*line zz_signature_request.gen.go:141:1*/}

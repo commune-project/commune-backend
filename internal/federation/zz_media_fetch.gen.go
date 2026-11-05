@@ -10,154 +10,155 @@ import "net/url"
 import "io"
 import "strings"
 import "time"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line media_fetch.mygo:14:1*/func MediaTransport(client *http.Client, allowPrivate bool) {
+ /*line media_fetch.mygo:15:1*/func MediaTransport(client *http.Client, allowPrivate bool) {
 	blocked := func(address string) bool {
- /*line media_fetch.mygo:15:47*/		return BlockedIP(address)
- /*line zz_media_fetch.gen.go:18:1*/	}
- /*line media_fetch.mygo:16:3*/	mediaTransport := &http.Transport{DisableKeepAlives: true}
+ /*line media_fetch.mygo:16:47*/		return BlockedIP(address)
+ /*line zz_media_fetch.gen.go:19:1*/	}
+ /*line media_fetch.mygo:17:3*/	mediaTransport := &http.Transport{DisableKeepAlives: true}
 	mediaTransport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
 			return nil, err
- /*line zz_media_fetch.gen.go:24:1*/		}
- /*line media_fetch.mygo:16:3*/		ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+ /*line zz_media_fetch.gen.go:25:1*/		}
+ /*line media_fetch.mygo:17:3*/		ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
 			return nil, err
- /*line zz_media_fetch.gen.go:28:1*/		}
- /*line media_fetch.mygo:16:3*/		if len(ips) == 0 {
+ /*line zz_media_fetch.gen.go:29:1*/		}
+ /*line media_fetch.mygo:17:3*/		if len(ips) == 0 {
 			return nil, errors.New("unresolvable destination")
- /*line zz_media_fetch.gen.go:31:1*/		}
- /*line media_fetch.mygo:16:3*/		for _, ip := range ips {
+ /*line zz_media_fetch.gen.go:32:1*/		}
+ /*line media_fetch.mygo:17:3*/		for _, ip := range ips {
 			if !allowPrivate && blocked(ip.String()) {
 				return nil, errors.New("blocked destination")
- /*line zz_media_fetch.gen.go:35:1*/			}
+ /*line zz_media_fetch.gen.go:36:1*/			}
 		}
- /*line media_fetch.mygo:16:3*/		dialer := net.Dialer{}
+ /*line media_fetch.mygo:17:3*/		dialer := net.Dialer{}
 		return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
- /*line zz_media_fetch.gen.go:39:1*/	}
- /*line media_fetch.mygo:16:3*/	client.Transport = mediaTransport
- /*line zz_media_fetch.gen.go:41:1*/}
- /*line media_fetch.mygo:39:1*/func FetchPrivateMedia(ctx context.Context, raw string, actor string, key string, limits FetchLimits) Result[[]byte, string] {
- /*line media_fetch.mygo:40:3*/	return FetchSignedResource(ctx, raw, actor, key, limits, "application/octet-stream, image/*")
- /*line zz_media_fetch.gen.go:44:1*/}
- /*line media_fetch.mygo:43:1*/func FetchSignedResource(ctx context.Context, raw string, actor string, key string, limits FetchLimits, accept string) Result[[]byte, string] {
- /*line media_fetch.mygo:44:3*/	if limits.MaxBytes < 1 || limits.TimeoutSeconds < 1 || limits.MaxRedirects < 0 {
- /*line media_fetch.mygo:44:94*/		return Err[[]byte, string]("invalid media limits")
- /*line media_fetch.mygo:44:3*/	} else {
- /*line zz_media_fetch.gen.go:49:1*/	}
- /*line media_fetch.mygo:43:1*/	bounded, cancel := context.WithTimeout(ctx, time.Duration(limits.TimeoutSeconds)*time.Second)
- /*line media_fetch.mygo:46:3*/	defer cancel()
- /*line media_fetch.mygo:47:18*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line zz_media_fetch.gen.go:40:1*/	}
+ /*line media_fetch.mygo:17:3*/	client.Transport = mediaTransport
+ /*line zz_media_fetch.gen.go:42:1*/}
+ /*line media_fetch.mygo:40:1*/func FetchPrivateMedia(ctx context.Context, raw string, actor string, key string, limits FetchLimits) Result[[]byte, failure.Failure] {
+ /*line media_fetch.mygo:41:3*/	return FetchSignedResource(ctx, raw, actor, key, limits, "application/octet-stream, image/*")
+ /*line zz_media_fetch.gen.go:45:1*/}
+ /*line media_fetch.mygo:44:1*/func FetchSignedResource(ctx context.Context, raw string, actor string, key string, limits FetchLimits, accept string) Result[[]byte, failure.Failure] {
+ /*line media_fetch.mygo:45:3*/	if limits.MaxBytes < 1 || limits.TimeoutSeconds < 1 || limits.MaxRedirects < 0 {
+ /*line media_fetch.mygo:45:94*/		return Err[[]byte, failure.Failure](Of("invalid media limits"))
+ /*line media_fetch.mygo:45:3*/	} else {
+ /*line zz_media_fetch.gen.go:50:1*/	}
+ /*line media_fetch.mygo:44:1*/	bounded, cancel := context.WithTimeout(ctx, time.Duration(limits.TimeoutSeconds)*time.Second)
+ /*line media_fetch.mygo:47:3*/	defer cancel()
+ /*line media_fetch.mygo:48:18*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(raw)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_media_fetch.gen.go:58:1*/	}
- /*line media_fetch.mygo:43:1*/	original := __mygo_expr_1
- /*line media_fetch.mygo:48:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](original) {
- /*line media_fetch.mygo:48:35*/		return Err[[]byte, string]("invalid destination")
- /*line media_fetch.mygo:48:3*/	} else {
- /*line zz_media_fetch.gen.go:63:1*/	}
- /*line media_fetch.mygo:43:1*/	client := Zero[http.Client]()
- /*line media_fetch.mygo:50:3*/	DisableRedirects(&client)
- /*line media_fetch.mygo:51:3*/	MediaTransport(&client, limits.AllowPrivate)
- /*line media_fetch.mygo:43:1*/	current := raw
+ /*line zz_media_fetch.gen.go:59:1*/	}
+ /*line media_fetch.mygo:44:1*/	original := __mygo_expr_1
+ /*line media_fetch.mygo:49:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](original) {
+ /*line media_fetch.mygo:49:35*/		return Err[[]byte, failure.Failure](Of("invalid destination"))
+ /*line media_fetch.mygo:49:3*/	} else {
+ /*line zz_media_fetch.gen.go:64:1*/	}
+ /*line media_fetch.mygo:44:1*/	client := Zero[http.Client]()
+ /*line media_fetch.mygo:51:3*/	DisableRedirects(&client)
+ /*line media_fetch.mygo:52:3*/	MediaTransport(&client, limits.AllowPrivate)
+ /*line media_fetch.mygo:44:1*/	current := raw
 	hops := 0
 	for hops <= limits.MaxRedirects {
-		if MygoIN6ResultM5IsErr[struct{}, string](ValidateDestination(current, limits.AllowPrivate)) {
- /*line media_fetch.mygo:55:78*/			return Err[[]byte, string]("blocked destination")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:73:1*/		}
- /*line media_fetch.mygo:56:18*/		var __mygo_expr_4 Result[*url.URL, error]
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](ValidateDestination(current, limits.AllowPrivate)) {
+ /*line media_fetch.mygo:56:78*/			return Err[[]byte, failure.Failure](Of("blocked destination"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:74:1*/		}
+ /*line media_fetch.mygo:57:18*/		var __mygo_expr_4 Result[*url.URL, error]
 		__mygo_expr_5, __mygo_expr_3 := url.Parse(current)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[*url.URL, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[*url.URL, error](__mygo_expr_5)
- /*line zz_media_fetch.gen.go:80:1*/		}
- /*line media_fetch.mygo:43:1*/		parsed := __mygo_expr_4
+ /*line zz_media_fetch.gen.go:81:1*/		}
+ /*line media_fetch.mygo:44:1*/		parsed := __mygo_expr_4
 		if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
- /*line media_fetch.mygo:57:35*/			return Err[[]byte, string]("invalid destination")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:85:1*/		}
- /*line media_fetch.mygo:43:1*/		target := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
+ /*line media_fetch.mygo:58:35*/			return Err[[]byte, failure.Failure](Of("invalid destination"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:86:1*/		}
+ /*line media_fetch.mygo:44:1*/		target := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
 		credentials := target.User != nil
 		if target.Scheme != MygoIN6ResultM6Unwrap[*url.URL, error](original).Scheme || target.Host != MygoIN6ResultM6Unwrap[*url.URL, error](original).Host || credentials {
- /*line media_fetch.mygo:60:118*/			return Err[[]byte, string]("cross-origin media redirect")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:91:1*/		}
- /*line media_fetch.mygo:43:1*/		date := time.Now().UTC().Format(http.TimeFormat)
+ /*line media_fetch.mygo:61:118*/			return Err[[]byte, failure.Failure](Of("cross-origin media redirect"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:92:1*/		}
+ /*line media_fetch.mygo:44:1*/		date := time.Now().UTC().Format(http.TimeFormat)
 		signed := SignSignature(key, GetSigningString("GET", target.RequestURI(), target.Host, date))
-		if MygoIN6ResultM5IsErr[string, string](signed) {
- /*line media_fetch.mygo:63:35*/			return Err[[]byte, string]("media signing failed")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:97:1*/		}
- /*line media_fetch.mygo:64:19*/		var __mygo_expr_7 Result[*http.Request, error]
+		if MygoIN6ResultM5IsErr[string, failure.Failure](signed) {
+ /*line media_fetch.mygo:64:35*/			return Err[[]byte, failure.Failure](Of("media signing failed"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:98:1*/		}
+ /*line media_fetch.mygo:65:19*/		var __mygo_expr_7 Result[*http.Request, error]
 		__mygo_expr_8, __mygo_expr_6 := http.NewRequestWithContext(bounded, "GET", current, io.Reader(strings.NewReader("")))
 		if __mygo_expr_6 != nil {
 			__mygo_expr_7 = Err[*http.Request, error](__mygo_expr_6)
 		} else {
 			__mygo_expr_7 = Ok[*http.Request, error](__mygo_expr_8)
- /*line zz_media_fetch.gen.go:104:1*/		}
- /*line media_fetch.mygo:43:1*/		request := __mygo_expr_7
+ /*line zz_media_fetch.gen.go:105:1*/		}
+ /*line media_fetch.mygo:44:1*/		request := __mygo_expr_7
 		if MygoIN6ResultM5IsErr[*http.Request, error](request) {
- /*line media_fetch.mygo:65:36*/			return Err[[]byte, string]("invalid destination")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:109:1*/		}
- /*line media_fetch.mygo:66:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Date", date)
- /*line media_fetch.mygo:67:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Signature", FormatGetSignatureHeader(actor+"#main-key", MygoIN6ResultM6Unwrap[string, string](signed)))
- /*line media_fetch.mygo:68:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Accept", accept)
- /*line media_fetch.mygo:69:20*/		var __mygo_expr_10 Result[*http.Response, error]
+ /*line media_fetch.mygo:66:36*/			return Err[[]byte, failure.Failure](Of("invalid destination"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:110:1*/		}
+ /*line media_fetch.mygo:67:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Date", date)
+ /*line media_fetch.mygo:68:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Signature", FormatGetSignatureHeader(actor+"#main-key", MygoIN6ResultM6Unwrap[string, failure.Failure](signed)))
+ /*line media_fetch.mygo:69:5*/		MygoIN6ResultM6Unwrap[*http.Request, error](request).Header.Set("Accept", accept)
+ /*line media_fetch.mygo:70:20*/		var __mygo_expr_10 Result[*http.Response, error]
 		__mygo_expr_11, __mygo_expr_9 := client.Do(MygoIN6ResultM6Unwrap[*http.Request, error](request))
 		if __mygo_expr_9 != nil {
 			__mygo_expr_10 = Err[*http.Response, error](__mygo_expr_9)
 		} else {
 			__mygo_expr_10 = Ok[*http.Response, error](__mygo_expr_11)
- /*line zz_media_fetch.gen.go:119:1*/		}
- /*line media_fetch.mygo:43:1*/		response := __mygo_expr_10
+ /*line zz_media_fetch.gen.go:120:1*/		}
+ /*line media_fetch.mygo:44:1*/		response := __mygo_expr_10
 		if MygoIN6ResultM5IsErr[*http.Response, error](response) {
- /*line media_fetch.mygo:70:37*/			return Err[[]byte, string]("media fetch failed")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:124:1*/		}
- /*line media_fetch.mygo:43:1*/		received := MygoIN6ResultM6Unwrap[*http.Response, error](response)
+ /*line media_fetch.mygo:71:37*/			return Err[[]byte, failure.Failure](Of("media fetch failed"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:125:1*/		}
+ /*line media_fetch.mygo:44:1*/		received := MygoIN6ResultM6Unwrap[*http.Response, error](response)
 		if received.StatusCode >= 300 && received.StatusCode < 400 {
 			next := ResolveLocation(received, received.Header.Get("Location"))
 			received.Body.Close()
- /*line media_fetch.mygo:75:7*/			if MygoIN6ResultM5IsErr[string, string](next) {
- /*line media_fetch.mygo:75:35*/				return Err[[]byte, string]("invalid redirect")
- /*line media_fetch.mygo:75:7*/			} else {
- /*line zz_media_fetch.gen.go:132:1*/			}
- /*line media_fetch.mygo:43:1*/			current = MygoIN6ResultM6Unwrap[string, string](next)
+ /*line media_fetch.mygo:76:7*/			if MygoIN6ResultM5IsErr[string, failure.Failure](next) {
+ /*line media_fetch.mygo:76:35*/				return Err[[]byte, failure.Failure](Of("invalid redirect"))
+ /*line media_fetch.mygo:76:7*/			} else {
+ /*line zz_media_fetch.gen.go:133:1*/			}
+ /*line media_fetch.mygo:44:1*/			current = MygoIN6ResultM6Unwrap[string, failure.Failure](next)
 			hops = hops + 1
 			continue
 		} else {
- /*line zz_media_fetch.gen.go:137:1*/		}
- /*line media_fetch.mygo:43:1*/		if received.StatusCode != 200 {
+ /*line zz_media_fetch.gen.go:138:1*/		}
+ /*line media_fetch.mygo:44:1*/		if received.StatusCode != 200 {
 			received.Body.Close()
- /*line media_fetch.mygo:82:14*/			return Err[[]byte, string]("origin denied media")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:142:1*/		}
- /*line media_fetch.mygo:84:17*/		var __mygo_expr_13 Result[[]byte, error]
+ /*line media_fetch.mygo:83:14*/			return Err[[]byte, failure.Failure](Of("origin denied media"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:143:1*/		}
+ /*line media_fetch.mygo:85:17*/		var __mygo_expr_13 Result[[]byte, error]
 		__mygo_expr_14, __mygo_expr_12 := io.ReadAll(io.LimitReader(received.Body, int64(limits.MaxBytes+1)))
 		if __mygo_expr_12 != nil {
 			__mygo_expr_13 = Err[[]byte, error](__mygo_expr_12)
 		} else {
 			__mygo_expr_13 = Ok[[]byte, error](__mygo_expr_14)
- /*line zz_media_fetch.gen.go:149:1*/		}
- /*line media_fetch.mygo:43:1*/		bytes := __mygo_expr_13
+ /*line zz_media_fetch.gen.go:150:1*/		}
+ /*line media_fetch.mygo:44:1*/		bytes := __mygo_expr_13
 		received.Body.Close()
 		if MygoIN6ResultM5IsErr[[]byte, error](bytes) {
- /*line media_fetch.mygo:86:34*/			return Err[[]byte, string]("media fetch failed")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:155:1*/		}
- /*line media_fetch.mygo:43:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](bytes)) > limits.MaxBytes {
- /*line media_fetch.mygo:87:59*/			return Err[[]byte, string]("media too large")
- /*line media_fetch.mygo:43:1*/		} else {
- /*line zz_media_fetch.gen.go:159:1*/		}
- /*line media_fetch.mygo:88:12*/		return Ok[[]byte, string](MygoIN6ResultM6Unwrap[[]byte, error](bytes))
- /*line zz_media_fetch.gen.go:161:1*/	}
- /*line media_fetch.mygo:90:3*/	return Err[[]byte, string]("redirect limit exceeded")
- /*line zz_media_fetch.gen.go:163:1*/}
+ /*line media_fetch.mygo:87:34*/			return Err[[]byte, failure.Failure](Of("media fetch failed"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:156:1*/		}
+ /*line media_fetch.mygo:44:1*/		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](bytes)) > limits.MaxBytes {
+ /*line media_fetch.mygo:88:59*/			return Err[[]byte, failure.Failure](Of("media too large"))
+ /*line media_fetch.mygo:44:1*/		} else {
+ /*line zz_media_fetch.gen.go:160:1*/		}
+ /*line media_fetch.mygo:89:12*/		return Ok[[]byte, failure.Failure](MygoIN6ResultM6Unwrap[[]byte, error](bytes))
+ /*line zz_media_fetch.gen.go:162:1*/	}
+ /*line media_fetch.mygo:91:3*/	return Err[[]byte, failure.Failure](Of("redirect limit exceeded"))
+ /*line zz_media_fetch.gen.go:164:1*/}

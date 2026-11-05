@@ -15,6 +15,7 @@ import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,7 +23,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	digest := federation.BodyDigest([]byte(body))
 	host := strings.TrimPrefix(origin, "https://")
 	signingString := federation.RequestSigningString("POST", path, host, date, digest)
-	signature := MygoIN6ResultM6Unwrap[string, string](federation.SignSignature(privateKey, signingString))
+	signature := MygoIN6ResultM6Unwrap[string, failure.Failure](federation.SignSignature(privateKey, signingString))
 	header := federation.FormatSignatureHeader(peerURI+"#main-key", signature)
 	request := httptest.NewRequest("POST", origin+path, io.Reader(strings.NewReader(body)))
  /*line federation_inbox_test.mygo:23:3*/	request.Header.Set("Content-Type", "application/activity+json")
@@ -32,7 +33,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_inbox_test.mygo:16:1*/	recorder := httptest.NewRecorder()
  /*line federation_inbox_test.mygo:28:3*/	handler.ServeHTTP(http.ResponseWriter(recorder), request)
  /*line federation_inbox_test.mygo:29:3*/	return recorder
- /*line zz_federation_inbox.gen_test.go:35:1*/}
+ /*line zz_federation_inbox.gen_test.go:36:1*/}
  /*line federation_inbox_test.mygo:32:1*/func TestPostgresInboundReceipts(t *testing.T) {
  /*line federation_inbox_test.mygo:33:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -40,25 +41,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_inbox.gen_test.go:43:1*/	}
+ /*line zz_federation_inbox.gen_test.go:44:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	b := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, b))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, b))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
-	peerKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	peerPublic := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(peerKey))
-	otherKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	otherPublic := MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(otherKey))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, b, "carol", "", "carol-account-password"))
+	peerKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	peerPublic := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(peerKey))
+	otherKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	otherPublic := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(otherKey))
 	peerURI := "https://peer.example/users/dave"
 	otherURI := "https://other.example/users/eve"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", peerURI, peerPublic, otherURI, otherPublic)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', ?)", peerURI, peerPublic, otherURI, otherPublic)))
 	handler := Handler(settings, db)
 	now := time.Now().UTC()
 	date := now.Format(http.TimeFormat)
@@ -68,43 +69,43 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_inbox_test.mygo:57:3*/	if first.Code != 202 || !strings.Contains(first.Body.String(), "\"receipts\":1") {
  /*line federation_inbox_test.mygo:58:5*/		t.Fatalf("signed activity was not accepted: %d %s", first.Code, first.Body.String())
  /*line federation_inbox_test.mygo:57:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:71:1*/	}
+ /*line zz_federation_inbox.gen_test.go:72:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	replay := signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, date)
  /*line federation_inbox_test.mygo:61:3*/	if replay.Code != 202 || !strings.Contains(replay.Body.String(), "\"receipts\":0") {
  /*line federation_inbox_test.mygo:62:5*/		t.Fatal("duplicate activity created another receipt")
  /*line federation_inbox_test.mygo:61:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:76:1*/	}
+ /*line zz_federation_inbox.gen_test.go:77:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("site_id='a'").Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("site_id='a'").Count(&count)))
  /*line federation_inbox_test.mygo:66:3*/	if count != int64(1) {
  /*line federation_inbox_test.mygo:67:5*/		t.Fatal("duplicate reception changed the receipt count")
  /*line federation_inbox_test.mygo:66:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:82:1*/	}
+ /*line zz_federation_inbox.gen_test.go:83:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	crossSite := signedPost(handler, b.Origin, "/inbox", body, peerURI, peerKey, date)
  /*line federation_inbox_test.mygo:70:3*/	if crossSite.Code != 202 || !strings.Contains(crossSite.Body.String(), "\"receipts\":1") {
  /*line federation_inbox_test.mygo:71:5*/		t.Fatalf("site B did not process its own eligible reception: %d %s", crossSite.Code, crossSite.Body.String())
  /*line federation_inbox_test.mygo:70:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:87:1*/	}
+ /*line zz_federation_inbox.gen_test.go:88:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	conflictingActor := "{\"id\":\"" + activityURI + "\",\"actor\":\"" + otherURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"]}"
  /*line federation_inbox_test.mygo:74:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingActor, otherURI, otherKey, date).Code != 409 {
  /*line federation_inbox_test.mygo:75:5*/		t.Fatal("activity URI reuse by another actor was accepted")
  /*line federation_inbox_test.mygo:74:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:92:1*/	}
+ /*line zz_federation_inbox.gen_test.go:93:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	conflictingPayload := "{\"id\":\"" + activityURI + "\",\"actor\":\"" + peerURI + "\",\"type\":\"Create\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{}}"
  /*line federation_inbox_test.mygo:78:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", conflictingPayload, peerURI, peerKey, date).Code != 409 {
  /*line federation_inbox_test.mygo:79:5*/		t.Fatal("conflicting payload reuse was accepted")
  /*line federation_inbox_test.mygo:78:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:97:1*/	}
+ /*line zz_federation_inbox.gen_test.go:98:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	stale := now.Add(time.Duration(0-2) * time.Hour).Format(http.TimeFormat)
  /*line federation_inbox_test.mygo:82:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", body, peerURI, peerKey, stale).Code != 401 {
  /*line federation_inbox_test.mygo:83:5*/		t.Fatal("stale signed activity was accepted")
  /*line federation_inbox_test.mygo:82:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:102:1*/	}
+ /*line zz_federation_inbox.gen_test.go:103:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	wrongSigner := signedPost(handler, a.Origin, "/users/alice/inbox", body, otherURI, otherKey, date)
  /*line federation_inbox_test.mygo:86:3*/	if wrongSigner.Code != 401 {
  /*line federation_inbox_test.mygo:87:5*/		t.Fatal("activity signed by an unrelated key was accepted")
  /*line federation_inbox_test.mygo:86:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:107:1*/	}
+ /*line zz_federation_inbox.gen_test.go:108:1*/	}
  /*line federation_inbox_test.mygo:32:1*/	unsigned := httptest.NewRequest("POST", a.Origin+"/users/alice/inbox", io.Reader(strings.NewReader(body)))
  /*line federation_inbox_test.mygo:90:3*/	unsigned.Header.Set("Content-Type", "application/activity+json")
  /*line federation_inbox_test.mygo:32:1*/	unsignedRecorder := httptest.NewRecorder()
@@ -112,29 +113,29 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_inbox_test.mygo:93:3*/	if unsignedRecorder.Code != 401 {
  /*line federation_inbox_test.mygo:94:5*/		t.Fatal("unsigned activity was accepted")
  /*line federation_inbox_test.mygo:93:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:115:1*/	}
- /*line federation_inbox_test.mygo:32:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
+ /*line zz_federation_inbox.gen_test.go:116:1*/	}
+ /*line federation_inbox_test.mygo:32:1*/	claimed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, failure.Failure](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
  /*line federation_inbox_test.mygo:97:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 2 {
  /*line federation_inbox_test.mygo:98:5*/		t.Fatalf("pending receipts were not claimed: %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed))
  /*line federation_inbox_test.mygo:97:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:120:1*/	}
- /*line federation_inbox_test.mygo:100:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))) != 0 {
+ /*line zz_federation_inbox.gen_test.go:121:1*/	}
+ /*line federation_inbox_test.mygo:100:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, failure.Failure](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))) != 0 {
  /*line federation_inbox_test.mygo:101:5*/		t.Fatal("leased receipts were claimed twice")
  /*line federation_inbox_test.mygo:100:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:124:1*/	}
- /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE inbox_receipts SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
-	resumed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, string](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
+ /*line zz_federation_inbox.gen_test.go:125:1*/	}
+ /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE inbox_receipts SET lease_until = now() - interval '1 minute' WHERE lease_token IS NOT NULL")))
+	resumed := MygoIN6ResultM6Unwrap[[]storage.ReceiptRecord, failure.Failure](storage.ClaimPendingReceipts(ctx, db, 5, int64(60)))
  /*line federation_inbox_test.mygo:105:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resumed) != 2 {
  /*line federation_inbox_test.mygo:106:5*/		t.Fatalf("expired leases were not reclaimed after restart: %d", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(resumed))
  /*line federation_inbox_test.mygo:105:3*/	} else {
- /*line zz_federation_inbox.gen_test.go:130:1*/	}
- /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.SettleReceipt(ctx, db, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).ActivityURI, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).SiteID, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).RecipientActorURI, "accepted"))
+ /*line zz_federation_inbox.gen_test.go:131:1*/	}
+ /*line federation_inbox_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.SettleReceipt(ctx, db, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).ActivityURI, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).SiteID, MygoIN6OptionM6Unwrap[storage.ReceiptRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(resumed, 0)).RecipientActorURI, "accepted"))
 	var settledCount int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("inbox_receipts").Where("state='accepted'").Count(&settledCount)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("inbox_receipts").Where("state='accepted'").Count(&settledCount)))
  /*line federation_inbox_test.mygo:111:3*/	if settledCount != int64(1) {
  /*line federation_inbox_test.mygo:112:5*/		t.Fatal("settled receipt did not persist its final state")
 		return
  /*line federation_inbox_test.mygo:111:3*/	} else {
 		return
- /*line zz_federation_inbox.gen_test.go:139:1*/	}
+ /*line zz_federation_inbox.gen_test.go:140:1*/	}
 }

@@ -10,6 +10,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -20,23 +21,23 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_vote_endpoint.gen_test.go:23:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:24:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
-	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
-	private := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "Private", "federated", "members", "members"))
+	open := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	private := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "private", "Private", "federated", "members", "members"))
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	post := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	post := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, open.ID, alice, false, storage.PublishInput{Title: "Vote", Body: "vote", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, private.ID, alice, false, storage.PublishInput{Title: "Private", Body: "private", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "bob", "bob-password")
 	csrf := csrfOf(cookies)
@@ -44,15 +45,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line vote_endpoint_test.mygo:32:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: path, Payload: "", Cookies: cookies, CSRF: "", Source: ""}).Code != 405 {
  /*line vote_endpoint_test.mygo:33:5*/		t.Fatal("unsupported vote method was not rejected")
  /*line vote_endpoint_test.mygo:32:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:47:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:48:1*/	}
  /*line vote_endpoint_test.mygo:35:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin}).Code != 401 {
  /*line vote_endpoint_test.mygo:36:5*/		t.Fatal("anonymous vote was accepted")
  /*line vote_endpoint_test.mygo:35:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:51:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:52:1*/	}
  /*line vote_endpoint_test.mygo:38:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: "", Source: site.Origin}).Code != 403 {
  /*line vote_endpoint_test.mygo:39:5*/		t.Fatal("vote without CSRF was accepted")
  /*line vote_endpoint_test.mygo:38:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:55:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:56:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	var invalid []string = []string{"{}", "{\"score\":null}", "{\"score\":2}", "{\"score\":\"1\"}", "{} trailing"}
  /*line vote_endpoint_test.mygo:42:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(body string) {
  /*line vote_endpoint_test.mygo:43:5*/		if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: body, Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 400 {
@@ -60,75 +61,75 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line vote_endpoint_test.mygo:43:5*/		} else {
 			return
- /*line zz_vote_endpoint.gen_test.go:63:1*/		}
+ /*line zz_vote_endpoint.gen_test.go:64:1*/		}
 	})
  /*line vote_endpoint_test.mygo:47:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 404 {
  /*line vote_endpoint_test.mygo:48:5*/		t.Fatal("vote on missing target was not 404")
  /*line vote_endpoint_test.mygo:47:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:68:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:69:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	privateVote := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
  /*line vote_endpoint_test.mygo:51:3*/	if privateVote.Code != 404 {
  /*line vote_endpoint_test.mygo:52:5*/		t.Fatalf("vote on unreadable target returned %d: %s", privateVote.Code, privateVote.Body.String())
  /*line vote_endpoint_test.mygo:51:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:73:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:74:1*/	}
  /*line vote_endpoint_test.mygo:54:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_endpoint_test.mygo:55:5*/		t.Fatal("valid upvote failed")
  /*line vote_endpoint_test.mygo:54:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:77:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:78:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	likesPath := "/api/v1/posts/" + post.ID + "/likes"
  /*line vote_endpoint_test.mygo:58:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: likesPath, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_endpoint_test.mygo:59:5*/		t.Fatal("legacy like alias failed")
  /*line vote_endpoint_test.mygo:58:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:82:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:83:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	liked := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+post.ID, cookies, 200))
  /*line vote_endpoint_test.mygo:62:3*/	if liked.VotedByMe != int64(1) || liked.LikeCount != int64(1) || !liked.LikedByMe {
  /*line vote_endpoint_test.mygo:63:5*/		t.Fatal("like and vote paths did not share upvote state")
  /*line vote_endpoint_test.mygo:62:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:87:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:88:1*/	}
  /*line vote_endpoint_test.mygo:65:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_endpoint_test.mygo:66:5*/		t.Fatal("vote change to downvote failed")
  /*line vote_endpoint_test.mygo:65:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:91:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:92:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	downvoted := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+post.ID, cookies, 200))
  /*line vote_endpoint_test.mygo:69:6*/	if downvoted.VotedByMe != int64(-1) || downvoted.LikeCount != int64(0) || downvoted.LikedByMe || downvoted.Upvotes != int64(0) || downvoted.Downvotes != int64(1) {
  /*line vote_endpoint_test.mygo:71:5*/		t.Fatal("vote change did not replace the legacy like state")
  /*line vote_endpoint_test.mygo:69:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:96:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:97:1*/	}
  /*line vote_endpoint_test.mygo:73:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: likesPath, Payload: "", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_endpoint_test.mygo:74:5*/		t.Fatal("legacy unlike alias failed")
  /*line vote_endpoint_test.mygo:73:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:100:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:101:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	cleared := browserPost(t, browserGet(t, handler, site.Origin, "/api/v1/posts/"+post.ID, cookies, 200))
  /*line vote_endpoint_test.mygo:77:3*/	if cleared.VotedByMe != int64(0) || cleared.LikeCount != int64(0) || cleared.Score != int64(0) {
  /*line vote_endpoint_test.mygo:78:5*/		t.Fatal("legacy unlike did not clear the vote")
  /*line vote_endpoint_test.mygo:77:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:105:1*/	}
- /*line vote_endpoint_test.mygo:11:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], string](storage.FindAccount(ctx, db, site.ID, "admin"))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false))
+ /*line zz_vote_endpoint.gen_test.go:106:1*/	}
+ /*line vote_endpoint_test.mygo:11:1*/	admin := storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], failure.Failure](storage.FindAccount(ctx, db, site.ID, "admin"))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, true, true, false))
  /*line vote_endpoint_test.mygo:82:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":0}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_endpoint_test.mygo:83:5*/		t.Fatal("clear was rejected while upvotes were disabled")
  /*line vote_endpoint_test.mygo:82:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:111:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:112:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	disabledUp := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin})
  /*line vote_endpoint_test.mygo:86:3*/	if disabledUp.Code != 403 || disabledUp.Body.String() != "{\"error\":\"feature_disabled\"}" {
  /*line vote_endpoint_test.mygo:87:5*/		t.Fatal("disabled upvote did not return stable feature_disabled")
  /*line vote_endpoint_test.mygo:86:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:116:1*/	}
- /*line vote_endpoint_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, false, false, true))
+ /*line zz_vote_endpoint.gen_test.go:117:1*/	}
+ /*line vote_endpoint_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.UpdateSiteVoteSettings(ctx, db, site.ID, admin, false, false, false, true))
  /*line vote_endpoint_test.mygo:90:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: path, Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 403 {
  /*line vote_endpoint_test.mygo:91:5*/		t.Fatal("disabled downvote was accepted")
  /*line vote_endpoint_test.mygo:90:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:121:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:122:1*/	}
  /*line vote_endpoint_test.mygo:93:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/missing/vote", Payload: "{\"score\":-1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 404 {
  /*line vote_endpoint_test.mygo:94:5*/		t.Fatal("disabled setting masked a missing target")
  /*line vote_endpoint_test.mygo:93:3*/	} else {
- /*line zz_vote_endpoint.gen_test.go:125:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:126:1*/	}
  /*line vote_endpoint_test.mygo:11:1*/	active := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, bob.ActorURI).Count(&active)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("reactions").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", post.ID, bob.ActorURI).Count(&active)))
  /*line vote_endpoint_test.mygo:98:3*/	if active != int64(0) {
  /*line vote_endpoint_test.mygo:99:5*/		t.Fatal("rejected votes left active reaction state")
 		return
  /*line vote_endpoint_test.mygo:98:3*/	} else {
 		return
- /*line zz_vote_endpoint.gen_test.go:133:1*/	}
+ /*line zz_vote_endpoint.gen_test.go:134:1*/	}
 }

@@ -12,56 +12,57 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/mygo-lang/mygo/lib/concurrency"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line server.mygo:14:1*/func Handler(settings config.Config, db *gorm.DB) http.HandlerFunc {
+ /*line server.mygo:15:1*/func Handler(settings config.Config, db *gorm.DB) http.HandlerFunc {
 	callback := func(w http.ResponseWriter, request *http.Request) {
- /*line server.mygo:15:18*/		site := config.ResolveRequest(settings, request)
- /*line server.mygo:17:5*/		if MygoIN6ResultM5IsErr[config.Site, string](site) {
- /*line server.mygo:18:7*/			http.NotFound(w, request)
- /*line server.mygo:17:5*/			return
+ /*line server.mygo:16:18*/		site := config.ResolveRequest(settings, request)
+ /*line server.mygo:18:5*/		if MygoIN6ResultM5IsErr[config.Site, string](site) {
+ /*line server.mygo:19:7*/			http.NotFound(w, request)
+ /*line server.mygo:18:5*/			return
 		} else {
- /*line zz_server.gen.go:25:1*/		}
- /*line server.mygo:15:18*/		resolved := MygoIN6ResultM6Unwrap[config.Site, string](site)
- /*line server.mygo:22:5*/		w.Header().Set("Cache-Control", "no-store")
- /*line server.mygo:23:5*/		w.Header().Set("X-Content-Type-Options", "nosniff")
- /*line server.mygo:24:5*/		if PasswordResetRoute(settings, db, resolved, w, request) {
+ /*line zz_server.gen.go:26:1*/		}
+ /*line server.mygo:16:18*/		resolved := MygoIN6ResultM6Unwrap[config.Site, string](site)
+ /*line server.mygo:23:5*/		w.Header().Set("Cache-Control", "no-store")
+ /*line server.mygo:24:5*/		w.Header().Set("X-Content-Type-Options", "nosniff")
+ /*line server.mygo:25:5*/		if PasswordResetRoute(settings, db, resolved, w, request) {
 			return
 		} else {
- /*line zz_server.gen.go:32:1*/		}
- /*line server.mygo:27:5*/		if RegistrationRoute(settings, db, resolved, w, request) {
+ /*line zz_server.gen.go:33:1*/		}
+ /*line server.mygo:28:5*/		if RegistrationRoute(settings, db, resolved, w, request) {
 			return
 		} else {
- /*line zz_server.gen.go:36:1*/		}
- /*line server.mygo:30:5*/		__mygo_expr_0 := AuthenticationPath(request.URL.Path)
+ /*line zz_server.gen.go:37:1*/		}
+ /*line server.mygo:31:5*/		__mygo_expr_0 := AuthenticationPath(request.URL.Path)
 		if __mygo_expr_0 == true {
 			AuthenticationRoute(settings, db, resolved, w, request)
 		} else {
 			if __mygo_expr_0 == false {
 				if FederationPath(request.URL.Path) {
- /*line server.mygo:34:11*/					FederationRoute(settings, db, resolved, w, request)
- /*line server.mygo:30:5*/				} else {
+ /*line server.mygo:35:11*/					FederationRoute(settings, db, resolved, w, request)
+ /*line server.mygo:31:5*/				} else {
 					if strings.HasPrefix(request.URL.Path, "/api/v1/") {
- /*line server.mygo:36:11*/						ForumRoute(settings, db, resolved, w, request)
- /*line server.mygo:30:5*/					} else {
+ /*line server.mygo:37:11*/						ForumRoute(settings, db, resolved, w, request)
+ /*line server.mygo:31:5*/					} else {
 						if request.Method != "GET" {
- /*line server.mygo:38:11*/							w.Header().Set("Allow", "GET")
- /*line server.mygo:30:5*/							http.Error(w, "method not allowed", 405)
+ /*line server.mygo:39:11*/							w.Header().Set("Allow", "GET")
+ /*line server.mygo:31:5*/							http.Error(w, "method not allowed", 405)
 						} else {
- /*line server.mygo:41:11*/							HealthRoute(db, w, request)
- /*line zz_server.gen.go:53:1*/						}
+ /*line server.mygo:42:11*/							HealthRoute(db, w, request)
+ /*line zz_server.gen.go:54:1*/						}
 					}
 				}
- /*line server.mygo:30:5*/			} else {
- /*line zz_server.gen.go:57:1*/			}
+ /*line server.mygo:31:5*/			} else {
+ /*line zz_server.gen.go:58:1*/			}
 		}
- /*line server.mygo:30:5*/		return
- /*line zz_server.gen.go:60:1*/	}
- /*line server.mygo:46:3*/	return http.HandlerFunc(callback)
- /*line zz_server.gen.go:62:1*/}
- /*line server.mygo:49:1*/func AuthenticationPath(path string) bool {
- /*line server.mygo:50:3*/	var __mygo_expr_0 bool
+ /*line server.mygo:31:5*/		return
+ /*line zz_server.gen.go:61:1*/	}
+ /*line server.mygo:47:3*/	return http.HandlerFunc(callback)
+ /*line zz_server.gen.go:63:1*/}
+ /*line server.mygo:50:1*/func AuthenticationPath(path string) bool {
+ /*line server.mygo:51:3*/	var __mygo_expr_0 bool
 	if path == "/api/v1/auth/login" {
 		__mygo_expr_0 = true
 	} else {
@@ -72,48 +73,48 @@ import . "github.com/mygo-lang/mygo/prelude"
 				__mygo_expr_0 = true
 			} else {
 				__mygo_expr_0 = false
- /*line zz_server.gen.go:75:1*/			}
+ /*line zz_server.gen.go:76:1*/			}
 		}
 	}
- /*line server.mygo:50:3*/	return __mygo_expr_0
- /*line zz_server.gen.go:79:1*/}
- /*line server.mygo:58:1*/func HealthRoute(db *gorm.DB, w http.ResponseWriter, request *http.Request) {
- /*line server.mygo:59:3*/	__mygo_expr_0 := request.URL.Path
+ /*line server.mygo:51:3*/	return __mygo_expr_0
+ /*line zz_server.gen.go:80:1*/}
+ /*line server.mygo:59:1*/func HealthRoute(db *gorm.DB, w http.ResponseWriter, request *http.Request) {
+ /*line server.mygo:60:3*/	__mygo_expr_0 := request.URL.Path
 	if __mygo_expr_0 == "/health/live" {
 		w.WriteHeader(204)
 	} else {
 		if __mygo_expr_0 == "/health/ready" {
 			ctx, cancel := context.WithTimeout(request.Context(), time.Duration(3)*time.Second)
- /*line server.mygo:63:18*/			var __mygo_expr_2 Result[*sql.DB, error]
+ /*line server.mygo:64:18*/			var __mygo_expr_2 Result[*sql.DB, error]
 			__mygo_expr_3, __mygo_expr_1 := db.DB()
 			if __mygo_expr_1 != nil {
 				__mygo_expr_2 = Err[*sql.DB, error](__mygo_expr_1)
 			} else {
 				__mygo_expr_2 = Ok[*sql.DB, error](__mygo_expr_3)
- /*line zz_server.gen.go:93:1*/			}
- /*line server.mygo:59:3*/			pool := __mygo_expr_2
- /*line server.mygo:65:9*/			var __mygo_expr_5 Result[struct{}, error]
+ /*line zz_server.gen.go:94:1*/			}
+ /*line server.mygo:60:3*/			pool := __mygo_expr_2
+ /*line server.mygo:66:9*/			var __mygo_expr_5 Result[struct{}, error]
 			__mygo_expr_4 := MygoIN6ResultM6Unwrap[*sql.DB, error](pool).PingContext(ctx)
 			if __mygo_expr_4 != nil {
 				__mygo_expr_5 = Err[struct{}, error](__mygo_expr_4)
 			} else {
 				__mygo_expr_5 = Ok[struct{}, error](struct {
- /*line zz_server.gen.go:101:1*/				}{})
+ /*line zz_server.gen.go:102:1*/				}{})
 			}
- /*line server.mygo:59:3*/			ready := !MygoIN6ResultM5IsErr[*sql.DB, error](pool) && MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && MygoIN6ResultM4IsOk[struct{}, string](storage.CheckGORM(ctx, db))
- /*line server.mygo:67:7*/			cancel()
- /*line server.mygo:59:3*/			if !ready {
- /*line server.mygo:69:9*/				http.Error(w, "not ready", 503)
- /*line server.mygo:59:3*/			} else {
- /*line server.mygo:71:9*/				w.WriteHeader(204)
- /*line zz_server.gen.go:109:1*/			}
- /*line server.mygo:59:3*/		} else {
+ /*line server.mygo:60:3*/			ready := !MygoIN6ResultM5IsErr[*sql.DB, error](pool) && MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && MygoIN6ResultM4IsOk[struct{}, failure.Failure](storage.CheckGORM(ctx, db))
+ /*line server.mygo:68:7*/			cancel()
+ /*line server.mygo:60:3*/			if !ready {
+ /*line server.mygo:70:9*/				http.Error(w, "not ready", 503)
+ /*line server.mygo:60:3*/			} else {
+ /*line server.mygo:72:9*/				w.WriteHeader(204)
+ /*line zz_server.gen.go:110:1*/			}
+ /*line server.mygo:60:3*/		} else {
 			http.NotFound(w, request)
- /*line zz_server.gen.go:112:1*/		}
+ /*line zz_server.gen.go:113:1*/		}
 	}
- /*line server.mygo:59:3*/	return
- /*line zz_server.gen.go:115:1*/}
- /*line server.mygo:78:1*/func NewHTTPServer(settings config.Config, db *gorm.DB) *http.Server {
+ /*line server.mygo:60:3*/	return
+ /*line zz_server.gen.go:116:1*/}
+ /*line server.mygo:79:1*/func NewHTTPServer(settings config.Config, db *gorm.DB) *http.Server {
 	runtime := settings.Runtime
 	server := Zero[http.Server]()
 	server.Addr = runtime.Listen
@@ -123,61 +124,61 @@ import . "github.com/mygo-lang/mygo/prelude"
 	server.WriteTimeout = time.Duration(runtime.WriteTimeoutSeconds) * time.Second
 	server.IdleTimeout = time.Duration(runtime.IdleTimeoutSeconds) * time.Second
 	server.MaxHeaderBytes = 32768
- /*line server.mygo:88:3*/	return &server
- /*line zz_server.gen.go:127:1*/}
- /*line server.mygo:91:1*/func Serve(ctx context.Context, settings config.Config, db *gorm.DB) Result[struct {
-}, string] {
- /*line server.mygo:92:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.CheckGORM(ctx, db)) {
- /*line server.mygo:93:12*/		return Err[struct{}, string]("schema is incompatible; run explicit migration")
- /*line server.mygo:92:3*/	} else {
- /*line zz_server.gen.go:133:1*/	}
- /*line server.mygo:91:1*/	server := NewHTTPServer(settings, db)
+ /*line server.mygo:89:3*/	return &server
+ /*line zz_server.gen.go:128:1*/}
+ /*line server.mygo:92:1*/func Serve(ctx context.Context, settings config.Config, db *gorm.DB) Result[struct {
+}, failure.Failure] {
+ /*line server.mygo:93:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.CheckGORM(ctx, db)) {
+ /*line server.mygo:94:12*/		return Err[struct{}, failure.Failure](Of("schema is incompatible; run explicit migration"))
+ /*line server.mygo:93:3*/	} else {
+ /*line zz_server.gen.go:134:1*/	}
+ /*line server.mygo:92:1*/	server := NewHTTPServer(settings, db)
 	lifetime, cancelLifetime := context.WithCancel(ctx)
 	participationStopped := StartParticipationWorkers(lifetime, settings, db)
 	stopped := concurrency.MakeChan[struct{}](1)
 	shutdown := func() {
- /*line server.mygo:99:18*/		concurrency.MygoIT13IReadableChanFN8RecvChanGN1TEGN8RecvChanGN1TEN1TEM7Receive[struct{}](lifetime.Done())
+ /*line server.mygo:100:18*/		concurrency.MygoIT13IReadableChanFN8RecvChanGN1TEGN8RecvChanGN1TEN1TEM7Receive[struct{}](lifetime.Done())
 		deadline, cancel := context.WithTimeout(context.Background(), time.Duration(settings.Runtime.ShutdownTimeoutSeconds)*time.Second)
- /*line server.mygo:105:18*/		var __mygo_expr_1 Result[struct{}, error]
+ /*line server.mygo:106:18*/		var __mygo_expr_1 Result[struct{}, error]
 		__mygo_expr_0 := server.Shutdown(deadline)
 		if __mygo_expr_0 != nil {
 			__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 		} else {
 			__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_server.gen.go:147:1*/			}{})
+ /*line zz_server.gen.go:148:1*/			}{})
 		}
- /*line server.mygo:99:18*/		result := __mygo_expr_1
- /*line server.mygo:106:5*/		cancel()
- /*line server.mygo:107:5*/		if MygoIN6ResultM5IsErr[struct{}, error](result) {
- /*line server.mygo:108:7*/			slog.Warn("http shutdown deadline reached")
- /*line server.mygo:107:5*/			server.Close()
+ /*line server.mygo:100:18*/		result := __mygo_expr_1
+ /*line server.mygo:107:5*/		cancel()
+ /*line server.mygo:108:5*/		if MygoIN6ResultM5IsErr[struct{}, error](result) {
+ /*line server.mygo:109:7*/			slog.Warn("http shutdown deadline reached")
+ /*line server.mygo:108:5*/			server.Close()
 		} else {
- /*line zz_server.gen.go:155:1*/		}
- /*line server.mygo:111:5*/		concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(stopped, struct {
- /*line zz_server.gen.go:157:1*/		}{})
- /*line server.mygo:111:5*/		return
- /*line zz_server.gen.go:159:1*/	}
- /*line server.mygo:113:3*/	concurrency.Spawn(shutdown)
- /*line server.mygo:114:3*/	slog.Info("http server starting", "sites", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Sites))
- /*line server.mygo:115:16*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line zz_server.gen.go:156:1*/		}
+ /*line server.mygo:112:5*/		concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(stopped, struct {
+ /*line zz_server.gen.go:158:1*/		}{})
+ /*line server.mygo:112:5*/		return
+ /*line zz_server.gen.go:160:1*/	}
+ /*line server.mygo:114:3*/	concurrency.Spawn(shutdown)
+ /*line server.mygo:115:3*/	slog.Info("http server starting", "sites", MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Sites))
+ /*line server.mygo:116:16*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := server.ListenAndServe()
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_server.gen.go:168:1*/		}{})
+ /*line zz_server.gen.go:169:1*/		}{})
 	}
- /*line server.mygo:91:1*/	result_1 := __mygo_expr_3
- /*line server.mygo:116:3*/	if MygoIN6ResultM5IsErr[struct{}, error](result_1) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](result_1), http.ErrServerClosed) {
- /*line server.mygo:117:5*/		cancelLifetime()
- /*line server.mygo:116:3*/		concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](participationStopped)
- /*line server.mygo:119:12*/		return Err[struct{}, string]("http listener failed")
- /*line server.mygo:116:3*/	} else {
- /*line zz_server.gen.go:176:1*/	}
- /*line server.mygo:121:3*/	cancelLifetime()
- /*line server.mygo:91:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](stopped)
+ /*line server.mygo:92:1*/	result_1 := __mygo_expr_3
+ /*line server.mygo:117:3*/	if MygoIN6ResultM5IsErr[struct{}, error](result_1) && !errors.Is(MygoIN6ResultM9UnwrapErr[struct{}, error](result_1), http.ErrServerClosed) {
+ /*line server.mygo:118:5*/		cancelLifetime()
+ /*line server.mygo:117:3*/		concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](participationStopped)
+ /*line server.mygo:120:12*/		return Err[struct{}, failure.Failure](Of("http listener failed"))
+ /*line server.mygo:117:3*/	} else {
+ /*line zz_server.gen.go:177:1*/	}
+ /*line server.mygo:122:3*/	cancelLifetime()
+ /*line server.mygo:92:1*/	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](stopped)
 	concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](participationStopped)
- /*line server.mygo:124:3*/	slog.Info("http server stopped")
- /*line server.mygo:125:3*/	return Ok[struct{}, string](struct {
- /*line zz_server.gen.go:182:1*/	}{})
+ /*line server.mygo:125:3*/	slog.Info("http server stopped")
+ /*line server.mygo:126:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_server.gen.go:183:1*/	}{})
 }

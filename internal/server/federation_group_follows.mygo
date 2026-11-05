@@ -7,10 +7,11 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 # Follow dispatch: a Person follow is a user subscription, a Group follow is a
 # policy-aware community subscription.
-func ApplyFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   if activity.ObjectURI == "" then
     return Ok(())
   end
@@ -24,10 +25,10 @@ end
 # Restricted admission: a members-only community accepts a subscription only from
 # an approved member or a manager; otherwise the follow is rejected. In every case
 # the response is recorded as a subscription, never as membership.
-func ApplyGroupFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyGroupFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   let found = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
   if found.IsErr() || found.Unwrap().IsNone() || !federation.FederatedCommunity(found.Unwrap().Unwrap()) then
-    return Err("unknown follow target")
+    return Err(Of("unknown follow target"))
   end
   let community = found.Unwrap().Unwrap()
   let existingURI = storage.CommunityFollowURI(ctx, db, community.ID, activity.Actor)
@@ -37,7 +38,7 @@ func ApplyGroupFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site,
   let member = storage.IsCurrentMember(ctx, db, community.ID, activity.Actor)
   let manager = storage.IsCommunityManager(ctx, db, community.ID, activity.Actor)
   if member.IsErr() || manager.IsErr() then
-    return Err("follow unavailable")
+    return Err(Of("follow unavailable"))
   end
   let rule = storage.LoadCommunityFollowRule(ctx, db, community.ID)
   if rule.IsErr() then
@@ -66,7 +67,7 @@ func ApplyGroupFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site,
 end
 
 # Unsubscribing stops new delivery without changing membership.
-func ApplyGroupUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyGroupUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   let found = storage.LoadHostedCommunityByActor(ctx, db, site.ID, activity.ObjectURI)
   if found.IsErr() || found.Unwrap().IsNone() then
     return Ok(())
@@ -79,7 +80,7 @@ func ApplyGroupUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.S
   storage.SetCommunityFollow(ctx, db, community.ID, activity.Actor, activity.ID, "undone")
 end
 
-func ApplyFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   if activity.ObjectURI == "" then
     return Ok(())
   end
@@ -124,7 +125,7 @@ func ModeratorsHandler(settings: config.Config, db: Ref[gorm.DB], site: config.S
 end
 
 # Reused by both Person and Group follows for the signed Accept/Reject reply.
-func SendFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), String]
+func SendFollowResponse(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), failure.Failure]
   SendFollowReply(ctx, db, site, localActorURI, follower, followURI, kind)
 end
 

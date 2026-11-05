@@ -4,23 +4,24 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line inclusion.mygo:7:1*/func RecordCommunityInclusion(ctx context.Context, db *gorm.DB, postID string, communityID string, authorityActorURI string, evidenceURI string) Result[int64, string] {
+ /*line inclusion.mygo:8:1*/func RecordCommunityInclusion(ctx context.Context, db *gorm.DB, postID string, communityID string, authorityActorURI string, evidenceURI string) Result[int64, failure.Failure] {
 	inserted := db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'accepted') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO NOTHING", postID, communityID, authorityActorURI, evidenceURI)
- /*line inclusion.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line inclusion.mygo:23:12*/		return Err[int64, string]("inclusion failed")
- /*line inclusion.mygo:22:3*/	} else {
- /*line zz_inclusion.gen.go:14:1*/	}
- /*line inclusion.mygo:25:3*/	return Ok[int64, string](inserted.RowsAffected)
- /*line zz_inclusion.gen.go:16:1*/}
- /*line inclusion.mygo:28:1*/func CommunityActorURI(ctx context.Context, db *gorm.DB, communityID string) Result[string, string] {
+ /*line inclusion.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line inclusion.mygo:24:12*/		return Err[int64, failure.Failure](Of("inclusion failed"))
+ /*line inclusion.mygo:23:3*/	} else {
+ /*line zz_inclusion.gen.go:15:1*/	}
+ /*line inclusion.mygo:26:3*/	return Ok[int64, failure.Failure](inserted.RowsAffected)
+ /*line zz_inclusion.gen.go:17:1*/}
+ /*line inclusion.mygo:29:1*/func CommunityActorURI(ctx context.Context, db *gorm.DB, communityID string) Result[string, failure.Failure] {
 	uri := ""
 	query := db.WithContext(ctx).Raw("SELECT coalesce(actor_uri,'') FROM communities WHERE id = ?", communityID).Scan(&uri)
 	return Required(query, uri, "community unavailable")
- /*line zz_inclusion.gen.go:21:1*/}
- /*line inclusion.mygo:41:1*/func PostCommunityID(ctx context.Context, db *gorm.DB, postID string) Result[string, string] {
+ /*line zz_inclusion.gen.go:22:1*/}
+ /*line inclusion.mygo:42:1*/func PostCommunityID(ctx context.Context, db *gorm.DB, postID string) Result[string, failure.Failure] {
 	community := ""
 	query := db.WithContext(ctx).Raw("SELECT community_id FROM posts WHERE id = ?", postID).Scan(&community)
 	return Required(query, community, "post unavailable")
- /*line zz_inclusion.gen.go:26:1*/}
+ /*line zz_inclusion.gen.go:27:1*/}

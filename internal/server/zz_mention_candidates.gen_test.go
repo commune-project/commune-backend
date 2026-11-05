@@ -13,6 +13,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "net/http"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -20,14 +21,14 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mention_candidates_test.mygo:14:3*/	return MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(items, func(item MentionCandidateOutput) bool {
  /*line mention_candidates_test.mygo:15:5*/		return item.ActorURI == actorURI
  /*line mention_candidates_test.mygo:16:12*/	}), 0)
- /*line zz_mention_candidates.gen_test.go:23:1*/}
+ /*line zz_mention_candidates.gen_test.go:24:1*/}
  /*line mention_candidates_test.mygo:19:1*/func assertMentionCandidateHeaders(t *testing.T, response *httptest.ResponseRecorder) {
  /*line mention_candidates_test.mygo:20:3*/	if response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("Referrer-Policy") != "no-referrer" {
  /*line mention_candidates_test.mygo:22:5*/		t.Fatal("mention candidate response headers missing")
 		return
  /*line mention_candidates_test.mygo:20:3*/	} else {
 		return
- /*line zz_mention_candidates.gen_test.go:30:1*/	}
+ /*line zz_mention_candidates.gen_test.go:31:1*/	}
 }
  /*line mention_candidates_test.mygo:26:1*/func TestMentionCandidatesRoute(t *testing.T) {
  /*line mention_candidates_test.mygo:27:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -36,33 +37,33 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_mention_candidates.gen_test.go:39:1*/	}
+ /*line zz_mention_candidates.gen_test.go:40:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	other := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, other))
 	accounts := storage.AccountRepository{DB: db}
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
-	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
-	rainbow := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "rainbow", "", "rainbow-password"))
-	carol := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-password"))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", bob.ActorURI, "Bobby", "https://forum-a.example/avatar/bob.png")))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", rainbow.ActorURI, "O'Brien Rainbow 100%Real")))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", carol.ActorURI, "Bonnie")))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-password"))
+	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "bob", "", "bob-password"))
+	rainbow := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "rainbow", "", "rainbow-password"))
+	carol := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, other, "carol", "", "carol-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", bob.ActorURI, "Bobby", "https://forum-a.example/avatar/bob.png")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", rainbow.ActorURI, "O'Brien Rainbow 100%Real")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name) VALUES (?,?)", carol.ActorURI, "Bonnie")))
 	remyURI := "https://remote.example/users/remy"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remyURI, "https://remote.example/inbox", "remy@remote.example")))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remyURI, "https://remote.example/inbox", "remy@remote.example")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,avatar_url) VALUES (?,?,?)", remyURI, "Remy", "https://remote.example/avatar/remy.png")))
 	handler := Handler(settings, db)
 	cookies := login(handler, site.Origin, "alice", "alice-password")
 	anonymous := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:49:3*/	if anonymous.Code != 401 {
  /*line mention_candidates_test.mygo:50:5*/		t.Fatalf("anonymous candidate lookup returned %d", anonymous.Code)
  /*line mention_candidates_test.mygo:49:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:65:1*/	}
+ /*line zz_mention_candidates.gen_test.go:66:1*/	}
  /*line mention_candidates_test.mygo:52:3*/	assertMentionCandidateHeaders(t, anonymous)
  /*line mention_candidates_test.mygo:26:1*/	var invalid []string = []string{"/api/v1/mentions/candidates?q=a", "/api/v1/mentions/candidates?q=" + strings.Repeat("a", 65), "/api/v1/mentions/candidates?q=bo&limit=0", "/api/v1/mentions/candidates?q=bo&limit=21", "/api/v1/mentions/candidates?q=bo&limit=abc"}
  /*line mention_candidates_test.mygo:60:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(path string) {
@@ -70,27 +71,27 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line mention_candidates_test.mygo:62:5*/		if response.Code != 400 {
  /*line mention_candidates_test.mygo:63:7*/			t.Fatalf("invalid candidate request %s returned %d", path, response.Code)
  /*line mention_candidates_test.mygo:62:5*/		} else {
- /*line zz_mention_candidates.gen_test.go:73:1*/		}
+ /*line zz_mention_candidates.gen_test.go:74:1*/		}
  /*line mention_candidates_test.mygo:65:5*/		assertMentionCandidateHeaders(t, response)
 		return
- /*line zz_mention_candidates.gen_test.go:76:1*/	})
+ /*line zz_mention_candidates.gen_test.go:77:1*/	})
  /*line mention_candidates_test.mygo:26:1*/	method := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
  /*line mention_candidates_test.mygo:68:3*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
  /*line mention_candidates_test.mygo:69:5*/		t.Fatalf("candidate method validation returned %d", method.Code)
  /*line mention_candidates_test.mygo:68:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:81:1*/	}
+ /*line zz_mention_candidates.gen_test.go:82:1*/	}
  /*line mention_candidates_test.mygo:71:3*/	assertMentionCandidateHeaders(t, method)
  /*line mention_candidates_test.mygo:26:1*/	var jobsBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Count(&jobsBefore)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("actor_handle_jobs").Count(&jobsBefore)))
 	var notificationsBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("notification_events").Count(&notificationsBefore)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("notification_events").Count(&notificationsBefore)))
 	var deliveriesBefore int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesBefore)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesBefore)))
 	valid := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:79:3*/	if valid.Code != 200 {
  /*line mention_candidates_test.mygo:80:5*/		t.Fatalf("candidate lookup returned %d: %s", valid.Code, valid.Body.String())
  /*line mention_candidates_test.mygo:79:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:93:1*/	}
+ /*line zz_mention_candidates.gen_test.go:94:1*/	}
  /*line mention_candidates_test.mygo:82:3*/	assertMentionCandidateHeaders(t, valid)
  /*line mention_candidates_test.mygo:26:1*/	page := Zero[MentionCandidatePage]()
  /*line mention_candidates_test.mygo:84:11*/	var __mygo_expr_4 Result[struct{}, error]
@@ -99,28 +100,28 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_mention_candidates.gen_test.go:102:1*/		}{})
+ /*line zz_mention_candidates.gen_test.go:103:1*/		}{})
 	}
  /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
  /*line mention_candidates_test.mygo:85:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(page.Items) != 3 || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 0)).ActorURI != bob.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 1)).ActorURI != carol.ActorURI || MygoIN6OptionM6Unwrap[MentionCandidateOutput](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(page.Items, 2)).ActorURI != rainbow.ActorURI {
  /*line mention_candidates_test.mygo:89:5*/		t.Fatalf("candidate projection or ordering failed: %s", valid.Body.String())
  /*line mention_candidates_test.mygo:85:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:108:1*/	}
+ /*line zz_mention_candidates.gen_test.go:109:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	bobOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(page.Items, bob.ActorURI))
  /*line mention_candidates_test.mygo:92:3*/	if bobOutput.Acct != "bob@forum-a.example" || bobOutput.DisplayName != "Bobby" || bobOutput.Avatar != "https://forum-a.example/avatar/bob.png" {
  /*line mention_candidates_test.mygo:93:5*/		t.Fatal("local candidate DTO failed")
  /*line mention_candidates_test.mygo:92:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:113:1*/	}
+ /*line zz_mention_candidates.gen_test.go:114:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	carolOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(page.Items, carol.ActorURI))
  /*line mention_candidates_test.mygo:96:3*/	if carolOutput.Acct != "carol@forum-b.example" || carolOutput.DisplayName != "Bonnie" {
  /*line mention_candidates_test.mygo:97:5*/		t.Fatal("colocated candidate DTO failed")
  /*line mention_candidates_test.mygo:96:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:118:1*/	}
+ /*line zz_mention_candidates.gen_test.go:119:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	remote := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=rem", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:100:3*/	if remote.Code != 200 {
  /*line mention_candidates_test.mygo:101:5*/		t.Fatalf("remote candidate lookup returned %d", remote.Code)
  /*line mention_candidates_test.mygo:100:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:123:1*/	}
+ /*line zz_mention_candidates.gen_test.go:124:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	remotePage := Zero[MentionCandidatePage]()
  /*line mention_candidates_test.mygo:104:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(remote.Body.Bytes(), &remotePage)
@@ -128,41 +129,41 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_mention_candidates.gen_test.go:131:1*/		}{})
+ /*line zz_mention_candidates.gen_test.go:132:1*/		}{})
 	}
  /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
 	remyOutput := MygoIN6OptionM6Unwrap[MentionCandidateOutput](mentionOutputFor(remotePage.Items, remyURI))
  /*line mention_candidates_test.mygo:106:3*/	if remyOutput.Acct != "remy@remote.example" || remyOutput.DisplayName != "Remy" || remyOutput.Avatar != "https://remote.example/avatar/remy.png" {
  /*line mention_candidates_test.mygo:107:5*/		t.Fatal("remote candidate DTO failed")
  /*line mention_candidates_test.mygo:106:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:138:1*/	}
+ /*line zz_mention_candidates.gen_test.go:139:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	withoutCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
 	withCommunity := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo&community_id=missing", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:111:3*/	if withCommunity.Code != 200 || withCommunity.Body.String() != withoutCommunity.Body.String() {
  /*line mention_candidates_test.mygo:112:5*/		t.Fatal("optional community_id changed candidate results")
  /*line mention_candidates_test.mygo:111:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:144:1*/	}
+ /*line zz_mention_candidates.gen_test.go:145:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	empty := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=zzzz", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:115:3*/	if empty.Code != 200 || !strings.Contains(empty.Body.String(), "\"items\":[]") {
  /*line mention_candidates_test.mygo:116:5*/		t.Fatalf("empty candidate response failed: %s", empty.Body.String())
  /*line mention_candidates_test.mygo:115:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:149:1*/	}
+ /*line zz_mention_candidates.gen_test.go:150:1*/	}
  /*line mention_candidates_test.mygo:26:1*/	var jobsAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("actor_handle_jobs").Count(&jobsAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("actor_handle_jobs").Count(&jobsAfter)))
 	var notificationsAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("notification_events").Count(&notificationsAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("notification_events").Count(&notificationsAfter)))
 	var deliveriesAfter int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesAfter)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Count(&deliveriesAfter)))
  /*line mention_candidates_test.mygo:124:3*/	if jobsAfter != jobsBefore || notificationsAfter != notificationsBefore || deliveriesAfter != deliveriesBefore {
  /*line mention_candidates_test.mygo:125:5*/		t.Fatal("candidate route wrote federation or notification state")
  /*line mention_candidates_test.mygo:124:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:159:1*/	}
- /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE profiles CASCADE")))
+ /*line zz_mention_candidates.gen_test.go:160:1*/	}
+ /*line mention_candidates_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("DROP TABLE profiles CASCADE")))
 	unavailable := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/mentions/candidates?q=bo", Payload: "", Cookies: cookies, CSRF: "", Source: site.Origin})
  /*line mention_candidates_test.mygo:129:3*/	if unavailable.Code != 503 {
  /*line mention_candidates_test.mygo:130:5*/		t.Fatalf("candidate storage failure returned %d", unavailable.Code)
  /*line mention_candidates_test.mygo:129:3*/	} else {
- /*line zz_mention_candidates.gen_test.go:165:1*/	}
+ /*line zz_mention_candidates.gen_test.go:166:1*/	}
  /*line mention_candidates_test.mygo:132:3*/	assertMentionCandidateHeaders(t, unavailable)
 	return
- /*line zz_mention_candidates.gen_test.go:168:1*/}
+ /*line zz_mention_candidates.gen_test.go:169:1*/}

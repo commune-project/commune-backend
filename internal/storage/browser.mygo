@@ -4,6 +4,7 @@ import context "go:context"
 import sql "go:database/sql"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ViewerRoles
   SiteAdministrator: Bool `json:"site_administrator"`
@@ -42,7 +43,7 @@ struct BrowserAudit
 end
 
 impl BrowserRepository
-  func Viewer(self: BrowserRepository, ctx: context.Context, identity: auth.Identity) -> Result[BrowserViewer, String]
+  func Viewer(self: BrowserRepository, ctx: context.Context, identity: auth.Identity) -> Result[BrowserViewer, failure.Failure]
     let up = SiteVoteUpEnabled(ctx, self.DB, self.SiteID)
     let down = SiteVoteDownEnabled(ctx, self.DB, self.SiteID)
     if identity.AccountID <= 0i64 then
@@ -60,7 +61,7 @@ impl BrowserRepository
     let admin = site.IsAdministrator(ctx, identity)
     let deployment = site.IsDeploymentAdministrator(ctx, identity)
     if blocked.IsErr() || admin.IsErr() || deployment.IsErr() then
-      return Err("policy unavailable")
+      return Err(Of("policy unavailable"))
     end
     Ok(BrowserViewer{Identity: identity, Verified: true, Blocked: blocked.Unwrap(), Roles: ViewerRoles{SiteAdministrator: admin.Unwrap(), DeploymentSuperadministrator: deployment.Unwrap()}, UpvotesEnabled: up, DownvotesEnabled: down, VoteSettingsLoaded: true})
   end
@@ -77,7 +78,7 @@ impl BrowserRepository
     ProjectCommunityAccess(self.SiteID, view.Record, subject, view.Manager, viewer.Roles.SiteAdministrator, viewer.Roles.DeploymentSuperadministrator)
   end
 
-  func Views(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, ids: Slice[String]) -> Result[Slice[CommunityView], String]
+  func Views(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, ids: Slice[String]) -> Result[Slice[CommunityView], failure.Failure]
     var views: Slice[CommunityView] = []
     if ids.Len() == 0 then
       return Ok(views)
@@ -85,12 +86,12 @@ impl BrowserRepository
     # Batch IDs are passed as bound values, never SQL fragments.
     let query = self.DB.WithContext(ctx).Table("communities AS c").Select("c.*, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS member, EXISTS(SELECT 1 FROM moderators m WHERE m.community_id=c.id AND m.actor_uri=? AND m.revoked_at IS NULL) AS manager, (SELECT f.state FROM follows f WHERE f.community_id=c.id AND f.actor_uri=? LIMIT 1) AS follow_state, (SELECT count(*) FROM follows f WHERE f.community_id=c.id AND f.state='accepted') AS follower_count", viewer.Identity.ActorURI, viewer.Identity.ActorURI, viewer.Identity.ActorURI).Where("c.id IN ?", ids).Find(Ref.new(views))
     if MutationResult(query).IsErr() then
-      return Err("community unavailable")
+      return Err(Of("community unavailable"))
     end
     Ok(views)
   end
 
-  func AuditViews(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, views: Slice[CommunityView]) -> Result[(), String]
+  func AuditViews(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, views: Slice[CommunityView]) -> Result[(), failure.Failure]
     var rows: Slice[BrowserAudit] = []
     var index: Int = 0
     while index < views.Len()
@@ -109,9 +110,9 @@ impl BrowserRepository
     MutationResult(self.DB.WithContext(ctx).Table("audit_events").Create(Ref.new(rows)))
   end
 
-  func ListCommunities(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[CommunityView], String]
+  func ListCommunities(self: BrowserRepository, ctx: context.Context, viewer: BrowserViewer, page: Page, max: Int) -> Result[Slice[CommunityView], failure.Failure]
     if !page.Valid(max) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     var views: Slice[CommunityView] = []
     let readable = self.CommunitiesQuery(ctx, viewer, "SELECT * FROM readable")
@@ -119,7 +120,7 @@ impl BrowserRepository
     query = query.Where("host_site_id=? OR (host_site_id IS NULL AND EXISTS(SELECT 1 FROM posts p JOIN site_posts sp ON sp.post_id=p.id WHERE sp.site_id=? AND p.community_id=c.id))", self.SiteID, self.SiteID)
     let scanned = query.Order("name,id").Limit(page.Limit).Offset(page.Offset).Scan(Ref.new(views))
     if MutationResult(scanned).IsErr() then
-      return Err("community unavailable")
+      return Err(Of("community unavailable"))
     end
     let audit = self.AuditViews(ctx, viewer, views)
     if audit.IsErr() then

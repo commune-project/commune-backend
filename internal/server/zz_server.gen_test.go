@@ -13,6 +13,7 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line server_test.mygo:16:1*/func TestHealthRoutingAndReadiness(t *testing.T) {
@@ -23,7 +24,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*transport.Fixture, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*transport.Fixture, error](__mygo_expr_2)
- /*line zz_server.gen_test.go:26:1*/	}
+ /*line zz_server.gen_test.go:27:1*/	}
  /*line server_test.mygo:16:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
  /*line server_test.mygo:19:12*/	var __mygo_expr_4 Result[*gorm.DB, error]
 	__mygo_expr_5, __mygo_expr_3 := transport.ORM(fixture.DB)
@@ -31,7 +32,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Err[*gorm.DB, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[*gorm.DB, error](__mygo_expr_5)
- /*line zz_server.gen_test.go:34:1*/	}
+ /*line zz_server.gen_test.go:35:1*/	}
  /*line server_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_4)
  /*line server_test.mygo:20:3*/	t.Cleanup(func() {
  /*line server_test.mygo:21:8*/		var __mygo_expr_7 Result[struct{}, error]
@@ -40,15 +41,15 @@ import . "github.com/mygo-lang/mygo/prelude"
 			__mygo_expr_7 = Err[struct{}, error](__mygo_expr_6)
 		} else {
 			__mygo_expr_7 = Ok[struct{}, error](struct {
- /*line zz_server.gen_test.go:43:1*/			}{})
+ /*line zz_server.gen_test.go:44:1*/			}{})
 		}
  /*line server_test.mygo:21:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_7) {
  /*line server_test.mygo:22:7*/			t.Error("health SQL expectations were not met")
  /*line server_test.mygo:21:5*/		} else {
- /*line zz_server.gen_test.go:48:1*/		}
+ /*line zz_server.gen_test.go:49:1*/		}
  /*line server_test.mygo:20:13*/		fixture.DB.Close()
 		return
- /*line zz_server.gen_test.go:51:1*/	})
+ /*line zz_server.gen_test.go:52:1*/	})
  /*line server_test.mygo:16:1*/	handler := Handler(settings, db)
 	origin := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).Origin
 	body := io.Reader(strings.NewReader(""))
@@ -58,13 +59,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line server_test.mygo:32:5*/		if recorder.Code != status {
  /*line server_test.mygo:33:7*/			t.Fatalf("health returned %d, expected %d", recorder.Code, status)
  /*line server_test.mygo:32:5*/		} else {
- /*line zz_server.gen_test.go:61:1*/		}
+ /*line zz_server.gen_test.go:62:1*/		}
  /*line server_test.mygo:35:5*/		if strings.Contains(recorder.Body.String(), "secret") {
  /*line server_test.mygo:36:7*/			t.Fatal("health response exposed database error")
 			return
  /*line server_test.mygo:35:5*/		} else {
 			return
- /*line zz_server.gen_test.go:67:1*/		}
+ /*line zz_server.gen_test.go:68:1*/		}
 	}
  /*line server_test.mygo:39:3*/	request("GET", "https://unknown.example/health/live", 404)
  /*line server_test.mygo:40:3*/	request("GET", origin+"/health/live", 204)
@@ -78,10 +79,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line server_test.mygo:16:1*/	fixture.Mock.ExpectPing()
 	fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(driver.Value(true)))
 	rows := sqlmock.NewRows([]string{"version", "name", "checksum"})
- /*line server_test.mygo:51:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.Migration, string](storage.MigrationCatalog()), func(migration storage.Migration) {
+ /*line server_test.mygo:51:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.Migration, failure.Failure](storage.MigrationCatalog()), func(migration storage.Migration) {
  /*line server_test.mygo:51:44*/		rows.AddRow(driver.Value(migration.Version), driver.Value(migration.Name), driver.Value(migration.Checksum))
 		return
- /*line zz_server.gen_test.go:84:1*/	})
+ /*line zz_server.gen_test.go:85:1*/	})
  /*line server_test.mygo:16:1*/	fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
  /*line server_test.mygo:59:3*/	request("GET", origin+"/health/ready", 204)
  /*line server_test.mygo:16:1*/	server := NewHTTPServer(settings, db)
@@ -90,5 +91,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line server_test.mygo:61:3*/	} else {
 		return
- /*line zz_server.gen_test.go:93:1*/	}
+ /*line zz_server.gen_test.go:94:1*/	}
 }

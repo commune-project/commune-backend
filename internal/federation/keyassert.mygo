@@ -1,12 +1,13 @@
 package federation
 
 import rsa "go:crypto/rsa"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 # x509.ParsePKIXPublicKey yields an untyped key. MyGO has no type-assertion
 # syntax, so this single conversion is the only bound Go fragment needed
 # alongside the nil check in signature.mygo.
-func AsRSAPublicKey(key: Any) -> Result[Ref[rsa.PublicKey], String]
-  go[Result[Ref[rsa.PublicKey], String]] {
+func AsRSAPublicKey(key: Any) -> Result[Ref[rsa.PublicKey], failure.Failure]
+  go[Result[Ref[rsa.PublicKey], failure.Failure]] {
     code: """
       typed, ok := {key}.(*rsa.PublicKey)
       if !ok {

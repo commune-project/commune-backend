@@ -11,196 +11,197 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/mygo-lang/mygo/lib/concurrency"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line password_reset_test.mygo:14:1*/type ResetPayloadTestRow struct {
+ /*line password_reset_test.mygo:15:1*/type ResetPayloadTestRow struct {
 	EncryptedPayload []byte "gorm:\"column:encrypted_payload\""
- /*line zz_password_reset.gen_test.go:19:1*/}
- /*line password_reset_test.mygo:18:1*/type ResetHashTestRow struct {
+ /*line zz_password_reset.gen_test.go:20:1*/}
+ /*line password_reset_test.mygo:19:1*/type ResetHashTestRow struct {
 	TokenHash []byte "gorm:\"column:token_hash\""
- /*line zz_password_reset.gen_test.go:22:1*/}
+ /*line zz_password_reset.gen_test.go:23:1*/}
 
- /*line password_reset_test.mygo:22:1*/func ResetTokenFromLink(link string) string {
- /*line password_reset_test.mygo:23:3*/	return MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(link, "#token="), 1), "")
- /*line zz_password_reset.gen_test.go:26:1*/}
- /*line password_reset_test.mygo:26:1*/func TestPostgresPasswordResetLifecycle(t *testing.T) {
- /*line password_reset_test.mygo:27:13*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line password_reset_test.mygo:23:1*/func ResetTokenFromLink(link string) string {
+ /*line password_reset_test.mygo:24:3*/	return MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(strings.Split(link, "#token="), 1), "")
+ /*line zz_password_reset.gen_test.go:27:1*/}
+ /*line password_reset_test.mygo:27:1*/func TestPostgresPasswordResetLifecycle(t *testing.T) {
+ /*line password_reset_test.mygo:28:13*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_password_reset.gen_test.go:34:1*/	}
- /*line password_reset_test.mygo:26:1*/	orm := __mygo_expr_1
- /*line password_reset_test.mygo:28:3*/	if MygoIN6ResultM5IsErr[*gorm.DB, error](orm) {
- /*line password_reset_test.mygo:29:5*/		t.Fatalf("cannot open reset test database: %s", MygoIN6ResultM9UnwrapErr[*gorm.DB, error](orm))
- /*line password_reset_test.mygo:28:3*/	} else {
- /*line zz_password_reset.gen_test.go:39:1*/	}
- /*line password_reset_test.mygo:26:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](orm)
+ /*line zz_password_reset.gen_test.go:35:1*/	}
+ /*line password_reset_test.mygo:27:1*/	orm := __mygo_expr_1
+ /*line password_reset_test.mygo:29:3*/	if MygoIN6ResultM5IsErr[*gorm.DB, error](orm) {
+ /*line password_reset_test.mygo:30:5*/		t.Fatalf("cannot open reset test database: %s", MygoIN6ResultM9UnwrapErr[*gorm.DB, error](orm))
+ /*line password_reset_test.mygo:29:3*/	} else {
+ /*line zz_password_reset.gen_test.go:40:1*/	}
+ /*line password_reset_test.mygo:27:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](orm)
 	ctx := context.Background()
 	migrated := MigrateGORM(ctx, db)
- /*line password_reset_test.mygo:34:3*/	if MygoIN6ResultM5IsErr[struct{}, string](migrated) {
- /*line password_reset_test.mygo:35:5*/		t.Fatalf("reset migration failed: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](migrated))
- /*line password_reset_test.mygo:34:3*/	} else {
- /*line zz_password_reset.gen_test.go:46:1*/	}
- /*line password_reset_test.mygo:26:1*/	site := testSite("a", "https://a.example")
+ /*line password_reset_test.mygo:35:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](migrated) {
+ /*line password_reset_test.mygo:36:5*/		t.Fatalf("reset migration failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](migrated)))
+ /*line password_reset_test.mygo:35:3*/	} else {
+ /*line zz_password_reset.gen_test.go:47:1*/	}
+ /*line password_reset_test.mygo:27:1*/	site := testSite("a", "https://a.example")
 	other := testSite("b", "https://b.example")
 	provisioned := ProvisionSite(ctx, db, site)
- /*line password_reset_test.mygo:40:3*/	if MygoIN6ResultM5IsErr[struct{}, string](provisioned) {
- /*line password_reset_test.mygo:41:5*/		t.Fatalf("reset site provisioning failed: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](provisioned))
- /*line password_reset_test.mygo:40:3*/	} else {
- /*line zz_password_reset.gen_test.go:53:1*/	}
- /*line password_reset_test.mygo:26:1*/	provisionedOther := ProvisionSite(ctx, db, other)
- /*line password_reset_test.mygo:44:3*/	if MygoIN6ResultM5IsErr[struct{}, string](provisionedOther) {
- /*line password_reset_test.mygo:45:5*/		t.Fatalf("reset other site provisioning failed: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](provisionedOther))
- /*line password_reset_test.mygo:44:3*/	} else {
- /*line zz_password_reset.gen_test.go:58:1*/	}
- /*line password_reset_test.mygo:26:1*/	created := MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "alice@example.org", "old-password")
- /*line password_reset_test.mygo:54:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](created) {
- /*line password_reset_test.mygo:55:5*/		t.Fatalf("reset account creation failed: %s", MygoIN6ResultM9UnwrapErr[auth.Identity, string](created))
- /*line password_reset_test.mygo:54:3*/	} else {
- /*line zz_password_reset.gen_test.go:63:1*/	}
- /*line password_reset_test.mygo:26:1*/	identity := MygoIN6ResultM6Unwrap[auth.Identity, string](created)
+ /*line password_reset_test.mygo:41:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](provisioned) {
+ /*line password_reset_test.mygo:42:5*/		t.Fatalf("reset site provisioning failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](provisioned)))
+ /*line password_reset_test.mygo:41:3*/	} else {
+ /*line zz_password_reset.gen_test.go:54:1*/	}
+ /*line password_reset_test.mygo:27:1*/	provisionedOther := ProvisionSite(ctx, db, other)
+ /*line password_reset_test.mygo:45:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](provisionedOther) {
+ /*line password_reset_test.mygo:46:5*/		t.Fatalf("reset other site provisioning failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](provisionedOther)))
+ /*line password_reset_test.mygo:45:3*/	} else {
+ /*line zz_password_reset.gen_test.go:59:1*/	}
+ /*line password_reset_test.mygo:27:1*/	created := MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, site, "alice", "alice@example.org", "old-password")
+ /*line password_reset_test.mygo:55:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](created) {
+ /*line password_reset_test.mygo:56:5*/		t.Fatalf("reset account creation failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](created)))
+ /*line password_reset_test.mygo:55:3*/	} else {
+ /*line zz_password_reset.gen_test.go:64:1*/	}
+ /*line password_reset_test.mygo:27:1*/	identity := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](created)
 	createdOther := MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, other, "alice", "alice@example.org", "other-password")
- /*line password_reset_test.mygo:65:3*/	if MygoIN6ResultM5IsErr[auth.Identity, string](createdOther) {
- /*line password_reset_test.mygo:66:5*/		t.Fatalf("reset other account creation failed: %s", MygoIN6ResultM9UnwrapErr[auth.Identity, string](createdOther))
- /*line password_reset_test.mygo:65:3*/	} else {
- /*line zz_password_reset.gen_test.go:69:1*/	}
- /*line password_reset_test.mygo:26:1*/	key := []byte("0123456789abcdef0123456789abcdef")
+ /*line password_reset_test.mygo:66:3*/	if MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](createdOther) {
+ /*line password_reset_test.mygo:67:5*/		t.Fatalf("reset other account creation failed: %s", failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[auth.Identity, failure.Failure](createdOther)))
+ /*line password_reset_test.mygo:66:3*/	} else {
+ /*line zz_password_reset.gen_test.go:70:1*/	}
+ /*line password_reset_test.mygo:27:1*/	key := []byte("0123456789abcdef0123456789abcdef")
 	repository := PasswordResetRepository{DB: db, Site: site, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 3600, RateWindowSeconds: 60}
 	now := time.Now().UTC().Truncate(time.Microsecond)
- /*line password_reset_test.mygo:79:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, " Alice@Example.org ", "192.0.2.1", now)) {
- /*line password_reset_test.mygo:80:5*/		t.Fatal("password reset request failed")
- /*line password_reset_test.mygo:79:3*/	} else {
- /*line zz_password_reset.gen_test.go:76:1*/	}
- /*line password_reset_test.mygo:82:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, "unknown@example.org", "192.0.2.1", now)) {
- /*line password_reset_test.mygo:83:5*/		t.Fatal("unknown reset address did not receive generic acceptance")
- /*line password_reset_test.mygo:82:3*/	} else {
- /*line zz_password_reset.gen_test.go:80:1*/	}
- /*line password_reset_test.mygo:26:1*/	tokenCount := int64(0)
+ /*line password_reset_test.mygo:80:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, " Alice@Example.org ", "192.0.2.1", now)) {
+ /*line password_reset_test.mygo:81:5*/		t.Fatal("password reset request failed")
+ /*line password_reset_test.mygo:80:3*/	} else {
+ /*line zz_password_reset.gen_test.go:77:1*/	}
+ /*line password_reset_test.mygo:83:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, "unknown@example.org", "192.0.2.1", now)) {
+ /*line password_reset_test.mygo:84:5*/		t.Fatal("unknown reset address did not receive generic acceptance")
+ /*line password_reset_test.mygo:83:3*/	} else {
+ /*line zz_password_reset.gen_test.go:81:1*/	}
+ /*line password_reset_test.mygo:27:1*/	tokenCount := int64(0)
 	countQuery := db.Raw("SELECT count(*) FROM password_reset_tokens WHERE site_id=?", site.ID).Scan(&tokenCount)
- /*line password_reset_test.mygo:87:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(countQuery)) {
- /*line password_reset_test.mygo:88:5*/		t.Fatalf("cannot count reset tokens: %v", countQuery.Error)
- /*line password_reset_test.mygo:87:3*/	} else {
- /*line zz_password_reset.gen_test.go:86:1*/	}
- /*line password_reset_test.mygo:90:3*/	if tokenCount != int64(1) {
- /*line password_reset_test.mygo:91:5*/		t.Fatal("unknown address created a reset token")
- /*line password_reset_test.mygo:90:3*/	} else {
- /*line zz_password_reset.gen_test.go:90:1*/	}
- /*line password_reset_test.mygo:26:1*/	payloadRow := Zero[ResetPayloadTestRow]()
+ /*line password_reset_test.mygo:88:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(countQuery)) {
+ /*line password_reset_test.mygo:89:5*/		t.Fatalf("cannot count reset tokens: %v", countQuery.Error)
+ /*line password_reset_test.mygo:88:3*/	} else {
+ /*line zz_password_reset.gen_test.go:87:1*/	}
+ /*line password_reset_test.mygo:91:3*/	if tokenCount != int64(1) {
+ /*line password_reset_test.mygo:92:5*/		t.Fatal("unknown address created a reset token")
+ /*line password_reset_test.mygo:91:3*/	} else {
+ /*line zz_password_reset.gen_test.go:91:1*/	}
+ /*line password_reset_test.mygo:27:1*/	payloadRow := Zero[ResetPayloadTestRow]()
 	encryptedQuery := db.Table("password_reset_mail_jobs").Select("encrypted_payload").Limit(1).Find(&payloadRow)
- /*line password_reset_test.mygo:95:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(encryptedQuery)) {
- /*line password_reset_test.mygo:96:5*/		t.Fatalf("cannot load reset payload: %v", encryptedQuery.Error)
- /*line password_reset_test.mygo:95:3*/	} else {
- /*line zz_password_reset.gen_test.go:96:1*/	}
- /*line password_reset_test.mygo:26:1*/	encrypted := payloadRow.EncryptedPayload
+ /*line password_reset_test.mygo:96:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(encryptedQuery)) {
+ /*line password_reset_test.mygo:97:5*/		t.Fatalf("cannot load reset payload: %v", encryptedQuery.Error)
+ /*line password_reset_test.mygo:96:3*/	} else {
+ /*line zz_password_reset.gen_test.go:97:1*/	}
+ /*line password_reset_test.mygo:27:1*/	encrypted := payloadRow.EncryptedPayload
 	firstLink := ""
-	failed := DeliverPasswordResetMail(ctx, db, key, now, 10, 60, 2, 30, 3600, func(recipient string, link string) Result[struct{}, string] {
- /*line password_reset_test.mygo:111:7*/		return Err[struct{}, string]("smtp unavailable")
- /*line zz_password_reset.gen_test.go:101:1*/	})
- /*line password_reset_test.mygo:114:3*/	if MygoIN6ResultM5IsErr[int, string](failed) {
- /*line password_reset_test.mygo:115:5*/		t.Fatal("resettable mail failure was not retained for retry")
- /*line password_reset_test.mygo:114:3*/	} else {
- /*line zz_password_reset.gen_test.go:105:1*/	}
- /*line password_reset_test.mygo:26:1*/	state := ""
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Raw("SELECT state FROM password_reset_mail_jobs LIMIT 1").Scan(&state)))
- /*line password_reset_test.mygo:119:3*/	if state != "pending" {
- /*line password_reset_test.mygo:120:5*/		t.Fatal("transient reset mail failure did not remain retryable")
- /*line password_reset_test.mygo:119:3*/	} else {
- /*line zz_password_reset.gen_test.go:111:1*/	}
- /*line password_reset_test.mygo:26:1*/	delivered := DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(2)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_1 string, link_1 string) Result[struct{}, string] {
- /*line password_reset_test.mygo:132:5*/		firstLink = link_1
- /*line password_reset_test.mygo:134:7*/		return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen_test.go:115:1*/		}{})
+	failed := DeliverPasswordResetMail(ctx, db, key, now, 10, 60, 2, 30, 3600, func(recipient string, link string) Result[struct{}, failure.Failure] {
+ /*line password_reset_test.mygo:112:7*/		return Err[struct{}, failure.Failure](Of("smtp unavailable"))
+ /*line zz_password_reset.gen_test.go:102:1*/	})
+ /*line password_reset_test.mygo:115:3*/	if MygoIN6ResultM5IsErr[int, failure.Failure](failed) {
+ /*line password_reset_test.mygo:116:5*/		t.Fatal("resettable mail failed was not retained for retry")
+ /*line password_reset_test.mygo:115:3*/	} else {
+ /*line zz_password_reset.gen_test.go:106:1*/	}
+ /*line password_reset_test.mygo:27:1*/	state := ""
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Raw("SELECT state FROM password_reset_mail_jobs LIMIT 1").Scan(&state)))
+ /*line password_reset_test.mygo:120:3*/	if state != "pending" {
+ /*line password_reset_test.mygo:121:5*/		t.Fatal("transient reset mail failed did not remain retryable")
+ /*line password_reset_test.mygo:120:3*/	} else {
+ /*line zz_password_reset.gen_test.go:112:1*/	}
+ /*line password_reset_test.mygo:27:1*/	delivered := DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(2)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_1 string, link_1 string) Result[struct{}, failure.Failure] {
+ /*line password_reset_test.mygo:133:5*/		firstLink = link_1
+ /*line password_reset_test.mygo:135:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen_test.go:116:1*/		}{})
 	})
- /*line password_reset_test.mygo:137:3*/	if MygoIN6ResultM5IsErr[int, string](delivered) || MygoIN6ResultM6Unwrap[int, string](delivered) != 1 {
- /*line password_reset_test.mygo:138:5*/		t.Fatal("reset mail retry did not deliver")
- /*line password_reset_test.mygo:137:3*/	} else {
- /*line zz_password_reset.gen_test.go:120:1*/	}
- /*line password_reset_test.mygo:26:1*/	token := ResetTokenFromLink(firstLink)
- /*line password_reset_test.mygo:141:3*/	if token == "" || strings.Contains(string(encrypted), token) {
- /*line password_reset_test.mygo:142:5*/		t.Fatal("reset token was missing or stored in plaintext")
- /*line password_reset_test.mygo:141:3*/	} else {
- /*line zz_password_reset.gen_test.go:125:1*/	}
- /*line password_reset_test.mygo:26:1*/	hashRow := Zero[ResetHashTestRow]()
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("password_reset_tokens").Select("token_hash").Where("account_id=?", identity.AccountID).Limit(1).Find(&hashRow)))
- /*line password_reset_test.mygo:149:3*/	if !bytes.Equal(hashRow.TokenHash, auth.TokenHash(token)) {
- /*line password_reset_test.mygo:150:5*/		t.Fatal("stored reset digest did not match the delivered token")
- /*line password_reset_test.mygo:149:3*/	} else {
- /*line zz_password_reset.gen_test.go:131:1*/	}
- /*line password_reset_test.mygo:26:1*/	firstSession := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, identity, now))
-	secondSession := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, identity, now))
- /*line password_reset_test.mygo:154:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "short", now)) {
- /*line password_reset_test.mygo:155:5*/		t.Fatal("invalid reset password consumed a token")
- /*line password_reset_test.mygo:154:3*/	} else {
- /*line zz_password_reset.gen_test.go:137:1*/	}
- /*line password_reset_test.mygo:157:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "new-password", now)) {
- /*line password_reset_test.mygo:158:5*/		t.Fatal("valid reset confirmation failed")
- /*line password_reset_test.mygo:157:3*/	} else {
- /*line zz_password_reset.gen_test.go:141:1*/	}
- /*line password_reset_test.mygo:160:3*/	if MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, site.ID, "alice", "old-password")) || MygoIN6ResultM5IsErr[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, site.ID, "alice", "new-password")) {
- /*line password_reset_test.mygo:162:5*/		t.Fatal("reset did not replace the password")
- /*line password_reset_test.mygo:160:3*/	} else {
- /*line zz_password_reset.gen_test.go:145:1*/	}
- /*line password_reset_test.mygo:164:3*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, firstSession.Session, now)) || MygoIN6ResultM4IsOk[AuthenticatedSession, string](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, secondSession.Session, now)) {
- /*line password_reset_test.mygo:166:5*/		t.Fatal("reset did not revoke existing sessions")
- /*line password_reset_test.mygo:164:3*/	} else {
- /*line zz_password_reset.gen_test.go:149:1*/	}
- /*line password_reset_test.mygo:26:1*/	otherRepo := PasswordResetRepository{DB: db, Site: other, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 3600, RateWindowSeconds: 60}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN23PasswordResetRepositoryM7Request(otherRepo, ctx, "alice@example.org", "192.0.2.2", now))
+ /*line password_reset_test.mygo:138:3*/	if MygoIN6ResultM5IsErr[int, failure.Failure](delivered) || MygoIN6ResultM6Unwrap[int, failure.Failure](delivered) != 1 {
+ /*line password_reset_test.mygo:139:5*/		t.Fatal("reset mail retry did not deliver")
+ /*line password_reset_test.mygo:138:3*/	} else {
+ /*line zz_password_reset.gen_test.go:121:1*/	}
+ /*line password_reset_test.mygo:27:1*/	token := ResetTokenFromLink(firstLink)
+ /*line password_reset_test.mygo:142:3*/	if token == "" || strings.Contains(string(encrypted), token) {
+ /*line password_reset_test.mygo:143:5*/		t.Fatal("reset token was missing or stored in plaintext")
+ /*line password_reset_test.mygo:142:3*/	} else {
+ /*line zz_password_reset.gen_test.go:126:1*/	}
+ /*line password_reset_test.mygo:27:1*/	hashRow := Zero[ResetHashTestRow]()
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("password_reset_tokens").Select("token_hash").Where("account_id=?", identity.AccountID).Limit(1).Find(&hashRow)))
+ /*line password_reset_test.mygo:150:3*/	if !bytes.Equal(hashRow.TokenHash, auth.TokenHash(token)) {
+ /*line password_reset_test.mygo:151:5*/		t.Fatal("stored reset digest did not match the delivered token")
+ /*line password_reset_test.mygo:150:3*/	} else {
+ /*line zz_password_reset.gen_test.go:132:1*/	}
+ /*line password_reset_test.mygo:27:1*/	firstSession := MygoIN6ResultM6Unwrap[auth.SessionTokens, failure.Failure](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, identity, now))
+	secondSession := MygoIN6ResultM6Unwrap[auth.SessionTokens, failure.Failure](MygoIN17SessionRepositoryM5Issue(SessionRepository{DB: db}, ctx, identity, now))
+ /*line password_reset_test.mygo:155:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "short", now)) {
+ /*line password_reset_test.mygo:156:5*/		t.Fatal("invalid reset password consumed a token")
+ /*line password_reset_test.mygo:155:3*/	} else {
+ /*line zz_password_reset.gen_test.go:138:1*/	}
+ /*line password_reset_test.mygo:158:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "new-password", now)) {
+ /*line password_reset_test.mygo:159:5*/		t.Fatal("valid reset confirmation failed")
+ /*line password_reset_test.mygo:158:3*/	} else {
+ /*line zz_password_reset.gen_test.go:142:1*/	}
+ /*line password_reset_test.mygo:161:3*/	if MygoIN6ResultM4IsOk[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, site.ID, "alice", "old-password")) || MygoIN6ResultM5IsErr[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, site.ID, "alice", "new-password")) {
+ /*line password_reset_test.mygo:163:5*/		t.Fatal("reset did not replace the password")
+ /*line password_reset_test.mygo:161:3*/	} else {
+ /*line zz_password_reset.gen_test.go:146:1*/	}
+ /*line password_reset_test.mygo:165:3*/	if MygoIN6ResultM4IsOk[AuthenticatedSession, failure.Failure](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, firstSession.Session, now)) || MygoIN6ResultM4IsOk[AuthenticatedSession, failure.Failure](MygoIN17SessionRepositoryM7Resolve(SessionRepository{DB: db}, ctx, site.ID, secondSession.Session, now)) {
+ /*line password_reset_test.mygo:167:5*/		t.Fatal("reset did not revoke existing sessions")
+ /*line password_reset_test.mygo:165:3*/	} else {
+ /*line zz_password_reset.gen_test.go:150:1*/	}
+ /*line password_reset_test.mygo:27:1*/	otherRepo := PasswordResetRepository{DB: db, Site: other, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 3600, RateWindowSeconds: 60}
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Request(otherRepo, ctx, "alice@example.org", "192.0.2.2", now))
 	otherLink := ""
-	MygoIN6ResultM6Unwrap[int, string](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(5)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_2 string, link_2 string) Result[struct{}, string] {
- /*line password_reset_test.mygo:189:5*/		otherLink = link_2
- /*line password_reset_test.mygo:191:7*/		return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen_test.go:156:1*/		}{})
+	MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(5)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_2 string, link_2 string) Result[struct{}, failure.Failure] {
+ /*line password_reset_test.mygo:190:5*/		otherLink = link_2
+ /*line password_reset_test.mygo:192:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen_test.go:157:1*/		}{})
 	}))
- /*line password_reset_test.mygo:26:1*/	otherToken := ResetTokenFromLink(otherLink)
- /*line password_reset_test.mygo:195:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, otherToken, "cross-site-password", now)) {
- /*line password_reset_test.mygo:196:5*/		t.Fatal("cross-site reset token was accepted")
- /*line password_reset_test.mygo:195:3*/	} else {
- /*line zz_password_reset.gen_test.go:162:1*/	}
- /*line password_reset_test.mygo:26:1*/	expiredLink := ""
+ /*line password_reset_test.mygo:27:1*/	otherToken := ResetTokenFromLink(otherLink)
+ /*line password_reset_test.mygo:196:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, otherToken, "cross-site-password", now)) {
+ /*line password_reset_test.mygo:197:5*/		t.Fatal("cross-site reset token was accepted")
+ /*line password_reset_test.mygo:196:3*/	} else {
+ /*line zz_password_reset.gen_test.go:163:1*/	}
+ /*line password_reset_test.mygo:27:1*/	expiredLink := ""
 	expiredRepo := PasswordResetRepository{DB: db, Site: other, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 60, RateWindowSeconds: 60}
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN23PasswordResetRepositoryM7Request(expiredRepo, ctx, "alice@example.org", "192.0.2.3", now.Add(time.Duration(10)*time.Hour)))
-	MygoIN6ResultM6Unwrap[int, string](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(10)*time.Hour), 10, 60, 2, 30, 3600, func(recipient_3 string, link_3 string) Result[struct{}, string] {
- /*line password_reset_test.mygo:224:5*/		expiredLink = link_3
- /*line password_reset_test.mygo:226:7*/		return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen_test.go:169:1*/		}{})
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Request(expiredRepo, ctx, "alice@example.org", "192.0.2.3", now.Add(time.Duration(10)*time.Hour)))
+	MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(10)*time.Hour), 10, 60, 2, 30, 3600, func(recipient_3 string, link_3 string) Result[struct{}, failure.Failure] {
+ /*line password_reset_test.mygo:225:5*/		expiredLink = link_3
+ /*line password_reset_test.mygo:227:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen_test.go:170:1*/		}{})
 	}))
- /*line password_reset_test.mygo:26:1*/	expiredToken := ResetTokenFromLink(expiredLink)
- /*line password_reset_test.mygo:230:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN23PasswordResetRepositoryM7Confirm(expiredRepo, ctx, expiredToken, "expired-password", now.Add(time.Duration(10)*time.Hour).Add(time.Duration(2)*time.Minute))) || MygoIN6ResultM4IsOk[auth.Identity, string](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, other.ID, "alice", "expired-password")) {
- /*line password_reset_test.mygo:237:5*/		t.Fatal("expired reset token changed the password")
- /*line password_reset_test.mygo:230:3*/	} else {
- /*line zz_password_reset.gen_test.go:175:1*/	}
- /*line password_reset_test.mygo:26:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(4)*time.Hour)))
+ /*line password_reset_test.mygo:27:1*/	expiredToken := ResetTokenFromLink(expiredLink)
+ /*line password_reset_test.mygo:231:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Confirm(expiredRepo, ctx, expiredToken, "expired-password", now.Add(time.Duration(10)*time.Hour).Add(time.Duration(2)*time.Minute))) || MygoIN6ResultM4IsOk[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM12Authenticate(AccountRepository{DB: db}, ctx, other.ID, "alice", "expired-password")) {
+ /*line password_reset_test.mygo:238:5*/		t.Fatal("expired reset token changed the password")
+ /*line password_reset_test.mygo:231:3*/	} else {
+ /*line zz_password_reset.gen_test.go:176:1*/	}
+ /*line password_reset_test.mygo:27:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Request(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(4)*time.Hour)))
 	resendLink := ""
-	MygoIN6ResultM6Unwrap[int, string](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(4)*time.Hour).Add(time.Duration(5)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_4 string, link_4 string) Result[struct{}, string] {
- /*line password_reset_test.mygo:256:5*/		resendLink = link_4
- /*line password_reset_test.mygo:258:7*/		return Ok[struct{}, string](struct {
- /*line zz_password_reset.gen_test.go:181:1*/		}{})
+	MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverPasswordResetMail(ctx, db, key, now.Add(time.Duration(4)*time.Hour).Add(time.Duration(5)*time.Minute), 10, 60, 2, 30, 3600, func(recipient_4 string, link_4 string) Result[struct{}, failure.Failure] {
+ /*line password_reset_test.mygo:257:5*/		resendLink = link_4
+ /*line password_reset_test.mygo:259:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_password_reset.gen_test.go:182:1*/		}{})
 	}))
- /*line password_reset_test.mygo:26:1*/	resendToken := ResetTokenFromLink(resendLink)
- /*line password_reset_test.mygo:262:3*/	if MygoIN6ResultM4IsOk[struct{}, string](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "old-token-password", now.Add(time.Duration(4)*time.Hour).Add(time.Duration(10)*time.Minute))) {
- /*line password_reset_test.mygo:268:5*/		t.Fatal("resend did not invalidate the previous token")
- /*line password_reset_test.mygo:262:3*/	} else {
- /*line zz_password_reset.gen_test.go:187:1*/	}
- /*line password_reset_test.mygo:26:1*/	results := concurrency.MakeChan[Result[struct{}, string]](2)
+ /*line password_reset_test.mygo:27:1*/	resendToken := ResetTokenFromLink(resendLink)
+ /*line password_reset_test.mygo:263:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN23PasswordResetRepositoryM7Confirm(repository, ctx, token, "old-token-password", now.Add(time.Duration(4)*time.Hour).Add(time.Duration(10)*time.Minute))) {
+ /*line password_reset_test.mygo:269:5*/		t.Fatal("resend did not invalidate the previous token")
+ /*line password_reset_test.mygo:263:3*/	} else {
+ /*line zz_password_reset.gen_test.go:188:1*/	}
+ /*line password_reset_test.mygo:27:1*/	results := concurrency.MakeChan[Result[struct{}, failure.Failure]](2)
 	var attempts []string = []string{"concurrent-one", "concurrent-two"}
- /*line password_reset_test.mygo:272:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(attempts, func(password string) {
- /*line password_reset_test.mygo:273:5*/		concurrency.Spawn(func() {
- /*line password_reset_test.mygo:273:23*/			repositoryCopy := PasswordResetRepository{DB: db, Site: site, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 3600, RateWindowSeconds: 60}
- /*line password_reset_test.mygo:283:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN23PasswordResetRepositoryM7Confirm(repositoryCopy, ctx, resendToken, password, now.Add(time.Duration(4)*time.Hour).Add(time.Duration(10)*time.Minute)))
+ /*line password_reset_test.mygo:273:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(attempts, func(password string) {
+ /*line password_reset_test.mygo:274:5*/		concurrency.Spawn(func() {
+ /*line password_reset_test.mygo:274:23*/			repositoryCopy := PasswordResetRepository{DB: db, Site: site, EncryptionKey: key, IPAttempts: 10, EmailAttempts: 3, TokenTTLSeconds: 3600, RateWindowSeconds: 60}
+ /*line password_reset_test.mygo:284:7*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, MygoIN23PasswordResetRepositoryM7Confirm(repositoryCopy, ctx, resendToken, password, now.Add(time.Duration(4)*time.Hour).Add(time.Duration(10)*time.Minute)))
 			return
- /*line zz_password_reset.gen_test.go:195:1*/		})
- /*line password_reset_test.mygo:273:5*/		return
- /*line zz_password_reset.gen_test.go:197:1*/	})
- /*line password_reset_test.mygo:26:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
-	second := MygoIN6OptionM6Unwrap[Result[struct{}, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, string]](results))
- /*line password_reset_test.mygo:293:3*/	if MygoIN6ResultM4IsOk[struct{}, string](first) == MygoIN6ResultM4IsOk[struct{}, string](second) {
- /*line password_reset_test.mygo:294:5*/		t.Fatal("concurrent reset confirmation was not single-use")
+ /*line zz_password_reset.gen_test.go:196:1*/		})
+ /*line password_reset_test.mygo:274:5*/		return
+ /*line zz_password_reset.gen_test.go:198:1*/	})
+ /*line password_reset_test.mygo:27:1*/	first := MygoIN6OptionM6Unwrap[Result[struct{}, failure.Failure]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, failure.Failure]](results))
+	second := MygoIN6OptionM6Unwrap[Result[struct{}, failure.Failure]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[struct{}, failure.Failure]](results))
+ /*line password_reset_test.mygo:294:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](first) == MygoIN6ResultM4IsOk[struct{}, failure.Failure](second) {
+ /*line password_reset_test.mygo:295:5*/		t.Fatal("concurrent reset confirmation was not single-use")
 		return
- /*line password_reset_test.mygo:293:3*/	} else {
+ /*line password_reset_test.mygo:294:3*/	} else {
 		return
- /*line zz_password_reset.gen_test.go:205:1*/	}
+ /*line zz_password_reset.gen_test.go:206:1*/	}
 }

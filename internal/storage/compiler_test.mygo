@@ -4,7 +4,7 @@ import testing "go:testing"
 
 func earlyError(fail: Bool) -> Result[(), String]
   if fail then
-    return Err("failure")
+    return Err("failed")
   end
   Ok(())
 end
@@ -15,7 +15,7 @@ func TestEarlyResultError(t: Ref[testing.T]) -> ()
   end
   switch earlyError(true)
   case Err(message) =>
-    if message != "failure" then
+    if message != "failed" then
       t.Fatal("error payload changed")
     end
   case Ok(_) => t.Fatal("early Err matched Ok")

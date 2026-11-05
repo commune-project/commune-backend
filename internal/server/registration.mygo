@@ -10,6 +10,7 @@ import time "go:time"
 import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct RegistrationInput
   Username: String `json:"username"`
@@ -28,10 +29,10 @@ end
 func RegistrationClientIP(
   settings: config.Config,
   request: Ref[http.Request]
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let peer = netip.ParseAddrPort(request.RemoteAddr)
   if peer.IsErr() then
-    return Err("invalid client address")
+    return Err(Of("invalid client address"))
   end
   var value = peer.Unwrap().Addr().Unmap().String()
   if config.TrustedProxy(settings, request.RemoteAddr) then
@@ -43,7 +44,7 @@ func RegistrationClientIP(
       while index >= 0
         let candidate = netip.ParseAddr(strings.TrimSpace(hops.Get(index).Unwrap()))
         if candidate.IsErr() then
-          return Err("invalid client address")
+          return Err(Of("invalid client address"))
         end
         value = candidate.Unwrap().Unmap().String()
         if !config.TrustedProxy(settings, net.JoinHostPort(value, "1")) then
@@ -55,7 +56,7 @@ func RegistrationClientIP(
   end
   let parsed = netip.ParseAddr(value)
   if parsed.IsErr() then
-    return Err("invalid client address")
+    return Err(Of("invalid client address"))
   end
   Ok(parsed.Unwrap().Unmap().String())
 end
@@ -101,7 +102,7 @@ func RegistrationRoute(
     TokenTTLSeconds: settings.Registration.TokenTTLSeconds,
     RateWindowSeconds: settings.Registration.RateWindowSeconds,
   }
-  var result: Result[(), String] = Ok(())
+  var result: Result[(), failure.Failure] = Ok(())
   if path == "/api/v1/auth/register" then
     let input = Zero[RegistrationInput]()
     if DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input)).IsErr() then
@@ -127,7 +128,7 @@ func RegistrationRoute(
     end
   end
   if result.IsErr() then
-    let reason = result.UnwrapErr()
+    let reason = result.UnwrapErr().Render()
     if reason == "registration rate limited" then
       w.Header().Set("Retry-After", strconv.Itoa(settings.Registration.RateWindowSeconds))
       WriteErrorJSON(w, 429, reason)

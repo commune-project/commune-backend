@@ -15,6 +15,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line search_test.mygo:16:1*/func TestPostgresSearchRoute(t *testing.T) {
@@ -24,19 +25,19 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_search.gen_test.go:27:1*/	}
+ /*line zz_search.gen_test.go:28:1*/	}
  /*line search_test.mygo:16:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("ALTER TABLE posts ADD COLUMN IF NOT EXISTS search_text text NOT NULL DEFAULT ''")))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	handler := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
  /*line search_test.mygo:24:17*/		var parts []string = []string{"api", "v1", "search"}
 		SearchRoute(settings, db, site, w, request, parts)
 		return
- /*line zz_search.gen_test.go:39:1*/	})
+ /*line zz_search.gen_test.go:40:1*/	})
  /*line search_test.mygo:16:1*/	var invalid []string = []string{"", "?q=x", "?kind=wrong&q=x", "?kind=posts", "?kind=posts&q=x&limit=0", "?kind=posts&q=x&offset=-1", "?kind=posts&q=" + strings.Repeat("x", 201)}
  /*line search_test.mygo:37:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(query string) {
  /*line search_test.mygo:37:16*/		response := httptest.NewRecorder()
@@ -46,7 +47,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line search_test.mygo:43:5*/		} else {
 			return
- /*line zz_search.gen_test.go:49:1*/		}
+ /*line zz_search.gen_test.go:50:1*/		}
 	})
  /*line search_test.mygo:16:1*/	var kinds []string = []string{"posts", "communities"}
  /*line search_test.mygo:48:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(kinds, func(kind string) {
@@ -57,38 +58,38 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line search_test.mygo:58:5*/		} else {
 			return
- /*line zz_search.gen_test.go:60:1*/		}
+ /*line zz_search.gen_test.go:61:1*/		}
 	})
- /*line search_test.mygo:16:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", community.ID, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts", site.ID)))
+ /*line search_test.mygo:16:1*/	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-password"))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, alice, "public", "Public", "federated", "eligible_users", "eligible_users"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,search_text,authored_at,updated_at) SELECT 'search-'||n,'https://a.example/objects/search-'||n,?,'federated',?,'Page','Topic','Body','中文',now(),now() FROM generate_series(1,1000) n", community.ID, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO site_posts(site_id,post_id) SELECT ?,id FROM posts", site.ID)))
 	browser := storage.BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
-	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 1, Offset: 0}, 50))
-	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 20, Offset: 0}, 50))
+	viewer := MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](storage.MygoIN17BrowserRepositoryM6Viewer(browser, ctx, Zero[auth.Identity]()))
+	one := MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 1, Offset: 0}, 50))
+	twenty := MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](storage.MygoIN17BrowserRepositoryM11SearchPosts(browser, ctx, viewer, "中文", storage.Page{Limit: 20, Offset: 0}, 50))
 	probeOne := transport.NewQueryProbe(db)
 	probeTwenty := transport.NewQueryProbe(db)
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
-	MygoIN6ResultM6Unwrap[[]PostOutput, string](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
+	MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeOne.DB(), SiteID: site.ID}, viewer, one))
+	MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](BrowserPosts(content.DefaultSanitizer, ctx, storage.BrowserRepository{DB: probeTwenty.DB(), SiteID: site.ID}, viewer, twenty))
  /*line search_test.mygo:102:3*/	if probeOne.Count() != probeTwenty.Count() || probeTwenty.Count() > int64(3) {
  /*line search_test.mygo:103:5*/		t.Fatal("search enrichment queries grew with page size")
  /*line search_test.mygo:102:3*/	} else {
- /*line zz_search.gen_test.go:77:1*/	}
+ /*line zz_search.gen_test.go:78:1*/	}
  /*line search_test.mygo:105:3*/	t.Logf("search enrichment queries one=%d twenty=%d", probeOne.Count(), probeTwenty.Count())
  /*line search_test.mygo:16:1*/	enriched := httptest.NewRecorder()
  /*line search_test.mygo:107:3*/	handler.ServeHTTP(http.ResponseWriter(enriched), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=Topic&limit=1", io.Reader(strings.NewReader(""))))
  /*line search_test.mygo:115:3*/	if enriched.Code != 200 || !strings.Contains(enriched.Body.String(), "\"like_count\":0") || !strings.Contains(enriched.Body.String(), "\"permissions\":") {
  /*line search_test.mygo:118:5*/		t.Fatalf("search DTO enrichment failed: %s", enriched.Body.String())
  /*line search_test.mygo:115:3*/	} else {
- /*line zz_search.gen_test.go:84:1*/	}
+ /*line zz_search.gen_test.go:85:1*/	}
  /*line search_test.mygo:16:1*/	method := httptest.NewRecorder()
  /*line search_test.mygo:121:3*/	handler.ServeHTTP(http.ResponseWriter(method), httptest.NewRequest("POST", "/api/v1/search", io.Reader(strings.NewReader(""))))
  /*line search_test.mygo:125:3*/	if method.Code != 405 || method.Header().Get("Allow") != "GET" {
  /*line search_test.mygo:126:5*/		t.Fatal("search method validation failed")
  /*line search_test.mygo:125:3*/	} else {
- /*line zz_search.gen_test.go:90:1*/	}
- /*line search_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("DROP TABLE site_posts CASCADE")))
+ /*line zz_search.gen_test.go:91:1*/	}
+ /*line search_test.mygo:16:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("DROP TABLE site_posts CASCADE")))
 	unavailable := httptest.NewRecorder()
  /*line search_test.mygo:130:3*/	handler.ServeHTTP(http.ResponseWriter(unavailable), httptest.NewRequest("GET", "/api/v1/search?kind=posts&q=x", io.Reader(strings.NewReader(""))))
  /*line search_test.mygo:134:3*/	if unavailable.Code != 503 {
@@ -96,5 +97,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line search_test.mygo:134:3*/	} else {
 		return
- /*line zz_search.gen_test.go:99:1*/	}
+ /*line zz_search.gen_test.go:100:1*/	}
 }

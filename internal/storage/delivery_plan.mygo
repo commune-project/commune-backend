@@ -4,6 +4,7 @@ import context "go:context"
 import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
 import functional "github.com/commune-project/commune-backend/internal/functional"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct DeliveryTarget
   ActorURI: String
@@ -28,26 +29,41 @@ struct DeliveryProgress
   Failed: Bool
 end
 
-func LoadDeliveryTargets(ctx: context.Context, db: Ref[gorm.DB], actorURIs: Slice[String]) -> Result[Slice[DeliveryTarget], String]
-  let loaded = actorURIs.Map(func(uri: String) -> Result[DeliveryTarget, String]
+func LoadDeliveryTargets(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  actorURIs: Slice[String]
+) -> Result[Slice[DeliveryTarget], failure.Failure]
+  let loaded = actorURIs.Map(func(uri: String) -> Result[DeliveryTarget, failure.Failure]
     let record = Zero[DeliveryTargetRecord]()
     let query = db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(Ref.new(record))
     if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-      Err("delivery plan failed")
+      Err(Of("delivery plan failed"))
     else
-      let site = if record.LocalSiteID.Valid then record.LocalSiteID.String else "" end
-      let inbox = if record.InboxURI.Valid && record.InboxURI.String != "" then record.InboxURI.String else uri + "/inbox" end
+      let site = if record.LocalSiteID.Valid => record.LocalSiteID.String else ""
+      let inbox = if record.InboxURI.Valid && record.InboxURI.String != "" then
+        record.InboxURI.String
+      else
+        uri + "/inbox"
+      end
       Ok(DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
     end
   end)
-  functional.Sequence(loaded)
+  functional.SequenceFailure(loaded)
 end
 
 # Colocated recipients receive a local inbox receipt rather than an outbound POST,
 # so they still pass through the receiving site's own inbox validation and policy
 # instead of bypassing it. Remote recipients share one job per (activity, signer,
 # inbox); the worker collapses those into a single transmission.
-func PlanDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, signingActorURI: String, actorURIs: Slice[String], communityID: String) -> Result[PlanResult, String]
+func PlanDelivery(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  activityURI: String,
+  signingActorURI: String,
+  actorURIs: Slice[String],
+  communityID: String
+) -> Result[PlanResult, failure.Failure]
   let excluded = IsLocalOnlyActivity(ctx, db, activityURI)
   if excluded.IsErr() then
     return Err(excluded.UnwrapErr())
@@ -59,24 +75,56 @@ func PlanDelivery(ctx: context.Context, db: Ref[gorm.DB], activityURI: String, s
   if targets.IsErr() then
     return Err(targets.UnwrapErr())
   end
-  let progress = targets.Unwrap().Fold(DeliveryProgress{Receipts: 0i64, Jobs: 0i64, Failed: false}, func(progress: DeliveryProgress, target: DeliveryTarget) -> DeliveryProgress
-    if target.LocalSiteID != "" then
-      let inserted = db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
-      if MutationResult(inserted).IsErr() then
-        DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
+  let progress = targets.Unwrap().Fold(
+    DeliveryProgress{Receipts: 0i64, Jobs: 0i64, Failed: false},
+    func(progress: DeliveryProgress, target: DeliveryTarget) -> DeliveryProgress
+      if target.LocalSiteID != "" then
+        let inserted = db.WithContext(ctx).Exec(
+          "INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING",
+          activityURI,
+          target.LocalSiteID,
+          target.ActorURI
+        )
+        if MutationResult(inserted).IsErr() then
+          DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
+        else
+          DeliveryProgress{
+            Receipts: progress.Receipts + inserted.RowsAffected,
+            Jobs: progress.Jobs,
+            Failed: progress.Failed,
+          }
+        end
       else
-        DeliveryProgress{Receipts: progress.Receipts + inserted.RowsAffected, Jobs: progress.Jobs, Failed: progress.Failed}
-      end
-    else
-      let queued = EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
-      switch queued
-        case Err(_) => DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
-        case Ok(count) => DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs + count, Failed: progress.Failed}
+        let queued = EnqueueDelivery(
+          ctx,
+          db,
+          activityURI,
+          signingActorURI,
+          target.ActorURI,
+          target.InboxURI,
+          communityID
+        )
+        switch queued
+          case Err(_) then
+            DeliveryProgress{
+              Receipts: progress.Receipts,
+              Jobs: progress.Jobs,
+              Failed: true,
+            }
+          end
+          case Ok(count) then
+            DeliveryProgress{
+              Receipts: progress.Receipts,
+              Jobs: progress.Jobs + count,
+              Failed: progress.Failed,
+            }
+          end
+        end
       end
     end
-  end)
+  )
   if progress.Failed then
-    return Err("delivery plan failed")
+    return Err(Of("delivery plan failed"))
   end
   Ok(PlanResult{Receipts: progress.Receipts, Jobs: progress.Jobs})
 end

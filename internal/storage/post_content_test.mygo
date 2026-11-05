@@ -167,7 +167,7 @@ func TestPostgresRichPostAtomicityAndMentions(t: Ref[testing.T]) -> ()
     saved.Version - 1i64,
     content.DefaultSanitizer
   )
-  if stale.IsOk() || stale.UnwrapErr() != "edit_conflict" then
+  if stale.IsOk() || stale.UnwrapErr().Render() != "edit_conflict" then
     t.Fatal("stale attachment save did not conflict")
   end
   if posts.EditContent(

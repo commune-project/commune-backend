@@ -8,25 +8,26 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line context_backfill_test.mygo:10:1*/func TestPostgresContextBackfillAndNavigation(t *testing.T) {
- /*line context_backfill_test.mygo:11:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line context_backfill_test.mygo:11:1*/func TestPostgresContextBackfillAndNavigation(t *testing.T) {
+ /*line context_backfill_test.mygo:12:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_context_backfill.gen_test.go:22:1*/	}
- /*line context_backfill_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_context_backfill.gen_test.go:23:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-account-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "", "alice-account-password"))
 	authority := "https://peer.example/communities/discussion"
 	author := "https://writer.example/users/writer"
 	root := "https://peer.example/contexts/discussion"
@@ -34,82 +35,82 @@ import . "github.com/mygo-lang/mygo/prelude"
 	nextPage := "https://peer.example/contexts/discussion?page=2"
 	topicURI := "https://peer.example/objects/topic"
 	replyURI := "https://peer.example/objects/reply"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group'), (?, 'Person')", authority, author)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','remote','Remote')", authority, author)))
-	fetcher := func(fetchCtx context.Context, fetchSettings config.Config, uri string) Result[[]byte, string] {
- /*line context_backfill_test.mygo:28:5*/		if uri == root {
- /*line context_backfill_test.mygo:29:14*/			return Ok[[]byte, string]([]byte("{\"id\":\"" + root + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + authority + "\",\"first\":\"" + page + "\"}"))
- /*line context_backfill_test.mygo:28:5*/		} else {
- /*line zz_context_backfill.gen_test.go:43:1*/		}
- /*line context_backfill_test.mygo:31:5*/		if uri == page {
- /*line context_backfill_test.mygo:32:14*/			return Ok[[]byte, string]([]byte("{\"id\":\"" + page + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + topicURI + "\",\"" + replyURI + "\"],\"next\":\"" + nextPage + "\"}"))
- /*line context_backfill_test.mygo:31:5*/		} else {
- /*line zz_context_backfill.gen_test.go:47:1*/		}
- /*line context_backfill_test.mygo:34:5*/		if uri == nextPage {
- /*line context_backfill_test.mygo:35:14*/			return Ok[[]byte, string]([]byte("{\"id\":\"" + nextPage + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + replyURI + "\"]}"))
- /*line context_backfill_test.mygo:34:5*/		} else {
- /*line zz_context_backfill.gen_test.go:51:1*/		}
- /*line context_backfill_test.mygo:37:5*/		if uri == topicURI {
- /*line context_backfill_test.mygo:38:14*/			return Ok[[]byte, string]([]byte("{\"id\":\"" + topicURI + "\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"name\":\"Topic\",\"content\":\"Body\",\"published\":\"2026-10-20T00:00:00Z\"}"))
- /*line context_backfill_test.mygo:37:5*/		} else {
- /*line zz_context_backfill.gen_test.go:55:1*/		}
- /*line context_backfill_test.mygo:40:5*/		if uri == replyURI {
- /*line context_backfill_test.mygo:41:14*/			return Ok[[]byte, string]([]byte("{\"id\":\"" + replyURI + "\",\"type\":\"Note\",\"attributedTo\":\"" + author + "\",\"content\":\"Reply without context\",\"inReplyTo\":\"" + topicURI + "\",\"published\":\"2026-10-20T00:01:00Z\"}"))
- /*line context_backfill_test.mygo:40:5*/		} else {
- /*line zz_context_backfill.gen_test.go:59:1*/		}
- /*line context_backfill_test.mygo:43:5*/		return Err[[]byte, string]("unexpected backfill URI")
- /*line zz_context_backfill.gen_test.go:61:1*/	}
- /*line context_backfill_test.mygo:10:1*/	contextID := MygoIN6ResultM6Unwrap[string, string](storage.EnsureContextStub(ctx, db, root))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group'), (?, 'Person')", authority, author)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','remote','Remote')", authority, author)))
+	fetcher := func(fetchCtx context.Context, fetchSettings config.Config, uri string) Result[[]byte, failure.Failure] {
+ /*line context_backfill_test.mygo:29:5*/		if uri == root {
+ /*line context_backfill_test.mygo:30:14*/			return Ok[[]byte, failure.Failure]([]byte("{\"id\":\"" + root + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + authority + "\",\"first\":\"" + page + "\"}"))
+ /*line context_backfill_test.mygo:29:5*/		} else {
+ /*line zz_context_backfill.gen_test.go:44:1*/		}
+ /*line context_backfill_test.mygo:32:5*/		if uri == page {
+ /*line context_backfill_test.mygo:33:14*/			return Ok[[]byte, failure.Failure]([]byte("{\"id\":\"" + page + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + topicURI + "\",\"" + replyURI + "\"],\"next\":\"" + nextPage + "\"}"))
+ /*line context_backfill_test.mygo:32:5*/		} else {
+ /*line zz_context_backfill.gen_test.go:48:1*/		}
+ /*line context_backfill_test.mygo:35:5*/		if uri == nextPage {
+ /*line context_backfill_test.mygo:36:14*/			return Ok[[]byte, failure.Failure]([]byte("{\"id\":\"" + nextPage + "\",\"type\":\"OrderedCollectionPage\",\"orderedItems\":[\"" + replyURI + "\"]}"))
+ /*line context_backfill_test.mygo:35:5*/		} else {
+ /*line zz_context_backfill.gen_test.go:52:1*/		}
+ /*line context_backfill_test.mygo:38:5*/		if uri == topicURI {
+ /*line context_backfill_test.mygo:39:14*/			return Ok[[]byte, failure.Failure]([]byte("{\"id\":\"" + topicURI + "\",\"type\":\"Page\",\"attributedTo\":\"" + author + "\",\"name\":\"Topic\",\"content\":\"Body\",\"published\":\"2026-10-20T00:00:00Z\"}"))
+ /*line context_backfill_test.mygo:38:5*/		} else {
+ /*line zz_context_backfill.gen_test.go:56:1*/		}
+ /*line context_backfill_test.mygo:41:5*/		if uri == replyURI {
+ /*line context_backfill_test.mygo:42:14*/			return Ok[[]byte, failure.Failure]([]byte("{\"id\":\"" + replyURI + "\",\"type\":\"Note\",\"attributedTo\":\"" + author + "\",\"content\":\"Reply without context\",\"inReplyTo\":\"" + topicURI + "\",\"published\":\"2026-10-20T00:01:00Z\"}"))
+ /*line context_backfill_test.mygo:41:5*/		} else {
+ /*line zz_context_backfill.gen_test.go:60:1*/		}
+ /*line context_backfill_test.mygo:44:5*/		return Err[[]byte, failure.Failure](Of("unexpected backfill URI"))
+ /*line zz_context_backfill.gen_test.go:62:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	contextID := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.EnsureContextStub(ctx, db, root))
 	firstResult := BackfillDiscussion(ctx, settings, db, site, contextID, alice, false, fetcher)
- /*line context_backfill_test.mygo:47:3*/	if MygoIN6ResultM5IsErr[BackfillResult, string](firstResult) {
- /*line context_backfill_test.mygo:48:5*/		t.Fatalf("the first backfill failed: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, string](firstResult))
- /*line context_backfill_test.mygo:47:3*/	} else {
- /*line zz_context_backfill.gen_test.go:67:1*/	}
- /*line context_backfill_test.mygo:10:1*/	first := MygoIN6ResultM6Unwrap[BackfillResult, string](firstResult)
- /*line context_backfill_test.mygo:51:3*/	if first.Imported != 2 || first.Pages != 3 || first.Examined != 2 {
- /*line context_backfill_test.mygo:52:5*/		t.Fatalf("unexpected bounded backfill result: imported=%d pages=%d examined=%d", first.Imported, first.Pages, first.Examined)
- /*line context_backfill_test.mygo:51:3*/	} else {
- /*line zz_context_backfill.gen_test.go:72:1*/	}
- /*line context_backfill_test.mygo:10:1*/	topic := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByURI(ctx, db, topicURI)))
-	reply := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByURI(ctx, db, replyURI)))
- /*line context_backfill_test.mygo:56:3*/	if reply.ParentID.String != topic.ID {
- /*line context_backfill_test.mygo:57:5*/		t.Fatal("the context-less reply lost its inReplyTo relationship")
- /*line context_backfill_test.mygo:56:3*/	} else {
- /*line zz_context_backfill.gen_test.go:78:1*/	}
- /*line context_backfill_test.mygo:59:3*/	if storage.PrimaryPostContextURI(ctx, db, reply.ID) != "" {
- /*line context_backfill_test.mygo:60:5*/		t.Fatal("backfill published an inferred context as a declaration")
- /*line context_backfill_test.mygo:59:3*/	} else {
- /*line zz_context_backfill.gen_test.go:82:1*/	}
- /*line context_backfill_test.mygo:10:1*/	navigationRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.NavigationRoot(ctx, db, reply.ID))
- /*line context_backfill_test.mygo:63:3*/	if navigationRoot.ID != topic.ID {
- /*line context_backfill_test.mygo:64:5*/		t.Fatal("inReplyTo navigation did not reach the discussion root")
- /*line context_backfill_test.mygo:63:3*/	} else {
- /*line zz_context_backfill.gen_test.go:87:1*/	}
- /*line context_backfill_test.mygo:66:3*/	if MygoIN6ResultM6Unwrap[int64, string](storage.CountContextPosts(ctx, db, contextID)) != int64(2) {
- /*line context_backfill_test.mygo:67:5*/		t.Fatal("canonical collection membership did not include both objects")
- /*line context_backfill_test.mygo:66:3*/	} else {
- /*line zz_context_backfill.gen_test.go:91:1*/	}
- /*line context_backfill_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, reply.ID)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE posts SET body='',deleted_at=now(),updated_at=now() WHERE id=?", topic.ID)))
+ /*line context_backfill_test.mygo:48:3*/	if MygoIN6ResultM5IsErr[BackfillResult, failure.Failure](firstResult) {
+ /*line context_backfill_test.mygo:49:5*/		t.Fatalf("the first backfill failed: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, failure.Failure](firstResult))
+ /*line context_backfill_test.mygo:48:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:68:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	first := MygoIN6ResultM6Unwrap[BackfillResult, failure.Failure](firstResult)
+ /*line context_backfill_test.mygo:52:3*/	if first.Imported != 2 || first.Pages != 3 || first.Examined != 2 {
+ /*line context_backfill_test.mygo:53:5*/		t.Fatalf("unexpected bounded backfill result: imported=%d pages=%d examined=%d", first.Imported, first.Pages, first.Examined)
+ /*line context_backfill_test.mygo:52:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:73:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	topic := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](storage.LoadObjectByURI(ctx, db, topicURI)))
+	reply := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](storage.LoadObjectByURI(ctx, db, replyURI)))
+ /*line context_backfill_test.mygo:57:3*/	if reply.ParentID.String != topic.ID {
+ /*line context_backfill_test.mygo:58:5*/		t.Fatal("the context-less reply lost its inReplyTo relationship")
+ /*line context_backfill_test.mygo:57:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:79:1*/	}
+ /*line context_backfill_test.mygo:60:3*/	if storage.PrimaryPostContextURI(ctx, db, reply.ID) != "" {
+ /*line context_backfill_test.mygo:61:5*/		t.Fatal("backfill published an inferred context as a declaration")
+ /*line context_backfill_test.mygo:60:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:83:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	navigationRoot := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.NavigationRoot(ctx, db, reply.ID))
+ /*line context_backfill_test.mygo:64:3*/	if navigationRoot.ID != topic.ID {
+ /*line context_backfill_test.mygo:65:5*/		t.Fatal("inReplyTo navigation did not reach the discussion root")
+ /*line context_backfill_test.mygo:64:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:88:1*/	}
+ /*line context_backfill_test.mygo:67:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](storage.CountContextPosts(ctx, db, contextID)) != int64(2) {
+ /*line context_backfill_test.mygo:68:5*/		t.Fatal("canonical collection membership did not include both objects")
+ /*line context_backfill_test.mygo:67:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:92:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE site_posts SET hidden_at=now() WHERE site_id=? AND post_id=?", site.ID, reply.ID)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE posts SET body='',deleted_at=now(),updated_at=now() WHERE id=?", topic.ID)))
 	secondResult := BackfillDiscussion(ctx, settings, db, site, contextID, alice, false, fetcher)
- /*line context_backfill_test.mygo:72:3*/	if MygoIN6ResultM5IsErr[BackfillResult, string](secondResult) {
- /*line context_backfill_test.mygo:73:5*/		t.Fatalf("the repeated backfill failed: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, string](secondResult))
- /*line context_backfill_test.mygo:72:3*/	} else {
- /*line zz_context_backfill.gen_test.go:98:1*/	}
- /*line context_backfill_test.mygo:75:3*/	if MygoIN6ResultM6Unwrap[BackfillResult, string](secondResult).Imported != 0 {
- /*line context_backfill_test.mygo:76:5*/		t.Fatal("a repeated backfill imported duplicates")
- /*line context_backfill_test.mygo:75:3*/	} else {
- /*line zz_context_backfill.gen_test.go:102:1*/	}
- /*line context_backfill_test.mygo:10:1*/	hiddenAfter := MygoIN6ResultM6Unwrap[bool, string](storage.QueryExists(db.Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NOT NULL", site.ID, reply.ID)))
- /*line context_backfill_test.mygo:79:3*/	if !hiddenAfter {
- /*line context_backfill_test.mygo:80:5*/		t.Fatal("backfill cleared a site hide")
- /*line context_backfill_test.mygo:79:3*/	} else {
- /*line zz_context_backfill.gen_test.go:107:1*/	}
- /*line context_backfill_test.mygo:10:1*/	tombstoned := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], string](storage.LoadObjectByID(ctx, db, topic.ID)))
- /*line context_backfill_test.mygo:83:3*/	if !tombstoned.DeletedAt.Valid || tombstoned.Body != "" {
- /*line context_backfill_test.mygo:84:5*/		t.Fatal("backfill resurrected an author tombstone")
+ /*line context_backfill_test.mygo:73:3*/	if MygoIN6ResultM5IsErr[BackfillResult, failure.Failure](secondResult) {
+ /*line context_backfill_test.mygo:74:5*/		t.Fatalf("the repeated backfill failed: %s", MygoIN6ResultM9UnwrapErr[BackfillResult, failure.Failure](secondResult))
+ /*line context_backfill_test.mygo:73:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:99:1*/	}
+ /*line context_backfill_test.mygo:76:3*/	if MygoIN6ResultM6Unwrap[BackfillResult, failure.Failure](secondResult).Imported != 0 {
+ /*line context_backfill_test.mygo:77:5*/		t.Fatal("a repeated backfill imported duplicates")
+ /*line context_backfill_test.mygo:76:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:103:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	hiddenAfter := MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.QueryExists(db.Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NOT NULL", site.ID, reply.ID)))
+ /*line context_backfill_test.mygo:80:3*/	if !hiddenAfter {
+ /*line context_backfill_test.mygo:81:5*/		t.Fatal("backfill cleared a site hide")
+ /*line context_backfill_test.mygo:80:3*/	} else {
+ /*line zz_context_backfill.gen_test.go:108:1*/	}
+ /*line context_backfill_test.mygo:11:1*/	tombstoned := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](storage.LoadObjectByID(ctx, db, topic.ID)))
+ /*line context_backfill_test.mygo:84:3*/	if !tombstoned.DeletedAt.Valid || tombstoned.Body != "" {
+ /*line context_backfill_test.mygo:85:5*/		t.Fatal("backfill resurrected an author tombstone")
 		return
- /*line context_backfill_test.mygo:83:3*/	} else {
+ /*line context_backfill_test.mygo:84:3*/	} else {
 		return
- /*line zz_context_backfill.gen_test.go:114:1*/	}
+ /*line zz_context_backfill.gen_test.go:115:1*/	}
 }

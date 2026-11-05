@@ -6,94 +6,95 @@ import "context"
 import "gorm.io/gorm"
 import "database/sql"
 import "github.com/commune-project/commune-backend/internal/functional"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line delivery_plan.mygo:8:1*/type DeliveryTarget struct {
+ /*line delivery_plan.mygo:9:1*/type DeliveryTarget struct {
 	ActorURI    string
 	InboxURI    string
 	LocalSiteID string
- /*line zz_delivery_plan.gen.go:15:1*/}
- /*line delivery_plan.mygo:14:1*/type DeliveryTargetRecord struct {
+ /*line zz_delivery_plan.gen.go:16:1*/}
+ /*line delivery_plan.mygo:15:1*/type DeliveryTargetRecord struct {
 	URI         string         "gorm:\"column:uri\""
 	InboxURI    sql.NullString "gorm:\"column:inbox_uri\""
 	LocalSiteID sql.NullString "gorm:\"column:local_site_id\""
- /*line zz_delivery_plan.gen.go:20:1*/}
- /*line delivery_plan.mygo:20:1*/type PlanResult struct {
+ /*line zz_delivery_plan.gen.go:21:1*/}
+ /*line delivery_plan.mygo:21:1*/type PlanResult struct {
 	Receipts int64
 	Jobs     int64
- /*line zz_delivery_plan.gen.go:24:1*/}
- /*line delivery_plan.mygo:25:1*/type DeliveryProgress struct {
+ /*line zz_delivery_plan.gen.go:25:1*/}
+ /*line delivery_plan.mygo:26:1*/type DeliveryProgress struct {
 	Receipts int64
 	Jobs     int64
 	Failed   bool
- /*line zz_delivery_plan.gen.go:29:1*/}
+ /*line zz_delivery_plan.gen.go:30:1*/}
 
- /*line delivery_plan.mygo:31:1*/func LoadDeliveryTargets(ctx context.Context, db *gorm.DB, actorURIs []string) Result[[]DeliveryTarget, string] {
-	loaded := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(actorURIs, func(uri string) Result[DeliveryTarget, string] {
- /*line delivery_plan.mygo:32:30*/		record := Zero[DeliveryTargetRecord]()
+ /*line delivery_plan.mygo:32:1*/func LoadDeliveryTargets(ctx context.Context, db *gorm.DB, actorURIs []string) Result[[]DeliveryTarget, failure.Failure] {
+	loaded := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(actorURIs, func(uri string) Result[DeliveryTarget, failure.Failure] {
+ /*line delivery_plan.mygo:37:30*/		record := Zero[DeliveryTargetRecord]()
 		query := db.WithContext(ctx).Table("actors").Where("uri = ?", uri).Limit(1).Find(&record)
- /*line delivery_plan.mygo:35:5*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line delivery_plan.mygo:36:7*/			return Err[DeliveryTarget, string]("delivery plan failed")
- /*line delivery_plan.mygo:35:5*/		} else {
+ /*line delivery_plan.mygo:40:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line delivery_plan.mygo:41:7*/			return Err[DeliveryTarget, failure.Failure](Of("delivery plan failed"))
+ /*line delivery_plan.mygo:40:5*/		} else {
 			var __mygo_expr_0 string
 			if record.LocalSiteID.Valid {
 				__mygo_expr_0 = record.LocalSiteID.String
 			} else {
 				__mygo_expr_0 = ""
- /*line zz_delivery_plan.gen.go:43:1*/			}
- /*line delivery_plan.mygo:35:5*/			site := __mygo_expr_0
+ /*line zz_delivery_plan.gen.go:44:1*/			}
+ /*line delivery_plan.mygo:40:5*/			site := __mygo_expr_0
 			var __mygo_expr_1 string
 			if record.InboxURI.Valid && record.InboxURI.String != "" {
 				__mygo_expr_1 = record.InboxURI.String
 			} else {
 				__mygo_expr_1 = uri + "/inbox"
- /*line zz_delivery_plan.gen.go:50:1*/			}
- /*line delivery_plan.mygo:35:5*/			inbox := __mygo_expr_1
- /*line delivery_plan.mygo:40:7*/			return Ok[DeliveryTarget, string](DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
- /*line zz_delivery_plan.gen.go:53:1*/		}
+ /*line zz_delivery_plan.gen.go:51:1*/			}
+ /*line delivery_plan.mygo:40:5*/			inbox := __mygo_expr_1
+ /*line delivery_plan.mygo:49:7*/			return Ok[DeliveryTarget, failure.Failure](DeliveryTarget{ActorURI: uri, InboxURI: inbox, LocalSiteID: site})
+ /*line zz_delivery_plan.gen.go:54:1*/		}
 	})
- /*line delivery_plan.mygo:43:3*/	return functional.Sequence(loaded)
- /*line zz_delivery_plan.gen.go:56:1*/}
- /*line delivery_plan.mygo:50:1*/func PlanDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, actorURIs []string, communityID string) Result[PlanResult, string] {
+ /*line delivery_plan.mygo:52:3*/	return functional.SequenceFailure(loaded)
+ /*line zz_delivery_plan.gen.go:57:1*/}
+ /*line delivery_plan.mygo:59:1*/func PlanDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, actorURIs []string, communityID string) Result[PlanResult, failure.Failure] {
 	excluded := IsLocalOnlyActivity(ctx, db, activityURI)
- /*line delivery_plan.mygo:52:3*/	if MygoIN6ResultM5IsErr[bool, string](excluded) {
- /*line delivery_plan.mygo:53:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[bool, string](excluded))
- /*line delivery_plan.mygo:52:3*/	} else {
- /*line zz_delivery_plan.gen.go:62:1*/	}
- /*line delivery_plan.mygo:55:3*/	if MygoIN6ResultM6Unwrap[bool, string](excluded) {
- /*line delivery_plan.mygo:56:12*/		return Ok[PlanResult, string](PlanResult{Receipts: 0, Jobs: 0})
- /*line delivery_plan.mygo:55:3*/	} else {
- /*line zz_delivery_plan.gen.go:66:1*/	}
- /*line delivery_plan.mygo:50:1*/	targets := LoadDeliveryTargets(ctx, db, actorURIs)
- /*line delivery_plan.mygo:59:3*/	if MygoIN6ResultM5IsErr[[]DeliveryTarget, string](targets) {
- /*line delivery_plan.mygo:60:12*/		return Err[PlanResult, string](MygoIN6ResultM9UnwrapErr[[]DeliveryTarget, string](targets))
- /*line delivery_plan.mygo:59:3*/	} else {
- /*line zz_delivery_plan.gen.go:71:1*/	}
- /*line delivery_plan.mygo:50:1*/	progress_1 := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]DeliveryTarget, string](targets), DeliveryProgress{Receipts: int64(0), Jobs: int64(0), Failed: false}, func(progress DeliveryProgress, target DeliveryTarget) DeliveryProgress {
- /*line delivery_plan.mygo:63:8*/		if target.LocalSiteID != "" {
- /*line delivery_plan.mygo:63:5*/			inserted := db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
- /*line delivery_plan.mygo:65:7*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line delivery_plan.mygo:66:9*/				return DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
- /*line delivery_plan.mygo:65:7*/			} else {
- /*line delivery_plan.mygo:68:9*/				return DeliveryProgress{Receipts: progress.Receipts + inserted.RowsAffected, Jobs: progress.Jobs, Failed: progress.Failed}
- /*line zz_delivery_plan.gen.go:79:1*/			}
+ /*line delivery_plan.mygo:68:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](excluded) {
+ /*line delivery_plan.mygo:69:12*/		return Err[PlanResult, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](excluded))
+ /*line delivery_plan.mygo:68:3*/	} else {
+ /*line zz_delivery_plan.gen.go:63:1*/	}
+ /*line delivery_plan.mygo:71:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](excluded) {
+ /*line delivery_plan.mygo:72:12*/		return Ok[PlanResult, failure.Failure](PlanResult{Receipts: 0, Jobs: 0})
+ /*line delivery_plan.mygo:71:3*/	} else {
+ /*line zz_delivery_plan.gen.go:67:1*/	}
+ /*line delivery_plan.mygo:59:1*/	targets := LoadDeliveryTargets(ctx, db, actorURIs)
+ /*line delivery_plan.mygo:75:3*/	if MygoIN6ResultM5IsErr[[]DeliveryTarget, failure.Failure](targets) {
+ /*line delivery_plan.mygo:76:12*/		return Err[PlanResult, failure.Failure](MygoIN6ResultM9UnwrapErr[[]DeliveryTarget, failure.Failure](targets))
+ /*line delivery_plan.mygo:75:3*/	} else {
+ /*line zz_delivery_plan.gen.go:72:1*/	}
+ /*line delivery_plan.mygo:59:1*/	progress_1 := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN6ResultM6Unwrap[[]DeliveryTarget, failure.Failure](targets), DeliveryProgress{Receipts: int64(0), Jobs: int64(0), Failed: false}, func(progress DeliveryProgress, target DeliveryTarget) DeliveryProgress {
+ /*line delivery_plan.mygo:81:10*/		if target.LocalSiteID != "" {
+ /*line delivery_plan.mygo:81:7*/			inserted := db.WithContext(ctx).Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, target.LocalSiteID, target.ActorURI)
+ /*line delivery_plan.mygo:88:9*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line delivery_plan.mygo:89:11*/				return DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
+ /*line delivery_plan.mygo:88:9*/			} else {
+ /*line delivery_plan.mygo:91:11*/				return DeliveryProgress{Receipts: progress.Receipts + inserted.RowsAffected, Jobs: progress.Jobs, Failed: progress.Failed}
+ /*line zz_delivery_plan.gen.go:80:1*/			}
 		} else {
- /*line delivery_plan.mygo:63:5*/			queued := EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
- /*line delivery_plan.mygo:72:7*/			var __mygo_expr_0 DeliveryProgress
-			if _, ok := queued.(Result__Err[int64, string]); ok {
+ /*line delivery_plan.mygo:81:7*/			queued := EnqueueDelivery(ctx, db, activityURI, signingActorURI, target.ActorURI, target.InboxURI, communityID)
+ /*line delivery_plan.mygo:107:9*/			var __mygo_expr_0 DeliveryProgress
+			if _, ok := queued.(Result__Err[int64, failure.Failure]); ok {
 				__mygo_expr_0 = DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs, Failed: true}
- /*line zz_delivery_plan.gen.go:85:1*/			} else {
- /*line delivery_plan.mygo:72:7*/				if __mygo_match___mygo_expr_1, ok := queued.(Result__Ok[int64, string]); ok {
+ /*line zz_delivery_plan.gen.go:86:1*/			} else {
+ /*line delivery_plan.mygo:107:9*/				if __mygo_match___mygo_expr_1, ok := queued.(Result__Ok[int64, failure.Failure]); ok {
 					__mygo_expr_0 = DeliveryProgress{Receipts: progress.Receipts, Jobs: progress.Jobs + __mygo_match___mygo_expr_1.F0, Failed: progress.Failed}
 				} else {
- /*line zz_delivery_plan.gen.go:89:1*/				}
+ /*line zz_delivery_plan.gen.go:90:1*/				}
 			}
- /*line delivery_plan.mygo:72:7*/			return __mygo_expr_0
- /*line zz_delivery_plan.gen.go:92:1*/		}
+ /*line delivery_plan.mygo:107:9*/			return __mygo_expr_0
+ /*line zz_delivery_plan.gen.go:93:1*/		}
 	})
- /*line delivery_plan.mygo:78:3*/	if progress_1.Failed {
- /*line delivery_plan.mygo:79:12*/		return Err[PlanResult, string]("delivery plan failed")
- /*line delivery_plan.mygo:78:3*/	} else {
- /*line zz_delivery_plan.gen.go:97:1*/	}
- /*line delivery_plan.mygo:81:3*/	return Ok[PlanResult, string](PlanResult{Receipts: progress_1.Receipts, Jobs: progress_1.Jobs})
- /*line zz_delivery_plan.gen.go:99:1*/}
+ /*line delivery_plan.mygo:126:3*/	if progress_1.Failed {
+ /*line delivery_plan.mygo:127:12*/		return Err[PlanResult, failure.Failure](Of("delivery plan failed"))
+ /*line delivery_plan.mygo:126:3*/	} else {
+ /*line zz_delivery_plan.gen.go:98:1*/	}
+ /*line delivery_plan.mygo:129:3*/	return Ok[PlanResult, failure.Failure](PlanResult{Receipts: progress_1.Receipts, Jobs: progress_1.Jobs})
+ /*line zz_delivery_plan.gen.go:100:1*/}

@@ -2,69 +2,70 @@
 
 package server
 
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line thread_sort.mygo:4:1*/type ThreadSortMode interface {
+ /*line thread_sort.mygo:6:1*/type ThreadSortMode interface {
 	isThreadSortMode()
- /*line zz_thread_sort.gen.go:9:1*/}
- /*line thread_sort.mygo:4:1*/type ThreadSortMode__New struct {
- /*line zz_thread_sort.gen.go:11:1*/}
+ /*line zz_thread_sort.gen.go:10:1*/}
+ /*line thread_sort.mygo:6:1*/type ThreadSortMode__New struct {
+ /*line zz_thread_sort.gen.go:12:1*/}
 
- /*line thread_sort.mygo:4:1*/func (ThreadSortMode__New) isThreadSortMode() {
- /*line zz_thread_sort.gen.go:14:1*/}
- /*line thread_sort.mygo:4:1*/func ThreadSortMode__New__Ctor() ThreadSortMode {
+ /*line thread_sort.mygo:6:1*/func (ThreadSortMode__New) isThreadSortMode() {
+ /*line zz_thread_sort.gen.go:15:1*/}
+ /*line thread_sort.mygo:6:1*/func ThreadSortMode__New__Ctor() ThreadSortMode {
 	return ThreadSortMode__New{}
- /*line zz_thread_sort.gen.go:17:1*/}
+ /*line zz_thread_sort.gen.go:18:1*/}
 
- /*line thread_sort.mygo:4:1*/type ThreadSortMode__Old struct {
- /*line zz_thread_sort.gen.go:20:1*/}
+ /*line thread_sort.mygo:6:1*/type ThreadSortMode__Old struct {
+ /*line zz_thread_sort.gen.go:21:1*/}
 
- /*line thread_sort.mygo:4:1*/func (ThreadSortMode__Old) isThreadSortMode() {
- /*line zz_thread_sort.gen.go:23:1*/}
- /*line thread_sort.mygo:4:1*/func ThreadSortMode__Old__Ctor() ThreadSortMode {
+ /*line thread_sort.mygo:6:1*/func (ThreadSortMode__Old) isThreadSortMode() {
+ /*line zz_thread_sort.gen.go:24:1*/}
+ /*line thread_sort.mygo:6:1*/func ThreadSortMode__Old__Ctor() ThreadSortMode {
 	return ThreadSortMode__Old{}
- /*line zz_thread_sort.gen.go:26:1*/}
+ /*line zz_thread_sort.gen.go:27:1*/}
 
- /*line thread_sort.mygo:4:1*/type ThreadSortMode__Top struct {
- /*line zz_thread_sort.gen.go:29:1*/}
+ /*line thread_sort.mygo:6:1*/type ThreadSortMode__Top struct {
+ /*line zz_thread_sort.gen.go:30:1*/}
 
- /*line thread_sort.mygo:4:1*/func (ThreadSortMode__Top) isThreadSortMode() {
- /*line zz_thread_sort.gen.go:32:1*/}
- /*line thread_sort.mygo:4:1*/func ThreadSortMode__Top__Ctor() ThreadSortMode {
+ /*line thread_sort.mygo:6:1*/func (ThreadSortMode__Top) isThreadSortMode() {
+ /*line zz_thread_sort.gen.go:33:1*/}
+ /*line thread_sort.mygo:6:1*/func ThreadSortMode__Top__Ctor() ThreadSortMode {
 	return ThreadSortMode__Top{}
- /*line zz_thread_sort.gen.go:35:1*/}
+ /*line zz_thread_sort.gen.go:36:1*/}
 
- /*line thread_sort.mygo:4:1*/type ThreadSortMode__Controversial struct {
- /*line zz_thread_sort.gen.go:38:1*/}
+ /*line thread_sort.mygo:6:1*/type ThreadSortMode__Controversial struct {
+ /*line zz_thread_sort.gen.go:39:1*/}
 
- /*line thread_sort.mygo:4:1*/func (ThreadSortMode__Controversial) isThreadSortMode() {
- /*line zz_thread_sort.gen.go:41:1*/}
- /*line thread_sort.mygo:4:1*/func ThreadSortMode__Controversial__Ctor() ThreadSortMode {
+ /*line thread_sort.mygo:6:1*/func (ThreadSortMode__Controversial) isThreadSortMode() {
+ /*line zz_thread_sort.gen.go:42:1*/}
+ /*line thread_sort.mygo:6:1*/func ThreadSortMode__Controversial__Ctor() ThreadSortMode {
 	return ThreadSortMode__Controversial{}
- /*line zz_thread_sort.gen.go:44:1*/}
- /*line thread_sort.mygo:11:1*/func MygoIN14ThreadSortModeM5Parse(raw string) Result[ThreadSortMode, string] {
- /*line thread_sort.mygo:13:5*/	var __mygo_expr_0 Result[ThreadSortMode, string]
+ /*line zz_thread_sort.gen.go:45:1*/}
+ /*line thread_sort.mygo:13:1*/func MygoIN14ThreadSortModeM5Parse(raw string) Result[ThreadSortMode, failure.Failure] {
+ /*line thread_sort.mygo:15:5*/	var __mygo_expr_0 Result[ThreadSortMode, failure.Failure]
 	if raw == "new" {
-		__mygo_expr_0 = Ok[ThreadSortMode, string](ThreadSortMode__New__Ctor())
+		__mygo_expr_0 = Ok[ThreadSortMode, failure.Failure](ThreadSortMode__New__Ctor())
 	} else {
 		if raw == "old" {
-			__mygo_expr_0 = Ok[ThreadSortMode, string](ThreadSortMode__Old__Ctor())
+			__mygo_expr_0 = Ok[ThreadSortMode, failure.Failure](ThreadSortMode__Old__Ctor())
 		} else {
 			if raw == "top" {
-				__mygo_expr_0 = Ok[ThreadSortMode, string](ThreadSortMode__Top__Ctor())
+				__mygo_expr_0 = Ok[ThreadSortMode, failure.Failure](ThreadSortMode__Top__Ctor())
 			} else {
 				if raw == "controversial" {
-					__mygo_expr_0 = Ok[ThreadSortMode, string](ThreadSortMode__Controversial__Ctor())
+					__mygo_expr_0 = Ok[ThreadSortMode, failure.Failure](ThreadSortMode__Controversial__Ctor())
 				} else {
-					__mygo_expr_0 = Err[ThreadSortMode, string]("invalid sort")
- /*line zz_thread_sort.gen.go:60:1*/				}
+					__mygo_expr_0 = Err[ThreadSortMode, failure.Failure](Of("invalid sort"))
+ /*line zz_thread_sort.gen.go:61:1*/				}
 			}
 		}
 	}
- /*line thread_sort.mygo:13:5*/	return __mygo_expr_0
- /*line zz_thread_sort.gen.go:65:1*/}
- /*line thread_sort.mygo:11:1*/func MygoIN14ThreadSortModeM6Render(self ThreadSortMode) string {
- /*line thread_sort.mygo:23:5*/	var __mygo_expr_0 string
+ /*line thread_sort.mygo:15:5*/	return __mygo_expr_0
+ /*line zz_thread_sort.gen.go:66:1*/}
+ /*line thread_sort.mygo:13:1*/func MygoIN14ThreadSortModeM6Render(self ThreadSortMode) string {
+ /*line thread_sort.mygo:25:5*/	var __mygo_expr_0 string
 	if _, ok := self.(ThreadSortMode__New); ok {
 		__mygo_expr_0 = "new"
 	} else {
@@ -77,9 +78,9 @@ import . "github.com/mygo-lang/mygo/prelude"
 				if _, ok := self.(ThreadSortMode__Controversial); ok {
 					__mygo_expr_0 = "controversial"
 				} else {
- /*line zz_thread_sort.gen.go:80:1*/				}
+ /*line zz_thread_sort.gen.go:81:1*/				}
 			}
 		}
 	}
- /*line thread_sort.mygo:23:5*/	return __mygo_expr_0
- /*line zz_thread_sort.gen.go:85:1*/}
+ /*line thread_sort.mygo:25:5*/	return __mygo_expr_0
+ /*line zz_thread_sort.gen.go:86:1*/}

@@ -4,66 +4,67 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line federation_lookup.mygo:6:1*/type ActivityPayloadRecord struct {
+ /*line federation_lookup.mygo:7:1*/type ActivityPayloadRecord struct {
 	URI     string "gorm:\"column:uri\""
 	Payload []byte "gorm:\"column:original_payload\""
- /*line zz_federation_lookup.gen.go:12:1*/}
+ /*line zz_federation_lookup.gen.go:13:1*/}
 
- /*line federation_lookup.mygo:11:1*/func LoadObjectByID(ctx context.Context, db *gorm.DB, id string) Result[Option[PostRecord], string] {
- /*line federation_lookup.mygo:16:3*/	if id == "" {
- /*line federation_lookup.mygo:17:12*/		return Err[Option[PostRecord], string]("invalid object")
- /*line federation_lookup.mygo:16:3*/	} else {
- /*line zz_federation_lookup.gen.go:18:1*/	}
- /*line federation_lookup.mygo:11:1*/	record := Zero[PostRecord]()
+ /*line federation_lookup.mygo:12:1*/func LoadObjectByID(ctx context.Context, db *gorm.DB, id string) Result[Option[PostRecord], failure.Failure] {
+ /*line federation_lookup.mygo:17:3*/	if id == "" {
+ /*line federation_lookup.mygo:18:12*/		return Err[Option[PostRecord], failure.Failure](Of("invalid object"))
+ /*line federation_lookup.mygo:17:3*/	} else {
+ /*line zz_federation_lookup.gen.go:19:1*/	}
+ /*line federation_lookup.mygo:12:1*/	record := Zero[PostRecord]()
 	query := db.WithContext(ctx).Table("posts").Where("id = ?", id).Limit(1).Find(&record)
- /*line federation_lookup.mygo:21:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation_lookup.mygo:22:12*/		return Err[Option[PostRecord], string]("object unavailable")
- /*line federation_lookup.mygo:21:3*/	} else {
- /*line zz_federation_lookup.gen.go:24:1*/	}
- /*line federation_lookup.mygo:24:3*/	if query.RowsAffected != int64(1) {
- /*line federation_lookup.mygo:25:12*/		return Ok[Option[PostRecord], string](None[PostRecord]())
- /*line federation_lookup.mygo:24:3*/	} else {
- /*line zz_federation_lookup.gen.go:28:1*/	}
- /*line federation_lookup.mygo:27:3*/	return Ok[Option[PostRecord], string](Some[PostRecord](record))
- /*line zz_federation_lookup.gen.go:30:1*/}
- /*line federation_lookup.mygo:30:1*/func LoadCommunityByName(ctx context.Context, db *gorm.DB, siteID string, name string) Result[Option[CommunityRecord], string] {
+ /*line federation_lookup.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line federation_lookup.mygo:23:12*/		return Err[Option[PostRecord], failure.Failure](Of("object unavailable"))
+ /*line federation_lookup.mygo:22:3*/	} else {
+ /*line zz_federation_lookup.gen.go:25:1*/	}
+ /*line federation_lookup.mygo:25:3*/	if query.RowsAffected != int64(1) {
+ /*line federation_lookup.mygo:26:12*/		return Ok[Option[PostRecord], failure.Failure](None[PostRecord]())
+ /*line federation_lookup.mygo:25:3*/	} else {
+ /*line zz_federation_lookup.gen.go:29:1*/	}
+ /*line federation_lookup.mygo:28:3*/	return Ok[Option[PostRecord], failure.Failure](Some[PostRecord](record))
+ /*line zz_federation_lookup.gen.go:31:1*/}
+ /*line federation_lookup.mygo:31:1*/func LoadCommunityByName(ctx context.Context, db *gorm.DB, siteID string, name string) Result[Option[CommunityRecord], failure.Failure] {
 	record := Zero[CommunityRecord]()
 	query := db.WithContext(ctx).Table("communities").Where("host_site_id = ? AND name = ?", siteID, name).Limit(1).Find(&record)
- /*line federation_lookup.mygo:42:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation_lookup.mygo:43:12*/		return Err[Option[CommunityRecord], string]("community unavailable")
- /*line federation_lookup.mygo:42:3*/	} else {
- /*line zz_federation_lookup.gen.go:37:1*/	}
- /*line federation_lookup.mygo:45:3*/	if query.RowsAffected != int64(1) {
- /*line federation_lookup.mygo:46:12*/		return Ok[Option[CommunityRecord], string](None[CommunityRecord]())
- /*line federation_lookup.mygo:45:3*/	} else {
- /*line zz_federation_lookup.gen.go:41:1*/	}
- /*line federation_lookup.mygo:48:3*/	return Ok[Option[CommunityRecord], string](Some[CommunityRecord](record))
- /*line zz_federation_lookup.gen.go:43:1*/}
- /*line federation_lookup.mygo:51:1*/func LoadCommunityByID(ctx context.Context, db *gorm.DB, id string) Result[Option[CommunityRecord], string] {
+ /*line federation_lookup.mygo:43:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line federation_lookup.mygo:44:12*/		return Err[Option[CommunityRecord], failure.Failure](Of("community unavailable"))
+ /*line federation_lookup.mygo:43:3*/	} else {
+ /*line zz_federation_lookup.gen.go:38:1*/	}
+ /*line federation_lookup.mygo:46:3*/	if query.RowsAffected != int64(1) {
+ /*line federation_lookup.mygo:47:12*/		return Ok[Option[CommunityRecord], failure.Failure](None[CommunityRecord]())
+ /*line federation_lookup.mygo:46:3*/	} else {
+ /*line zz_federation_lookup.gen.go:42:1*/	}
+ /*line federation_lookup.mygo:49:3*/	return Ok[Option[CommunityRecord], failure.Failure](Some[CommunityRecord](record))
+ /*line zz_federation_lookup.gen.go:44:1*/}
+ /*line federation_lookup.mygo:52:1*/func LoadCommunityByID(ctx context.Context, db *gorm.DB, id string) Result[Option[CommunityRecord], failure.Failure] {
 	record := Zero[CommunityRecord]()
 	query := db.WithContext(ctx).Table("communities").Where("id = ?", id).Limit(1).Find(&record)
- /*line federation_lookup.mygo:58:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation_lookup.mygo:59:12*/		return Err[Option[CommunityRecord], string]("community unavailable")
- /*line federation_lookup.mygo:58:3*/	} else {
- /*line zz_federation_lookup.gen.go:50:1*/	}
- /*line federation_lookup.mygo:61:3*/	if query.RowsAffected != int64(1) {
- /*line federation_lookup.mygo:62:12*/		return Ok[Option[CommunityRecord], string](None[CommunityRecord]())
- /*line federation_lookup.mygo:61:3*/	} else {
- /*line zz_federation_lookup.gen.go:54:1*/	}
- /*line federation_lookup.mygo:64:3*/	return Ok[Option[CommunityRecord], string](Some[CommunityRecord](record))
- /*line zz_federation_lookup.gen.go:56:1*/}
- /*line federation_lookup.mygo:67:1*/func LoadActivityPayload(ctx context.Context, db *gorm.DB, uri string) Result[Option[ActivityPayloadRecord], string] {
+ /*line federation_lookup.mygo:59:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line federation_lookup.mygo:60:12*/		return Err[Option[CommunityRecord], failure.Failure](Of("community unavailable"))
+ /*line federation_lookup.mygo:59:3*/	} else {
+ /*line zz_federation_lookup.gen.go:51:1*/	}
+ /*line federation_lookup.mygo:62:3*/	if query.RowsAffected != int64(1) {
+ /*line federation_lookup.mygo:63:12*/		return Ok[Option[CommunityRecord], failure.Failure](None[CommunityRecord]())
+ /*line federation_lookup.mygo:62:3*/	} else {
+ /*line zz_federation_lookup.gen.go:55:1*/	}
+ /*line federation_lookup.mygo:65:3*/	return Ok[Option[CommunityRecord], failure.Failure](Some[CommunityRecord](record))
+ /*line zz_federation_lookup.gen.go:57:1*/}
+ /*line federation_lookup.mygo:68:1*/func LoadActivityPayload(ctx context.Context, db *gorm.DB, uri string) Result[Option[ActivityPayloadRecord], failure.Failure] {
 	record := Zero[ActivityPayloadRecord]()
 	query := db.WithContext(ctx).Table("activities AS a").Select("a.uri, p.original_payload").Joins("JOIN activity_payloads AS p ON p.activity_uri = a.uri").Where("a.uri = ?", uri).Limit(1).Find(&record)
- /*line federation_lookup.mygo:77:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line federation_lookup.mygo:78:12*/		return Err[Option[ActivityPayloadRecord], string]("activity unavailable")
- /*line federation_lookup.mygo:77:3*/	} else {
- /*line zz_federation_lookup.gen.go:63:1*/	}
- /*line federation_lookup.mygo:80:3*/	if query.RowsAffected != int64(1) {
- /*line federation_lookup.mygo:81:12*/		return Ok[Option[ActivityPayloadRecord], string](None[ActivityPayloadRecord]())
- /*line federation_lookup.mygo:80:3*/	} else {
- /*line zz_federation_lookup.gen.go:67:1*/	}
- /*line federation_lookup.mygo:83:3*/	return Ok[Option[ActivityPayloadRecord], string](Some[ActivityPayloadRecord](record))
- /*line zz_federation_lookup.gen.go:69:1*/}
+ /*line federation_lookup.mygo:78:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line federation_lookup.mygo:79:12*/		return Err[Option[ActivityPayloadRecord], failure.Failure](Of("activity unavailable"))
+ /*line federation_lookup.mygo:78:3*/	} else {
+ /*line zz_federation_lookup.gen.go:64:1*/	}
+ /*line federation_lookup.mygo:81:3*/	if query.RowsAffected != int64(1) {
+ /*line federation_lookup.mygo:82:12*/		return Ok[Option[ActivityPayloadRecord], failure.Failure](None[ActivityPayloadRecord]())
+ /*line federation_lookup.mygo:81:3*/	} else {
+ /*line zz_federation_lookup.gen.go:68:1*/	}
+ /*line federation_lookup.mygo:84:3*/	return Ok[Option[ActivityPayloadRecord], failure.Failure](Some[ActivityPayloadRecord](record))
+ /*line zz_federation_lookup.gen.go:70:1*/}

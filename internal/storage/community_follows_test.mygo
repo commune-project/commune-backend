@@ -28,7 +28,7 @@ func TestPostgresCommunityFollowPolicies(t: Ref[testing.T]) -> ()
   if BrowserFollow(ctx, db, site.ID, open.ID, outsider, true).Unwrap() != "accepted" then
     t.Fatal("accepted follow was not idempotent")
   end
-  if BrowserFollow(ctx, db, site.ID, restricted.ID, outsider, true).UnwrapErr() != "follow_requires_membership" then
+  if BrowserFollow(ctx, db, site.ID, restricted.ID, outsider, true).UnwrapErr().Render() != "follow_requires_membership" then
     t.Fatal("members policy allowed a non-member")
   end
   if BrowserFollow(ctx, db, site.ID, restricted.ID, member, true).Unwrap() != "accepted" then
@@ -41,7 +41,7 @@ func TestPostgresCommunityFollowPolicies(t: Ref[testing.T]) -> ()
   if pendingMember then
     t.Fatal("pending follow granted membership")
   end
-  if BrowserFollow(ctx, db, site.ID, disabled.ID, outsider, true).UnwrapErr() != "feature_disabled" then
+  if BrowserFollow(ctx, db, site.ID, disabled.ID, outsider, true).UnwrapErr().Render() != "feature_disabled" then
     t.Fatal("disabled follow policy was ignored")
   end
   if BrowserFollow(ctx, db, site.ID, open.ID, outsider, false).Unwrap() != "undone" then

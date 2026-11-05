@@ -12,6 +12,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,25 +23,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_state.gen_test.go:25:1*/	}
+ /*line zz_federation_state.gen_test.go:26:1*/	}
  /*line federation_state_test.mygo:13:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
-	groupKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	rivalKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	groupKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	rivalKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	group := "https://host.example/communities/news"
 	creator := "https://host.example/users/owner"
 	rival := "https://rival.example/users/attacker"
 	kept := "https://peer.example/users/kept"
 	dropped := "https://peer.example/users/dropped"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', ?), (?, 'Person', NULL), (?, 'Person', NULL)", group, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(groupKey)), creator, rival, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(rivalKey)), kept, dropped)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News')", group, creator)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('replica',?,?)", dropped, creator)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', ?), (?, 'Person', NULL), (?, 'Person', NULL)", group, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(groupKey)), creator, rival, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(rivalKey)), kept, dropped)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News')", group, creator)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO community_members(community_id,actor_uri,approved_by) VALUES ('replica',?,?)", dropped, creator)))
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	state := "{\"id\":\"https://host.example/activities/state-1\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"members\",\"post\":\"members\"},\"commune:members\":[\"" + kept + "\"]}}"
@@ -48,53 +49,53 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_state_test.mygo:36:3*/	if applied.Code != 202 || !strings.Contains(applied.Body.String(), "cannot be recalled") {
  /*line federation_state_test.mygo:37:5*/		t.Fatalf("host state was not applied or did not disclose the recall limit: %d %s", applied.Code, applied.Body.String())
  /*line federation_state_test.mygo:36:3*/	} else {
- /*line zz_federation_state.gen_test.go:51:1*/	}
- /*line federation_state_test.mygo:39:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line zz_federation_state.gen_test.go:52:1*/	}
+ /*line federation_state_test.mygo:39:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:40:5*/		t.Fatal("replica read policy was not updated from the host state")
  /*line federation_state_test.mygo:39:3*/	} else {
- /*line zz_federation_state.gen_test.go:55:1*/	}
- /*line federation_state_test.mygo:42:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) {
+ /*line zz_federation_state.gen_test.go:56:1*/	}
+ /*line federation_state_test.mygo:42:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, "replica", kept)) {
  /*line federation_state_test.mygo:43:5*/		t.Fatal("the authority's approved member was not recorded")
  /*line federation_state_test.mygo:42:3*/	} else {
- /*line zz_federation_state.gen_test.go:59:1*/	}
- /*line federation_state_test.mygo:45:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) {
+ /*line zz_federation_state.gen_test.go:60:1*/	}
+ /*line federation_state_test.mygo:45:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, "replica", dropped)) {
  /*line federation_state_test.mygo:46:5*/		t.Fatal("a member the authority removed remained authorized")
  /*line federation_state_test.mygo:45:3*/	} else {
- /*line zz_federation_state.gen_test.go:63:1*/	}
+ /*line zz_federation_state.gen_test.go:64:1*/	}
  /*line federation_state_test.mygo:13:1*/	rivalState := "{\"id\":\"https://rival.example/activities/state-2\",\"actor\":\"" + rival + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[\"" + rival + "\"]}}"
 	forged := signedPost(handler, a.Origin, "/users/alice/inbox", rivalState, rival, rivalKey, date)
  /*line federation_state_test.mygo:50:3*/	if forged.Code != 403 {
  /*line federation_state_test.mygo:51:5*/		t.Fatalf("a peer rewrote another community's authorization: %d %s", forged.Code, forged.Body.String())
  /*line federation_state_test.mygo:50:3*/	} else {
- /*line zz_federation_state.gen_test.go:69:1*/	}
- /*line federation_state_test.mygo:53:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line zz_federation_state.gen_test.go:70:1*/	}
+ /*line federation_state_test.mygo:53:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:54:5*/		t.Fatal("a forged state change altered the replica policy")
  /*line federation_state_test.mygo:53:3*/	} else {
- /*line zz_federation_state.gen_test.go:73:1*/	}
- /*line federation_state_test.mygo:56:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", rival)) {
+ /*line zz_federation_state.gen_test.go:74:1*/	}
+ /*line federation_state_test.mygo:56:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, "replica", rival)) {
  /*line federation_state_test.mygo:57:5*/		t.Fatal("a forged state change added an unauthorized member")
  /*line federation_state_test.mygo:56:3*/	} else {
- /*line zz_federation_state.gen_test.go:77:1*/	}
+ /*line zz_federation_state.gen_test.go:78:1*/	}
  /*line federation_state_test.mygo:13:1*/	relaxed := "{\"id\":\"https://host.example/activities/state-3\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:policy\":{\"read\":\"eligible_users\",\"post\":\"eligible_users\"},\"commune:members\":[]}}"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id='replica' AND actor_uri=?", dropped)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE community_members SET revoked_at=NULL WHERE community_id='replica' AND actor_uri=?", dropped)))
 	revocation := "{\"id\":\"https://host.example/activities/revocation\",\"actor\":\"" + group + "\",\"type\":\"Update\",\"object\":{\"id\":\"" + group + "\",\"type\":\"Group\",\"commune:revoked\":[\"" + kept + "\"]}}"
  /*line federation_state_test.mygo:62:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", revocation, group, groupKey, date).Code != 202 {
  /*line federation_state_test.mygo:63:5*/		t.Fatal("host targeted revocation rejected")
  /*line federation_state_test.mygo:62:3*/	} else {
- /*line zz_federation_state.gen_test.go:84:1*/	}
- /*line federation_state_test.mygo:65:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", kept)) || !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, "replica", dropped)) || MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
+ /*line zz_federation_state.gen_test.go:85:1*/	}
+ /*line federation_state_test.mygo:65:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, "replica", kept)) || !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, "replica", dropped)) || MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityReadPolicy(ctx, db, "replica")) != "members" {
  /*line federation_state_test.mygo:66:5*/		t.Fatal("targeted revocation altered unrelated membership or policy")
  /*line federation_state_test.mygo:65:3*/	} else {
- /*line zz_federation_state.gen_test.go:88:1*/	}
+ /*line zz_federation_state.gen_test.go:89:1*/	}
  /*line federation_state_test.mygo:13:1*/	relaxedResult := signedPost(handler, a.Origin, "/users/alice/inbox", relaxed, group, groupKey, date)
  /*line federation_state_test.mygo:69:3*/	if relaxedResult.Code != 202 || strings.Contains(relaxedResult.Body.String(), "cannot be recalled") {
  /*line federation_state_test.mygo:70:5*/		t.Fatal("a non-tightening update wrongly disclosed a recall limitation")
  /*line federation_state_test.mygo:69:3*/	} else {
- /*line zz_federation_state.gen_test.go:93:1*/	}
- /*line federation_state_test.mygo:72:3*/	if MygoIN6ResultM6Unwrap[string, string](storage.CommunityReadPolicy(ctx, db, "replica")) != "eligible_users" {
+ /*line zz_federation_state.gen_test.go:94:1*/	}
+ /*line federation_state_test.mygo:72:3*/	if MygoIN6ResultM6Unwrap[string, failure.Failure](storage.CommunityReadPolicy(ctx, db, "replica")) != "eligible_users" {
  /*line federation_state_test.mygo:73:5*/		t.Fatal("a later host state was not applied")
 		return
  /*line federation_state_test.mygo:72:3*/	} else {
 		return
- /*line zz_federation_state.gen_test.go:99:1*/	}
+ /*line zz_federation_state.gen_test.go:100:1*/	}
 }

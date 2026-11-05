@@ -8,6 +8,7 @@ import rand "go:crypto/rand"
 import url "go:net/url"
 import config "github.com/commune-project/commune-backend/internal/config"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PostRecord
   ID: String `gorm:"column:id"`
@@ -55,20 +56,20 @@ impl PostRepository
     incoming: PostRecord,
     authenticatedAuthorURI: String,
     sanitizer: content.Sanitizer
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     if self.SiteID == "" ||
       incoming.FederationMode != "federated" ||
       !incoming.ObjectURI.Valid ||
       !CanonicalObjectURI(incoming.ObjectURI.String) ||
       authenticatedAuthorURI == "" ||
       incoming.AuthorActorURI != authenticatedAuthorURI then
-      return Err("invalid object authority")
+      return Err(Of("invalid object authority"))
     end
     if incoming.AuthoredAt.IsZero() ||
       incoming.UpdatedAt.Before(incoming.AuthoredAt) ||
       (incoming.ObjectType != "Page" && incoming.ObjectType != "Note") ||
       (incoming.DeletedAt.Valid && incoming.Body != "") then
-      return Err("invalid object")
+      return Err(Of("invalid object"))
     end
     var stored = Zero[PostRecord]()
     let format = if incoming.ContentFormat == "" then
@@ -78,7 +79,7 @@ impl PostRepository
     end
     let normalized = content.PlainRichText(sanitizer, incoming.Body, format)
     if normalized.IsErr() then
-      return Err(normalized.UnwrapErr())
+      return Err(Of(normalized.UnwrapErr()))
     end
     let authored = incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
     let updated = incoming.UpdatedAt.UTC().Truncate(time.Microsecond)
@@ -89,7 +90,7 @@ impl PostRepository
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let inserted = tx.Exec(
           "INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,content_format,search_text,rich_metadata,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING",
           rand.Text(),
@@ -108,19 +109,19 @@ impl PostRepository
           deleted
         )
         if MutationResult(inserted).IsErr() then
-          return Err("object storage failed")
+          return Err(Of("object storage failed"))
         end
         let current = Zero[PostRecord]()
         let loaded = tx.Raw("SELECT * FROM posts WHERE object_uri=? FOR UPDATE", incoming.ObjectURI.String).Scan(Ref.new(current))
         if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
-          return Err("object storage failed")
+          return Err(Of("object storage failed"))
         end
         if current.AuthorActorURI != authenticatedAuthorURI ||
           current.CommunityID != incoming.CommunityID ||
           current.ObjectType != incoming.ObjectType ||
           current.ParentID != incoming.ParentID ||
           !current.AuthoredAt.Equal(authored) then
-          return Err("object identity conflict")
+          return Err(Of("object identity conflict"))
         end
         if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) then
           if MutationResult(tx.Exec(
@@ -134,7 +135,7 @@ impl PostRepository
             deleted,
             current.ID
           )).IsErr() then
-            return Err("object update failed")
+            return Err(Of("object update failed"))
           end
         else
           if !current.DeletedAt.Valid &&
@@ -144,7 +145,7 @@ impl PostRepository
               current.ContentFormat != format ||
               current.RichMetadata != incoming.RichMetadata ||
               current.DeletedAt.Valid != deleted.Valid) then
-            return Err("object version conflict")
+            return Err(Of("object version conflict"))
           end
         end
         if MutationResult(tx.Exec(
@@ -152,14 +153,14 @@ impl PostRepository
           self.SiteID,
           current.ID
         )).IsErr() then
-          return Err("object reception failed")
+          return Err(Of("object reception failed"))
         end
         let queued = QueueActorHandleResolution(ctx, tx, self.SiteID, incoming.AuthorActorURI)
         if queued.IsErr() then
           return Err(queued.UnwrapErr())
         end
         if MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(Ref.new(stored))).IsErr() then
-          return Err("object storage failed")
+          return Err(Of("object storage failed"))
         end
         Ok(())
       end

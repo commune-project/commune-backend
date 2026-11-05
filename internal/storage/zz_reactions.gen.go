@@ -7,138 +7,139 @@ import "gorm.io/gorm"
 import "database/sql"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line reactions.mygo:9:1*/type ReactionRepository struct {
+ /*line reactions.mygo:10:1*/type ReactionRepository struct {
 	DB     *gorm.DB
 	SiteID string
- /*line zz_reactions.gen.go:15:1*/}
- /*line reactions.mygo:14:1*/type ReactionState struct {
+ /*line zz_reactions.gen.go:16:1*/}
+ /*line reactions.mygo:15:1*/type ReactionState struct {
 	Active bool
 	Score  int
 	URI    string
- /*line zz_reactions.gen.go:20:1*/}
- /*line reactions.mygo:20:1*/type ReactionStateRow struct {
+ /*line zz_reactions.gen.go:21:1*/}
+ /*line reactions.mygo:21:1*/type ReactionStateRow struct {
 	Score int            "gorm:\"column:score\""
 	URI   sql.NullString "gorm:\"column:reaction_uri\""
- /*line zz_reactions.gen.go:24:1*/}
+ /*line zz_reactions.gen.go:25:1*/}
 
- /*line reactions.mygo:25:1*/func CurrentReaction(ctx context.Context, db *gorm.DB, postID string, actorURI string) Result[ReactionState, string] {
+ /*line reactions.mygo:26:1*/func CurrentReaction(ctx context.Context, db *gorm.DB, postID string, actorURI string) Result[ReactionState, failure.Failure] {
 	row := Zero[ReactionStateRow]()
 	query := db.WithContext(ctx).Table("reactions").Select("score,reaction_uri").Where("post_id=? AND actor_uri=? AND undone_at IS NULL", postID, actorURI).Limit(1).Find(&row)
- /*line reactions.mygo:37:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line reactions.mygo:38:12*/		return Err[ReactionState, string]("reaction unavailable")
- /*line reactions.mygo:37:3*/	} else {
- /*line zz_reactions.gen.go:32:1*/	}
- /*line reactions.mygo:40:3*/	if query.RowsAffected == int64(0) {
- /*line reactions.mygo:41:12*/		return Ok[ReactionState, string](ReactionState{Active: false, Score: 0, URI: ""})
- /*line reactions.mygo:40:3*/	} else {
- /*line zz_reactions.gen.go:36:1*/	}
- /*line reactions.mygo:43:3*/	return Ok[ReactionState, string](ReactionState{Active: true, Score: row.Score, URI: row.URI.String})
- /*line zz_reactions.gen.go:38:1*/}
- /*line reactions.mygo:46:1*/func MygoIN18ReactionRepositoryM4Like(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, reactionURI string) Result[struct{}, string] {
- /*line reactions.mygo:57:5*/	return MygoIN18ReactionRepositoryM4Vote(self, ctx, postID, identity, remoteVerified, 1, reactionURI)
- /*line zz_reactions.gen.go:41:1*/}
- /*line reactions.mygo:46:1*/func MygoIN18ReactionRepositoryM4Vote(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, score int, reactionURI string) Result[struct{}, string] {
- /*line reactions.mygo:71:8*/	if score != -1 && score != 0 && score != 1 {
- /*line reactions.mygo:72:14*/		return Err[struct{}, string]("invalid vote")
- /*line reactions.mygo:71:5*/	} else {
- /*line zz_reactions.gen.go:46:1*/	}
- /*line reactions.mygo:74:5*/	if score == 0 {
- /*line reactions.mygo:75:14*/		return MygoIN18ReactionRepositoryM4Undo(self, ctx, postID, identity, remoteVerified)
- /*line reactions.mygo:74:5*/	} else {
- /*line zz_reactions.gen.go:50:1*/	}
- /*line reactions.mygo:77:5*/	return MygoIN18ReactionRepositoryM5React(self, ctx, postID, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, string] {
- /*line reactions.mygo:82:7*/		up := SiteVoteUpEnabled(ctx, tx, self.SiteID)
+ /*line reactions.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line reactions.mygo:39:12*/		return Err[ReactionState, failure.Failure](Of("reaction unavailable"))
+ /*line reactions.mygo:38:3*/	} else {
+ /*line zz_reactions.gen.go:33:1*/	}
+ /*line reactions.mygo:41:3*/	if query.RowsAffected == int64(0) {
+ /*line reactions.mygo:42:12*/		return Ok[ReactionState, failure.Failure](ReactionState{Active: false, Score: 0, URI: ""})
+ /*line reactions.mygo:41:3*/	} else {
+ /*line zz_reactions.gen.go:37:1*/	}
+ /*line reactions.mygo:44:3*/	return Ok[ReactionState, failure.Failure](ReactionState{Active: true, Score: row.Score, URI: row.URI.String})
+ /*line zz_reactions.gen.go:39:1*/}
+ /*line reactions.mygo:47:1*/func MygoIN18ReactionRepositoryM4Like(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, reactionURI string) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:58:5*/	return MygoIN18ReactionRepositoryM4Vote(self, ctx, postID, identity, remoteVerified, 1, reactionURI)
+ /*line zz_reactions.gen.go:42:1*/}
+ /*line reactions.mygo:47:1*/func MygoIN18ReactionRepositoryM4Vote(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, score int, reactionURI string) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:72:8*/	if score != -1 && score != 0 && score != 1 {
+ /*line reactions.mygo:73:14*/		return Err[struct{}, failure.Failure](Of("invalid vote"))
+ /*line reactions.mygo:72:5*/	} else {
+ /*line zz_reactions.gen.go:47:1*/	}
+ /*line reactions.mygo:75:5*/	if score == 0 {
+ /*line reactions.mygo:76:14*/		return MygoIN18ReactionRepositoryM4Undo(self, ctx, postID, identity, remoteVerified)
+ /*line reactions.mygo:75:5*/	} else {
+ /*line zz_reactions.gen.go:51:1*/	}
+ /*line reactions.mygo:78:5*/	return MygoIN18ReactionRepositoryM5React(self, ctx, postID, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:83:7*/		up := SiteVoteUpEnabled(ctx, tx, self.SiteID)
 		down := SiteVoteDownEnabled(ctx, tx, self.SiteID)
- /*line reactions.mygo:85:9*/		if score == 1 && !up {
- /*line reactions.mygo:86:18*/			return Err[struct{}, string]("feature_disabled")
- /*line reactions.mygo:85:9*/		} else {
- /*line zz_reactions.gen.go:57:1*/		}
- /*line reactions.mygo:88:12*/		if score == -1 && !down {
- /*line reactions.mygo:89:18*/			return Err[struct{}, string]("feature_disabled")
- /*line reactions.mygo:88:9*/		} else {
- /*line zz_reactions.gen.go:61:1*/		}
- /*line reactions.mygo:91:9*/		if post.FederationMode == "local_only" && reactionURI != "" {
- /*line reactions.mygo:92:18*/			return Err[struct{}, string]("invalid reaction")
- /*line reactions.mygo:91:9*/		} else {
- /*line zz_reactions.gen.go:65:1*/		}
- /*line reactions.mygo:94:9*/		return MutationResult(tx.Exec("INSERT INTO reactions(post_id,actor_uri,reaction_uri,score) VALUES (?,?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri,score=EXCLUDED.score", postID, identity.ActorURI, sql.NullString{String: reactionURI, Valid: reactionURI != ""}, score))
- /*line zz_reactions.gen.go:67:1*/	})
+ /*line reactions.mygo:86:9*/		if score == 1 && !up {
+ /*line reactions.mygo:87:18*/			return Err[struct{}, failure.Failure](Of("feature_disabled"))
+ /*line reactions.mygo:86:9*/		} else {
+ /*line zz_reactions.gen.go:58:1*/		}
+ /*line reactions.mygo:89:12*/		if score == -1 && !down {
+ /*line reactions.mygo:90:18*/			return Err[struct{}, failure.Failure](Of("feature_disabled"))
+ /*line reactions.mygo:89:9*/		} else {
+ /*line zz_reactions.gen.go:62:1*/		}
+ /*line reactions.mygo:92:9*/		if post.FederationMode == "local_only" && reactionURI != "" {
+ /*line reactions.mygo:93:18*/			return Err[struct{}, failure.Failure](Of("invalid reaction"))
+ /*line reactions.mygo:92:9*/		} else {
+ /*line zz_reactions.gen.go:66:1*/		}
+ /*line reactions.mygo:95:9*/		return MutationResult(tx.Exec("INSERT INTO reactions(post_id,actor_uri,reaction_uri,score) VALUES (?,?,?,?) ON CONFLICT (post_id,actor_uri) DO UPDATE SET undone_at=NULL,reaction_uri=EXCLUDED.reaction_uri,score=EXCLUDED.score", postID, identity.ActorURI, sql.NullString{String: reactionURI, Valid: reactionURI != ""}, score))
+ /*line zz_reactions.gen.go:68:1*/	})
 }
- /*line reactions.mygo:46:1*/func MygoIN18ReactionRepositoryM4Undo(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
- /*line reactions.mygo:111:5*/	return MygoIN18ReactionRepositoryM5React(self, ctx, postID, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, string] {
- /*line reactions.mygo:117:9*/		return MutationResult(tx.Exec("UPDATE reactions SET undone_at=? WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", time.Now().UTC().Truncate(time.Microsecond), postID, identity.ActorURI))
- /*line zz_reactions.gen.go:72:1*/	})
+ /*line reactions.mygo:47:1*/func MygoIN18ReactionRepositoryM4Undo(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:112:5*/	return MygoIN18ReactionRepositoryM5React(self, ctx, postID, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:118:9*/		return MutationResult(tx.Exec("UPDATE reactions SET undone_at=? WHERE post_id=? AND actor_uri=? AND undone_at IS NULL", time.Now().UTC().Truncate(time.Microsecond), postID, identity.ActorURI))
+ /*line zz_reactions.gen.go:73:1*/	})
 }
- /*line reactions.mygo:46:1*/func MygoIN18ReactionRepositoryM5React(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, string]) Result[struct{}, string] {
- /*line reactions.mygo:134:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line reactions.mygo:137:7*/		loaded := loadPostForUpdate(tx, postID)
- /*line reactions.mygo:139:9*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line reactions.mygo:140:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[PostRecord, string](loaded))
- /*line reactions.mygo:139:9*/		} else {
- /*line zz_reactions.gen.go:80:1*/		}
- /*line reactions.mygo:137:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
- /*line reactions.mygo:143:9*/		if post.DeletedAt.Valid {
- /*line reactions.mygo:144:18*/			return Err[struct{}, string]("not found")
- /*line reactions.mygo:143:9*/		} else {
- /*line zz_reactions.gen.go:85:1*/		}
- /*line reactions.mygo:137:7*/		received := QueryExists(tx.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, postID))
- /*line reactions.mygo:151:9*/		if MygoIN6ResultM5IsErr[bool, string](received) {
- /*line reactions.mygo:152:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](received))
- /*line reactions.mygo:151:9*/		} else {
- /*line zz_reactions.gen.go:90:1*/		}
- /*line reactions.mygo:154:9*/		if !MygoIN6ResultM6Unwrap[bool, string](received) {
- /*line reactions.mygo:155:18*/			return Err[struct{}, string]("not found")
- /*line reactions.mygo:154:9*/		} else {
- /*line zz_reactions.gen.go:94:1*/		}
- /*line reactions.mygo:137:7*/		personalBlock := PersonalBlockHidesPost(ctx, tx, self.SiteID, identity.AccountID, postID)
- /*line reactions.mygo:158:9*/		if MygoIN6ResultM5IsErr[bool, string](personalBlock) {
- /*line reactions.mygo:159:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](personalBlock))
- /*line reactions.mygo:158:9*/		} else {
- /*line zz_reactions.gen.go:99:1*/		}
- /*line reactions.mygo:161:9*/		if MygoIN6ResultM6Unwrap[bool, string](personalBlock) {
- /*line reactions.mygo:162:18*/			return Err[struct{}, string]("not found")
- /*line reactions.mygo:161:9*/		} else {
- /*line zz_reactions.gen.go:103:1*/		}
- /*line reactions.mygo:137:7*/		loadedCommunity := LoadCommunityByID(ctx, tx, post.CommunityID)
- /*line reactions.mygo:165:9*/		if MygoIN6ResultM5IsErr[Option[CommunityRecord], string](loadedCommunity) || MygoIN6OptionM6IsNone[CommunityRecord](MygoIN6ResultM6Unwrap[Option[CommunityRecord], string](loadedCommunity)) {
- /*line reactions.mygo:166:18*/			return Err[struct{}, string]("not found")
- /*line reactions.mygo:165:9*/		} else {
- /*line zz_reactions.gen.go:108:1*/		}
- /*line reactions.mygo:137:7*/		community := MygoIN6OptionM6Unwrap[CommunityRecord](MygoIN6ResultM6Unwrap[Option[CommunityRecord], string](loadedCommunity))
+ /*line reactions.mygo:47:1*/func MygoIN18ReactionRepositoryM5React(self ReactionRepository, ctx context.Context, postID string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, failure.Failure]) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:135:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line reactions.mygo:138:7*/		loaded := loadPostForUpdate(tx, postID)
+ /*line reactions.mygo:140:9*/		if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](loaded) {
+ /*line reactions.mygo:141:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](loaded))
+ /*line reactions.mygo:140:9*/		} else {
+ /*line zz_reactions.gen.go:81:1*/		}
+ /*line reactions.mygo:138:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](loaded)
+ /*line reactions.mygo:144:9*/		if post.DeletedAt.Valid {
+ /*line reactions.mygo:145:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reactions.mygo:144:9*/		} else {
+ /*line zz_reactions.gen.go:86:1*/		}
+ /*line reactions.mygo:138:7*/		received := QueryExists(tx.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, postID))
+ /*line reactions.mygo:152:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](received) {
+ /*line reactions.mygo:153:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](received))
+ /*line reactions.mygo:152:9*/		} else {
+ /*line zz_reactions.gen.go:91:1*/		}
+ /*line reactions.mygo:155:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](received) {
+ /*line reactions.mygo:156:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reactions.mygo:155:9*/		} else {
+ /*line zz_reactions.gen.go:95:1*/		}
+ /*line reactions.mygo:138:7*/		personalBlock := PersonalBlockHidesPost(ctx, tx, self.SiteID, identity.AccountID, postID)
+ /*line reactions.mygo:159:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](personalBlock) {
+ /*line reactions.mygo:160:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](personalBlock))
+ /*line reactions.mygo:159:9*/		} else {
+ /*line zz_reactions.gen.go:100:1*/		}
+ /*line reactions.mygo:162:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](personalBlock) {
+ /*line reactions.mygo:163:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reactions.mygo:162:9*/		} else {
+ /*line zz_reactions.gen.go:104:1*/		}
+ /*line reactions.mygo:138:7*/		loadedCommunity := LoadCommunityByID(ctx, tx, post.CommunityID)
+ /*line reactions.mygo:166:9*/		if MygoIN6ResultM5IsErr[Option[CommunityRecord], failure.Failure](loadedCommunity) || MygoIN6OptionM6IsNone[CommunityRecord](MygoIN6ResultM6Unwrap[Option[CommunityRecord], failure.Failure](loadedCommunity)) {
+ /*line reactions.mygo:167:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reactions.mygo:166:9*/		} else {
+ /*line zz_reactions.gen.go:109:1*/		}
+ /*line reactions.mygo:138:7*/		community := MygoIN6OptionM6Unwrap[CommunityRecord](MygoIN6ResultM6Unwrap[Option[CommunityRecord], failure.Failure](loadedCommunity))
 		access := MygoIN19CommunityRepositoryM6Access(CommunityRepository{DB: tx, SiteID: self.SiteID}, ctx, community, identity, remoteVerified)
- /*line reactions.mygo:170:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line reactions.mygo:171:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line reactions.mygo:170:9*/		} else {
- /*line zz_reactions.gen.go:114:1*/		}
- /*line reactions.mygo:173:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, string](access)) {
- /*line reactions.mygo:174:18*/			return Err[struct{}, string]("not found")
- /*line reactions.mygo:173:9*/		} else {
- /*line zz_reactions.gen.go:118:1*/		}
- /*line reactions.mygo:176:9*/		if !MygoIN6ResultM6Unwrap[CommunityAccess, string](access).Subject.Verified {
- /*line reactions.mygo:177:18*/			return Err[struct{}, string]("forbidden")
- /*line reactions.mygo:176:9*/		} else {
- /*line zz_reactions.gen.go:122:1*/		}
- /*line reactions.mygo:137:7*/		communityBan := ActiveCommunityBan(ctx, tx, post.CommunityID, identity.ActorURI, time.Now())
+ /*line reactions.mygo:171:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) {
+ /*line reactions.mygo:172:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](access))
+ /*line reactions.mygo:171:9*/		} else {
+ /*line zz_reactions.gen.go:115:1*/		}
+ /*line reactions.mygo:174:9*/		if !MygoIN15CommunityAccessM7CanRead(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access)) {
+ /*line reactions.mygo:175:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reactions.mygo:174:9*/		} else {
+ /*line zz_reactions.gen.go:119:1*/		}
+ /*line reactions.mygo:177:9*/		if !MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access).Subject.Verified {
+ /*line reactions.mygo:178:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reactions.mygo:177:9*/		} else {
+ /*line zz_reactions.gen.go:123:1*/		}
+ /*line reactions.mygo:138:7*/		communityBan := ActiveCommunityBan(ctx, tx, post.CommunityID, identity.ActorURI, time.Now())
 		siteBan := ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, time.Now())
- /*line reactions.mygo:181:9*/		if MygoIN6ResultM5IsErr[bool, string](communityBan) || MygoIN6ResultM5IsErr[bool, string](siteBan) {
- /*line reactions.mygo:182:18*/			return Err[struct{}, string]("moderation unavailable")
- /*line reactions.mygo:181:9*/		} else {
- /*line zz_reactions.gen.go:128:1*/		}
- /*line reactions.mygo:184:9*/		if MygoIN6ResultM6Unwrap[bool, string](communityBan) || MygoIN6ResultM6Unwrap[bool, string](siteBan) {
- /*line reactions.mygo:185:18*/			return Err[struct{}, string]("forbidden")
- /*line reactions.mygo:184:9*/		} else {
- /*line zz_reactions.gen.go:132:1*/		}
- /*line reactions.mygo:137:7*/		blocked := IsInteractionBlocked(ctx, tx, self.SiteID, post.AuthorActorURI, identity.ActorURI)
- /*line reactions.mygo:188:9*/		if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line reactions.mygo:189:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line reactions.mygo:188:9*/		} else {
- /*line zz_reactions.gen.go:137:1*/		}
- /*line reactions.mygo:191:9*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line reactions.mygo:192:18*/			return Err[struct{}, string]("forbidden")
- /*line reactions.mygo:191:9*/		} else {
- /*line zz_reactions.gen.go:141:1*/		}
- /*line reactions.mygo:194:9*/		return work(tx, post)
- /*line zz_reactions.gen.go:143:1*/	})
+ /*line reactions.mygo:182:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](communityBan) || MygoIN6ResultM5IsErr[bool, failure.Failure](siteBan) {
+ /*line reactions.mygo:183:18*/			return Err[struct{}, failure.Failure](Of("moderation unavailable"))
+ /*line reactions.mygo:182:9*/		} else {
+ /*line zz_reactions.gen.go:129:1*/		}
+ /*line reactions.mygo:185:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](communityBan) || MygoIN6ResultM6Unwrap[bool, failure.Failure](siteBan) {
+ /*line reactions.mygo:186:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reactions.mygo:185:9*/		} else {
+ /*line zz_reactions.gen.go:133:1*/		}
+ /*line reactions.mygo:138:7*/		blocked := IsInteractionBlocked(ctx, tx, self.SiteID, post.AuthorActorURI, identity.ActorURI)
+ /*line reactions.mygo:189:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line reactions.mygo:190:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
+ /*line reactions.mygo:189:9*/		} else {
+ /*line zz_reactions.gen.go:138:1*/		}
+ /*line reactions.mygo:192:9*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
+ /*line reactions.mygo:193:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reactions.mygo:192:9*/		} else {
+ /*line zz_reactions.gen.go:142:1*/		}
+ /*line reactions.mygo:195:9*/		return work(tx, post)
+ /*line zz_reactions.gen.go:144:1*/	})
 }

@@ -11,6 +11,7 @@ import "bytes"
 import "image"
 import "image/png"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line media_files_test.mygo:13:1*/func MediaTestSettings(t *testing.T) config.Media {
@@ -26,25 +27,25 @@ import . "github.com/mygo-lang/mygo/prelude"
 	settings.MaxImagePixels = 4096
 	settings.MaxImageDimension = 128
  /*line media_files_test.mygo:25:3*/	return settings
- /*line zz_media_files.gen_test.go:29:1*/}
+ /*line zz_media_files.gen_test.go:30:1*/}
  /*line media_files_test.mygo:28:1*/func MediaTestPNG(width int, height int) []byte {
  /*line media_files_test.mygo:29:3*/	var b bytes.Buffer
 	_ = png.Encode(&b, image.NewNRGBA(image.Rect(0, 0, width, height)))
 	return b.Bytes()
- /*line zz_media_files.gen_test.go:34:1*/}
+ /*line zz_media_files.gen_test.go:35:1*/}
  /*line media_files_test.mygo:32:1*/func TestMediaRootStreamingAndSymlinks(t *testing.T) {
 	settings := MediaTestSettings(t)
-	mediaFS := MygoIN6ResultM6Unwrap[MediaFiles, string](OpenMediaFiles(settings))
+	mediaFS := MygoIN6ResultM6Unwrap[MediaFiles, failure.Failure](OpenMediaFiles(settings))
  /*line media_files_test.mygo:35:3*/	t.Cleanup(func() {
  /*line media_files_test.mygo:35:13*/		mediaFS.Root.Close()
 		return
- /*line zz_media_files.gen_test.go:41:1*/	})
+ /*line zz_media_files.gen_test.go:42:1*/	})
  /*line media_files_test.mygo:32:1*/	ctx := context.Background()
 	var id string = "abcdefghijklmnop"
- /*line media_files_test.mygo:38:3*/	if MygoIN6ResultM4IsOk[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, "../../escape", io.Reader(strings.NewReader("bad")), int64(10))) {
+ /*line media_files_test.mygo:38:3*/	if MygoIN6ResultM4IsOk[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, "../../escape", io.Reader(strings.NewReader("bad")), int64(10))) {
  /*line media_files_test.mygo:39:5*/		t.Fatal("traversal accepted")
  /*line media_files_test.mygo:38:3*/	} else {
- /*line zz_media_files.gen_test.go:47:1*/	}
+ /*line zz_media_files.gen_test.go:48:1*/	}
  /*line media_files_test.mygo:32:1*/	outside := t.TempDir() + "/secret"
  /*line media_files_test.mygo:42:11*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := os.WriteFile(outside, []byte("secret"), os.FileMode(384))
@@ -52,7 +53,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen_test.go:55:1*/		}{})
+ /*line zz_media_files.gen_test.go:56:1*/		}{})
 	}
  /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_1)
  /*line media_files_test.mygo:43:11*/	var __mygo_expr_3 Result[struct{}, error]
@@ -61,130 +62,130 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen_test.go:64:1*/		}{})
+ /*line zz_media_files.gen_test.go:65:1*/		}{})
 	}
  /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_3)
- /*line media_files_test.mygo:44:3*/	if MygoIN6ResultM4IsOk[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("overwrite")), int64(100))) || MygoIN6ResultM4IsOk[*os.File, string](MygoIN10MediaFilesM4Open(mediaFS, "temporary", id)) {
+ /*line media_files_test.mygo:44:3*/	if MygoIN6ResultM4IsOk[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("overwrite")), int64(100))) || MygoIN6ResultM4IsOk[*os.File, failure.Failure](MygoIN10MediaFilesM4Open(mediaFS, "temporary", id)) {
  /*line media_files_test.mygo:45:5*/		t.Fatal("symlink opened")
  /*line media_files_test.mygo:44:3*/	} else {
- /*line zz_media_files.gen_test.go:70:1*/	}
+ /*line zz_media_files.gen_test.go:71:1*/	}
  /*line media_files_test.mygo:47:6*/	var __mygo_expr_5 Result[[]byte, error]
 	__mygo_expr_6, __mygo_expr_4 := os.ReadFile(outside)
 	if __mygo_expr_4 != nil {
 		__mygo_expr_5 = Err[[]byte, error](__mygo_expr_4)
 	} else {
 		__mygo_expr_5 = Ok[[]byte, error](__mygo_expr_6)
- /*line zz_media_files.gen_test.go:77:1*/	}
+ /*line zz_media_files.gen_test.go:78:1*/	}
  /*line media_files_test.mygo:47:3*/	if string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_5)) != "secret" {
  /*line media_files_test.mygo:48:5*/		t.Fatal("symlink target modified")
  /*line media_files_test.mygo:47:3*/	} else {
- /*line zz_media_files.gen_test.go:81:1*/	}
- /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN10MediaFilesM6Remove(mediaFS, "temporary", id))
- /*line media_files_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("12345")), int64(4))) {
+ /*line zz_media_files.gen_test.go:82:1*/	}
+ /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN10MediaFilesM6Remove(mediaFS, "temporary", id))
+ /*line media_files_test.mygo:51:3*/	if MygoIN6ResultM4IsOk[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("12345")), int64(4))) {
  /*line media_files_test.mygo:52:5*/		t.Fatal("stream exceeded limit")
  /*line media_files_test.mygo:51:3*/	} else {
- /*line zz_media_files.gen_test.go:86:1*/	}
+ /*line zz_media_files.gen_test.go:87:1*/	}
  /*line media_files_test.mygo:54:6*/	var __mygo_expr_8 Result[os.FileInfo, error]
 	__mygo_expr_9, __mygo_expr_7 := mediaFS.Root.Lstat("temporary/" + id)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[os.FileInfo, error](__mygo_expr_7)
 	} else {
 		__mygo_expr_8 = Ok[os.FileInfo, error](__mygo_expr_9)
- /*line zz_media_files.gen_test.go:93:1*/	}
+ /*line zz_media_files.gen_test.go:94:1*/	}
  /*line media_files_test.mygo:54:3*/	if MygoIN6ResultM4IsOk[os.FileInfo, error](__mygo_expr_8) {
  /*line media_files_test.mygo:55:5*/		t.Fatal("oversize temporary file retained")
  /*line media_files_test.mygo:54:3*/	} else {
- /*line zz_media_files.gen_test.go:97:1*/	}
+ /*line zz_media_files.gen_test.go:98:1*/	}
  /*line media_files_test.mygo:32:1*/	cancelCtx, cancel := context.WithCancel(ctx)
  /*line media_files_test.mygo:58:3*/	cancel()
- /*line media_files_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, cancelCtx, id, io.Reader(strings.NewReader("test")), int64(10))) {
+ /*line media_files_test.mygo:59:3*/	if MygoIN6ResultM4IsOk[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, cancelCtx, id, io.Reader(strings.NewReader("test")), int64(10))) {
  /*line media_files_test.mygo:60:5*/		t.Fatal("canceled upload succeeded")
  /*line media_files_test.mygo:59:3*/	} else {
- /*line zz_media_files.gen_test.go:103:1*/	}
- /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("exact")), int64(5)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN10MediaFilesM7Publish(mediaFS, id, "local"))
-	original := MygoIN6ResultM6Unwrap[*os.File, string](MygoIN10MediaFilesM4Open(mediaFS, "local", id))
+ /*line zz_media_files.gen_test.go:104:1*/	}
+ /*line media_files_test.mygo:32:1*/	MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(strings.NewReader("exact")), int64(5)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN10MediaFilesM7Publish(mediaFS, id, "local"))
+	original := MygoIN6ResultM6Unwrap[*os.File, failure.Failure](MygoIN10MediaFilesM4Open(mediaFS, "local", id))
  /*line media_files_test.mygo:65:6*/	var __mygo_expr_11 Result[[]byte, error]
 	__mygo_expr_12, __mygo_expr_10 := io.ReadAll(io.Reader(original))
 	if __mygo_expr_10 != nil {
 		__mygo_expr_11 = Err[[]byte, error](__mygo_expr_10)
 	} else {
 		__mygo_expr_11 = Ok[[]byte, error](__mygo_expr_12)
- /*line zz_media_files.gen_test.go:113:1*/	}
+ /*line zz_media_files.gen_test.go:114:1*/	}
  /*line media_files_test.mygo:65:3*/	if string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_11)) != "exact" {
  /*line media_files_test.mygo:66:5*/		t.Fatal("atomic publication lost bytes")
  /*line media_files_test.mygo:65:3*/	} else {
- /*line zz_media_files.gen_test.go:117:1*/	}
+ /*line zz_media_files.gen_test.go:118:1*/	}
  /*line media_files_test.mygo:32:1*/	original.Close()
 	mediaFS.Root.Close()
- /*line media_files_test.mygo:70:3*/	if MygoIN6ResultM4IsOk[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, "abcdefghijklmnopq", io.Reader(strings.NewReader("fail")), int64(10))) {
+ /*line media_files_test.mygo:70:3*/	if MygoIN6ResultM4IsOk[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, "abcdefghijklmnopq", io.Reader(strings.NewReader("fail")), int64(10))) {
  /*line media_files_test.mygo:71:5*/		t.Fatal("closed root accepted write")
 		return
  /*line media_files_test.mygo:70:3*/	} else {
 		return
- /*line zz_media_files.gen_test.go:125:1*/	}
+ /*line zz_media_files.gen_test.go:126:1*/	}
 }
  /*line media_files_test.mygo:75:1*/func TestMediaImageBoundsAndOrdinaryDownloads(t *testing.T) {
 	settings := MediaTestSettings(t)
-	mediaFS := MygoIN6ResultM6Unwrap[MediaFiles, string](OpenMediaFiles(settings))
+	mediaFS := MygoIN6ResultM6Unwrap[MediaFiles, failure.Failure](OpenMediaFiles(settings))
  /*line media_files_test.mygo:78:3*/	t.Cleanup(func() {
  /*line media_files_test.mygo:78:13*/		mediaFS.Root.Close()
 		return
- /*line zz_media_files.gen_test.go:133:1*/	})
+ /*line zz_media_files.gen_test.go:134:1*/	})
  /*line media_files_test.mygo:75:1*/	ctx := context.Background()
 	var id string = "abcdefghijklmnop"
-	MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(bytes.NewReader(MediaTestPNG(64, 64))), int64(1048576)))
-	info := MygoIN6ResultM6Unwrap[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, id, "image/png", "avatar", settings))
+	MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, id, io.Reader(bytes.NewReader(MediaTestPNG(64, 64))), int64(1048576)))
+	info := MygoIN6ResultM6Unwrap[MediaInspected, failure.Failure](MygoIN10MediaFilesM7Inspect(mediaFS, id, "image/png", "avatar", settings))
  /*line media_files_test.mygo:83:3*/	if info.Type != "image/png" || info.PreviewSize <= int64(0) {
  /*line media_files_test.mygo:84:5*/		t.Fatal("raster not previewed")
  /*line media_files_test.mygo:83:3*/	} else {
- /*line zz_media_files.gen_test.go:141:1*/	}
- /*line media_files_test.mygo:75:1*/	preview := MygoIN6ResultM6Unwrap[*os.File, string](MygoIN10MediaFilesM4Open(mediaFS, "previews", id))
+ /*line zz_media_files.gen_test.go:142:1*/	}
+ /*line media_files_test.mygo:75:1*/	preview := MygoIN6ResultM6Unwrap[*os.File, failure.Failure](MygoIN10MediaFilesM4Open(mediaFS, "previews", id))
  /*line media_files_test.mygo:87:17*/	var __mygo_expr_1 Result[image.Config, error]
 	__mygo_expr_2, __mygo_expr_0 := png.DecodeConfig(io.Reader(preview))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[image.Config, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[image.Config, error](__mygo_expr_2)
- /*line zz_media_files.gen_test.go:149:1*/	}
+ /*line zz_media_files.gen_test.go:150:1*/	}
  /*line media_files_test.mygo:75:1*/	bounded := MygoIN6ResultM6Unwrap[image.Config, error](__mygo_expr_1)
 	preview.Close()
  /*line media_files_test.mygo:89:3*/	if bounded.Width != 32 || bounded.Height != 32 {
  /*line media_files_test.mygo:90:5*/		t.Fatal("preview not bounded")
  /*line media_files_test.mygo:89:3*/	} else {
- /*line zz_media_files.gen_test.go:155:1*/	}
+ /*line zz_media_files.gen_test.go:156:1*/	}
  /*line media_files_test.mygo:75:1*/	var huge string = "abcdefghijklmnopq"
-	MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, huge, io.Reader(bytes.NewReader(MediaTestPNG(128, 128))), int64(1048576)))
- /*line media_files_test.mygo:94:3*/	if MygoIN6ResultM4IsOk[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, huge, "image/png", "post", settings)) {
+	MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, huge, io.Reader(bytes.NewReader(MediaTestPNG(128, 128))), int64(1048576)))
+ /*line media_files_test.mygo:94:3*/	if MygoIN6ResultM4IsOk[MediaInspected, failure.Failure](MygoIN10MediaFilesM7Inspect(mediaFS, huge, "image/png", "post", settings)) {
  /*line media_files_test.mygo:95:5*/		t.Fatal("pixel bomb accepted")
  /*line media_files_test.mygo:94:3*/	} else {
- /*line zz_media_files.gen_test.go:161:1*/	}
+ /*line zz_media_files.gen_test.go:162:1*/	}
  /*line media_files_test.mygo:75:1*/	var malformed string = "abcdefghijklmnopr"
-	MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, malformed, io.Reader(bytes.NewReader(MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MediaTestPNG(8, 8), 30))), int64(1048576)))
- /*line media_files_test.mygo:99:3*/	if MygoIN6ResultM4IsOk[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, malformed, "image/png", "post", settings)) {
+	MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, malformed, io.Reader(bytes.NewReader(MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MediaTestPNG(8, 8), 30))), int64(1048576)))
+ /*line media_files_test.mygo:99:3*/	if MygoIN6ResultM4IsOk[MediaInspected, failure.Failure](MygoIN10MediaFilesM7Inspect(mediaFS, malformed, "image/png", "post", settings)) {
  /*line media_files_test.mygo:100:5*/		t.Fatal("malformed declared image accepted")
  /*line media_files_test.mygo:99:3*/	} else {
- /*line zz_media_files.gen_test.go:167:1*/	}
+ /*line zz_media_files.gen_test.go:168:1*/	}
  /*line media_files_test.mygo:75:1*/	var ordinary []string = []string{"<html><script>alert(1)</script></html>", "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>", "%PDF-1.7\nfile", "PK archive"}
 	var index int = 0
  /*line media_files_test.mygo:104:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(ordinary, func(body string) {
  /*line media_files_test.mygo:104:17*/		fileID := "abcdefghijklmnop" + MygoIN6StringM6Repeat("x", index+1)
 		index = index + 1
-		MygoIN6ResultM6Unwrap[int64, string](MygoIN10MediaFilesM6Stream(mediaFS, ctx, fileID, io.Reader(strings.NewReader(body)), int64(1048576)))
-		checked := MygoIN6ResultM6Unwrap[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, fileID, "application/octet-stream", "post", settings))
+		MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN10MediaFilesM6Stream(mediaFS, ctx, fileID, io.Reader(strings.NewReader(body)), int64(1048576)))
+		checked := MygoIN6ResultM6Unwrap[MediaInspected, failure.Failure](MygoIN10MediaFilesM7Inspect(mediaFS, fileID, "application/octet-stream", "post", settings))
  /*line media_files_test.mygo:109:5*/		if checked.PreviewSize != int64(0) {
  /*line media_files_test.mygo:110:7*/			t.Fatal("ordinary file got a preview")
  /*line media_files_test.mygo:109:5*/		} else {
- /*line zz_media_files.gen_test.go:178:1*/		}
- /*line media_files_test.mygo:112:5*/		if MygoIN6ResultM4IsOk[MediaInspected, string](MygoIN10MediaFilesM7Inspect(mediaFS, fileID, "image/png", "avatar", settings)) {
+ /*line zz_media_files.gen_test.go:179:1*/		}
+ /*line media_files_test.mygo:112:5*/		if MygoIN6ResultM4IsOk[MediaInspected, failure.Failure](MygoIN10MediaFilesM7Inspect(mediaFS, fileID, "image/png", "avatar", settings)) {
  /*line media_files_test.mygo:113:7*/			t.Fatal("ordinary file accepted as avatar")
 			return
  /*line media_files_test.mygo:112:5*/		} else {
 			return
- /*line zz_media_files.gen_test.go:184:1*/		}
+ /*line zz_media_files.gen_test.go:185:1*/		}
 	})
  /*line media_files_test.mygo:104:3*/	return
- /*line zz_media_files.gen_test.go:187:1*/}
+ /*line zz_media_files.gen_test.go:188:1*/}
  /*line media_files_test.mygo:118:1*/func TestMediaRejectNamespaceAndRootSymlinks(t *testing.T) {
 	settings := MediaTestSettings(t)
 	external := t.TempDir()
@@ -194,13 +195,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen_test.go:197:1*/		}{})
+ /*line zz_media_files.gen_test.go:198:1*/		}{})
 	}
  /*line media_files_test.mygo:118:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_1)
- /*line media_files_test.mygo:122:3*/	if MygoIN6ResultM4IsOk[MediaFiles, string](OpenMediaFiles(settings)) {
+ /*line media_files_test.mygo:122:3*/	if MygoIN6ResultM4IsOk[MediaFiles, failure.Failure](OpenMediaFiles(settings)) {
  /*line media_files_test.mygo:123:5*/		t.Fatal("symlink namespace accepted")
  /*line media_files_test.mygo:122:3*/	} else {
- /*line zz_media_files.gen_test.go:203:1*/	}
+ /*line zz_media_files.gen_test.go:204:1*/	}
  /*line media_files_test.mygo:118:1*/	alias := t.TempDir() + "/alias"
  /*line media_files_test.mygo:126:11*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := os.Symlink(external, alias)
@@ -208,70 +209,70 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_media_files.gen_test.go:211:1*/		}{})
+ /*line zz_media_files.gen_test.go:212:1*/		}{})
 	}
  /*line media_files_test.mygo:118:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_3)
 	settings.Root = alias
- /*line media_files_test.mygo:128:3*/	if MygoIN6ResultM4IsOk[MediaFiles, string](OpenMediaFiles(settings)) {
+ /*line media_files_test.mygo:128:3*/	if MygoIN6ResultM4IsOk[MediaFiles, failure.Failure](OpenMediaFiles(settings)) {
  /*line media_files_test.mygo:129:5*/		t.Fatal("symlink root accepted")
 		return
  /*line media_files_test.mygo:128:3*/	} else {
 		return
- /*line zz_media_files.gen_test.go:220:1*/	}
+ /*line zz_media_files.gen_test.go:221:1*/	}
 }
  /*line media_files_test.mygo:133:1*/func TestMediaFileIDValidation(t *testing.T) {
  /*line media_files_test.mygo:134:3*/	if !MediaFileID("abcdefghijklmnop") {
  /*line media_files_test.mygo:135:5*/		t.Fatal("valid id rejected")
  /*line media_files_test.mygo:134:3*/	} else {
- /*line zz_media_files.gen_test.go:226:1*/	}
+ /*line zz_media_files.gen_test.go:227:1*/	}
  /*line media_files_test.mygo:137:3*/	if MediaFileID("short") {
  /*line media_files_test.mygo:138:5*/		t.Fatal("short id accepted")
  /*line media_files_test.mygo:137:3*/	} else {
- /*line zz_media_files.gen_test.go:230:1*/	}
+ /*line zz_media_files.gen_test.go:231:1*/	}
  /*line media_files_test.mygo:140:3*/	if MediaFileID(MygoIN6StringM6Repeat("a", 129)) {
  /*line media_files_test.mygo:141:5*/		t.Fatal("long id accepted")
  /*line media_files_test.mygo:140:3*/	} else {
- /*line zz_media_files.gen_test.go:234:1*/	}
+ /*line zz_media_files.gen_test.go:235:1*/	}
  /*line media_files_test.mygo:143:3*/	if !MediaFileID(MygoIN6StringM6Repeat("a", 128)) {
  /*line media_files_test.mygo:144:5*/		t.Fatal("max length id rejected")
  /*line media_files_test.mygo:143:3*/	} else {
- /*line zz_media_files.gen_test.go:238:1*/	}
+ /*line zz_media_files.gen_test.go:239:1*/	}
  /*line media_files_test.mygo:146:3*/	if MediaFileID("abcdefghijklmno/") {
  /*line media_files_test.mygo:147:5*/		t.Fatal("separator accepted")
  /*line media_files_test.mygo:146:3*/	} else {
- /*line zz_media_files.gen_test.go:242:1*/	}
+ /*line zz_media_files.gen_test.go:243:1*/	}
  /*line media_files_test.mygo:149:3*/	if MediaFileID("abcdefghijklmno ") {
  /*line media_files_test.mygo:150:5*/		t.Fatal("space accepted")
 		return
  /*line media_files_test.mygo:149:3*/	} else {
 		return
- /*line zz_media_files.gen_test.go:248:1*/	}
+ /*line zz_media_files.gen_test.go:249:1*/	}
 }
  /*line media_files_test.mygo:154:1*/func TestMediaSafeName(t *testing.T) {
  /*line media_files_test.mygo:155:3*/	if MediaSafeName("") != "download" {
  /*line media_files_test.mygo:156:5*/		t.Fatal("empty name accepted")
  /*line media_files_test.mygo:155:3*/	} else {
- /*line zz_media_files.gen_test.go:254:1*/	}
+ /*line zz_media_files.gen_test.go:255:1*/	}
  /*line media_files_test.mygo:158:3*/	if MediaSafeName(".") != "download" || MediaSafeName("..") != "download" {
  /*line media_files_test.mygo:159:5*/		t.Fatal("dot name accepted")
  /*line media_files_test.mygo:158:3*/	} else {
- /*line zz_media_files.gen_test.go:258:1*/	}
+ /*line zz_media_files.gen_test.go:259:1*/	}
  /*line media_files_test.mygo:161:3*/	if MediaSafeName("a/b\\c") != "a_b_c" {
  /*line media_files_test.mygo:162:5*/		t.Fatalf("separator sanitized as %s", MediaSafeName("a/b\\c"))
  /*line media_files_test.mygo:161:3*/	} else {
- /*line zz_media_files.gen_test.go:262:1*/	}
+ /*line zz_media_files.gen_test.go:263:1*/	}
  /*line media_files_test.mygo:164:3*/	if MediaSafeName("a\tb") != "a_b" {
  /*line media_files_test.mygo:165:5*/		t.Fatal("control character survived")
  /*line media_files_test.mygo:164:3*/	} else {
- /*line zz_media_files.gen_test.go:266:1*/	}
+ /*line zz_media_files.gen_test.go:267:1*/	}
  /*line media_files_test.mygo:167:3*/	if MediaSafeName(MygoIN6StringM6Repeat("a", 181)) != "download" {
  /*line media_files_test.mygo:168:5*/		t.Fatal("overlong name accepted")
  /*line media_files_test.mygo:167:3*/	} else {
- /*line zz_media_files.gen_test.go:270:1*/	}
+ /*line zz_media_files.gen_test.go:271:1*/	}
  /*line media_files_test.mygo:170:3*/	if MediaSafeName(MygoIN6StringM6Repeat("a", 180)) != MygoIN6StringM6Repeat("a", 180) {
  /*line media_files_test.mygo:171:5*/		t.Fatal("max length name rejected")
 		return
  /*line media_files_test.mygo:170:3*/	} else {
 		return
- /*line zz_media_files.gen_test.go:276:1*/	}
+ /*line zz_media_files.gen_test.go:277:1*/	}
 }

@@ -1,0 +1,17 @@
+package functional
+
+import failure "github.com/commune-project/commune-backend/internal/failure"
+
+# Typed-failure variant used at storage and federation boundaries. The element
+# type stays anchored to the argument so inference works on the current compiler.
+func SequenceFailure[T](items: Slice[Result[T, failure.Failure]]) -> Result[Slice[T], failure.Failure]
+  let seed: Result[Slice[T], failure.Failure] = Ok([] as Slice[T])
+  items.Fold(seed, func(acc: Result[Slice[T], failure.Failure], item: Result[T, failure.Failure]) -> Result[Slice[T], failure.Failure]
+    acc.AndThen(func(done: Slice[T]) -> Result[Slice[T], failure.Failure]
+      item.Map(func(value: T) -> Slice[T]
+        done.Append(value)
+      end)
+    end)
+  end)
+end
+

@@ -4,191 +4,192 @@ package federation
 
 import "context"
 import "encoding/json"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line authority.mygo:6:1*/type EmbeddedActivity struct {
+ /*line authority.mygo:7:1*/type EmbeddedActivity struct {
 	ID           string "json:\"id\""
 	Actor        string "json:\"actor\""
 	Type         string "json:\"type\""
 	AttributedTo string "json:\"attributedTo\""
- /*line zz_authority.gen.go:14:1*/}
- /*line authority.mygo:13:1*/type ActivityView struct {
+ /*line zz_authority.gen.go:15:1*/}
+ /*line authority.mygo:14:1*/type ActivityView struct {
 	ID     string          "json:\"id\""
 	Actor  string          "json:\"actor\""
 	Type   string          "json:\"type\""
 	Target string          "json:\"target\""
 	Object json.RawMessage "json:\"object\""
- /*line zz_authority.gen.go:21:1*/}
- /*line authority.mygo:21:1*/type ForwardSigner struct {
+ /*line zz_authority.gen.go:22:1*/}
+ /*line authority.mygo:22:1*/type ForwardSigner struct {
 	ActorURI   string
 	PrivateKey string
- /*line zz_authority.gen.go:25:1*/}
- /*line authority.mygo:26:1*/type ParsedActivity struct {
+ /*line zz_authority.gen.go:26:1*/}
+ /*line authority.mygo:27:1*/type ParsedActivity struct {
 	ID        string
 	Actor     string
 	Type      string
 	Target    string
 	ObjectURI string
 	Embedded  Option[EmbeddedActivity]
- /*line zz_authority.gen.go:33:1*/}
+ /*line zz_authority.gen.go:34:1*/}
 
- /*line authority.mygo:36:1*/func ParseActivity(payload []byte) Result[ParsedActivity, string] {
+ /*line authority.mygo:37:1*/func ParseActivity(payload []byte) Result[ParsedActivity, failure.Failure] {
 	view := Zero[ActivityView]()
- /*line authority.mygo:38:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line authority.mygo:39:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &view)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_authority.gen.go:43:1*/		}{})
+ /*line zz_authority.gen.go:44:1*/		}{})
 	}
- /*line authority.mygo:38:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line authority.mygo:39:12*/		return Err[ParsedActivity, string]("invalid activity")
- /*line authority.mygo:38:3*/	} else {
- /*line zz_authority.gen.go:48:1*/	}
- /*line authority.mygo:41:3*/	if view.ID == "" || view.Actor == "" || view.Type == "" {
- /*line authority.mygo:42:12*/		return Err[ParsedActivity, string]("invalid activity")
- /*line authority.mygo:41:3*/	} else {
- /*line zz_authority.gen.go:52:1*/	}
- /*line authority.mygo:36:1*/	objectURI := ""
+ /*line authority.mygo:39:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line authority.mygo:40:12*/		return Err[ParsedActivity, failure.Failure](Of("invalid activity"))
+ /*line authority.mygo:39:3*/	} else {
+ /*line zz_authority.gen.go:49:1*/	}
+ /*line authority.mygo:42:3*/	if view.ID == "" || view.Actor == "" || view.Type == "" {
+ /*line authority.mygo:43:12*/		return Err[ParsedActivity, failure.Failure](Of("invalid activity"))
+ /*line authority.mygo:42:3*/	} else {
+ /*line zz_authority.gen.go:53:1*/	}
+ /*line authority.mygo:37:1*/	objectURI := ""
 	var embedded Option[EmbeddedActivity] = None[EmbeddedActivity]()
 	asString := ""
- /*line authority.mygo:47:6*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line authority.mygo:48:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal([]byte(view.Object), &asString)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_authority.gen.go:62:1*/		}{})
+ /*line zz_authority.gen.go:63:1*/		}{})
 	}
- /*line authority.mygo:47:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
+ /*line authority.mygo:48:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
 		objectURI = asString
 	} else {
 		nested := Zero[EmbeddedActivity]()
- /*line authority.mygo:51:8*/		var __mygo_expr_5 Result[struct{}, error]
+ /*line authority.mygo:52:8*/		var __mygo_expr_5 Result[struct{}, error]
 		__mygo_expr_4 := json.Unmarshal([]byte(view.Object), &nested)
 		if __mygo_expr_4 != nil {
 			__mygo_expr_5 = Err[struct{}, error](__mygo_expr_4)
 		} else {
 			__mygo_expr_5 = Ok[struct{}, error](struct {
- /*line zz_authority.gen.go:74:1*/			}{})
+ /*line zz_authority.gen.go:75:1*/			}{})
 		}
- /*line authority.mygo:47:3*/		if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && nested.ID != "" {
+ /*line authority.mygo:48:3*/		if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_5) && nested.ID != "" {
 			embedded = Some[EmbeddedActivity](nested)
 			objectURI = nested.ID
 		} else {
- /*line zz_authority.gen.go:80:1*/		}
+ /*line zz_authority.gen.go:81:1*/		}
 	}
- /*line authority.mygo:56:3*/	return Ok[ParsedActivity, string](ParsedActivity{ID: view.ID, Actor: view.Actor, Type: view.Type, Target: view.Target, ObjectURI: objectURI, Embedded: embedded})
- /*line zz_authority.gen.go:83:1*/}
- /*line authority.mygo:59:1*/func TrustedBySameSigner(activity ParsedActivity) bool {
- /*line authority.mygo:60:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
- /*line authority.mygo:61:12*/		return true
- /*line authority.mygo:60:3*/	} else {
- /*line zz_authority.gen.go:88:1*/	}
- /*line authority.mygo:63:3*/	return MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).Actor == activity.Actor
- /*line zz_authority.gen.go:90:1*/}
- /*line authority.mygo:68:1*/func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits FetchLimits, payload []byte, signer ForwardSigner) Result[struct {
-}, string] {
- /*line authority.mygo:69:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
- /*line authority.mygo:70:12*/		return Ok[struct{}, string](struct {
- /*line zz_authority.gen.go:95:1*/		}{})
- /*line authority.mygo:69:3*/	} else {
- /*line zz_authority.gen.go:97:1*/	}
- /*line authority.mygo:68:1*/	inner := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded)
- /*line authority.mygo:73:3*/	if inner.Actor == "" || inner.Actor == activity.Actor {
- /*line authority.mygo:74:12*/		return Ok[struct{}, string](struct {
- /*line zz_authority.gen.go:101:1*/		}{})
- /*line authority.mygo:73:3*/	} else {
- /*line zz_authority.gen.go:103:1*/	}
- /*line authority.mygo:76:3*/	if inner.ID == "" {
- /*line authority.mygo:77:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:76:3*/	} else {
- /*line zz_authority.gen.go:107:1*/	}
- /*line authority.mygo:68:1*/	var __mygo_expr_0 Result[[]byte, string]
+ /*line authority.mygo:57:3*/	return Ok[ParsedActivity, failure.Failure](ParsedActivity{ID: view.ID, Actor: view.Actor, Type: view.Type, Target: view.Target, ObjectURI: objectURI, Embedded: embedded})
+ /*line zz_authority.gen.go:84:1*/}
+ /*line authority.mygo:60:1*/func TrustedBySameSigner(activity ParsedActivity) bool {
+ /*line authority.mygo:61:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:62:12*/		return true
+ /*line authority.mygo:61:3*/	} else {
+ /*line zz_authority.gen.go:89:1*/	}
+ /*line authority.mygo:64:3*/	return MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).Actor == activity.Actor
+ /*line zz_authority.gen.go:91:1*/}
+ /*line authority.mygo:69:1*/func VerifyEmbeddedActivity(ctx context.Context, activity ParsedActivity, limits FetchLimits, payload []byte, signer ForwardSigner) Result[struct {
+}, failure.Failure] {
+ /*line authority.mygo:70:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:71:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_authority.gen.go:96:1*/		}{})
+ /*line authority.mygo:70:3*/	} else {
+ /*line zz_authority.gen.go:98:1*/	}
+ /*line authority.mygo:69:1*/	inner := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded)
+ /*line authority.mygo:74:3*/	if inner.Actor == "" || inner.Actor == activity.Actor {
+ /*line authority.mygo:75:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_authority.gen.go:102:1*/		}{})
+ /*line authority.mygo:74:3*/	} else {
+ /*line zz_authority.gen.go:104:1*/	}
+ /*line authority.mygo:77:3*/	if inner.ID == "" {
+ /*line authority.mygo:78:12*/		return Err[struct{}, failure.Failure](Of("unverifiable embedded author"))
+ /*line authority.mygo:77:3*/	} else {
+ /*line zz_authority.gen.go:108:1*/	}
+ /*line authority.mygo:69:1*/	var __mygo_expr_0 Result[[]byte, failure.Failure]
 	if signer.ActorURI != "" {
 		__mygo_expr_0 = FetchSignedResource(ctx, inner.ID, signer.ActorURI, signer.PrivateKey, limits, ActivityJSONType())
 	} else {
-		__mygo_expr_0 = MygoIN6ResultM3Map[FetchResult, string](Fetch(ctx, inner.ID, limits), func(response FetchResult) []byte {
- /*line authority.mygo:82:81*/			return response.Body
- /*line zz_authority.gen.go:114:1*/		})
+		__mygo_expr_0 = MygoIN6ResultM3Map[FetchResult, failure.Failure](Fetch(ctx, inner.ID, limits), func(response FetchResult) []byte {
+ /*line authority.mygo:83:81*/			return response.Body
+ /*line zz_authority.gen.go:115:1*/		})
 	}
- /*line authority.mygo:68:1*/	canonical := __mygo_expr_0
- /*line authority.mygo:84:3*/	if MygoIN6ResultM5IsErr[[]byte, string](canonical) {
- /*line authority.mygo:85:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:84:3*/	} else {
- /*line zz_authority.gen.go:120:1*/	}
- /*line authority.mygo:68:1*/	parsed := ParseActivity(MygoIN6ResultM6Unwrap[[]byte, string](canonical))
- /*line authority.mygo:88:3*/	if MygoIN6ResultM5IsErr[ParsedActivity, string](parsed) {
- /*line authority.mygo:89:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:88:3*/	} else {
- /*line zz_authority.gen.go:125:1*/	}
- /*line authority.mygo:68:1*/	copy := MygoIN6ResultM6Unwrap[ParsedActivity, string](parsed)
- /*line authority.mygo:92:3*/	if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type {
- /*line authority.mygo:93:12*/		return Err[struct{}, string]("unverifiable embedded author")
- /*line authority.mygo:92:3*/	} else {
- /*line zz_authority.gen.go:130:1*/	}
- /*line authority.mygo:68:1*/	envelope := Zero[ActivityView]()
- /*line authority.mygo:96:6*/	var __mygo_expr_2 Result[struct{}, error]
+ /*line authority.mygo:69:1*/	canonical := __mygo_expr_0
+ /*line authority.mygo:85:3*/	if MygoIN6ResultM5IsErr[[]byte, failure.Failure](canonical) {
+ /*line authority.mygo:86:12*/		return Err[struct{}, failure.Failure](Of("unverifiable embedded author"))
+ /*line authority.mygo:85:3*/	} else {
+ /*line zz_authority.gen.go:121:1*/	}
+ /*line authority.mygo:69:1*/	parsed := ParseActivity(MygoIN6ResultM6Unwrap[[]byte, failure.Failure](canonical))
+ /*line authority.mygo:89:3*/	if MygoIN6ResultM5IsErr[ParsedActivity, failure.Failure](parsed) {
+ /*line authority.mygo:90:12*/		return Err[struct{}, failure.Failure](Of("unverifiable embedded author"))
+ /*line authority.mygo:89:3*/	} else {
+ /*line zz_authority.gen.go:126:1*/	}
+ /*line authority.mygo:69:1*/	copy := MygoIN6ResultM6Unwrap[ParsedActivity, failure.Failure](parsed)
+ /*line authority.mygo:93:3*/	if copy.ID != inner.ID || copy.Actor != inner.Actor || copy.Type != inner.Type {
+ /*line authority.mygo:94:12*/		return Err[struct{}, failure.Failure](Of("unverifiable embedded author"))
+ /*line authority.mygo:93:3*/	} else {
+ /*line zz_authority.gen.go:131:1*/	}
+ /*line authority.mygo:69:1*/	envelope := Zero[ActivityView]()
+ /*line authority.mygo:97:6*/	var __mygo_expr_2 Result[struct{}, error]
 	__mygo_expr_1 := json.Unmarshal(payload, &envelope)
 	if __mygo_expr_1 != nil {
 		__mygo_expr_2 = Err[struct{}, error](__mygo_expr_1)
 	} else {
 		__mygo_expr_2 = Ok[struct{}, error](struct {
- /*line zz_authority.gen.go:138:1*/		}{})
+ /*line zz_authority.gen.go:139:1*/		}{})
 	}
- /*line authority.mygo:96:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
- /*line authority.mygo:96:69*/		return Err[struct{}, string]("invalid forwarded activity")
- /*line authority.mygo:96:3*/	} else {
- /*line zz_authority.gen.go:143:1*/	}
- /*line authority.mygo:97:19*/	var __mygo_expr_4 Result[[]byte, error]
+ /*line authority.mygo:97:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
+ /*line authority.mygo:97:69*/		return Err[struct{}, failure.Failure](Of("invalid forwarded activity"))
+ /*line authority.mygo:97:3*/	} else {
+ /*line zz_authority.gen.go:144:1*/	}
+ /*line authority.mygo:98:19*/	var __mygo_expr_4 Result[[]byte, error]
 	__mygo_expr_5, __mygo_expr_3 := json.Marshal(envelope.Object)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
- /*line zz_authority.gen.go:150:1*/	}
- /*line authority.mygo:68:1*/	forwarded := __mygo_expr_4
- /*line authority.mygo:98:23*/	var __mygo_expr_7 Result[[]byte, error]
-	__mygo_expr_8, __mygo_expr_6 := json.Marshal(json.RawMessage(MygoIN6ResultM6Unwrap[[]byte, string](canonical)))
+ /*line zz_authority.gen.go:151:1*/	}
+ /*line authority.mygo:69:1*/	forwarded := __mygo_expr_4
+ /*line authority.mygo:99:23*/	var __mygo_expr_7 Result[[]byte, error]
+	__mygo_expr_8, __mygo_expr_6 := json.Marshal(json.RawMessage(MygoIN6ResultM6Unwrap[[]byte, failure.Failure](canonical)))
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
 	} else {
 		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
- /*line zz_authority.gen.go:158:1*/	}
- /*line authority.mygo:68:1*/	authoritative := __mygo_expr_7
+ /*line zz_authority.gen.go:159:1*/	}
+ /*line authority.mygo:69:1*/	authoritative := __mygo_expr_7
 	document := Zero[ActivityView]()
- /*line authority.mygo:100:6*/	var __mygo_expr_10 Result[struct{}, error]
+ /*line authority.mygo:101:6*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal([]byte(envelope.Object), &document)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
 	} else {
 		__mygo_expr_10 = Ok[struct{}, error](struct {
- /*line zz_authority.gen.go:167:1*/		}{})
+ /*line zz_authority.gen.go:168:1*/		}{})
 	}
- /*line authority.mygo:100:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
- /*line authority.mygo:100:92*/		return Err[struct{}, string]("invalid forwarded activity")
- /*line authority.mygo:100:3*/	} else {
- /*line zz_authority.gen.go:172:1*/	}
- /*line authority.mygo:101:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.Object)) > 0 && (MygoIN6ResultM5IsErr[[]byte, error](forwarded) || MygoIN6ResultM5IsErr[[]byte, error](authoritative) || string(MygoIN6ResultM6Unwrap[[]byte, error](forwarded)) != string(MygoIN6ResultM6Unwrap[[]byte, error](authoritative))) {
- /*line authority.mygo:102:12*/		return Err[struct{}, string]("modified forwarded activity")
+ /*line authority.mygo:101:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_10) {
+ /*line authority.mygo:101:92*/		return Err[struct{}, failure.Failure](Of("invalid forwarded activity"))
  /*line authority.mygo:101:3*/	} else {
- /*line zz_authority.gen.go:176:1*/	}
- /*line authority.mygo:104:3*/	return Ok[struct{}, string](struct {
- /*line zz_authority.gen.go:178:1*/	}{})
+ /*line zz_authority.gen.go:173:1*/	}
+ /*line authority.mygo:102:6*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(document.Object)) > 0 && (MygoIN6ResultM5IsErr[[]byte, error](forwarded) || MygoIN6ResultM5IsErr[[]byte, error](authoritative) || string(MygoIN6ResultM6Unwrap[[]byte, error](forwarded)) != string(MygoIN6ResultM6Unwrap[[]byte, error](authoritative))) {
+ /*line authority.mygo:103:12*/		return Err[struct{}, failure.Failure](Of("modified forwarded activity"))
+ /*line authority.mygo:102:3*/	} else {
+ /*line zz_authority.gen.go:177:1*/	}
+ /*line authority.mygo:105:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_authority.gen.go:179:1*/	}{})
 }
- /*line authority.mygo:109:1*/func AuthorObjectMutable(kind string, actorURI string, storedAuthorURI string) bool {
- /*line authority.mygo:110:3*/	if kind != "Update" && kind != "Delete" {
- /*line authority.mygo:111:12*/		return true
- /*line authority.mygo:110:3*/	} else {
- /*line zz_authority.gen.go:184:1*/	}
- /*line authority.mygo:113:3*/	return storedAuthorURI != "" && storedAuthorURI == actorURI
- /*line zz_authority.gen.go:186:1*/}
- /*line authority.mygo:116:1*/func CreateAuthorMatches(activity ParsedActivity) bool {
- /*line authority.mygo:117:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
- /*line authority.mygo:118:12*/		return true
- /*line authority.mygo:117:3*/	} else {
- /*line zz_authority.gen.go:191:1*/	}
- /*line authority.mygo:116:1*/	attributed := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).AttributedTo
- /*line authority.mygo:121:3*/	return attributed == "" || attributed == activity.Actor
- /*line zz_authority.gen.go:194:1*/}
+ /*line authority.mygo:110:1*/func AuthorObjectMutable(kind string, actorURI string, storedAuthorURI string) bool {
+ /*line authority.mygo:111:3*/	if kind != "Update" && kind != "Delete" {
+ /*line authority.mygo:112:12*/		return true
+ /*line authority.mygo:111:3*/	} else {
+ /*line zz_authority.gen.go:185:1*/	}
+ /*line authority.mygo:114:3*/	return storedAuthorURI != "" && storedAuthorURI == actorURI
+ /*line zz_authority.gen.go:187:1*/}
+ /*line authority.mygo:117:1*/func CreateAuthorMatches(activity ParsedActivity) bool {
+ /*line authority.mygo:118:3*/	if MygoIN6OptionM6IsNone[EmbeddedActivity](activity.Embedded) {
+ /*line authority.mygo:119:12*/		return true
+ /*line authority.mygo:118:3*/	} else {
+ /*line zz_authority.gen.go:192:1*/	}
+ /*line authority.mygo:117:1*/	attributed := MygoIN6OptionM6Unwrap[EmbeddedActivity](activity.Embedded).AttributedTo
+ /*line authority.mygo:122:3*/	return attributed == "" || attributed == activity.Actor
+ /*line zz_authority.gen.go:195:1*/}

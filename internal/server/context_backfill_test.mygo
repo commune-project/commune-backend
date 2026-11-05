@@ -6,6 +6,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresContextBackfillAndNavigation(t: Ref[testing.T]) -> ()
   let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
@@ -24,7 +25,7 @@ func TestPostgresContextBackfillAndNavigation(t: Ref[testing.T]) -> ()
   let replyURI = "https://peer.example/objects/reply"
   let _ = storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?, 'Group'), (?, 'Person')", authority, author)).Unwrap()
   let _ = storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('remote',?,?,'federated','eligible_users','eligible_users','remote','Remote')", authority, author)).Unwrap()
-  let fetcher = func(fetchCtx: context.Context, fetchSettings: config.Config, uri: String) -> Result[Slice[Byte], String]
+  let fetcher = func(fetchCtx: context.Context, fetchSettings: config.Config, uri: String) -> Result[Slice[Byte], failure.Failure]
     if uri == root then
       return Ok(("{\"id\":\"" + root + "\",\"type\":\"OrderedCollection\",\"attributedTo\":\"" + authority + "\",\"first\":\"" + page + "\"}") as Slice[Byte])
     end
@@ -40,7 +41,7 @@ func TestPostgresContextBackfillAndNavigation(t: Ref[testing.T]) -> ()
     if uri == replyURI then
       return Ok(("{\"id\":\"" + replyURI + "\",\"type\":\"Note\",\"attributedTo\":\"" + author + "\",\"content\":\"Reply without context\",\"inReplyTo\":\"" + topicURI + "\",\"published\":\"2026-10-20T00:01:00Z\"}") as Slice[Byte])
     end
-    Err("unexpected backfill URI")
+    Err(Of("unexpected backfill URI"))
   end
   let contextID = storage.EnsureContextStub(ctx, db, root).Unwrap()
   let firstResult = BackfillDiscussion(ctx, settings, db, site, contextID, alice, false, fetcher)

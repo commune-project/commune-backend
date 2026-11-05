@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ActivityPayloadRecord
   URI: String `gorm:"column:uri"`
@@ -12,17 +13,17 @@ func LoadObjectByID(
   ctx: context.Context,
   db: Ref[gorm.DB],
   id: String
-) -> Result[Option[PostRecord], String]
+) -> Result[Option[PostRecord], failure.Failure]
   if id == "" then
-    return Err("invalid object")
+    return Err(Of("invalid object"))
   end
-  let record = Zero[PostRecord]()
+  var record = Zero[PostRecord]()
   let query = db.WithContext(ctx).Table("posts").Where("id = ?", id).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("object unavailable")
+    return Err(Of("object unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[PostRecord], String](None)
+    return Ok[Option[PostRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end
@@ -32,18 +33,18 @@ func LoadCommunityByName(
   db: Ref[gorm.DB],
   siteID: String,
   name: String
-) -> Result[Option[CommunityRecord], String]
-  let record = Zero[CommunityRecord]()
+) -> Result[Option[CommunityRecord], failure.Failure]
+  var record = Zero[CommunityRecord]()
   let query = db.WithContext(ctx).Table("communities").Where(
     "host_site_id = ? AND name = ?",
     siteID,
     name
   ).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[CommunityRecord], String](None)
+    return Ok[Option[CommunityRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end
@@ -52,14 +53,14 @@ func LoadCommunityByID(
   ctx: context.Context,
   db: Ref[gorm.DB],
   id: String
-) -> Result[Option[CommunityRecord], String]
-  let record = Zero[CommunityRecord]()
+) -> Result[Option[CommunityRecord], failure.Failure]
+  var record = Zero[CommunityRecord]()
   let query = db.WithContext(ctx).Table("communities").Where("id = ?", id).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[CommunityRecord], String](None)
+    return Ok[Option[CommunityRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end
@@ -68,17 +69,17 @@ func LoadActivityPayload(
   ctx: context.Context,
   db: Ref[gorm.DB],
   uri: String
-) -> Result[Option[ActivityPayloadRecord], String]
-  let record = Zero[ActivityPayloadRecord]()
+) -> Result[Option[ActivityPayloadRecord], failure.Failure]
+  var record = Zero[ActivityPayloadRecord]()
   let query = db.WithContext(ctx).Table("activities AS a").Select("a.uri, p.original_payload").Joins("JOIN activity_payloads AS p ON p.activity_uri = a.uri").Where(
     "a.uri = ?",
     uri
   ).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("activity unavailable")
+    return Err(Of("activity unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[ActivityPayloadRecord], String](None)
+    return Ok[Option[ActivityPayloadRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end

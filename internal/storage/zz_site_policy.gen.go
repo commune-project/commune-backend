@@ -8,130 +8,131 @@ import "net/url"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line site_policy.mygo:10:1*/type SiteRepository struct {
+ /*line site_policy.mygo:11:1*/type SiteRepository struct {
 	DB     *gorm.DB
 	SiteID string
- /*line zz_site_policy.gen.go:16:1*/}
+ /*line zz_site_policy.gen.go:17:1*/}
 
- /*line site_policy.mygo:15:1*/func QueryExists(query *gorm.DB) Result[bool, string] {
+ /*line site_policy.mygo:16:1*/func QueryExists(query *gorm.DB) Result[bool, failure.Failure] {
 	count := int64(0)
- /*line site_policy.mygo:17:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query.Count(&count))) {
- /*line site_policy.mygo:18:12*/		return Err[bool, string]("policy unavailable")
- /*line site_policy.mygo:17:3*/	} else {
- /*line zz_site_policy.gen.go:23:1*/	}
- /*line site_policy.mygo:20:3*/	return Ok[bool, string](count > int64(0))
- /*line zz_site_policy.gen.go:25:1*/}
- /*line site_policy.mygo:23:1*/func MygoIN14SiteRepositoryM15IsAdministrator(self SiteRepository, ctx context.Context, identity auth.Identity) Result[bool, string] {
- /*line site_policy.mygo:29:5*/	if !auth.MygoIN8IdentityM9BelongsTo(identity, self.SiteID) {
- /*line site_policy.mygo:30:14*/		return Ok[bool, string](false)
- /*line site_policy.mygo:29:5*/	} else {
- /*line zz_site_policy.gen.go:30:1*/	}
- /*line site_policy.mygo:32:5*/	return QueryExists(self.DB.WithContext(ctx).Table("site_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id AND a.site_id = r.site_id").Where("r.site_id = ? AND r.account_id = ? AND r.role = 'administrator' AND a.actor_uri = ? AND NOT a.disabled", self.SiteID, identity.AccountID, identity.ActorURI))
- /*line zz_site_policy.gen.go:32:1*/}
- /*line site_policy.mygo:23:1*/func MygoIN14SiteRepositoryM25IsDeploymentAdministrator(self SiteRepository, ctx context.Context, identity auth.Identity) Result[bool, string] {
- /*line site_policy.mygo:44:5*/	if identity.AccountID <= int64(0) || identity.ActorURI == "" {
- /*line site_policy.mygo:45:14*/		return Ok[bool, string](false)
- /*line site_policy.mygo:44:5*/	} else {
- /*line zz_site_policy.gen.go:37:1*/	}
- /*line site_policy.mygo:47:5*/	return QueryExists(self.DB.WithContext(ctx).Table("deployment_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id").Where("r.account_id = ? AND r.role = 'superadministrator' AND a.actor_uri = ? AND NOT a.disabled", identity.AccountID, identity.ActorURI))
- /*line zz_site_policy.gen.go:39:1*/}
- /*line site_policy.mygo:23:1*/func MygoIN14SiteRepositoryM9IsBlocked(self SiteRepository, ctx context.Context, actorURI string) Result[bool, string] {
- /*line site_policy.mygo:58:18*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line site_policy.mygo:18:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query.Count(&count))) {
+ /*line site_policy.mygo:19:12*/		return Err[bool, failure.Failure](Of("policy unavailable"))
+ /*line site_policy.mygo:18:3*/	} else {
+ /*line zz_site_policy.gen.go:24:1*/	}
+ /*line site_policy.mygo:21:3*/	return Ok[bool, failure.Failure](count > int64(0))
+ /*line zz_site_policy.gen.go:26:1*/}
+ /*line site_policy.mygo:24:1*/func MygoIN14SiteRepositoryM15IsAdministrator(self SiteRepository, ctx context.Context, identity auth.Identity) Result[bool, failure.Failure] {
+ /*line site_policy.mygo:30:5*/	if !auth.MygoIN8IdentityM9BelongsTo(identity, self.SiteID) {
+ /*line site_policy.mygo:31:14*/		return Ok[bool, failure.Failure](false)
+ /*line site_policy.mygo:30:5*/	} else {
+ /*line zz_site_policy.gen.go:31:1*/	}
+ /*line site_policy.mygo:33:5*/	return QueryExists(self.DB.WithContext(ctx).Table("site_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id AND a.site_id = r.site_id").Where("r.site_id = ? AND r.account_id = ? AND r.role = 'administrator' AND a.actor_uri = ? AND NOT a.disabled", self.SiteID, identity.AccountID, identity.ActorURI))
+ /*line zz_site_policy.gen.go:33:1*/}
+ /*line site_policy.mygo:24:1*/func MygoIN14SiteRepositoryM25IsDeploymentAdministrator(self SiteRepository, ctx context.Context, identity auth.Identity) Result[bool, failure.Failure] {
+ /*line site_policy.mygo:45:5*/	if identity.AccountID <= int64(0) || identity.ActorURI == "" {
+ /*line site_policy.mygo:46:14*/		return Ok[bool, failure.Failure](false)
+ /*line site_policy.mygo:45:5*/	} else {
+ /*line zz_site_policy.gen.go:38:1*/	}
+ /*line site_policy.mygo:48:5*/	return QueryExists(self.DB.WithContext(ctx).Table("deployment_roles AS r").Joins("JOIN accounts AS a ON a.id = r.account_id").Where("r.account_id = ? AND r.role = 'superadministrator' AND a.actor_uri = ? AND NOT a.disabled", identity.AccountID, identity.ActorURI))
+ /*line zz_site_policy.gen.go:40:1*/}
+ /*line site_policy.mygo:24:1*/func MygoIN14SiteRepositoryM9IsBlocked(self SiteRepository, ctx context.Context, actorURI string) Result[bool, failure.Failure] {
+ /*line site_policy.mygo:59:18*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(actorURI)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_site_policy.gen.go:47:1*/	}
- /*line site_policy.mygo:23:1*/	parsed := __mygo_expr_1
- /*line site_policy.mygo:59:5*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
- /*line site_policy.mygo:60:14*/		return Err[bool, string]("invalid actor identity")
- /*line site_policy.mygo:59:5*/	} else {
- /*line zz_site_policy.gen.go:52:1*/	}
- /*line site_policy.mygo:23:1*/	actor := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
- /*line site_policy.mygo:63:5*/	if actor.Scheme != "https" || MygoIN6ResultM5IsErr[string, string](config.NormalizeAuthority(actor.Host)) {
- /*line site_policy.mygo:64:14*/		return Err[bool, string]("invalid actor identity")
- /*line site_policy.mygo:63:5*/	} else {
- /*line zz_site_policy.gen.go:57:1*/	}
- /*line site_policy.mygo:23:1*/	domain := strings.ToLower(strings.TrimSuffix(actor.Hostname(), "."))
+ /*line zz_site_policy.gen.go:48:1*/	}
+ /*line site_policy.mygo:24:1*/	parsed := __mygo_expr_1
+ /*line site_policy.mygo:60:5*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
+ /*line site_policy.mygo:61:14*/		return Err[bool, failure.Failure](Of("invalid actor identity"))
+ /*line site_policy.mygo:60:5*/	} else {
+ /*line zz_site_policy.gen.go:53:1*/	}
+ /*line site_policy.mygo:24:1*/	actor := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
+ /*line site_policy.mygo:64:5*/	if actor.Scheme != "https" || MygoIN6ResultM5IsErr[string, string](config.NormalizeAuthority(actor.Host)) {
+ /*line site_policy.mygo:65:14*/		return Err[bool, failure.Failure](Of("invalid actor identity"))
+ /*line site_policy.mygo:64:5*/	} else {
+ /*line zz_site_policy.gen.go:58:1*/	}
+ /*line site_policy.mygo:24:1*/	domain := strings.ToLower(strings.TrimSuffix(actor.Hostname(), "."))
 	blocked := false
 	query := self.DB.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM site_actor_blocks WHERE site_id = ? AND actor_uri = ?) OR EXISTS (SELECT 1 FROM site_domain_blocks WHERE site_id = ? AND domain = ?) AS blocked", self.SiteID, actorURI, self.SiteID, domain).Scan(&blocked)
- /*line site_policy.mygo:75:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line site_policy.mygo:76:14*/		return Err[bool, string]("policy unavailable")
- /*line site_policy.mygo:75:5*/	} else {
- /*line zz_site_policy.gen.go:64:1*/	}
- /*line site_policy.mygo:78:5*/	return Ok[bool, string](blocked)
- /*line zz_site_policy.gen.go:66:1*/}
- /*line site_policy.mygo:23:1*/func MygoIN14SiteRepositoryM15SetActorBlocked(self SiteRepository, ctx context.Context, identity auth.Identity, actorURI string, blocked bool) Result[struct{}, string] {
- /*line site_policy.mygo:87:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line site_policy.mygo:90:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
+ /*line site_policy.mygo:76:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line site_policy.mygo:77:14*/		return Err[bool, failure.Failure](Of("policy unavailable"))
+ /*line site_policy.mygo:76:5*/	} else {
+ /*line zz_site_policy.gen.go:65:1*/	}
+ /*line site_policy.mygo:79:5*/	return Ok[bool, failure.Failure](blocked)
+ /*line zz_site_policy.gen.go:67:1*/}
+ /*line site_policy.mygo:24:1*/func MygoIN14SiteRepositoryM15SetActorBlocked(self SiteRepository, ctx context.Context, identity auth.Identity, actorURI string, blocked bool) Result[struct{}, failure.Failure] {
+ /*line site_policy.mygo:88:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line site_policy.mygo:91:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
 		allowed := MygoIN14SiteRepositoryM15IsAdministrator(repository, ctx, identity)
- /*line site_policy.mygo:93:9*/		if MygoIN6ResultM5IsErr[bool, string](allowed) {
- /*line site_policy.mygo:94:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](allowed))
- /*line site_policy.mygo:93:9*/		} else {
- /*line zz_site_policy.gen.go:74:1*/		}
- /*line site_policy.mygo:96:9*/		if !MygoIN6ResultM6Unwrap[bool, string](allowed) {
- /*line site_policy.mygo:97:18*/			return Err[struct{}, string]("forbidden")
- /*line site_policy.mygo:96:9*/		} else {
- /*line zz_site_policy.gen.go:78:1*/		}
- /*line site_policy.mygo:90:7*/		var __mygo_expr_0 *gorm.DB
+ /*line site_policy.mygo:94:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](allowed) {
+ /*line site_policy.mygo:95:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](allowed))
+ /*line site_policy.mygo:94:9*/		} else {
+ /*line zz_site_policy.gen.go:75:1*/		}
+ /*line site_policy.mygo:97:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](allowed) {
+ /*line site_policy.mygo:98:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line site_policy.mygo:97:9*/		} else {
+ /*line zz_site_policy.gen.go:79:1*/		}
+ /*line site_policy.mygo:91:7*/		var __mygo_expr_0 *gorm.DB
 		if blocked {
 			__mygo_expr_0 = tx.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, actorURI)
 		} else {
 			__mygo_expr_0 = tx.Exec("DELETE FROM site_actor_blocks WHERE site_id = ? AND actor_uri = ?", self.SiteID, actorURI)
- /*line zz_site_policy.gen.go:84:1*/		}
- /*line site_policy.mygo:90:7*/		query := __mygo_expr_0
- /*line site_policy.mygo:112:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line site_policy.mygo:113:18*/			return Err[struct{}, string]("block update failed")
- /*line site_policy.mygo:112:9*/		} else {
- /*line zz_site_policy.gen.go:89:1*/		}
- /*line site_policy.mygo:90:7*/		var __mygo_expr_1 string
+ /*line zz_site_policy.gen.go:85:1*/		}
+ /*line site_policy.mygo:91:7*/		query := __mygo_expr_0
+ /*line site_policy.mygo:113:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line site_policy.mygo:114:18*/			return Err[struct{}, failure.Failure](Of("block update failed"))
+ /*line site_policy.mygo:113:9*/		} else {
+ /*line zz_site_policy.gen.go:90:1*/		}
+ /*line site_policy.mygo:91:7*/		var __mygo_expr_1 string
 		if blocked {
 			__mygo_expr_1 = "block-actor"
 		} else {
 			__mygo_expr_1 = "unblock-actor"
- /*line zz_site_policy.gen.go:95:1*/		}
- /*line site_policy.mygo:90:7*/		action := __mygo_expr_1
- /*line site_policy.mygo:120:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, actorURI))
- /*line zz_site_policy.gen.go:98:1*/	})
+ /*line zz_site_policy.gen.go:96:1*/		}
+ /*line site_policy.mygo:91:7*/		action := __mygo_expr_1
+ /*line site_policy.mygo:121:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, actorURI))
+ /*line zz_site_policy.gen.go:99:1*/	})
 }
- /*line site_policy.mygo:23:1*/func MygoIN14SiteRepositoryM16SetDomainBlocked(self SiteRepository, ctx context.Context, identity auth.Identity, domain string, blocked bool) Result[struct{}, string] {
+ /*line site_policy.mygo:24:1*/func MygoIN14SiteRepositoryM16SetDomainBlocked(self SiteRepository, ctx context.Context, identity auth.Identity, domain string, blocked bool) Result[struct{}, failure.Failure] {
 	normalized := strings.ToLower(strings.TrimSuffix(domain, "."))
- /*line site_policy.mygo:138:5*/	if !config.ValidDomain(normalized) {
- /*line site_policy.mygo:139:14*/		return Err[struct{}, string]("invalid domain")
- /*line site_policy.mygo:138:5*/	} else {
- /*line zz_site_policy.gen.go:105:1*/	}
- /*line site_policy.mygo:141:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line site_policy.mygo:144:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
+ /*line site_policy.mygo:139:5*/	if !config.ValidDomain(normalized) {
+ /*line site_policy.mygo:140:14*/		return Err[struct{}, failure.Failure](Of("invalid domain"))
+ /*line site_policy.mygo:139:5*/	} else {
+ /*line zz_site_policy.gen.go:106:1*/	}
+ /*line site_policy.mygo:142:5*/	return RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line site_policy.mygo:145:7*/		repository := SiteRepository{DB: tx, SiteID: self.SiteID}
 		allowed := MygoIN14SiteRepositoryM15IsAdministrator(repository, ctx, identity)
- /*line site_policy.mygo:147:9*/		if MygoIN6ResultM5IsErr[bool, string](allowed) {
- /*line site_policy.mygo:148:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](allowed))
- /*line site_policy.mygo:147:9*/		} else {
- /*line zz_site_policy.gen.go:112:1*/		}
- /*line site_policy.mygo:150:9*/		if !MygoIN6ResultM6Unwrap[bool, string](allowed) {
- /*line site_policy.mygo:151:18*/			return Err[struct{}, string]("forbidden")
- /*line site_policy.mygo:150:9*/		} else {
- /*line zz_site_policy.gen.go:116:1*/		}
- /*line site_policy.mygo:144:7*/		var __mygo_expr_0 *gorm.DB
+ /*line site_policy.mygo:148:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](allowed) {
+ /*line site_policy.mygo:149:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](allowed))
+ /*line site_policy.mygo:148:9*/		} else {
+ /*line zz_site_policy.gen.go:113:1*/		}
+ /*line site_policy.mygo:151:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](allowed) {
+ /*line site_policy.mygo:152:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line site_policy.mygo:151:9*/		} else {
+ /*line zz_site_policy.gen.go:117:1*/		}
+ /*line site_policy.mygo:145:7*/		var __mygo_expr_0 *gorm.DB
 		if blocked {
 			__mygo_expr_0 = tx.Exec("INSERT INTO site_domain_blocks(site_id,domain) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, normalized)
 		} else {
 			__mygo_expr_0 = tx.Exec("DELETE FROM site_domain_blocks WHERE site_id = ? AND domain = ?", self.SiteID, normalized)
- /*line zz_site_policy.gen.go:122:1*/		}
- /*line site_policy.mygo:144:7*/		query := __mygo_expr_0
- /*line site_policy.mygo:166:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line site_policy.mygo:167:18*/			return Err[struct{}, string]("block update failed")
- /*line site_policy.mygo:166:9*/		} else {
- /*line zz_site_policy.gen.go:127:1*/		}
- /*line site_policy.mygo:144:7*/		var __mygo_expr_1 string
+ /*line zz_site_policy.gen.go:123:1*/		}
+ /*line site_policy.mygo:145:7*/		query := __mygo_expr_0
+ /*line site_policy.mygo:167:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line site_policy.mygo:168:18*/			return Err[struct{}, failure.Failure](Of("block update failed"))
+ /*line site_policy.mygo:167:9*/		} else {
+ /*line zz_site_policy.gen.go:128:1*/		}
+ /*line site_policy.mygo:145:7*/		var __mygo_expr_1 string
 		if blocked {
 			__mygo_expr_1 = "block-domain"
 		} else {
 			__mygo_expr_1 = "unblock-domain"
- /*line zz_site_policy.gen.go:133:1*/		}
- /*line site_policy.mygo:144:7*/		action := __mygo_expr_1
- /*line site_policy.mygo:174:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, normalized))
- /*line zz_site_policy.gen.go:136:1*/	})
+ /*line zz_site_policy.gen.go:134:1*/		}
+ /*line site_policy.mygo:145:7*/		action := __mygo_expr_1
+ /*line site_policy.mygo:175:9*/		return MutationResult(tx.Exec("INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,?,?)", identity.ActorURI, self.SiteID, action, normalized))
+ /*line zz_site_policy.gen.go:137:1*/	})
 }

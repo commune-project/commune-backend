@@ -5,6 +5,7 @@ import os "go:os"
 import io "go:io"
 import sort "go:sort"
 import time "go:time"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct MediaOrphanCandidate
   Namespace: String
@@ -23,8 +24,8 @@ end
 # Directory enumeration uses fixed-size buffers and retains at most max entries.
 # A lexical cursor avoids starvation when known authoritative files precede an
 # orphan. The caller bounds wall time through ctx; no directory-wide allocation.
-func MediaOrphanCandidates(ctx: context.Context, root: Ref[os.Root], after: String, max: Int) -> Result[Slice[MediaOrphanCandidate], String]
-  go[Result[Slice[MediaOrphanCandidate], String]] {
+func MediaOrphanCandidates(ctx: context.Context, root: Ref[os.Root], after: String, max: Int) -> Result[Slice[MediaOrphanCandidate], failure.Failure]
+  go[Result[Slice[MediaOrphanCandidate], failure.Failure]] {
     code: """
       rows:=make([]MediaOrphanCandidate,0,{max})
       for _,namespace:=range []string{"temporary","local","previews","private-cache"} {
@@ -64,9 +65,9 @@ impl MediaRepository
   # Run after Cleanup/CleanupPrivateCache with cutoff <= now-10min. Every file
   # publish has a durable reservation first, so an absent row proves an orphan.
   # This scans only generated file IDs and never recursively follows symlinks.
-  func ReconcileOrphans(self: MediaRepository, ctx: context.Context, cutoff: time.Time, after: String, max: Int) -> Result[MediaReconcilePage, String]
+  func ReconcileOrphans(self: MediaRepository, ctx: context.Context, cutoff: time.Time, after: String, max: Int) -> Result[MediaReconcilePage, failure.Failure]
     if max < 1 || max > 1000 || cutoff.After(time.Now().Add(0 as time.Duration - 10 as time.Duration * time.Minute)) then
-      return Err("invalid reconciliation bounds")
+      return Err(Of("invalid reconciliation bounds"))
     end
     let candidates = MediaOrphanCandidates(ctx, self.Files.Root, after, max)
     if candidates.IsErr() then
@@ -83,7 +84,7 @@ impl MediaRepository
         let owned = QueryExists(self.DB.WithContext(ctx).Table("media_uploads").Where("id=?", row.ID))
         let cached = QueryExists(self.DB.WithContext(ctx).Table("media_private_cache").Where("generation=?", row.ID))
         if owned.IsErr() || cached.IsErr() then
-          return Err("media unavailable")
+          return Err(Of("media unavailable"))
         end
         if !owned.Unwrap() && !cached.Unwrap() then
           let removed = self.Files.Remove(row.Namespace, row.ID)

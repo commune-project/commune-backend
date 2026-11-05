@@ -18,7 +18,7 @@
 ## 3. Storage layer
 
 - [x] 3.1 Collapse `QueryFailed`/`MutationResult` usage into `Result`-returning query helpers, and verify `go test ./internal/storage/first -run` compile-only plus the storage suite pass.
-- [ ] 3.2 Convert repository methods to `Result[T, Failure]` with no message strings, and verify each repository test asserts the same failure classification as today.
+- [x] 3.2 Convert repository methods to `Result[T, Failure]` with no message strings, and verify each repository test asserts the same failure classification as today.
 - [x] 3.3 Rewrite `delivery_plan` and `receipts` accumulator loops with `Sequence`/`Fold`, and verify the delivery and receipt tests preserve job/receipt counts and failure short-circuiting.
 - [x] 3.4 Replace `ThreadBefore`/sort and stats lookups in `browser` storage paths with keyed `Map.FromPairs` lookups, and verify the thread and browser storage tests pass.
 - [x] 3.5 Rewrite `MediaSafeName` and `MediaFileID` in pure MyGO with prelude string/slice operations, and verify the media file tests cover control characters, separators, length limits, and dot names.

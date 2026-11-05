@@ -8,6 +8,7 @@ import regexp "go:regexp"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 impl CommunityRepository
   func Create(
@@ -20,7 +21,7 @@ impl CommunityRepository
     mode: String,
     read: String,
     post: String
-  ) -> Result[CommunityRecord, String]
+  ) -> Result[CommunityRecord, failure.Failure]
     self.CreateWithFollow(ctx, site, identity, name, title, mode, read, post, "")
   end
   func CreateWithFollow(
@@ -34,10 +35,10 @@ impl CommunityRepository
     read: String,
     post: String,
     follow: String
-  ) -> Result[CommunityRecord, String]
+  ) -> Result[CommunityRecord, failure.Failure]
     let policyResult = auth.NewCommunityPolicy(self.SiteID, mode, read, post)
     if policyResult.IsErr() then
-      return Err("invalid community input")
+      return Err(Of("invalid community input"))
     end
     let policy = policyResult.Unwrap()
     let followPolicy = if follow == "" then
@@ -59,11 +60,11 @@ impl CommunityRepository
       !regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", name).UnwrapOr(false) ||
       strings.TrimSpace(title) == "" ||
       (title as Slice[Byte]).Len() > 200 then
-      return Err("invalid community input")
+      return Err(Of("invalid community input"))
     end
     let canonical = config.CanonicalURI(site, "communities", name)
     if canonical.IsErr() then
-      return Err("invalid community input")
+      return Err(Of("invalid community input"))
     end
     let record = CommunityRecord{
       ID: rand.Text(),
@@ -89,7 +90,7 @@ impl CommunityRepository
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let active = QueryExists(tx.Table("accounts AS a").Joins("JOIN sites AS s ON s.id=a.site_id").Where(
           "a.id=? AND a.site_id=? AND a.actor_uri=? AND NOT a.disabled AND s.canonical_origin=?",
           identity.AccountID,
@@ -101,7 +102,7 @@ impl CommunityRepository
           return Err(active.UnwrapErr())
         end
         if !active.Unwrap() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let repository = SiteRepository{DB: tx, SiteID: self.SiteID}
         let blocked = repository.IsBlocked(ctx, identity.ActorURI)
@@ -109,7 +110,7 @@ impl CommunityRepository
           return Err(blocked.UnwrapErr())
         end
         if blocked.Unwrap() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         if mode == "federated" then
           if MutationResult(tx.Exec(
@@ -118,7 +119,7 @@ impl CommunityRepository
             self.SiteID,
             canonical.Unwrap() + "/inbox"
           )).IsErr() then
-            return Err("community creation failed")
+            return Err(Of("community creation failed"))
           end
         end
         if MutationResult(tx.Exec(
@@ -133,16 +134,16 @@ impl CommunityRepository
           record.Name,
           record.Title
         )).IsErr() then
-          return Err("community creation failed")
+          return Err(Of("community creation failed"))
         end
         let followColumn = false
         let columnQuery = tx.Raw("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='communities' AND column_name='follow_policy')").Scan(Ref.new(followColumn))
         if MutationResult(columnQuery).IsErr() then
-          return Err("community creation failed")
+          return Err(Of("community creation failed"))
         end
         if followColumn then
           if MutationResult(tx.Exec("UPDATE communities SET follow_policy=? WHERE id=?", followPolicy, record.ID)).IsErr() then
-            return Err("community creation failed")
+            return Err(Of("community creation failed"))
           end
         end
         if MutationResult(tx.Exec(
@@ -151,7 +152,7 @@ impl CommunityRepository
           identity.ActorURI,
           identity.ActorURI
         )).IsErr() then
-          return Err("community creation failed")
+          return Err(Of("community creation failed"))
         end
         MutationResult(tx.Exec(
           "INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'community',?,'create-community',?)",

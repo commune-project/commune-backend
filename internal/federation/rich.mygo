@@ -4,6 +4,7 @@ import json "go:encoding/json"
 import time "go:time"
 import content "github.com/commune-project/commune-backend/internal/content"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct RichSource
   Content: String `json:"content"`
@@ -48,25 +49,25 @@ end
 
 # source is retained only as metadata. Display always interprets content using
 # its declared media type; optional source cannot smuggle executable Markdown.
-func ParseRichObject(sanitizer: content.Sanitizer, payload: Slice[Byte]) -> Result[RichObject, String]
+func ParseRichObject(sanitizer: content.Sanitizer, payload: Slice[Byte]) -> Result[RichObject, failure.Failure]
   let object = Zero[RichObject]()
   if HasDuplicateKeys(payload) || json.Unmarshal(payload, Ref.new(object)).IsErr() then
-    return Err("invalid rich object")
+    return Err(Of("invalid rich object"))
   end
   if !storage.CanonicalObjectURI(object.ID) || !storage.CanonicalObjectURI(object.AttributedTo) || (object.Type != "Page" && object.Type != "Note") || object.Attachment.Len() > 32 || object.Tag.Len() > 100 then
-    return Err("invalid rich object")
+    return Err(Of("invalid rich object"))
   end
   if object.MediaType != "" && object.MediaType != "text/html" && object.MediaType != "text/plain" then
-    return Err("unsupported object media type")
+    return Err(Of("unsupported object media type"))
   end
   if !object.Updated.IsZero() && object.Updated.Before(object.Published) then
-    return Err("invalid object version")
+    return Err(Of("invalid object version"))
   end
   if (object.Source.Content as Slice[Byte]).Len() > 1048576 then
-    return Err("invalid source")
+    return Err(Of("invalid source"))
   end
   if content.RenderRich(sanitizer, object.Content, if object.MediaType == "text/plain" then "legacy" else "html" end).IsErr() then
-    return Err("invalid object content")
+    return Err(Of("invalid object content"))
   end
   var valid: Bool = true
   object.Attachment.Each(func(item: RichAttachment) -> ()
@@ -75,6 +76,6 @@ func ParseRichObject(sanitizer: content.Sanitizer, payload: Slice[Byte]) -> Resu
   object.Tag.Each(func(item: RichMention) -> ()
     if item.Type == "Mention" && !storage.CanonicalObjectURI(item.Href) then valid = false end
   end)
-  if !valid then return Err("invalid rich metadata") end
+  if !valid then return Err(Of("invalid rich metadata")) end
   Ok(object)
 end

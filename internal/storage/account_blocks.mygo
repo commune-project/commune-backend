@@ -7,6 +7,7 @@ import url "go:net/url"
 import strings "go:strings"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct AccountBlockRecord
   Kind: String `gorm:"column:kind" json:"kind"`
@@ -37,7 +38,7 @@ let PersonalBlockC = PersonalBlockSQL("c", true)
 let PersonalBlockPArgs = PersonalBlockSQL("p", false)
 let PersonalBlockCArgs = PersonalBlockSQL("c", false)
 
-func PersonalBlockHidesPost(ctx: context.Context, db: Ref[gorm.DB], siteID: String, accountID: Int64, postID: String) -> Result[Bool, String]
+func PersonalBlockHidesPost(ctx: context.Context, db: Ref[gorm.DB], siteID: String, accountID: Int64, postID: String) -> Result[Bool, failure.Failure]
   let visible = false
   let query = db.WithContext(ctx).Raw(
     "SELECT EXISTS (SELECT 1 FROM posts p WHERE p.id=? AND " + PersonalBlockPArgs + ")",
@@ -46,91 +47,91 @@ func PersonalBlockHidesPost(ctx: context.Context, db: Ref[gorm.DB], siteID: Stri
     accountID
   ).Scan(Ref.new(visible))
   if MutationResult(query).IsErr() then
-    return Err("blocks unavailable")
+    return Err(Of("blocks unavailable"))
   end
   Ok(!visible)
 end
 
-func IsInteractionBlocked(ctx: context.Context, db: Ref[gorm.DB], siteID: String, ownerActorURI: String, targetActorURI: String) -> Result[Bool, String]
+func IsInteractionBlocked(ctx: context.Context, db: Ref[gorm.DB], siteID: String, ownerActorURI: String, targetActorURI: String) -> Result[Bool, failure.Failure]
   let blocked = false
   let sql = "SELECT EXISTS (SELECT 1 FROM account_blocks b JOIN accounts a ON a.site_id=b.site_id AND a.id=b.account_id WHERE b.site_id=? AND ((a.actor_uri=? AND ((b.kind='person' AND b.target=?) OR (b.kind='instance' AND b.target=lower(split_part(split_part(?,'://',2),'/',1))))) OR (a.actor_uri=? AND ((b.kind='person' AND b.target=?) OR (b.kind='instance' AND b.target=lower(split_part(split_part(?,'://',2),'/',1))))))) AS blocked"
   let query = db.WithContext(ctx).Raw(sql, siteID, ownerActorURI, targetActorURI, targetActorURI, targetActorURI, ownerActorURI, ownerActorURI).Scan(Ref.new(blocked))
   if MutationResult(query).IsErr() then
-    return Err("blocks unavailable")
+    return Err(Of("blocks unavailable"))
   end
   Ok(blocked)
 end
 
 
 impl AccountBlockRepository
-  func List(self: AccountBlockRepository, ctx: context.Context) -> Result[Slice[AccountBlockRecord], String]
+  func List(self: AccountBlockRepository, ctx: context.Context) -> Result[Slice[AccountBlockRecord], failure.Failure]
     var rows: Slice[AccountBlockRecord] = []
     let query = self.DB.WithContext(ctx).Table("account_blocks").Where("site_id=? AND account_id=?", self.SiteID, self.AccountID).Order("kind,target").Find(Ref.new(rows))
     if MutationResult(query).IsErr() then
-      return Err("blocks unavailable")
+      return Err(Of("blocks unavailable"))
     end
     Ok(rows)
   end
 
-  func Add(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), String]
+  func Add(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), failure.Failure]
     if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     if kind != "person" && kind != "community" && kind != "instance" then
-      return Err("invalid block")
+      return Err(Of("invalid block"))
     end
     let value = strings.TrimSpace(target)
     if value == "" then
-      return Err("invalid block")
+      return Err(Of("invalid block"))
     end
     if kind == "person" then
       if value == identity.ActorURI then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       if !CanonicalObjectURI(value) then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let known = QueryExists(self.DB.WithContext(ctx).Table("actors").Where("uri=? AND kind='Person'", value))
       if known.IsErr() || !known.Unwrap() then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
     end
     if kind == "community" then
       let community = CommunityRepository{DB: self.DB, SiteID: self.SiteID}.Open(ctx, value, false)
       if community.IsErr() then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let access = CommunityRepository{DB: self.DB, SiteID: self.SiteID}.Access(ctx, community.Unwrap(), identity, false)
       if access.IsErr() || !access.Unwrap().CanRead() then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
     end
     if kind == "instance" then
       if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let parsed = url.Parse("https://" + value)
       if parsed.IsErr() || parsed.Unwrap().Host == "" || parsed.Unwrap().Path != "" || parsed.Unwrap().RawQuery != "" then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let normalized = config.NormalizeAuthority(value)
       if normalized.IsErr() then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       value = normalized.Unwrap()
       let origin = ""
       let lookup = self.DB.WithContext(ctx).Raw("SELECT canonical_origin FROM sites WHERE id=?", self.SiteID).Scan(Ref.new(origin))
       if MutationResult(lookup).IsErr() || lookup.RowsAffected != 1i64 then
-        return Err("blocks unavailable")
+        return Err(Of("blocks unavailable"))
       end
       let siteURL = url.Parse(origin)
       if siteURL.IsErr() || config.NormalizeAuthority(siteURL.Unwrap().Host).UnwrapOr("") == value then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
     end
-    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), String]
+    RunTransaction(ctx, self.DB, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.WithContext(ctx).Exec("INSERT INTO account_blocks(site_id,account_id,kind,target) VALUES (?,?,?,?) ON CONFLICT DO NOTHING", self.SiteID, self.AccountID, kind, value)).IsErr() then
-        return Err("block update failed")
+        return Err(Of("block update failed"))
       end
       let retired = tx.WithContext(ctx).Exec(
         "UPDATE notification_events e SET retired_at=now() WHERE e.recipient_uri=? AND e.retired_at IS NULL AND ((?='person' AND (e.actor_uri=? OR (e.target_kind='person' AND e.target_id=?))) OR (?='instance' AND (lower(split_part(split_part(e.actor_uri,'://',2),'/',1))=? OR (e.target_kind='person' AND lower(split_part(split_part(e.target_id,'://',2),'/',1))=?))) OR (?='community' AND ((e.target_kind='community' AND e.target_id=?) OR (e.post_id IS NOT NULL AND EXISTS(SELECT 1 FROM posts p WHERE p.id=e.post_id AND p.community_id=?)))))",
@@ -140,37 +141,37 @@ impl AccountBlockRepository
         kind, value, value
       )
       if MutationResult(retired).IsErr() then
-        return Err("block update failed")
+        return Err(Of("block update failed"))
       end
       Ok(())
     end)
   end
 
-  func Remove(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), String]
+  func Remove(self: AccountBlockRepository, ctx: context.Context, identity: auth.Identity, kind: String, target: String) -> Result[(), failure.Failure]
     if identity.AccountID != self.AccountID || identity.SiteID != self.SiteID || identity.ActorURI == "" then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     if kind != "person" && kind != "community" && kind != "instance" then
-      return Err("invalid block")
+      return Err(Of("invalid block"))
     end
     var value = strings.TrimSpace(target)
     if value == "" then
-      return Err("invalid block")
+      return Err(Of("invalid block"))
     end
     if kind == "person" && !CanonicalObjectURI(value) then
-      return Err("invalid block")
+      return Err(Of("invalid block"))
     end
     if kind == "instance" then
       if strings.Contains(value, "://") || strings.Contains(value, "/") || strings.Contains(value, "@") then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let parsed = url.Parse("https://" + value)
       if parsed.IsErr() || parsed.Unwrap().Host == "" || parsed.Unwrap().Path != "" || parsed.Unwrap().RawQuery != "" then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       let normalized = config.NormalizeAuthority(value)
       if normalized.IsErr() then
-        return Err("invalid block")
+        return Err(Of("invalid block"))
       end
       value = normalized.Unwrap()
     end

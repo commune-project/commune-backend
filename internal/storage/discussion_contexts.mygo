@@ -4,6 +4,7 @@ import context "go:context"
 import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
 import rand "go:crypto/rand"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct DiscussionContextRecord
   ID: String `gorm:"column:id"`
@@ -19,14 +20,14 @@ func LoadDiscussionContext(
   ctx: context.Context,
   db: Ref[gorm.DB],
   id: String
-) -> Result[Option[DiscussionContextRecord], String]
+) -> Result[Option[DiscussionContextRecord], failure.Failure]
   let record = Zero[DiscussionContextRecord]()
   let query = db.WithContext(ctx).Table("discussion_contexts").Where("id = ?", id).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() then
-    return Err("context unavailable")
+    return Err(Of("context unavailable"))
   end
   if query.RowsAffected != 1i64 then
-    return Ok[Option[DiscussionContextRecord], String](None)
+    return Ok[Option[DiscussionContextRecord], failure.Failure](None)
   end
   Ok(Some(record))
 end
@@ -39,7 +40,7 @@ func CreateDiscussionContext(
   community: CommunityRecord,
   topicID: String,
   origin: String
-) -> Result[DiscussionContextRecord, String]
+) -> Result[DiscussionContextRecord, failure.Failure]
   let id = rand.Text()
   var contextURI = Zero[sql.NullString]()
   var collectionURI = Zero[sql.NullString]()
@@ -68,7 +69,7 @@ func CreateDiscussionContext(
     ResolutionState: "unresolved",
   }
   if MutationResult(db.WithContext(ctx).Table("discussion_contexts").Create(Ref.new(record))).IsErr() then
-    return Err("context creation failed")
+    return Err(Of("context creation failed"))
   end
   Ok(record)
 end
@@ -78,17 +79,17 @@ func AttachPostToContext(
   db: Ref[gorm.DB],
   postID: String,
   contextID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       if MutationResult(tx.Exec(
         "INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING",
         postID,
         contextID
       )).IsErr() then
-        return Err("context attachment failed")
+        return Err(Of("context attachment failed"))
       end
       let authority = ContextAuthority(ctx, tx, contextID)
       if authority.IsErr() || authority.Unwrap() == "" then
@@ -112,11 +113,11 @@ func AttachDeclaredPostContext(
   db: Ref[gorm.DB],
   postID: String,
   contextID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       AttachDeclaredPostContextTx(ctx, tx, postID, contextID)
     end
   )
@@ -128,13 +129,13 @@ func AttachDeclaredPostContextTx(
   tx: Ref[gorm.DB],
   postID: String,
   contextID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if MutationResult(tx.Exec(
     "INSERT INTO post_contexts(post_id,context_id) VALUES (?,?) ON CONFLICT DO NOTHING",
     postID,
     contextID
   )).IsErr() then
-    return Err("context attachment failed")
+    return Err(Of("context attachment failed"))
   end
   let authority = ContextAuthority(ctx, tx, contextID)
   if authority.IsErr() || authority.Unwrap() == "" then
@@ -153,14 +154,14 @@ func ContextAuthority(
   ctx: context.Context,
   db: Ref[gorm.DB],
   contextID: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let authority = ""
   let query = db.WithContext(ctx).Raw(
     "SELECT coalesce(authority_actor_uri,'') FROM discussion_contexts WHERE id = ?",
     contextID
   ).Scan(Ref.new(authority))
   if MutationResult(query).IsErr() then
-    return Err("context unavailable")
+    return Err(Of("context unavailable"))
   end
   Ok(authority)
 end
@@ -169,14 +170,14 @@ func CountContextPosts(
   ctx: context.Context,
   db: Ref[gorm.DB],
   contextID: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   let count: Int64 = 0i64
   let query = db.WithContext(ctx).Table("collection_memberships AS cm").Joins("JOIN posts AS p ON p.id = cm.post_id").Where(
     "cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL",
     contextID
   ).Count(Ref.new(count))
   if MutationResult(query).IsErr() then
-    return Err("context unavailable")
+    return Err(Of("context unavailable"))
   end
   Ok(count)
 end
@@ -187,14 +188,14 @@ func ListContextPosts(
   contextID: String,
   limit: Int,
   offset: Int
-) -> Result[Slice[PostRecord], String]
+) -> Result[Slice[PostRecord], failure.Failure]
   var records: Slice[PostRecord] = []
   let query = db.WithContext(ctx).Table("collection_memberships AS cm").Select("p.*").Joins("JOIN posts AS p ON p.id = cm.post_id").Where(
     "cm.context_id = ? AND cm.state = 'accepted' AND p.federation_mode = 'federated' AND p.deleted_at IS NULL",
     contextID
   ).Order("p.authored_at, p.id").Limit(limit).Offset(offset).Find(Ref.new(records))
   if MutationResult(query).IsErr() then
-    return Err("context unavailable")
+    return Err(Of("context unavailable"))
   end
   Ok(records)
 end

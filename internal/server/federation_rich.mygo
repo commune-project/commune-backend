@@ -9,6 +9,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct RichActivityObject
   Object: json.RawMessage `json:"object"`
@@ -23,7 +24,7 @@ func ReceiveRichAnnounce(
   site: config.Site,
   activity: federation.ParsedActivity,
   payload: Slice[Byte]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   if activity.Embedded.IsNone() then
     return Ok(())
   end
@@ -36,7 +37,7 @@ func ReceiveRichAnnounce(
   end
   var envelope = Zero[RichActivityObject]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
-    return Err("invalid announce")
+    return Err(Of("invalid announce"))
   end
   let inner = federation.ParseActivity(envelope.Object as Slice[Byte])
   if inner.IsErr() then
@@ -52,7 +53,7 @@ func ReceiveRichAnnounce(
   storage.RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let stored = storage.LoadActivityPayload(ctx, tx, current.ID)
       if stored.IsErr() then
         return Err(stored.UnwrapErr())
@@ -97,10 +98,10 @@ func ReceiveRichActivity(
   activity: federation.ParsedActivity,
   payload: Slice[Byte],
   communityID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   var envelope = Zero[RichActivityObject]()
   if json.Unmarshal(payload, Ref.new(envelope)).IsErr() then
-    return Err("invalid activity")
+    return Err(Of("invalid activity"))
   end
   let parsed = federation.ParseRichObject(sanitizer, envelope.Object as Slice[Byte])
   if parsed.IsErr() then
@@ -108,7 +109,7 @@ func ReceiveRichActivity(
   end
   var object = parsed.Unwrap()
   if object.ID != activity.ObjectURI || object.AttributedTo != activity.Actor then
-    return Err("forged author")
+    return Err(Of("forged author"))
   end
   if object.Published.IsZero() then
     let previous = storage.LoadObjectByURI(ctx, db, object.ID)
@@ -126,14 +127,14 @@ func ReceiveRichActivity(
     return Err(blocked.UnwrapErr())
   end
   if blocked.Unwrap() then
-    return Err("forbidden")
+    return Err(Of("forbidden"))
   end
   let community = storage.LoadCommunityByID(ctx, db, communityID)
   if community.IsErr() || community.Unwrap().IsNone() then
-    return Err("unknown community")
+    return Err(Of("unknown community"))
   end
   if community.Unwrap().Unwrap().FederationMode != "federated" then
-    return Err("forbidden")
+    return Err(Of("forbidden"))
   end
   # A narrower explicit audience cannot be received into a publicly readable
   # community: that would expose both the object and its media. Legacy objects
@@ -143,21 +144,21 @@ func ReceiveRichActivity(
   if community.Unwrap().Unwrap().ReadPolicy != "members" &&
     object.To.Len() + object.CC.Len() > 0 &&
     !publicAudience then
-    return Err("restricted audience expansion")
+    return Err(Of("restricted audience expansion"))
   end
   if community.Unwrap().Unwrap().ReadPolicy == "members" &&
     (object.To.Contains("https://www.w3.org/ns/activitystreams#Public") ||
       object.CC.Contains("https://www.w3.org/ns/activitystreams#Public")) then
-    return Err("restricted audience expansion")
+    return Err(Of("restricted audience expansion"))
   end
   var parent = Zero[sql.NullString]()
   if object.InReplyTo != "" then
     let loaded = storage.LoadObjectByURI(ctx, db, object.InReplyTo)
     if loaded.IsErr() || loaded.Unwrap().IsNone() then
-      return Err("unknown parent")
+      return Err(Of("unknown parent"))
     end
     if loaded.Unwrap().Unwrap().CommunityID != communityID then
-      return Err("invalid parent")
+      return Err(Of("invalid parent"))
     end
     parent = sql.NullString{String: loaded.Unwrap().Unwrap().ID, Valid: true}
   end
@@ -167,7 +168,7 @@ func ReceiveRichActivity(
     Tag: object.Tag,
   })
   if metadata.IsErr() then
-    return Err("invalid rich metadata")
+    return Err(Of("invalid rich metadata"))
   end
   let incoming = storage.PostRecord{
     ID: "",
@@ -198,7 +199,7 @@ func ReceiveRichActivity(
   storage.RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let actor = storage.EnsureRemoteActor(ctx, tx, activity.Actor, "Person")
       if actor.IsErr() then
         return Err(actor.UnwrapErr())
@@ -241,7 +242,7 @@ func ApplyRichMutation(
   site: config.Site,
   activity: federation.ParsedActivity,
   payload: Slice[Byte]
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let found = storage.LoadObjectByURI(ctx, db, activity.ObjectURI)
   if found.IsErr() then
     return Err(found.UnwrapErr())
@@ -251,7 +252,7 @@ func ApplyRichMutation(
   end
   var post = found.Unwrap().Unwrap()
   if post.AuthorActorURI != activity.Actor || post.FederationMode != "federated" then
-    return Err("forged mutation")
+    return Err(Of("forged mutation"))
   end
   if post.DeletedAt.Valid then
     return Ok(())
@@ -269,7 +270,7 @@ func ApplyRichMutation(
   storage.RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let received = storage.PostRepository { DB: tx, SiteID: site.ID }.Receive(
         ctx,
         post,
@@ -280,7 +281,7 @@ func ApplyRichMutation(
         return Err(received.UnwrapErr())
       end
       if storage.MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", post.ID)).IsErr() then
-        return Err("media unavailable")
+        return Err(Of("media unavailable"))
       end
       let invalidated = storage.MediaRepository {
         DB: tx,

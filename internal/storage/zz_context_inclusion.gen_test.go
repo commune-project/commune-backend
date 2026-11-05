@@ -7,6 +7,7 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -17,38 +18,38 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_context_inclusion.gen_test.go:20:1*/	}
+ /*line zz_context_inclusion.gen_test.go:21:1*/	}
  /*line context_inclusion_test.mygo:9:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://forum-a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
 	accounts := AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
 	communities := CommunityRepository{DB: db, SiteID: site.ID}
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
-	claimed := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Other", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
-	discussion := MygoIN6ResultM6Unwrap[DiscussionContextRecord, string](CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](AttachPostToContext(ctx, db, topic.ID, discussion.ID))
-	MygoIN6ResultM6Unwrap[struct{}, string](AttachDeclaredPostContext(ctx, db, claimed.ID, discussion.ID))
-	total := MygoIN6ResultM6Unwrap[int64, string](CountContextPosts(ctx, db, discussion.ID))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
+	topic := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Topic", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	claimed := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, PublishInput{Title: "Other", Body: "Body", ParentID: "", Mentions: []ResolvedPostMention{}, AttachmentIDs: []string{}, ContentFormat: "", ContextURI: ""}))
+	discussion := MygoIN6ResultM6Unwrap[DiscussionContextRecord, failure.Failure](CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](AttachPostToContext(ctx, db, topic.ID, discussion.ID))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](AttachDeclaredPostContext(ctx, db, claimed.ID, discussion.ID))
+	total := MygoIN6ResultM6Unwrap[int64, failure.Failure](CountContextPosts(ctx, db, discussion.ID))
  /*line context_inclusion_test.mygo:65:3*/	if total != int64(1) {
  /*line context_inclusion_test.mygo:66:5*/		t.Fatalf("a declared-only claim entered the accepted collection: %d", total)
  /*line context_inclusion_test.mygo:65:3*/	} else {
- /*line zz_context_inclusion.gen_test.go:40:1*/	}
- /*line context_inclusion_test.mygo:9:1*/	accepted := MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'accepted'", topic.ID, discussion.ID)))
-	pending := MygoIN6ResultM6Unwrap[bool, string](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'pending'", claimed.ID, discussion.ID)))
+ /*line zz_context_inclusion.gen_test.go:41:1*/	}
+ /*line context_inclusion_test.mygo:9:1*/	accepted := MygoIN6ResultM6Unwrap[bool, failure.Failure](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'accepted'", topic.ID, discussion.ID)))
+	pending := MygoIN6ResultM6Unwrap[bool, failure.Failure](QueryExists(db.Table("collection_memberships").Where("post_id = ? AND context_id = ? AND state = 'pending'", claimed.ID, discussion.ID)))
  /*line context_inclusion_test.mygo:78:3*/	if !accepted || !pending {
  /*line context_inclusion_test.mygo:79:5*/		t.Fatal("declared and verified relationships were not stored separately")
  /*line context_inclusion_test.mygo:78:3*/	} else {
- /*line zz_context_inclusion.gen_test.go:46:1*/	}
- /*line context_inclusion_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE collection_memberships SET state = 'removed' WHERE post_id = ? AND context_id = ?", topic.ID, discussion.ID)))
- /*line context_inclusion_test.mygo:86:3*/	if MygoIN6ResultM6Unwrap[int64, string](CountContextPosts(ctx, db, discussion.ID)) != int64(0) {
+ /*line zz_context_inclusion.gen_test.go:47:1*/	}
+ /*line context_inclusion_test.mygo:9:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE collection_memberships SET state = 'removed' WHERE post_id = ? AND context_id = ?", topic.ID, discussion.ID)))
+ /*line context_inclusion_test.mygo:86:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](CountContextPosts(ctx, db, discussion.ID)) != int64(0) {
  /*line context_inclusion_test.mygo:87:5*/		t.Fatal("an authoritative removal left the post in the context collection")
 		return
  /*line context_inclusion_test.mygo:86:3*/	} else {
 		return
- /*line zz_context_inclusion.gen_test.go:53:1*/	}
+ /*line zz_context_inclusion.gen_test.go:54:1*/	}
 }

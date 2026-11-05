@@ -11,78 +11,79 @@ import "net/mail"
 import "time"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line accounts.mygo:13:1*/type AccountRepository struct {
+ /*line accounts.mygo:14:1*/type AccountRepository struct {
 	DB *gorm.DB
- /*line zz_accounts.gen.go:18:1*/}
+ /*line zz_accounts.gen.go:19:1*/}
 
- /*line accounts.mygo:17:1*/func MygoIN13AccountRecordM8Identity(self AccountRecord) auth.Identity {
- /*line accounts.mygo:19:5*/	return auth.Identity{SiteID: self.SiteID, AccountID: self.ID, ActorURI: self.ActorURI, Username: self.Username}
- /*line zz_accounts.gen.go:22:1*/}
- /*line accounts.mygo:23:1*/func MygoIN17AccountRepositoryM12Authenticate(self AccountRepository, ctx context.Context, siteID string, login string, password string) Result[auth.Identity, string] {
+ /*line accounts.mygo:18:1*/func MygoIN13AccountRecordM8Identity(self AccountRecord) auth.Identity {
+ /*line accounts.mygo:20:5*/	return auth.Identity{SiteID: self.SiteID, AccountID: self.ID, ActorURI: self.ActorURI, Username: self.Username}
+ /*line zz_accounts.gen.go:23:1*/}
+ /*line accounts.mygo:24:1*/func MygoIN17AccountRepositoryM12Authenticate(self AccountRepository, ctx context.Context, siteID string, login string, password string) Result[auth.Identity, failure.Failure] {
 	identifier := strings.ToLower(strings.TrimSpace(login))
- /*line accounts.mygo:26:5*/	if siteID == "" || identifier == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(identifier)) > 254 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(password)) > 72 {
- /*line accounts.mygo:27:14*/		return Err[auth.Identity, string]("invalid credentials")
- /*line accounts.mygo:26:5*/	} else {
- /*line zz_accounts.gen.go:28:1*/	}
- /*line accounts.mygo:23:1*/	account := Zero[AccountRecord]()
+ /*line accounts.mygo:27:5*/	if siteID == "" || identifier == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(identifier)) > 254 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(password)) > 72 {
+ /*line accounts.mygo:28:14*/		return Err[auth.Identity, failure.Failure](Of("invalid credentials"))
+ /*line accounts.mygo:27:5*/	} else {
+ /*line zz_accounts.gen.go:29:1*/	}
+ /*line accounts.mygo:24:1*/	account := Zero[AccountRecord]()
 	query := self.DB.WithContext(ctx).Table("accounts").Where("site_id = ? AND (username = ? OR email = ?)", siteID, identifier, identifier).Limit(1).Find(&account)
- /*line accounts.mygo:31:5*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line accounts.mygo:32:14*/		return Err[auth.Identity, string]("authentication unavailable")
- /*line accounts.mygo:31:5*/	} else {
- /*line zz_accounts.gen.go:34:1*/	}
- /*line accounts.mygo:34:5*/	if query.RowsAffected != int64(1) || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) {
- /*line accounts.mygo:35:14*/		return Err[auth.Identity, string]("invalid credentials")
- /*line accounts.mygo:34:5*/	} else {
- /*line zz_accounts.gen.go:38:1*/	}
- /*line accounts.mygo:37:5*/	return Ok[auth.Identity, string](MygoIN13AccountRecordM8Identity(account))
- /*line zz_accounts.gen.go:40:1*/}
- /*line accounts.mygo:23:1*/func MygoIN17AccountRepositoryM6Create(self AccountRepository, ctx context.Context, site config.Site, username string, email string, password string) Result[auth.Identity, string] {
- /*line accounts.mygo:41:9*/	var __mygo_expr_1 Result[bool, error]
+ /*line accounts.mygo:32:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line accounts.mygo:33:14*/		return Err[auth.Identity, failure.Failure](Of("authentication unavailable"))
+ /*line accounts.mygo:32:5*/	} else {
+ /*line zz_accounts.gen.go:35:1*/	}
+ /*line accounts.mygo:35:5*/	if query.RowsAffected != int64(1) || account.Disabled || !auth.VerifyPassword(account.PasswordHash, password) {
+ /*line accounts.mygo:36:14*/		return Err[auth.Identity, failure.Failure](Of("invalid credentials"))
+ /*line accounts.mygo:35:5*/	} else {
+ /*line zz_accounts.gen.go:39:1*/	}
+ /*line accounts.mygo:38:5*/	return Ok[auth.Identity, failure.Failure](MygoIN13AccountRecordM8Identity(account))
+ /*line zz_accounts.gen.go:41:1*/}
+ /*line accounts.mygo:24:1*/func MygoIN17AccountRepositoryM6Create(self AccountRepository, ctx context.Context, site config.Site, username string, email string, password string) Result[auth.Identity, failure.Failure] {
+ /*line accounts.mygo:42:9*/	var __mygo_expr_1 Result[bool, error]
 	__mygo_expr_2, __mygo_expr_0 := regexp.MatchString("^[a-z0-9_][a-z0-9_-]{0,63}$", username)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[bool, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[bool, error](__mygo_expr_2)
- /*line zz_accounts.gen.go:48:1*/	}
- /*line accounts.mygo:41:5*/	if !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
- /*line accounts.mygo:42:14*/		return Err[auth.Identity, string]("invalid account input")
- /*line accounts.mygo:41:5*/	} else {
- /*line zz_accounts.gen.go:52:1*/	}
- /*line accounts.mygo:23:1*/	address := strings.ToLower(strings.TrimSpace(email))
- /*line accounts.mygo:45:5*/	if address != "" {
- /*line accounts.mygo:46:20*/		var __mygo_expr_4 Result[*mail.Address, error]
+ /*line zz_accounts.gen.go:49:1*/	}
+ /*line accounts.mygo:42:5*/	if !MygoIN6ResultM8UnwrapOr[bool, error](__mygo_expr_1, false) {
+ /*line accounts.mygo:43:14*/		return Err[auth.Identity, failure.Failure](Of("invalid account input"))
+ /*line accounts.mygo:42:5*/	} else {
+ /*line zz_accounts.gen.go:53:1*/	}
+ /*line accounts.mygo:24:1*/	address := strings.ToLower(strings.TrimSpace(email))
+ /*line accounts.mygo:46:5*/	if address != "" {
+ /*line accounts.mygo:47:20*/		var __mygo_expr_4 Result[*mail.Address, error]
 		__mygo_expr_5, __mygo_expr_3 := mail.ParseAddress(address)
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[*mail.Address, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[*mail.Address, error](__mygo_expr_5)
- /*line zz_accounts.gen.go:61:1*/		}
- /*line accounts.mygo:45:5*/		parsed := __mygo_expr_4
+ /*line zz_accounts.gen.go:62:1*/		}
+ /*line accounts.mygo:46:5*/		parsed := __mygo_expr_4
 		if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(address)) > 254 || MygoIN6ResultM5IsErr[*mail.Address, error](parsed) || MygoIN6ResultM6Unwrap[*mail.Address, error](parsed).Address != address {
- /*line accounts.mygo:48:16*/			return Err[auth.Identity, string]("invalid account input")
- /*line accounts.mygo:45:5*/		} else {
- /*line zz_accounts.gen.go:66:1*/		}
- /*line accounts.mygo:45:5*/	} else {
- /*line zz_accounts.gen.go:68:1*/	}
- /*line accounts.mygo:23:1*/	hash := auth.HashPassword(password)
+ /*line accounts.mygo:49:16*/			return Err[auth.Identity, failure.Failure](Of("invalid account input"))
+ /*line accounts.mygo:46:5*/		} else {
+ /*line zz_accounts.gen.go:67:1*/		}
+ /*line accounts.mygo:46:5*/	} else {
+ /*line zz_accounts.gen.go:69:1*/	}
+ /*line accounts.mygo:24:1*/	hash := auth.HashPassword(password)
 	uri := config.CanonicalURI(site, "users", username)
- /*line accounts.mygo:53:5*/	if MygoIN6ResultM5IsErr[string, string](hash) || MygoIN6ResultM5IsErr[string, string](uri) {
- /*line accounts.mygo:54:14*/		return Err[auth.Identity, string]("invalid account input")
- /*line accounts.mygo:53:5*/	} else {
- /*line zz_accounts.gen.go:74:1*/	}
- /*line accounts.mygo:23:1*/	account := AccountRecord{ID: int64(0), SiteID: site.ID, ActorURI: MygoIN6ResultM6Unwrap[string, string](uri), ActorKind: "Person", Username: username, Email: sql.NullString{String: address, Valid: address != ""}, PasswordHash: MygoIN6ResultM6Unwrap[string, string](hash), Disabled: false, CreatedAt: time.Now()}
-	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line accounts.mygo:58:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?)", MygoIN6ResultM6Unwrap[string, string](uri), site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox"))) {
- /*line accounts.mygo:59:16*/			return Err[struct{}, string]("account creation failed")
- /*line accounts.mygo:58:7*/		} else {
- /*line zz_accounts.gen.go:80:1*/		}
- /*line accounts.mygo:61:7*/		return MutationResult(tx.Table("accounts").Create(&account))
- /*line zz_accounts.gen.go:82:1*/	})
- /*line accounts.mygo:63:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line accounts.mygo:64:14*/		return Err[auth.Identity, string]("account creation failed")
- /*line accounts.mygo:63:5*/	} else {
- /*line zz_accounts.gen.go:86:1*/	}
- /*line accounts.mygo:66:5*/	return Ok[auth.Identity, string](MygoIN13AccountRecordM8Identity(account))
- /*line zz_accounts.gen.go:88:1*/}
+ /*line accounts.mygo:54:5*/	if MygoIN6ResultM5IsErr[string, string](hash) || MygoIN6ResultM5IsErr[string, string](uri) {
+ /*line accounts.mygo:55:14*/		return Err[auth.Identity, failure.Failure](Of("invalid account input"))
+ /*line accounts.mygo:54:5*/	} else {
+ /*line zz_accounts.gen.go:75:1*/	}
+ /*line accounts.mygo:24:1*/	account := AccountRecord{ID: int64(0), SiteID: site.ID, ActorURI: MygoIN6ResultM6Unwrap[string, string](uri), ActorKind: "Person", Username: username, Email: sql.NullString{String: address, Valid: address != ""}, PasswordHash: MygoIN6ResultM6Unwrap[string, string](hash), Disabled: false, CreatedAt: time.Now()}
+	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line accounts.mygo:59:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO actors(uri,local_site_id,kind,inbox_uri) VALUES (?,?,'Person',?)", MygoIN6ResultM6Unwrap[string, string](uri), site.ID, MygoIN6ResultM6Unwrap[string, string](uri)+"/inbox"))) {
+ /*line accounts.mygo:60:16*/			return Err[struct{}, failure.Failure](Of("account creation failed"))
+ /*line accounts.mygo:59:7*/		} else {
+ /*line zz_accounts.gen.go:81:1*/		}
+ /*line accounts.mygo:62:7*/		return MutationResult(tx.Table("accounts").Create(&account))
+ /*line zz_accounts.gen.go:83:1*/	})
+ /*line accounts.mygo:64:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line accounts.mygo:65:14*/		return Err[auth.Identity, failure.Failure](Of("account creation failed"))
+ /*line accounts.mygo:64:5*/	} else {
+ /*line zz_accounts.gen.go:87:1*/	}
+ /*line accounts.mygo:67:5*/	return Ok[auth.Identity, failure.Failure](MygoIN13AccountRecordM8Identity(account))
+ /*line zz_accounts.gen.go:89:1*/}

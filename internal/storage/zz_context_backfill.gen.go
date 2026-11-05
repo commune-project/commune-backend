@@ -4,41 +4,42 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line context_backfill.mygo:6:1*/func EnsureRemoteActor(ctx context.Context, db *gorm.DB, uri string, kind string) Result[struct {
-}, string] {
- /*line context_backfill.mygo:7:3*/	if uri == "" || kind != "Person" && kind != "Group" {
- /*line context_backfill.mygo:8:12*/		return Err[struct{}, string]("invalid actor")
- /*line context_backfill.mygo:7:3*/	} else {
- /*line zz_context_backfill.gen.go:14:1*/	}
- /*line context_backfill.mygo:6:1*/	inserted := db.WithContext(ctx).Exec("INSERT INTO actors(uri,kind) VALUES (?,?) ON CONFLICT (uri) DO NOTHING", uri, kind)
- /*line context_backfill.mygo:11:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line context_backfill.mygo:12:12*/		return Err[struct{}, string]("actor storage failed")
- /*line context_backfill.mygo:11:3*/	} else {
- /*line zz_context_backfill.gen.go:19:1*/	}
- /*line context_backfill.mygo:14:3*/	return Ok[struct{}, string](struct {
- /*line zz_context_backfill.gen.go:21:1*/	}{})
+ /*line context_backfill.mygo:7:1*/func EnsureRemoteActor(ctx context.Context, db *gorm.DB, uri string, kind string) Result[struct {
+}, failure.Failure] {
+ /*line context_backfill.mygo:8:3*/	if uri == "" || kind != "Person" && kind != "Group" {
+ /*line context_backfill.mygo:9:12*/		return Err[struct{}, failure.Failure](Of("invalid actor"))
+ /*line context_backfill.mygo:8:3*/	} else {
+ /*line zz_context_backfill.gen.go:15:1*/	}
+ /*line context_backfill.mygo:7:1*/	inserted := db.WithContext(ctx).Exec("INSERT INTO actors(uri,kind) VALUES (?,?) ON CONFLICT (uri) DO NOTHING", uri, kind)
+ /*line context_backfill.mygo:12:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line context_backfill.mygo:13:12*/		return Err[struct{}, failure.Failure](Of("actor storage failed"))
+ /*line context_backfill.mygo:12:3*/	} else {
+ /*line zz_context_backfill.gen.go:20:1*/	}
+ /*line context_backfill.mygo:15:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_context_backfill.gen.go:22:1*/	}{})
 }
- /*line context_backfill.mygo:17:1*/func ResolveDiscussionContext(ctx context.Context, db *gorm.DB, contextID string, communityID string, authorityActorURI string, collectionURI string) Result[struct {
-}, string] {
- /*line context_backfill.mygo:18:3*/	if contextID == "" || communityID == "" || authorityActorURI == "" {
- /*line context_backfill.mygo:19:12*/		return Err[struct{}, string]("invalid context resolution")
- /*line context_backfill.mygo:18:3*/	} else {
- /*line zz_context_backfill.gen.go:28:1*/	}
- /*line context_backfill.mygo:17:1*/	updated := db.WithContext(ctx).Exec("UPDATE discussion_contexts SET community_id=?, authority_actor_uri=?, collection_uri=?, resolution_state='collection' WHERE id=? AND (community_id IS NULL OR community_id=?)", communityID, authorityActorURI, collectionURI, contextID, communityID)
- /*line context_backfill.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(updated)) || updated.RowsAffected != int64(1) {
- /*line context_backfill.mygo:23:12*/		return Err[struct{}, string]("context resolution failed")
- /*line context_backfill.mygo:22:3*/	} else {
- /*line zz_context_backfill.gen.go:33:1*/	}
- /*line context_backfill.mygo:25:3*/	return Ok[struct{}, string](struct {
- /*line zz_context_backfill.gen.go:35:1*/	}{})
+ /*line context_backfill.mygo:18:1*/func ResolveDiscussionContext(ctx context.Context, db *gorm.DB, contextID string, communityID string, authorityActorURI string, collectionURI string) Result[struct {
+}, failure.Failure] {
+ /*line context_backfill.mygo:19:3*/	if contextID == "" || communityID == "" || authorityActorURI == "" {
+ /*line context_backfill.mygo:20:12*/		return Err[struct{}, failure.Failure](Of("invalid context resolution"))
+ /*line context_backfill.mygo:19:3*/	} else {
+ /*line zz_context_backfill.gen.go:29:1*/	}
+ /*line context_backfill.mygo:18:1*/	updated := db.WithContext(ctx).Exec("UPDATE discussion_contexts SET community_id=?, authority_actor_uri=?, collection_uri=?, resolution_state='collection' WHERE id=? AND (community_id IS NULL OR community_id=?)", communityID, authorityActorURI, collectionURI, contextID, communityID)
+ /*line context_backfill.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(updated)) || updated.RowsAffected != int64(1) {
+ /*line context_backfill.mygo:24:12*/		return Err[struct{}, failure.Failure](Of("context resolution failed"))
+ /*line context_backfill.mygo:23:3*/	} else {
+ /*line zz_context_backfill.gen.go:34:1*/	}
+ /*line context_backfill.mygo:26:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_context_backfill.gen.go:36:1*/	}{})
 }
- /*line context_backfill.mygo:30:1*/func RecordCanonicalContextInclusion(ctx context.Context, db *gorm.DB, postID string, contextID string, authorityActorURI string, evidenceURI string) Result[int64, string] {
+ /*line context_backfill.mygo:31:1*/func RecordCanonicalContextInclusion(ctx context.Context, db *gorm.DB, postID string, contextID string, authorityActorURI string, evidenceURI string) Result[int64, failure.Failure] {
 	inserted := db.WithContext(ctx).Exec("INSERT INTO collection_memberships(post_id,context_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'canonical_collection',?,'accepted') ON CONFLICT (post_id,context_id) WHERE context_id IS NOT NULL DO UPDATE SET authority_actor_uri=EXCLUDED.authority_actor_uri, verification_method=EXCLUDED.verification_method, evidence_uri=EXCLUDED.evidence_uri, state='accepted', updated_at=now() WHERE collection_memberships.state='pending'", postID, contextID, authorityActorURI, evidenceURI)
- /*line context_backfill.mygo:32:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line context_backfill.mygo:33:12*/		return Err[int64, string]("context inclusion failed")
- /*line context_backfill.mygo:32:3*/	} else {
- /*line zz_context_backfill.gen.go:42:1*/	}
- /*line context_backfill.mygo:35:3*/	return Ok[int64, string](inserted.RowsAffected)
- /*line zz_context_backfill.gen.go:44:1*/}
+ /*line context_backfill.mygo:33:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line context_backfill.mygo:34:12*/		return Err[int64, failure.Failure](Of("context inclusion failed"))
+ /*line context_backfill.mygo:33:3*/	} else {
+ /*line zz_context_backfill.gen.go:43:1*/	}
+ /*line context_backfill.mygo:36:3*/	return Ok[int64, failure.Failure](inserted.RowsAffected)
+ /*line zz_context_backfill.gen.go:45:1*/}

@@ -3,6 +3,7 @@ package storage
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct SiteVoteSettingsRecord
   SiteID: String `gorm:"column:site_id"`
@@ -37,25 +38,25 @@ func UpdateSiteVoteSettings(
   down: Bool,
   hasUp: Bool,
   hasDown: Bool
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   RunTransaction(
     ctx,
     db,
-    func(tx: Ref[gorm.DB]) -> Result[(), String]
+    func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
       let site = SiteRepository{DB: tx, SiteID: siteID}
       let admin = site.IsAdministrator(ctx, identity)
       let deployment = site.IsDeploymentAdministrator(ctx, identity)
       if admin.IsErr() || deployment.IsErr() then
-        return Err("vote settings unavailable")
+        return Err(Of("vote settings unavailable"))
       end
       if !admin.Unwrap() && !deployment.Unwrap() then
-        return Err("forbidden")
+        return Err(Of("forbidden"))
       end
       if MutationResult(tx.Exec(
         "INSERT INTO site_vote_settings(site_id) VALUES (?) ON CONFLICT(site_id) DO NOTHING",
         siteID
       )).IsErr() then
-        return Err("vote settings unavailable")
+        return Err(Of("vote settings unavailable"))
       end
       var current = Zero[SiteVoteSettingsRecord]()
       let loaded = tx.Raw(
@@ -63,7 +64,7 @@ func UpdateSiteVoteSettings(
         siteID
       ).Scan(Ref.new(current))
       if MutationResult(loaded).IsErr() || loaded.RowsAffected != 1i64 then
-        return Err("vote settings unavailable")
+        return Err(Of("vote settings unavailable"))
       end
       var nextUp = current.UpvotesEnabled
       var nextDown = current.DownvotesEnabled
@@ -80,7 +81,7 @@ func UpdateSiteVoteSettings(
         identity.ActorURI,
         siteID
       )).IsErr() then
-        return Err("vote settings unavailable")
+        return Err(Of("vote settings unavailable"))
       end
       MutationResult(tx.Exec(
         "INSERT INTO audit_events(acting_actor_uri,scope_kind,scope_id,action,target_id) VALUES (?,'site',?,'set-vote-settings',?)",

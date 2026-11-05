@@ -5,6 +5,7 @@ import content "github.com/commune-project/commune-backend/internal/content"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import strings "go:strings"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PostAttachmentOutput
   URL: String `json:"url"`
@@ -13,14 +14,14 @@ struct PostAttachmentOutput
   PreviewURL: String `json:"preview_url,omitempty"`
 end
 
-func BrowserPostMedia(sanitizer: content.Sanitizer, post: storage.PostRecord, local: Slice[content.RichMedia], restricted: Bool, cached: Slice[storage.PrivateMediaCache], output: PostOutput) -> Result[PostOutput, String]
+func BrowserPostMedia(sanitizer: content.Sanitizer, post: storage.PostRecord, local: Slice[content.RichMedia], restricted: Bool, cached: Slice[storage.PrivateMediaCache], output: PostOutput) -> Result[PostOutput, failure.Failure]
   var result = output
   result.Attachments = local.Map(func(item: content.RichMedia) -> PostAttachmentOutput
     PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, Name: "", PreviewURL: if item.MediaType == "image/png" || item.MediaType == "image/jpeg" || item.MediaType == "image/gif" then "/api/v1/media/" + item.BindingID + "/preview" else "" end}
   end)
   if post.RichMetadata == "" then return Ok(result) end
   let metadata = Zero[federation.RichMetadata]()
-  if json.Unmarshal(post.RichMetadata as Slice[Byte], Ref.new(metadata)).IsErr() then return Err("media unavailable") end
+  if json.Unmarshal(post.RichMetadata as Slice[Byte], Ref.new(metadata)).IsErr() then return Err(Of("media unavailable")) end
   var references: Slice[content.RemoteMediaReference] = []
   metadata.Attachment.Each(func(item: federation.RichAttachment) -> ()
     var target = item.URL

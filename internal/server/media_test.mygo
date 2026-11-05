@@ -16,6 +16,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func mediaMultipartRequest(origin: String, purpose: String, payload: String, filename: String, declared: String, fileFirst: Bool) -> Ref[http.Request]
   go[Ref[http.Request]] {
@@ -98,7 +99,7 @@ func TestPostgresMediaHTTPAuthorizationAndDownloadSafety(t: Ref[testing.T]) -> (
   let post = published.Unwrap()
   var path: String = ""
   let ids: Slice[String] = [output.ID]
-  let _ = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let _ = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     path = storage.BindPostMedia(ctx, tx, site.ID, alice, post.ID, ids).Unwrap().Get(0).Unwrap()
     Ok(())
   end).Unwrap()

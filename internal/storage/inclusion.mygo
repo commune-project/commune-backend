@@ -2,6 +2,7 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 # Verified inclusion is recorded separately from the declared audience. Only the
 # collection authority may accept a post, and a repeat acceptance is idempotent.
 func RecordCommunityInclusion(
@@ -11,7 +12,7 @@ func RecordCommunityInclusion(
   communityID: String,
   authorityActorURI: String,
   evidenceURI: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   let inserted = db.WithContext(ctx).Exec(
     "INSERT INTO collection_memberships(post_id,community_id,authority_actor_uri,verification_method,evidence_uri,state) VALUES (?,?,?,'signed_activity',?,'accepted') ON CONFLICT (post_id,community_id) WHERE community_id IS NOT NULL DO NOTHING",
     postID,
@@ -20,7 +21,7 @@ func RecordCommunityInclusion(
     evidenceURI
   )
   if MutationResult(inserted).IsErr() then
-    return Err("inclusion failed")
+    return Err(Of("inclusion failed"))
   end
   Ok(inserted.RowsAffected)
 end
@@ -29,7 +30,7 @@ func CommunityActorURI(
   ctx: context.Context,
   db: Ref[gorm.DB],
   communityID: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let uri = ""
   let query = db.WithContext(ctx).Raw(
     "SELECT coalesce(actor_uri,'') FROM communities WHERE id = ?",
@@ -42,7 +43,7 @@ func PostCommunityID(
   ctx: context.Context,
   db: Ref[gorm.DB],
   postID: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let community = ""
   let query = db.WithContext(ctx).Raw("SELECT community_id FROM posts WHERE id = ?", postID).Scan(Ref.new(community))
   return Required(query, community, "post unavailable")

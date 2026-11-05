@@ -10,145 +10,146 @@ import "crypto/sha256"
 import "crypto/rand"
 import "database/sql"
 import "github.com/commune-project/commune-backend/internal/functional"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line receipts.mygo:13:1*/type ReceiptRecord struct {
+ /*line receipts.mygo:14:1*/type ReceiptRecord struct {
 	ActivityURI       string         "gorm:\"column:activity_uri\""
 	SiteID            string         "gorm:\"column:site_id\""
 	RecipientActorURI string         "gorm:\"column:recipient_actor_uri\""
 	State             string         "gorm:\"column:state\""
 	LeaseToken        sql.NullString "gorm:\"column:lease_token\""
 	LeaseUntil        sql.NullTime   "gorm:\"column:lease_until\""
- /*line zz_receipts.gen.go:22:1*/}
+ /*line zz_receipts.gen.go:23:1*/}
 
- /*line receipts.mygo:22:1*/func PayloadChecksum(payload []byte) []byte {
+ /*line receipts.mygo:23:1*/func PayloadChecksum(payload []byte) []byte {
 	digest := sha256.New()
 	digest.Write(payload)
- /*line receipts.mygo:25:3*/	return digest.Sum([]byte{})
- /*line zz_receipts.gen.go:28:1*/}
- /*line receipts.mygo:31:1*/func ReceiveActivity(ctx context.Context, db *gorm.DB, siteID string, recipients []string, activityURI string, actorURI string, kind string, payload []byte) Result[int64, string] {
- /*line receipts.mygo:41:3*/	if siteID == "" || activityURI == "" || actorURI == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(recipients) == 0 || !strings.HasPrefix(activityURI, "https://") {
- /*line receipts.mygo:46:12*/		return Err[int64, string]("invalid activity")
- /*line receipts.mygo:41:3*/	} else {
- /*line zz_receipts.gen.go:33:1*/	}
- /*line receipts.mygo:48:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(payload) == 0 {
- /*line receipts.mygo:49:12*/		return Err[int64, string]("invalid activity")
- /*line receipts.mygo:48:3*/	} else {
- /*line zz_receipts.gen.go:37:1*/	}
- /*line receipts.mygo:31:1*/	created := int64(0)
-	result := RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line receipts.mygo:56:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?) ON CONFLICT (uri) DO NOTHING", activityURI, actorURI, kind))) {
- /*line receipts.mygo:62:16*/			return Err[struct{}, string]("invalid activity")
- /*line receipts.mygo:56:7*/		} else {
- /*line zz_receipts.gen.go:43:1*/		}
- /*line receipts.mygo:55:5*/		stored := Zero[ReceiptRecord]()
+ /*line receipts.mygo:26:3*/	return digest.Sum([]byte{})
+ /*line zz_receipts.gen.go:29:1*/}
+ /*line receipts.mygo:32:1*/func ReceiveActivity(ctx context.Context, db *gorm.DB, siteID string, recipients []string, activityURI string, actorURI string, kind string, payload []byte) Result[int64, failure.Failure] {
+ /*line receipts.mygo:42:3*/	if siteID == "" || activityURI == "" || actorURI == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(recipients) == 0 || !strings.HasPrefix(activityURI, "https://") {
+ /*line receipts.mygo:47:12*/		return Err[int64, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:42:3*/	} else {
+ /*line zz_receipts.gen.go:34:1*/	}
+ /*line receipts.mygo:49:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(payload) == 0 {
+ /*line receipts.mygo:50:12*/		return Err[int64, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:49:3*/	} else {
+ /*line zz_receipts.gen.go:38:1*/	}
+ /*line receipts.mygo:32:1*/	created := int64(0)
+	result := RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line receipts.mygo:57:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?) ON CONFLICT (uri) DO NOTHING", activityURI, actorURI, kind))) {
+ /*line receipts.mygo:63:16*/			return Err[struct{}, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:57:7*/		} else {
+ /*line zz_receipts.gen.go:44:1*/		}
+ /*line receipts.mygo:56:5*/		stored := Zero[ReceiptRecord]()
 		loaded := tx.Raw("SELECT a.uri AS activity_uri, a.actor_uri AS recipient_actor_uri FROM activities a WHERE a.uri = ?", activityURI).Scan(&stored)
- /*line receipts.mygo:69:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
- /*line receipts.mygo:70:16*/			return Err[struct{}, string]("invalid activity")
- /*line receipts.mygo:69:7*/		} else {
- /*line zz_receipts.gen.go:49:1*/		}
- /*line receipts.mygo:55:5*/		actorCheck := QueryExists(tx.Table("activities").Where("uri = ? AND actor_uri = ? AND kind = ?", activityURI, actorURI, kind))
- /*line receipts.mygo:73:7*/		if MygoIN6ResultM5IsErr[bool, string](actorCheck) {
- /*line receipts.mygo:74:16*/			return Err[struct{}, string]("invalid activity")
- /*line receipts.mygo:73:7*/		} else {
- /*line zz_receipts.gen.go:54:1*/		}
- /*line receipts.mygo:76:7*/		if !MygoIN6ResultM6Unwrap[bool, string](actorCheck) {
- /*line receipts.mygo:77:16*/			return Err[struct{}, string]("conflicting activity")
- /*line receipts.mygo:76:7*/		} else {
- /*line zz_receipts.gen.go:58:1*/		}
- /*line receipts.mygo:55:5*/		checksum := PayloadChecksum(payload)
- /*line receipts.mygo:80:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?) ON CONFLICT (activity_uri) DO NOTHING", activityURI, payload, checksum))) {
- /*line receipts.mygo:86:16*/			return Err[struct{}, string]("invalid activity")
- /*line receipts.mygo:80:7*/		} else {
- /*line zz_receipts.gen.go:63:1*/		}
- /*line receipts.mygo:55:5*/		payloadCheck := QueryExists(tx.Table("activity_payloads").Where("activity_uri = ? AND checksum = ?", activityURI, checksum))
- /*line receipts.mygo:89:7*/		if MygoIN6ResultM5IsErr[bool, string](payloadCheck) {
- /*line receipts.mygo:90:16*/			return Err[struct{}, string]("invalid activity")
- /*line receipts.mygo:89:7*/		} else {
- /*line zz_receipts.gen.go:68:1*/		}
- /*line receipts.mygo:92:7*/		if !MygoIN6ResultM6Unwrap[bool, string](payloadCheck) {
- /*line receipts.mygo:93:16*/			return Err[struct{}, string]("conflicting activity")
- /*line receipts.mygo:92:7*/		} else {
- /*line zz_receipts.gen.go:72:1*/		}
- /*line receipts.mygo:95:7*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(recipients, func(recipient string) {
- /*line receipts.mygo:95:23*/			inserted := tx.Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, siteID, recipient)
+ /*line receipts.mygo:70:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
+ /*line receipts.mygo:71:16*/			return Err[struct{}, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:70:7*/		} else {
+ /*line zz_receipts.gen.go:50:1*/		}
+ /*line receipts.mygo:56:5*/		actorCheck := QueryExists(tx.Table("activities").Where("uri = ? AND actor_uri = ? AND kind = ?", activityURI, actorURI, kind))
+ /*line receipts.mygo:74:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](actorCheck) {
+ /*line receipts.mygo:75:16*/			return Err[struct{}, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:74:7*/		} else {
+ /*line zz_receipts.gen.go:55:1*/		}
+ /*line receipts.mygo:77:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](actorCheck) {
+ /*line receipts.mygo:78:16*/			return Err[struct{}, failure.Failure](Of("conflicting activity"))
+ /*line receipts.mygo:77:7*/		} else {
+ /*line zz_receipts.gen.go:59:1*/		}
+ /*line receipts.mygo:56:5*/		checksum := PayloadChecksum(payload)
+ /*line receipts.mygo:81:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?) ON CONFLICT (activity_uri) DO NOTHING", activityURI, payload, checksum))) {
+ /*line receipts.mygo:87:16*/			return Err[struct{}, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:81:7*/		} else {
+ /*line zz_receipts.gen.go:64:1*/		}
+ /*line receipts.mygo:56:5*/		payloadCheck := QueryExists(tx.Table("activity_payloads").Where("activity_uri = ? AND checksum = ?", activityURI, checksum))
+ /*line receipts.mygo:90:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](payloadCheck) {
+ /*line receipts.mygo:91:16*/			return Err[struct{}, failure.Failure](Of("invalid activity"))
+ /*line receipts.mygo:90:7*/		} else {
+ /*line zz_receipts.gen.go:69:1*/		}
+ /*line receipts.mygo:93:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](payloadCheck) {
+ /*line receipts.mygo:94:16*/			return Err[struct{}, failure.Failure](Of("conflicting activity"))
+ /*line receipts.mygo:93:7*/		} else {
+ /*line zz_receipts.gen.go:73:1*/		}
+ /*line receipts.mygo:96:7*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(recipients, func(recipient string) {
+ /*line receipts.mygo:96:23*/			inserted := tx.Exec("INSERT INTO inbox_receipts(activity_uri,site_id,recipient_actor_uri) VALUES (?,?,?) ON CONFLICT DO NOTHING", activityURI, siteID, recipient)
 			mutation := MutationResult(inserted)
- /*line receipts.mygo:103:9*/			if MygoIN6ResultM4IsOk[struct{}, string](mutation) && inserted.RowsAffected == int64(1) {
+ /*line receipts.mygo:104:9*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](mutation) && inserted.RowsAffected == int64(1) {
 				created = created + int64(1)
 				return
 			} else {
 				return
- /*line zz_receipts.gen.go:81:1*/			}
+ /*line zz_receipts.gen.go:82:1*/			}
 		})
- /*line receipts.mygo:107:7*/		return Ok[struct{}, string](struct {
- /*line zz_receipts.gen.go:84:1*/		}{})
+ /*line receipts.mygo:108:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_receipts.gen.go:85:1*/		}{})
 	})
- /*line receipts.mygo:110:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line receipts.mygo:111:12*/		return Err[int64, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line receipts.mygo:110:3*/	} else {
- /*line zz_receipts.gen.go:89:1*/	}
- /*line receipts.mygo:113:3*/	return Ok[int64, string](created)
- /*line zz_receipts.gen.go:91:1*/}
- /*line receipts.mygo:116:1*/func LocalActors(ctx context.Context, db *gorm.DB, siteID string, candidates []string) Result[[]string, string] {
-	matched := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(candidates, func(candidate string) Result[bool, string] {
- /*line receipts.mygo:123:5*/		__mygo_expr_0 := QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
-		var __mygo_expr_1 Result[bool, string]
-		if _, ok := __mygo_expr_0.(Result__Err[bool, string]); ok {
-			__mygo_expr_1 = Err[bool, string]("receipt unavailable")
- /*line zz_receipts.gen.go:98:1*/		} else {
- /*line receipts.mygo:123:5*/			if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[bool, string]); ok {
-				__mygo_expr_1 = Ok[bool, string](__mygo_match___mygo_expr_2.F0)
+ /*line receipts.mygo:111:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line receipts.mygo:112:12*/		return Err[int64, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line receipts.mygo:111:3*/	} else {
+ /*line zz_receipts.gen.go:90:1*/	}
+ /*line receipts.mygo:114:3*/	return Ok[int64, failure.Failure](created)
+ /*line zz_receipts.gen.go:92:1*/}
+ /*line receipts.mygo:117:1*/func LocalActors(ctx context.Context, db *gorm.DB, siteID string, candidates []string) Result[[]string, failure.Failure] {
+	matched := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(candidates, func(candidate string) Result[bool, failure.Failure] {
+ /*line receipts.mygo:124:5*/		__mygo_expr_0 := QueryExists(db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id = ?", candidate, siteID))
+		var __mygo_expr_1 Result[bool, failure.Failure]
+		if _, ok := __mygo_expr_0.(Result__Err[bool, failure.Failure]); ok {
+			__mygo_expr_1 = Err[bool, failure.Failure](Of("receipt unavailable"))
+ /*line zz_receipts.gen.go:99:1*/		} else {
+ /*line receipts.mygo:124:5*/			if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[bool, failure.Failure]); ok {
+				__mygo_expr_1 = Ok[bool, failure.Failure](__mygo_match___mygo_expr_2.F0)
 			} else {
- /*line zz_receipts.gen.go:102:1*/			}
+ /*line zz_receipts.gen.go:103:1*/			}
 		}
- /*line receipts.mygo:123:5*/		return __mygo_expr_1
- /*line zz_receipts.gen.go:105:1*/	})
- /*line receipts.mygo:128:3*/	__mygo_expr_3 := functional.Sequence(matched)
-	var __mygo_expr_4 Result[[]string, string]
-	if __mygo_match___mygo_expr_8, ok := __mygo_expr_3.(Result__Err[[]bool, string]); ok {
-		__mygo_expr_4 = Err[[]string, string](__mygo_match___mygo_expr_8.F0)
- /*line zz_receipts.gen.go:110:1*/	} else {
- /*line receipts.mygo:128:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]bool, string]); ok {
- /*line receipts.mygo:131:7*/			found := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN5SliceM7ZipWith(candidates, __mygo_match___mygo_expr_5.F0, func(candidate_1 string, exists bool) Option[string] {
- /*line receipts.mygo:132:9*/				if exists {
- /*line receipts.mygo:132:24*/					return Some[string](candidate_1)
- /*line receipts.mygo:132:9*/				} else {
- /*line receipts.mygo:132:45*/					return None[string]()
- /*line zz_receipts.gen.go:117:1*/				}
- /*line receipts.mygo:133:17*/			}), []string{}, func(acc []string, item Option[string]) []string {
- /*line receipts.mygo:134:9*/				var __mygo_expr_6 []string
+ /*line receipts.mygo:124:5*/		return __mygo_expr_1
+ /*line zz_receipts.gen.go:106:1*/	})
+ /*line receipts.mygo:129:3*/	__mygo_expr_3 := functional.SequenceFailure(matched)
+	var __mygo_expr_4 Result[[]string, failure.Failure]
+	if __mygo_match___mygo_expr_8, ok := __mygo_expr_3.(Result__Err[[]bool, failure.Failure]); ok {
+		__mygo_expr_4 = Err[[]string, failure.Failure](__mygo_match___mygo_expr_8.F0)
+ /*line zz_receipts.gen.go:111:1*/	} else {
+ /*line receipts.mygo:129:3*/		if __mygo_match___mygo_expr_5, ok := __mygo_expr_3.(Result__Ok[[]bool, failure.Failure]); ok {
+ /*line receipts.mygo:132:7*/			found := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(MygoIN5SliceM7ZipWith(candidates, __mygo_match___mygo_expr_5.F0, func(candidate_1 string, exists bool) Option[string] {
+ /*line receipts.mygo:133:9*/				if exists {
+ /*line receipts.mygo:133:22*/					return Some[string](candidate_1)
+ /*line receipts.mygo:133:9*/				} else {
+ /*line receipts.mygo:133:43*/					return None[string]()
+ /*line zz_receipts.gen.go:118:1*/				}
+ /*line receipts.mygo:134:17*/			}), []string{}, func(acc []string, item Option[string]) []string {
+ /*line receipts.mygo:135:9*/				var __mygo_expr_6 []string
 				if __mygo_match___mygo_expr_7, ok := item.(Option__Some[string]); ok {
 					__mygo_expr_6 = MygoIN5SliceM6Append(acc, __mygo_match___mygo_expr_7.F0)
 				} else {
 					if _, ok := item.(Option__None[string]); ok {
 						__mygo_expr_6 = acc
 					} else {
- /*line zz_receipts.gen.go:126:1*/					}
+ /*line zz_receipts.gen.go:127:1*/					}
 				}
- /*line receipts.mygo:134:9*/				return __mygo_expr_6
- /*line zz_receipts.gen.go:129:1*/			})
- /*line receipts.mygo:128:3*/			__mygo_expr_4 = Ok[[]string, string](MygoIT10IEquatableFN15SliceIEquatableGN1TEGN5SliceGN1TEN1TEM8Distinct(found, MygoIT2EqFN6StringGN6StringEM6Equals))
+ /*line receipts.mygo:135:9*/				return __mygo_expr_6
+ /*line zz_receipts.gen.go:130:1*/			})
+ /*line receipts.mygo:129:3*/			__mygo_expr_4 = Ok[[]string, failure.Failure](MygoIT10IEquatableFN15SliceIEquatableGN1TEGN5SliceGN1TEN1TEM8Distinct(found, MygoIT2EqFN6StringGN6StringEM6Equals))
 		} else {
- /*line zz_receipts.gen.go:132:1*/		}
+ /*line zz_receipts.gen.go:133:1*/		}
 	}
- /*line receipts.mygo:128:3*/	return __mygo_expr_4
- /*line zz_receipts.gen.go:135:1*/}
- /*line receipts.mygo:146:1*/func ClaimPendingReceipts(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]ReceiptRecord, string] {
+ /*line receipts.mygo:129:3*/	return __mygo_expr_4
+ /*line zz_receipts.gen.go:136:1*/}
+ /*line receipts.mygo:147:1*/func ClaimPendingReceipts(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]ReceiptRecord, failure.Failure] {
 	var claimed []ReceiptRecord = []ReceiptRecord{}
 	token := rand.Text()
 	until := time.Now().UTC().Add(time.Duration(leaseSeconds) * time.Second)
 	query := db.WithContext(ctx).Raw("UPDATE inbox_receipts SET state='processing', lease_token=?, lease_until=? WHERE (activity_uri, site_id, recipient_actor_uri) IN (SELECT activity_uri, site_id, recipient_actor_uri FROM inbox_receipts WHERE state IN ('pending','processing') AND (lease_until IS NULL OR lease_until < now()) ORDER BY received_at LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING activity_uri, site_id, recipient_actor_uri, state", token, until, limit).Scan(&claimed)
- /*line receipts.mygo:161:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line receipts.mygo:162:12*/		return Err[[]ReceiptRecord, string]("receipt unavailable")
- /*line receipts.mygo:161:3*/	} else {
- /*line zz_receipts.gen.go:144:1*/	}
- /*line receipts.mygo:164:3*/	return Ok[[]ReceiptRecord, string](claimed)
- /*line zz_receipts.gen.go:146:1*/}
- /*line receipts.mygo:167:1*/func SettleReceipt(ctx context.Context, db *gorm.DB, activityURI string, siteID string, recipient string, state string) Result[struct {
-}, string] {
- /*line receipts.mygo:175:3*/	if state != "accepted" && state != "rejected" {
- /*line receipts.mygo:176:12*/		return Err[struct{}, string]("invalid state")
- /*line receipts.mygo:175:3*/	} else {
- /*line zz_receipts.gen.go:152:1*/	}
- /*line receipts.mygo:178:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE inbox_receipts SET state=?, lease_token=NULL, lease_until=NULL WHERE activity_uri=? AND site_id=? AND recipient_actor_uri=?", state, activityURI, siteID, recipient))
- /*line zz_receipts.gen.go:154:1*/}
+ /*line receipts.mygo:162:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line receipts.mygo:163:12*/		return Err[[]ReceiptRecord, failure.Failure](Of("receipt unavailable"))
+ /*line receipts.mygo:162:3*/	} else {
+ /*line zz_receipts.gen.go:145:1*/	}
+ /*line receipts.mygo:165:3*/	return Ok[[]ReceiptRecord, failure.Failure](claimed)
+ /*line zz_receipts.gen.go:147:1*/}
+ /*line receipts.mygo:168:1*/func SettleReceipt(ctx context.Context, db *gorm.DB, activityURI string, siteID string, recipient string, state string) Result[struct {
+}, failure.Failure] {
+ /*line receipts.mygo:176:3*/	if state != "accepted" && state != "rejected" {
+ /*line receipts.mygo:177:12*/		return Err[struct{}, failure.Failure](Of("invalid state"))
+ /*line receipts.mygo:176:3*/	} else {
+ /*line zz_receipts.gen.go:153:1*/	}
+ /*line receipts.mygo:179:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE inbox_receipts SET state=?, lease_token=NULL, lease_until=NULL WHERE activity_uri=? AND site_id=? AND recipient_actor_uri=?", state, activityURI, siteID, recipient))
+ /*line zz_receipts.gen.go:155:1*/}

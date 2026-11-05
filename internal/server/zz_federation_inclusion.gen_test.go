@@ -12,6 +12,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -22,75 +23,75 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_inclusion.gen_test.go:25:1*/	}
+ /*line zz_federation_inclusion.gen_test.go:26:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	settings.Federation.AllowPrivateNetwork = true
 	settings.Federation.FetchTimeoutSeconds = 5
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	group := "https://home.example/communities/news"
 	otherGroup := "https://other.example/communities/other"
 	creator := "https://home.example/users/owner"
 	otherCreator := "https://other.example/users/owner"
 	author := "https://author.example/users/writer"
-	groupKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	otherKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	authorKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', NULL), (?, 'Person', ?)", group, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(groupKey)), otherGroup, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(otherKey)), creator, otherCreator, author, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(authorKey)))))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News'), ('other','https://other.example/communities/other',?,'federated','eligible_users','eligible_users','other','Other')", group, creator, otherCreator)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1','https://home.example/objects/1','replica','federated',?,'Page','T','B', now(), now())", author)))
+	groupKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	otherKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	authorKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Group', ?), (?, 'Group', ?), (?, 'Person', NULL), (?, 'Person', NULL), (?, 'Person', ?)", group, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(groupKey)), otherGroup, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(otherKey)), creator, otherCreator, author, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(authorKey)))))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO communities(id,actor_uri,creator_actor_uri,federation_mode,read_policy,post_policy,name,title) VALUES ('replica',?,?,'federated','eligible_users','eligible_users','news','News'), ('other','https://other.example/communities/other',?,'federated','eligible_users','eligible_users','other','Other')", group, creator, otherCreator)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,authored_at,updated_at) VALUES ('p1','https://home.example/objects/1','replica','federated',?,'Page','T','B', now(), now())", author)))
 	innerDocument := ""
 	peerHandler := func(w http.ResponseWriter, request *http.Request) {
  /*line federation_inclusion_test.mygo:38:5*/		w.Header().Set("Content-Type", "application/activity+json")
  /*line federation_inclusion_test.mygo:37:21*/		w.Write([]byte(innerDocument))
 		return
- /*line zz_federation_inclusion.gen_test.go:52:1*/	}
+ /*line zz_federation_inclusion.gen_test.go:53:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	peer := httptest.NewServer(http.HandlerFunc(peerHandler))
 	innerID := peer.URL + "/activities/create-1"
 	innerDocument = "{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\",\"object\":\"https://home.example/objects/1\"}"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.InsertActivityPayload(ctx, db, innerID, author, "Create", []byte(innerDocument), ""))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.InsertActivityPayload(ctx, db, innerID, author, "Create", []byte(innerDocument), ""))
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	announce := "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
  /*line federation_inclusion_test.mygo:48:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", announce, group, groupKey, date).Code != 202 {
  /*line federation_inclusion_test.mygo:49:5*/		t.Fatal("a verified group announce was rejected")
  /*line federation_inclusion_test.mygo:48:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:63:1*/	}
+ /*line zz_federation_inclusion.gen_test.go:64:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted' AND authority_actor_uri=?", group).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted' AND authority_actor_uri=?", group).Count(&count)))
  /*line federation_inclusion_test.mygo:53:3*/	if count != int64(1) {
  /*line federation_inclusion_test.mygo:54:5*/		t.Fatal("a verified inclusion was not recorded")
  /*line federation_inclusion_test.mygo:53:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:69:1*/	}
- /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
+ /*line zz_federation_inclusion.gen_test.go:70:1*/	}
+ /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
 	jobsAfterFirst := count
 	replay := "{\"id\":\"https://home.example/activities/announce-1\",\"actor\":\"" + group + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
  /*line federation_inclusion_test.mygo:59:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", replay, group, groupKey, date).Code != 202 {
  /*line federation_inclusion_test.mygo:60:5*/		t.Fatal("replaying an announce was not idempotent")
  /*line federation_inclusion_test.mygo:59:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:76:1*/	}
- /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted'").Count(&count)))
+ /*line zz_federation_inclusion.gen_test.go:77:1*/	}
+ /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("collection_memberships").Where("community_id='replica' AND state='accepted'").Count(&count)))
  /*line federation_inclusion_test.mygo:63:3*/	if count != int64(1) {
  /*line federation_inclusion_test.mygo:64:5*/		t.Fatal("replay duplicated the inclusion record")
  /*line federation_inclusion_test.mygo:63:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:81:1*/	}
- /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
+ /*line zz_federation_inclusion.gen_test.go:82:1*/	}
+ /*line federation_inclusion_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Count(&count)))
  /*line federation_inclusion_test.mygo:67:3*/	if count != jobsAfterFirst {
  /*line federation_inclusion_test.mygo:68:5*/		t.Fatal("replay caused duplicate fan-out")
  /*line federation_inclusion_test.mygo:67:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:86:1*/	}
+ /*line zz_federation_inclusion.gen_test.go:87:1*/	}
  /*line federation_inclusion_test.mygo:14:1*/	unrelated := "{\"id\":\"https://other.example/activities/announce-2\",\"actor\":\"" + otherGroup + "\",\"type\":\"Announce\",\"to\":[\"" + alice.ActorURI + "\"],\"object\":{\"id\":\"" + innerID + "\",\"actor\":\"" + author + "\",\"type\":\"Create\"}}"
 	signedPost(handler, a.Origin, "/users/alice/inbox", unrelated, otherGroup, otherKey, date)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("collection_memberships").Where("authority_actor_uri=?", otherGroup).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("collection_memberships").Where("authority_actor_uri=?", otherGroup).Count(&count)))
  /*line federation_inclusion_test.mygo:73:3*/	if count != int64(0) {
  /*line federation_inclusion_test.mygo:74:5*/		t.Fatal("an unrelated announcing actor approved another community's content")
  /*line federation_inclusion_test.mygo:73:3*/	} else {
- /*line zz_federation_inclusion.gen_test.go:93:1*/	}
+ /*line zz_federation_inclusion.gen_test.go:94:1*/	}
  /*line federation_inclusion_test.mygo:76:3*/	peer.Close()
 	return
- /*line zz_federation_inclusion.gen_test.go:96:1*/}
+ /*line zz_federation_inclusion.gen_test.go:97:1*/}

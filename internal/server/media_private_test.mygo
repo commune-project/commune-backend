@@ -15,6 +15,7 @@ import federation "github.com/commune-project/commune-backend/internal/federatio
 import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func TestPostgresMediaPrivateHTTPACLAndPublicNoProxy(t: Ref[testing.T]) -> ()
   let ctx = context.Background()
@@ -91,7 +92,7 @@ func TestPostgresMediaPrivateHTTPACLAndPublicNoProxy(t: Ref[testing.T]) -> ()
     "v1"
   ).Unwrap()
   var fetches: Int = 0
-  let fetch = func(fetchCtx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+  let fetch = func(fetchCtx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
     fetches = fetches + 1
     Ok(io.NopCloser(strings.NewReader("<svg onload='bad()'/>") as io.Reader))
   end

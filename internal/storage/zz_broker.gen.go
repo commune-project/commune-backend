@@ -7,9 +7,10 @@ import "gorm.io/gorm"
 import "database/sql"
 import "time"
 import "crypto/rand"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line broker.mygo:9:1*/type DeliveryJobRecord struct {
+ /*line broker.mygo:10:1*/type DeliveryJobRecord struct {
 	ID                int64          "gorm:\"column:id\""
 	ActivityURI       string         "gorm:\"column:activity_uri\""
 	SigningActorURI   string         "gorm:\"column:signing_actor_uri\""
@@ -19,66 +20,66 @@ import . "github.com/mygo-lang/mygo/prelude"
 	State             string         "gorm:\"column:state\""
 	Attempts          int64          "gorm:\"column:attempts\""
 	ErrorCode         sql.NullString "gorm:\"column:error_code\""
- /*line zz_broker.gen.go:22:1*/}
+ /*line zz_broker.gen.go:23:1*/}
 
- /*line broker.mygo:23:1*/func EnqueueDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, recipientActorURI string, targetInbox string, communityID string) Result[int64, string] {
- /*line broker.mygo:32:3*/	if activityURI == "" || signingActorURI == "" || recipientActorURI == "" || targetInbox == "" {
- /*line broker.mygo:33:12*/		return Err[int64, string]("invalid delivery")
- /*line broker.mygo:32:3*/	} else {
- /*line zz_broker.gen.go:28:1*/	}
- /*line broker.mygo:23:1*/	community := sql.NullString{String: "", Valid: false}
- /*line broker.mygo:36:3*/	if communityID != "" {
+ /*line broker.mygo:24:1*/func EnqueueDelivery(ctx context.Context, db *gorm.DB, activityURI string, signingActorURI string, recipientActorURI string, targetInbox string, communityID string) Result[int64, failure.Failure] {
+ /*line broker.mygo:33:3*/	if activityURI == "" || signingActorURI == "" || recipientActorURI == "" || targetInbox == "" {
+ /*line broker.mygo:34:12*/		return Err[int64, failure.Failure](Of("invalid delivery"))
+ /*line broker.mygo:33:3*/	} else {
+ /*line zz_broker.gen.go:29:1*/	}
+ /*line broker.mygo:24:1*/	community := sql.NullString{String: "", Valid: false}
+ /*line broker.mygo:37:3*/	if communityID != "" {
 		community = sql.NullString{String: communityID, Valid: true}
 	} else {
- /*line zz_broker.gen.go:33:1*/	}
- /*line broker.mygo:23:1*/	inserted := db.WithContext(ctx).Exec("INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES (?,?,?,?,?) ON CONFLICT (activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox) DO NOTHING", activityURI, signingActorURI, recipientActorURI, targetInbox, community)
- /*line broker.mygo:47:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line broker.mygo:48:12*/		return Err[int64, string]("delivery enqueue failed")
- /*line broker.mygo:47:3*/	} else {
- /*line zz_broker.gen.go:38:1*/	}
- /*line broker.mygo:50:3*/	return Ok[int64, string](inserted.RowsAffected)
- /*line zz_broker.gen.go:40:1*/}
- /*line broker.mygo:54:1*/func ClaimDeliveryJobs(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]DeliveryJobRecord, string] {
+ /*line zz_broker.gen.go:34:1*/	}
+ /*line broker.mygo:24:1*/	inserted := db.WithContext(ctx).Exec("INSERT INTO delivery_jobs(activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox,community_id) VALUES (?,?,?,?,?) ON CONFLICT (activity_uri,signing_actor_uri,recipient_actor_uri,target_inbox) DO NOTHING", activityURI, signingActorURI, recipientActorURI, targetInbox, community)
+ /*line broker.mygo:48:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line broker.mygo:49:12*/		return Err[int64, failure.Failure](Of("delivery enqueue failed"))
+ /*line broker.mygo:48:3*/	} else {
+ /*line zz_broker.gen.go:39:1*/	}
+ /*line broker.mygo:51:3*/	return Ok[int64, failure.Failure](inserted.RowsAffected)
+ /*line zz_broker.gen.go:41:1*/}
+ /*line broker.mygo:55:1*/func ClaimDeliveryJobs(ctx context.Context, db *gorm.DB, limit int, leaseSeconds int64) Result[[]DeliveryJobRecord, failure.Failure] {
 	var claimed []DeliveryJobRecord = []DeliveryJobRecord{}
 	token := rand.Text()
 	until := time.Now().UTC().Add(time.Duration(leaseSeconds) * time.Second)
 	query := db.WithContext(ctx).Raw("UPDATE delivery_jobs SET state='leased', lease_token=?, lease_until=?, attempts=attempts+1 WHERE id IN (SELECT id FROM delivery_jobs WHERE state IN ('pending','leased') AND available_at <= now() AND (lease_until IS NULL OR lease_until < now()) ORDER BY available_at, id LIMIT ? FOR UPDATE SKIP LOCKED) RETURNING id, activity_uri, signing_actor_uri, recipient_actor_uri, target_inbox, community_id, state, attempts, error_code", token, until, limit).Scan(&claimed)
- /*line broker.mygo:69:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line broker.mygo:70:12*/		return Err[[]DeliveryJobRecord, string]("delivery claim failed")
- /*line broker.mygo:69:3*/	} else {
- /*line zz_broker.gen.go:49:1*/	}
- /*line broker.mygo:72:3*/	return Ok[[]DeliveryJobRecord, string](claimed)
- /*line zz_broker.gen.go:51:1*/}
- /*line broker.mygo:75:1*/func MarkDelivered(ctx context.Context, db *gorm.DB, id int64) Result[struct {
-}, string] {
- /*line broker.mygo:76:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='delivered', lease_token=NULL, lease_until=NULL, error_code=NULL WHERE id=?", id))
- /*line zz_broker.gen.go:55:1*/}
- /*line broker.mygo:82:1*/func MarkDeliveryRetry(ctx context.Context, db *gorm.DB, id int64, errorCode string, backoffSeconds int64) Result[struct {
-}, string] {
- /*line broker.mygo:89:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='pending', lease_token=NULL, lease_until=NULL, error_code=?, available_at=now() + (? * interval '1 second') WHERE id=?", errorCode, backoffSeconds, id))
- /*line zz_broker.gen.go:59:1*/}
- /*line broker.mygo:97:1*/func MarkDeliveryFailed(ctx context.Context, db *gorm.DB, id int64, errorCode string) Result[struct {
-}, string] {
- /*line broker.mygo:103:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='failed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", errorCode, id))
- /*line zz_broker.gen.go:63:1*/}
- /*line broker.mygo:110:1*/func SuppressDelivery(ctx context.Context, db *gorm.DB, id int64, reason string) Result[struct {
-}, string] {
- /*line broker.mygo:116:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='suppressed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", reason, id))
- /*line zz_broker.gen.go:67:1*/}
- /*line broker.mygo:123:1*/func LoadLocalPrivateKey(ctx context.Context, db *gorm.DB, actorURI string) Result[string, string] {
+ /*line broker.mygo:70:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line broker.mygo:71:12*/		return Err[[]DeliveryJobRecord, failure.Failure](Of("delivery claim failed"))
+ /*line broker.mygo:70:3*/	} else {
+ /*line zz_broker.gen.go:50:1*/	}
+ /*line broker.mygo:73:3*/	return Ok[[]DeliveryJobRecord, failure.Failure](claimed)
+ /*line zz_broker.gen.go:52:1*/}
+ /*line broker.mygo:76:1*/func MarkDelivered(ctx context.Context, db *gorm.DB, id int64) Result[struct {
+}, failure.Failure] {
+ /*line broker.mygo:77:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='delivered', lease_token=NULL, lease_until=NULL, error_code=NULL WHERE id=?", id))
+ /*line zz_broker.gen.go:56:1*/}
+ /*line broker.mygo:83:1*/func MarkDeliveryRetry(ctx context.Context, db *gorm.DB, id int64, errorCode string, backoffSeconds int64) Result[struct {
+}, failure.Failure] {
+ /*line broker.mygo:90:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='pending', lease_token=NULL, lease_until=NULL, error_code=?, available_at=now() + (? * interval '1 second') WHERE id=?", errorCode, backoffSeconds, id))
+ /*line zz_broker.gen.go:60:1*/}
+ /*line broker.mygo:98:1*/func MarkDeliveryFailed(ctx context.Context, db *gorm.DB, id int64, errorCode string) Result[struct {
+}, failure.Failure] {
+ /*line broker.mygo:104:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='failed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", errorCode, id))
+ /*line zz_broker.gen.go:64:1*/}
+ /*line broker.mygo:111:1*/func SuppressDelivery(ctx context.Context, db *gorm.DB, id int64, reason string) Result[struct {
+}, failure.Failure] {
+ /*line broker.mygo:117:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE delivery_jobs SET state='suppressed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?", reason, id))
+ /*line zz_broker.gen.go:68:1*/}
+ /*line broker.mygo:124:1*/func LoadLocalPrivateKey(ctx context.Context, db *gorm.DB, actorURI string) Result[string, failure.Failure] {
 	record := Zero[LocalKeyRecord]()
 	query := db.WithContext(ctx).Table("actors").Where("uri = ? AND local_site_id IS NOT NULL", actorURI).Limit(1).Find(&record)
- /*line broker.mygo:133:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) || query.RowsAffected != int64(1) {
- /*line broker.mygo:134:12*/		return Err[string, string]("unknown signing actor")
- /*line broker.mygo:133:3*/	} else {
- /*line zz_broker.gen.go:74:1*/	}
- /*line broker.mygo:136:3*/	if !record.PrivateKeyPEM.Valid || record.PrivateKeyPEM.String == "" {
- /*line broker.mygo:137:12*/		return Err[string, string]("missing signing key")
- /*line broker.mygo:136:3*/	} else {
- /*line zz_broker.gen.go:78:1*/	}
- /*line broker.mygo:139:3*/	return Ok[string, string](record.PrivateKeyPEM.String)
- /*line zz_broker.gen.go:80:1*/}
+ /*line broker.mygo:134:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line broker.mygo:135:12*/		return Err[string, failure.Failure](Of("unknown signing actor"))
+ /*line broker.mygo:134:3*/	} else {
+ /*line zz_broker.gen.go:75:1*/	}
+ /*line broker.mygo:137:3*/	if !record.PrivateKeyPEM.Valid || record.PrivateKeyPEM.String == "" {
+ /*line broker.mygo:138:12*/		return Err[string, failure.Failure](Of("missing signing key"))
+ /*line broker.mygo:137:3*/	} else {
+ /*line zz_broker.gen.go:79:1*/	}
+ /*line broker.mygo:140:3*/	return Ok[string, failure.Failure](record.PrivateKeyPEM.String)
+ /*line zz_broker.gen.go:81:1*/}
 
- /*line broker.mygo:142:1*/type LocalKeyRecord struct {
+ /*line broker.mygo:143:1*/type LocalKeyRecord struct {
 	PrivateKeyPEM sql.NullString "gorm:\"column:private_key_pem\""
- /*line zz_broker.gen.go:84:1*/}
+ /*line zz_broker.gen.go:85:1*/}

@@ -12,21 +12,22 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line profiles.mygo:14:1*/type ProfileIcon struct {
+ /*line profiles.mygo:15:1*/type ProfileIcon struct {
 	Type string "json:\"type\""
 	URL  string "json:\"url\""
- /*line zz_profiles.gen.go:20:1*/}
- /*line profiles.mygo:19:1*/type ProfileObject struct {
+ /*line zz_profiles.gen.go:21:1*/}
+ /*line profiles.mygo:20:1*/type ProfileObject struct {
 	ID      string      "json:\"id\""
 	Type    string      "json:\"type\""
 	Name    string      "json:\"name\""
 	Summary string      "json:\"summary\""
 	Icon    ProfileIcon "json:\"icon\""
 	Updated time.Time   "json:\"updated\""
- /*line zz_profiles.gen.go:28:1*/}
- /*line profiles.mygo:28:1*/type ProfileUpdate struct {
+ /*line zz_profiles.gen.go:29:1*/}
+ /*line profiles.mygo:29:1*/type ProfileUpdate struct {
 	Context string              "json:\"@context\""
 	ID      string              "json:\"id\""
 	Type    string              "json:\"type\""
@@ -34,151 +35,151 @@ import . "github.com/mygo-lang/mygo/prelude"
 	Object  ActorRepresentation "json:\"object\""
 	To      []string            "json:\"to\""
 	CC      []string            "json:\"cc\""
- /*line zz_profiles.gen.go:37:1*/}
+ /*line zz_profiles.gen.go:38:1*/}
 
- /*line profiles.mygo:38:1*/func WithProfile(actor ActorRepresentation, profile storage.ProfileRecord) ActorRepresentation {
+ /*line profiles.mygo:39:1*/func WithProfile(actor ActorRepresentation, profile storage.ProfileRecord) ActorRepresentation {
 	result := actor
 	result.Name = profile.DisplayName
 	result.Summary = profile.BiographyHTML
 	result.Updated = profile.UpdatedAt
- /*line profiles.mygo:43:3*/	if profile.AvatarURL != "" {
+ /*line profiles.mygo:44:3*/	if profile.AvatarURL != "" {
 		result.Icon = ProfileIcon{Type: "Image", URL: profile.AvatarURL}
 	} else {
- /*line zz_profiles.gen.go:47:1*/	}
- /*line profiles.mygo:46:3*/	return result
- /*line zz_profiles.gen.go:49:1*/}
- /*line profiles.mygo:49:1*/func PersonUpdateObject(payload []byte) Result[ProfileObject, string] {
+ /*line zz_profiles.gen.go:48:1*/	}
+ /*line profiles.mygo:47:3*/	return result
+ /*line zz_profiles.gen.go:50:1*/}
+ /*line profiles.mygo:50:1*/func PersonUpdateObject(payload []byte) Result[ProfileObject, failure.Failure] {
 	var view ActivityView = Zero[ActivityView]()
 	var object ProfileObject = Zero[ProfileObject]()
- /*line profiles.mygo:52:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line profiles.mygo:53:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(payload, &view)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_profiles.gen.go:59:1*/		}{})
+ /*line zz_profiles.gen.go:60:1*/		}{})
 	}
- /*line profiles.mygo:52:81*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line profiles.mygo:53:81*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal([]byte(view.Object), &object)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_profiles.gen.go:67:1*/		}{})
+ /*line zz_profiles.gen.go:68:1*/		}{})
 	}
- /*line profiles.mygo:52:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || view.Type != "Update" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || object.Type != "Person" {
- /*line profiles.mygo:53:12*/		return Err[ProfileObject, string]("not a Person update")
- /*line profiles.mygo:52:3*/	} else {
- /*line zz_profiles.gen.go:72:1*/	}
- /*line profiles.mygo:55:3*/	if object.ID != view.Actor || object.Updated.IsZero() || object.Updated.After(time.Now().Add(time.Duration(300)*time.Second)) {
- /*line profiles.mygo:56:12*/		return Err[ProfileObject, string]("invalid profile authority or freshness")
- /*line profiles.mygo:55:3*/	} else {
- /*line zz_profiles.gen.go:76:1*/	}
- /*line profiles.mygo:58:3*/	return Ok[ProfileObject, string](object)
- /*line zz_profiles.gen.go:78:1*/}
- /*line profiles.mygo:63:1*/func ApplyPersonUpdate(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, payload []byte) Result[struct {
-}, string] {
+ /*line profiles.mygo:53:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || view.Type != "Update" || MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || object.Type != "Person" {
+ /*line profiles.mygo:54:12*/		return Err[ProfileObject, failure.Failure](Of("not a Person update"))
+ /*line profiles.mygo:53:3*/	} else {
+ /*line zz_profiles.gen.go:73:1*/	}
+ /*line profiles.mygo:56:3*/	if object.ID != view.Actor || object.Updated.IsZero() || object.Updated.After(time.Now().Add(time.Duration(300)*time.Second)) {
+ /*line profiles.mygo:57:12*/		return Err[ProfileObject, failure.Failure](Of("invalid profile authority or freshness"))
+ /*line profiles.mygo:56:3*/	} else {
+ /*line zz_profiles.gen.go:77:1*/	}
+ /*line profiles.mygo:59:3*/	return Ok[ProfileObject, failure.Failure](object)
+ /*line zz_profiles.gen.go:79:1*/}
+ /*line profiles.mygo:64:1*/func ApplyPersonUpdate(sanitizer content.Sanitizer, ctx context.Context, db *gorm.DB, site config.Site, payload []byte) Result[struct {
+}, failure.Failure] {
 	parsed := PersonUpdateObject(payload)
- /*line profiles.mygo:65:3*/	if MygoIN6ResultM5IsErr[ProfileObject, string](parsed) {
- /*line profiles.mygo:66:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[ProfileObject, string](parsed))
- /*line profiles.mygo:65:3*/	} else {
- /*line zz_profiles.gen.go:85:1*/	}
- /*line profiles.mygo:63:1*/	object := MygoIN6ResultM6Unwrap[ProfileObject, string](parsed)
+ /*line profiles.mygo:66:3*/	if MygoIN6ResultM5IsErr[ProfileObject, failure.Failure](parsed) {
+ /*line profiles.mygo:67:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[ProfileObject, failure.Failure](parsed))
+ /*line profiles.mygo:66:3*/	} else {
+ /*line zz_profiles.gen.go:86:1*/	}
+ /*line profiles.mygo:64:1*/	object := MygoIN6ResultM6Unwrap[ProfileObject, failure.Failure](parsed)
 	actor := storage.LoadActor(ctx, db, object.ID)
- /*line profiles.mygo:70:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
- /*line profiles.mygo:71:12*/		return Err[struct{}, string]("unknown profile actor")
- /*line profiles.mygo:70:3*/	} else {
- /*line zz_profiles.gen.go:91:1*/	}
- /*line profiles.mygo:73:3*/	if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
- /*line profiles.mygo:74:12*/		return Err[struct{}, string]("forbidden")
- /*line profiles.mygo:73:3*/	} else {
- /*line zz_profiles.gen.go:95:1*/	}
- /*line profiles.mygo:63:1*/	var policy storage.SiteRepository = storage.SiteRepository{DB: db, SiteID: site.ID}
+ /*line profiles.mygo:71:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], failure.Failure](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)) {
+ /*line profiles.mygo:72:12*/		return Err[struct{}, failure.Failure](Of("unknown profile actor"))
+ /*line profiles.mygo:71:3*/	} else {
+ /*line zz_profiles.gen.go:92:1*/	}
+ /*line profiles.mygo:74:3*/	if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)).LocalSiteID.Valid || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)).Kind != "Person" {
+ /*line profiles.mygo:75:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line profiles.mygo:74:3*/	} else {
+ /*line zz_profiles.gen.go:96:1*/	}
+ /*line profiles.mygo:64:1*/	var policy storage.SiteRepository = storage.SiteRepository{DB: db, SiteID: site.ID}
 	blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(policy, ctx, object.ID)
- /*line profiles.mygo:78:3*/	if MygoIN6ResultM5IsErr[bool, string](blocked) || MygoIN6ResultM6Unwrap[bool, string](blocked) {
- /*line profiles.mygo:79:12*/		return Err[struct{}, string]("forbidden")
- /*line profiles.mygo:78:3*/	} else {
- /*line zz_profiles.gen.go:101:1*/	}
- /*line profiles.mygo:81:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Name)) > 4000 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Summary)) > 400000 {
- /*line profiles.mygo:82:12*/		return Err[struct{}, string]("invalid profile input")
- /*line profiles.mygo:81:3*/	} else {
- /*line zz_profiles.gen.go:105:1*/	}
- /*line profiles.mygo:84:16*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line profiles.mygo:79:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) || MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
+ /*line profiles.mygo:80:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line profiles.mygo:79:3*/	} else {
+ /*line zz_profiles.gen.go:102:1*/	}
+ /*line profiles.mygo:82:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Name)) > 4000 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(object.Summary)) > 400000 {
+ /*line profiles.mygo:83:12*/		return Err[struct{}, failure.Failure](Of("invalid profile input"))
+ /*line profiles.mygo:82:3*/	} else {
+ /*line zz_profiles.gen.go:106:1*/	}
+ /*line profiles.mygo:85:16*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(object.Icon.URL)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_profiles.gen.go:112:1*/	}
- /*line profiles.mygo:63:1*/	avatar := __mygo_expr_1
- /*line profiles.mygo:85:6*/	if object.Icon.URL != "" && (object.Icon.Type != "Image" || MygoIN6ResultM5IsErr[*url.URL, error](avatar)) {
- /*line profiles.mygo:86:12*/		return Err[struct{}, string]("invalid avatar URL")
- /*line profiles.mygo:85:3*/	} else {
- /*line zz_profiles.gen.go:117:1*/	}
- /*line profiles.mygo:88:3*/	if object.Icon.URL != "" {
+ /*line zz_profiles.gen.go:113:1*/	}
+ /*line profiles.mygo:64:1*/	avatar := __mygo_expr_1
+ /*line profiles.mygo:86:6*/	if object.Icon.URL != "" && (object.Icon.Type != "Image" || MygoIN6ResultM5IsErr[*url.URL, error](avatar)) {
+ /*line profiles.mygo:87:12*/		return Err[struct{}, failure.Failure](Of("invalid avatar URL"))
+ /*line profiles.mygo:86:3*/	} else {
+ /*line zz_profiles.gen.go:118:1*/	}
+ /*line profiles.mygo:89:3*/	if object.Icon.URL != "" {
 		address := MygoIN6ResultM6Unwrap[*url.URL, error](avatar)
 		if address.Scheme != "https" || address.Host == "" || strings.Contains(object.Icon.URL, "@") {
- /*line profiles.mygo:91:14*/			return Err[struct{}, string]("invalid avatar URL")
- /*line profiles.mygo:88:3*/		} else {
- /*line zz_profiles.gen.go:123:1*/		}
- /*line profiles.mygo:88:3*/	} else {
- /*line zz_profiles.gen.go:125:1*/	}
- /*line profiles.mygo:94:3*/	return storage.MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,updated_at=EXCLUDED.updated_at WHERE profiles.updated_at < EXCLUDED.updated_at", object.ID, content.RenderText(object.Name), object.Summary, content.SanitizeRichHTML(sanitizer, object.Summary), object.Icon.URL, object.Updated))
- /*line zz_profiles.gen.go:127:1*/}
- /*line profiles.mygo:98:1*/func QueueProfileUpdate(ctx context.Context, tx *gorm.DB, site config.Site, profile storage.ProfileRecord) Result[struct {
-}, string] {
+ /*line profiles.mygo:92:14*/			return Err[struct{}, failure.Failure](Of("invalid avatar URL"))
+ /*line profiles.mygo:89:3*/		} else {
+ /*line zz_profiles.gen.go:124:1*/		}
+ /*line profiles.mygo:89:3*/	} else {
+ /*line zz_profiles.gen.go:126:1*/	}
+ /*line profiles.mygo:95:3*/	return storage.MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,updated_at=EXCLUDED.updated_at WHERE profiles.updated_at < EXCLUDED.updated_at", object.ID, content.RenderText(object.Name), object.Summary, content.SanitizeRichHTML(sanitizer, object.Summary), object.Icon.URL, object.Updated))
+ /*line zz_profiles.gen.go:128:1*/}
+ /*line profiles.mygo:99:1*/func QueueProfileUpdate(ctx context.Context, tx *gorm.DB, site config.Site, profile storage.ProfileRecord) Result[struct {
+}, failure.Failure] {
 	actor := storage.LoadActor(ctx, tx, profile.ActorURI)
 	key := storage.EnsureLocalKey(ctx, tx, profile.ActorURI)
- /*line profiles.mygo:101:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) || MygoIN6ResultM5IsErr[string, string](key) {
- /*line profiles.mygo:102:12*/		return Err[struct{}, string]("profile federation unavailable")
- /*line profiles.mygo:101:3*/	} else {
- /*line zz_profiles.gen.go:135:1*/	}
- /*line profiles.mygo:98:1*/	var recipients []string = []string{}
+ /*line profiles.mygo:102:3*/	if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], failure.Failure](actor) || MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)) || MygoIN6ResultM5IsErr[string, failure.Failure](key) {
+ /*line profiles.mygo:103:12*/		return Err[struct{}, failure.Failure](Of("profile federation unavailable"))
+ /*line profiles.mygo:102:3*/	} else {
+ /*line zz_profiles.gen.go:136:1*/	}
+ /*line profiles.mygo:99:1*/	var recipients []string = []string{}
 	query := tx.WithContext(ctx).Raw("SELECT f.follower_actor_uri FROM person_follows f JOIN actors a ON a.uri=f.follower_actor_uri WHERE f.local_actor_uri=? AND f.state='accepted' AND NOT EXISTS (SELECT 1 FROM site_actor_blocks b WHERE b.site_id=? AND b.actor_uri=a.uri) AND NOT EXISTS (SELECT 1 FROM site_domain_blocks b WHERE b.site_id=? AND lower(split_part(split_part(a.uri,'://',2),'/',1))=b.domain)", profile.ActorURI, site.ID, site.ID).Scan(&recipients)
- /*line profiles.mygo:106:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(query)) {
- /*line profiles.mygo:107:12*/		return Err[struct{}, string]("profile federation unavailable")
- /*line profiles.mygo:106:3*/	} else {
- /*line zz_profiles.gen.go:141:1*/	}
- /*line profiles.mygo:98:1*/	var policy storage.SiteRepository = storage.SiteRepository{DB: tx, SiteID: site.ID}
+ /*line profiles.mygo:107:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(query)) {
+ /*line profiles.mygo:108:12*/		return Err[struct{}, failure.Failure](Of("profile federation unavailable"))
+ /*line profiles.mygo:107:3*/	} else {
+ /*line zz_profiles.gen.go:142:1*/	}
+ /*line profiles.mygo:99:1*/	var policy storage.SiteRepository = storage.SiteRepository{DB: tx, SiteID: site.ID}
 	var eligible []string = []string{}
 	var index int = 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(recipients) {
 		recipient := MygoIN6OptionM6Unwrap[string](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(recipients, index))
 		blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(policy, ctx, recipient)
-		if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line profiles.mygo:116:14*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
- /*line profiles.mygo:98:1*/		} else {
- /*line zz_profiles.gen.go:151:1*/		}
- /*line profiles.mygo:98:1*/		if !MygoIN6ResultM6Unwrap[bool, string](blocked) {
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line profiles.mygo:117:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
+ /*line profiles.mygo:99:1*/		} else {
+ /*line zz_profiles.gen.go:152:1*/		}
+ /*line profiles.mygo:99:1*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
 			eligible = MygoIN5SliceM6Append(eligible, recipient)
 		} else {
- /*line zz_profiles.gen.go:155:1*/		}
- /*line profiles.mygo:98:1*/		index = index + 1
- /*line zz_profiles.gen.go:157:1*/	}
- /*line profiles.mygo:98:1*/	uri := site.Origin + "/activities/" + rand.Text()
-	actorRepresentation := WithProfile(PersonRepresentation(site, MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)), profile.Username, MygoIN6ResultM6Unwrap[string, string](key)), profile)
- /*line profiles.mygo:125:17*/	var __mygo_expr_1 Result[[]byte, error]
+ /*line zz_profiles.gen.go:156:1*/		}
+ /*line profiles.mygo:99:1*/		index = index + 1
+ /*line zz_profiles.gen.go:158:1*/	}
+ /*line profiles.mygo:99:1*/	uri := site.Origin + "/activities/" + rand.Text()
+	actorRepresentation := WithProfile(PersonRepresentation(site, MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)), profile.Username, MygoIN6ResultM6Unwrap[string, failure.Failure](key)), profile)
+ /*line profiles.mygo:126:17*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := json.Marshal(ProfileUpdate{Context: activityStreamsContext, ID: uri, Type: "Update", Actor: profile.ActorURI, Object: actorRepresentation, To: []string{publicAudience}, CC: eligible})
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
- /*line zz_profiles.gen.go:166:1*/	}
- /*line profiles.mygo:98:1*/	payload := __mygo_expr_1
- /*line profiles.mygo:126:3*/	if MygoIN6ResultM5IsErr[[]byte, error](payload) {
- /*line profiles.mygo:127:12*/		return Err[struct{}, string]("profile federation unavailable")
- /*line profiles.mygo:126:3*/	} else {
- /*line zz_profiles.gen.go:171:1*/	}
- /*line profiles.mygo:98:1*/	stored := storage.InsertActivityPayload(ctx, tx, uri, profile.ActorURI, "Update", MygoIN6ResultM6Unwrap[[]byte, error](payload), "")
- /*line profiles.mygo:130:3*/	if MygoIN6ResultM5IsErr[struct{}, string](stored) {
- /*line profiles.mygo:131:12*/		return stored
- /*line profiles.mygo:130:3*/	} else {
- /*line zz_profiles.gen.go:176:1*/	}
- /*line profiles.mygo:98:1*/	planned := storage.PlanDelivery(ctx, tx, uri, profile.ActorURI, eligible, "")
- /*line profiles.mygo:134:3*/	if MygoIN6ResultM5IsErr[storage.PlanResult, string](planned) {
- /*line profiles.mygo:135:12*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[storage.PlanResult, string](planned))
- /*line profiles.mygo:134:3*/	} else {
- /*line zz_profiles.gen.go:181:1*/	}
- /*line profiles.mygo:137:3*/	return Ok[struct{}, string](struct {
- /*line zz_profiles.gen.go:183:1*/	}{})
+ /*line zz_profiles.gen.go:167:1*/	}
+ /*line profiles.mygo:99:1*/	payload := __mygo_expr_1
+ /*line profiles.mygo:127:3*/	if MygoIN6ResultM5IsErr[[]byte, error](payload) {
+ /*line profiles.mygo:128:12*/		return Err[struct{}, failure.Failure](Of("profile federation unavailable"))
+ /*line profiles.mygo:127:3*/	} else {
+ /*line zz_profiles.gen.go:172:1*/	}
+ /*line profiles.mygo:99:1*/	stored := storage.InsertActivityPayload(ctx, tx, uri, profile.ActorURI, "Update", MygoIN6ResultM6Unwrap[[]byte, error](payload), "")
+ /*line profiles.mygo:131:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](stored) {
+ /*line profiles.mygo:132:12*/		return stored
+ /*line profiles.mygo:131:3*/	} else {
+ /*line zz_profiles.gen.go:177:1*/	}
+ /*line profiles.mygo:99:1*/	planned := storage.PlanDelivery(ctx, tx, uri, profile.ActorURI, eligible, "")
+ /*line profiles.mygo:135:3*/	if MygoIN6ResultM5IsErr[storage.PlanResult, failure.Failure](planned) {
+ /*line profiles.mygo:136:12*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.PlanResult, failure.Failure](planned))
+ /*line profiles.mygo:135:3*/	} else {
+ /*line zz_profiles.gen.go:182:1*/	}
+ /*line profiles.mygo:138:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_profiles.gen.go:184:1*/	}{})
 }

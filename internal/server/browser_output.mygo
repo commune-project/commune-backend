@@ -8,6 +8,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct CommunityViewerOutput
   IsMember: Bool `json:"is_member"`
@@ -122,7 +123,7 @@ func BrowserPosts(
   repository: storage.BrowserRepository,
   viewer: storage.BrowserViewer,
   records: Slice[storage.PostRecord]
-) -> Result[Slice[PostOutput], String]
+) -> Result[Slice[PostOutput], failure.Failure]
   var outputs: Slice[PostOutput] = []
   let ids = records.Map(func(post: storage.PostRecord) -> String
     post.ID
@@ -141,10 +142,10 @@ func BrowserPosts(
       repository.SiteID,
       ids
     ).Find(Ref.new(cached))).IsErr() then
-    return Err("media unavailable")
+    return Err(Of("media unavailable"))
   end
   if views.IsErr() || stats.IsErr() || richStates.IsErr() then
-    return Err("feed unavailable")
+    return Err(Of("feed unavailable"))
   end
   # Index the joined rows once; the projection below is per-record.
   let viewList = views.Unwrap()
@@ -174,7 +175,7 @@ func BrowserPosts(
   if viewsById.Len() != viewList.Len() ||
     statsById.Len() != statList.Len() ||
     richById.Len() != richList.Len() then
-    return Err("feed unavailable")
+    return Err(Of("feed unavailable"))
   end
   var index: Int = 0
   while index < records.Len()
@@ -183,11 +184,11 @@ func BrowserPosts(
     let found = viewsById.Get(record.CommunityID)
     let counts = statsById.Get(record.ID)
     if found.IsNone() || counts.IsNone() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     let access = repository.Access(found.Unwrap(), viewer)
     if !access.CanRead() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     let hosted = access.Community.HostSiteID == repository.SiteID
     let active = !record.DeletedAt.Valid
@@ -195,14 +196,14 @@ func BrowserPosts(
     var output = PostDTO(sanitizer, record)
     let rich = richById.Get(record.ID)
     if rich.IsNone() then
-      return Err("post content unavailable")
+      return Err(Of("post content unavailable"))
     end
     let richState = rich.Unwrap()
     output.Author = BrowserPostAuthor(richState)
     let rendered = storage.RenderStoredPost(sanitizer, record, richState, false)
     let media = richState.RichMedia()
     if rendered.IsErr() || media.IsErr() then
-      return Err("post content unavailable")
+      return Err(Of("post content unavailable"))
     end
     output.BodyHTML = rendered.Unwrap()
     output.AttachmentIDs = media.Unwrap().Map(func(item: content.RichMedia) -> String item.UploadID end)
@@ -270,8 +271,8 @@ func ThreadBefore(left: PostOutput, right: PostOutput, mode: ThreadSortMode) -> 
       end
     end
     case Controversial then
-      let leftBalance = if left.Upvotes < left.Downvotes then left.Upvotes else left.Downvotes end
-      let rightBalance = if right.Upvotes < right.Downvotes then right.Upvotes else right.Downvotes end
+      let leftBalance = if left.Upvotes < left.Downvotes => left.Upvotes else left.Downvotes
+      let rightBalance = if right.Upvotes < right.Downvotes => right.Upvotes else right.Downvotes
       if leftBalance != rightBalance then
         return leftBalance > rightBalance
       end
@@ -318,7 +319,7 @@ func BrowserThread(
   rows: Slice[storage.ThreadRow],
   parentID: String,
   mode: ThreadSortMode
-) -> Result[Slice[PostOutput], String]
+) -> Result[Slice[PostOutput], failure.Failure]
   let records = rows.Map(func(row: storage.ThreadRow) -> storage.PostRecord row.Post end)
   let outputs = BrowserPosts(sanitizer, ctx, repository, viewer, records)
   if outputs.IsErr() then
@@ -349,13 +350,13 @@ func WriteBrowserPost(
   let repository = storage.BrowserRepository { DB: db, SiteID: site.ID }
   let viewer = repository.Viewer(request.Context(), identity)
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return
   end
   let records: Slice[storage.PostRecord] = [record]
   let outputs = BrowserPosts(sanitizer, request.Context(), repository, viewer.Unwrap(), records)
   if outputs.IsErr() then
-    Fail(w, outputs.UnwrapErr())
+    FailFailure(w, outputs.UnwrapErr())
   else
     WriteJSON(w, status, outputs.Unwrap().Get(0).Unwrap())
   end
@@ -373,7 +374,7 @@ func WriteBrowserCommunity(
   let repository = storage.BrowserRepository { DB: db, SiteID: site.ID }
   let viewer = repository.Viewer(request.Context(), identity)
   if viewer.IsErr() then
-    Fail(w, viewer.UnwrapErr())
+    FailFailure(w, viewer.UnwrapErr())
     return
   end
   let ids: Slice[String] = [record.ID]

@@ -10,9 +10,10 @@ import "crypto/rand"
 import "net/url"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line posts.mygo:12:1*/type PostRecord struct {
+ /*line posts.mygo:13:1*/type PostRecord struct {
 	ID             string         "gorm:\"column:id\""
 	ObjectURI      sql.NullString "gorm:\"column:object_uri\""
 	CommunityID    string         "gorm:\"column:community_id\""
@@ -29,100 +30,100 @@ import . "github.com/mygo-lang/mygo/prelude"
 	UpdatedAt      time.Time      "gorm:\"column:updated_at;autoUpdateTime:false\""
 	Version        int64          "gorm:\"column:version;default:1\""
 	DeletedAt      sql.NullTime   "gorm:\"column:deleted_at\""
- /*line zz_posts.gen.go:32:1*/}
- /*line posts.mygo:31:1*/type PostRepository struct {
+ /*line zz_posts.gen.go:33:1*/}
+ /*line posts.mygo:32:1*/type PostRepository struct {
 	DB     *gorm.DB
 	SiteID string
- /*line zz_posts.gen.go:36:1*/}
+ /*line zz_posts.gen.go:37:1*/}
 
- /*line posts.mygo:36:1*/func CanonicalObjectURI(uri string) bool {
- /*line posts.mygo:37:16*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line posts.mygo:37:1*/func CanonicalObjectURI(uri string) bool {
+ /*line posts.mygo:38:16*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(uri)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_posts.gen.go:45:1*/	}
- /*line posts.mygo:36:1*/	parsed := __mygo_expr_1
- /*line posts.mygo:38:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
- /*line posts.mygo:39:12*/		return false
- /*line posts.mygo:38:3*/	} else {
- /*line zz_posts.gen.go:50:1*/	}
- /*line posts.mygo:36:1*/	value := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
+ /*line zz_posts.gen.go:46:1*/	}
+ /*line posts.mygo:37:1*/	parsed := __mygo_expr_1
+ /*line posts.mygo:39:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) {
+ /*line posts.mygo:40:12*/		return false
+ /*line posts.mygo:39:3*/	} else {
+ /*line zz_posts.gen.go:51:1*/	}
+ /*line posts.mygo:37:1*/	value := MygoIN6ResultM6Unwrap[*url.URL, error](parsed)
 	credentials := value.User != nil
- /*line posts.mygo:43:3*/	return value.Scheme == "https" && MygoIN6ResultM4IsOk[string, string](config.NormalizeAuthority(value.Host)) && value.Fragment == "" && !credentials
- /*line zz_posts.gen.go:54:1*/}
- /*line posts.mygo:49:1*/func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, incoming PostRecord, authenticatedAuthorURI string, sanitizer content.Sanitizer) Result[PostRecord, string] {
- /*line posts.mygo:59:5*/	if self.SiteID == "" || incoming.FederationMode != "federated" || !incoming.ObjectURI.Valid || !CanonicalObjectURI(incoming.ObjectURI.String) || authenticatedAuthorURI == "" || incoming.AuthorActorURI != authenticatedAuthorURI {
- /*line posts.mygo:65:14*/		return Err[PostRecord, string]("invalid object authority")
- /*line posts.mygo:59:5*/	} else {
- /*line zz_posts.gen.go:59:1*/	}
- /*line posts.mygo:67:5*/	if incoming.AuthoredAt.IsZero() || incoming.UpdatedAt.Before(incoming.AuthoredAt) || incoming.ObjectType != "Page" && incoming.ObjectType != "Note" || incoming.DeletedAt.Valid && incoming.Body != "" {
- /*line posts.mygo:71:14*/		return Err[PostRecord, string]("invalid object")
- /*line posts.mygo:67:5*/	} else {
- /*line zz_posts.gen.go:63:1*/	}
- /*line posts.mygo:49:1*/	stored := Zero[PostRecord]()
+ /*line posts.mygo:44:3*/	return value.Scheme == "https" && MygoIN6ResultM4IsOk[string, string](config.NormalizeAuthority(value.Host)) && value.Fragment == "" && !credentials
+ /*line zz_posts.gen.go:55:1*/}
+ /*line posts.mygo:50:1*/func MygoIN14PostRepositoryM7Receive(self PostRepository, ctx context.Context, incoming PostRecord, authenticatedAuthorURI string, sanitizer content.Sanitizer) Result[PostRecord, failure.Failure] {
+ /*line posts.mygo:60:5*/	if self.SiteID == "" || incoming.FederationMode != "federated" || !incoming.ObjectURI.Valid || !CanonicalObjectURI(incoming.ObjectURI.String) || authenticatedAuthorURI == "" || incoming.AuthorActorURI != authenticatedAuthorURI {
+ /*line posts.mygo:66:14*/		return Err[PostRecord, failure.Failure](Of("invalid object authority"))
+ /*line posts.mygo:60:5*/	} else {
+ /*line zz_posts.gen.go:60:1*/	}
+ /*line posts.mygo:68:5*/	if incoming.AuthoredAt.IsZero() || incoming.UpdatedAt.Before(incoming.AuthoredAt) || incoming.ObjectType != "Page" && incoming.ObjectType != "Note" || incoming.DeletedAt.Valid && incoming.Body != "" {
+ /*line posts.mygo:72:14*/		return Err[PostRecord, failure.Failure](Of("invalid object"))
+ /*line posts.mygo:68:5*/	} else {
+ /*line zz_posts.gen.go:64:1*/	}
+ /*line posts.mygo:50:1*/	stored := Zero[PostRecord]()
 	var __mygo_expr_0 string
 	if incoming.ContentFormat == "" {
 		__mygo_expr_0 = "legacy"
 	} else {
 		__mygo_expr_0 = incoming.ContentFormat
- /*line zz_posts.gen.go:70:1*/	}
- /*line posts.mygo:49:1*/	format := __mygo_expr_0
+ /*line zz_posts.gen.go:71:1*/	}
+ /*line posts.mygo:50:1*/	format := __mygo_expr_0
 	normalized := content.PlainRichText(sanitizer, incoming.Body, format)
- /*line posts.mygo:80:5*/	if MygoIN6ResultM5IsErr[string, string](normalized) {
- /*line posts.mygo:81:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[string, string](normalized))
- /*line posts.mygo:80:5*/	} else {
- /*line zz_posts.gen.go:76:1*/	}
- /*line posts.mygo:49:1*/	authored := incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
+ /*line posts.mygo:81:5*/	if MygoIN6ResultM5IsErr[string, string](normalized) {
+ /*line posts.mygo:82:14*/		return Err[PostRecord, failure.Failure](Of(MygoIN6ResultM9UnwrapErr[string, string](normalized)))
+ /*line posts.mygo:81:5*/	} else {
+ /*line zz_posts.gen.go:77:1*/	}
+ /*line posts.mygo:50:1*/	authored := incoming.AuthoredAt.UTC().Truncate(time.Microsecond)
 	updated := incoming.UpdatedAt.UTC().Truncate(time.Microsecond)
 	deleted := sql.NullTime{Valid: incoming.DeletedAt.Valid, Time: incoming.DeletedAt.Time.UTC().Truncate(time.Microsecond)}
-	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line posts.mygo:92:7*/		inserted := tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,content_format,search_text,rich_metadata,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, incoming.ParentID, authored, updated, deleted)
- /*line posts.mygo:110:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(inserted)) {
- /*line posts.mygo:111:18*/			return Err[struct{}, string]("object storage failed")
- /*line posts.mygo:110:9*/		} else {
- /*line zz_posts.gen.go:85:1*/		}
- /*line posts.mygo:92:7*/		current := Zero[PostRecord]()
+	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line posts.mygo:93:7*/		inserted := tx.Exec("INSERT INTO posts(id,object_uri,community_id,federation_mode,author_actor_uri,object_type,title,body,content_format,search_text,rich_metadata,parent_id,authored_at,updated_at,deleted_at) VALUES (?,?,?,'federated',?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (object_uri) DO NOTHING", rand.Text(), incoming.ObjectURI.String, incoming.CommunityID, incoming.AuthorActorURI, incoming.ObjectType, incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, incoming.ParentID, authored, updated, deleted)
+ /*line posts.mygo:111:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(inserted)) {
+ /*line posts.mygo:112:18*/			return Err[struct{}, failure.Failure](Of("object storage failed"))
+ /*line posts.mygo:111:9*/		} else {
+ /*line zz_posts.gen.go:86:1*/		}
+ /*line posts.mygo:93:7*/		current := Zero[PostRecord]()
 		loaded := tx.Raw("SELECT * FROM posts WHERE object_uri=? FOR UPDATE", incoming.ObjectURI.String).Scan(&current)
- /*line posts.mygo:115:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
- /*line posts.mygo:116:18*/			return Err[struct{}, string]("object storage failed")
- /*line posts.mygo:115:9*/		} else {
- /*line zz_posts.gen.go:91:1*/		}
- /*line posts.mygo:118:9*/		if current.AuthorActorURI != authenticatedAuthorURI || current.CommunityID != incoming.CommunityID || current.ObjectType != incoming.ObjectType || current.ParentID != incoming.ParentID || !current.AuthoredAt.Equal(authored) {
- /*line posts.mygo:123:18*/			return Err[struct{}, string]("object identity conflict")
- /*line posts.mygo:118:9*/		} else {
- /*line zz_posts.gen.go:95:1*/		}
- /*line posts.mygo:125:12*/		if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) {
- /*line posts.mygo:125:9*/			if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=?,version=version+1 WHERE id=?", incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, updated, deleted, current.ID))) {
- /*line posts.mygo:137:20*/				return Err[struct{}, string]("object update failed")
- /*line posts.mygo:125:9*/			} else {
- /*line zz_posts.gen.go:100:1*/			}
+ /*line posts.mygo:116:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
+ /*line posts.mygo:117:18*/			return Err[struct{}, failure.Failure](Of("object storage failed"))
+ /*line posts.mygo:116:9*/		} else {
+ /*line zz_posts.gen.go:92:1*/		}
+ /*line posts.mygo:119:9*/		if current.AuthorActorURI != authenticatedAuthorURI || current.CommunityID != incoming.CommunityID || current.ObjectType != incoming.ObjectType || current.ParentID != incoming.ParentID || !current.AuthoredAt.Equal(authored) {
+ /*line posts.mygo:124:18*/			return Err[struct{}, failure.Failure](Of("object identity conflict"))
+ /*line posts.mygo:119:9*/		} else {
+ /*line zz_posts.gen.go:96:1*/		}
+ /*line posts.mygo:126:12*/		if !current.DeletedAt.Valid && updated.After(current.UpdatedAt) {
+ /*line posts.mygo:126:9*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,rich_metadata=?,updated_at=?,deleted_at=?,version=version+1 WHERE id=?", incoming.Title, incoming.Body, format, MygoIN6ResultM6Unwrap[string, string](normalized), incoming.RichMetadata, updated, deleted, current.ID))) {
+ /*line posts.mygo:138:20*/				return Err[struct{}, failure.Failure](Of("object update failed"))
+ /*line posts.mygo:126:9*/			} else {
+ /*line zz_posts.gen.go:101:1*/			}
 		} else {
- /*line posts.mygo:140:14*/			if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.ContentFormat != format || current.RichMetadata != incoming.RichMetadata || current.DeletedAt.Valid != deleted.Valid) {
- /*line posts.mygo:147:20*/				return Err[struct{}, string]("object version conflict")
- /*line posts.mygo:125:9*/			} else {
- /*line zz_posts.gen.go:105:1*/			}
+ /*line posts.mygo:141:14*/			if !current.DeletedAt.Valid && updated.Equal(current.UpdatedAt) && (current.Body != incoming.Body || current.Title != incoming.Title || current.ContentFormat != format || current.RichMetadata != incoming.RichMetadata || current.DeletedAt.Valid != deleted.Valid) {
+ /*line posts.mygo:148:20*/				return Err[struct{}, failure.Failure](Of("object version conflict"))
+ /*line posts.mygo:126:9*/			} else {
+ /*line zz_posts.gen.go:106:1*/			}
 		}
- /*line posts.mygo:150:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, current.ID))) {
- /*line posts.mygo:155:18*/			return Err[struct{}, string]("object reception failed")
- /*line posts.mygo:150:9*/		} else {
- /*line zz_posts.gen.go:110:1*/		}
- /*line posts.mygo:92:7*/		queued := QueueActorHandleResolution(ctx, tx, self.SiteID, incoming.AuthorActorURI)
- /*line posts.mygo:158:9*/		if MygoIN6ResultM5IsErr[int64, string](queued) {
- /*line posts.mygo:159:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[int64, string](queued))
- /*line posts.mygo:158:9*/		} else {
- /*line zz_posts.gen.go:115:1*/		}
- /*line posts.mygo:161:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(&stored))) {
- /*line posts.mygo:162:18*/			return Err[struct{}, string]("object storage failed")
- /*line posts.mygo:161:9*/		} else {
- /*line zz_posts.gen.go:119:1*/		}
- /*line posts.mygo:164:9*/		return Ok[struct{}, string](struct {
- /*line zz_posts.gen.go:121:1*/		}{})
+ /*line posts.mygo:151:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?) ON CONFLICT DO NOTHING", self.SiteID, current.ID))) {
+ /*line posts.mygo:156:18*/			return Err[struct{}, failure.Failure](Of("object reception failed"))
+ /*line posts.mygo:151:9*/		} else {
+ /*line zz_posts.gen.go:111:1*/		}
+ /*line posts.mygo:93:7*/		queued := QueueActorHandleResolution(ctx, tx, self.SiteID, incoming.AuthorActorURI)
+ /*line posts.mygo:159:9*/		if MygoIN6ResultM5IsErr[int64, failure.Failure](queued) {
+ /*line posts.mygo:160:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[int64, failure.Failure](queued))
+ /*line posts.mygo:159:9*/		} else {
+ /*line zz_posts.gen.go:116:1*/		}
+ /*line posts.mygo:162:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Table("posts").Where("id=?", current.ID).Find(&stored))) {
+ /*line posts.mygo:163:18*/			return Err[struct{}, failure.Failure](Of("object storage failed"))
+ /*line posts.mygo:162:9*/		} else {
+ /*line zz_posts.gen.go:120:1*/		}
+ /*line posts.mygo:165:9*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_posts.gen.go:122:1*/		}{})
 	})
- /*line posts.mygo:167:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line posts.mygo:168:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line posts.mygo:167:5*/	} else {
- /*line zz_posts.gen.go:126:1*/	}
- /*line posts.mygo:170:5*/	return Ok[PostRecord, string](stored)
- /*line zz_posts.gen.go:128:1*/}
+ /*line posts.mygo:168:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line posts.mygo:169:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line posts.mygo:168:5*/	} else {
+ /*line zz_posts.gen.go:127:1*/	}
+ /*line posts.mygo:171:5*/	return Ok[PostRecord, failure.Failure](stored)
+ /*line zz_posts.gen.go:129:1*/}

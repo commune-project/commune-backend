@@ -7,83 +7,84 @@ import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "strings"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line browser_media.mygo:9:1*/type PostAttachmentOutput struct {
+ /*line browser_media.mygo:10:1*/type PostAttachmentOutput struct {
 	URL        string "json:\"url\""
 	MediaType  string "json:\"media_type\""
 	Name       string "json:\"name,omitempty\""
 	PreviewURL string "json:\"preview_url,omitempty\""
- /*line zz_browser_media.gen.go:17:1*/}
+ /*line zz_browser_media.gen.go:18:1*/}
 
- /*line browser_media.mygo:16:1*/func BrowserPostMedia(sanitizer content.Sanitizer, post storage.PostRecord, local []content.RichMedia, restricted bool, cached []storage.PrivateMediaCache, output PostOutput) Result[PostOutput, string] {
+ /*line browser_media.mygo:17:1*/func BrowserPostMedia(sanitizer content.Sanitizer, post storage.PostRecord, local []content.RichMedia, restricted bool, cached []storage.PrivateMediaCache, output PostOutput) Result[PostOutput, failure.Failure] {
 	result := output
 	result.Attachments = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(local, func(item content.RichMedia) PostAttachmentOutput {
- /*line browser_media.mygo:19:115*/		var __mygo_expr_0 string
+ /*line browser_media.mygo:20:115*/		var __mygo_expr_0 string
 		if item.MediaType == "image/png" || item.MediaType == "image/jpeg" || item.MediaType == "image/gif" {
 			__mygo_expr_0 = "/api/v1/media/" + item.BindingID + "/preview"
 		} else {
 			__mygo_expr_0 = ""
- /*line zz_browser_media.gen.go:27:1*/		}
- /*line browser_media.mygo:19:5*/		return PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, Name: "", PreviewURL: __mygo_expr_0}
- /*line zz_browser_media.gen.go:29:1*/	})
- /*line browser_media.mygo:21:3*/	if post.RichMetadata == "" {
- /*line browser_media.mygo:21:42*/		return Ok[PostOutput, string](result)
- /*line browser_media.mygo:21:3*/	} else {
- /*line zz_browser_media.gen.go:33:1*/	}
- /*line browser_media.mygo:16:1*/	metadata := Zero[federation.RichMetadata]()
- /*line browser_media.mygo:23:6*/	var __mygo_expr_2 Result[struct{}, error]
+ /*line zz_browser_media.gen.go:28:1*/		}
+ /*line browser_media.mygo:20:5*/		return PostAttachmentOutput{URL: "/api/v1/media/" + item.BindingID, MediaType: item.MediaType, Name: "", PreviewURL: __mygo_expr_0}
+ /*line zz_browser_media.gen.go:30:1*/	})
+ /*line browser_media.mygo:22:3*/	if post.RichMetadata == "" {
+ /*line browser_media.mygo:22:42*/		return Ok[PostOutput, failure.Failure](result)
+ /*line browser_media.mygo:22:3*/	} else {
+ /*line zz_browser_media.gen.go:34:1*/	}
+ /*line browser_media.mygo:17:1*/	metadata := Zero[federation.RichMetadata]()
+ /*line browser_media.mygo:24:6*/	var __mygo_expr_2 Result[struct{}, error]
 	__mygo_expr_1 := json.Unmarshal([]byte(post.RichMetadata), &metadata)
 	if __mygo_expr_1 != nil {
 		__mygo_expr_2 = Err[struct{}, error](__mygo_expr_1)
 	} else {
 		__mygo_expr_2 = Ok[struct{}, error](struct {
- /*line zz_browser_media.gen.go:41:1*/		}{})
+ /*line zz_browser_media.gen.go:42:1*/		}{})
 	}
- /*line browser_media.mygo:23:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
- /*line browser_media.mygo:23:94*/		return Err[PostOutput, string]("media unavailable")
- /*line browser_media.mygo:23:3*/	} else {
- /*line zz_browser_media.gen.go:46:1*/	}
- /*line browser_media.mygo:16:1*/	var references []content.RemoteMediaReference = []content.RemoteMediaReference{}
- /*line browser_media.mygo:25:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(metadata.Attachment, func(item_1 federation.RichAttachment) {
- /*line browser_media.mygo:25:28*/		target := item_1.URL
- /*line browser_media.mygo:27:5*/		if restricted {
+ /*line browser_media.mygo:24:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_2) {
+ /*line browser_media.mygo:24:94*/		return Err[PostOutput, failure.Failure](Of("media unavailable"))
+ /*line browser_media.mygo:24:3*/	} else {
+ /*line zz_browser_media.gen.go:47:1*/	}
+ /*line browser_media.mygo:17:1*/	var references []content.RemoteMediaReference = []content.RemoteMediaReference{}
+ /*line browser_media.mygo:26:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(metadata.Attachment, func(item_1 federation.RichAttachment) {
+ /*line browser_media.mygo:26:28*/		target := item_1.URL
+ /*line browser_media.mygo:28:5*/		if restricted {
 			matches := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(cached, func(row storage.PrivateMediaCache) bool {
- /*line browser_media.mygo:28:80*/				return row.PostID == post.ID && row.OriginURI == item_1.URL && row.ErrorState != "invalidated"
- /*line zz_browser_media.gen.go:53:1*/			})
- /*line browser_media.mygo:29:16*/			var __mygo_expr_3 string
+ /*line browser_media.mygo:29:80*/				return row.PostID == post.ID && row.OriginURI == item_1.URL && row.ErrorState != "invalidated"
+ /*line zz_browser_media.gen.go:54:1*/			})
+ /*line browser_media.mygo:30:16*/			var __mygo_expr_3 string
 			if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(matches) == 1 {
 				__mygo_expr_3 = "/api/v1/media/private/" + MygoIN6OptionM6Unwrap[storage.PrivateMediaCache](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(matches, 0)).ID
 			} else {
 				__mygo_expr_3 = ""
- /*line zz_browser_media.gen.go:59:1*/			}
- /*line browser_media.mygo:27:5*/			target = __mygo_expr_3
+ /*line zz_browser_media.gen.go:60:1*/			}
+ /*line browser_media.mygo:28:5*/			target = __mygo_expr_3
 		} else {
- /*line zz_browser_media.gen.go:62:1*/		}
- /*line browser_media.mygo:31:5*/		if target != "" {
+ /*line zz_browser_media.gen.go:63:1*/		}
+ /*line browser_media.mygo:32:5*/		if target != "" {
 			var __mygo_expr_4 string
 			if restricted && strings.HasPrefix(item_1.MediaType, "image/") {
 				__mygo_expr_4 = target + "/preview"
 			} else {
 				__mygo_expr_4 = ""
- /*line zz_browser_media.gen.go:69:1*/			}
- /*line browser_media.mygo:31:5*/			preview := __mygo_expr_4
- /*line browser_media.mygo:33:90*/			var __mygo_expr_5 string
+ /*line zz_browser_media.gen.go:70:1*/			}
+ /*line browser_media.mygo:32:5*/			preview := __mygo_expr_4
+ /*line browser_media.mygo:34:90*/			var __mygo_expr_5 string
 			if preview != "" {
 				__mygo_expr_5 = preview
 			} else {
 				__mygo_expr_5 = target
- /*line zz_browser_media.gen.go:76:1*/			}
- /*line browser_media.mygo:31:5*/			references = MygoIN5SliceM6Append(references, content.RemoteMediaReference{Origin: item_1.URL, URL: __mygo_expr_5})
+ /*line zz_browser_media.gen.go:77:1*/			}
+ /*line browser_media.mygo:32:5*/			references = MygoIN5SliceM6Append(references, content.RemoteMediaReference{Origin: item_1.URL, URL: __mygo_expr_5})
 			result.Attachments = MygoIN5SliceM6Append(result.Attachments, PostAttachmentOutput{URL: target, MediaType: item_1.MediaType, Name: item_1.Name, PreviewURL: preview})
 			return
 		} else {
 			return
- /*line zz_browser_media.gen.go:82:1*/		}
+ /*line zz_browser_media.gen.go:83:1*/		}
 	})
- /*line browser_media.mygo:37:3*/	if restricted {
+ /*line browser_media.mygo:38:3*/	if restricted {
 		result.BodyHTML = content.RewritePrivateMedia(sanitizer, result.BodyHTML, references)
 	} else {
- /*line zz_browser_media.gen.go:87:1*/	}
- /*line browser_media.mygo:38:3*/	return Ok[PostOutput, string](result)
- /*line zz_browser_media.gen.go:89:1*/}
+ /*line zz_browser_media.gen.go:88:1*/	}
+ /*line browser_media.mygo:39:3*/	return Ok[PostOutput, failure.Failure](result)
+ /*line zz_browser_media.gen.go:90:1*/}

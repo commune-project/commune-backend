@@ -14,23 +14,24 @@ import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line password_reset_http_test.mygo:17:1*/func resetHTTPToken(t *testing.T, db *gorm.DB, siteID string, origin string) string {
 	job := Zero[storage.ResetMailJob]()
 	query := db.Table("password_reset_mail_jobs AS j").Select("j.*").Joins("JOIN password_reset_tokens t ON t.id=j.reset_id").Where("t.site_id=? AND t.consumed_at IS NULL", siteID).Order("t.created_at DESC").Limit(1).Find(&job)
- /*line password_reset_http_test.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(query)) || query.RowsAffected != int64(1) {
+ /*line password_reset_http_test.mygo:22:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(query)) || query.RowsAffected != int64(1) {
  /*line password_reset_http_test.mygo:23:5*/		t.Fatal("reset mail job missing")
  /*line password_reset_http_test.mygo:22:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:25:1*/	}
+ /*line zz_password_reset_http.gen_test.go:26:1*/	}
  /*line password_reset_http_test.mygo:17:1*/	key := []byte(strings.Repeat("k", 32))
 	link := auth.OpenPasswordReset(key, job.EncryptedPayload)
  /*line password_reset_http_test.mygo:27:3*/	if MygoIN6ResultM5IsErr[string, string](link) {
  /*line password_reset_http_test.mygo:28:5*/		t.Fatal("reset mail payload could not be opened")
  /*line password_reset_http_test.mygo:27:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:31:1*/	}
+ /*line zz_password_reset_http.gen_test.go:32:1*/	}
  /*line password_reset_http_test.mygo:30:3*/	return strings.TrimPrefix(MygoIN6ResultM6Unwrap[string, string](link), origin+"/reset-password#token=")
- /*line zz_password_reset_http.gen_test.go:33:1*/}
+ /*line zz_password_reset_http.gen_test.go:34:1*/}
  /*line password_reset_http_test.mygo:33:1*/func TestPostgresPasswordResetHTTP(t *testing.T) {
  /*line password_reset_http_test.mygo:34:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -38,22 +39,22 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_password_reset_http.gen_test.go:41:1*/	}
+ /*line zz_password_reset_http.gen_test.go:42:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := registrationSettings()
 	settings.Sites = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(settings.Sites, func(site config.Site) config.Site {
  /*line password_reset_http_test.mygo:38:39*/		disabledRegistration := site
 		disabledRegistration.RegistrationEnabled = false
  /*line password_reset_http_test.mygo:41:5*/		return disabledRegistration
- /*line zz_password_reset_http.gen_test.go:50:1*/	})
+ /*line zz_password_reset_http.gen_test.go:51:1*/	})
  /*line password_reset_http_test.mygo:33:1*/	site_1 := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
 	other := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site_1))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, other))
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site_1, "alice", "alice@example.org", "alice-password"))
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site_1, "bob", "bob@example.org", "bob-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site_1))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, other))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site_1, "alice", "alice@example.org", "alice-password"))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site_1, "bob", "bob@example.org", "bob-password"))
 	handler := Handler(settings, db)
 	resetPath := "/api/v1/auth/password/reset"
 	known := registrationRequest(handler, site_1.Origin, resetPath, "{\"email\":\" Alice@Example.org \"}", "198.51.100.30:1234", "")
@@ -61,12 +62,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line password_reset_http_test.mygo:53:3*/	if known.Code != 202 || unknown.Code != 202 || known.Body.String() != unknown.Body.String() || known.Header().Get("Cache-Control") != "no-store" {
  /*line password_reset_http_test.mygo:55:5*/		t.Fatal("reset request was not generic or no-store")
  /*line password_reset_http_test.mygo:53:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:64:1*/	}
+ /*line zz_password_reset_http.gen_test.go:65:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	invalid := registrationRequest(handler, site_1.Origin, resetPath, "{\"email\":\"not-an-email\"}", "198.51.100.30:1234", "")
  /*line password_reset_http_test.mygo:58:3*/	if invalid.Code != 400 {
  /*line password_reset_http_test.mygo:59:5*/		t.Fatal("invalid reset address was accepted")
  /*line password_reset_http_test.mygo:58:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:69:1*/	}
+ /*line zz_password_reset_http.gen_test.go:70:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	request := httptest.NewRequest("POST", site_1.Origin+resetPath, io.Reader(strings.NewReader("{\"email\":\"alice@example.org\"}")))
  /*line password_reset_http_test.mygo:62:3*/	request.Header.Set("Origin", "https://foreign.example")
  /*line password_reset_http_test.mygo:63:3*/	request.Header.Set("Content-Type", "application/json")
@@ -76,33 +77,33 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line password_reset_http_test.mygo:67:3*/	if foreign.Code != 403 {
  /*line password_reset_http_test.mygo:68:5*/		t.Fatal("foreign-origin reset request was accepted")
  /*line password_reset_http_test.mygo:67:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:79:1*/	}
+ /*line zz_password_reset_http.gen_test.go:80:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	token := resetHTTPToken(t, db, site_1.ID, site_1.Origin)
  /*line password_reset_http_test.mygo:71:3*/	if token == "" {
  /*line password_reset_http_test.mygo:71:23*/		t.Fatal("reset token extraction failed")
  /*line password_reset_http_test.mygo:71:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:84:1*/	}
+ /*line zz_password_reset_http.gen_test.go:85:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	confirmPath := "/api/v1/auth/password/reset/confirm"
  /*line password_reset_http_test.mygo:73:3*/	if registrationRequest(handler, other.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:74:5*/		t.Fatal("cross-site reset token was accepted")
  /*line password_reset_http_test.mygo:73:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:89:1*/	}
+ /*line zz_password_reset_http.gen_test.go:90:1*/	}
  /*line password_reset_http_test.mygo:76:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"short\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:77:5*/		t.Fatal("invalid reset password was accepted")
  /*line password_reset_http_test.mygo:76:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:93:1*/	}
+ /*line zz_password_reset_http.gen_test.go:94:1*/	}
  /*line password_reset_http_test.mygo:79:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"new-password\"}", "198.51.100.30:1234", "").Code != 204 {
  /*line password_reset_http_test.mygo:80:5*/		t.Fatal("valid reset confirmation failed")
  /*line password_reset_http_test.mygo:79:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:97:1*/	}
+ /*line zz_password_reset_http.gen_test.go:98:1*/	}
  /*line password_reset_http_test.mygo:82:3*/	if registrationRequest(handler, site_1.Origin, confirmPath, "{\"token\":\""+token+"\",\"password\":\"second-password\"}", "198.51.100.30:1234", "").Code != 400 {
  /*line password_reset_http_test.mygo:83:5*/		t.Fatal("consumed reset token was reused")
  /*line password_reset_http_test.mygo:82:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:101:1*/	}
+ /*line zz_password_reset_http.gen_test.go:102:1*/	}
  /*line password_reset_http_test.mygo:85:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 200 {
  /*line password_reset_http_test.mygo:87:5*/		t.Fatal("reset did not replace the login password")
  /*line password_reset_http_test.mygo:85:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:105:1*/	}
+ /*line zz_password_reset_http.gen_test.go:106:1*/	}
  /*line password_reset_http_test.mygo:33:1*/	bobCookies := login(handler, site_1.Origin, "bob", "bob-password")
 	bobCSRF := csrfOf(bobCookies)
 	otherBob := login(handler, site_1.Origin, "bob", "bob-password")
@@ -110,21 +111,21 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line password_reset_http_test.mygo:93:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"wrong\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 400 {
  /*line password_reset_http_test.mygo:94:5*/		t.Fatal("wrong current password was accepted")
  /*line password_reset_http_test.mygo:93:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:113:1*/	}
+ /*line zz_password_reset_http.gen_test.go:114:1*/	}
  /*line password_reset_http_test.mygo:96:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: "", Source: site_1.Origin}).Code != 403 {
  /*line password_reset_http_test.mygo:97:5*/		t.Fatal("password change without CSRF was accepted")
  /*line password_reset_http_test.mygo:96:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:117:1*/	}
+ /*line zz_password_reset_http.gen_test.go:118:1*/	}
  /*line password_reset_http_test.mygo:99:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: changePath, Payload: "{\"current_password\":\"bob-password\",\"new_password\":\"bob-new-password\"}", Cookies: bobCookies, CSRF: bobCSRF, Source: site_1.Origin}).Code != 204 {
  /*line password_reset_http_test.mygo:100:5*/		t.Fatal("authenticated password change failed")
  /*line password_reset_http_test.mygo:99:3*/	} else {
- /*line zz_password_reset_http.gen_test.go:121:1*/	}
+ /*line zz_password_reset_http.gen_test.go:122:1*/	}
  /*line password_reset_http_test.mygo:102:3*/	if doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: bobCookies, CSRF: "", Source: ""}).Code != 200 || doForum(handler, forumCall{Method: "GET", Origin: site_1.Origin, Path: "/api/v1/auth/session", Payload: "", Cookies: otherBob, CSRF: "", Source: ""}).Code != 401 {
  /*line password_reset_http_test.mygo:104:5*/		t.Fatal("password change did not preserve only the current session")
 		return
  /*line password_reset_http_test.mygo:102:3*/	} else {
 		return
- /*line zz_password_reset_http.gen_test.go:127:1*/	}
+ /*line zz_password_reset_http.gen_test.go:128:1*/	}
 }
  /*line password_reset_http_test.mygo:108:1*/func TestPostgresPasswordResetHTTPRateLimit(t *testing.T) {
  /*line password_reset_http_test.mygo:109:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -133,17 +134,17 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_password_reset_http.gen_test.go:136:1*/	}
+ /*line zz_password_reset_http.gen_test.go:137:1*/	}
  /*line password_reset_http_test.mygo:108:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := registrationSettings()
 	settings.Registration.IPLimit = 1
 	settings.Registration.EmailLimit = 10
 	settings.Registration.RateWindowSeconds = 90
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "alice@example.org", "alice-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "alice@example.org", "alice-password"))
 	handler := Handler(settings, db)
 	path := "/api/v1/auth/password/reset"
 	first := registrationRequest(handler, site.Origin, path, "{\"email\":\"alice@example.org\"}", "198.51.100.40:1234", "")
@@ -153,5 +154,5 @@ import . "github.com/mygo-lang/mygo/prelude"
 		return
  /*line password_reset_http_test.mygo:123:3*/	} else {
 		return
- /*line zz_password_reset_http.gen_test.go:156:1*/	}
+ /*line zz_password_reset_http.gen_test.go:157:1*/	}
 }

@@ -7,6 +7,7 @@ import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct LocalFollowActivity
   Context: String `json:"@context"`
@@ -24,10 +25,10 @@ func ApplyBrowserCommunityFollow(
   communityID: String,
   identity: auth.Identity,
   follow: Bool
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let loaded = storage.LoadCommunityByID(ctx, db, communityID)
   if loaded.IsErr() || loaded.Unwrap().IsNone() then
-    return Err("not found")
+    return Err(Of("not found"))
   end
   let community = loaded.Unwrap().Unwrap()
   let remote = community.HostSiteID != site.ID && community.FederationMode == "federated" && community.ActorURI.Valid
@@ -68,14 +69,14 @@ func QueueBrowserFollowActivity(
   kind: String,
   activityURI: String,
   objectURI: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   if !storage.CanonicalObjectURI(activityURI) || !storage.CanonicalObjectURI(objectURI) then
-    return Err("follow activity unavailable")
+    return Err(Of("follow activity unavailable"))
   end
   let key = storage.EnsureLocalKey(ctx, db, identity.ActorURI)
   if key.IsErr() then return Err(key.UnwrapErr()) end
   let payload = json.Marshal(LocalFollowActivity{Context: "https://www.w3.org/ns/activitystreams", ID: activityURI, Type: kind, Actor: identity.ActorURI, Object: objectURI})
-  if payload.IsErr() then return Err("follow activity unavailable") end
+  if payload.IsErr() then return Err(Of("follow activity unavailable")) end
   let stored = storage.InsertActivityPayload(ctx, db, activityURI, identity.ActorURI, kind, payload.Unwrap(), community.ID)
   if stored.IsErr() then return Err(stored.UnwrapErr()) end
   let planned = storage.PlanDelivery(ctx, db, activityURI, identity.ActorURI, [community.ActorURI.String], community.ID)
@@ -91,7 +92,7 @@ func ApplyReviewCommunityFollow(
   identity: auth.Identity,
   actorURI: String,
   accept: Bool
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let changed = storage.ReviewFollowChanged(ctx, db, site.ID, communityID, identity, actorURI, accept)
   if changed.IsErr() then
     return Err(changed.UnwrapErr())
@@ -100,13 +101,13 @@ func ApplyReviewCommunityFollow(
     return Ok(())
   end
   let loaded = storage.LoadCommunityByID(ctx, db, communityID)
-  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("community unavailable") end
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err(Of("community unavailable")) end
   let community = loaded.Unwrap().Unwrap()
   if community.HostSiteID != site.ID || community.FederationMode != "federated" || !community.ActorURI.Valid then
     return Ok(())
   end
   let actor = storage.LoadActor(ctx, db, actorURI)
-  if actor.IsErr() || actor.Unwrap().IsNone() then return Err("actor unavailable") end
+  if actor.IsErr() || actor.Unwrap().IsNone() then return Err(Of("actor unavailable")) end
   if actor.Unwrap().Unwrap().LocalSiteID.Valid then return Ok(()) end
   let followURI = storage.CommunityFollowURI(ctx, db, communityID, actorURI)
   if followURI.IsErr() then return Err(followURI.UnwrapErr()) end

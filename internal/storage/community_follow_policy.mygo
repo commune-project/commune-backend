@@ -2,12 +2,13 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
-func LoadCommunityFollowRule(ctx: context.Context, db: Ref[gorm.DB], id: String) -> Result[String, String]
+func LoadCommunityFollowRule(ctx: context.Context, db: Ref[gorm.DB], id: String) -> Result[String, failure.Failure]
   let rule = ""
   let query = db.WithContext(ctx).Raw("SELECT follow_policy FROM communities WHERE id=?", id).Scan(Ref.new(rule))
   if MutationResult(query).IsErr() then
-    return Err("community unavailable")
+    return Err(Of("community unavailable"))
   end
   if query.RowsAffected != 1i64 || rule == "" then
     return Ok("open")
@@ -15,9 +16,9 @@ func LoadCommunityFollowRule(ctx: context.Context, db: Ref[gorm.DB], id: String)
   Ok(rule)
 end
 
-func SetCommunityFollowRule(ctx: context.Context, tx: Ref[gorm.DB], id: String, rule: String) -> Result[(), String]
+func SetCommunityFollowRule(ctx: context.Context, tx: Ref[gorm.DB], id: String, rule: String) -> Result[(), failure.Failure]
   if rule != "open" && rule != "members" && rule != "approval" && rule != "disabled" then
-    return Err("invalid access policy")
+    return Err(Of("invalid access policy"))
   end
   MutationResult(tx.WithContext(ctx).Exec("UPDATE communities SET follow_policy=? WHERE id=?", rule, id))
 end

@@ -9,126 +9,127 @@ import "crypto/rand"
 import "crypto"
 import "crypto/x509"
 import "encoding/pem"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line signature.mygo:13:1*/func BlockMissing(block *pem.Block) bool {
- /*line signature.mygo:14:3*/	return block == nil
- /*line zz_signature.gen.go:16:1*/}
- /*line signature.mygo:20:1*/func BodyDigest(body []byte) string {
+ /*line signature.mygo:14:1*/func BlockMissing(block *pem.Block) bool {
+ /*line signature.mygo:15:3*/	return block == nil
+ /*line zz_signature.gen.go:17:1*/}
+ /*line signature.mygo:21:1*/func BodyDigest(body []byte) string {
 	digest := sha256.New()
 	digest.Write(body)
 	sum := digest.Sum([]byte{})
- /*line signature.mygo:24:3*/	return "sha-256=" + base64.StdEncoding.EncodeToString(sum)
- /*line zz_signature.gen.go:22:1*/}
- /*line signature.mygo:27:1*/func SignSignature(privatePEM string, signingString string) Result[string, string] {
+ /*line signature.mygo:25:3*/	return "sha-256=" + base64.StdEncoding.EncodeToString(sum)
+ /*line zz_signature.gen.go:23:1*/}
+ /*line signature.mygo:28:1*/func SignSignature(privatePEM string, signingString string) Result[string, failure.Failure] {
 	block, _ := pem.Decode([]byte(privatePEM))
- /*line signature.mygo:29:3*/	if BlockMissing(block) {
- /*line signature.mygo:30:12*/		return Err[string, string]("invalid key")
- /*line signature.mygo:29:3*/	} else {
- /*line zz_signature.gen.go:28:1*/	}
- /*line signature.mygo:32:16*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
+ /*line signature.mygo:30:3*/	if BlockMissing(block) {
+ /*line signature.mygo:31:12*/		return Err[string, failure.Failure](Of("invalid key"))
+ /*line signature.mygo:30:3*/	} else {
+ /*line zz_signature.gen.go:29:1*/	}
+ /*line signature.mygo:33:16*/	var __mygo_expr_1 Result[*rsa.PrivateKey, error]
 	__mygo_expr_2, __mygo_expr_0 := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*rsa.PrivateKey, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*rsa.PrivateKey, error](__mygo_expr_2)
- /*line zz_signature.gen.go:35:1*/	}
- /*line signature.mygo:27:1*/	parsed := __mygo_expr_1
- /*line signature.mygo:33:3*/	var __mygo_expr_3 Result[string, string]
+ /*line zz_signature.gen.go:36:1*/	}
+ /*line signature.mygo:28:1*/	parsed := __mygo_expr_1
+ /*line signature.mygo:34:3*/	var __mygo_expr_3 Result[string, failure.Failure]
 	if _, ok := parsed.(Result__Err[*rsa.PrivateKey, error]); ok {
-		__mygo_expr_3 = Err[string, string]("invalid key")
- /*line zz_signature.gen.go:40:1*/	} else {
- /*line signature.mygo:33:3*/		if __mygo_match___mygo_expr_4, ok := parsed.(Result__Ok[*rsa.PrivateKey, error]); ok {
- /*line signature.mygo:36:7*/			digest := sha256.New()
+		__mygo_expr_3 = Err[string, failure.Failure](Of("invalid key"))
+ /*line zz_signature.gen.go:41:1*/	} else {
+ /*line signature.mygo:34:3*/		if __mygo_match___mygo_expr_4, ok := parsed.(Result__Ok[*rsa.PrivateKey, error]); ok {
+ /*line signature.mygo:37:7*/			digest := sha256.New()
 			digest.Write([]byte(signingString))
 			sum := digest.Sum([]byte{})
- /*line signature.mygo:39:7*/			var __mygo_expr_6 Result[[]byte, error]
+ /*line signature.mygo:40:7*/			var __mygo_expr_6 Result[[]byte, error]
 			__mygo_expr_7, __mygo_expr_5 := rsa.SignPKCS1v15(rand.Reader, __mygo_match___mygo_expr_4.F0, crypto.SHA256, sum)
 			if __mygo_expr_5 != nil {
 				__mygo_expr_6 = Err[[]byte, error](__mygo_expr_5)
 			} else {
 				__mygo_expr_6 = Ok[[]byte, error](__mygo_expr_7)
- /*line zz_signature.gen.go:51:1*/			}
- /*line signature.mygo:39:7*/			__mygo_expr_8 := __mygo_expr_6
-			var __mygo_expr_9 Result[string, string]
+ /*line zz_signature.gen.go:52:1*/			}
+ /*line signature.mygo:40:7*/			__mygo_expr_8 := __mygo_expr_6
+			var __mygo_expr_9 Result[string, failure.Failure]
 			if _, ok := __mygo_expr_8.(Result__Err[[]byte, error]); ok {
-				__mygo_expr_9 = Err[string, string]("signing failed")
- /*line zz_signature.gen.go:56:1*/			} else {
- /*line signature.mygo:39:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[[]byte, error]); ok {
-					__mygo_expr_9 = Ok[string, string](base64.StdEncoding.EncodeToString(__mygo_match___mygo_expr_10.F0))
+				__mygo_expr_9 = Err[string, failure.Failure](Of("signing failed"))
+ /*line zz_signature.gen.go:57:1*/			} else {
+ /*line signature.mygo:40:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[[]byte, error]); ok {
+					__mygo_expr_9 = Ok[string, failure.Failure](base64.StdEncoding.EncodeToString(__mygo_match___mygo_expr_10.F0))
 				} else {
- /*line zz_signature.gen.go:60:1*/				}
+ /*line zz_signature.gen.go:61:1*/				}
 			}
- /*line signature.mygo:33:3*/			__mygo_expr_3 = __mygo_expr_9
+ /*line signature.mygo:34:3*/			__mygo_expr_3 = __mygo_expr_9
 		} else {
- /*line zz_signature.gen.go:64:1*/		}
+ /*line zz_signature.gen.go:65:1*/		}
 	}
- /*line signature.mygo:33:3*/	return __mygo_expr_3
- /*line zz_signature.gen.go:67:1*/}
- /*line signature.mygo:47:1*/func VerifySignature(publicPEM string, signingString string, signature string) Result[bool, string] {
+ /*line signature.mygo:34:3*/	return __mygo_expr_3
+ /*line zz_signature.gen.go:68:1*/}
+ /*line signature.mygo:48:1*/func VerifySignature(publicPEM string, signingString string, signature string) Result[bool, failure.Failure] {
 	block, _ := pem.Decode([]byte(publicPEM))
- /*line signature.mygo:53:3*/	if BlockMissing(block) {
- /*line signature.mygo:54:12*/		return Err[bool, string]("invalid key")
- /*line signature.mygo:53:3*/	} else {
- /*line zz_signature.gen.go:73:1*/	}
- /*line signature.mygo:56:16*/	var __mygo_expr_1 Result[any, error]
+ /*line signature.mygo:54:3*/	if BlockMissing(block) {
+ /*line signature.mygo:55:12*/		return Err[bool, failure.Failure](Of("invalid key"))
+ /*line signature.mygo:54:3*/	} else {
+ /*line zz_signature.gen.go:74:1*/	}
+ /*line signature.mygo:57:16*/	var __mygo_expr_1 Result[any, error]
 	__mygo_expr_2, __mygo_expr_0 := x509.ParsePKIXPublicKey(block.Bytes)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[any, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[any, error](__mygo_expr_2)
- /*line zz_signature.gen.go:80:1*/	}
- /*line signature.mygo:47:1*/	parsed := MygoIN6ResultM7Flatten[*rsa.PublicKey, string](MygoIN6ResultM3Map[any, string](MygoIN6ResultM6MapErr[any](__mygo_expr_1, func(err error) string {
- /*line signature.mygo:57:5*/		return err.Error()
- /*line signature.mygo:58:12*/	}), func(key any) Result[*rsa.PublicKey, string] {
- /*line signature.mygo:59:5*/		return AsRSAPublicKey(key)
- /*line zz_signature.gen.go:85:1*/	}))
- /*line signature.mygo:61:3*/	var __mygo_expr_3 Result[bool, string]
-	if _, ok := parsed.(Result__Err[*rsa.PublicKey, string]); ok {
-		__mygo_expr_3 = Err[bool, string]("invalid key")
- /*line zz_signature.gen.go:89:1*/	} else {
- /*line signature.mygo:61:3*/		if __mygo_match___mygo_expr_4, ok := parsed.(Result__Ok[*rsa.PublicKey, string]); ok {
- /*line signature.mygo:64:7*/			var __mygo_expr_6 Result[[]byte, error]
+ /*line zz_signature.gen.go:81:1*/	}
+ /*line signature.mygo:48:1*/	parsed := MygoIN6ResultM7Flatten[*rsa.PublicKey, failure.Failure](MygoIN6ResultM3Map[any, failure.Failure](MygoIN6ResultM6MapErr[any](__mygo_expr_1, func(err error) failure.Failure {
+ /*line signature.mygo:58:5*/		return Of(err.Error())
+ /*line signature.mygo:59:12*/	}), func(key any) Result[*rsa.PublicKey, failure.Failure] {
+ /*line signature.mygo:60:5*/		return AsRSAPublicKey(key)
+ /*line zz_signature.gen.go:86:1*/	}))
+ /*line signature.mygo:62:3*/	var __mygo_expr_3 Result[bool, failure.Failure]
+	if _, ok := parsed.(Result__Err[*rsa.PublicKey, failure.Failure]); ok {
+		__mygo_expr_3 = Err[bool, failure.Failure](Of("invalid key"))
+ /*line zz_signature.gen.go:90:1*/	} else {
+ /*line signature.mygo:62:3*/		if __mygo_match___mygo_expr_4, ok := parsed.(Result__Ok[*rsa.PublicKey, failure.Failure]); ok {
+ /*line signature.mygo:65:7*/			var __mygo_expr_6 Result[[]byte, error]
 			__mygo_expr_7, __mygo_expr_5 := base64.StdEncoding.DecodeString(signature)
 			if __mygo_expr_5 != nil {
 				__mygo_expr_6 = Err[[]byte, error](__mygo_expr_5)
 			} else {
 				__mygo_expr_6 = Ok[[]byte, error](__mygo_expr_7)
- /*line zz_signature.gen.go:97:1*/			}
- /*line signature.mygo:64:7*/			__mygo_expr_8 := __mygo_expr_6
-			var __mygo_expr_9 Result[bool, string]
+ /*line zz_signature.gen.go:98:1*/			}
+ /*line signature.mygo:65:7*/			__mygo_expr_8 := __mygo_expr_6
+			var __mygo_expr_9 Result[bool, failure.Failure]
 			if _, ok := __mygo_expr_8.(Result__Err[[]byte, error]); ok {
-				__mygo_expr_9 = Err[bool, string]("invalid signature")
- /*line zz_signature.gen.go:102:1*/			} else {
- /*line signature.mygo:64:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[[]byte, error]); ok {
- /*line signature.mygo:67:11*/					digest := sha256.New()
+				__mygo_expr_9 = Err[bool, failure.Failure](Of("invalid signature"))
+ /*line zz_signature.gen.go:103:1*/			} else {
+ /*line signature.mygo:65:7*/				if __mygo_match___mygo_expr_10, ok := __mygo_expr_8.(Result__Ok[[]byte, error]); ok {
+ /*line signature.mygo:68:11*/					digest := sha256.New()
 					digest.Write([]byte(signingString))
 					sum := digest.Sum([]byte{})
- /*line signature.mygo:70:11*/					var __mygo_expr_12 Result[struct{}, error]
+ /*line signature.mygo:71:11*/					var __mygo_expr_12 Result[struct{}, error]
 					__mygo_expr_11 := rsa.VerifyPKCS1v15(__mygo_match___mygo_expr_4.F0, crypto.SHA256, sum, __mygo_match___mygo_expr_10.F0)
 					if __mygo_expr_11 != nil {
 						__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
 					} else {
 						__mygo_expr_12 = Ok[struct{}, error](struct {
- /*line zz_signature.gen.go:113:1*/						}{})
+ /*line zz_signature.gen.go:114:1*/						}{})
 					}
- /*line signature.mygo:70:11*/					__mygo_expr_13 := __mygo_expr_12
-					var __mygo_expr_14 Result[bool, string]
+ /*line signature.mygo:71:11*/					__mygo_expr_13 := __mygo_expr_12
+					var __mygo_expr_14 Result[bool, failure.Failure]
 					if _, ok := __mygo_expr_13.(Result__Err[struct{}, error]); ok {
-						__mygo_expr_14 = Ok[bool, string](false)
+						__mygo_expr_14 = Ok[bool, failure.Failure](false)
 					} else {
 						if _, ok := __mygo_expr_13.(Result__Ok[struct{}, error]); ok {
-							__mygo_expr_14 = Ok[bool, string](true)
+							__mygo_expr_14 = Ok[bool, failure.Failure](true)
 						} else {
- /*line zz_signature.gen.go:123:1*/						}
+ /*line zz_signature.gen.go:124:1*/						}
 					}
- /*line signature.mygo:64:7*/					__mygo_expr_9 = __mygo_expr_14
+ /*line signature.mygo:65:7*/					__mygo_expr_9 = __mygo_expr_14
 				} else {
- /*line zz_signature.gen.go:127:1*/				}
+ /*line zz_signature.gen.go:128:1*/				}
 			}
- /*line signature.mygo:61:3*/			__mygo_expr_3 = __mygo_expr_9
+ /*line signature.mygo:62:3*/			__mygo_expr_3 = __mygo_expr_9
 		} else {
- /*line zz_signature.gen.go:131:1*/		}
+ /*line zz_signature.gen.go:132:1*/		}
 	}
- /*line signature.mygo:61:3*/	return __mygo_expr_3
- /*line zz_signature.gen.go:134:1*/}
+ /*line signature.mygo:62:3*/	return __mygo_expr_3
+ /*line zz_signature.gen.go:135:1*/}

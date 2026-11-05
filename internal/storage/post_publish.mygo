@@ -9,6 +9,7 @@ import time "go:time"
 import config "github.com/commune-project/commune-backend/internal/config"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct PublishInput
   Title: String
@@ -31,7 +32,7 @@ impl PostRepository
     identity: auth.Identity,
     remoteVerified: Bool,
     input: PublishInput
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     let body = strings.TrimSpace(input.Body)
     let title = strings.TrimSpace(input.Title)
     let format = if input.ContentFormat == "" then
@@ -40,7 +41,7 @@ impl PostRepository
       input.ContentFormat
     end
     if format != "legacy" && format != "markdown" then
-      return Err("invalid content format")
+      return Err(Of("invalid content format"))
     end
     if self.SiteID == "" ||
       body == "" ||
@@ -48,20 +49,20 @@ impl PostRepository
       (title as Slice[Byte]).Len() > 200 ||
       (input.ParentID != "" && title != "") ||
       (input.ParentID == "" && title == "") then
-      return Err("invalid post input")
+      return Err(Of("invalid post input"))
     end
     if remoteVerified then
-      return Err("forbidden")
+      return Err(Of("forbidden"))
     end
     let plain = content.PlainRichText(site.Sanitizer, body, format)
     if plain.IsErr() then
-      return Err("invalid post input")
+      return Err(Of("invalid post input"))
     end
     var stored = Zero[PostRecord]()
     let result = RunTransaction(
       ctx,
       self.DB,
-      func(tx: Ref[gorm.DB]) -> Result[(), String]
+      func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
         let repository = CommunityRepository{DB: tx, SiteID: self.SiteID}
         let loaded = repository.Load(ctx, communityID, true)
         if loaded.IsErr() then
@@ -69,14 +70,14 @@ impl PostRepository
         end
         let community = loaded.Unwrap()
         if community.FederationMode != "federated" && input.ContextURI != "" then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let access = repository.Access(ctx, community, identity, false)
         if access.IsErr() then
           return Err(access.UnwrapErr())
         end
         if !access.Unwrap().CanPost() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let active = QueryExists(tx.Table("accounts").Where(
           "id=? AND site_id=? AND actor_uri=? AND NOT disabled",
@@ -88,16 +89,16 @@ impl PostRepository
           return Err(active.UnwrapErr())
         end
         if !active.Unwrap() || community.HostSiteID != self.SiteID then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let now = time.Now().UTC().Truncate(time.Microsecond)
         let communityBan = ActiveCommunityBan(ctx, tx, community.ID, identity.ActorURI, now)
         let siteBan = ActiveSiteBan(ctx, tx, self.SiteID, identity.ActorURI, now)
         if communityBan.IsErr() || siteBan.IsErr() then
-          return Err("moderation unavailable")
+          return Err(Of("moderation unavailable"))
         end
         if communityBan.Unwrap() || siteBan.Unwrap() then
-          return Err("forbidden")
+          return Err(Of("forbidden"))
         end
         let identifier = rand.Text()
         var parent = Zero[sql.NullString]()
@@ -112,7 +113,7 @@ impl PostRepository
         if community.FederationMode == "federated" then
           let canonical = config.CanonicalURI(site, "objects", identifier)
           if canonical.IsErr() then
-            return Err("invalid post identity")
+            return Err(Of("invalid post identity"))
           end
           objectURI = sql.NullString{String: canonical.Unwrap(), Valid: true}
         end
@@ -146,23 +147,23 @@ impl PostRepository
           identity.ActorURI + "/inbox",
           identity.ActorURI
         )).IsErr() then
-          return Err("post creation failed")
+          return Err(Of("post creation failed"))
         end
         if MutationResult(tx.Table("posts").Create(Ref.new(record))).IsErr() then
-          return Err("post creation failed")
+          return Err(Of("post creation failed"))
         end
         if MutationResult(tx.Exec("INSERT INTO site_posts(site_id,post_id) VALUES (?,?)", self.SiteID, identifier)).IsErr() then
-          return Err("post creation failed")
+          return Err(Of("post creation failed"))
         end
         if MutationResult(tx.Exec("INSERT INTO post_audiences(post_id,community_id) VALUES (?,?)", identifier, communityID)).IsErr() then
-          return Err("post creation failed")
+          return Err(Of("post creation failed"))
         end
         let rich = ValidatePostContentTx(ctx, tx, site.Sanitizer, self.SiteID, identity, record, input.AttachmentIDs, input.Mentions)
         if rich.IsErr() then
           return rich
         end
         if MutationResult(tx.Table("posts").Where("id=?", identifier).Find(Ref.new(stored))).IsErr() then
-          return Err("post creation failed")
+          return Err(Of("post creation failed"))
         end
         # The declared context is independent of the parent: a reply may join a
         # different discussion than the one its parent belongs to.
@@ -190,17 +191,17 @@ func queryParent(
   tx: Ref[gorm.DB],
   communityID: String,
   parentID: String
-) -> Result[sql.NullString, String]
+) -> Result[sql.NullString, failure.Failure]
   let count: Int64 = 0i64
   if MutationResult(tx.Table("posts").Where(
     "id=? AND community_id=? AND deleted_at IS NULL",
     parentID,
     communityID
   ).Count(Ref.new(count))).IsErr() then
-    return Err("post creation failed")
+    return Err(Of("post creation failed"))
   end
   if count != 1i64 then
-    return Err("invalid parent")
+    return Err(Of("invalid parent"))
   end
   Ok(sql.NullString{String: parentID, Valid: true})
 end

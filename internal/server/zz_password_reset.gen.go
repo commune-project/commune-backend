@@ -11,134 +11,135 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line password_reset.mygo:13:1*/type PasswordResetRequestInput struct {
 	Email string "json:\"email\""
- /*line zz_password_reset.gen.go:18:1*/}
+ /*line zz_password_reset.gen.go:19:1*/}
  /*line password_reset.mygo:17:1*/type PasswordResetConfirmInput struct {
 	Token    string "json:\"token\""
 	Password string "json:\"password\""
- /*line zz_password_reset.gen.go:22:1*/}
+ /*line zz_password_reset.gen.go:23:1*/}
  /*line password_reset.mygo:22:1*/type PasswordChangeInput struct {
 	CurrentPassword string "json:\"current_password\""
 	NewPassword     string "json:\"new_password\""
- /*line zz_password_reset.gen.go:26:1*/}
+ /*line zz_password_reset.gen.go:27:1*/}
 
  /*line password_reset.mygo:27:1*/func PasswordResetRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request) bool {
 	path := request.URL.Path
  /*line password_reset.mygo:35:3*/	if path != "/api/v1/auth/password/reset" && path != "/api/v1/auth/password/reset/confirm" && path != "/api/v1/auth/password/change" {
  /*line password_reset.mygo:36:12*/		return false
  /*line password_reset.mygo:35:3*/	} else {
- /*line zz_password_reset.gen.go:33:1*/	}
+ /*line zz_password_reset.gen.go:34:1*/	}
  /*line password_reset.mygo:38:3*/	if request.Method != "POST" {
  /*line password_reset.mygo:39:5*/		MethodNotAllowed(w, "POST")
  /*line password_reset.mygo:40:12*/		return true
  /*line password_reset.mygo:38:3*/	} else {
- /*line zz_password_reset.gen.go:38:1*/	}
+ /*line zz_password_reset.gen.go:39:1*/	}
  /*line password_reset.mygo:42:3*/	if !SameOrigin(settings, request) {
  /*line password_reset.mygo:43:5*/		WriteErrorJSON(w, 403, "origin denied")
  /*line password_reset.mygo:44:12*/		return true
  /*line password_reset.mygo:42:3*/	} else {
- /*line zz_password_reset.gen.go:43:1*/	}
+ /*line zz_password_reset.gen.go:44:1*/	}
  /*line password_reset.mygo:46:13*/	var __mygo_expr_1 Result[[]byte, error]
 	__mygo_expr_2, __mygo_expr_0 := base64.StdEncoding.DecodeString(settings.Registration.OutboxSecret)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[[]byte, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[[]byte, error](__mygo_expr_2)
- /*line zz_password_reset.gen.go:50:1*/	}
+ /*line zz_password_reset.gen.go:51:1*/	}
  /*line password_reset.mygo:27:1*/	key := __mygo_expr_1
  /*line password_reset.mygo:47:3*/	if MygoIN6ResultM5IsErr[[]byte, error](key) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]byte, error](key)) != 32 {
  /*line password_reset.mygo:48:5*/		WriteErrorJSON(w, 503, "reset unavailable")
  /*line password_reset.mygo:49:12*/		return true
  /*line password_reset.mygo:47:3*/	} else {
- /*line zz_password_reset.gen.go:56:1*/	}
+ /*line zz_password_reset.gen.go:57:1*/	}
  /*line password_reset.mygo:27:1*/	repository := storage.PasswordResetRepository{DB: db, Site: site, EncryptionKey: MygoIN6ResultM6Unwrap[[]byte, error](key), IPAttempts: settings.Registration.IPLimit, EmailAttempts: settings.Registration.EmailLimit, TokenTTLSeconds: settings.Registration.TokenTTLSeconds, RateWindowSeconds: settings.Registration.RateWindowSeconds}
  /*line password_reset.mygo:60:3*/	if path == "/api/v1/auth/password/reset" {
 		input := Zero[PasswordResetRequestInput]()
- /*line password_reset.mygo:62:5*/		if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
+ /*line password_reset.mygo:62:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input)) {
  /*line password_reset.mygo:63:7*/			WriteErrorJSON(w, 400, "invalid reset request")
  /*line password_reset.mygo:64:14*/			return true
  /*line password_reset.mygo:62:5*/		} else {
- /*line zz_password_reset.gen.go:64:1*/		}
+ /*line zz_password_reset.gen.go:65:1*/		}
  /*line password_reset.mygo:60:3*/		ip := RegistrationClientIP(settings, request)
- /*line password_reset.mygo:67:5*/		if MygoIN6ResultM5IsErr[string, string](ip) {
+ /*line password_reset.mygo:67:5*/		if MygoIN6ResultM5IsErr[string, failure.Failure](ip) {
  /*line password_reset.mygo:68:7*/			WriteErrorJSON(w, 400, "invalid client address")
  /*line password_reset.mygo:69:14*/			return true
  /*line password_reset.mygo:67:5*/		} else {
- /*line zz_password_reset.gen.go:70:1*/		}
- /*line password_reset.mygo:60:3*/		result := storage.MygoIN23PasswordResetRepositoryM7Request(repository, request.Context(), input.Email, MygoIN6ResultM6Unwrap[string, string](ip), time.Now())
- /*line password_reset.mygo:72:5*/		if MygoIN6ResultM5IsErr[struct{}, string](result) {
-			if MygoIN6ResultM9UnwrapErr[struct{}, string](result) == "reset rate limited" {
+ /*line zz_password_reset.gen.go:71:1*/		}
+ /*line password_reset.mygo:60:3*/		result := storage.MygoIN23PasswordResetRepositoryM7Request(repository, request.Context(), input.Email, MygoIN6ResultM6Unwrap[string, failure.Failure](ip), time.Now())
+ /*line password_reset.mygo:72:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+			if failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)) == "reset rate limited" {
  /*line password_reset.mygo:74:9*/				w.Header().Set("Retry-After", strconv.Itoa(settings.Registration.RateWindowSeconds))
  /*line password_reset.mygo:72:5*/				WriteErrorJSON(w, 429, "reset rate limited")
 			} else {
-				if strings.HasPrefix(MygoIN6ResultM9UnwrapErr[struct{}, string](result), "invalid ") {
- /*line password_reset.mygo:77:9*/					WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](result))
+				if strings.HasPrefix(failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)), "invalid ") {
+ /*line password_reset.mygo:77:9*/					WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)))
  /*line password_reset.mygo:72:5*/				} else {
  /*line password_reset.mygo:79:9*/					WriteErrorJSON(w, 503, "reset unavailable")
- /*line zz_password_reset.gen.go:81:1*/				}
+ /*line zz_password_reset.gen.go:82:1*/				}
 			}
  /*line password_reset.mygo:72:5*/		} else {
  /*line password_reset.mygo:82:7*/			w.WriteHeader(202)
- /*line zz_password_reset.gen.go:85:1*/		}
+ /*line zz_password_reset.gen.go:86:1*/		}
  /*line password_reset.mygo:84:12*/		return true
  /*line password_reset.mygo:60:3*/	} else {
- /*line zz_password_reset.gen.go:88:1*/	}
+ /*line zz_password_reset.gen.go:89:1*/	}
  /*line password_reset.mygo:86:3*/	if path == "/api/v1/auth/password/reset/confirm" {
 		input_1 := Zero[PasswordResetConfirmInput]()
- /*line password_reset.mygo:88:5*/		if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_1)) {
+ /*line password_reset.mygo:88:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_1)) {
  /*line password_reset.mygo:89:7*/			WriteErrorJSON(w, 400, "invalid reset request")
  /*line password_reset.mygo:90:14*/			return true
  /*line password_reset.mygo:88:5*/		} else {
- /*line zz_password_reset.gen.go:95:1*/		}
+ /*line zz_password_reset.gen.go:96:1*/		}
  /*line password_reset.mygo:86:3*/		result_1 := storage.MygoIN23PasswordResetRepositoryM7Confirm(repository, request.Context(), input_1.Token, input_1.Password, time.Now())
- /*line password_reset.mygo:93:5*/		if MygoIN6ResultM5IsErr[struct{}, string](result_1) {
-			if strings.HasPrefix(MygoIN6ResultM9UnwrapErr[struct{}, string](result_1), "invalid ") {
- /*line password_reset.mygo:95:9*/				WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](result_1))
+ /*line password_reset.mygo:93:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result_1) {
+			if strings.HasPrefix(failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result_1)), "invalid ") {
+ /*line password_reset.mygo:95:9*/				WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result_1)))
  /*line password_reset.mygo:93:5*/			} else {
  /*line password_reset.mygo:97:9*/				WriteErrorJSON(w, 503, "reset unavailable")
- /*line zz_password_reset.gen.go:102:1*/			}
+ /*line zz_password_reset.gen.go:103:1*/			}
  /*line password_reset.mygo:93:5*/		} else {
  /*line password_reset.mygo:100:7*/			w.WriteHeader(204)
- /*line zz_password_reset.gen.go:105:1*/		}
+ /*line zz_password_reset.gen.go:106:1*/		}
  /*line password_reset.mygo:102:12*/		return true
  /*line password_reset.mygo:86:3*/	} else {
- /*line zz_password_reset.gen.go:108:1*/	}
+ /*line zz_password_reset.gen.go:109:1*/	}
  /*line password_reset.mygo:27:1*/	session := Authenticated(db, site, request)
- /*line password_reset.mygo:105:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line password_reset.mygo:106:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
+ /*line password_reset.mygo:105:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
+ /*line password_reset.mygo:106:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
  /*line password_reset.mygo:107:12*/		return true
  /*line password_reset.mygo:105:3*/	} else {
- /*line zz_password_reset.gen.go:114:1*/	}
- /*line password_reset.mygo:109:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session), request) {
+ /*line zz_password_reset.gen.go:115:1*/	}
+ /*line password_reset.mygo:109:3*/	if !AuthorizeMutation(settings, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session), request) {
  /*line password_reset.mygo:110:5*/		WriteErrorJSON(w, 403, "CSRF denied")
  /*line password_reset.mygo:111:12*/		return true
  /*line password_reset.mygo:109:3*/	} else {
- /*line zz_password_reset.gen.go:119:1*/	}
+ /*line zz_password_reset.gen.go:120:1*/	}
  /*line password_reset.mygo:27:1*/	input_2 := Zero[PasswordChangeInput]()
- /*line password_reset.mygo:114:3*/	if MygoIN6ResultM5IsErr[struct{}, string](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_2)) {
+ /*line password_reset.mygo:114:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, &input_2)) {
  /*line password_reset.mygo:115:5*/		WriteErrorJSON(w, 400, "invalid reset request")
  /*line password_reset.mygo:116:12*/		return true
  /*line password_reset.mygo:114:3*/	} else {
- /*line zz_password_reset.gen.go:125:1*/	}
- /*line password_reset.mygo:27:1*/	result_2 := storage.MygoIN23PasswordResetRepositoryM6Change(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity, input_2.CurrentPassword, input_2.NewPassword)
- /*line password_reset.mygo:119:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result_2) {
- /*line password_reset.mygo:120:5*/		if strings.HasPrefix(MygoIN6ResultM9UnwrapErr[struct{}, string](result_2), "invalid ") {
- /*line password_reset.mygo:121:7*/			WriteErrorJSON(w, 400, MygoIN6ResultM9UnwrapErr[struct{}, string](result_2))
+ /*line zz_password_reset.gen.go:126:1*/	}
+ /*line password_reset.mygo:27:1*/	result_2 := storage.MygoIN23PasswordResetRepositoryM6Change(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity, input_2.CurrentPassword, input_2.NewPassword)
+ /*line password_reset.mygo:119:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result_2) {
+ /*line password_reset.mygo:120:5*/		if strings.HasPrefix(failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result_2)), "invalid ") {
+ /*line password_reset.mygo:121:7*/			WriteErrorJSON(w, 400, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result_2)))
  /*line password_reset.mygo:120:5*/		} else {
  /*line password_reset.mygo:123:7*/			WriteErrorJSON(w, 503, "reset unavailable")
- /*line zz_password_reset.gen.go:132:1*/		}
+ /*line zz_password_reset.gen.go:133:1*/		}
  /*line password_reset.mygo:125:12*/		return true
  /*line password_reset.mygo:119:3*/	} else {
- /*line zz_password_reset.gen.go:135:1*/	}
+ /*line zz_password_reset.gen.go:136:1*/	}
  /*line password_reset.mygo:27:1*/	token := ReadSession(request)
- /*line password_reset.mygo:128:3*/	if MygoIN6ResultM4IsOk[string, string](token) {
+ /*line password_reset.mygo:128:3*/	if MygoIN6ResultM4IsOk[string, failure.Failure](token) {
 		sessions := storage.SessionRepository{DB: db}
-		storage.MygoIN17SessionRepositoryM12RevokeOthers(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity.AccountID, auth.TokenHash(MygoIN6ResultM6Unwrap[string, string](token)), time.Now())
+		storage.MygoIN17SessionRepositoryM12RevokeOthers(sessions, request.Context(), site.ID, MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity.AccountID, auth.TokenHash(MygoIN6ResultM6Unwrap[string, failure.Failure](token)), time.Now())
 	} else {
- /*line zz_password_reset.gen.go:141:1*/	}
+ /*line zz_password_reset.gen.go:142:1*/	}
  /*line password_reset.mygo:132:3*/	w.WriteHeader(204)
  /*line password_reset.mygo:133:3*/	return true
- /*line zz_password_reset.gen.go:144:1*/}
+ /*line zz_password_reset.gen.go:145:1*/}

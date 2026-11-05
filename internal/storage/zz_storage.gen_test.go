@@ -12,270 +12,271 @@ import "database/sql/driver"
 import "regexp"
 import "gorm.io/gorm"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line storage_test.mygo:15:1*/func catalog(t *testing.T) []Migration {
- /*line storage_test.mygo:16:3*/	t.Helper()
- /*line storage_test.mygo:15:1*/	migrations := MygoIN6ResultM6Unwrap[[]Migration, string](MigrationCatalog())
- /*line storage_test.mygo:18:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(migrations) == 0 {
- /*line storage_test.mygo:19:5*/		t.Fatal("empty catalog")
- /*line storage_test.mygo:18:3*/	} else {
- /*line zz_storage.gen_test.go:23:1*/	}
- /*line storage_test.mygo:15:1*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(migrations, 1, func(version int, migration Migration) int {
- /*line storage_test.mygo:23:5*/		hasher := sha256.New()
+ /*line storage_test.mygo:16:1*/func catalog(t *testing.T) []Migration {
+ /*line storage_test.mygo:17:3*/	t.Helper()
+ /*line storage_test.mygo:16:1*/	migrations := MygoIN6ResultM6Unwrap[[]Migration, failure.Failure](MigrationCatalog())
+ /*line storage_test.mygo:19:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(migrations) == 0 {
+ /*line storage_test.mygo:20:5*/		t.Fatal("empty catalog")
+ /*line storage_test.mygo:19:3*/	} else {
+ /*line zz_storage.gen_test.go:24:1*/	}
+ /*line storage_test.mygo:16:1*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(migrations, 1, func(version int, migration Migration) int {
+ /*line storage_test.mygo:24:5*/		hasher := sha256.New()
 		hasher.Write([]byte(migration.SQL))
 		bytes := hasher.Sum([]byte{})
- /*line storage_test.mygo:27:7*/		if migration.Version != version || migration.Checksum != hex.EncodeToString(bytes) {
- /*line storage_test.mygo:28:9*/			t.Fatal("catalog ordering or checksum invalid")
- /*line storage_test.mygo:27:7*/		} else {
- /*line zz_storage.gen_test.go:31:1*/		}
- /*line storage_test.mygo:30:7*/		return version + 1
- /*line zz_storage.gen_test.go:33:1*/	})
- /*line storage_test.mygo:33:3*/	return migrations
- /*line zz_storage.gen_test.go:35:1*/}
+ /*line storage_test.mygo:28:7*/		if migration.Version != version || migration.Checksum != hex.EncodeToString(bytes) {
+ /*line storage_test.mygo:29:9*/			t.Fatal("catalog ordering or checksum invalid")
+ /*line storage_test.mygo:28:7*/		} else {
+ /*line zz_storage.gen_test.go:32:1*/		}
+ /*line storage_test.mygo:31:7*/		return version + 1
+ /*line zz_storage.gen_test.go:34:1*/	})
+ /*line storage_test.mygo:34:3*/	return migrations
+ /*line zz_storage.gen_test.go:36:1*/}
 
- /*line storage_test.mygo:36:1*/type HistoryCase struct {
+ /*line storage_test.mygo:37:1*/type HistoryCase struct {
 	Name    string
 	Records []AppliedMigration
 	Strict  bool
 	Valid   bool
- /*line zz_storage.gen_test.go:42:1*/}
+ /*line zz_storage.gen_test.go:43:1*/}
 
- /*line storage_test.mygo:43:1*/func TestSchemaHistory(t *testing.T) {
+ /*line storage_test.mygo:44:1*/func TestSchemaHistory(t *testing.T) {
 	migrations := catalog(t)
 	first := MygoIN6OptionM6Unwrap[Migration](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(migrations, 0))
 	current := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(migrations, func(migration Migration) AppliedMigration {
- /*line storage_test.mygo:47:5*/		return AppliedMigration{Version: migration.Version, Name: migration.Name, Checksum: migration.Checksum}
- /*line zz_storage.gen_test.go:49:1*/	})
- /*line storage_test.mygo:43:1*/	cases := []HistoryCase{HistoryCase{Name: "fresh migration", Records: []AppliedMigration{}, Strict: false, Valid: true}, HistoryCase{Name: "unmigrated startup", Records: []AppliedMigration{}, Strict: true, Valid: false}, HistoryCase{Name: "current", Records: current, Strict: true, Valid: true}, HistoryCase{Name: "modified checksum", Records: []AppliedMigration{AppliedMigration{Version: 1, Name: first.Name, Checksum: "bad"}}, Strict: false, Valid: false}, HistoryCase{Name: "renamed", Records: []AppliedMigration{AppliedMigration{Version: 1, Name: "other.sql", Checksum: first.Checksum}}, Strict: false, Valid: false}, HistoryCase{Name: "gap", Records: []AppliedMigration{AppliedMigration{Version: 2, Name: first.Name, Checksum: first.Checksum}}, Strict: false, Valid: false}, HistoryCase{Name: "future", Records: MygoIN5SliceM6Append(current, AppliedMigration{Version: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(migrations) + 1, Name: "", Checksum: ""}), Strict: false, Valid: false}}
- /*line storage_test.mygo:94:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test HistoryCase) {
- /*line storage_test.mygo:95:5*/		t.Run(test.Name, func(t_1 *testing.T) {
- /*line storage_test.mygo:98:9*/			if MygoIN6ResultM4IsOk[struct{}, string](ValidateApplied(test.Records, migrations, test.Strict)) != test.Valid {
- /*line storage_test.mygo:99:11*/				t_1.Fatal("history validation failed")
- /*line storage_test.mygo:98:9*/			} else {
- /*line zz_storage.gen_test.go:56:1*/			}
- /*line storage_test.mygo:101:9*/			if MygoIN6ResultM5IsErr[struct{}, string](ValidateApplied(test.Records, migrations, test.Strict)) != !test.Valid {
- /*line storage_test.mygo:102:11*/				t_1.Fatal("history error has incorrect Result type")
+ /*line storage_test.mygo:48:5*/		return AppliedMigration{Version: migration.Version, Name: migration.Name, Checksum: migration.Checksum}
+ /*line zz_storage.gen_test.go:50:1*/	})
+ /*line storage_test.mygo:44:1*/	cases := []HistoryCase{HistoryCase{Name: "fresh migration", Records: []AppliedMigration{}, Strict: false, Valid: true}, HistoryCase{Name: "unmigrated startup", Records: []AppliedMigration{}, Strict: true, Valid: false}, HistoryCase{Name: "current", Records: current, Strict: true, Valid: true}, HistoryCase{Name: "modified checksum", Records: []AppliedMigration{AppliedMigration{Version: 1, Name: first.Name, Checksum: "bad"}}, Strict: false, Valid: false}, HistoryCase{Name: "renamed", Records: []AppliedMigration{AppliedMigration{Version: 1, Name: "other.sql", Checksum: first.Checksum}}, Strict: false, Valid: false}, HistoryCase{Name: "gap", Records: []AppliedMigration{AppliedMigration{Version: 2, Name: first.Name, Checksum: first.Checksum}}, Strict: false, Valid: false}, HistoryCase{Name: "future", Records: MygoIN5SliceM6Append(current, AppliedMigration{Version: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(migrations) + 1, Name: "", Checksum: ""}), Strict: false, Valid: false}}
+ /*line storage_test.mygo:95:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test HistoryCase) {
+ /*line storage_test.mygo:96:5*/		t.Run(test.Name, func(t_1 *testing.T) {
+ /*line storage_test.mygo:99:9*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](ValidateApplied(test.Records, migrations, test.Strict)) != test.Valid {
+ /*line storage_test.mygo:100:11*/				t_1.Fatal("history validation failed")
+ /*line storage_test.mygo:99:9*/			} else {
+ /*line zz_storage.gen_test.go:57:1*/			}
+ /*line storage_test.mygo:102:9*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](ValidateApplied(test.Records, migrations, test.Strict)) != !test.Valid {
+ /*line storage_test.mygo:103:11*/				t_1.Fatal("history error has incorrect Result type")
 				return
- /*line storage_test.mygo:101:9*/			} else {
+ /*line storage_test.mygo:102:9*/			} else {
 				return
- /*line zz_storage.gen_test.go:62:1*/			}
+ /*line zz_storage.gen_test.go:63:1*/			}
 		})
- /*line storage_test.mygo:106:5*/		return
- /*line zz_storage.gen_test.go:65:1*/	})
- /*line storage_test.mygo:94:3*/	return
- /*line zz_storage.gen_test.go:67:1*/}
- /*line storage_test.mygo:110:1*/func mockFixture(t *testing.T) *transport.Fixture {
- /*line storage_test.mygo:111:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
+ /*line storage_test.mygo:107:5*/		return
+ /*line zz_storage.gen_test.go:66:1*/	})
+ /*line storage_test.mygo:95:3*/	return
+ /*line zz_storage.gen_test.go:68:1*/}
+ /*line storage_test.mygo:111:1*/func mockFixture(t *testing.T) *transport.Fixture {
+ /*line storage_test.mygo:112:17*/	var __mygo_expr_1 Result[*transport.Fixture, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.New()
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*transport.Fixture, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*transport.Fixture, error](__mygo_expr_2)
- /*line zz_storage.gen_test.go:75:1*/	}
- /*line storage_test.mygo:110:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
- /*line storage_test.mygo:112:3*/	t.Cleanup(func() {
- /*line storage_test.mygo:113:8*/		var __mygo_expr_4 Result[struct{}, error]
+ /*line zz_storage.gen_test.go:76:1*/	}
+ /*line storage_test.mygo:111:1*/	fixture := MygoIN6ResultM6Unwrap[*transport.Fixture, error](__mygo_expr_1)
+ /*line storage_test.mygo:113:3*/	t.Cleanup(func() {
+ /*line storage_test.mygo:114:8*/		var __mygo_expr_4 Result[struct{}, error]
 		__mygo_expr_3 := fixture.Mock.ExpectationsWereMet()
 		if __mygo_expr_3 != nil {
 			__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 		} else {
 			__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_storage.gen_test.go:84:1*/			}{})
+ /*line zz_storage.gen_test.go:85:1*/			}{})
 		}
- /*line storage_test.mygo:113:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
- /*line storage_test.mygo:114:7*/			t.Error("SQL expectations were not met")
- /*line storage_test.mygo:113:5*/		} else {
- /*line zz_storage.gen_test.go:89:1*/		}
- /*line storage_test.mygo:112:13*/		fixture.DB.Close()
+ /*line storage_test.mygo:114:5*/		if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) {
+ /*line storage_test.mygo:115:7*/			t.Error("SQL expectations were not met")
+ /*line storage_test.mygo:114:5*/		} else {
+ /*line zz_storage.gen_test.go:90:1*/		}
+ /*line storage_test.mygo:113:13*/		fixture.DB.Close()
 		return
- /*line zz_storage.gen_test.go:92:1*/	})
- /*line storage_test.mygo:118:3*/	return fixture
- /*line zz_storage.gen_test.go:94:1*/}
- /*line storage_test.mygo:121:1*/func ExpectMigration(mock sqlmock.Sqlmock, migrations []Migration, failure string, current bool) {
- /*line storage_test.mygo:127:6*/	if failure == "begin" {
- /*line storage_test.mygo:127:3*/		mock.ExpectBegin().WillReturnError(transport.Failure)
+ /*line zz_storage.gen_test.go:93:1*/	})
+ /*line storage_test.mygo:119:3*/	return fixture
+ /*line zz_storage.gen_test.go:95:1*/}
+ /*line storage_test.mygo:122:1*/func ExpectMigration(mock sqlmock.Sqlmock, migrations []Migration, fault string, current bool) {
+ /*line storage_test.mygo:128:6*/	if fault == "begin" {
+ /*line storage_test.mygo:128:3*/		mock.ExpectBegin().WillReturnError(transport.Failure)
 		return
- /*line zz_storage.gen_test.go:99:1*/	} else {
- /*line storage_test.mygo:127:3*/		mock.ExpectBegin()
+ /*line zz_storage.gen_test.go:100:1*/	} else {
+ /*line storage_test.mygo:128:3*/		mock.ExpectBegin()
 		steps := []string{"pg_advisory", "SET LOCAL", "CREATE TABLE IF NOT EXISTS"}
 		stopped_1 := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(steps, false, func(stopped bool, step string) bool {
- /*line storage_test.mygo:135:9*/			if !stopped {
-				if failure == step {
+ /*line storage_test.mygo:136:9*/			if !stopped {
+				if fault == step {
 					mock.ExpectExec(step).WillReturnError(transport.Failure)
 				} else {
 					mock.ExpectExec(step).WillReturnResult(sqlmock.NewResult(int64(0), int64(1)))
- /*line zz_storage.gen_test.go:108:1*/				}
- /*line storage_test.mygo:135:9*/			} else {
- /*line zz_storage.gen_test.go:110:1*/			}
- /*line storage_test.mygo:142:9*/			return stopped || failure == step
- /*line zz_storage.gen_test.go:112:1*/		})
- /*line storage_test.mygo:145:8*/		if !stopped_1 {
- /*line storage_test.mygo:146:10*/			if failure == "query" {
- /*line storage_test.mygo:145:5*/				mock.ExpectQuery("SELECT version, name, checksum").WillReturnError(transport.Failure)
- /*line zz_storage.gen_test.go:116:1*/			} else {
- /*line storage_test.mygo:145:5*/				rows := sqlmock.NewRows([]string{"version", "name", "checksum"})
- /*line storage_test.mygo:150:12*/				if current {
- /*line storage_test.mygo:151:11*/					MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(migrations, func(migration Migration) {
- /*line storage_test.mygo:151:27*/						rows.AddRow(driver.Value(migration.Version), driver.Value(migration.Name), driver.Value(migration.Checksum))
+ /*line zz_storage.gen_test.go:109:1*/				}
+ /*line storage_test.mygo:136:9*/			} else {
+ /*line zz_storage.gen_test.go:111:1*/			}
+ /*line storage_test.mygo:143:9*/			return stopped || fault == step
+ /*line zz_storage.gen_test.go:113:1*/		})
+ /*line storage_test.mygo:146:8*/		if !stopped_1 {
+ /*line storage_test.mygo:147:10*/			if fault == "query" {
+ /*line storage_test.mygo:146:5*/				mock.ExpectQuery("SELECT version, name, checksum").WillReturnError(transport.Failure)
+ /*line zz_storage.gen_test.go:117:1*/			} else {
+ /*line storage_test.mygo:146:5*/				rows := sqlmock.NewRows([]string{"version", "name", "checksum"})
+ /*line storage_test.mygo:151:12*/				if current {
+ /*line storage_test.mygo:152:11*/					MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(migrations, func(migration Migration) {
+ /*line storage_test.mygo:152:27*/						rows.AddRow(driver.Value(migration.Version), driver.Value(migration.Name), driver.Value(migration.Checksum))
 						return
- /*line zz_storage.gen_test.go:122:1*/					})
- /*line storage_test.mygo:150:9*/				} else {
- /*line zz_storage.gen_test.go:124:1*/				}
- /*line storage_test.mygo:145:5*/				mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
+ /*line zz_storage.gen_test.go:123:1*/					})
+ /*line storage_test.mygo:151:9*/				} else {
+ /*line zz_storage.gen_test.go:125:1*/				}
+ /*line storage_test.mygo:146:5*/				mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
 				if !current {
 					MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(migrations, false, func(stopped_2 bool, migration_1 Migration) bool {
- /*line storage_test.mygo:164:15*/						if !stopped_2 {
-							if failure == "DDL" {
+ /*line storage_test.mygo:165:15*/						if !stopped_2 {
+							if fault == "DDL" {
 								mock.ExpectExec(regexp.QuoteMeta(migration_1.SQL)).WillReturnError(transport.Failure)
 							} else {
 								mock.ExpectExec(regexp.QuoteMeta(migration_1.SQL)).WillReturnResult(sqlmock.NewResult(int64(0), int64(1)))
 								record := mock.ExpectExec("INSERT INTO public.commune_schema_migrations").WithArgs(driver.Value(migration_1.Version), driver.Value(migration_1.Name), driver.Value(migration_1.Checksum))
-								if failure == "record" {
+								if fault == "record" {
 									record.WillReturnError(transport.Failure)
 								} else {
 									record.WillReturnResult(sqlmock.NewResult(int64(0), int64(1)))
- /*line zz_storage.gen_test.go:138:1*/								}
+ /*line zz_storage.gen_test.go:139:1*/								}
 							}
- /*line storage_test.mygo:164:15*/						} else {
- /*line zz_storage.gen_test.go:141:1*/						}
- /*line storage_test.mygo:181:15*/						return stopped_2 || failure == "DDL" || failure == "record"
- /*line zz_storage.gen_test.go:143:1*/					})
- /*line storage_test.mygo:145:5*/				} else {
- /*line zz_storage.gen_test.go:145:1*/				}
+ /*line storage_test.mygo:165:15*/						} else {
+ /*line zz_storage.gen_test.go:142:1*/						}
+ /*line storage_test.mygo:182:15*/						return stopped_2 || fault == "DDL" || fault == "record"
+ /*line zz_storage.gen_test.go:144:1*/					})
+ /*line storage_test.mygo:146:5*/				} else {
+ /*line zz_storage.gen_test.go:146:1*/				}
 			}
- /*line storage_test.mygo:145:5*/		} else {
- /*line zz_storage.gen_test.go:148:1*/		}
- /*line storage_test.mygo:187:5*/		if failure == "" {
+ /*line storage_test.mygo:146:5*/		} else {
+ /*line zz_storage.gen_test.go:149:1*/		}
+ /*line storage_test.mygo:188:5*/		if fault == "" {
 			mock.ExpectCommit()
 			return
 		} else {
- /*line storage_test.mygo:190:7*/			if failure == "commit" {
+ /*line storage_test.mygo:191:7*/			if fault == "commit" {
 				mock.ExpectCommit().WillReturnError(transport.Failure)
 				return
 			} else {
 				mock.ExpectRollback()
 				return
- /*line zz_storage.gen_test.go:159:1*/			}
+ /*line zz_storage.gen_test.go:160:1*/			}
 		}
 	}
 }
- /*line storage_test.mygo:199:1*/func TestExplicitMigration(t *testing.T) {
+ /*line storage_test.mygo:200:1*/func TestExplicitMigration(t *testing.T) {
 	failures := []string{"", "begin", "pg_advisory", "SET LOCAL", "CREATE TABLE IF NOT EXISTS", "DDL", "record", "query", "commit"}
- /*line storage_test.mygo:211:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(failures, func(failure string) {
- /*line storage_test.mygo:212:5*/		t.Run(failure, func(t_1 *testing.T) {
- /*line storage_test.mygo:214:7*/			fixture := mockFixture(t_1)
+ /*line storage_test.mygo:212:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(failures, func(fault string) {
+ /*line storage_test.mygo:213:5*/		t.Run(fault, func(t_1 *testing.T) {
+ /*line storage_test.mygo:215:7*/			fixture := mockFixture(t_1)
 			migrations := catalog(t_1)
- /*line storage_test.mygo:217:9*/			ExpectMigration(fixture.Mock, migrations, failure, false)
- /*line storage_test.mygo:214:7*/			result := Migrate(context.Background(), fixture.DB)
- /*line storage_test.mygo:219:12*/			if MygoIN6ResultM4IsOk[struct{}, string](result) != (failure == "") {
- /*line storage_test.mygo:220:11*/				t_1.Fatal("migration error propagation failed")
- /*line storage_test.mygo:219:9*/			} else {
- /*line zz_storage.gen_test.go:174:1*/			}
- /*line storage_test.mygo:222:9*/			if MygoIN6ResultM5IsErr[struct{}, string](result) && strings.Contains(MygoIN6ResultM9UnwrapErr[struct{}, string](result), "secret") {
- /*line storage_test.mygo:223:11*/				t_1.Fatal("migration error leaked credentials")
- /*line storage_test.mygo:222:9*/			} else {
- /*line zz_storage.gen_test.go:178:1*/			}
- /*line storage_test.mygo:225:9*/			if failure == "" {
- /*line storage_test.mygo:226:11*/				ExpectMigration(fixture.Mock, migrations, "", true)
- /*line storage_test.mygo:227:11*/				if MygoIN6ResultM5IsErr[struct{}, string](Migrate(context.Background(), fixture.DB)) {
- /*line storage_test.mygo:228:13*/					t_1.Fatal("repeat migration failed")
+ /*line storage_test.mygo:218:9*/			ExpectMigration(fixture.Mock, migrations, fault, false)
+ /*line storage_test.mygo:215:7*/			result := Migrate(context.Background(), fixture.DB)
+ /*line storage_test.mygo:220:12*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](result) != (fault == "") {
+ /*line storage_test.mygo:221:11*/				t_1.Fatal("migration error propagation failed")
+ /*line storage_test.mygo:220:9*/			} else {
+ /*line zz_storage.gen_test.go:175:1*/			}
+ /*line storage_test.mygo:223:9*/			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) && strings.Contains(failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result)), "secret") {
+ /*line storage_test.mygo:224:11*/				t_1.Fatal("migration error leaked credentials")
+ /*line storage_test.mygo:223:9*/			} else {
+ /*line zz_storage.gen_test.go:179:1*/			}
+ /*line storage_test.mygo:226:9*/			if fault == "" {
+ /*line storage_test.mygo:227:11*/				ExpectMigration(fixture.Mock, migrations, "", true)
+ /*line storage_test.mygo:228:11*/				if MygoIN6ResultM5IsErr[struct{}, failure.Failure](Migrate(context.Background(), fixture.DB)) {
+ /*line storage_test.mygo:229:13*/					t_1.Fatal("repeat migration failed")
 					return
- /*line storage_test.mygo:227:11*/				} else {
+ /*line storage_test.mygo:228:11*/				} else {
 					return
- /*line zz_storage.gen_test.go:186:1*/				}
- /*line storage_test.mygo:225:9*/			} else {
+ /*line zz_storage.gen_test.go:187:1*/				}
+ /*line storage_test.mygo:226:9*/			} else {
 				return
- /*line zz_storage.gen_test.go:189:1*/			}
+ /*line zz_storage.gen_test.go:190:1*/			}
 		})
- /*line storage_test.mygo:233:5*/		return
- /*line zz_storage.gen_test.go:192:1*/	})
- /*line storage_test.mygo:211:3*/	return
- /*line zz_storage.gen_test.go:194:1*/}
- /*line storage_test.mygo:237:1*/func TestReadOnlySchemaCheck(t *testing.T) {
+ /*line storage_test.mygo:234:5*/		return
+ /*line zz_storage.gen_test.go:193:1*/	})
+ /*line storage_test.mygo:212:3*/	return
+ /*line zz_storage.gen_test.go:195:1*/}
+ /*line storage_test.mygo:238:1*/func TestReadOnlySchemaCheck(t *testing.T) {
 	fixture := mockFixture(t)
 	fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(driver.Value(false)))
- /*line storage_test.mygo:240:3*/	if MygoIN6ResultM4IsOk[struct{}, string](CheckSchema(context.Background(), fixture.DB)) {
- /*line storage_test.mygo:241:5*/		t.Fatal("unmigrated database accepted")
- /*line storage_test.mygo:240:3*/	} else {
- /*line zz_storage.gen_test.go:201:1*/	}
- /*line storage_test.mygo:237:1*/	fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(driver.Value(true)))
+ /*line storage_test.mygo:241:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](CheckSchema(context.Background(), fixture.DB)) {
+ /*line storage_test.mygo:242:5*/		t.Fatal("unmigrated database accepted")
+ /*line storage_test.mygo:241:3*/	} else {
+ /*line zz_storage.gen_test.go:202:1*/	}
+ /*line storage_test.mygo:238:1*/	fixture.Mock.ExpectQuery("SELECT to_regclass").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(driver.Value(true)))
 	rows := sqlmock.NewRows([]string{"version", "name", "checksum"})
- /*line storage_test.mygo:245:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(catalog(t), func(migration Migration) {
- /*line storage_test.mygo:245:19*/		rows.AddRow(driver.Value(migration.Version), driver.Value(migration.Name), driver.Value(migration.Checksum))
+ /*line storage_test.mygo:246:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(catalog(t), func(migration Migration) {
+ /*line storage_test.mygo:246:19*/		rows.AddRow(driver.Value(migration.Version), driver.Value(migration.Name), driver.Value(migration.Checksum))
 		return
- /*line zz_storage.gen_test.go:207:1*/	})
- /*line storage_test.mygo:237:1*/	fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
- /*line storage_test.mygo:253:3*/	if MygoIN6ResultM5IsErr[struct{}, string](CheckSchema(context.Background(), fixture.DB)) {
- /*line storage_test.mygo:254:5*/		t.Fatal("current schema rejected")
+ /*line zz_storage.gen_test.go:208:1*/	})
+ /*line storage_test.mygo:238:1*/	fixture.Mock.ExpectQuery("SELECT version, name, checksum").WillReturnRows(rows)
+ /*line storage_test.mygo:254:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](CheckSchema(context.Background(), fixture.DB)) {
+ /*line storage_test.mygo:255:5*/		t.Fatal("current schema rejected")
 		return
- /*line storage_test.mygo:253:3*/	} else {
+ /*line storage_test.mygo:254:3*/	} else {
 		return
- /*line zz_storage.gen_test.go:214:1*/	}
+ /*line zz_storage.gen_test.go:215:1*/	}
 }
- /*line storage_test.mygo:258:1*/func TestGORMTransaction(t *testing.T) {
+ /*line storage_test.mygo:259:1*/func TestGORMTransaction(t *testing.T) {
 	failures := []string{"", "begin", "callback", "commit", "panic"}
- /*line storage_test.mygo:260:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(failures, func(failure string) {
- /*line storage_test.mygo:261:5*/		t.Run(failure, func(t_1 *testing.T) {
- /*line storage_test.mygo:263:7*/			fixture := mockFixture(t_1)
- /*line storage_test.mygo:265:18*/			var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line storage_test.mygo:261:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(failures, func(fault string) {
+ /*line storage_test.mygo:262:5*/		t.Run(fault, func(t_1 *testing.T) {
+ /*line storage_test.mygo:264:7*/			fixture := mockFixture(t_1)
+ /*line storage_test.mygo:266:18*/			var __mygo_expr_1 Result[*gorm.DB, error]
 			__mygo_expr_2, __mygo_expr_0 := transport.ORM(fixture.DB)
 			if __mygo_expr_0 != nil {
 				__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 			} else {
 				__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_storage.gen_test.go:227:1*/			}
- /*line storage_test.mygo:263:7*/			db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
- /*line storage_test.mygo:266:9*/			if failure == "begin" {
+ /*line zz_storage.gen_test.go:228:1*/			}
+ /*line storage_test.mygo:264:7*/			db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line storage_test.mygo:267:9*/			if fault == "begin" {
 				fixture.Mock.ExpectBegin().WillReturnError(transport.Failure)
 			} else {
 				fixture.Mock.ExpectBegin()
-				if failure == "callback" || failure == "panic" {
+				if fault == "callback" || fault == "panic" {
 					fixture.Mock.ExpectRollback()
 				} else {
-					if failure == "commit" {
+					if fault == "commit" {
 						fixture.Mock.ExpectCommit().WillReturnError(transport.Failure)
 					} else {
 						fixture.Mock.ExpectCommit()
- /*line zz_storage.gen_test.go:240:1*/					}
+ /*line zz_storage.gen_test.go:241:1*/					}
 				}
 			}
- /*line storage_test.mygo:263:7*/			work := func(tx *gorm.DB) Result[struct{}, string] {
- /*line storage_test.mygo:281:11*/				if !transport.DistinctTransaction(tx, db) {
- /*line storage_test.mygo:282:13*/					t_1.Fatal("callback lacks transaction handle")
- /*line storage_test.mygo:281:11*/				} else {
- /*line zz_storage.gen_test.go:247:1*/				}
- /*line storage_test.mygo:284:11*/				if failure == "panic" {
- /*line storage_test.mygo:285:13*/					transport.Panic()
- /*line storage_test.mygo:284:11*/				} else {
- /*line zz_storage.gen_test.go:251:1*/				}
- /*line storage_test.mygo:287:11*/				if failure == "callback" {
- /*line storage_test.mygo:288:20*/					return Err[struct{}, string]("rejected")
- /*line storage_test.mygo:287:11*/				} else {
- /*line zz_storage.gen_test.go:255:1*/				}
- /*line storage_test.mygo:290:11*/				return Ok[struct{}, string](struct {
- /*line zz_storage.gen_test.go:257:1*/				}{})
+ /*line storage_test.mygo:264:7*/			work := func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line storage_test.mygo:282:11*/				if !transport.DistinctTransaction(tx, db) {
+ /*line storage_test.mygo:283:13*/					t_1.Fatal("callback lacks transaction handle")
+ /*line storage_test.mygo:282:11*/				} else {
+ /*line zz_storage.gen_test.go:248:1*/				}
+ /*line storage_test.mygo:285:11*/				if fault == "panic" {
+ /*line storage_test.mygo:286:13*/					transport.Panic()
+ /*line storage_test.mygo:285:11*/				} else {
+ /*line zz_storage.gen_test.go:252:1*/				}
+ /*line storage_test.mygo:288:11*/				if fault == "callback" {
+ /*line storage_test.mygo:289:20*/					return Err[struct{}, failure.Failure](Of("rejected"))
+ /*line storage_test.mygo:288:11*/				} else {
+ /*line zz_storage.gen_test.go:256:1*/				}
+ /*line storage_test.mygo:291:11*/				return Ok[struct{}, failure.Failure](struct {
+ /*line zz_storage.gen_test.go:258:1*/				}{})
 			}
- /*line storage_test.mygo:292:12*/			if failure == "panic" {
- /*line storage_test.mygo:293:15*/				if !transport.Panics(func() {
- /*line storage_test.mygo:293:32*/					RunTransaction(context.Background(), db, work)
+ /*line storage_test.mygo:293:12*/			if fault == "panic" {
+ /*line storage_test.mygo:294:15*/				if !transport.Panics(func() {
+ /*line storage_test.mygo:294:32*/					RunTransaction(context.Background(), db, work)
 					return
- /*line storage_test.mygo:293:11*/				}) {
- /*line storage_test.mygo:296:13*/					t_1.Fatal("panic was swallowed")
+ /*line storage_test.mygo:294:11*/				}) {
+ /*line storage_test.mygo:297:13*/					t_1.Fatal("panic was swallowed")
 					return
- /*line storage_test.mygo:293:11*/				} else {
- /*line storage_test.mygo:293:11*/					return
- /*line zz_storage.gen_test.go:268:1*/				}
+ /*line storage_test.mygo:294:11*/				} else {
+ /*line storage_test.mygo:294:11*/					return
+ /*line zz_storage.gen_test.go:269:1*/				}
 			} else {
- /*line storage_test.mygo:299:14*/				if MygoIN6ResultM4IsOk[struct{}, string](RunTransaction(context.Background(), db, work)) != (failure == "") {
- /*line storage_test.mygo:300:13*/					t_1.Fatal("transaction error propagation failed")
+ /*line storage_test.mygo:300:14*/				if MygoIN6ResultM4IsOk[struct{}, failure.Failure](RunTransaction(context.Background(), db, work)) != (fault == "") {
+ /*line storage_test.mygo:301:13*/					t_1.Fatal("transaction error propagation failed")
 					return
- /*line storage_test.mygo:299:11*/				} else {
- /*line storage_test.mygo:299:11*/					return
- /*line zz_storage.gen_test.go:275:1*/				}
+ /*line storage_test.mygo:300:11*/				} else {
+ /*line storage_test.mygo:300:11*/					return
+ /*line zz_storage.gen_test.go:276:1*/				}
 			}
 		})
- /*line storage_test.mygo:305:5*/		return
- /*line zz_storage.gen_test.go:279:1*/	})
- /*line storage_test.mygo:260:3*/	return
- /*line zz_storage.gen_test.go:281:1*/}
+ /*line storage_test.mygo:306:5*/		return
+ /*line zz_storage.gen_test.go:280:1*/	})
+ /*line storage_test.mygo:261:3*/	return
+ /*line zz_storage.gen_test.go:282:1*/}

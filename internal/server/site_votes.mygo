@@ -52,7 +52,7 @@ func SiteVoteRoute(
   end
   let actor = RequireMutation(settings, db, site, request)
   if actor.IsErr() then
-    Fail(w, actor.UnwrapErr())
+    FailFailure(w, actor.UnwrapErr())
     return true
   end
   var patch = Zero[SiteVoteSettingsPatch]()
@@ -87,7 +87,7 @@ func SiteVoteRoute(
     hasDown
   )
   if updated.IsErr() then
-    Fail(w, updated.UnwrapErr())
+    FailFailure(w, updated.UnwrapErr())
   else
     let savedUp = storage.SiteVoteUpEnabled(request.Context(), db, site.ID)
     let savedDown = storage.SiteVoteDownEnabled(request.Context(), db, site.ID)

@@ -11,6 +11,7 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,66 +22,66 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_remote_admin.gen_test.go:24:1*/	}
+ /*line zz_federation_remote_admin.gen_test.go:25:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	a := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, a))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, a, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: a.ID}
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
-	other := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "other", "Other", "federated", "eligible_users", "eligible_users"))
-	managerKey := MygoIN6ResultM6Unwrap[string, string](storage.GeneratePrivatePEM())
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
+	other := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, a, alice, "other", "Other", "federated", "eligible_users", "eligible_users"))
+	managerKey := MygoIN6ResultM6Unwrap[string, failure.Failure](storage.GeneratePrivatePEM())
 	manager := "https://peer.example/users/manager"
 	first := "https://peer.example/users/first"
 	second := "https://peer.example/users/second"
 	subscriber := "https://fan.example/users/reader"
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', NULL), (?, 'Person', NULL), (?, 'Person', 'https://fan.example/inbox')", manager, MygoIN6ResultM6Unwrap[string, string](storage.PublicPEMFromPrivate(managerKey)), first, second, subscriber)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", community.ID, manager, alice.ActorURI)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, subscriber, "https://fan.example/activities/f1")))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,public_key_pem) VALUES (?, 'Person', ?), (?, 'Person', NULL), (?, 'Person', NULL), (?, 'Person', 'https://fan.example/inbox')", manager, MygoIN6ResultM6Unwrap[string, failure.Failure](storage.PublicPEMFromPrivate(managerKey)), first, second, subscriber)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO moderators(community_id,actor_uri,assigned_by) VALUES (?,?,?)", community.ID, manager, alice.ActorURI)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, subscriber, "https://fan.example/activities/f1")))
 	handler := Handler(settings, db)
 	date := time.Now().UTC().Format(http.TimeFormat)
 	add := func(id string, target storage.CommunityRecord, member string) string {
  /*line federation_remote_admin_test.mygo:35:5*/		return "{\"id\":\"https://peer.example/activities/" + id + "\",\"actor\":\"" + manager + "\",\"type\":\"Add\",\"to\":[\"" + alice.ActorURI + "\"],\"target\":\"" + target.ActorURI.String + "\",\"object\":\"" + member + "\",\"commune:role\":\"member\"}"
- /*line zz_federation_remote_admin.gen_test.go:48:1*/	}
+ /*line zz_federation_remote_admin.gen_test.go:49:1*/	}
  /*line federation_remote_admin_test.mygo:37:3*/	if signedPost(handler, a.Origin, "/users/alice/inbox", add("a1", community, first), manager, managerKey, date).Code != 202 {
  /*line federation_remote_admin_test.mygo:38:5*/		t.Fatal("remote authorized management failed")
  /*line federation_remote_admin_test.mygo:37:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:52:1*/	}
- /*line federation_remote_admin_test.mygo:40:3*/	if !MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, first)) {
+ /*line zz_federation_remote_admin.gen_test.go:53:1*/	}
+ /*line federation_remote_admin_test.mygo:40:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, community.ID, first)) {
  /*line federation_remote_admin_test.mygo:41:5*/		t.Fatal("the remote manager's change was not applied")
  /*line federation_remote_admin_test.mygo:40:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:56:1*/	}
+ /*line zz_federation_remote_admin.gen_test.go:57:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
  /*line federation_remote_admin_test.mygo:45:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:46:5*/		t.Fatal("an accepted management action was not announced")
  /*line federation_remote_admin_test.mygo:45:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:62:1*/	}
- /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", subscriber).Count(&count)))
+ /*line zz_federation_remote_admin.gen_test.go:63:1*/	}
+ /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ?", subscriber).Count(&count)))
  /*line federation_remote_admin_test.mygo:49:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:50:5*/		t.Fatal("the management announcement was not delivered to eligible followers")
  /*line federation_remote_admin_test.mygo:49:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:67:1*/	}
- /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE moderators SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, manager)))
+ /*line zz_federation_remote_admin.gen_test.go:68:1*/	}
+ /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE moderators SET revoked_at = now() WHERE community_id = ? AND actor_uri = ?", community.ID, manager)))
 	signedPost(handler, a.Origin, "/users/alice/inbox", add("a2", community, second), manager, managerKey, date)
- /*line federation_remote_admin_test.mygo:54:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, community.ID, second)) {
+ /*line federation_remote_admin_test.mygo:54:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, community.ID, second)) {
  /*line federation_remote_admin_test.mygo:55:5*/		t.Fatal("a revoked remote manager still changed membership")
  /*line federation_remote_admin_test.mygo:54:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:73:1*/	}
- /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
+ /*line zz_federation_remote_admin.gen_test.go:74:1*/	}
+ /*line federation_remote_admin_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
  /*line federation_remote_admin_test.mygo:58:3*/	if count != int64(1) {
  /*line federation_remote_admin_test.mygo:59:5*/		t.Fatal("a revoked manager's action was announced")
  /*line federation_remote_admin_test.mygo:58:3*/	} else {
- /*line zz_federation_remote_admin.gen_test.go:78:1*/	}
+ /*line zz_federation_remote_admin.gen_test.go:79:1*/	}
  /*line federation_remote_admin_test.mygo:12:1*/	signedPost(handler, a.Origin, "/users/alice/inbox", add("a3", other, manager), manager, managerKey, date)
- /*line federation_remote_admin_test.mygo:62:3*/	if MygoIN6ResultM6Unwrap[bool, string](storage.IsCurrentMember(ctx, db, other.ID, manager)) || MygoIN6ResultM6Unwrap[bool, string](storage.IsCommunityManager(ctx, db, other.ID, manager)) {
+ /*line federation_remote_admin_test.mygo:62:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCurrentMember(ctx, db, other.ID, manager)) || MygoIN6ResultM6Unwrap[bool, failure.Failure](storage.IsCommunityManager(ctx, db, other.ID, manager)) {
  /*line federation_remote_admin_test.mygo:63:5*/		t.Fatal("remote management leaked into another community")
 		return
  /*line federation_remote_admin_test.mygo:62:3*/	} else {
 		return
- /*line zz_federation_remote_admin.gen_test.go:85:1*/	}
+ /*line zz_federation_remote_admin.gen_test.go:86:1*/	}
 }

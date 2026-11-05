@@ -5,6 +5,7 @@ import time "go:time"
 import rand "go:crypto/rand"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct VerificationMail
   ID: String `gorm:"column:id"`
@@ -39,8 +40,8 @@ func DeliverVerificationMail(
   leaseSeconds: Int,
   maxAttempts: Int,
   retrySeconds: Int,
-  send: func(String, String) -> Result[(), String]
-) -> Result[Int, String]
+  send: func(String, String) -> Result[(), failure.Failure]
+) -> Result[Int, failure.Failure]
   DeliverVerificationMailWithRetry(
     ctx,
     db,
@@ -65,15 +66,15 @@ func DeliverVerificationMailWithRetry(
   maxAttempts: Int,
   retrySeconds: Int,
   retryMaxSeconds: Int,
-  send: func(String, String) -> Result[(), String]
-) -> Result[Int, String]
+  send: func(String, String) -> Result[(), failure.Failure]
+) -> Result[Int, failure.Failure]
   if batch < 1 ||
     batch > 1000 ||
     leaseSeconds < 1 ||
     maxAttempts < 1 ||
     retrySeconds < 1 ||
     retryMaxSeconds < retrySeconds then
-    return Err("invalid mail worker limits")
+    return Err(Of("invalid mail worker limits"))
   end
   let erased = db.WithContext(ctx).Exec(
     "UPDATE verification_mail_jobs j SET state='failed',encrypted_payload=''::bytea,lease_token=NULL,lease_until=NULL FROM pending_registrations p WHERE j.registration_id=p.id AND j.state IN ('pending','leased') AND (j.generation<>p.generation OR p.expires_at<=? OR (j.attempts>=? AND (j.state='pending' OR j.lease_until<=?)))",
@@ -82,7 +83,7 @@ func DeliverVerificationMailWithRetry(
     now
   )
   if QueryFailed(erased) then
-    return Err("mail unavailable")
+    return Err(Of("mail unavailable"))
   end
   let lease = rand.Text()
   let jobs: Slice[VerificationMail] = []
@@ -97,7 +98,7 @@ func DeliverVerificationMailWithRetry(
     now.Add(leaseSeconds as time.Duration * time.Second)
   ).Scan(Ref.new(jobs))
   if QueryFailed(query) then
-    return Err("mail unavailable")
+    return Err(Of("mail unavailable"))
   end
   var delivered: Int = 0
   var failed: Bool = false
@@ -122,7 +123,7 @@ func DeliverVerificationMailWithRetry(
         let sent = if opened.IsOk() then
           send(job.Email, opened.Unwrap())
         else
-          Err[(), String]("invalid mail payload")
+          Err[(), failure.Failure](Of("invalid mail payload"))
         end
         let terminal = sent.IsOk() || opened.IsErr() || job.Attempts >= maxAttempts
         let state = if sent.IsOk() then
@@ -159,7 +160,7 @@ func DeliverVerificationMailWithRetry(
     end
   end)
   if failed then
-    return Err("mail unavailable")
+    return Err(Of("mail unavailable"))
   end
   Ok(delivered)
 end

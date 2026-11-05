@@ -63,17 +63,17 @@ func ModlogRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   let page = PageFromQuery(settings, request)
   if page.IsErr() then
-    Fail(w, page.UnwrapErr())
+    FailFailure(w, page.UnwrapErr())
     return true
   end
   let rows = storage.ModerationLog(request.Context(), db, site.ID, session.Unwrap().Identity, request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
   if rows.IsErr() then
-    Fail(w, rows.UnwrapErr())
+    FailFailure(w, rows.UnwrapErr())
   else
     WriteJSON(w, 200, ModlogPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
   end
@@ -83,23 +83,23 @@ end
 func ReportsRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, w: http.ResponseWriter, request: Ref[http.Request]) -> Bool
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   if request.Method == "GET" then
     let page = PageFromQuery(settings, request)
     if page.IsErr() then
-      Fail(w, page.UnwrapErr())
+      FailFailure(w, page.UnwrapErr())
       return true
     end
     let state = ParseReportState(request.URL.Query().Get("state"), true)
     if state.IsErr() then
-      Fail(w, state.UnwrapErr())
+      FailFailure(w, state.UnwrapErr())
       return true
     end
     let rows = storage.ListReports(request.Context(), db, site.ID, session.Unwrap().Identity, state.Unwrap(), request.URL.Query().Get("community_id"), page.Unwrap().Limit, page.Unwrap().Offset)
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
       WriteJSON(w, 200, ReportPage{Items: rows.Unwrap(), Limit: page.Unwrap().Limit, Offset: page.Unwrap().Offset})
     end
@@ -156,7 +156,7 @@ func ReportsRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site, 
   end
   let created = storage.CreateReport(request.Context(), db, site.ID, session.Unwrap().Identity, input.TargetKind, input.TargetID, communityID, input.Reason)
   if created.IsErr() then
-    Fail(w, created.UnwrapErr())
+    FailFailure(w, created.UnwrapErr())
   else
     w.WriteHeader(if created.Unwrap() then 201 else 200 end)
   end
@@ -170,7 +170,7 @@ func ResolveReportRoute(settings: config.Config, db: Ref[gorm.DB], site: config.
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   if !AuthorizeMutation(settings, session.Unwrap(), request) then
@@ -203,7 +203,7 @@ func AdminBanRoute(settings: config.Config, db: Ref[gorm.DB], site: config.Site,
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   if !AuthorizeMutation(settings, session.Unwrap(), request) then

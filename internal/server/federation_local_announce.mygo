@@ -9,6 +9,7 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct LocalPostActivity
   Context: String `json:"@context"`
@@ -18,9 +19,9 @@ struct LocalPostActivity
   Object: json.RawMessage `json:"object"`
 end
 
-func PublishForumPost(settings: config.Config, db: Ref[gorm.DB], ctx: context.Context, site: config.Site, communityID: String, identity: auth.Identity, remoteVerified: Bool, input: storage.PublishInput) -> Result[storage.PostRecord, String]
+func PublishForumPost(settings: config.Config, db: Ref[gorm.DB], ctx: context.Context, site: config.Site, communityID: String, identity: auth.Identity, remoteVerified: Bool, input: storage.PublishInput) -> Result[storage.PostRecord, failure.Failure]
   var post = Zero[storage.PostRecord]()
-  let result = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  let result = storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let published = storage.PostRepository{DB: tx, SiteID: site.ID}.Publish(ctx, site, communityID, identity, remoteVerified, input)
     if published.IsErr() then return Err(published.UnwrapErr()) end
     post = published.Unwrap()
@@ -30,9 +31,9 @@ func PublishForumPost(settings: config.Config, db: Ref[gorm.DB], ctx: context.Co
   Ok(post)
 end
 
-func QueuePostMutation(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, post: storage.PostRecord, kind: String) -> Result[(), String]
+func QueuePostMutation(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, post: storage.PostRecord, kind: String) -> Result[(), failure.Failure]
   let loaded = storage.LoadCommunityByID(ctx, db, post.CommunityID)
-  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err("community unavailable") end
+  if loaded.IsErr() || loaded.Unwrap().IsNone() then return Err(Of("community unavailable")) end
   let community = loaded.Unwrap().Unwrap()
   if !federation.FederatedCommunity(community) then return Ok(()) end
   AnnounceLocalMutation(ctx, settings, db, site, community, post, kind)
@@ -41,11 +42,11 @@ end
 # A locally published post in a federated community is announced by the Group.
 # Joined remote contexts contribute their authority as an extra, deduplicated
 # destination; a context that cannot be resolved adds nothing.
-func AnnounceLocalPost(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, post: storage.PostRecord) -> Result[(), String]
+func AnnounceLocalPost(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, post: storage.PostRecord) -> Result[(), failure.Failure]
   AnnounceLocalMutation(ctx, settings, db, site, community, post, "Create")
 end
 
-func AnnounceLocalMutation(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, post: storage.PostRecord, kind: String) -> Result[(), String]
+func AnnounceLocalMutation(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, community: storage.CommunityRecord, post: storage.PostRecord, kind: String) -> Result[(), failure.Failure]
   let contextURIs = storage.PostContextURIs(ctx, db, post.ID)
   if contextURIs.IsErr() then
     return Err(contextURIs.UnwrapErr())
@@ -56,18 +57,18 @@ func AnnounceLocalMutation(ctx: context.Context, settings: config.Config, db: Re
   if object.IsErr() then return Err(object.UnwrapErr()) end
   let encoded = json.Marshal(object.Unwrap())
   if encoded.IsErr() then
-    return Err("announce payload failed")
+    return Err(Of("announce payload failed"))
   end
   let createURI = site.Origin + "/activities/" + rand.Text()
   let representation = if kind == "Delete" then json.Marshal(federation.BuildTombstoneRepresentation(post)) else encoded end
-  if representation.IsErr() then return Err("announce payload failed") end
+  if representation.IsErr() then return Err(Of("announce payload failed")) end
   let activity = json.Marshal(LocalPostActivity{Context: "https://www.w3.org/ns/activitystreams", ID: createURI, Type: kind, Actor: post.AuthorActorURI, Object: representation.Unwrap() as json.RawMessage})
-  if activity.IsErr() then return Err("announce payload failed") end
+  if activity.IsErr() then return Err(Of("announce payload failed")) end
   let stored = storage.InsertActivityPayload(ctx, db, createURI, post.AuthorActorURI, kind, activity.Unwrap(), community.ID)
   if stored.IsErr() then return stored end
   var extras = ResolveContextAuthoritiesFromURIs(ctx, settings, declared, site.Origin)
   let recipients: Slice[String] = []
-  if storage.QueryFailed(db.WithContext(ctx).Raw("SELECT m.actor_uri FROM post_mentions m JOIN actors a ON a.uri=m.actor_uri WHERE m.post_id=? AND m.active AND a.local_site_id IS NULL", post.ID).Scan(Ref.new(recipients))) then return Err("mentions unavailable") end
+  if storage.QueryFailed(db.WithContext(ctx).Raw("SELECT m.actor_uri FROM post_mentions m JOIN actors a ON a.uri=m.actor_uri WHERE m.post_id=? AND m.active AND a.local_site_id IS NULL", post.ID).Scan(Ref.new(recipients))) then return Err(Of("mentions unavailable")) end
   recipients.Each(func(uri: String) -> () if !extras.Contains(uri) then extras = extras.Append(uri) end end)
   PublishGroupAnnouncementTo(ctx, db, site, community, activity.Unwrap(), extras)
 end

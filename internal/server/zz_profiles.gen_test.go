@@ -13,6 +13,7 @@ import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -23,95 +24,95 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_profiles.gen_test.go:26:1*/	}
+ /*line zz_profiles.gen_test.go:27:1*/	}
  /*line profiles_test.mygo:14:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json"))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "private@example.org", "alice-password"))
-	tokens := MygoIN6ResultM6Unwrap[auth.SessionTokens, string](storage.MygoIN17SessionRepositoryM5Issue(storage.SessionRepository{DB: db}, ctx, alice, time.Now()))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "alice", "private@example.org", "alice-password"))
+	tokens := MygoIN6ResultM6Unwrap[auth.SessionTokens, failure.Failure](storage.MygoIN17SessionRepositoryM5Issue(storage.SessionRepository{DB: db}, ctx, alice, time.Now()))
 	cookies := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(auth.MygoIN13SessionTokensM7Cookies(tokens, time.Now().Add(time.Hour)), func(cookie http.Cookie) *http.Cookie {
  /*line profiles_test.mygo:24:5*/		return &cookie
- /*line zz_profiles.gen_test.go:37:1*/	})
+ /*line zz_profiles.gen_test.go:38:1*/	})
  /*line profiles_test.mygo:14:1*/	handler := http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
  /*line profiles_test.mygo:26:17*/		ProfileRoute(settings, db, site, w, request, Segments(request.URL.Path))
 		return
- /*line zz_profiles.gen_test.go:41:1*/	})
+ /*line zz_profiles.gen_test.go:42:1*/	})
  /*line profiles_test.mygo:14:1*/	current := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/profile", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""})
  /*line profiles_test.mygo:30:3*/	if current.Code != 401 {
  /*line profiles_test.mygo:31:5*/		t.Fatal("current profile requires session")
  /*line profiles_test.mygo:30:3*/	} else {
- /*line zz_profiles.gen_test.go:46:1*/	}
+ /*line zz_profiles.gen_test.go:47:1*/	}
  /*line profiles_test.mygo:14:1*/	publicProfile := doForum(handler, forumCall{Method: "GET", Origin: site.Origin, Path: "/api/v1/profiles/alice", Payload: "", Cookies: []*http.Cookie{}, CSRF: "", Source: ""})
  /*line profiles_test.mygo:34:3*/	if publicProfile.Code != 200 || publicProfile.Header().Get("Cache-Control") != "no-store" || strings.Contains(publicProfile.Body.String(), "private@example.org") || strings.Contains(publicProfile.Body.String(), "password") {
  /*line profiles_test.mygo:35:5*/		t.Fatal("public profile unavailable or private identity leaked")
  /*line profiles_test.mygo:34:3*/	} else {
- /*line zz_profiles.gen_test.go:51:1*/	}
+ /*line zz_profiles.gen_test.go:52:1*/	}
  /*line profiles_test.mygo:14:1*/	call := forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/profile", Payload: "{\"display_name\":\"Alice\",\"biography\":\"**hello** <script>bad()</script>\"}", Cookies: cookies, CSRF: "", Source: site.Origin}
  /*line profiles_test.mygo:38:3*/	if doForum(handler, call).Code != 403 {
  /*line profiles_test.mygo:39:5*/		t.Fatal("missing CSRF accepted")
  /*line profiles_test.mygo:38:3*/	} else {
- /*line zz_profiles.gen_test.go:56:1*/	}
+ /*line zz_profiles.gen_test.go:57:1*/	}
  /*line profiles_test.mygo:14:1*/	call.CSRF = tokens.CSRF
 	call.Source = "https://evil.example"
  /*line profiles_test.mygo:43:3*/	if doForum(handler, call).Code != 403 {
  /*line profiles_test.mygo:44:5*/		t.Fatal("cross origin profile mutation accepted")
  /*line profiles_test.mygo:43:3*/	} else {
- /*line zz_profiles.gen_test.go:62:1*/	}
+ /*line zz_profiles.gen_test.go:63:1*/	}
  /*line profiles_test.mygo:14:1*/	call.Source = site.Origin
 	saved := doForum(handler, call)
  /*line profiles_test.mygo:48:3*/	if saved.Code != 200 {
  /*line profiles_test.mygo:49:5*/		t.Fatalf("profile save failed: %s", saved.Body.String())
  /*line profiles_test.mygo:48:3*/	} else {
- /*line zz_profiles.gen_test.go:68:1*/	}
- /*line profiles_test.mygo:14:1*/	profile := MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](storage.LoadProfile(ctx, db, alice.ActorURI))
+ /*line zz_profiles.gen_test.go:69:1*/	}
+ /*line profiles_test.mygo:14:1*/	profile := MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](storage.LoadProfile(ctx, db, alice.ActorURI))
  /*line profiles_test.mygo:52:3*/	if !strings.Contains(profile.BiographyHTML, "<strong>hello</strong>") || strings.Contains(profile.BiographyHTML, "<script") {
  /*line profiles_test.mygo:53:5*/		t.Fatal("biography did not use safe Markdown renderer")
  /*line profiles_test.mygo:52:3*/	} else {
- /*line zz_profiles.gen_test.go:73:1*/	}
+ /*line zz_profiles.gen_test.go:74:1*/	}
  /*line profiles_test.mygo:14:1*/	activityCount := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Update'", alice.ActorURI).Count(&activityCount)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri=? AND kind='Update'", alice.ActorURI).Count(&activityCount)))
  /*line profiles_test.mygo:57:3*/	if activityCount != int64(1) {
  /*line profiles_test.mygo:58:5*/		t.Fatal("profile save did not create durable authoritative update")
  /*line profiles_test.mygo:57:3*/	} else {
- /*line zz_profiles.gen_test.go:79:1*/	}
- /*line profiles_test.mygo:14:1*/	bob := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('profile-avatar-one',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now()),('profile-avatar-two',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now()),('profile-avatar-foreign',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now())", site.ID, alice.AccountID, site.ID, alice.AccountID, site.ID, bob.AccountID)))
+ /*line zz_profiles.gen_test.go:80:1*/	}
+ /*line profiles_test.mygo:14:1*/	bob := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "bob", "", "bob-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO media_uploads(id,site_id,owner_account_id,purpose,state,reserved_bytes,size_bytes,media_type,expires_at,lease_token,lease_until) VALUES ('profile-avatar-one',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now()),('profile-avatar-two',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now()),('profile-avatar-foreign',?,?,'avatar','ready',100,20,'image/png',now()+interval '1 day','',now())", site.ID, alice.AccountID, site.ID, alice.AccountID, site.ID, bob.AccountID)))
 	avatarCall := call
 	avatarCall.Payload = "{\"avatar_upload_id\":\"profile-avatar-one\"}"
  /*line profiles_test.mygo:64:3*/	if doForum(handler, avatarCall).Code != 200 {
  /*line profiles_test.mygo:65:5*/		t.Fatal("owned avatar bind failed")
  /*line profiles_test.mygo:64:3*/	} else {
- /*line zz_profiles.gen_test.go:87:1*/	}
- /*line profiles_test.mygo:14:1*/	firstAvatar := MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](storage.LoadProfile(ctx, db, alice.ActorURI))
-	person := MygoIN6ResultM6Unwrap[federation.ActorRepresentation, string](federation.ResolvePerson(ctx, db, site, "alice"))
+ /*line zz_profiles.gen_test.go:88:1*/	}
+ /*line profiles_test.mygo:14:1*/	firstAvatar := MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](storage.LoadProfile(ctx, db, alice.ActorURI))
+	person := MygoIN6ResultM6Unwrap[federation.ActorRepresentation, failure.Failure](federation.ResolvePerson(ctx, db, site, "alice"))
  /*line profiles_test.mygo:69:3*/	if firstAvatar.AvatarBindingID == "" || person.Icon.URL != firstAvatar.AvatarURL || !strings.HasPrefix(person.Icon.URL, site.Origin+"/api/v1/media/") {
  /*line profiles_test.mygo:70:5*/		t.Fatal("avatar binding did not propagate to Person")
  /*line profiles_test.mygo:69:3*/	} else {
- /*line zz_profiles.gen_test.go:93:1*/	}
+ /*line zz_profiles.gen_test.go:94:1*/	}
  /*line profiles_test.mygo:14:1*/	avatarCall.Payload = "{\"avatar_upload_id\":\"profile-avatar-foreign\"}"
- /*line profiles_test.mygo:73:3*/	if doForum(handler, avatarCall).Code == 200 || MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](storage.LoadProfile(ctx, db, alice.ActorURI)).AvatarURL != firstAvatar.AvatarURL {
+ /*line profiles_test.mygo:73:3*/	if doForum(handler, avatarCall).Code == 200 || MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](storage.LoadProfile(ctx, db, alice.ActorURI)).AvatarURL != firstAvatar.AvatarURL {
  /*line profiles_test.mygo:74:5*/		t.Fatal("foreign avatar accepted or failed binding changed profile")
  /*line profiles_test.mygo:73:3*/	} else {
- /*line zz_profiles.gen_test.go:98:1*/	}
+ /*line zz_profiles.gen_test.go:99:1*/	}
  /*line profiles_test.mygo:14:1*/	avatarCall.Payload = "{\"avatar_upload_id\":\"profile-avatar-two\"}"
  /*line profiles_test.mygo:77:3*/	if doForum(handler, avatarCall).Code != 200 {
  /*line profiles_test.mygo:78:5*/		t.Fatal("avatar replacement failed")
  /*line profiles_test.mygo:77:3*/	} else {
- /*line zz_profiles.gen_test.go:103:1*/	}
+ /*line zz_profiles.gen_test.go:104:1*/	}
  /*line profiles_test.mygo:14:1*/	active := int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("media_bindings").Where("id=? AND active", firstAvatar.AvatarBindingID).Count(&active)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("media_bindings").Where("id=? AND active", firstAvatar.AvatarBindingID).Count(&active)))
  /*line profiles_test.mygo:82:3*/	if active != int64(0) {
  /*line profiles_test.mygo:83:5*/		t.Fatal("replacement left previous public avatar binding active")
  /*line profiles_test.mygo:82:3*/	} else {
- /*line zz_profiles.gen_test.go:109:1*/	}
+ /*line zz_profiles.gen_test.go:110:1*/	}
  /*line profiles_test.mygo:14:1*/	avatarCall.Payload = "{\"avatar_upload_id\":null}"
- /*line profiles_test.mygo:86:3*/	if doForum(handler, avatarCall).Code != 200 || MygoIN6ResultM6Unwrap[storage.ProfileRecord, string](storage.LoadProfile(ctx, db, alice.ActorURI)).AvatarURL != "" {
+ /*line profiles_test.mygo:86:3*/	if doForum(handler, avatarCall).Code != 200 || MygoIN6ResultM6Unwrap[storage.ProfileRecord, failure.Failure](storage.LoadProfile(ctx, db, alice.ActorURI)).AvatarURL != "" {
  /*line profiles_test.mygo:87:5*/		t.Fatal("avatar removal failed")
  /*line profiles_test.mygo:86:3*/	} else {
- /*line zz_profiles.gen_test.go:114:1*/	}
+ /*line zz_profiles.gen_test.go:115:1*/	}
  /*line profiles_test.mygo:14:1*/	var invalid []string = []string{"{\"username\":\"rename\"}", "{\"email\":\"change@example.org\"}", "{\"actor_uri\":\"https://evil.example/a\"}", "{\"display_name\":null}", "{\"display_name\":123}", "{\"display_name\":\"" + strings.Repeat("x", settings.Rendering.MaxDisplayNameLength+1) + "\"}"}
  /*line profiles_test.mygo:90:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(payload string) {
  /*line profiles_test.mygo:90:16*/		rejected := call
@@ -121,13 +122,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 			return
  /*line profiles_test.mygo:93:5*/		} else {
 			return
- /*line zz_profiles.gen_test.go:124:1*/		}
+ /*line zz_profiles.gen_test.go:125:1*/		}
 	})
- /*line profiles_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", alice.AccountID)))
+ /*line profiles_test.mygo:14:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("UPDATE accounts SET disabled=true WHERE id=?", alice.AccountID)))
  /*line profiles_test.mygo:98:3*/	if doForum(handler, call).Code != 401 {
  /*line profiles_test.mygo:99:5*/		t.Fatal("disabled account edited profile")
 		return
  /*line profiles_test.mygo:98:3*/	} else {
 		return
- /*line zz_profiles.gen_test.go:132:1*/	}
+ /*line zz_profiles.gen_test.go:133:1*/	}
 }

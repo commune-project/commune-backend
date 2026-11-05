@@ -3,6 +3,7 @@ package storage
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func InsertActivityPayload(
   ctx: context.Context,
@@ -12,7 +13,7 @@ func InsertActivityPayload(
   kind: String,
   payload: Slice[Byte],
   communityID: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   let checksum = PayloadChecksum(payload)
   let community = sql.NullString { String: communityID, Valid: communityID != "" }
   if MutationResult(db.WithContext(ctx).Exec(
@@ -22,7 +23,7 @@ func InsertActivityPayload(
     kind,
     community
   )).IsErr() then
-    return Err("activity storage failed")
+    return Err(Of("activity storage failed"))
   end
   MutationResult(db.WithContext(ctx).Exec(
     "INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)",

@@ -11,6 +11,7 @@ import gorm "go:gorm.io/gorm"
 import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct Limits
   BatchSize: Int
@@ -28,7 +29,7 @@ end
 
 # The poster is the only outbound I/O; production uses Post, tests substitute a
 # stub so the lease, retry and failure logic run without a live peer.
-func RunOnce(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, poster: func(String, String, String, Slice[Byte]) -> Result[Int, String]) -> Result[Outcome, String]
+func RunOnce(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, poster: func(String, String, String, Slice[Byte]) -> Result[Int, failure.Failure]) -> Result[Outcome, failure.Failure]
   let claimed = storage.ClaimDeliveryJobs(ctx, db, limits.BatchSize, limits.LeaseSeconds)
   if claimed.IsErr() then
     slog.Warn("delivery claim failed", "reason", claimed.UnwrapErr())
@@ -46,7 +47,7 @@ func RunOnce(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, li
     end
   end)
   if failed then
-    return Err("delivery attempt failed")
+    return Err(Of("delivery attempt failed"))
   end
   Ok(outcome)
 end
@@ -78,7 +79,7 @@ func GroupJobs(jobs: Slice[storage.DeliveryJobRecord]) -> Slice[Slice[storage.De
   groups
 end
 
-func SendGroup(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, group: Slice[storage.DeliveryJobRecord], poster: func(String, String, String, Slice[Byte]) -> Result[Int, String]) -> Result[Outcome, String]
+func SendGroup(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, limits: Limits, group: Slice[storage.DeliveryJobRecord], poster: func(String, String, String, Slice[Byte]) -> Result[Int, failure.Failure]) -> Result[Outcome, failure.Failure]
   let job = group.Get(0).Unwrap()
   if job.CommunityID.Valid then
     let excluded = storage.IsLocalOnlyCommunity(ctx, db, job.CommunityID.String)
@@ -118,7 +119,7 @@ func SendGroup(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, 
   end
   let status = poster(job.TargetInbox, job.SigningActorURI, key.Unwrap(), payload.Unwrap().Unwrap().Payload)
   if status.IsErr() then
-    return Apply(ctx, db, limits, group, status.UnwrapErr(), 0)
+    return Apply(ctx, db, limits, group, status.UnwrapErr().Render(), 0)
   end
   if status.Unwrap() >= 200 && status.Unwrap() < 300 then
     return Apply(ctx, db, limits, group, "", 200)
@@ -126,7 +127,7 @@ func SendGroup(ctx: context.Context, db: Ref[gorm.DB], settings: config.Config, 
   Apply(ctx, db, limits, group, "http-" + status.Unwrap().ToString(), 0)
 end
 
-func Apply(ctx: context.Context, db: Ref[gorm.DB], limits: Limits, group: Slice[storage.DeliveryJobRecord], reason: String, successStatus: Int) -> Result[Outcome, String]
+func Apply(ctx: context.Context, db: Ref[gorm.DB], limits: Limits, group: Slice[storage.DeliveryJobRecord], reason: String, successStatus: Int) -> Result[Outcome, failure.Failure]
   var delivered = 0
   var retried = 0
   var failed = 0
@@ -152,14 +153,14 @@ end
 
 # Signed outbound POST: the site's actor signs the request target, host, date and
 # body digest.
-func Post(target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, String]
+func Post(target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, failure.Failure]
   PostContext(context.Background(), target, actorURI, privateKey, payload)
 end
 
-func PostContext(ctx: context.Context, target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, String]
+func PostContext(ctx: context.Context, target: String, actorURI: String, privateKey: String, payload: Slice[Byte]) -> Result[Int, failure.Failure]
   let parsed = url.Parse(target)
   if parsed.IsErr() then
-    return Err("invalid-target")
+    return Err(Of("invalid-target"))
   end
   let resource = parsed.Unwrap()
   let date = time.Now().UTC().Format(http.TimeFormat)
@@ -167,12 +168,12 @@ func PostContext(ctx: context.Context, target: String, actorURI: String, private
   let signingString = federation.RequestSigningString("POST", resource.RequestURI(), resource.Host, date, digest)
   let signature = federation.SignSignature(privateKey, signingString)
   if signature.IsErr() then
-    return Err("signing-failed")
+    return Err(Of("signing-failed"))
   end
   let header = federation.FormatSignatureHeader(actorURI + "#main-key", signature.Unwrap())
   let request = http.NewRequestWithContext(ctx, "POST", target, strings.NewReader(payload as String) as io.Reader)
   if request.IsErr() then
-    return Err("invalid-target")
+    return Err(Of("invalid-target"))
   end
   request.Unwrap().Header.Set("Content-Type", federation.ActivityJSONType())
   request.Unwrap().Header.Set("Date", date)
@@ -182,7 +183,7 @@ func PostContext(ctx: context.Context, target: String, actorURI: String, private
   client.Timeout = 15 as time.Duration * time.Second
   let response = client.Do(request.Unwrap())
   if response.IsErr() then
-    return Err("unreachable")
+    return Err(Of("unreachable"))
   end
   let _ = response.Unwrap().Body.Close()
   Ok(response.Unwrap().StatusCode)

@@ -7,42 +7,43 @@ import "gorm.io/gorm"
 import "net/url"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/config"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line peer_capabilities.mygo:9:1*/func ActorDomain(actorURI string) Result[string, string] {
- /*line peer_capabilities.mygo:10:16*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line peer_capabilities.mygo:10:1*/func ActorDomain(actorURI string) Result[string, failure.Failure] {
+ /*line peer_capabilities.mygo:11:16*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(actorURI)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_peer_capabilities.gen.go:19:1*/	}
- /*line peer_capabilities.mygo:9:1*/	parsed := __mygo_expr_1
- /*line peer_capabilities.mygo:11:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Hostname() == "" {
- /*line peer_capabilities.mygo:12:12*/		return Err[string, string]("invalid actor")
- /*line peer_capabilities.mygo:11:3*/	} else {
- /*line zz_peer_capabilities.gen.go:24:1*/	}
- /*line peer_capabilities.mygo:9:1*/	host := strings.ToLower(strings.TrimSuffix(MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Hostname(), "."))
- /*line peer_capabilities.mygo:15:3*/	if !config.ValidDomain(host) {
- /*line peer_capabilities.mygo:16:12*/		return Err[string, string]("invalid actor")
- /*line peer_capabilities.mygo:15:3*/	} else {
- /*line zz_peer_capabilities.gen.go:29:1*/	}
- /*line peer_capabilities.mygo:18:3*/	return Ok[string, string](host)
- /*line zz_peer_capabilities.gen.go:31:1*/}
- /*line peer_capabilities.mygo:21:1*/func SetPeerProtectedReads(ctx context.Context, db *gorm.DB, domain string, supported bool) Result[struct {
-}, string] {
+ /*line zz_peer_capabilities.gen.go:20:1*/	}
+ /*line peer_capabilities.mygo:10:1*/	parsed := __mygo_expr_1
+ /*line peer_capabilities.mygo:12:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsed) || MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Hostname() == "" {
+ /*line peer_capabilities.mygo:13:12*/		return Err[string, failure.Failure](Of("invalid actor"))
+ /*line peer_capabilities.mygo:12:3*/	} else {
+ /*line zz_peer_capabilities.gen.go:25:1*/	}
+ /*line peer_capabilities.mygo:10:1*/	host := strings.ToLower(strings.TrimSuffix(MygoIN6ResultM6Unwrap[*url.URL, error](parsed).Hostname(), "."))
+ /*line peer_capabilities.mygo:16:3*/	if !config.ValidDomain(host) {
+ /*line peer_capabilities.mygo:17:12*/		return Err[string, failure.Failure](Of("invalid actor"))
+ /*line peer_capabilities.mygo:16:3*/	} else {
+ /*line zz_peer_capabilities.gen.go:30:1*/	}
+ /*line peer_capabilities.mygo:19:3*/	return Ok[string, failure.Failure](host)
+ /*line zz_peer_capabilities.gen.go:32:1*/}
+ /*line peer_capabilities.mygo:22:1*/func SetPeerProtectedReads(ctx context.Context, db *gorm.DB, domain string, supported bool) Result[struct {
+}, failure.Failure] {
 	normalized := strings.ToLower(strings.TrimSuffix(domain, "."))
- /*line peer_capabilities.mygo:28:3*/	if !config.ValidDomain(normalized) {
- /*line peer_capabilities.mygo:29:12*/		return Err[struct{}, string]("invalid domain")
- /*line peer_capabilities.mygo:28:3*/	} else {
- /*line zz_peer_capabilities.gen.go:38:1*/	}
- /*line peer_capabilities.mygo:31:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO peer_capabilities(domain,protected_reads) VALUES (?,?) ON CONFLICT (domain) DO UPDATE SET protected_reads=EXCLUDED.protected_reads, updated_at=now()", normalized, supported))
- /*line zz_peer_capabilities.gen.go:40:1*/}
- /*line peer_capabilities.mygo:40:1*/func PeerSupportsProtectedReads(ctx context.Context, db *gorm.DB, actorURI string) Result[bool, string] {
+ /*line peer_capabilities.mygo:29:3*/	if !config.ValidDomain(normalized) {
+ /*line peer_capabilities.mygo:30:12*/		return Err[struct{}, failure.Failure](Of("invalid domain"))
+ /*line peer_capabilities.mygo:29:3*/	} else {
+ /*line zz_peer_capabilities.gen.go:39:1*/	}
+ /*line peer_capabilities.mygo:32:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO peer_capabilities(domain,protected_reads) VALUES (?,?) ON CONFLICT (domain) DO UPDATE SET protected_reads=EXCLUDED.protected_reads, updated_at=now()", normalized, supported))
+ /*line zz_peer_capabilities.gen.go:41:1*/}
+ /*line peer_capabilities.mygo:41:1*/func PeerSupportsProtectedReads(ctx context.Context, db *gorm.DB, actorURI string) Result[bool, failure.Failure] {
 	domain := ActorDomain(actorURI)
- /*line peer_capabilities.mygo:46:3*/	if MygoIN6ResultM5IsErr[string, string](domain) {
- /*line peer_capabilities.mygo:47:12*/		return Ok[bool, string](false)
- /*line peer_capabilities.mygo:46:3*/	} else {
- /*line zz_peer_capabilities.gen.go:46:1*/	}
- /*line peer_capabilities.mygo:49:3*/	return QueryExists(db.WithContext(ctx).Table("peer_capabilities").Where("domain = ? AND protected_reads", MygoIN6ResultM6Unwrap[string, string](domain)))
- /*line zz_peer_capabilities.gen.go:48:1*/}
+ /*line peer_capabilities.mygo:47:3*/	if MygoIN6ResultM5IsErr[string, failure.Failure](domain) {
+ /*line peer_capabilities.mygo:48:12*/		return Ok[bool, failure.Failure](false)
+ /*line peer_capabilities.mygo:47:3*/	} else {
+ /*line zz_peer_capabilities.gen.go:47:1*/	}
+ /*line peer_capabilities.mygo:50:3*/	return QueryExists(db.WithContext(ctx).Table("peer_capabilities").Where("domain = ? AND protected_reads", MygoIN6ResultM6Unwrap[string, failure.Failure](domain)))
+ /*line zz_peer_capabilities.gen.go:49:1*/}

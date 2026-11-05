@@ -7,6 +7,7 @@ import storage "github.com/commune-project/commune-backend/internal/storage"
 import context "go:context"
 import io "go:io"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 func ParticipationRoute(
   settings: config.Config,
@@ -36,7 +37,7 @@ func ParticipationRoute(
   end
   let root = files.Unwrap().Root
   go[()] { code: "defer {root}.Close()"; in root = root }
-  let fetch = func(ctx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, String]
+  let fetch = func(ctx: context.Context, identity: auth.Identity, row: storage.PrivateMediaCache) -> Result[io.ReadCloser, failure.Failure]
     FetchAuthorizedPrivateMedia(ctx, settings, db, identity, row)
   end
   if PrivateMediaRoute(settings, db, site, files.Unwrap(), w, request, parts, fetch) then return true end

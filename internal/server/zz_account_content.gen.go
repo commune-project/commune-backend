@@ -6,66 +6,67 @@ import "net/http"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line account_content.mygo:8:1*/func AccountContentRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
- /*line account_content.mygo:16:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "account" {
- /*line account_content.mygo:17:12*/		return false
- /*line account_content.mygo:16:3*/	} else {
- /*line zz_account_content.gen.go:15:1*/	}
- /*line account_content.mygo:8:1*/	source := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "")
- /*line account_content.mygo:20:3*/	if source != "saved" && source != "read" && source != "hidden" && source != "liked" {
- /*line account_content.mygo:21:12*/		return false
- /*line account_content.mygo:20:3*/	} else {
- /*line zz_account_content.gen.go:20:1*/	}
- /*line account_content.mygo:23:3*/	if request.Method != "GET" {
- /*line account_content.mygo:24:5*/		MethodNotAllowed(w, "GET")
- /*line account_content.mygo:25:12*/		return true
- /*line account_content.mygo:23:3*/	} else {
- /*line zz_account_content.gen.go:25:1*/	}
- /*line account_content.mygo:8:1*/	session := Authenticated(db, site, request)
- /*line account_content.mygo:28:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, string](session) {
- /*line account_content.mygo:29:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, string](session))
- /*line account_content.mygo:30:12*/		return true
- /*line account_content.mygo:28:3*/	} else {
- /*line zz_account_content.gen.go:31:1*/	}
- /*line account_content.mygo:8:1*/	page := PageFromQuery(settings, request)
- /*line account_content.mygo:33:3*/	if MygoIN6ResultM5IsErr[storage.Page, string](page) {
- /*line account_content.mygo:34:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.Page, string](page))
- /*line account_content.mygo:35:12*/		return true
- /*line account_content.mygo:33:3*/	} else {
- /*line zz_account_content.gen.go:37:1*/	}
- /*line account_content.mygo:8:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
-	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, string](session).Identity)
- /*line account_content.mygo:39:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, string](viewer) {
- /*line account_content.mygo:40:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, string](viewer))
- /*line account_content.mygo:41:12*/		return true
- /*line account_content.mygo:39:3*/	} else {
- /*line zz_account_content.gen.go:44:1*/	}
- /*line account_content.mygo:8:1*/	var records Result[[]storage.PostRecord, string] = Err[[]storage.PostRecord, string]("not found")
- /*line account_content.mygo:44:3*/	if source == "saved" {
-		records = storage.MygoIN17BrowserRepositoryM10SavedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
+ /*line account_content.mygo:9:1*/func AccountContentRoute(settings config.Config, db *gorm.DB, site config.Site, w http.ResponseWriter, request *http.Request, parts []string) bool {
+ /*line account_content.mygo:17:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) != 4 || MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 2), "") != "account" {
+ /*line account_content.mygo:18:12*/		return false
+ /*line account_content.mygo:17:3*/	} else {
+ /*line zz_account_content.gen.go:16:1*/	}
+ /*line account_content.mygo:9:1*/	source := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 3), "")
+ /*line account_content.mygo:21:3*/	if source != "saved" && source != "read" && source != "hidden" && source != "liked" {
+ /*line account_content.mygo:22:12*/		return false
+ /*line account_content.mygo:21:3*/	} else {
+ /*line zz_account_content.gen.go:21:1*/	}
+ /*line account_content.mygo:24:3*/	if request.Method != "GET" {
+ /*line account_content.mygo:25:5*/		MethodNotAllowed(w, "GET")
+ /*line account_content.mygo:26:12*/		return true
+ /*line account_content.mygo:24:3*/	} else {
+ /*line zz_account_content.gen.go:26:1*/	}
+ /*line account_content.mygo:9:1*/	session := Authenticated(db, site, request)
+ /*line account_content.mygo:29:3*/	if MygoIN6ResultM5IsErr[storage.AuthenticatedSession, failure.Failure](session) {
+ /*line account_content.mygo:30:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.AuthenticatedSession, failure.Failure](session))
+ /*line account_content.mygo:31:12*/		return true
+ /*line account_content.mygo:29:3*/	} else {
+ /*line zz_account_content.gen.go:32:1*/	}
+ /*line account_content.mygo:9:1*/	page := PageFromQuery(settings, request)
+ /*line account_content.mygo:34:3*/	if MygoIN6ResultM5IsErr[storage.Page, failure.Failure](page) {
+ /*line account_content.mygo:35:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.Page, failure.Failure](page))
+ /*line account_content.mygo:36:12*/		return true
+ /*line account_content.mygo:34:3*/	} else {
+ /*line zz_account_content.gen.go:38:1*/	}
+ /*line account_content.mygo:9:1*/	repository := storage.BrowserRepository{DB: db, SiteID: site.ID}
+	viewer := storage.MygoIN17BrowserRepositoryM6Viewer(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.AuthenticatedSession, failure.Failure](session).Identity)
+ /*line account_content.mygo:40:3*/	if MygoIN6ResultM5IsErr[storage.BrowserViewer, failure.Failure](viewer) {
+ /*line account_content.mygo:41:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[storage.BrowserViewer, failure.Failure](viewer))
+ /*line account_content.mygo:42:12*/		return true
+ /*line account_content.mygo:40:3*/	} else {
+ /*line zz_account_content.gen.go:45:1*/	}
+ /*line account_content.mygo:9:1*/	var records Result[[]storage.PostRecord, failure.Failure] = Err[[]storage.PostRecord, failure.Failure](Of("not found"))
+ /*line account_content.mygo:45:3*/	if source == "saved" {
+		records = storage.MygoIN17BrowserRepositoryM10SavedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 	} else {
 		if source == "read" {
-			records = storage.MygoIN17BrowserRepositoryM9ReadPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
+			records = storage.MygoIN17BrowserRepositoryM9ReadPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 		} else {
 			if source == "hidden" {
-				records = storage.MygoIN17BrowserRepositoryM11HiddenPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
+				records = storage.MygoIN17BrowserRepositoryM11HiddenPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 			} else {
-				records = storage.MygoIN17BrowserRepositoryM10LikedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[storage.Page, string](page), settings.Runtime.MaxPageSize)
- /*line zz_account_content.gen.go:56:1*/			}
+				records = storage.MygoIN17BrowserRepositoryM10LikedPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line zz_account_content.gen.go:57:1*/			}
 		}
 	}
- /*line account_content.mygo:53:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, string](records) {
- /*line account_content.mygo:54:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, string](records))
- /*line account_content.mygo:55:12*/		return true
- /*line account_content.mygo:53:3*/	} else {
- /*line zz_account_content.gen.go:63:1*/	}
- /*line account_content.mygo:8:1*/	outputs := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, string](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, string](records))
- /*line account_content.mygo:58:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, string](outputs) {
- /*line account_content.mygo:59:5*/		Fail(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, string](outputs))
- /*line account_content.mygo:58:3*/	} else {
- /*line account_content.mygo:61:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, string](outputs), Limit: MygoIN6ResultM6Unwrap[storage.Page, string](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, string](page).Offset})
- /*line zz_account_content.gen.go:69:1*/	}
- /*line account_content.mygo:63:3*/	return true
- /*line zz_account_content.gen.go:71:1*/}
+ /*line account_content.mygo:54:3*/	if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](records) {
+ /*line account_content.mygo:55:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](records))
+ /*line account_content.mygo:56:12*/		return true
+ /*line account_content.mygo:54:3*/	} else {
+ /*line zz_account_content.gen.go:64:1*/	}
+ /*line account_content.mygo:9:1*/	outputs := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](records))
+ /*line account_content.mygo:59:3*/	if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs) {
+ /*line account_content.mygo:60:5*/		FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs))
+ /*line account_content.mygo:59:3*/	} else {
+ /*line account_content.mygo:62:5*/		WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
+ /*line zz_account_content.gen.go:70:1*/	}
+ /*line account_content.mygo:64:3*/	return true
+ /*line zz_account_content.gen.go:72:1*/}

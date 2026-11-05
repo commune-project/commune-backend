@@ -16,23 +16,109 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
   let site = settings.Sites.Get(0).Unwrap()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
   let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
-  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(ctx, site, alice, "outbox", "Outbox", "federated", "eligible_users", "eligible_users").Unwrap()
-  let post = PublishForumPost(settings, db, ctx, site, group.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "**before**", ParentID: "", ContextURI: "", ContentFormat: "markdown", AttachmentIDs: [], Mentions: []}).Unwrap()
+  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+    ctx,
+    site,
+    alice,
+    "outbox",
+    "Outbox",
+    "federated",
+    "eligible_users",
+    "eligible_users"
+  ).Unwrap()
+  let post = PublishForumPost(
+    settings,
+    db,
+    ctx,
+    site,
+    group.ID,
+    alice,
+    false,
+    storage.PublishInput{
+      Title: "Topic",
+      Body: "**before**",
+      ParentID: "",
+      ContextURI: "",
+      ContentFormat: "markdown",
+      AttachmentIDs: [],
+      Mentions: [],
+    }
+  ).Unwrap()
   let handler = Handler(settings, db)
   let cookies = login(handler, site.Origin, "alice", "alice-password")
   let _ = storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")).Unwrap()
   let _ = storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")).Unwrap()
-  let failure = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`, Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+  let rejected = doForum(
+    handler,
+    forumCall {
+      Method: "PATCH",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/",
+      Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
+      Cookies: cookies,
+      CSRF: csrfOf(cookies),
+      Source: site.Origin,
+    }
+  )
   let failedPost = storage.LoadObjectByID(ctx, db, post.ID).Unwrap().Unwrap()
-  if failure.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version then t.Fatal("outbox failure committed post mutation or revision") end
+  if rejected.Code != 503 ||
+    failedPost.Body != "**before**" ||
+    failedPost.Version != post.Version then
+    t.Fatal("outbox failure committed post mutation or revision")
+  end
   let _ = storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")).Unwrap()
-  let updated = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`, Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
-  if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") then t.Fatal("rich update failed after outbox recovery") end
-  let stale = doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`, Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
-  if stale.Code != 409 then t.Fatal("stale federated edit did not conflict") end
-  let removed = doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
-  if removed.Code != 204 then t.Fatal("rich delete failed") end
+  let updated = doForum(
+    handler,
+    forumCall {
+      Method: "PATCH",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/",
+      Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
+      Cookies: cookies,
+      CSRF: csrfOf(cookies),
+      Source: site.Origin,
+    }
+  )
+  if updated.Code != 200 ||
+    !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") then
+    t.Fatal("rich update failed after outbox recovery")
+  end
+  let stale = doForum(
+    handler,
+    forumCall {
+      Method: "PATCH",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/",
+      Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
+      Cookies: cookies,
+      CSRF: csrfOf(cookies),
+      Source: site.Origin,
+    }
+  )
+  if stale.Code != 409 then
+    t.Fatal("stale federated edit did not conflict")
+  end
+  let removed = doForum(
+    handler,
+    forumCall {
+      Method: "DELETE",
+      Origin: site.Origin,
+      Path: "/api/v1/posts/",
+      Payload: "",
+      Cookies: cookies,
+      CSRF: csrfOf(cookies),
+      Source: site.Origin,
+    }
+  )
+  if removed.Code != 204 then
+    t.Fatal("rich delete failed")
+  end
   let kinds: Slice[String] = []
-  let _ = storage.MutationResult(db.Raw("SELECT kind FROM activities WHERE actor_uri=? ORDER BY CASE kind WHEN 'Create' THEN 1 WHEN 'Update' THEN 2 WHEN 'Delete' THEN 3 ELSE 4 END", alice.ActorURI).Scan(Ref.new(kinds))).Unwrap()
-  if strings.Join(kinds, ",") != "Create,Update,Delete" then t.Fatalf("missing durable post lifecycle activities: %v", kinds) end
+  let _ = storage.MutationResult(db.Raw(
+    "SELECT kind FROM activities WHERE actor_uri=? ORDER BY CASE kind WHEN 'Create' THEN 1 WHEN 'Update' THEN 2 WHEN 'Delete' THEN 3 ELSE 4 END",
+    alice.ActorURI
+  ).Scan(Ref.new(kinds))).Unwrap()
+  if strings.Join(kinds, ",") != "Create,Update,Delete" then
+    t.Fatalf("missing durable post lifecycle activities: %v", kinds)
+  end
 end

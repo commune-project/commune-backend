@@ -7,12 +7,13 @@ import config "github.com/commune-project/commune-backend/internal/config"
 import storage "github.com/commune-project/commune-backend/internal/storage"
 import federation "github.com/commune-project/commune-backend/internal/federation"
 import content "github.com/commune-project/commune-backend/internal/content"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 let activityContext = "https://www.w3.org/ns/activitystreams"
 
 # Ordinary object Announcing is recorded as a receipt only: ingesting a boost must
 # never create community membership or group approval.
-func ApplyActivity(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[Bool, String]
+func ApplyActivity(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity, payload: Slice[Byte], addressed: Slice[String]) -> Result[Bool, failure.Failure]
   let excluded = storage.IsLocalOnlyObject(ctx, db, activity.ObjectURI)
   if excluded.IsErr() then
     return Err(excluded.UnwrapErr())
@@ -89,17 +90,17 @@ func ApplyActivity(sanitizer: content.Sanitizer, ctx: context.Context, db: Ref[g
   Ok(false)
 end
 
-func ApplyPersonFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyPersonFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   if activity.ObjectURI == "" then
     return Ok(())
   end
   let target = storage.LoadActor(ctx, db, activity.ObjectURI)
   if target.IsErr() || target.Unwrap().IsNone() then
-    return Err("unknown follow target")
+    return Err(Of("unknown follow target"))
   end
   let record = target.Unwrap().Unwrap()
   if record.Kind != "Person" || !record.LocalSiteID.Valid || record.LocalSiteID.String != site.ID then
-    return Err("unknown follow target")
+    return Err(Of("unknown follow target"))
   end
   let added = storage.AddPersonFollower(ctx, db, activity.ObjectURI, activity.Actor, activity.ID)
   if added.IsErr() then
@@ -108,7 +109,7 @@ func ApplyPersonFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site
   SendFollowReply(ctx, db, site, activity.ObjectURI, activity.Actor, activity.ID, "Accept")
 end
 
-func SendFollowReply(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), String]
+func SendFollowReply(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, localActorURI: String, follower: String, followURI: String, kind: String) -> Result[(), failure.Failure]
   let key = storage.EnsureLocalKey(ctx, db, localActorURI)
   if key.IsErr() then
     return Err(key.UnwrapErr())
@@ -116,12 +117,12 @@ func SendFollowReply(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, 
   let activityURI = site.Origin + "/activities/" + rand.Text()
   let payload = "{\"@context\":\"" + activityContext + "\",\"id\":\"" + activityURI + "\",\"type\":\"" + kind + "\",\"actor\":\"" + localActorURI + "\",\"object\":{\"id\":\"" + followURI + "\",\"type\":\"Follow\",\"actor\":\"" + follower + "\",\"object\":\"" + localActorURI + "\"}}"
   let checksum = storage.PayloadChecksum(payload as Slice[Byte])
-  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), String]
+  storage.RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     if storage.MutationResult(tx.Exec("INSERT INTO activities(uri,actor_uri,kind) VALUES (?,?,?)", activityURI, localActorURI, kind)).IsErr() then
-      return Err("accept creation failed")
+      return Err(Of("accept creation failed"))
     end
     if storage.MutationResult(tx.Exec("INSERT INTO activity_payloads(activity_uri,original_payload,checksum) VALUES (?,?,?)", activityURI, payload as Slice[Byte], checksum)).IsErr() then
-      return Err("accept creation failed")
+      return Err(Of("accept creation failed"))
     end
     let planned = storage.PlanDelivery(ctx, tx, activityURI, localActorURI, [follower], "")
     if planned.IsErr() then
@@ -131,7 +132,7 @@ func SendFollowReply(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, 
   end)
 end
 
-func ApplyUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), String]
+func ApplyUndoFollow(ctx: context.Context, db: Ref[gorm.DB], site: config.Site, activity: federation.ParsedActivity) -> Result[(), failure.Failure]
   if activity.ObjectURI == "" then
     return Ok(())
   end

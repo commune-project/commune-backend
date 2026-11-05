@@ -8,16 +8,17 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_rich_mentions.mygo:12:1*/func ReconcileRichMentions(ctx context.Context, tx *gorm.DB, site config.Site, post storage.PostRecord, tags []federation.RichMention, addressed []string) Result[struct {
-}, string] {
+}, failure.Failure] {
 	loaded := storage.LoadCommunityByID(ctx, tx, post.CommunityID)
- /*line federation_rich_mentions.mygo:14:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], string](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded)) {
- /*line federation_rich_mentions.mygo:14:61*/		return Err[struct{}, string]("community unavailable")
- /*line federation_rich_mentions.mygo:14:3*/	} else {
- /*line zz_federation_rich_mentions.gen.go:19:1*/	}
- /*line federation_rich_mentions.mygo:12:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], string](loaded))
+ /*line federation_rich_mentions.mygo:21:3*/	if MygoIN6ResultM5IsErr[Option[storage.CommunityRecord], failure.Failure](loaded) || MygoIN6OptionM6IsNone[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](loaded)) {
+ /*line federation_rich_mentions.mygo:22:12*/		return Err[struct{}, failure.Failure](Of("community unavailable"))
+ /*line federation_rich_mentions.mygo:21:3*/	} else {
+ /*line zz_federation_rich_mentions.gen.go:20:1*/	}
+ /*line federation_rich_mentions.mygo:12:1*/	community := MygoIN6OptionM6Unwrap[storage.CommunityRecord](MygoIN6ResultM6Unwrap[Option[storage.CommunityRecord], failure.Failure](loaded))
 	var eligible []string = []string{}
 	var index int = 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(tags) {
@@ -26,64 +27,64 @@ import . "github.com/mygo-lang/mygo/prelude"
 		if tag.Type != "Mention" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(eligible, tag.Href, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			continue
 		} else {
- /*line zz_federation_rich_mentions.gen.go:29:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:30:1*/		}
  /*line federation_rich_mentions.mygo:12:1*/		actor := storage.LoadActor(ctx, tx, tag.Href)
-		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) {
- /*line federation_rich_mentions.mygo:23:34*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[Option[storage.ActorRecord], string](actor))
+		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], failure.Failure](actor) {
+ /*line federation_rich_mentions.mygo:35:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[Option[storage.ActorRecord], failure.Failure](actor))
  /*line federation_rich_mentions.mygo:12:1*/		} else {
- /*line zz_federation_rich_mentions.gen.go:34:1*/		}
- /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).Kind != "Person" {
+ /*line zz_federation_rich_mentions.gen.go:35:1*/		}
+ /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)) || MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)).Kind != "Person" {
 			continue
 		} else {
- /*line zz_federation_rich_mentions.gen.go:38:1*/		}
- /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)).LocalSiteID.Valid && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(addressed, tag.Href, MygoIT2EqFN6StringGN6StringEM6Equals) {
+ /*line zz_federation_rich_mentions.gen.go:39:1*/		}
+ /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)).LocalSiteID.Valid && !MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM8Contains(addressed, tag.Href, MygoIT2EqFN6StringGN6StringEM6Equals) {
 			continue
 		} else {
- /*line zz_federation_rich_mentions.gen.go:42:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:43:1*/		}
  /*line federation_rich_mentions.mygo:12:1*/		blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: tx, SiteID: site.ID}, ctx, tag.Href)
-		if MygoIN6ResultM5IsErr[bool, string](blocked) {
- /*line federation_rich_mentions.mygo:27:36*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](blocked))
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
+ /*line federation_rich_mentions.mygo:45:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](blocked))
  /*line federation_rich_mentions.mygo:12:1*/		} else {
- /*line zz_federation_rich_mentions.gen.go:47:1*/		}
- /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line zz_federation_rich_mentions.gen.go:48:1*/		}
+ /*line federation_rich_mentions.mygo:12:1*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
 			continue
 		} else {
- /*line zz_federation_rich_mentions.gen.go:51:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:52:1*/		}
  /*line federation_rich_mentions.mygo:12:1*/		member := storage.IsCurrentMember(ctx, tx, community.ID, tag.Href)
-		if MygoIN6ResultM5IsErr[bool, string](member) {
- /*line federation_rich_mentions.mygo:30:35*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](member))
+		if MygoIN6ResultM5IsErr[bool, failure.Failure](member) {
+ /*line federation_rich_mentions.mygo:52:14*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](member))
  /*line federation_rich_mentions.mygo:12:1*/		} else {
- /*line zz_federation_rich_mentions.gen.go:56:1*/		}
- /*line federation_rich_mentions.mygo:12:1*/		if community.ReadPolicy == "members" && !MygoIN6ResultM6Unwrap[bool, string](member) {
+ /*line zz_federation_rich_mentions.gen.go:57:1*/		}
+ /*line federation_rich_mentions.mygo:12:1*/		if community.ReadPolicy == "members" && !MygoIN6ResultM6Unwrap[bool, failure.Failure](member) {
 			continue
 		} else {
- /*line zz_federation_rich_mentions.gen.go:60:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:61:1*/		}
  /*line federation_rich_mentions.mygo:12:1*/		eligible = MygoIN5SliceM6Append(eligible, tag.Href)
- /*line zz_federation_rich_mentions.gen.go:62:1*/	}
- /*line federation_rich_mentions.mygo:34:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(eligible) == 0 {
-		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))) {
- /*line federation_rich_mentions.mygo:35:137*/			return Err[struct{}, string]("mentions unavailable")
- /*line federation_rich_mentions.mygo:34:3*/		} else {
- /*line zz_federation_rich_mentions.gen.go:67:1*/		}
- /*line federation_rich_mentions.mygo:34:3*/	} else {
-		if MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active AND actor_uri NOT IN ?", post.ID, eligible))) {
- /*line federation_rich_mentions.mygo:37:170*/			return Err[struct{}, string]("mentions unavailable")
- /*line federation_rich_mentions.mygo:34:3*/		} else {
- /*line zz_federation_rich_mentions.gen.go:72:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:63:1*/	}
+ /*line federation_rich_mentions.mygo:59:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(eligible) == 0 {
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", post.ID))) {
+ /*line federation_rich_mentions.mygo:61:14*/			return Err[struct{}, failure.Failure](Of("mentions unavailable"))
+ /*line federation_rich_mentions.mygo:59:3*/		} else {
+ /*line zz_federation_rich_mentions.gen.go:68:1*/		}
+ /*line federation_rich_mentions.mygo:59:3*/	} else {
+		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active AND actor_uri NOT IN ?", post.ID, eligible))) {
+ /*line federation_rich_mentions.mygo:69:14*/			return Err[struct{}, failure.Failure](Of("mentions unavailable"))
+ /*line federation_rich_mentions.mygo:59:3*/		} else {
+ /*line zz_federation_rich_mentions.gen.go:73:1*/		}
 	}
- /*line federation_rich_mentions.mygo:12:1*/	var failure string = ""
- /*line federation_rich_mentions.mygo:40:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(eligible, func(uri string) {
- /*line federation_rich_mentions.mygo:41:5*/		if failure == "" && MygoIN6ResultM5IsErr[struct{}, string](storage.MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) WHERE active DO NOTHING", rand.Text(), post.ID, uri))) {
-			failure = "mentions unavailable"
+ /*line federation_rich_mentions.mygo:12:1*/	failed := false
+ /*line federation_rich_mentions.mygo:73:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(eligible, func(uri string) {
+ /*line federation_rich_mentions.mygo:74:5*/		if !failed && MygoIN6ResultM5IsErr[struct{}, failure.Failure](storage.MutationResult(tx.Exec("INSERT INTO post_mentions(id,post_id,actor_uri) VALUES (?,?,?) ON CONFLICT (post_id,actor_uri) WHERE active DO NOTHING", rand.Text(), post.ID, uri))) {
+			failed = true
 			return
 		} else {
 			return
- /*line zz_federation_rich_mentions.gen.go:81:1*/		}
+ /*line zz_federation_rich_mentions.gen.go:82:1*/		}
 	})
- /*line federation_rich_mentions.mygo:45:3*/	if failure != "" {
- /*line federation_rich_mentions.mygo:45:32*/		return Err[struct{}, string](failure)
- /*line federation_rich_mentions.mygo:45:3*/	} else {
- /*line zz_federation_rich_mentions.gen.go:86:1*/	}
- /*line federation_rich_mentions.mygo:46:3*/	return Ok[struct{}, string](struct {
- /*line zz_federation_rich_mentions.gen.go:88:1*/	}{})
+ /*line federation_rich_mentions.mygo:84:3*/	if failed {
+ /*line federation_rich_mentions.mygo:85:12*/		return Err[struct{}, failure.Failure](Of("mentions unavailable"))
+ /*line federation_rich_mentions.mygo:84:3*/	} else {
+ /*line zz_federation_rich_mentions.gen.go:87:1*/	}
+ /*line federation_rich_mentions.mygo:87:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_federation_rich_mentions.gen.go:89:1*/	}{})
 }

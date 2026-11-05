@@ -59,13 +59,13 @@ func RequireMutation(
   db: Ref[gorm.DB],
   site: config.Site,
   request: Ref[http.Request]
-) -> Result[auth.Identity, String]
+) -> Result[auth.Identity, failure.Failure]
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    return Err("unauthenticated")
+    return Err(Of("unauthenticated"))
   end
   if !AuthorizeMutation(settings, session.Unwrap(), request) then
-    return Err("forbidden")
+    return Err(Of("forbidden"))
   end
   Ok(session.Unwrap().Identity)
 end
@@ -87,28 +87,41 @@ func CommunityRoute(
   switch (parts.Len(), request.Method)
     case (3, "POST") then
       var input = Zero[CreateCommunityInput]()
-      WithActor(settings, db, site, w, request, func(actor: auth.Identity) -> Result[(), failure.Failure]
-        WithJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input), func() -> Result[(), failure.Failure]
-          switch communities.CreateWithFollow(
-            request.Context(),
-            site,
-            actor,
-            input.Name,
-            input.Title,
-            input.Mode,
-            input.ReadPolicy,
-            input.PostPolicy,
-            input.FollowPolicy
-          )
-            case Err(reason) => Err(Classify(reason))
-            case Ok(created) then
-              WriteBrowserCommunity(db, site, w, request, 201, actor, created)
-              Ok(())
+      WithActor(
+        settings,
+        db,
+        site,
+        w,
+        request,
+        func(actor: auth.Identity) -> Result[(), failure.Failure]
+          WithJSON(
+            w,
+            request,
+            settings.Runtime.MaxBodyBytes,
+            Ref.new(input),
+            func() -> Result[(), failure.Failure]
+              switch communities.CreateWithFollow(
+                request.Context(),
+                site,
+                actor,
+                input.Name,
+                input.Title,
+                input.Mode,
+                input.ReadPolicy,
+                input.PostPolicy,
+                input.FollowPolicy
+              )
+                case Err(reason) => Err(reason)
+                case Ok(created) then
+                  WriteBrowserCommunity(db, site, w, request, 201, actor, created)
+                  Ok(())
+                end
+              end
             end
-          end
-        end)
-        Ok(())
-      end)
+          )
+          Ok(())
+        end
+      )
     end
     case (3, _) => MethodNotAllowed(w, "GET, POST")
     case (4, "GET") => let _ = BrowserReadRoute(settings, db, site, w, request, parts)
@@ -135,12 +148,12 @@ func CommunityMemberRoute(
   if section == "follow-requests" && request.Method == "GET" && parts.Len() == 5 then
     let session = Authenticated(db, site, request)
     if session.IsErr() then
-      Fail(w, session.UnwrapErr())
+      FailFailure(w, session.UnwrapErr())
       return
     end
     let checked = communities.Check(request.Context(), id, session.Unwrap().Identity, false)
     if checked.IsErr() then
-      Fail(w, checked.UnwrapErr())
+      FailFailure(w, checked.UnwrapErr())
       return
     end
     if !checked.Unwrap().Authority.Allows("manage-community") then
@@ -149,31 +162,43 @@ func CommunityMemberRoute(
     end
     let page = PageFromQuery(settings, request)
     if page.IsErr() then
-      Fail(w, page.UnwrapErr())
+      FailFailure(w, page.UnwrapErr())
       return
     end
     let rows = storage.PendingFollows(request.Context(), db, id, page.Unwrap().Limit, page.Unwrap().Offset)
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
-      WriteJSON(w, 200, FollowRequestPage {
-        Items: rows.Unwrap(),
-        Limit: page.Unwrap().Limit,
-        Offset: page.Unwrap().Offset
-      })
+      WriteJSON(
+        w,
+        200,
+        FollowRequestPage {
+          Items: rows.Unwrap(),
+          Limit: page.Unwrap().Limit,
+          Offset: page.Unwrap().Offset,
+        }
+      )
     end
     return
   end
   let actor = RequireMutation(settings, db, site, request)
   if actor.IsErr() then
-    Fail(w, actor.UnwrapErr())
+    FailFailure(w, actor.UnwrapErr())
     return
   end
   let identity = actor.Unwrap()
   if section == "follow" && (request.Method == "POST" || request.Method == "DELETE") then
-    let result = ApplyBrowserCommunityFollow(request.Context(), settings, db, site, id, identity, request.Method == "POST")
+    let result = ApplyBrowserCommunityFollow(
+      request.Context(),
+      settings,
+      db,
+      site,
+      id,
+      identity,
+      request.Method == "POST"
+    )
     if result.IsErr() then
-      Fail(w, result.UnwrapErr())
+      FailFailure(w, result.UnwrapErr())
     else
       w.WriteHeader(204)
     end
@@ -183,7 +208,7 @@ func CommunityMemberRoute(
     let input = Zero[FollowDecisionInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
       return
     end
     let accepted = input.State == "accepted"
@@ -191,7 +216,18 @@ func CommunityMemberRoute(
       WriteErrorJSON(w, 400, "invalid state")
       return
     end
-    Settle(w, ApplyReviewCommunityFollow(request.Context(), db, site, id, identity, parts.Get(5).Unwrap(), accepted))
+    Settle(
+      w,
+      ApplyReviewCommunityFollow(
+        request.Context(),
+        db,
+        site,
+        id,
+        identity,
+        parts.Get(5).Unwrap(),
+        accepted
+      )
+    )
     return
   end
   if section == "policy" then
@@ -202,15 +238,23 @@ func CommunityMemberRoute(
     let input = Zero[PolicyInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
     else
       let result = if input.FollowPolicy == "" then
         communities.SetPolicy(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy)
       else
-        communities.SetPolicyAll(request.Context(), id, identity, false, input.ReadPolicy, input.PostPolicy, input.FollowPolicy)
+        communities.SetPolicyAll(
+          request.Context(),
+          id,
+          identity,
+          false,
+          input.ReadPolicy,
+          input.PostPolicy,
+          input.FollowPolicy
+        )
       end
       if result.IsErr() then
-        Fail(w, result.UnwrapErr())
+        FailFailure(w, result.UnwrapErr())
       else
         w.WriteHeader(204)
       end
@@ -230,7 +274,16 @@ func CommunityMemberRoute(
       return
     end
     let result = if request.Method == "POST" then
-      storage.BanCommunity(request.Context(), db, site.ID, id, identity, input.Actor, input.Reason, expiry.Unwrap())
+      storage.BanCommunity(
+        request.Context(),
+        db,
+        site.ID,
+        id,
+        identity,
+        input.Actor,
+        input.Reason,
+        expiry.Unwrap()
+      )
     else
       storage.UnbanCommunity(request.Context(), db, site.ID, id, identity, input.Actor)
     end
@@ -241,7 +294,7 @@ func CommunityMemberRoute(
     let post = Zero[PostRefInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(post))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
       return
     end
     Settle(
@@ -261,7 +314,7 @@ func CommunityMemberRoute(
     let submission = Zero[SubmissionInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(submission))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
       return
     end
     Settle(
@@ -282,23 +335,33 @@ func CommunityMemberRoute(
     let input = Zero[ActorInput]()
     let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
     if decoded.IsErr() then
-      WriteErrorJSON(w, 400, decoded.UnwrapErr())
+      WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
       return
     end
     if section == "members" then
       Settle(
         w,
-        storage.RunTransaction(request.Context(), db, func(tx: Ref[gorm.DB]) -> Result[(), String]
-          let previous = storage.IsCurrentMember(request.Context(), tx, id, input.Actor)
-          if previous.IsErr() then return Err(previous.UnwrapErr()) end
-          let changed = storage.CommunityRepository {
-            DB: tx,
-            SiteID: site.ID
-          }.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
-          if changed.IsErr() then return changed end
-          if request.Method == "DELETE" && previous.Unwrap() then return QueueMemberRevocation(request.Context(), tx, site, id, input.Actor) end
-          Ok(())
-        end)
+        storage.RunTransaction(
+          request.Context(),
+          db,
+          func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
+            let previous = storage.IsCurrentMember(request.Context(), tx, id, input.Actor)
+            if previous.IsErr() then
+              return Err(previous.UnwrapErr())
+            end
+            let changed = storage.CommunityRepository {
+              DB: tx,
+              SiteID: site.ID,
+            }.SetMember(request.Context(), id, identity, false, input.Actor, request.Method == "POST")
+            if changed.IsErr() then
+              return changed
+            end
+            if request.Method == "DELETE" && previous.Unwrap() then
+              return QueueMemberRevocation(request.Context(), tx, site, id, input.Actor)
+            end
+            Ok(())
+          end
+        )
       )
     else
       Settle(
@@ -332,21 +395,33 @@ func CommunityTopicRoute(
     if request.Method == "POST" then
       let actor = RequireMutation(settings, db, site, request)
       if actor.IsErr() then
-        Fail(w, actor.UnwrapErr())
+        FailFailure(w, actor.UnwrapErr())
         return
       end
       let identity = actor.Unwrap()
       let input = Zero[CreateTopicInput]()
       let decoded = DecodeJSON(w, request, settings.Runtime.MaxBodyBytes, Ref.new(input))
       if decoded.IsErr() then
-        WriteErrorJSON(w, 400, decoded.UnwrapErr())
+        WriteErrorJSON(w, 400, decoded.UnwrapErr().Render())
       else
-        let mentions = ResolvePostMentions(request.Context(), settings, db, site, identity, id, input.Body, input.ContentFormat, false)
+        let mentions = ResolvePostMentions(
+          request.Context(),
+          settings,
+          db,
+          site,
+          identity,
+          id,
+          input.Body,
+          input.ContentFormat,
+          false
+        )
         if mentions.IsErr() then
-          Fail(w, mentions.UnwrapErr())
+          FailFailure(w, mentions.UnwrapErr())
           return
         end
-        let published = PublishForumPost(settings, db,
+        let published = PublishForumPost(
+          settings,
+          db,
           request.Context(),
           site,
           id,
@@ -363,9 +438,18 @@ func CommunityTopicRoute(
           }
         )
         if published.IsErr() then
-          Fail(w, published.UnwrapErr())
+          FailFailure(w, published.UnwrapErr())
         else
-          WriteBrowserPost(settings.Rendering.Sanitizer, db, site, w, request, 201, identity, published.Unwrap())
+          WriteBrowserPost(
+            settings.Rendering.Sanitizer,
+            db,
+            site,
+            w,
+            request,
+            201,
+            identity,
+            published.Unwrap()
+          )
         end
       end
     else

@@ -9,6 +9,7 @@ import "time"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -19,53 +20,53 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_moderation_notifications.gen_test.go:22:1*/	}
+ /*line zz_moderation_notifications.gen_test.go:23:1*/	}
  /*line moderation_notifications_test.mygo:11:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	site := testSite("a", "https://a.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionAdministrator(ctx, db, site, "admin", "administrator-password", false))
 	accounts := AccountRepository{DB: db}
-	author := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "author", "", "author-password"))
-	reporter := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "reporter", "", "reporter-password"))
-	target := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "target", "", "target-password"))
-	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], string](FindAccount(ctx, db, site.ID, "admin"))))
-	community := MygoIN6ResultM6Unwrap[CommunityRecord, string](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
+	author := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "author", "", "author-password"))
+	reporter := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "reporter", "", "reporter-password"))
+	target := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "target", "", "target-password"))
+	admin := MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[AccountRecord](MygoIN6ResultM6Unwrap[Option[AccountRecord], failure.Failure](FindAccount(ctx, db, site.ID, "admin"))))
+	community := MygoIN6ResultM6Unwrap[CommunityRecord, failure.Failure](MygoIN19CommunityRepositoryM6Create(CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "open", "Open", "federated", "eligible_users", "eligible_users"))
 	posts := PostRepository{DB: db, SiteID: site.ID}
-	post := MygoIN6ResultM6Unwrap[PostRecord, string](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, testPublishInput("Moderated", "body")))
-	MygoIN6ResultM6Unwrap[bool, string](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "report"))
-	reports := MygoIN6ResultM6Unwrap[[]ReportRecord, string](ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](ResolveReport(ctx, db, site.ID, admin, MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).ID, "resolved", "handled"))
+	post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, author, false, testPublishInput("Moderated", "body")))
+	MygoIN6ResultM6Unwrap[bool, failure.Failure](CreateReport(ctx, db, site.ID, reporter, "post", post.ID, community.ID, "report"))
+	reports := MygoIN6ResultM6Unwrap[[]ReportRecord, failure.Failure](ListReports(ctx, db, site.ID, admin, "open", community.ID, 20, 0))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ResolveReport(ctx, db, site.ID, admin, MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).ID, "resolved", "handled"))
 	expiry := sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true}
-	MygoIN6ResultM6Unwrap[struct{}, string](BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "ban", expiry))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProjectNotifications(ctx, db, 100))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](BanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI, "ban", expiry))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProjectNotifications(ctx, db, 100))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProjectNotifications(ctx, db, 100))
 	browser := BrowserRepository{DB: db, SiteID: site.ID}
-	reporterBrowser := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, reporter))
-	targetBrowser := MygoIN6ResultM6Unwrap[BrowserViewer, string](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, target))
-	reporterPage := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50))
-	targetPage := MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50))
+	reporterBrowser := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, reporter))
+	targetBrowser := MygoIN6ResultM6Unwrap[BrowserViewer, failure.Failure](MygoIN17BrowserRepositoryM6Viewer(browser, ctx, target))
+	reporterPage := MygoIN6ResultM6Unwrap[NotificationPage, failure.Failure](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50))
+	targetPage := MygoIN6ResultM6Unwrap[NotificationPage, failure.Failure](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50))
  /*line moderation_notifications_test.mygo:38:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reporterPage.Items) != 1 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(targetPage.Items) != 1 {
  /*line moderation_notifications_test.mygo:39:5*/		t.Fatal("report or ban notification was not projected exactly once")
  /*line moderation_notifications_test.mygo:38:3*/	} else {
- /*line zz_moderation_notifications.gen_test.go:52:1*/	}
+ /*line zz_moderation_notifications.gen_test.go:53:1*/	}
  /*line moderation_notifications_test.mygo:11:1*/	reportNotification := MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reporterPage.Items, 0))
 	banNotification := MygoIN6OptionM6Unwrap[NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(targetPage.Items, 0))
  /*line moderation_notifications_test.mygo:43:3*/	if reportNotification.TargetKind != "report" || reportNotification.TargetID != MygoIT8ToStringFN5Int64GN5Int64EM8ToString(MygoIN6OptionM6Unwrap[ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports, 0)).ID) || banNotification.TargetKind != "moderation" || banNotification.TargetID != target.ActorURI {
  /*line moderation_notifications_test.mygo:45:5*/		t.Fatal("moderation notification target metadata was incorrect")
  /*line moderation_notifications_test.mygo:43:3*/	} else {
- /*line zz_moderation_notifications.gen_test.go:58:1*/	}
- /*line moderation_notifications_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI))
- /*line moderation_notifications_test.mygo:48:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, targetBrowser)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50)).Items) != 0 {
+ /*line zz_moderation_notifications.gen_test.go:59:1*/	}
+ /*line moderation_notifications_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](UnbanCommunity(ctx, db, site.ID, community.ID, admin, target.ActorURI))
+ /*line moderation_notifications_test.mygo:48:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, targetBrowser)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, failure.Failure](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, targetBrowser, Page{Limit: 20, Offset: 0}, 50)).Items) != 0 {
  /*line moderation_notifications_test.mygo:50:5*/		t.Fatal("inactive ban notification remained accessible")
  /*line moderation_notifications_test.mygo:48:3*/	} else {
- /*line zz_moderation_notifications.gen_test.go:63:1*/	}
- /*line moderation_notifications_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN14FeedRepositoryM9SetHidden(FeedRepository{DB: db, SiteID: site.ID}, ctx, post.ID, true, admin))
- /*line moderation_notifications_test.mygo:53:3*/	if MygoIN6ResultM6Unwrap[int64, string](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, reporterBrowser)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, string](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50)).Items) != 0 {
+ /*line zz_moderation_notifications.gen_test.go:64:1*/	}
+ /*line moderation_notifications_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN14FeedRepositoryM9SetHidden(FeedRepository{DB: db, SiteID: site.ID}, ctx, post.ID, true, admin))
+ /*line moderation_notifications_test.mygo:53:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](MygoIN17BrowserRepositoryM23NotificationUnreadCount(browser, ctx, reporterBrowser)) != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[NotificationPage, failure.Failure](MygoIN17BrowserRepositoryM13Notifications(browser, ctx, reporterBrowser, Page{Limit: 20, Offset: 0}, 50)).Items) != 0 {
  /*line moderation_notifications_test.mygo:55:5*/		t.Fatal("inaccessible report target notification remained visible")
 		return
  /*line moderation_notifications_test.mygo:53:3*/	} else {
 		return
- /*line zz_moderation_notifications.gen_test.go:70:1*/	}
+ /*line zz_moderation_notifications.gen_test.go:71:1*/	}
 }

@@ -6,6 +6,7 @@ import strings "go:strings"
 import utf8 "go:unicode/utf8"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct MentionCandidateRecord
   ActorURI: String `gorm:"column:actor_uri"`
@@ -121,16 +122,16 @@ LIMIT @limit
 """
 
 impl MentionCandidateRepository
-  func Search(self: MentionCandidateRepository, ctx: context.Context, viewer: auth.Identity, query: String, limit: Int) -> Result[Slice[MentionCandidateRecord], String]
+  func Search(self: MentionCandidateRepository, ctx: context.Context, viewer: auth.Identity, query: String, limit: Int) -> Result[Slice[MentionCandidateRecord], failure.Failure]
     let trimmed = strings.TrimSpace(query)
     if self.SiteID == "" || viewer.AccountID <= 0i64 || viewer.ActorURI == "" then
-      return Err("invalid mention candidate viewer")
+      return Err(Of("invalid mention candidate viewer"))
     end
     if !ValidMentionCandidateQuery(trimmed) then
-      return Err("invalid mention query")
+      return Err(Of("invalid mention query"))
     end
     if !ValidMentionCandidateLimit(limit) then
-      return Err("invalid mention limit")
+      return Err(Of("invalid mention limit"))
     end
     var rows: Slice[MentionCandidateRecord] = []
     let result = self.DB.WithContext(ctx).Raw(
@@ -142,7 +143,7 @@ impl MentionCandidateRepository
       sql.Named("limit", limit)
     ).Scan(Ref.new(rows))
     if MutationResult(result).IsErr() then
-      return Err("mention candidates unavailable")
+      return Err(Of("mention candidates unavailable"))
     end
     Ok(rows)
   end

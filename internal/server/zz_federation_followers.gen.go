@@ -7,28 +7,29 @@ import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_followers.mygo:9:1*/func PersonFollowersHandler(settings config.Config, db *gorm.DB, w http.ResponseWriter, request *http.Request, actorURI string) {
 	totalItems := storage.CountPersonFollowers(request.Context(), db, actorURI)
- /*line federation_followers.mygo:11:3*/	if MygoIN6ResultM5IsErr[int64, string](totalItems) {
+ /*line federation_followers.mygo:11:3*/	if MygoIN6ResultM5IsErr[int64, failure.Failure](totalItems) {
  /*line federation_followers.mygo:12:5*/		http.NotFound(w, request)
  /*line federation_followers.mygo:11:3*/		return
 	} else {
- /*line zz_federation_followers.gen.go:18:1*/	}
+ /*line zz_federation_followers.gen.go:19:1*/	}
  /*line federation_followers.mygo:15:3*/	if request.URL.Query().Get("page") == "" {
- /*line federation_followers.mygo:16:5*/		WriteActivity(w, 200, federation.BuildFollowers(actorURI, MygoIN6ResultM6Unwrap[int64, string](totalItems)))
+ /*line federation_followers.mygo:16:5*/		WriteActivity(w, 200, federation.BuildFollowers(actorURI, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems)))
  /*line federation_followers.mygo:15:3*/		return
 	} else {
- /*line zz_federation_followers.gen.go:23:1*/	}
+ /*line zz_federation_followers.gen.go:24:1*/	}
  /*line federation_followers.mygo:9:1*/	size := CollectionPageSize(settings)
 	page := federation.PageParam(request.URL.Query().Get("page"))
 	listed := storage.ListPersonFollowers(request.Context(), db, actorURI, size, (page-1)*size)
- /*line federation_followers.mygo:22:3*/	if MygoIN6ResultM5IsErr[[]string, string](listed) {
+ /*line federation_followers.mygo:22:3*/	if MygoIN6ResultM5IsErr[[]string, failure.Failure](listed) {
  /*line federation_followers.mygo:23:5*/		http.NotFound(w, request)
  /*line federation_followers.mygo:22:3*/		return
 	} else {
- /*line zz_federation_followers.gen.go:31:1*/	}
- /*line federation_followers.mygo:26:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/followers", page, size, MygoIN6ResultM6Unwrap[int64, string](totalItems), MygoIN6ResultM6Unwrap[[]string, string](listed)))
+ /*line zz_federation_followers.gen.go:32:1*/	}
+ /*line federation_followers.mygo:26:3*/	WriteActivity(w, 200, federation.BuildUriPage(actorURI+"/followers", page, size, MygoIN6ResultM6Unwrap[int64, failure.Failure](totalItems), MygoIN6ResultM6Unwrap[[]string, failure.Failure](listed)))
 	return
- /*line zz_federation_followers.gen.go:34:1*/}
+ /*line zz_federation_followers.gen.go:35:1*/}

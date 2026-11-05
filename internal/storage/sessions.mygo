@@ -4,6 +4,7 @@ import gorm "go:gorm.io/gorm"
 import context "go:context"
 import time "go:time"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct SessionRecord
   TokenHash: Slice[Byte] `gorm:"column:token_hash;primaryKey"`
@@ -36,7 +37,7 @@ impl SessionRepository
     ctx: context.Context,
     identity: auth.Identity,
     now: time.Time
-  ) -> Result[auth.SessionTokens, String]
+  ) -> Result[auth.SessionTokens, failure.Failure]
     let tokens = auth.NewSessionTokens()
     let expires = now.Add(24 as time.Duration * time.Hour)
     # INSERT ... SELECT checks the current account/site and disabled state.
@@ -59,9 +60,9 @@ impl SessionRepository
     siteID: String,
     token: String,
     now: time.Time
-  ) -> Result[AuthenticatedSession, String]
+  ) -> Result[AuthenticatedSession, failure.Failure]
     if siteID == "" || !auth.ValidToken(token) then
-      return Err("unauthenticated")
+      return Err(Of("unauthenticated"))
     end
     var session = Zero[SessionRecord]()
     let query = self.DB.WithContext(ctx).Table("sessions").Where(
@@ -71,10 +72,10 @@ impl SessionRepository
       now
     ).Limit(1).Find(Ref.new(session))
     if MutationResult(query).IsErr() then
-      return Err("authentication unavailable")
+      return Err(Of("authentication unavailable"))
     end
     if query.RowsAffected != 1i64 then
-      return Err("unauthenticated")
+      return Err(Of("unauthenticated"))
     end
     let account = Zero[AccountRecord]()
     let accountQuery = self.DB.WithContext(ctx).Table("accounts").Where(
@@ -84,10 +85,10 @@ impl SessionRepository
       now
     ).Limit(1).Find(Ref.new(account))
     if MutationResult(accountQuery).IsErr() then
-      return Err("authentication unavailable")
+      return Err(Of("authentication unavailable"))
     end
     if accountQuery.RowsAffected != 1i64 then
-      return Err("unauthenticated")
+      return Err(Of("unauthenticated"))
     end
     Ok(AuthenticatedSession{
       Identity: account.Identity(),
@@ -101,9 +102,9 @@ impl SessionRepository
     siteID: String,
     token: String,
     now: time.Time
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     if !auth.ValidToken(token) then
-      return Err("unauthenticated")
+      return Err(Of("unauthenticated"))
     end
     MutationResult(self.DB.WithContext(ctx).Exec(
       "UPDATE sessions SET revoked_at=? WHERE site_id=? AND token_hash=? AND revoked_at IS NULL",
@@ -119,7 +120,7 @@ impl SessionRepository
     accountID: Int64,
     keepHash: Slice[Byte],
     now: time.Time
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     MutationResult(self.DB.WithContext(ctx).Exec(
       "UPDATE sessions SET revoked_at=? WHERE site_id=? AND account_id=? AND token_hash<>? AND revoked_at IS NULL",
       now,

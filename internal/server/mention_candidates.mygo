@@ -39,7 +39,7 @@ func MentionCandidatesRoute(
   end
   let identity = BrowserIdentity(db, site, request, true)
   if identity.IsErr() then
-    Fail(w, identity.UnwrapErr())
+    FailFailure(w, identity.UnwrapErr())
     return true
   end
   let query = strings.TrimSpace(request.URL.Query().Get("q"))
@@ -60,7 +60,7 @@ func MentionCandidatesRoute(
   let repository = storage.MentionCandidateRepository{DB: db, SiteID: site.ID}
   let rows = repository.Search(request.Context(), identity.Unwrap(), query, limit)
   if rows.IsErr() then
-    Fail(w, rows.UnwrapErr())
+    FailFailure(w, rows.UnwrapErr())
     return true
   end
   var outputs: Slice[MentionCandidateOutput] = []

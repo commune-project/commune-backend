@@ -8,6 +8,7 @@ import "time"
 import "strings"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line rich_test.mygo:10:1*/func TestRichObjectRepresentation(t *testing.T) {
@@ -16,32 +17,32 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line rich_test.mygo:17:3*/	if output.MediaType != "text/html" || !strings.Contains(output.Content, "<strong>中文</strong>") || output.Source.Content != post.Body || output.Source.MediaType != "text/markdown" {
  /*line rich_test.mygo:21:5*/		t.Fatal("rich output lost rendered HTML or source")
  /*line rich_test.mygo:17:3*/	} else {
- /*line zz_rich.gen_test.go:19:1*/	}
+ /*line zz_rich.gen_test.go:20:1*/	}
  /*line rich_test.mygo:10:1*/	remote := BuildObjectRepresentation(content.DefaultSanitizer, richTestPost("<p>safe</p><script>alert(1)</script>", "html"), richTestCommunity("eligible_users"))
  /*line rich_test.mygo:28:3*/	if strings.Contains(remote.Content, "<script") || !strings.Contains(remote.Content, "<p>safe</p>") || remote.Source.Content != "" {
  /*line rich_test.mygo:31:5*/		t.Fatal("remote HTML was reinterpreted or unsafe")
 		return
  /*line rich_test.mygo:28:3*/	} else {
 		return
- /*line zz_rich.gen_test.go:26:1*/	}
+ /*line zz_rich.gen_test.go:27:1*/	}
 }
  /*line rich_test.mygo:35:1*/func richTestPost(body string, format string) storage.PostRecord {
  /*line rich_test.mygo:36:3*/	return storage.PostRecord{ID: "", ObjectURI: Zero[sql.NullString](), CommunityID: "", FederationMode: "", AuthorActorURI: "", ObjectType: "Page", Title: Zero[sql.NullString](), Body: body, ContentFormat: format, SearchText: "", RichMetadata: "", ParentID: Zero[sql.NullString](), AuthoredAt: Zero[time.Time](), UpdatedAt: Zero[time.Time](), Version: int64(0), DeletedAt: Zero[sql.NullTime]()}
- /*line zz_rich.gen_test.go:30:1*/}
+ /*line zz_rich.gen_test.go:31:1*/}
  /*line rich_test.mygo:39:1*/func richTestCommunity(readPolicy string) storage.CommunityRecord {
  /*line rich_test.mygo:40:3*/	return storage.CommunityRecord{ID: "", HostSiteID: "", ActorURI: Zero[sql.NullString](), CreatorActorURI: "", FederationMode: "federated", ReadPolicy: readPolicy, PostPolicy: "eligible_users", FollowPolicy: "open", Name: "", Title: "", Description: "", PolicyVersion: int64(1)}
- /*line zz_rich.gen_test.go:33:1*/}
+ /*line zz_rich.gen_test.go:34:1*/}
  /*line rich_test.mygo:43:1*/func TestParseRichObjectBoundaries(t *testing.T) {
 	payload := "{\"id\":\"https://remote.example/p/1\",\"type\":\"Page\",\"attributedTo\":\"https://remote.example/u/a\",\"published\":\"2026-01-01T00:00:00Z\",\"content\":\"<p>safe</p>\",\"source\":{\"content\":\"<script>untrusted</script>\",\"mediaType\":\"text/markdown\"},\"extension\":{\"untouched\":true}}"
-	parsed := MygoIN6ResultM6Unwrap[RichObject, string](ParseRichObject(content.DefaultSanitizer, []byte(payload)))
+	parsed := MygoIN6ResultM6Unwrap[RichObject, failure.Failure](ParseRichObject(content.DefaultSanitizer, []byte(payload)))
  /*line rich_test.mygo:46:3*/	if parsed.Content != "<p>safe</p>" || parsed.Source.Content != "<script>untrusted</script>" {
  /*line rich_test.mygo:47:5*/		t.Fatal("source replaced display or optional fields rejected")
  /*line rich_test.mygo:46:3*/	} else {
- /*line zz_rich.gen_test.go:40:1*/	}
- /*line rich_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[RichObject, string](ParseRichObject(content.DefaultSanitizer, []byte(strings.Replace(payload, "https://remote.example/p/1", "javascript:bad", 1)))) {
+ /*line zz_rich.gen_test.go:41:1*/	}
+ /*line rich_test.mygo:49:3*/	if MygoIN6ResultM4IsOk[RichObject, failure.Failure](ParseRichObject(content.DefaultSanitizer, []byte(strings.Replace(payload, "https://remote.example/p/1", "javascript:bad", 1)))) {
  /*line rich_test.mygo:50:5*/		t.Fatal("invalid canonical identity accepted")
 		return
  /*line rich_test.mygo:49:3*/	} else {
 		return
- /*line zz_rich.gen_test.go:46:1*/	}
+ /*line zz_rich.gen_test.go:47:1*/	}
 }

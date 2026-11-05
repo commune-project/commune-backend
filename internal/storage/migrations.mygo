@@ -2,6 +2,7 @@ package storage
 
 import sql "go:database/sql"
 import context "go:context"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 let ledgerSQL = """
 CREATE TABLE IF NOT EXISTS public.commune_schema_migrations (
@@ -12,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.commune_schema_migrations (
 )
 """
 
-func ReadAppliedRows(rows: Ref[sql.Rows]) -> Result[Slice[AppliedMigration], String]
+func ReadAppliedRows(rows: Ref[sql.Rows]) -> Result[Slice[AppliedMigration], failure.Failure]
   var applied: Slice[AppliedMigration] = []
   while rows.Next()
     let version = 0
@@ -21,20 +22,20 @@ func ReadAppliedRows(rows: Ref[sql.Rows]) -> Result[Slice[AppliedMigration], Str
     let scan = rows.Scan(Ref.new(version), Ref.new(name), Ref.new(checksum))
     if scan.IsErr() then
       let _ = rows.Close()
-      return Err("cannot read migration history")
+      return Err(Of("cannot read migration history"))
     end
     applied = applied.Append(AppliedMigration { Version: version, Name: name, Checksum: checksum })
   end
   let rowError = rows.Err()
   let closeError = rows.Close()
   if rowError.IsErr() || closeError.IsErr() then
-    return Err("cannot finish reading migration history")
+    return Err(Of("cannot finish reading migration history"))
   end
   Ok(applied)
 end
 
 # This path performs no DDL, migration, provisioning, or demo seeding.
-func CheckSchema(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
+func CheckSchema(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), failure.Failure]
   let catalogResult = MigrationCatalog()
   if catalogResult.IsErr() then
     return Err(catalogResult.UnwrapErr())
@@ -42,14 +43,14 @@ func CheckSchema(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
   let exists = false
   let lookup = db.QueryRowContext(ctx, "SELECT to_regclass('public.commune_schema_migrations') IS NOT NULL").Scan(Ref.new(exists))
   if lookup.IsErr() then
-    return Err("cannot check database schema")
+    return Err(Of("cannot check database schema"))
   end
   if !exists then
-    return Err("database schema is absent; run explicit migration")
+    return Err(Of("database schema is absent; run explicit migration"))
   end
   let query = db.QueryContext(ctx, "SELECT version, name, checksum FROM public.commune_schema_migrations ORDER BY version")
   if query.IsErr() then
-    return Err("cannot query migration history")
+    return Err(Of("cannot query migration history"))
   end
   let applied = ReadAppliedRows(query.Unwrap())
   if applied.IsErr() then
@@ -58,23 +59,23 @@ func CheckSchema(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
   ValidateApplied(applied.Unwrap(), catalogResult.Unwrap(), true)
 end
 
-func ApplyTransaction(ctx: context.Context, tx: Ref[sql.Tx], catalog: Slice[Migration]) -> Result[(), String]
+func ApplyTransaction(ctx: context.Context, tx: Ref[sql.Tx], catalog: Slice[Migration]) -> Result[(), failure.Failure]
   # Shared across binaries: concurrent operators serialize before reading history.
   let lock = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(1129270605)")
   if lock.IsErr() then
-    return Err("cannot acquire migration lock")
+    return Err(Of("cannot acquire migration lock"))
   end
   let path = tx.ExecContext(ctx, "SET LOCAL search_path = public, pg_catalog")
   if path.IsErr() then
-    return Err("cannot set migration schema path")
+    return Err(Of("cannot set migration schema path"))
   end
   let ledger = tx.ExecContext(ctx, ledgerSQL)
   if ledger.IsErr() then
-    return Err("cannot initialize migration ledger")
+    return Err(Of("cannot initialize migration ledger"))
   end
   let query = tx.QueryContext(ctx, "SELECT version, name, checksum FROM public.commune_schema_migrations ORDER BY version")
   if query.IsErr() then
-    return Err("cannot query migration history")
+    return Err(Of("cannot query migration history"))
   end
   let read = ReadAppliedRows(query.Unwrap())
   if read.IsErr() then
@@ -90,18 +91,18 @@ func ApplyTransaction(ctx: context.Context, tx: Ref[sql.Tx], catalog: Slice[Migr
     let migration = catalog.Get(i).Unwrap()
     let execute = tx.ExecContext(ctx, migration.SQL)
     if execute.IsErr() then
-      return Err("migration failed: " + migration.Name)
+      return Err(Of("migration failed: " + migration.Name))
     end
     let record = tx.ExecContext(ctx, "INSERT INTO public.commune_schema_migrations (version, name, checksum) VALUES ($1, $2, $3)", migration.Version, migration.Name, migration.Checksum)
     if record.IsErr() then
-      return Err("cannot record migration: " + migration.Name)
+      return Err(Of("cannot record migration: " + migration.Name))
     end
     i = i + 1
   end
   Ok(())
 end
 
-func Migrate(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
+func Migrate(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), failure.Failure]
   let catalog = MigrationCatalog()
   if catalog.IsErr() then
     return Err(catalog.UnwrapErr())
@@ -109,7 +110,7 @@ func Migrate(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
   let options = sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}
   let begin = db.BeginTx(ctx, Ref.new(options))
   if begin.IsErr() then
-    return Err("cannot begin migration transaction")
+    return Err(Of("cannot begin migration transaction"))
   end
   let tx = begin.Unwrap()
   let apply = ApplyTransaction(ctx, tx, catalog.Unwrap())
@@ -119,7 +120,7 @@ func Migrate(ctx: context.Context, db: Ref[sql.DB]) -> Result[(), String]
   end
   let commit = tx.Commit()
   if commit.IsErr() then
-    return Err("cannot commit migration transaction; inspect history before retrying")
+    return Err(Of("cannot commit migration transaction; inspect history before retrying"))
   end
   Ok(())
 end

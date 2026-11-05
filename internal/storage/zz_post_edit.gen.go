@@ -9,169 +9,170 @@ import "strings"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line post_edit.mygo:11:1*/func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, string] {
- /*line post_edit.mygo:23:5*/	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, "", []string{}, []ResolvedPostMention{}, false, expectedVersion, sanitizer)
- /*line zz_post_edit.gen.go:16:1*/}
- /*line post_edit.mygo:11:1*/func MygoIN14PostRepositoryM11EditContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, string] {
- /*line post_edit.mygo:51:5*/	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, []ResolvedPostMention{}, true, expectedVersion, sanitizer)
- /*line zz_post_edit.gen.go:19:1*/}
- /*line post_edit.mygo:11:1*/func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, mentions []ResolvedPostMention, replaceAttachments bool, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, string] {
+ /*line post_edit.mygo:12:1*/func MygoIN14PostRepositoryM4Edit(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, failure.Failure] {
+ /*line post_edit.mygo:24:5*/	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, "", []string{}, []ResolvedPostMention{}, false, expectedVersion, sanitizer)
+ /*line zz_post_edit.gen.go:17:1*/}
+ /*line post_edit.mygo:12:1*/func MygoIN14PostRepositoryM11EditContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, failure.Failure] {
+ /*line post_edit.mygo:52:5*/	return MygoIN14PostRepositoryM19EditResolvedContent(self, ctx, id, identity, remoteVerified, title, body, contentFormat, attachmentIDs, []ResolvedPostMention{}, true, expectedVersion, sanitizer)
+ /*line zz_post_edit.gen.go:20:1*/}
+ /*line post_edit.mygo:12:1*/func MygoIN14PostRepositoryM19EditResolvedContent(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, title string, body string, contentFormat string, attachmentIDs []string, mentions []ResolvedPostMention, replaceAttachments bool, expectedVersion int64, sanitizer content.Sanitizer) Result[PostRecord, failure.Failure] {
 	trimmed := strings.TrimSpace(body)
 	cleanTitle := strings.TrimSpace(title)
- /*line post_edit.mygo:83:5*/	if trimmed == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(trimmed)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(cleanTitle)) > 200 {
- /*line post_edit.mygo:86:14*/		return Err[PostRecord, string]("invalid post input")
- /*line post_edit.mygo:83:5*/	} else {
- /*line zz_post_edit.gen.go:26:1*/	}
- /*line post_edit.mygo:88:5*/	return MygoIN14PostRepositoryM12MutateAuthor(self, ctx, id, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, string] {
- /*line post_edit.mygo:94:9*/		if post.DeletedAt.Valid {
- /*line post_edit.mygo:95:18*/			return Err[struct{}, string]("not found")
- /*line post_edit.mygo:94:9*/		} else {
- /*line zz_post_edit.gen.go:31:1*/		}
- /*line post_edit.mygo:97:9*/		if expectedVersion <= int64(0) {
- /*line post_edit.mygo:98:18*/			return Err[struct{}, string]("invalid expected version")
- /*line post_edit.mygo:97:9*/		} else {
- /*line zz_post_edit.gen.go:35:1*/		}
- /*line post_edit.mygo:100:9*/		if post.Version != expectedVersion {
- /*line post_edit.mygo:101:18*/			return Err[struct{}, string]("edit_conflict")
- /*line post_edit.mygo:100:9*/		} else {
- /*line zz_post_edit.gen.go:39:1*/		}
- /*line post_edit.mygo:93:7*/		var __mygo_expr_1 string
+ /*line post_edit.mygo:84:5*/	if trimmed == "" || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(trimmed)) > 65536 || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len([]byte(cleanTitle)) > 200 {
+ /*line post_edit.mygo:87:14*/		return Err[PostRecord, failure.Failure](Of("invalid post input"))
+ /*line post_edit.mygo:84:5*/	} else {
+ /*line zz_post_edit.gen.go:27:1*/	}
+ /*line post_edit.mygo:89:5*/	return MygoIN14PostRepositoryM12MutateAuthor(self, ctx, id, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, failure.Failure] {
+ /*line post_edit.mygo:95:9*/		if post.DeletedAt.Valid {
+ /*line post_edit.mygo:96:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line post_edit.mygo:95:9*/		} else {
+ /*line zz_post_edit.gen.go:32:1*/		}
+ /*line post_edit.mygo:98:9*/		if expectedVersion <= int64(0) {
+ /*line post_edit.mygo:99:18*/			return Err[struct{}, failure.Failure](Of("invalid expected version"))
+ /*line post_edit.mygo:98:9*/		} else {
+ /*line zz_post_edit.gen.go:36:1*/		}
+ /*line post_edit.mygo:101:9*/		if post.Version != expectedVersion {
+ /*line post_edit.mygo:102:18*/			return Err[struct{}, failure.Failure](Of("edit_conflict"))
+ /*line post_edit.mygo:101:9*/		} else {
+ /*line zz_post_edit.gen.go:40:1*/		}
+ /*line post_edit.mygo:94:7*/		var __mygo_expr_1 string
 		if contentFormat == "" {
- /*line post_edit.mygo:104:11*/			var __mygo_expr_0 string
+ /*line post_edit.mygo:105:11*/			var __mygo_expr_0 string
 			if post.ContentFormat == "" {
 				__mygo_expr_0 = "legacy"
 			} else {
 				__mygo_expr_0 = post.ContentFormat
- /*line zz_post_edit.gen.go:47:1*/			}
- /*line post_edit.mygo:93:7*/			__mygo_expr_1 = __mygo_expr_0
+ /*line zz_post_edit.gen.go:48:1*/			}
+ /*line post_edit.mygo:94:7*/			__mygo_expr_1 = __mygo_expr_0
 		} else {
 			__mygo_expr_1 = contentFormat
- /*line zz_post_edit.gen.go:51:1*/		}
- /*line post_edit.mygo:93:7*/		format := __mygo_expr_1
- /*line post_edit.mygo:112:9*/		if format != "legacy" && format != "markdown" {
- /*line post_edit.mygo:113:18*/			return Err[struct{}, string]("invalid content format")
- /*line post_edit.mygo:112:9*/		} else {
- /*line zz_post_edit.gen.go:56:1*/		}
- /*line post_edit.mygo:115:9*/		if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" {
- /*line post_edit.mygo:116:18*/			return Err[struct{}, string]("invalid post input")
- /*line post_edit.mygo:115:9*/		} else {
- /*line zz_post_edit.gen.go:60:1*/		}
- /*line post_edit.mygo:93:7*/		plain := content.PlainRichText(sanitizer, trimmed, format)
- /*line post_edit.mygo:119:9*/		if MygoIN6ResultM5IsErr[string, string](plain) {
- /*line post_edit.mygo:120:18*/			return Err[struct{}, string]("invalid post input")
- /*line post_edit.mygo:119:9*/		} else {
- /*line zz_post_edit.gen.go:65:1*/		}
- /*line post_edit.mygo:93:7*/		updated := MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=?,version=version+1 WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, format, cleanTitle+" "+MygoIN6ResultM6Unwrap[string, string](plain), time.Now().UTC().Truncate(time.Microsecond), id))
- /*line post_edit.mygo:134:9*/		if MygoIN6ResultM5IsErr[struct{}, string](updated) {
- /*line post_edit.mygo:135:18*/			return updated
- /*line post_edit.mygo:134:9*/		} else {
- /*line zz_post_edit.gen.go:70:1*/		}
- /*line post_edit.mygo:93:7*/		changed := post
+ /*line zz_post_edit.gen.go:52:1*/		}
+ /*line post_edit.mygo:94:7*/		format := __mygo_expr_1
+ /*line post_edit.mygo:113:9*/		if format != "legacy" && format != "markdown" {
+ /*line post_edit.mygo:114:18*/			return Err[struct{}, failure.Failure](Of("invalid content format"))
+ /*line post_edit.mygo:113:9*/		} else {
+ /*line zz_post_edit.gen.go:57:1*/		}
+ /*line post_edit.mygo:116:9*/		if post.Title.Valid && cleanTitle == "" || !post.Title.Valid && cleanTitle != "" {
+ /*line post_edit.mygo:117:18*/			return Err[struct{}, failure.Failure](Of("invalid post input"))
+ /*line post_edit.mygo:116:9*/		} else {
+ /*line zz_post_edit.gen.go:61:1*/		}
+ /*line post_edit.mygo:94:7*/		plain := content.PlainRichText(sanitizer, trimmed, format)
+ /*line post_edit.mygo:120:9*/		if MygoIN6ResultM5IsErr[string, string](plain) {
+ /*line post_edit.mygo:121:18*/			return Err[struct{}, failure.Failure](Of("invalid post input"))
+ /*line post_edit.mygo:120:9*/		} else {
+ /*line zz_post_edit.gen.go:66:1*/		}
+ /*line post_edit.mygo:94:7*/		updated := MutationResult(tx.Exec("UPDATE posts SET title=?,body=?,content_format=?,search_text=?,updated_at=?,version=version+1 WHERE id=? AND deleted_at IS NULL", sql.NullString{String: cleanTitle, Valid: cleanTitle != ""}, trimmed, format, cleanTitle+" "+MygoIN6ResultM6Unwrap[string, string](plain), time.Now().UTC().Truncate(time.Microsecond), id))
+ /*line post_edit.mygo:135:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](updated) {
+ /*line post_edit.mygo:136:18*/			return updated
+ /*line post_edit.mygo:135:9*/		} else {
+ /*line zz_post_edit.gen.go:71:1*/		}
+ /*line post_edit.mygo:94:7*/		changed := post
 		changed.Body = trimmed
 		changed.ContentFormat = format
 		ids := attachmentIDs
- /*line post_edit.mygo:141:9*/		if !replaceAttachments {
+ /*line post_edit.mygo:142:9*/		if !replaceAttachments {
 			states := LoadPostRichStates(ctx, tx, []string{post.ID})
- /*line post_edit.mygo:143:11*/			if MygoIN6ResultM5IsErr[[]PostRichState, string](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRichState, string](states)) != 1 {
- /*line post_edit.mygo:144:20*/				return Err[struct{}, string]("post content unavailable")
- /*line post_edit.mygo:143:11*/			} else {
- /*line zz_post_edit.gen.go:80:1*/			}
- /*line post_edit.mygo:141:9*/			media := MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, string](states), 0)))
- /*line post_edit.mygo:147:11*/			if MygoIN6ResultM5IsErr[[]content.RichMedia, string](media) {
- /*line post_edit.mygo:148:20*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]content.RichMedia, string](media))
- /*line post_edit.mygo:147:11*/			} else {
- /*line zz_post_edit.gen.go:85:1*/			}
- /*line post_edit.mygo:141:9*/			ids = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]content.RichMedia, string](media), func(item content.RichMedia) string {
- /*line post_edit.mygo:150:76*/				return item.UploadID
- /*line zz_post_edit.gen.go:88:1*/			})
- /*line post_edit.mygo:141:9*/		} else {
- /*line zz_post_edit.gen.go:90:1*/		}
- /*line post_edit.mygo:93:7*/		retained := RetainPostMentionsTx(ctx, tx, post, trimmed, format, mentions)
- /*line post_edit.mygo:153:9*/		if MygoIN6ResultM5IsErr[[]ResolvedPostMention, string](retained) {
- /*line post_edit.mygo:154:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[[]ResolvedPostMention, string](retained))
- /*line post_edit.mygo:153:9*/		} else {
- /*line zz_post_edit.gen.go:95:1*/		}
- /*line post_edit.mygo:156:9*/		return ValidatePostContentTx(ctx, tx, sanitizer, self.SiteID, identity, changed, ids, MygoIN6ResultM6Unwrap[[]ResolvedPostMention, string](retained))
- /*line zz_post_edit.gen.go:97:1*/	})
+ /*line post_edit.mygo:144:11*/			if MygoIN6ResultM5IsErr[[]PostRichState, failure.Failure](states) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](states)) != 1 {
+ /*line post_edit.mygo:145:20*/				return Err[struct{}, failure.Failure](Of("post content unavailable"))
+ /*line post_edit.mygo:144:11*/			} else {
+ /*line zz_post_edit.gen.go:81:1*/			}
+ /*line post_edit.mygo:142:9*/			media := MygoIN13PostRichStateM9RichMedia(MygoIN6OptionM6Unwrap[PostRichState](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]PostRichState, failure.Failure](states), 0)))
+ /*line post_edit.mygo:148:11*/			if MygoIN6ResultM5IsErr[[]content.RichMedia, failure.Failure](media) {
+ /*line post_edit.mygo:149:20*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]content.RichMedia, failure.Failure](media))
+ /*line post_edit.mygo:148:11*/			} else {
+ /*line zz_post_edit.gen.go:86:1*/			}
+ /*line post_edit.mygo:142:9*/			ids = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(MygoIN6ResultM6Unwrap[[]content.RichMedia, failure.Failure](media), func(item content.RichMedia) string {
+ /*line post_edit.mygo:151:76*/				return item.UploadID
+ /*line zz_post_edit.gen.go:89:1*/			})
+ /*line post_edit.mygo:142:9*/		} else {
+ /*line zz_post_edit.gen.go:91:1*/		}
+ /*line post_edit.mygo:94:7*/		retained := RetainPostMentionsTx(ctx, tx, post, trimmed, format, mentions)
+ /*line post_edit.mygo:154:9*/		if MygoIN6ResultM5IsErr[[]ResolvedPostMention, failure.Failure](retained) {
+ /*line post_edit.mygo:155:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[[]ResolvedPostMention, failure.Failure](retained))
+ /*line post_edit.mygo:154:9*/		} else {
+ /*line zz_post_edit.gen.go:96:1*/		}
+ /*line post_edit.mygo:157:9*/		return ValidatePostContentTx(ctx, tx, sanitizer, self.SiteID, identity, changed, ids, MygoIN6ResultM6Unwrap[[]ResolvedPostMention, failure.Failure](retained))
+ /*line zz_post_edit.gen.go:98:1*/	})
 }
- /*line post_edit.mygo:11:1*/func MygoIN14PostRepositoryM6Delete(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[struct{}, string] {
-	result := MygoIN14PostRepositoryM12MutateAuthor(self, ctx, id, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, string] {
- /*line post_edit.mygo:173:9*/		if post.DeletedAt.Valid {
- /*line post_edit.mygo:174:18*/			return Ok[struct{}, string](struct {
- /*line zz_post_edit.gen.go:103:1*/			}{})
- /*line post_edit.mygo:173:9*/		} else {
- /*line zz_post_edit.gen.go:105:1*/		}
- /*line post_edit.mygo:176:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", id))) || MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", id))) {
- /*line post_edit.mygo:178:18*/			return Err[struct{}, string]("post content unavailable")
- /*line post_edit.mygo:176:9*/		} else {
- /*line zz_post_edit.gen.go:109:1*/		}
- /*line post_edit.mygo:180:9*/		return MutationResult(tx.Exec("UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=?,version=version+1 WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
- /*line zz_post_edit.gen.go:111:1*/	})
- /*line post_edit.mygo:188:5*/	if MygoIN6ResultM5IsErr[PostRecord, string](result) {
- /*line post_edit.mygo:189:14*/		return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[PostRecord, string](result))
- /*line post_edit.mygo:188:5*/	} else {
- /*line zz_post_edit.gen.go:115:1*/	}
- /*line post_edit.mygo:191:5*/	return Ok[struct{}, string](struct {
- /*line zz_post_edit.gen.go:117:1*/	}{})
+ /*line post_edit.mygo:12:1*/func MygoIN14PostRepositoryM6Delete(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool) Result[struct{}, failure.Failure] {
+	result := MygoIN14PostRepositoryM12MutateAuthor(self, ctx, id, identity, remoteVerified, func(tx *gorm.DB, post PostRecord) Result[struct{}, failure.Failure] {
+ /*line post_edit.mygo:174:9*/		if post.DeletedAt.Valid {
+ /*line post_edit.mygo:175:18*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_post_edit.gen.go:104:1*/			}{})
+ /*line post_edit.mygo:174:9*/		} else {
+ /*line zz_post_edit.gen.go:106:1*/		}
+ /*line post_edit.mygo:177:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE media_bindings SET active=false WHERE post_id=? AND active", id))) || MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE post_mentions SET active=false WHERE post_id=? AND active", id))) {
+ /*line post_edit.mygo:179:18*/			return Err[struct{}, failure.Failure](Of("post content unavailable"))
+ /*line post_edit.mygo:177:9*/		} else {
+ /*line zz_post_edit.gen.go:110:1*/		}
+ /*line post_edit.mygo:181:9*/		return MutationResult(tx.Exec("UPDATE posts SET body='',search_text='',deleted_at=?,updated_at=?,version=version+1 WHERE id=?", time.Now().UTC().Truncate(time.Microsecond), time.Now().UTC().Truncate(time.Microsecond), id))
+ /*line zz_post_edit.gen.go:112:1*/	})
+ /*line post_edit.mygo:189:5*/	if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](result) {
+ /*line post_edit.mygo:190:14*/		return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](result))
+ /*line post_edit.mygo:189:5*/	} else {
+ /*line zz_post_edit.gen.go:116:1*/	}
+ /*line post_edit.mygo:192:5*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_post_edit.gen.go:118:1*/	}{})
 }
- /*line post_edit.mygo:11:1*/func MygoIN14PostRepositoryM12MutateAuthor(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, string]) Result[PostRecord, string] {
+ /*line post_edit.mygo:12:1*/func MygoIN14PostRepositoryM12MutateAuthor(self PostRepository, ctx context.Context, id string, identity auth.Identity, remoteVerified bool, work func(*gorm.DB, PostRecord) Result[struct{}, failure.Failure]) Result[PostRecord, failure.Failure] {
 	stored := Zero[PostRecord]()
-	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, string] {
- /*line post_edit.mygo:205:7*/		loaded := loadPostForUpdate(tx, id)
- /*line post_edit.mygo:207:9*/		if MygoIN6ResultM5IsErr[PostRecord, string](loaded) {
- /*line post_edit.mygo:208:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[PostRecord, string](loaded))
- /*line post_edit.mygo:207:9*/		} else {
- /*line zz_post_edit.gen.go:126:1*/		}
- /*line post_edit.mygo:205:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, string](loaded)
+	result := RunTransaction(ctx, self.DB, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line post_edit.mygo:206:7*/		loaded := loadPostForUpdate(tx, id)
+ /*line post_edit.mygo:208:9*/		if MygoIN6ResultM5IsErr[PostRecord, failure.Failure](loaded) {
+ /*line post_edit.mygo:209:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[PostRecord, failure.Failure](loaded))
+ /*line post_edit.mygo:208:9*/		} else {
+ /*line zz_post_edit.gen.go:127:1*/		}
+ /*line post_edit.mygo:206:7*/		post := MygoIN6ResultM6Unwrap[PostRecord, failure.Failure](loaded)
 		received := QueryExists(tx.WithContext(ctx).Table("site_posts").Where("site_id=? AND post_id=? AND hidden_at IS NULL", self.SiteID, id))
- /*line post_edit.mygo:216:9*/		if MygoIN6ResultM5IsErr[bool, string](received) {
- /*line post_edit.mygo:217:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[bool, string](received))
- /*line post_edit.mygo:216:9*/		} else {
- /*line zz_post_edit.gen.go:132:1*/		}
- /*line post_edit.mygo:219:9*/		if !MygoIN6ResultM6Unwrap[bool, string](received) {
- /*line post_edit.mygo:220:18*/			return Err[struct{}, string]("not found")
- /*line post_edit.mygo:219:9*/		} else {
- /*line zz_post_edit.gen.go:136:1*/		}
- /*line post_edit.mygo:205:7*/		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
+ /*line post_edit.mygo:217:9*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](received) {
+ /*line post_edit.mygo:218:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[bool, failure.Failure](received))
+ /*line post_edit.mygo:217:9*/		} else {
+ /*line zz_post_edit.gen.go:133:1*/		}
+ /*line post_edit.mygo:220:9*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](received) {
+ /*line post_edit.mygo:221:18*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line post_edit.mygo:220:9*/		} else {
+ /*line zz_post_edit.gen.go:137:1*/		}
+ /*line post_edit.mygo:206:7*/		community := CommunityRepository{DB: tx, SiteID: self.SiteID}
 		access := MygoIN19CommunityRepositoryM15CheckAuthorship(community, ctx, post.CommunityID, identity, remoteVerified)
- /*line post_edit.mygo:224:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](access) {
- /*line post_edit.mygo:225:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[CommunityAccess, string](access))
- /*line post_edit.mygo:224:9*/		} else {
- /*line zz_post_edit.gen.go:142:1*/		}
- /*line post_edit.mygo:227:9*/		if !MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[CommunityAccess, string](access), post.AuthorActorURI) {
- /*line post_edit.mygo:228:18*/			return Err[struct{}, string]("forbidden")
- /*line post_edit.mygo:227:9*/		} else {
- /*line zz_post_edit.gen.go:146:1*/		}
- /*line post_edit.mygo:205:7*/		changed := work(tx, post)
- /*line post_edit.mygo:231:9*/		if MygoIN6ResultM5IsErr[struct{}, string](changed) {
- /*line post_edit.mygo:232:18*/			return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](changed))
- /*line post_edit.mygo:231:9*/		} else {
- /*line zz_post_edit.gen.go:151:1*/		}
- /*line post_edit.mygo:234:9*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Table("posts").Where("id=?", id).Find(&stored))) {
- /*line post_edit.mygo:235:18*/			return Err[struct{}, string]("post update failed")
- /*line post_edit.mygo:234:9*/		} else {
- /*line zz_post_edit.gen.go:155:1*/		}
- /*line post_edit.mygo:237:9*/		return Ok[struct{}, string](struct {
- /*line zz_post_edit.gen.go:157:1*/		}{})
+ /*line post_edit.mygo:225:9*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](access) {
+ /*line post_edit.mygo:226:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[CommunityAccess, failure.Failure](access))
+ /*line post_edit.mygo:225:9*/		} else {
+ /*line zz_post_edit.gen.go:143:1*/		}
+ /*line post_edit.mygo:228:9*/		if !MygoIN15CommunityAccessM11CanEditBody(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](access), post.AuthorActorURI) {
+ /*line post_edit.mygo:229:18*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line post_edit.mygo:228:9*/		} else {
+ /*line zz_post_edit.gen.go:147:1*/		}
+ /*line post_edit.mygo:206:7*/		changed := work(tx, post)
+ /*line post_edit.mygo:232:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](changed) {
+ /*line post_edit.mygo:233:18*/			return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](changed))
+ /*line post_edit.mygo:232:9*/		} else {
+ /*line zz_post_edit.gen.go:152:1*/		}
+ /*line post_edit.mygo:235:9*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Table("posts").Where("id=?", id).Find(&stored))) {
+ /*line post_edit.mygo:236:18*/			return Err[struct{}, failure.Failure](Of("post update failed"))
+ /*line post_edit.mygo:235:9*/		} else {
+ /*line zz_post_edit.gen.go:156:1*/		}
+ /*line post_edit.mygo:238:9*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_post_edit.gen.go:158:1*/		}{})
 	})
- /*line post_edit.mygo:240:5*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line post_edit.mygo:241:14*/		return Err[PostRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line post_edit.mygo:240:5*/	} else {
- /*line zz_post_edit.gen.go:162:1*/	}
- /*line post_edit.mygo:243:5*/	return Ok[PostRecord, string](stored)
- /*line zz_post_edit.gen.go:164:1*/}
- /*line post_edit.mygo:247:1*/func loadPostForUpdate(tx *gorm.DB, id string) Result[PostRecord, string] {
+ /*line post_edit.mygo:241:5*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line post_edit.mygo:242:14*/		return Err[PostRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line post_edit.mygo:241:5*/	} else {
+ /*line zz_post_edit.gen.go:163:1*/	}
+ /*line post_edit.mygo:244:5*/	return Ok[PostRecord, failure.Failure](stored)
+ /*line zz_post_edit.gen.go:165:1*/}
+ /*line post_edit.mygo:248:1*/func loadPostForUpdate(tx *gorm.DB, id string) Result[PostRecord, failure.Failure] {
 	record := Zero[PostRecord]()
 	found := tx.Raw("SELECT * FROM posts WHERE id=? FOR UPDATE", id).Scan(&record)
- /*line post_edit.mygo:250:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line post_edit.mygo:251:12*/		return Err[PostRecord, string]("post unavailable")
- /*line post_edit.mygo:250:3*/	} else {
- /*line zz_post_edit.gen.go:171:1*/	}
- /*line post_edit.mygo:253:3*/	if found.RowsAffected != int64(1) {
- /*line post_edit.mygo:254:12*/		return Err[PostRecord, string]("not found")
- /*line post_edit.mygo:253:3*/	} else {
- /*line zz_post_edit.gen.go:175:1*/	}
- /*line post_edit.mygo:256:3*/	return Ok[PostRecord, string](record)
- /*line zz_post_edit.gen.go:177:1*/}
+ /*line post_edit.mygo:251:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(found)) {
+ /*line post_edit.mygo:252:12*/		return Err[PostRecord, failure.Failure](Of("post unavailable"))
+ /*line post_edit.mygo:251:3*/	} else {
+ /*line zz_post_edit.gen.go:172:1*/	}
+ /*line post_edit.mygo:254:3*/	if found.RowsAffected != int64(1) {
+ /*line post_edit.mygo:255:12*/		return Err[PostRecord, failure.Failure](Of("not found"))
+ /*line post_edit.mygo:254:3*/	} else {
+ /*line zz_post_edit.gen.go:176:1*/	}
+ /*line post_edit.mygo:257:3*/	return Ok[PostRecord, failure.Failure](record)
+ /*line zz_post_edit.gen.go:178:1*/}

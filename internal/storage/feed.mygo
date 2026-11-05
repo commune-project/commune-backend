@@ -3,6 +3,7 @@ package storage
 import context "go:context"
 import gorm "go:gorm.io/gorm"
 import auth "github.com/commune-project/commune-backend/internal/auth"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct FeedRepository
   DB: Ref[gorm.DB]
@@ -38,9 +39,9 @@ impl FeedRepository
     maxPages: Int,
     maxDepth: Int,
     sort: String
-  ) -> Result[Slice[ThreadRow], String]
+  ) -> Result[Slice[ThreadRow], failure.Failure]
     if !page.Valid(maxPages) || maxDepth < 1 || maxDepth > 8 then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
     if allowed.IsErr() then
@@ -84,7 +85,7 @@ impl FeedRepository
       identity.AccountID
     ).Scan(Ref.new(rows))
     if MutationResult(query).IsErr() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     Ok(rows)
   end
@@ -99,7 +100,7 @@ impl FeedRepository
     remoteVerified: Bool,
     page: Page,
     maxPage: Int
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     self.ListTopicsSorted(ctx, communityID, identity, remoteVerified, page, maxPage, "new")
   end
   func ListTopicsSorted(
@@ -111,9 +112,9 @@ impl FeedRepository
     page: Page,
     maxPage: Int,
     sort: String
-  ) -> Result[Slice[PostRecord], String]
+  ) -> Result[Slice[PostRecord], failure.Failure]
     if !page.Valid(maxPage) then
-      return Err("invalid page")
+      return Err(Of("invalid page"))
     end
     let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
     if allowed.IsErr() then
@@ -136,7 +137,7 @@ impl FeedRepository
       identity.AccountID
     ).Order(PostSortSQL("p", sort, up, down)).Limit(page.Limit).Offset(page.Offset).Find(Ref.new(records))
     if MutationResult(query).IsErr() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     Ok(records)
   end
@@ -146,7 +147,7 @@ impl FeedRepository
     communityID: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[Int64, String]
+  ) -> Result[Int64, failure.Failure]
     let allowed = self.AllowRead(ctx, communityID, identity, remoteVerified)
     if allowed.IsErr() then
       return Err(allowed.UnwrapErr())
@@ -166,7 +167,7 @@ impl FeedRepository
       identity.AccountID
     ).Count(Ref.new(count))
     if MutationResult(query).IsErr() then
-      return Err("feed unavailable")
+      return Err(Of("feed unavailable"))
     end
     Ok(count)
   end
@@ -176,7 +177,7 @@ impl FeedRepository
     id: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[PostRecord, String]
+  ) -> Result[PostRecord, failure.Failure]
     let loaded = loadPostForUpdate(self.DB, id)
     if loaded.IsErr() then
       return Err(loaded.UnwrapErr())
@@ -191,14 +192,14 @@ impl FeedRepository
       return Err(hidden.UnwrapErr())
     end
     if !hidden.Unwrap() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     let personallyBlocked = PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, id)
     if personallyBlocked.IsErr() then
       return Err(personallyBlocked.UnwrapErr())
     end
     if personallyBlocked.Unwrap() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     var ancestorID = post.ParentID
     while ancestorID.Valid
@@ -209,7 +210,7 @@ impl FeedRepository
         post.CommunityID
       ).Limit(1).Find(Ref.new(ancestor))
       if MutationResult(loadedAncestor).IsErr() || loadedAncestor.RowsAffected != 1i64 then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let receivedAncestor = QueryExists(self.DB.WithContext(ctx).Table("site_posts").Where(
         "site_id=? AND post_id=? AND hidden_at IS NULL",
@@ -220,7 +221,7 @@ impl FeedRepository
         return Err(receivedAncestor.UnwrapErr())
       end
       if !receivedAncestor.Unwrap() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let includedAncestor = QueryExists(self.DB.WithContext(ctx).Table("collection_memberships").Where(
         "post_id=? AND community_id=? AND state IN ('removed','rejected')",
@@ -231,14 +232,14 @@ impl FeedRepository
         return Err(includedAncestor.UnwrapErr())
       end
       if includedAncestor.Unwrap() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       let blockedAncestor = PersonalBlockHidesPost(ctx, self.DB, self.SiteID, identity.AccountID, ancestor.ID)
       if blockedAncestor.IsErr() then
         return Err(blockedAncestor.UnwrapErr())
       end
       if blockedAncestor.Unwrap() then
-        return Err("not found")
+        return Err(Of("not found"))
       end
       ancestorID = ancestor.ParentID
     end
@@ -254,7 +255,7 @@ impl FeedRepository
     communityID: String,
     identity: auth.Identity,
     remoteVerified: Bool
-  ) -> Result[(), String]
+  ) -> Result[(), failure.Failure]
     let community = CommunityRepository{DB: self.DB, SiteID: self.SiteID}
     let loaded = community.Open(ctx, communityID, false)
     if loaded.IsErr() then
@@ -265,7 +266,7 @@ impl FeedRepository
       return Err(access.UnwrapErr())
     end
     if !access.Unwrap().CanRead() then
-      return Err("not found")
+      return Err(Of("not found"))
     end
     Ok(())
   end

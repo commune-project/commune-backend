@@ -8,176 +8,177 @@ import "time"
 import "strings"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/mygo-lang/mygo/lib/concurrency"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "gorm.io/gorm"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line verification_mail_test.mygo:11:1*/func TestVerificationRetryBound(t *testing.T) {
- /*line verification_mail_test.mygo:12:3*/	if VerificationRetrySeconds(30, 100, 1) != 30 || VerificationRetrySeconds(30, 100, 2) != 60 || VerificationRetrySeconds(30, 100, 100) != 100 {
- /*line verification_mail_test.mygo:15:5*/		t.Fatal("verification retry backoff is not capped")
+ /*line verification_mail_test.mygo:12:1*/func TestVerificationRetryBound(t *testing.T) {
+ /*line verification_mail_test.mygo:13:3*/	if VerificationRetrySeconds(30, 100, 1) != 30 || VerificationRetrySeconds(30, 100, 2) != 60 || VerificationRetrySeconds(30, 100, 100) != 100 {
+ /*line verification_mail_test.mygo:16:5*/		t.Fatal("verification retry backoff is not capped")
 		return
- /*line verification_mail_test.mygo:12:3*/	} else {
+ /*line verification_mail_test.mygo:13:3*/	} else {
 		return
- /*line zz_verification_mail.gen_test.go:20:1*/	}
+ /*line zz_verification_mail.gen_test.go:21:1*/	}
 }
- /*line verification_mail_test.mygo:19:1*/func TestPostgresVerificationMailRetryAndErasure(t *testing.T) {
- /*line verification_mail_test.mygo:20:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
+ /*line verification_mail_test.mygo:20:1*/func TestPostgresVerificationMailRetryAndErasure(t *testing.T) {
+ /*line verification_mail_test.mygo:21:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(postgresFixture(t))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_verification_mail.gen_test.go:29:1*/	}
- /*line verification_mail_test.mygo:19:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
+ /*line zz_verification_mail.gen_test.go:30:1*/	}
+ /*line verification_mail_test.mygo:20:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
- /*line verification_mail_test.mygo:22:3*/	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
- /*line verification_mail_test.mygo:19:1*/	site := testSite("a", "https://a.example")
- /*line verification_mail_test.mygo:24:3*/	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, site))
- /*line verification_mail_test.mygo:19:1*/	key := []byte(strings.Repeat("k", 32))
+ /*line verification_mail_test.mygo:23:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
+ /*line verification_mail_test.mygo:20:1*/	site := testSite("a", "https://a.example")
+ /*line verification_mail_test.mygo:25:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, site))
+ /*line verification_mail_test.mygo:20:1*/	key := []byte(strings.Repeat("k", 32))
 	repository := RegistrationRepository{DB: db, Site: site, EncryptionKey: key, IPAttempts: 20, EmailAttempts: 5, TokenTTLSeconds: 86400, RateWindowSeconds: 3600}
 	now := time.Now()
- /*line verification_mail_test.mygo:36:3*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.org", "192.0.2.1", now))
- /*line verification_mail_test.mygo:19:1*/	var attempts int = 0
-	reject := func(recipient string, link string) Result[struct{}, string] {
- /*line verification_mail_test.mygo:38:16*/		attempts = attempts + 1
- /*line verification_mail_test.mygo:40:5*/		return Err[struct{}, string]("temporary SMTP failure")
- /*line zz_verification_mail.gen_test.go:43:1*/	}
- /*line verification_mail_test.mygo:42:3*/	if MygoIN6ResultM6Unwrap[int, string](DeliverVerificationMail(ctx, db, key, now, 10, 30, 3, 5, reject)) != 0 || attempts != 1 {
- /*line verification_mail_test.mygo:44:5*/		t.Fatal("initial mail failure was not retained for retry")
- /*line verification_mail_test.mygo:42:3*/	} else {
- /*line zz_verification_mail.gen_test.go:47:1*/	}
- /*line verification_mail_test.mygo:46:3*/	if MygoIN6ResultM6Unwrap[int, string](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(1)*time.Second), 10, 30, 3, 5, reject)) != 0 || attempts != 1 {
- /*line verification_mail_test.mygo:59:5*/		t.Fatal("retry ignored available_at")
- /*line verification_mail_test.mygo:46:3*/	} else {
- /*line zz_verification_mail.gen_test.go:51:1*/	}
- /*line verification_mail_test.mygo:19:1*/	deliver := func(recipient_1 string, link_1 string) Result[struct{}, string] {
- /*line verification_mail_test.mygo:62:5*/		if recipient_1 != "alice@example.org" || !strings.HasPrefix(link_1, site.Origin+"/verify-email#token=") {
- /*line verification_mail_test.mygo:64:7*/			t.Fatal("outbox decrypted wrong recipient or verification URL")
- /*line verification_mail_test.mygo:62:5*/		} else {
- /*line zz_verification_mail.gen_test.go:56:1*/		}
- /*line verification_mail_test.mygo:61:17*/		attempts = attempts + 1
- /*line verification_mail_test.mygo:67:5*/		return Ok[struct{}, string](struct {
- /*line zz_verification_mail.gen_test.go:59:1*/		}{})
+ /*line verification_mail_test.mygo:37:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.org", "192.0.2.1", now))
+ /*line verification_mail_test.mygo:20:1*/	var attempts int = 0
+	reject := func(recipient string, link string) Result[struct{}, failure.Failure] {
+ /*line verification_mail_test.mygo:39:16*/		attempts = attempts + 1
+ /*line verification_mail_test.mygo:41:5*/		return Err[struct{}, failure.Failure](Of("temporary SMTP failed"))
+ /*line zz_verification_mail.gen_test.go:44:1*/	}
+ /*line verification_mail_test.mygo:43:3*/	if MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverVerificationMail(ctx, db, key, now, 10, 30, 3, 5, reject)) != 0 || attempts != 1 {
+ /*line verification_mail_test.mygo:45:5*/		t.Fatal("initial mail failed was not retained for retry")
+ /*line verification_mail_test.mygo:43:3*/	} else {
+ /*line zz_verification_mail.gen_test.go:48:1*/	}
+ /*line verification_mail_test.mygo:47:3*/	if MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(1)*time.Second), 10, 30, 3, 5, reject)) != 0 || attempts != 1 {
+ /*line verification_mail_test.mygo:60:5*/		t.Fatal("retry ignored available_at")
+ /*line verification_mail_test.mygo:47:3*/	} else {
+ /*line zz_verification_mail.gen_test.go:52:1*/	}
+ /*line verification_mail_test.mygo:20:1*/	deliver := func(recipient_1 string, link_1 string) Result[struct{}, failure.Failure] {
+ /*line verification_mail_test.mygo:63:5*/		if recipient_1 != "alice@example.org" || !strings.HasPrefix(link_1, site.Origin+"/verify-email#token=") {
+ /*line verification_mail_test.mygo:65:7*/			t.Fatal("outbox decrypted wrong recipient or verification URL")
+ /*line verification_mail_test.mygo:63:5*/		} else {
+ /*line zz_verification_mail.gen_test.go:57:1*/		}
+ /*line verification_mail_test.mygo:62:17*/		attempts = attempts + 1
+ /*line verification_mail_test.mygo:68:5*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_verification_mail.gen_test.go:60:1*/		}{})
 	}
- /*line verification_mail_test.mygo:69:3*/	if MygoIN6ResultM6Unwrap[int, string](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(6)*time.Second), 10, 30, 3, 5, deliver)) != 1 || attempts != 2 {
- /*line verification_mail_test.mygo:82:5*/		t.Fatal("retry after worker restart did not deliver")
- /*line verification_mail_test.mygo:69:3*/	} else {
- /*line zz_verification_mail.gen_test.go:64:1*/	}
- /*line verification_mail_test.mygo:19:1*/	var remaining int64 = int64(0)
- /*line verification_mail_test.mygo:85:3*/	db.Table("verification_mail_jobs").Where("state<>'sent' OR octet_length(encrypted_payload)<>0 OR lease_token IS NOT NULL").Count(&remaining)
- /*line verification_mail_test.mygo:86:3*/	if remaining != int64(0) {
- /*line verification_mail_test.mygo:87:5*/		t.Fatal("successful job retained token-bearing payload or lease")
- /*line verification_mail_test.mygo:86:3*/	} else {
- /*line zz_verification_mail.gen_test.go:70:1*/	}
- /*line verification_mail_test.mygo:89:3*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(7)*time.Second)))
- /*line verification_mail_test.mygo:95:3*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(8)*time.Second)))
- /*line verification_mail_test.mygo:101:3*/	if MygoIN6ResultM6Unwrap[int, string](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(9)*time.Second), 10, 30, 3, 5, deliver)) != 1 {
- /*line verification_mail_test.mygo:113:5*/		t.Fatal("resend delivered superseded token generation")
- /*line verification_mail_test.mygo:101:3*/	} else {
- /*line zz_verification_mail.gen_test.go:76:1*/	}
- /*line verification_mail_test.mygo:115:3*/	MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "bob", "bob@example.org", "192.0.2.1", now))
- /*line verification_mail_test.mygo:19:1*/	bounded, cancel := context.WithCancel(ctx)
- /*line verification_mail_test.mygo:117:3*/	cancel()
- /*line verification_mail_test.mygo:118:3*/	if MygoIN6ResultM4IsOk[int, string](DeliverVerificationMail(bounded, db, key, now, 10, 30, 3, 5, reject)) {
- /*line verification_mail_test.mygo:119:5*/		t.Fatal("cancelled mail batch was accepted")
+ /*line verification_mail_test.mygo:70:3*/	if MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(6)*time.Second), 10, 30, 3, 5, deliver)) != 1 || attempts != 2 {
+ /*line verification_mail_test.mygo:83:5*/		t.Fatal("retry after worker restart did not deliver")
+ /*line verification_mail_test.mygo:70:3*/	} else {
+ /*line zz_verification_mail.gen_test.go:65:1*/	}
+ /*line verification_mail_test.mygo:20:1*/	var remaining int64 = int64(0)
+ /*line verification_mail_test.mygo:86:3*/	db.Table("verification_mail_jobs").Where("state<>'sent' OR octet_length(encrypted_payload)<>0 OR lease_token IS NOT NULL").Count(&remaining)
+ /*line verification_mail_test.mygo:87:3*/	if remaining != int64(0) {
+ /*line verification_mail_test.mygo:88:5*/		t.Fatal("successful job retained token-bearing payload or lease")
+ /*line verification_mail_test.mygo:87:3*/	} else {
+ /*line zz_verification_mail.gen_test.go:71:1*/	}
+ /*line verification_mail_test.mygo:90:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(7)*time.Second)))
+ /*line verification_mail_test.mygo:96:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM6Resend(repository, ctx, "alice@example.org", "192.0.2.1", now.Add(time.Duration(8)*time.Second)))
+ /*line verification_mail_test.mygo:102:3*/	if MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverVerificationMail(ctx, db, key, now.Add(time.Duration(9)*time.Second), 10, 30, 3, 5, deliver)) != 1 {
+ /*line verification_mail_test.mygo:114:5*/		t.Fatal("resend delivered superseded token generation")
+ /*line verification_mail_test.mygo:102:3*/	} else {
+ /*line zz_verification_mail.gen_test.go:77:1*/	}
+ /*line verification_mail_test.mygo:116:3*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "bob", "bob@example.org", "192.0.2.1", now))
+ /*line verification_mail_test.mygo:20:1*/	bounded, cancel := context.WithCancel(ctx)
+ /*line verification_mail_test.mygo:118:3*/	cancel()
+ /*line verification_mail_test.mygo:119:3*/	if MygoIN6ResultM4IsOk[int, failure.Failure](DeliverVerificationMail(bounded, db, key, now, 10, 30, 3, 5, reject)) {
+ /*line verification_mail_test.mygo:120:5*/		t.Fatal("cancelled mail batch was accepted")
 		return
- /*line verification_mail_test.mygo:118:3*/	} else {
+ /*line verification_mail_test.mygo:119:3*/	} else {
 		return
- /*line zz_verification_mail.gen_test.go:85:1*/	}
+ /*line zz_verification_mail.gen_test.go:86:1*/	}
 }
- /*line verification_mail_test.mygo:123:1*/func TestPostgresVerificationMailFinalAttemptActiveLease(t *testing.T) {
-	var outcomes []string = []string{"success", "failure"}
- /*line verification_mail_test.mygo:125:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(outcomes, func(outcome string) {
- /*line verification_mail_test.mygo:126:5*/		t.Run(outcome, func(t_1 *testing.T) {
- /*line verification_mail_test.mygo:128:7*/			repository := registrationFixture(t_1)
+ /*line verification_mail_test.mygo:124:1*/func TestPostgresVerificationMailFinalAttemptActiveLease(t *testing.T) {
+	var outcomes []string = []string{"success", "failed"}
+ /*line verification_mail_test.mygo:126:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(outcomes, func(outcome string) {
+ /*line verification_mail_test.mygo:127:5*/		t.Run(outcome, func(t_1 *testing.T) {
+ /*line verification_mail_test.mygo:129:7*/			repository := registrationFixture(t_1)
 			db := repository.DB
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(15)*time.Second)
- /*line verification_mail_test.mygo:132:9*/			t_1.Cleanup(cancel)
- /*line verification_mail_test.mygo:128:7*/			now := time.Now()
-			MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.com", "192.0.2.1", now))
-			MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE verification_mail_jobs SET attempts=2")))
+ /*line verification_mail_test.mygo:133:9*/			t_1.Cleanup(cancel)
+ /*line verification_mail_test.mygo:129:7*/			now := time.Now()
+			MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "alice", "alice@example.com", "192.0.2.1", now))
+			MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE verification_mail_jobs SET attempts=2")))
 			started := concurrency.MakeChan[bool](1)
 			release := concurrency.MakeChan[struct{}](1)
-			results := concurrency.MakeChan[Result[int, string]](1)
- /*line verification_mail_test.mygo:139:9*/			t_1.Cleanup(func() {
- /*line verification_mail_test.mygo:140:11*/				concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM5Close[struct{}](release)
+			results := concurrency.MakeChan[Result[int, failure.Failure]](1)
+ /*line verification_mail_test.mygo:140:9*/			t_1.Cleanup(func() {
+ /*line verification_mail_test.mygo:141:11*/				concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM5Close[struct{}](release)
 				return
- /*line zz_verification_mail.gen_test.go:104:1*/			})
- /*line verification_mail_test.mygo:142:9*/			concurrency.Spawn(func() {
- /*line verification_mail_test.mygo:142:27*/				result := DeliverVerificationMail(ctx, db, repository.EncryptionKey, now, 1, 30, 3, 5, func(recipient string, link string) Result[struct{}, string] {
- /*line verification_mail_test.mygo:153:15*/					concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(started, true)
- /*line verification_mail_test.mygo:152:13*/					concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](release)
- /*line verification_mail_test.mygo:155:15*/					if outcome == "failure" {
- /*line verification_mail_test.mygo:156:24*/						return Err[struct{}, string]("temporary SMTP failure")
- /*line verification_mail_test.mygo:155:15*/					} else {
- /*line zz_verification_mail.gen_test.go:112:1*/					}
- /*line verification_mail_test.mygo:158:15*/					return Ok[struct{}, string](struct {
- /*line zz_verification_mail.gen_test.go:114:1*/					}{})
+ /*line zz_verification_mail.gen_test.go:105:1*/			})
+ /*line verification_mail_test.mygo:143:9*/			concurrency.Spawn(func() {
+ /*line verification_mail_test.mygo:143:27*/				result := DeliverVerificationMail(ctx, db, repository.EncryptionKey, now, 1, 30, 3, 5, func(recipient string, link string) Result[struct{}, failure.Failure] {
+ /*line verification_mail_test.mygo:154:15*/					concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(started, true)
+ /*line verification_mail_test.mygo:153:13*/					concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[struct{}](release)
+ /*line verification_mail_test.mygo:156:15*/					if outcome == "failed" {
+ /*line verification_mail_test.mygo:157:24*/						return Err[struct{}, failure.Failure](Of("temporary SMTP failed"))
+ /*line verification_mail_test.mygo:156:15*/					} else {
+ /*line zz_verification_mail.gen_test.go:113:1*/					}
+ /*line verification_mail_test.mygo:159:15*/					return Ok[struct{}, failure.Failure](struct {
+ /*line zz_verification_mail.gen_test.go:115:1*/					}{})
 				})
- /*line verification_mail_test.mygo:161:11*/				if MygoIN6ResultM5IsErr[int, string](result) {
- /*line verification_mail_test.mygo:162:13*/					concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(started, false)
- /*line verification_mail_test.mygo:161:11*/				} else {
- /*line zz_verification_mail.gen_test.go:119:1*/				}
- /*line verification_mail_test.mygo:164:11*/				concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, result)
+ /*line verification_mail_test.mygo:162:11*/				if MygoIN6ResultM5IsErr[int, failure.Failure](result) {
+ /*line verification_mail_test.mygo:163:13*/					concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(started, false)
+ /*line verification_mail_test.mygo:162:11*/				} else {
+ /*line zz_verification_mail.gen_test.go:120:1*/				}
+ /*line verification_mail_test.mygo:165:11*/				concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(results, result)
 				return
- /*line zz_verification_mail.gen_test.go:122:1*/			})
- /*line verification_mail_test.mygo:166:9*/			if !MygoIN6OptionM6Unwrap[bool](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[bool](started)) {
- /*line verification_mail_test.mygo:167:11*/				t_1.Fatal("first worker failed before final-attempt SMTP call")
- /*line verification_mail_test.mygo:166:9*/			} else {
- /*line zz_verification_mail.gen_test.go:126:1*/			}
- /*line verification_mail_test.mygo:128:7*/			before := registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='leased' AND attempts=3 AND octet_length(encrypted_payload)>0 AND lease_token IS NOT NULL AND lease_until IS NOT NULL")
+ /*line zz_verification_mail.gen_test.go:123:1*/			})
+ /*line verification_mail_test.mygo:167:9*/			if !MygoIN6OptionM6Unwrap[bool](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[bool](started)) {
+ /*line verification_mail_test.mygo:168:11*/				t_1.Fatal("first worker failed before final-attempt SMTP call")
+ /*line verification_mail_test.mygo:167:9*/			} else {
+ /*line zz_verification_mail.gen_test.go:127:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			before := registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='leased' AND attempts=3 AND octet_length(encrypted_payload)>0 AND lease_token IS NOT NULL AND lease_until IS NOT NULL")
 			var competingSends int = 0
-			competing := func(recipient_1 string, link_1 string) Result[struct{}, string] {
- /*line verification_mail_test.mygo:174:25*/				competingSends = competingSends + 1
- /*line verification_mail_test.mygo:176:11*/				return Ok[struct{}, string](struct {
- /*line zz_verification_mail.gen_test.go:132:1*/				}{})
+			competing := func(recipient_1 string, link_1 string) Result[struct{}, failure.Failure] {
+ /*line verification_mail_test.mygo:175:25*/				competingSends = competingSends + 1
+ /*line verification_mail_test.mygo:177:11*/				return Ok[struct{}, failure.Failure](struct {
+ /*line zz_verification_mail.gen_test.go:133:1*/				}{})
 			}
- /*line verification_mail_test.mygo:128:7*/			second := DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(time.Second), 1, 30, 3, 5, competing)
+ /*line verification_mail_test.mygo:129:7*/			second := DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(time.Second), 1, 30, 3, 5, competing)
 			after := registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='leased' AND attempts=3 AND octet_length(encrypted_payload)>0 AND lease_token IS NOT NULL AND lease_until IS NOT NULL")
- /*line verification_mail_test.mygo:193:9*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(release, struct {
- /*line zz_verification_mail.gen_test.go:137:1*/			}{})
- /*line verification_mail_test.mygo:128:7*/			settled := MygoIN6ResultM6Unwrap[int, string](MygoIN6OptionM6Unwrap[Result[int, string]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[int, string]](results)))
- /*line verification_mail_test.mygo:195:9*/			if before != 1 || after != 1 || MygoIN6ResultM6Unwrap[int, string](second) != 0 || competingSends != 0 {
- /*line verification_mail_test.mygo:196:11*/				t_1.Fatal("another worker erased or stole an active final-attempt lease")
- /*line verification_mail_test.mygo:195:9*/			} else {
- /*line zz_verification_mail.gen_test.go:142:1*/			}
- /*line verification_mail_test.mygo:128:7*/			var __mygo_expr_0 int
+ /*line verification_mail_test.mygo:194:9*/			concurrency.MygoIT13IWritableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM4Send(release, struct {
+ /*line zz_verification_mail.gen_test.go:138:1*/			}{})
+ /*line verification_mail_test.mygo:129:7*/			settled := MygoIN6ResultM6Unwrap[int, failure.Failure](MygoIN6OptionM6Unwrap[Result[int, failure.Failure]](concurrency.MygoIT13IReadableChanFN4ChanGN1TEGN4ChanGN1TEN1TEM7Receive[Result[int, failure.Failure]](results)))
+ /*line verification_mail_test.mygo:196:9*/			if before != 1 || after != 1 || MygoIN6ResultM6Unwrap[int, failure.Failure](second) != 0 || competingSends != 0 {
+ /*line verification_mail_test.mygo:197:11*/				t_1.Fatal("another worker erased or stole an active final-attempt lease")
+ /*line verification_mail_test.mygo:196:9*/			} else {
+ /*line zz_verification_mail.gen_test.go:143:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			var __mygo_expr_0 int
 			if outcome == "success" {
 				__mygo_expr_0 = 1
 			} else {
 				__mygo_expr_0 = 0
- /*line zz_verification_mail.gen_test.go:148:1*/			}
- /*line verification_mail_test.mygo:128:7*/			var expected int = __mygo_expr_0
+ /*line zz_verification_mail.gen_test.go:149:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			var expected int = __mygo_expr_0
 			var __mygo_expr_1 string
 			if outcome == "success" {
 				__mygo_expr_1 = "sent"
 			} else {
 				__mygo_expr_1 = "failed"
- /*line zz_verification_mail.gen_test.go:155:1*/			}
- /*line verification_mail_test.mygo:128:7*/			var state string = __mygo_expr_1
+ /*line zz_verification_mail.gen_test.go:156:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			var state string = __mygo_expr_1
 			var remaining int64 = int64(0)
-			MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("verification_mail_jobs").Where("state=? AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL", state).Count(&remaining)))
- /*line verification_mail_test.mygo:213:9*/			if settled != expected || remaining != int64(1) {
- /*line verification_mail_test.mygo:214:11*/				t_1.Fatal("final-attempt owner could not settle and erase its own payload")
- /*line verification_mail_test.mygo:213:9*/			} else {
- /*line zz_verification_mail.gen_test.go:162:1*/			}
- /*line verification_mail_test.mygo:128:7*/			MygoIN6ResultM6Unwrap[struct{}, string](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.1", now))
-			MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE verification_mail_jobs SET state='leased',attempts=3,lease_token='crashed-worker',lease_until=? WHERE state='pending'", now.Add(time.Duration(30)*time.Second))))
-			expired := MygoIN6ResultM6Unwrap[int, string](DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(time.Duration(30)*time.Second), 1, 30, 3, 5, competing))
+			MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("verification_mail_jobs").Where("state=? AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL", state).Count(&remaining)))
+ /*line verification_mail_test.mygo:214:9*/			if settled != expected || remaining != int64(1) {
+ /*line verification_mail_test.mygo:215:11*/				t_1.Fatal("final-attempt owner could not settle and erase its own payload")
+ /*line verification_mail_test.mygo:214:9*/			} else {
+ /*line zz_verification_mail.gen_test.go:163:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN22RegistrationRepositoryM8Register(repository, ctx, "expired", "expired@example.com", "192.0.2.1", now))
+			MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE verification_mail_jobs SET state='leased',attempts=3,lease_token='crashed-worker',lease_until=? WHERE state='pending'", now.Add(time.Duration(30)*time.Second))))
+			expired := MygoIN6ResultM6Unwrap[int, failure.Failure](DeliverVerificationMail(ctx, db, repository.EncryptionKey, now.Add(time.Duration(30)*time.Second), 1, 30, 3, 5, competing))
 			var __mygo_expr_2 int
-			if outcome == "failure" {
+			if outcome == "failed" {
 				__mygo_expr_2 = 2
 			} else {
 				__mygo_expr_2 = 1
- /*line zz_verification_mail.gen_test.go:171:1*/			}
- /*line verification_mail_test.mygo:128:7*/			var failedJobs int = __mygo_expr_2
- /*line verification_mail_test.mygo:237:9*/			if expired != 0 || competingSends != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='failed' AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL") != failedJobs {
- /*line verification_mail_test.mygo:244:11*/				t_1.Fatal("expired exhausted lease was retried or retained its secret payload")
+ /*line zz_verification_mail.gen_test.go:172:1*/			}
+ /*line verification_mail_test.mygo:129:7*/			var failedJobs int = __mygo_expr_2
+ /*line verification_mail_test.mygo:238:9*/			if expired != 0 || competingSends != 0 || registrationCount(db, "SELECT count(*) FROM verification_mail_jobs WHERE state='failed' AND attempts=3 AND octet_length(encrypted_payload)=0 AND lease_token IS NULL AND lease_until IS NULL") != failedJobs {
+ /*line verification_mail_test.mygo:245:11*/				t_1.Fatal("expired exhausted lease was retried or retained its secret payload")
 				return
- /*line verification_mail_test.mygo:237:9*/			} else {
+ /*line verification_mail_test.mygo:238:9*/			} else {
 				return
- /*line zz_verification_mail.gen_test.go:178:1*/			}
+ /*line zz_verification_mail.gen_test.go:179:1*/			}
 		})
- /*line verification_mail_test.mygo:248:5*/		return
- /*line zz_verification_mail.gen_test.go:181:1*/	})
- /*line verification_mail_test.mygo:125:3*/	return
- /*line zz_verification_mail.gen_test.go:183:1*/}
+ /*line verification_mail_test.mygo:249:5*/		return
+ /*line zz_verification_mail.gen_test.go:182:1*/	})
+ /*line verification_mail_test.mygo:126:3*/	return
+ /*line zz_verification_mail.gen_test.go:184:1*/}

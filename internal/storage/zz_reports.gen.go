@@ -10,9 +10,10 @@ import "strconv"
 import "strings"
 import "unicode/utf8"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line reports.mygo:12:1*/type ReportRecord struct {
+ /*line reports.mygo:13:1*/type ReportRecord struct {
 	ID                int64          "gorm:\"column:id\" json:\"id\""
 	TargetKind        string         "gorm:\"column:target_kind\" json:\"target_kind\""
 	TargetID          string         "gorm:\"column:target_id\" json:\"target_id\""
@@ -23,8 +24,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	ResolutionNote    string         "gorm:\"column:resolution_note\" json:\"resolution_note\""
 	CreatedAt         time.Time      "gorm:\"column:created_at\" json:\"created_at\""
 	ResolvedAt        sql.NullTime   "gorm:\"column:resolved_at\" json:\"-\""
- /*line zz_reports.gen.go:26:1*/}
- /*line reports.mygo:25:1*/type ModerationLogRecord struct {
+ /*line zz_reports.gen.go:27:1*/}
+ /*line reports.mygo:26:1*/type ModerationLogRecord struct {
 	ID            int64          "gorm:\"column:id\" json:\"id\""
 	CommunityID   sql.NullString "gorm:\"column:community_id\" json:\"-\""
 	Action        string         "gorm:\"column:action\" json:\"action\""
@@ -33,8 +34,8 @@ import . "github.com/mygo-lang/mygo/prelude"
 	TargetID      string         "gorm:\"column:target_id\" json:\"target_id\""
 	Reason        string         "gorm:\"column:reason\" json:\"reason\""
 	CreatedAt     time.Time      "gorm:\"column:created_at\" json:\"created_at\""
- /*line zz_reports.gen.go:36:1*/}
- /*line reports.mygo:36:1*/type ModerationLogWrite struct {
+ /*line zz_reports.gen.go:37:1*/}
+ /*line reports.mygo:37:1*/type ModerationLogWrite struct {
 	SiteID         string         "gorm:\"column:site_id\""
 	CommunityID    sql.NullString "gorm:\"column:community_id\""
 	ActorAccountID int64          "gorm:\"column:actor_account_id\""
@@ -43,306 +44,306 @@ import . "github.com/mygo-lang/mygo/prelude"
 	TargetKind     string         "gorm:\"column:target_kind\""
 	TargetID       string         "gorm:\"column:target_id\""
 	Reason         string         "gorm:\"column:reason\""
- /*line zz_reports.gen.go:46:1*/}
+ /*line zz_reports.gen.go:47:1*/}
 
- /*line reports.mygo:47:1*/func ReportTargetValid(kind string) bool {
- /*line reports.mygo:48:3*/	return kind == "post" || kind == "community" || kind == "person"
- /*line zz_reports.gen.go:50:1*/}
- /*line reports.mygo:51:1*/func CheckModerationScope(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, communityID string) Result[struct {
-}, string] {
+ /*line reports.mygo:48:1*/func ReportTargetValid(kind string) bool {
+ /*line reports.mygo:49:3*/	return kind == "post" || kind == "community" || kind == "person"
+ /*line zz_reports.gen.go:51:1*/}
+ /*line reports.mygo:52:1*/func CheckModerationScope(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, communityID string) Result[struct {
+}, failure.Failure] {
 	site := SiteRepository{DB: db, SiteID: siteID}
 	admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 	deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line reports.mygo:61:3*/	if MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line reports.mygo:62:12*/		return Err[struct{}, string]("moderation unavailable")
- /*line reports.mygo:61:3*/	} else {
- /*line zz_reports.gen.go:59:1*/	}
- /*line reports.mygo:64:3*/	if communityID != "" {
+ /*line reports.mygo:62:3*/	if MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line reports.mygo:63:12*/		return Err[struct{}, failure.Failure](Of("moderation unavailable"))
+ /*line reports.mygo:62:3*/	} else {
+ /*line zz_reports.gen.go:60:1*/	}
+ /*line reports.mygo:65:3*/	if communityID != "" {
 		community := MygoIN19CommunityRepositoryM5Check(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false)
- /*line reports.mygo:66:5*/		if MygoIN6ResultM5IsErr[CommunityAccess, string](community) || !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, string](community).Authority, "manage-community") {
- /*line reports.mygo:67:14*/			return Err[struct{}, string]("forbidden")
- /*line reports.mygo:66:5*/		} else {
- /*line zz_reports.gen.go:65:1*/		}
- /*line reports.mygo:69:12*/		return Ok[struct{}, string](struct {
- /*line zz_reports.gen.go:67:1*/		}{})
- /*line reports.mygo:64:3*/	} else {
- /*line zz_reports.gen.go:69:1*/	}
- /*line reports.mygo:71:3*/	if !MygoIN6ResultM6Unwrap[bool, string](admin) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
- /*line reports.mygo:72:12*/		return Err[struct{}, string]("forbidden")
- /*line reports.mygo:71:3*/	} else {
- /*line zz_reports.gen.go:73:1*/	}
- /*line reports.mygo:74:3*/	return Ok[struct{}, string](struct {
- /*line zz_reports.gen.go:75:1*/	}{})
+ /*line reports.mygo:67:5*/		if MygoIN6ResultM5IsErr[CommunityAccess, failure.Failure](community) || !auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](community).Authority, "manage-community") {
+ /*line reports.mygo:68:14*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reports.mygo:67:5*/		} else {
+ /*line zz_reports.gen.go:66:1*/		}
+ /*line reports.mygo:70:12*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_reports.gen.go:68:1*/		}{})
+ /*line reports.mygo:65:3*/	} else {
+ /*line zz_reports.gen.go:70:1*/	}
+ /*line reports.mygo:72:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](admin) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment) {
+ /*line reports.mygo:73:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reports.mygo:72:3*/	} else {
+ /*line zz_reports.gen.go:74:1*/	}
+ /*line reports.mygo:75:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_reports.gen.go:76:1*/	}{})
 }
- /*line reports.mygo:77:1*/func WriteModerationLog(ctx context.Context, tx *gorm.DB, siteID string, communityID string, identity auth.Identity, action string, targetKind string, targetID string, reason string) Result[struct {
-}, string] {
+ /*line reports.mygo:78:1*/func WriteModerationLog(ctx context.Context, tx *gorm.DB, siteID string, communityID string, identity auth.Identity, action string, targetKind string, targetID string, reason string) Result[struct {
+}, failure.Failure] {
 	var __mygo_expr_0 sql.NullString
 	if communityID == "" {
 		__mygo_expr_0 = Zero[sql.NullString]()
 	} else {
 		__mygo_expr_0 = sql.NullString{String: communityID, Valid: true}
- /*line zz_reports.gen.go:84:1*/	}
- /*line reports.mygo:77:1*/	community := __mygo_expr_0
+ /*line zz_reports.gen.go:85:1*/	}
+ /*line reports.mygo:78:1*/	community := __mygo_expr_0
 	record := ModerationLogWrite{SiteID: siteID, CommunityID: community, ActorAccountID: identity.AccountID, ActorActorURI: identity.ActorURI, Action: action, TargetKind: targetKind, TargetID: targetID, Reason: reason}
- /*line reports.mygo:106:3*/	return MutationResult(tx.WithContext(ctx).Table("moderation_log").Create(&record))
- /*line zz_reports.gen.go:88:1*/}
- /*line reports.mygo:109:1*/func CreateReport(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, targetKind string, targetID string, communityID string, reason string) Result[bool, string] {
+ /*line reports.mygo:107:3*/	return MutationResult(tx.WithContext(ctx).Table("moderation_log").Create(&record))
+ /*line zz_reports.gen.go:89:1*/}
+ /*line reports.mygo:110:1*/func CreateReport(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, targetKind string, targetID string, communityID string, reason string) Result[bool, failure.Failure] {
 	text := strings.TrimSpace(reason)
- /*line reports.mygo:120:3*/	if !ReportTargetValid(targetKind) || targetID == "" || text == "" || utf8.RuneCountInString(text) > 1000 {
- /*line reports.mygo:124:12*/		return Err[bool, string]("invalid report")
- /*line reports.mygo:120:3*/	} else {
- /*line zz_reports.gen.go:94:1*/	}
- /*line reports.mygo:109:1*/	inserted := false
-	result := RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line reports.mygo:130:5*/		var __mygo_expr_0 sql.NullString
+ /*line reports.mygo:121:3*/	if !ReportTargetValid(targetKind) || targetID == "" || text == "" || utf8.RuneCountInString(text) > 1000 {
+ /*line reports.mygo:125:12*/		return Err[bool, failure.Failure](Of("invalid report"))
+ /*line reports.mygo:121:3*/	} else {
+ /*line zz_reports.gen.go:95:1*/	}
+ /*line reports.mygo:110:1*/	inserted := false
+	result := RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:131:5*/		var __mygo_expr_0 sql.NullString
 		if communityID == "" {
 			__mygo_expr_0 = Zero[sql.NullString]()
 		} else {
 			__mygo_expr_0 = sql.NullString{String: communityID, Valid: true}
- /*line zz_reports.gen.go:102:1*/		}
- /*line reports.mygo:130:5*/		community := __mygo_expr_0
+ /*line zz_reports.gen.go:103:1*/		}
+ /*line reports.mygo:131:5*/		community := __mygo_expr_0
 		query := tx.WithContext(ctx).Exec("INSERT INTO reports(site_id,reporter_account_id,target_kind,target_id,community_id,reason) VALUES (?,?,?,?,?,?) ON CONFLICT DO NOTHING", siteID, identity.AccountID, targetKind, targetID, community, text)
- /*line reports.mygo:148:7*/		if QueryFailed(query) {
- /*line reports.mygo:149:16*/			return Err[struct{}, string]("report unavailable")
- /*line reports.mygo:148:7*/		} else {
- /*line zz_reports.gen.go:108:1*/		}
- /*line reports.mygo:130:5*/		inserted = query.RowsAffected == int64(1)
- /*line reports.mygo:152:7*/		return Ok[struct{}, string](struct {
- /*line zz_reports.gen.go:111:1*/		}{})
+ /*line reports.mygo:149:7*/		if QueryFailed(query) {
+ /*line reports.mygo:150:16*/			return Err[struct{}, failure.Failure](Of("report unavailable"))
+ /*line reports.mygo:149:7*/		} else {
+ /*line zz_reports.gen.go:109:1*/		}
+ /*line reports.mygo:131:5*/		inserted = query.RowsAffected == int64(1)
+ /*line reports.mygo:153:7*/		return Ok[struct{}, failure.Failure](struct {
+ /*line zz_reports.gen.go:112:1*/		}{})
 	})
- /*line reports.mygo:155:3*/	if MygoIN6ResultM5IsErr[struct{}, string](result) {
- /*line reports.mygo:156:12*/		return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](result))
- /*line reports.mygo:155:3*/	} else {
- /*line zz_reports.gen.go:116:1*/	}
- /*line reports.mygo:158:3*/	return Ok[bool, string](inserted)
- /*line zz_reports.gen.go:118:1*/}
- /*line reports.mygo:161:1*/func ListReports(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, state string, communityID string, limit int, offset int) Result[[]ReportRecord, string] {
- /*line reports.mygo:171:3*/	if state != "" && state != "open" && state != "resolved" && state != "rejected" {
- /*line reports.mygo:172:12*/		return Err[[]ReportRecord, string]("invalid report state")
- /*line reports.mygo:171:3*/	} else {
- /*line zz_reports.gen.go:123:1*/	}
- /*line reports.mygo:161:1*/	visible := CheckModerationScope(ctx, db, siteID, identity, communityID)
- /*line reports.mygo:175:3*/	if MygoIN6ResultM5IsErr[struct{}, string](visible) {
- /*line reports.mygo:176:12*/		return Err[[]ReportRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](visible))
- /*line reports.mygo:175:3*/	} else {
- /*line zz_reports.gen.go:128:1*/	}
- /*line reports.mygo:161:1*/	var rows []ReportRecord = []ReportRecord{}
+ /*line reports.mygo:156:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](result) {
+ /*line reports.mygo:157:12*/		return Err[bool, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](result))
+ /*line reports.mygo:156:3*/	} else {
+ /*line zz_reports.gen.go:117:1*/	}
+ /*line reports.mygo:159:3*/	return Ok[bool, failure.Failure](inserted)
+ /*line zz_reports.gen.go:119:1*/}
+ /*line reports.mygo:162:1*/func ListReports(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, state string, communityID string, limit int, offset int) Result[[]ReportRecord, failure.Failure] {
+ /*line reports.mygo:172:3*/	if state != "" && state != "open" && state != "resolved" && state != "rejected" {
+ /*line reports.mygo:173:12*/		return Err[[]ReportRecord, failure.Failure](Of("invalid report state"))
+ /*line reports.mygo:172:3*/	} else {
+ /*line zz_reports.gen.go:124:1*/	}
+ /*line reports.mygo:162:1*/	visible := CheckModerationScope(ctx, db, siteID, identity, communityID)
+ /*line reports.mygo:176:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](visible) {
+ /*line reports.mygo:177:12*/		return Err[[]ReportRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](visible))
+ /*line reports.mygo:176:3*/	} else {
+ /*line zz_reports.gen.go:129:1*/	}
+ /*line reports.mygo:162:1*/	var rows []ReportRecord = []ReportRecord{}
 	query := db.WithContext(ctx).Table("reports").Where("site_id=? AND (?='' OR state=?) AND (?='' OR community_id=?)", siteID, state, state, communityID, communityID).Order("created_at DESC,id DESC").Limit(limit).Offset(offset).Find(&rows)
- /*line reports.mygo:187:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line reports.mygo:188:12*/		return Err[[]ReportRecord, string]("reports unavailable")
- /*line reports.mygo:187:3*/	} else {
- /*line zz_reports.gen.go:134:1*/	}
- /*line reports.mygo:190:3*/	return Ok[[]ReportRecord, string](rows)
- /*line zz_reports.gen.go:136:1*/}
- /*line reports.mygo:193:1*/func ResolveReport(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, id int64, state string, note string) Result[struct {
-}, string] {
- /*line reports.mygo:202:3*/	if state != "resolved" && state != "rejected" {
- /*line reports.mygo:203:12*/		return Err[struct{}, string]("invalid report state")
- /*line reports.mygo:202:3*/	} else {
- /*line zz_reports.gen.go:142:1*/	}
- /*line reports.mygo:205:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line reports.mygo:208:5*/		report := Zero[ReportRecord]()
+ /*line reports.mygo:188:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line reports.mygo:189:12*/		return Err[[]ReportRecord, failure.Failure](Of("reports unavailable"))
+ /*line reports.mygo:188:3*/	} else {
+ /*line zz_reports.gen.go:135:1*/	}
+ /*line reports.mygo:191:3*/	return Ok[[]ReportRecord, failure.Failure](rows)
+ /*line zz_reports.gen.go:137:1*/}
+ /*line reports.mygo:194:1*/func ResolveReport(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, id int64, state string, note string) Result[struct {
+}, failure.Failure] {
+ /*line reports.mygo:203:3*/	if state != "resolved" && state != "rejected" {
+ /*line reports.mygo:204:12*/		return Err[struct{}, failure.Failure](Of("invalid report state"))
+ /*line reports.mygo:203:3*/	} else {
+ /*line zz_reports.gen.go:143:1*/	}
+ /*line reports.mygo:206:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:209:5*/		report := Zero[ReportRecord]()
 		loaded := tx.WithContext(ctx).Raw("SELECT * FROM reports WHERE id=? AND site_id=? FOR UPDATE", id, siteID).Scan(&report)
- /*line reports.mygo:211:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
- /*line reports.mygo:212:16*/			return Err[struct{}, string]("not found")
- /*line reports.mygo:211:7*/		} else {
- /*line zz_reports.gen.go:149:1*/		}
- /*line reports.mygo:208:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
+ /*line reports.mygo:212:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || loaded.RowsAffected != int64(1) {
+ /*line reports.mygo:213:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reports.mygo:212:7*/		} else {
+ /*line zz_reports.gen.go:150:1*/		}
+ /*line reports.mygo:209:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
 		admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 		deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line reports.mygo:217:7*/		if MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line reports.mygo:218:16*/			return Err[struct{}, string]("reports unavailable")
- /*line reports.mygo:217:7*/		} else {
- /*line zz_reports.gen.go:156:1*/		}
- /*line reports.mygo:208:5*/		allowed := MygoIN6ResultM6Unwrap[bool, string](admin) || MygoIN6ResultM6Unwrap[bool, string](deployment)
- /*line reports.mygo:221:7*/		if report.CommunityID.Valid {
+ /*line reports.mygo:218:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line reports.mygo:219:16*/			return Err[struct{}, failure.Failure](Of("reports unavailable"))
+ /*line reports.mygo:218:7*/		} else {
+ /*line zz_reports.gen.go:157:1*/		}
+ /*line reports.mygo:209:5*/		allowed := MygoIN6ResultM6Unwrap[bool, failure.Failure](admin) || MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment)
+ /*line reports.mygo:222:7*/		if report.CommunityID.Valid {
 			community := MygoIN19CommunityRepositoryM5Check(CommunityRepository{DB: tx, SiteID: siteID}, ctx, report.CommunityID.String, identity, false)
-			allowed = MygoIN6ResultM4IsOk[CommunityAccess, string](community) && auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, string](community).Authority, "manage-community")
+			allowed = MygoIN6ResultM4IsOk[CommunityAccess, failure.Failure](community) && auth.MygoIN19ManagementAuthorityM6Allows(MygoIN6ResultM6Unwrap[CommunityAccess, failure.Failure](community).Authority, "manage-community")
 		} else {
- /*line zz_reports.gen.go:162:1*/		}
- /*line reports.mygo:228:7*/		if !allowed {
- /*line reports.mygo:229:16*/			return Err[struct{}, string]("forbidden")
- /*line reports.mygo:228:7*/		} else {
- /*line zz_reports.gen.go:166:1*/		}
- /*line reports.mygo:231:7*/		if report.State == state {
- /*line reports.mygo:232:16*/			return Ok[struct{}, string](struct {
- /*line zz_reports.gen.go:169:1*/			}{})
- /*line reports.mygo:231:7*/		} else {
- /*line zz_reports.gen.go:171:1*/		}
- /*line reports.mygo:234:7*/		if report.State != "open" {
- /*line reports.mygo:235:16*/			return Err[struct{}, string]("report conflict")
- /*line reports.mygo:234:7*/		} else {
- /*line zz_reports.gen.go:175:1*/		}
- /*line reports.mygo:237:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE reports SET state=?,resolver_account_id=?,resolution_note=?,resolved_at=now() WHERE id=?", state, identity.AccountID, note, id))) {
- /*line reports.mygo:244:16*/			return Err[struct{}, string]("report unavailable")
- /*line reports.mygo:237:7*/		} else {
- /*line zz_reports.gen.go:179:1*/		}
- /*line reports.mygo:208:5*/		var __mygo_expr_0 string
+ /*line zz_reports.gen.go:163:1*/		}
+ /*line reports.mygo:229:7*/		if !allowed {
+ /*line reports.mygo:230:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reports.mygo:229:7*/		} else {
+ /*line zz_reports.gen.go:167:1*/		}
+ /*line reports.mygo:232:7*/		if report.State == state {
+ /*line reports.mygo:233:16*/			return Ok[struct{}, failure.Failure](struct {
+ /*line zz_reports.gen.go:170:1*/			}{})
+ /*line reports.mygo:232:7*/		} else {
+ /*line zz_reports.gen.go:172:1*/		}
+ /*line reports.mygo:235:7*/		if report.State != "open" {
+ /*line reports.mygo:236:16*/			return Err[struct{}, failure.Failure](Of("report conflict"))
+ /*line reports.mygo:235:7*/		} else {
+ /*line zz_reports.gen.go:176:1*/		}
+ /*line reports.mygo:238:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE reports SET state=?,resolver_account_id=?,resolution_note=?,resolved_at=now() WHERE id=?", state, identity.AccountID, note, id))) {
+ /*line reports.mygo:245:16*/			return Err[struct{}, failure.Failure](Of("report unavailable"))
+ /*line reports.mygo:238:7*/		} else {
+ /*line zz_reports.gen.go:180:1*/		}
+ /*line reports.mygo:209:5*/		var __mygo_expr_0 string
 		if report.CommunityID.Valid {
 			__mygo_expr_0 = report.CommunityID.String
 		} else {
 			__mygo_expr_0 = ""
- /*line zz_reports.gen.go:185:1*/		}
- /*line reports.mygo:208:5*/		communityID := __mygo_expr_0
+ /*line zz_reports.gen.go:186:1*/		}
+ /*line reports.mygo:209:5*/		communityID := __mygo_expr_0
 		reporter := ""
 		reporterQuery := tx.WithContext(ctx).Table("accounts").Select("actor_uri").Where("site_id=? AND id=?", siteID, report.ReporterAccountID).Limit(1).Scan(&reporter)
- /*line reports.mygo:257:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(reporterQuery)) {
- /*line reports.mygo:258:16*/			return Err[struct{}, string]("report unavailable")
- /*line reports.mygo:257:7*/		} else {
- /*line zz_reports.gen.go:192:1*/		}
- /*line reports.mygo:260:7*/		if reporter != "" && reporter != identity.ActorURI {
+ /*line reports.mygo:258:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(reporterQuery)) {
+ /*line reports.mygo:259:16*/			return Err[struct{}, failure.Failure](Of("report unavailable"))
+ /*line reports.mygo:258:7*/		} else {
+ /*line zz_reports.gen.go:193:1*/		}
+ /*line reports.mygo:261:7*/		if reporter != "" && reporter != identity.ActorURI {
 			event := "report:" + strconv.FormatInt(id, 10) + ":" + state
 			notified := QueueModerationNotification(ctx, tx, "report", "report", strconv.FormatInt(id, 10), reporter, identity.ActorURI, event)
-			if MygoIN6ResultM5IsErr[struct{}, string](notified) {
- /*line reports.mygo:273:18*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](notified))
- /*line reports.mygo:260:7*/			} else {
- /*line zz_reports.gen.go:199:1*/			}
- /*line reports.mygo:260:7*/		} else {
- /*line zz_reports.gen.go:201:1*/		}
- /*line reports.mygo:276:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "resolve-report", report.TargetKind, report.TargetID, note)
- /*line zz_reports.gen.go:203:1*/	})
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](notified) {
+ /*line reports.mygo:274:18*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](notified))
+ /*line reports.mygo:261:7*/			} else {
+ /*line zz_reports.gen.go:200:1*/			}
+ /*line reports.mygo:261:7*/		} else {
+ /*line zz_reports.gen.go:202:1*/		}
+ /*line reports.mygo:277:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "resolve-report", report.TargetKind, report.TargetID, note)
+ /*line zz_reports.gen.go:204:1*/	})
 }
- /*line reports.mygo:291:1*/func ModerationLog(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, communityID string, limit int, offset int) Result[[]ModerationLogRecord, string] {
+ /*line reports.mygo:292:1*/func ModerationLog(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, communityID string, limit int, offset int) Result[[]ModerationLogRecord, failure.Failure] {
 	visible := CheckModerationScope(ctx, db, siteID, identity, communityID)
- /*line reports.mygo:301:3*/	if MygoIN6ResultM5IsErr[struct{}, string](visible) {
- /*line reports.mygo:302:12*/		return Err[[]ModerationLogRecord, string](MygoIN6ResultM9UnwrapErr[struct{}, string](visible))
- /*line reports.mygo:301:3*/	} else {
- /*line zz_reports.gen.go:210:1*/	}
- /*line reports.mygo:291:1*/	var rows []ModerationLogRecord = []ModerationLogRecord{}
+ /*line reports.mygo:302:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](visible) {
+ /*line reports.mygo:303:12*/		return Err[[]ModerationLogRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](visible))
+ /*line reports.mygo:302:3*/	} else {
+ /*line zz_reports.gen.go:211:1*/	}
+ /*line reports.mygo:292:1*/	var rows []ModerationLogRecord = []ModerationLogRecord{}
 	query := db.WithContext(ctx).Table("moderation_log").Where("site_id=? AND (?='' OR community_id=?)", siteID, communityID, communityID).Order("created_at DESC,id DESC").Limit(limit).Offset(offset).Find(&rows)
- /*line reports.mygo:311:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line reports.mygo:312:12*/		return Err[[]ModerationLogRecord, string]("modlog unavailable")
- /*line reports.mygo:311:3*/	} else {
- /*line zz_reports.gen.go:216:1*/	}
- /*line reports.mygo:314:3*/	return Ok[[]ModerationLogRecord, string](rows)
- /*line zz_reports.gen.go:218:1*/}
- /*line reports.mygo:317:1*/func BanCommunity(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, actorURI string, reason string, expiresAt sql.NullTime) Result[struct {
-}, string] {
+ /*line reports.mygo:312:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line reports.mygo:313:12*/		return Err[[]ModerationLogRecord, failure.Failure](Of("modlog unavailable"))
+ /*line reports.mygo:312:3*/	} else {
+ /*line zz_reports.gen.go:217:1*/	}
+ /*line reports.mygo:315:3*/	return Ok[[]ModerationLogRecord, failure.Failure](rows)
+ /*line zz_reports.gen.go:219:1*/}
+ /*line reports.mygo:318:1*/func BanCommunity(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, actorURI string, reason string, expiresAt sql.NullTime) Result[struct {
+}, failure.Failure] {
 	text := strings.TrimSpace(reason)
- /*line reports.mygo:328:3*/	if actorURI == "" || actorURI == identity.ActorURI || text == "" || utf8.RuneCountInString(text) > 1000 {
- /*line reports.mygo:332:12*/		return Err[struct{}, string]("invalid ban")
- /*line reports.mygo:328:3*/	} else {
- /*line zz_reports.gen.go:225:1*/	}
- /*line reports.mygo:334:3*/	return MygoIN19CommunityRepositoryM6Manage(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false, "ban-member", actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line reports.mygo:341:5*/		known := QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
- /*line reports.mygo:343:7*/		if MygoIN6ResultM5IsErr[bool, string](known) || !MygoIN6ResultM6Unwrap[bool, string](known) {
- /*line reports.mygo:344:16*/			return Err[struct{}, string]("invalid ban")
- /*line reports.mygo:343:7*/		} else {
- /*line zz_reports.gen.go:231:1*/		}
- /*line reports.mygo:346:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO community_bans(community_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()", communityID, actorURI, identity.ActorURI, text, expiresAt))) {
- /*line reports.mygo:354:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:346:7*/		} else {
- /*line zz_reports.gen.go:235:1*/		}
- /*line reports.mygo:341:5*/		recipient := ""
+ /*line reports.mygo:329:3*/	if actorURI == "" || actorURI == identity.ActorURI || text == "" || utf8.RuneCountInString(text) > 1000 {
+ /*line reports.mygo:333:12*/		return Err[struct{}, failure.Failure](Of("invalid ban"))
+ /*line reports.mygo:329:3*/	} else {
+ /*line zz_reports.gen.go:226:1*/	}
+ /*line reports.mygo:335:3*/	return MygoIN19CommunityRepositoryM6Manage(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false, "ban-member", actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:342:5*/		known := QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
+ /*line reports.mygo:344:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](known) || !MygoIN6ResultM6Unwrap[bool, failure.Failure](known) {
+ /*line reports.mygo:345:16*/			return Err[struct{}, failure.Failure](Of("invalid ban"))
+ /*line reports.mygo:344:7*/		} else {
+ /*line zz_reports.gen.go:232:1*/		}
+ /*line reports.mygo:347:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO community_bans(community_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (community_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()", communityID, actorURI, identity.ActorURI, text, expiresAt))) {
+ /*line reports.mygo:355:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:347:7*/		} else {
+ /*line zz_reports.gen.go:236:1*/		}
+ /*line reports.mygo:342:5*/		recipient := ""
 		found := tx.WithContext(ctx).Table("accounts").Select("actor_uri").Where("site_id=? AND actor_uri=? AND NOT disabled", community.HostSiteID, actorURI).Limit(1).Scan(&recipient)
- /*line reports.mygo:362:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line reports.mygo:363:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:362:7*/		} else {
- /*line zz_reports.gen.go:241:1*/		}
- /*line reports.mygo:365:7*/		if recipient != "" {
+ /*line reports.mygo:363:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(found)) {
+ /*line reports.mygo:364:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:363:7*/		} else {
+ /*line zz_reports.gen.go:242:1*/		}
+ /*line reports.mygo:366:7*/		if recipient != "" {
 			notified := QueueModerationNotification(ctx, tx, "moderation", "moderation", actorURI, recipient, identity.ActorURI, "ban:community:"+communityID+":"+actorURI)
-			if MygoIN6ResultM5IsErr[struct{}, string](notified) {
- /*line reports.mygo:377:18*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](notified))
- /*line reports.mygo:365:7*/			} else {
- /*line zz_reports.gen.go:247:1*/			}
- /*line reports.mygo:365:7*/		} else {
- /*line zz_reports.gen.go:249:1*/		}
- /*line reports.mygo:380:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "ban-member", "person", actorURI, text)
- /*line zz_reports.gen.go:251:1*/	})
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](notified) {
+ /*line reports.mygo:378:18*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](notified))
+ /*line reports.mygo:366:7*/			} else {
+ /*line zz_reports.gen.go:248:1*/			}
+ /*line reports.mygo:366:7*/		} else {
+ /*line zz_reports.gen.go:250:1*/		}
+ /*line reports.mygo:381:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "ban-member", "person", actorURI, text)
+ /*line zz_reports.gen.go:252:1*/	})
 }
- /*line reports.mygo:385:1*/func UnbanCommunity(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, actorURI string) Result[struct {
-}, string] {
- /*line reports.mygo:393:3*/	return MygoIN19CommunityRepositoryM6Manage(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false, "unban-member", actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, string] {
- /*line reports.mygo:400:5*/		changed := tx.Exec("UPDATE community_bans SET revoked_at=now() WHERE community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, actorURI)
- /*line reports.mygo:406:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(changed)) {
- /*line reports.mygo:407:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:406:7*/		} else {
- /*line zz_reports.gen.go:260:1*/		}
- /*line reports.mygo:409:7*/		if changed.RowsAffected != int64(1) {
- /*line reports.mygo:410:16*/			return Err[struct{}, string]("not found")
- /*line reports.mygo:409:7*/		} else {
- /*line zz_reports.gen.go:264:1*/		}
- /*line reports.mygo:412:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "unban-member", "person", actorURI, "")
- /*line zz_reports.gen.go:266:1*/	})
+ /*line reports.mygo:386:1*/func UnbanCommunity(ctx context.Context, db *gorm.DB, siteID string, communityID string, identity auth.Identity, actorURI string) Result[struct {
+}, failure.Failure] {
+ /*line reports.mygo:394:3*/	return MygoIN19CommunityRepositoryM6Manage(CommunityRepository{DB: db, SiteID: siteID}, ctx, communityID, identity, false, "unban-member", actorURI, func(tx *gorm.DB, community CommunityRecord) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:401:5*/		changed := tx.Exec("UPDATE community_bans SET revoked_at=now() WHERE community_id=? AND actor_uri=? AND revoked_at IS NULL", communityID, actorURI)
+ /*line reports.mygo:407:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(changed)) {
+ /*line reports.mygo:408:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:407:7*/		} else {
+ /*line zz_reports.gen.go:261:1*/		}
+ /*line reports.mygo:410:7*/		if changed.RowsAffected != int64(1) {
+ /*line reports.mygo:411:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reports.mygo:410:7*/		} else {
+ /*line zz_reports.gen.go:265:1*/		}
+ /*line reports.mygo:413:7*/		return WriteModerationLog(ctx, tx, siteID, communityID, identity, "unban-member", "person", actorURI, "")
+ /*line zz_reports.gen.go:267:1*/	})
 }
- /*line reports.mygo:417:1*/func BanSite(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, actorURI string, reason string, expiresAt sql.NullTime) Result[struct {
-}, string] {
+ /*line reports.mygo:418:1*/func BanSite(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, actorURI string, reason string, expiresAt sql.NullTime) Result[struct {
+}, failure.Failure] {
 	text := strings.TrimSpace(reason)
- /*line reports.mygo:427:3*/	if actorURI == "" || actorURI == identity.ActorURI || text == "" || utf8.RuneCountInString(text) > 1000 {
- /*line reports.mygo:431:12*/		return Err[struct{}, string]("invalid ban")
- /*line reports.mygo:427:3*/	} else {
- /*line zz_reports.gen.go:274:1*/	}
- /*line reports.mygo:433:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line reports.mygo:436:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
+ /*line reports.mygo:428:3*/	if actorURI == "" || actorURI == identity.ActorURI || text == "" || utf8.RuneCountInString(text) > 1000 {
+ /*line reports.mygo:432:12*/		return Err[struct{}, failure.Failure](Of("invalid ban"))
+ /*line reports.mygo:428:3*/	} else {
+ /*line zz_reports.gen.go:275:1*/	}
+ /*line reports.mygo:434:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:437:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
 		admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 		deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line reports.mygo:440:7*/		if MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line reports.mygo:441:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:440:7*/		} else {
- /*line zz_reports.gen.go:282:1*/		}
- /*line reports.mygo:443:7*/		if !MygoIN6ResultM6Unwrap[bool, string](admin) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
- /*line reports.mygo:444:16*/			return Err[struct{}, string]("forbidden")
- /*line reports.mygo:443:7*/		} else {
- /*line zz_reports.gen.go:286:1*/		}
- /*line reports.mygo:436:5*/		known := QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
- /*line reports.mygo:447:7*/		if MygoIN6ResultM5IsErr[bool, string](known) || !MygoIN6ResultM6Unwrap[bool, string](known) {
- /*line reports.mygo:448:16*/			return Err[struct{}, string]("invalid ban")
- /*line reports.mygo:447:7*/		} else {
- /*line zz_reports.gen.go:291:1*/		}
- /*line reports.mygo:450:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (site_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()", siteID, actorURI, identity.ActorURI, text, expiresAt))) {
- /*line reports.mygo:458:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:450:7*/		} else {
- /*line zz_reports.gen.go:295:1*/		}
- /*line reports.mygo:436:5*/		recipient := ""
+ /*line reports.mygo:441:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line reports.mygo:442:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:441:7*/		} else {
+ /*line zz_reports.gen.go:283:1*/		}
+ /*line reports.mygo:444:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](admin) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment) {
+ /*line reports.mygo:445:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reports.mygo:444:7*/		} else {
+ /*line zz_reports.gen.go:287:1*/		}
+ /*line reports.mygo:437:5*/		known := QueryExists(tx.Table("actors").Where("uri=? AND kind='Person'", actorURI))
+ /*line reports.mygo:448:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](known) || !MygoIN6ResultM6Unwrap[bool, failure.Failure](known) {
+ /*line reports.mygo:449:16*/			return Err[struct{}, failure.Failure](Of("invalid ban"))
+ /*line reports.mygo:448:7*/		} else {
+ /*line zz_reports.gen.go:292:1*/		}
+ /*line reports.mygo:451:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("INSERT INTO site_bans(site_id,actor_uri,banned_by_actor_uri,reason,expires_at) VALUES (?,?,?,?,?) ON CONFLICT (site_id,actor_uri) DO UPDATE SET banned_by_actor_uri=EXCLUDED.banned_by_actor_uri,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at,revoked_at=NULL,created_at=now()", siteID, actorURI, identity.ActorURI, text, expiresAt))) {
+ /*line reports.mygo:459:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:451:7*/		} else {
+ /*line zz_reports.gen.go:296:1*/		}
+ /*line reports.mygo:437:5*/		recipient := ""
 		found := tx.WithContext(ctx).Table("accounts").Select("actor_uri").Where("site_id=? AND actor_uri=? AND NOT disabled", siteID, actorURI).Limit(1).Scan(&recipient)
- /*line reports.mygo:466:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(found)) {
- /*line reports.mygo:467:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:466:7*/		} else {
- /*line zz_reports.gen.go:301:1*/		}
- /*line reports.mygo:469:7*/		if recipient != "" {
+ /*line reports.mygo:467:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(found)) {
+ /*line reports.mygo:468:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:467:7*/		} else {
+ /*line zz_reports.gen.go:302:1*/		}
+ /*line reports.mygo:470:7*/		if recipient != "" {
 			notified := QueueModerationNotification(ctx, tx, "moderation", "moderation", actorURI, recipient, identity.ActorURI, "ban:site:"+siteID+":"+actorURI)
-			if MygoIN6ResultM5IsErr[struct{}, string](notified) {
- /*line reports.mygo:481:18*/				return Err[struct{}, string](MygoIN6ResultM9UnwrapErr[struct{}, string](notified))
- /*line reports.mygo:469:7*/			} else {
- /*line zz_reports.gen.go:307:1*/			}
- /*line reports.mygo:469:7*/		} else {
- /*line zz_reports.gen.go:309:1*/		}
- /*line reports.mygo:484:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(tx.Exec("UPDATE sessions SET revoked_at=now() WHERE site_id=? AND account_id IN (SELECT id FROM accounts WHERE site_id=? AND actor_uri=?) AND revoked_at IS NULL", siteID, siteID, actorURI))) {
- /*line reports.mygo:490:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:484:7*/		} else {
- /*line zz_reports.gen.go:313:1*/		}
- /*line reports.mygo:492:7*/		return WriteModerationLog(ctx, tx, siteID, "", identity, "ban-site", "person", actorURI, text)
- /*line zz_reports.gen.go:315:1*/	})
+			if MygoIN6ResultM5IsErr[struct{}, failure.Failure](notified) {
+ /*line reports.mygo:482:18*/				return Err[struct{}, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](notified))
+ /*line reports.mygo:470:7*/			} else {
+ /*line zz_reports.gen.go:308:1*/			}
+ /*line reports.mygo:470:7*/		} else {
+ /*line zz_reports.gen.go:310:1*/		}
+ /*line reports.mygo:485:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(tx.Exec("UPDATE sessions SET revoked_at=now() WHERE site_id=? AND account_id IN (SELECT id FROM accounts WHERE site_id=? AND actor_uri=?) AND revoked_at IS NULL", siteID, siteID, actorURI))) {
+ /*line reports.mygo:491:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:485:7*/		} else {
+ /*line zz_reports.gen.go:314:1*/		}
+ /*line reports.mygo:493:7*/		return WriteModerationLog(ctx, tx, siteID, "", identity, "ban-site", "person", actorURI, text)
+ /*line zz_reports.gen.go:316:1*/	})
 }
- /*line reports.mygo:497:1*/func UnbanSite(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, actorURI string) Result[struct {
-}, string] {
- /*line reports.mygo:504:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, string] {
- /*line reports.mygo:507:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
+ /*line reports.mygo:498:1*/func UnbanSite(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity, actorURI string) Result[struct {
+}, failure.Failure] {
+ /*line reports.mygo:505:3*/	return RunTransaction(ctx, db, func(tx *gorm.DB) Result[struct{}, failure.Failure] {
+ /*line reports.mygo:508:5*/		site := SiteRepository{DB: tx, SiteID: siteID}
 		admin := MygoIN14SiteRepositoryM15IsAdministrator(site, ctx, identity)
 		deployment := MygoIN14SiteRepositoryM25IsDeploymentAdministrator(site, ctx, identity)
- /*line reports.mygo:511:7*/		if MygoIN6ResultM5IsErr[bool, string](admin) || MygoIN6ResultM5IsErr[bool, string](deployment) {
- /*line reports.mygo:512:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:511:7*/		} else {
- /*line zz_reports.gen.go:326:1*/		}
- /*line reports.mygo:514:7*/		if !MygoIN6ResultM6Unwrap[bool, string](admin) && !MygoIN6ResultM6Unwrap[bool, string](deployment) {
- /*line reports.mygo:515:16*/			return Err[struct{}, string]("forbidden")
- /*line reports.mygo:514:7*/		} else {
- /*line zz_reports.gen.go:330:1*/		}
- /*line reports.mygo:507:5*/		changed := tx.Exec("UPDATE site_bans SET revoked_at=now() WHERE site_id=? AND actor_uri=? AND revoked_at IS NULL", siteID, actorURI)
- /*line reports.mygo:522:7*/		if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(changed)) {
- /*line reports.mygo:523:16*/			return Err[struct{}, string]("ban unavailable")
- /*line reports.mygo:522:7*/		} else {
- /*line zz_reports.gen.go:335:1*/		}
- /*line reports.mygo:525:7*/		if changed.RowsAffected != int64(1) {
- /*line reports.mygo:526:16*/			return Err[struct{}, string]("not found")
- /*line reports.mygo:525:7*/		} else {
- /*line zz_reports.gen.go:339:1*/		}
- /*line reports.mygo:528:7*/		return WriteModerationLog(ctx, tx, siteID, "", identity, "unban-site", "person", actorURI, "")
- /*line zz_reports.gen.go:341:1*/	})
+ /*line reports.mygo:512:7*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](admin) || MygoIN6ResultM5IsErr[bool, failure.Failure](deployment) {
+ /*line reports.mygo:513:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:512:7*/		} else {
+ /*line zz_reports.gen.go:327:1*/		}
+ /*line reports.mygo:515:7*/		if !MygoIN6ResultM6Unwrap[bool, failure.Failure](admin) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](deployment) {
+ /*line reports.mygo:516:16*/			return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line reports.mygo:515:7*/		} else {
+ /*line zz_reports.gen.go:331:1*/		}
+ /*line reports.mygo:508:5*/		changed := tx.Exec("UPDATE site_bans SET revoked_at=now() WHERE site_id=? AND actor_uri=? AND revoked_at IS NULL", siteID, actorURI)
+ /*line reports.mygo:523:7*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(changed)) {
+ /*line reports.mygo:524:16*/			return Err[struct{}, failure.Failure](Of("ban unavailable"))
+ /*line reports.mygo:523:7*/		} else {
+ /*line zz_reports.gen.go:336:1*/		}
+ /*line reports.mygo:526:7*/		if changed.RowsAffected != int64(1) {
+ /*line reports.mygo:527:16*/			return Err[struct{}, failure.Failure](Of("not found"))
+ /*line reports.mygo:526:7*/		} else {
+ /*line zz_reports.gen.go:340:1*/		}
+ /*line reports.mygo:529:7*/		return WriteModerationLog(ctx, tx, siteID, "", identity, "unban-site", "person", actorURI, "")
+ /*line zz_reports.gen.go:342:1*/	})
 }
- /*line reports.mygo:533:1*/func ActiveCommunityBan(ctx context.Context, db *gorm.DB, communityID string, actorURI string, now time.Time) Result[bool, string] {
- /*line reports.mygo:540:3*/	return QueryExists(db.WithContext(ctx).Table("community_bans").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)", communityID, actorURI, now))
- /*line zz_reports.gen.go:345:1*/}
- /*line reports.mygo:548:1*/func ActiveSiteBan(ctx context.Context, db *gorm.DB, siteID string, actorURI string, now time.Time) Result[bool, string] {
- /*line reports.mygo:555:3*/	return QueryExists(db.WithContext(ctx).Table("site_bans").Where("site_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)", siteID, actorURI, now))
- /*line zz_reports.gen.go:348:1*/}
+ /*line reports.mygo:534:1*/func ActiveCommunityBan(ctx context.Context, db *gorm.DB, communityID string, actorURI string, now time.Time) Result[bool, failure.Failure] {
+ /*line reports.mygo:541:3*/	return QueryExists(db.WithContext(ctx).Table("community_bans").Where("community_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)", communityID, actorURI, now))
+ /*line zz_reports.gen.go:346:1*/}
+ /*line reports.mygo:549:1*/func ActiveSiteBan(ctx context.Context, db *gorm.DB, siteID string, actorURI string, now time.Time) Result[bool, failure.Failure] {
+ /*line reports.mygo:556:3*/	return QueryExists(db.WithContext(ctx).Table("site_bans").Where("site_id=? AND actor_uri=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)", siteID, actorURI, now))
+ /*line zz_reports.gen.go:349:1*/}

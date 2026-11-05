@@ -11,257 +11,258 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/federation"
 import "github.com/commune-project/commune-backend/internal/content"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line actor_handles.mygo:13:1*/type ResolvedActorHandle struct {
+ /*line actor_handles.mygo:14:1*/type ResolvedActorHandle struct {
 	Acct        string
 	DisplayName string
- /*line zz_actor_handles.gen.go:19:1*/}
- /*line actor_handles.mygo:18:1*/type ActorHandleOutcome struct {
+ /*line zz_actor_handles.gen.go:20:1*/}
+ /*line actor_handles.mygo:19:1*/type ActorHandleOutcome struct {
 	Resolved   int
 	Retried    int
 	Failed     int
 	Suppressed int
- /*line zz_actor_handles.gen.go:25:1*/}
+ /*line zz_actor_handles.gen.go:26:1*/}
 
- /*line actor_handles.mygo:25:1*/func FetchActorHandleDocument(ctx context.Context, uri string, accept string, limits federation.FetchLimits) Result[federation.FetchResult, string] {
- /*line actor_handles.mygo:31:3*/	return federation.FetchWithAccept(ctx, uri, limits, accept)
- /*line zz_actor_handles.gen.go:29:1*/}
- /*line actor_handles.mygo:37:1*/func ResolveActorHandle(ctx context.Context, settings config.Config, actorURI string) Result[ResolvedActorHandle, string] {
- /*line actor_handles.mygo:42:3*/	return ResolveActorHandleWith(ctx, settings, actorURI, FetchActorHandleDocument)
- /*line zz_actor_handles.gen.go:32:1*/}
- /*line actor_handles.mygo:45:1*/func ResolveActorHandleWith(ctx context.Context, settings config.Config, actorURI string, fetcher func(context.Context, string, string, federation.FetchLimits) Result[federation.FetchResult, string]) Result[ResolvedActorHandle, string] {
- /*line actor_handles.mygo:51:19*/	var __mygo_expr_1 Result[*url.URL, error]
+ /*line actor_handles.mygo:26:1*/func FetchActorHandleDocument(ctx context.Context, uri string, accept string, limits federation.FetchLimits) Result[federation.FetchResult, failure.Failure] {
+ /*line actor_handles.mygo:32:3*/	return federation.FetchWithAccept(ctx, uri, limits, accept)
+ /*line zz_actor_handles.gen.go:30:1*/}
+ /*line actor_handles.mygo:38:1*/func ResolveActorHandle(ctx context.Context, settings config.Config, actorURI string) Result[ResolvedActorHandle, failure.Failure] {
+ /*line actor_handles.mygo:43:3*/	return ResolveActorHandleWith(ctx, settings, actorURI, FetchActorHandleDocument)
+ /*line zz_actor_handles.gen.go:33:1*/}
+ /*line actor_handles.mygo:46:1*/func ResolveActorHandleWith(ctx context.Context, settings config.Config, actorURI string, fetcher func(context.Context, string, string, federation.FetchLimits) Result[federation.FetchResult, failure.Failure]) Result[ResolvedActorHandle, failure.Failure] {
+ /*line actor_handles.mygo:52:19*/	var __mygo_expr_1 Result[*url.URL, error]
 	__mygo_expr_2, __mygo_expr_0 := url.Parse(actorURI)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[*url.URL, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*url.URL, error](__mygo_expr_2)
- /*line zz_actor_handles.gen.go:40:1*/	}
- /*line actor_handles.mygo:45:1*/	parsedURI := __mygo_expr_1
- /*line actor_handles.mygo:52:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsedURI) || MygoIN6ResultM6Unwrap[*url.URL, error](parsedURI).Scheme != "https" {
- /*line actor_handles.mygo:53:12*/		return Err[ResolvedActorHandle, string]("invalid actor uri")
- /*line actor_handles.mygo:52:3*/	} else {
- /*line zz_actor_handles.gen.go:45:1*/	}
- /*line actor_handles.mygo:45:1*/	authority := config.NormalizeAuthority(MygoIN6ResultM6Unwrap[*url.URL, error](parsedURI).Host)
- /*line actor_handles.mygo:56:3*/	if MygoIN6ResultM5IsErr[string, string](authority) {
- /*line actor_handles.mygo:57:12*/		return Err[ResolvedActorHandle, string]("invalid actor uri")
- /*line actor_handles.mygo:56:3*/	} else {
- /*line zz_actor_handles.gen.go:50:1*/	}
- /*line actor_handles.mygo:45:1*/	limits := FetchLimitsFrom(settings)
+ /*line zz_actor_handles.gen.go:41:1*/	}
+ /*line actor_handles.mygo:46:1*/	parsedURI := __mygo_expr_1
+ /*line actor_handles.mygo:53:3*/	if MygoIN6ResultM5IsErr[*url.URL, error](parsedURI) || MygoIN6ResultM6Unwrap[*url.URL, error](parsedURI).Scheme != "https" {
+ /*line actor_handles.mygo:54:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("invalid actor uri"))
+ /*line actor_handles.mygo:53:3*/	} else {
+ /*line zz_actor_handles.gen.go:46:1*/	}
+ /*line actor_handles.mygo:46:1*/	authority := config.NormalizeAuthority(MygoIN6ResultM6Unwrap[*url.URL, error](parsedURI).Host)
+ /*line actor_handles.mygo:57:3*/	if MygoIN6ResultM5IsErr[string, string](authority) {
+ /*line actor_handles.mygo:58:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("invalid actor uri"))
+ /*line actor_handles.mygo:57:3*/	} else {
+ /*line zz_actor_handles.gen.go:51:1*/	}
+ /*line actor_handles.mygo:46:1*/	limits := FetchLimitsFrom(settings)
 	actorDocument := fetcher(ctx, actorURI, federation.ActivityJSONType(), limits)
- /*line actor_handles.mygo:61:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](actorDocument) || MygoIN6ResultM6Unwrap[federation.FetchResult, string](actorDocument).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, string](actorDocument).Body) || !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, string](actorDocument).ContentType) {
- /*line actor_handles.mygo:65:12*/		return Err[ResolvedActorHandle, string]("actor document unavailable")
- /*line actor_handles.mygo:61:3*/	} else {
- /*line zz_actor_handles.gen.go:56:1*/	}
- /*line actor_handles.mygo:45:1*/	actor := Zero[federation.ActorRepresentation]()
- /*line actor_handles.mygo:68:6*/	var __mygo_expr_4 Result[struct{}, error]
-	__mygo_expr_3 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, string](actorDocument).Body, &actor)
+ /*line actor_handles.mygo:62:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](actorDocument) || MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](actorDocument).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](actorDocument).Body) || !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](actorDocument).ContentType) {
+ /*line actor_handles.mygo:66:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("actor document unavailable"))
+ /*line actor_handles.mygo:62:3*/	} else {
+ /*line zz_actor_handles.gen.go:57:1*/	}
+ /*line actor_handles.mygo:46:1*/	actor := Zero[federation.ActorRepresentation]()
+ /*line actor_handles.mygo:69:6*/	var __mygo_expr_4 Result[struct{}, error]
+	__mygo_expr_3 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](actorDocument).Body, &actor)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_actor_handles.gen.go:64:1*/		}{})
+ /*line zz_actor_handles.gen.go:65:1*/		}{})
 	}
- /*line actor_handles.mygo:68:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || actor.ID != actorURI || actor.Type != "Person" || actor.PreferredUsername == "" {
- /*line actor_handles.mygo:72:12*/		return Err[ResolvedActorHandle, string]("invalid actor document")
- /*line actor_handles.mygo:68:3*/	} else {
- /*line zz_actor_handles.gen.go:69:1*/	}
- /*line actor_handles.mygo:45:1*/	parsedAccount := federation.ParseWebFingerResource("acct:" + actor.PreferredUsername + "@" + MygoIN6ResultM6Unwrap[string, string](authority))
- /*line actor_handles.mygo:75:3*/	if MygoIN6ResultM5IsErr[federation.Account, string](parsedAccount) {
- /*line actor_handles.mygo:76:12*/		return Err[ResolvedActorHandle, string]("invalid actor username")
- /*line actor_handles.mygo:75:3*/	} else {
- /*line zz_actor_handles.gen.go:74:1*/	}
- /*line actor_handles.mygo:45:1*/	account := MygoIN6ResultM6Unwrap[federation.Account, string](parsedAccount)
+ /*line actor_handles.mygo:69:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_4) || actor.ID != actorURI || actor.Type != "Person" || actor.PreferredUsername == "" {
+ /*line actor_handles.mygo:73:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("invalid actor document"))
+ /*line actor_handles.mygo:69:3*/	} else {
+ /*line zz_actor_handles.gen.go:70:1*/	}
+ /*line actor_handles.mygo:46:1*/	parsedAccount := federation.ParseWebFingerResource("acct:" + actor.PreferredUsername + "@" + MygoIN6ResultM6Unwrap[string, string](authority))
+ /*line actor_handles.mygo:76:3*/	if MygoIN6ResultM5IsErr[federation.Account, failure.Failure](parsedAccount) {
+ /*line actor_handles.mygo:77:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("invalid actor username"))
+ /*line actor_handles.mygo:76:3*/	} else {
+ /*line zz_actor_handles.gen.go:75:1*/	}
+ /*line actor_handles.mygo:46:1*/	account := MygoIN6ResultM6Unwrap[federation.Account, failure.Failure](parsedAccount)
 	webfinger := "https://" + account.Host + "/.well-known/webfinger?resource=" + url.QueryEscape("acct:"+account.Username+"@"+account.Host)
 	fingerLimits := limits
 	fingerLimits.MaxRedirects = 0
- /*line actor_handles.mygo:85:3*/	if fingerLimits.MaxBytes > 65536 {
+ /*line actor_handles.mygo:86:3*/	if fingerLimits.MaxBytes > 65536 {
 		fingerLimits.MaxBytes = 65536
 	} else {
- /*line zz_actor_handles.gen.go:82:1*/	}
- /*line actor_handles.mygo:45:1*/	finger := fetcher(ctx, webfinger, federation.WebFingerJSONType(), fingerLimits)
- /*line actor_handles.mygo:89:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, string](finger) || MygoIN6ResultM6Unwrap[federation.FetchResult, string](finger).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, string](finger).Body) || !federation.WantsWebFingerJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, string](finger).ContentType) {
- /*line actor_handles.mygo:93:12*/		return Err[ResolvedActorHandle, string]("webfinger unavailable")
- /*line actor_handles.mygo:89:3*/	} else {
- /*line zz_actor_handles.gen.go:87:1*/	}
- /*line actor_handles.mygo:45:1*/	document := Zero[federation.WebFingerDocument]()
- /*line actor_handles.mygo:96:6*/	var __mygo_expr_6 Result[struct{}, error]
-	__mygo_expr_5 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, string](finger).Body, &document)
+ /*line zz_actor_handles.gen.go:83:1*/	}
+ /*line actor_handles.mygo:46:1*/	finger := fetcher(ctx, webfinger, federation.WebFingerJSONType(), fingerLimits)
+ /*line actor_handles.mygo:90:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](finger) || MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](finger).Status != 200 || federation.HasDuplicateKeys(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](finger).Body) || !federation.WantsWebFingerJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](finger).ContentType) {
+ /*line actor_handles.mygo:94:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("webfinger unavailable"))
+ /*line actor_handles.mygo:90:3*/	} else {
+ /*line zz_actor_handles.gen.go:88:1*/	}
+ /*line actor_handles.mygo:46:1*/	document := Zero[federation.WebFingerDocument]()
+ /*line actor_handles.mygo:97:6*/	var __mygo_expr_6 Result[struct{}, error]
+	__mygo_expr_5 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](finger).Body, &document)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[struct{}, error](struct {
- /*line zz_actor_handles.gen.go:95:1*/		}{})
+ /*line zz_actor_handles.gen.go:96:1*/		}{})
 	}
- /*line actor_handles.mygo:96:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || !strings.EqualFold(document.Subject, "acct:"+account.Username+"@"+account.Host) {
- /*line actor_handles.mygo:98:12*/		return Err[ResolvedActorHandle, string]("webfinger subject mismatch")
- /*line actor_handles.mygo:96:3*/	} else {
- /*line zz_actor_handles.gen.go:100:1*/	}
- /*line actor_handles.mygo:45:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
- /*line actor_handles.mygo:101:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && link.Href == actorURI
- /*line zz_actor_handles.gen.go:103:1*/	})
- /*line actor_handles.mygo:103:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
- /*line actor_handles.mygo:104:12*/		return Err[ResolvedActorHandle, string]("webfinger self link mismatch")
- /*line actor_handles.mygo:103:3*/	} else {
- /*line zz_actor_handles.gen.go:107:1*/	}
- /*line actor_handles.mygo:106:3*/	return Ok[ResolvedActorHandle, string](ResolvedActorHandle{Acct: strings.TrimPrefix(document.Subject, "acct:"), DisplayName: content.RenderText(actor.Name)})
- /*line zz_actor_handles.gen.go:109:1*/}
- /*line actor_handles.mygo:112:1*/func SettleActorHandleFailure(ctx context.Context, db *gorm.DB, settings config.Config, job storage.ActorHandleJobRecord, reason string) Result[bool, string] {
+ /*line actor_handles.mygo:97:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_6) || !strings.EqualFold(document.Subject, "acct:"+account.Username+"@"+account.Host) {
+ /*line actor_handles.mygo:99:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("webfinger subject mismatch"))
+ /*line actor_handles.mygo:97:3*/	} else {
+ /*line zz_actor_handles.gen.go:101:1*/	}
+ /*line actor_handles.mygo:46:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
+ /*line actor_handles.mygo:102:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && link.Href == actorURI
+ /*line zz_actor_handles.gen.go:104:1*/	})
+ /*line actor_handles.mygo:104:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
+ /*line actor_handles.mygo:105:12*/		return Err[ResolvedActorHandle, failure.Failure](Of("webfinger self link mismatch"))
+ /*line actor_handles.mygo:104:3*/	} else {
+ /*line zz_actor_handles.gen.go:108:1*/	}
+ /*line actor_handles.mygo:107:3*/	return Ok[ResolvedActorHandle, failure.Failure](ResolvedActorHandle{Acct: strings.TrimPrefix(document.Subject, "acct:"), DisplayName: content.RenderText(actor.Name)})
+ /*line zz_actor_handles.gen.go:110:1*/}
+ /*line actor_handles.mygo:113:1*/func SettleActorHandleFailure(ctx context.Context, db *gorm.DB, settings config.Config, job storage.ActorHandleJobRecord, reason string) Result[bool, failure.Failure] {
 	limits := settings.ParticipationWorkers
- /*line actor_handles.mygo:120:3*/	if job.Attempts >= int64(limits.MaxAttempts) {
+ /*line actor_handles.mygo:121:3*/	if job.Attempts >= int64(limits.MaxAttempts) {
 		failed := storage.MarkActorHandleFailed(ctx, db, job.SiteID, job.ActorURI, reason)
- /*line actor_handles.mygo:122:5*/		if MygoIN6ResultM5IsErr[struct{}, string](failed) {
- /*line actor_handles.mygo:123:14*/			return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](failed))
- /*line actor_handles.mygo:122:5*/		} else {
- /*line zz_actor_handles.gen.go:117:1*/		}
- /*line actor_handles.mygo:125:12*/		return Ok[bool, string](false)
- /*line actor_handles.mygo:120:3*/	} else {
- /*line zz_actor_handles.gen.go:120:1*/	}
- /*line actor_handles.mygo:112:1*/	backoff := int64(limits.RetryBaseSeconds) * job.Attempts
- /*line actor_handles.mygo:128:3*/	if backoff > int64(limits.RetryMaxSeconds) {
+ /*line actor_handles.mygo:123:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](failed) {
+ /*line actor_handles.mygo:124:14*/			return Err[bool, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](failed))
+ /*line actor_handles.mygo:123:5*/		} else {
+ /*line zz_actor_handles.gen.go:118:1*/		}
+ /*line actor_handles.mygo:126:12*/		return Ok[bool, failure.Failure](false)
+ /*line actor_handles.mygo:121:3*/	} else {
+ /*line zz_actor_handles.gen.go:121:1*/	}
+ /*line actor_handles.mygo:113:1*/	backoff := int64(limits.RetryBaseSeconds) * job.Attempts
+ /*line actor_handles.mygo:129:3*/	if backoff > int64(limits.RetryMaxSeconds) {
 		backoff = int64(limits.RetryMaxSeconds)
 	} else {
- /*line zz_actor_handles.gen.go:125:1*/	}
- /*line actor_handles.mygo:112:1*/	retried := storage.MarkActorHandleRetry(ctx, db, job.SiteID, job.ActorURI, reason, backoff)
- /*line actor_handles.mygo:132:3*/	if MygoIN6ResultM5IsErr[struct{}, string](retried) {
- /*line actor_handles.mygo:133:12*/		return Err[bool, string](MygoIN6ResultM9UnwrapErr[struct{}, string](retried))
- /*line actor_handles.mygo:132:3*/	} else {
- /*line zz_actor_handles.gen.go:130:1*/	}
- /*line actor_handles.mygo:135:3*/	return Ok[bool, string](true)
- /*line zz_actor_handles.gen.go:132:1*/}
- /*line actor_handles.mygo:138:1*/func RunActorHandleBatch(ctx context.Context, settings config.Config, db *gorm.DB) Result[ActorHandleOutcome, string] {
- /*line actor_handles.mygo:143:3*/	return RunActorHandleBatchWith(ctx, settings, db, FetchActorHandleDocument)
- /*line zz_actor_handles.gen.go:135:1*/}
- /*line actor_handles.mygo:146:1*/func RunActorHandleBatchWith(ctx context.Context, settings config.Config, db *gorm.DB, fetcher func(context.Context, string, string, federation.FetchLimits) Result[federation.FetchResult, string]) Result[ActorHandleOutcome, string] {
+ /*line zz_actor_handles.gen.go:126:1*/	}
+ /*line actor_handles.mygo:113:1*/	retried := storage.MarkActorHandleRetry(ctx, db, job.SiteID, job.ActorURI, reason, backoff)
+ /*line actor_handles.mygo:133:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](retried) {
+ /*line actor_handles.mygo:134:12*/		return Err[bool, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](retried))
+ /*line actor_handles.mygo:133:3*/	} else {
+ /*line zz_actor_handles.gen.go:131:1*/	}
+ /*line actor_handles.mygo:136:3*/	return Ok[bool, failure.Failure](true)
+ /*line zz_actor_handles.gen.go:133:1*/}
+ /*line actor_handles.mygo:139:1*/func RunActorHandleBatch(ctx context.Context, settings config.Config, db *gorm.DB) Result[ActorHandleOutcome, failure.Failure] {
+ /*line actor_handles.mygo:144:3*/	return RunActorHandleBatchWith(ctx, settings, db, FetchActorHandleDocument)
+ /*line zz_actor_handles.gen.go:136:1*/}
+ /*line actor_handles.mygo:147:1*/func RunActorHandleBatchWith(ctx context.Context, settings config.Config, db *gorm.DB, fetcher func(context.Context, string, string, federation.FetchLimits) Result[federation.FetchResult, failure.Failure]) Result[ActorHandleOutcome, failure.Failure] {
 	limits := settings.ParticipationWorkers
 	claimed := storage.ClaimActorHandleJobs(ctx, db, limits.BatchSize, int64(limits.LeaseSeconds))
- /*line actor_handles.mygo:159:3*/	if MygoIN6ResultM5IsErr[[]storage.ActorHandleJobRecord, string](claimed) {
- /*line actor_handles.mygo:160:12*/		return Err[ActorHandleOutcome, string](MygoIN6ResultM9UnwrapErr[[]storage.ActorHandleJobRecord, string](claimed))
- /*line actor_handles.mygo:159:3*/	} else {
- /*line zz_actor_handles.gen.go:142:1*/	}
- /*line actor_handles.mygo:146:1*/	outcome := ActorHandleOutcome{Resolved: 0, Retried: 0, Failed: 0, Suppressed: 0}
- /*line actor_handles.mygo:163:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.ActorHandleJobRecord, string](claimed), func(job storage.ActorHandleJobRecord) {
- /*line actor_handles.mygo:163:25*/		actor := storage.LoadActor(ctx, db, job.ActorURI)
- /*line actor_handles.mygo:165:5*/		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], string](actor) {
+ /*line actor_handles.mygo:160:3*/	if MygoIN6ResultM5IsErr[[]storage.ActorHandleJobRecord, failure.Failure](claimed) {
+ /*line actor_handles.mygo:161:12*/		return Err[ActorHandleOutcome, failure.Failure](MygoIN6ResultM9UnwrapErr[[]storage.ActorHandleJobRecord, failure.Failure](claimed))
+ /*line actor_handles.mygo:160:3*/	} else {
+ /*line zz_actor_handles.gen.go:143:1*/	}
+ /*line actor_handles.mygo:147:1*/	outcome := ActorHandleOutcome{Resolved: 0, Retried: 0, Failed: 0, Suppressed: 0}
+ /*line actor_handles.mygo:164:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.ActorHandleJobRecord, failure.Failure](claimed), func(job storage.ActorHandleJobRecord) {
+ /*line actor_handles.mygo:164:25*/		actor := storage.LoadActor(ctx, db, job.ActorURI)
+ /*line actor_handles.mygo:166:5*/		if MygoIN6ResultM5IsErr[Option[storage.ActorRecord], failure.Failure](actor) {
 			settled := SettleActorHandleFailure(ctx, db, settings, job, "actor unavailable")
- /*line actor_handles.mygo:167:7*/			if MygoIN6ResultM5IsErr[bool, string](settled) {
+ /*line actor_handles.mygo:168:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](settled) {
 				return
 			} else {
- /*line zz_actor_handles.gen.go:151:1*/			}
- /*line actor_handles.mygo:170:7*/			if MygoIN6ResultM6Unwrap[bool, string](settled) {
+ /*line zz_actor_handles.gen.go:152:1*/			}
+ /*line actor_handles.mygo:171:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](settled) {
 				outcome.Retried = outcome.Retried + 1
 			} else {
 				outcome.Failed = outcome.Failed + 1
- /*line zz_actor_handles.gen.go:156:1*/			}
- /*line actor_handles.mygo:165:5*/			return
+ /*line zz_actor_handles.gen.go:157:1*/			}
+ /*line actor_handles.mygo:166:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:159:1*/		}
- /*line actor_handles.mygo:177:5*/		if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor)) {
+ /*line zz_actor_handles.gen.go:160:1*/		}
+ /*line actor_handles.mygo:178:5*/		if MygoIN6OptionM6IsNone[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor)) {
 			suppressed := storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "actor missing")
- /*line actor_handles.mygo:179:7*/			if MygoIN6ResultM4IsOk[struct{}, string](suppressed) {
+ /*line actor_handles.mygo:180:7*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](suppressed) {
 				outcome.Suppressed = outcome.Suppressed + 1
 			} else {
- /*line zz_actor_handles.gen.go:165:1*/			}
- /*line actor_handles.mygo:177:5*/			return
+ /*line zz_actor_handles.gen.go:166:1*/			}
+ /*line actor_handles.mygo:178:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:168:1*/		}
- /*line actor_handles.mygo:163:25*/		found := MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], string](actor))
- /*line actor_handles.mygo:185:5*/		if found.LocalSiteID.Valid || found.Kind != "Person" {
+ /*line zz_actor_handles.gen.go:169:1*/		}
+ /*line actor_handles.mygo:164:25*/		found := MygoIN6OptionM6Unwrap[storage.ActorRecord](MygoIN6ResultM6Unwrap[Option[storage.ActorRecord], failure.Failure](actor))
+ /*line actor_handles.mygo:186:5*/		if found.LocalSiteID.Valid || found.Kind != "Person" {
 			suppressed_1 := storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "not a remote person")
- /*line actor_handles.mygo:187:7*/			if MygoIN6ResultM4IsOk[struct{}, string](suppressed_1) {
+ /*line actor_handles.mygo:188:7*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](suppressed_1) {
 				outcome.Suppressed = outcome.Suppressed + 1
 			} else {
- /*line zz_actor_handles.gen.go:175:1*/			}
- /*line actor_handles.mygo:185:5*/			return
+ /*line zz_actor_handles.gen.go:176:1*/			}
+ /*line actor_handles.mygo:186:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:178:1*/		}
- /*line actor_handles.mygo:192:5*/		if found.Acct != "" {
+ /*line zz_actor_handles.gen.go:179:1*/		}
+ /*line actor_handles.mygo:193:5*/		if found.Acct != "" {
 			done := storage.MarkActorHandleDone(ctx, db, job.SiteID, job.ActorURI)
- /*line actor_handles.mygo:194:7*/			if MygoIN6ResultM4IsOk[struct{}, string](done) {
+ /*line actor_handles.mygo:195:7*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](done) {
 				outcome.Resolved = outcome.Resolved + 1
 			} else {
- /*line zz_actor_handles.gen.go:184:1*/			}
- /*line actor_handles.mygo:192:5*/			return
+ /*line zz_actor_handles.gen.go:185:1*/			}
+ /*line actor_handles.mygo:193:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:187:1*/		}
- /*line actor_handles.mygo:163:25*/		blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: job.SiteID}, ctx, job.ActorURI)
- /*line actor_handles.mygo:200:5*/		if MygoIN6ResultM5IsErr[bool, string](blocked) {
+ /*line zz_actor_handles.gen.go:188:1*/		}
+ /*line actor_handles.mygo:164:25*/		blocked := storage.MygoIN14SiteRepositoryM9IsBlocked(storage.SiteRepository{DB: db, SiteID: job.SiteID}, ctx, job.ActorURI)
+ /*line actor_handles.mygo:201:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](blocked) {
 			settled_1 := SettleActorHandleFailure(ctx, db, settings, job, "site policy unavailable")
- /*line actor_handles.mygo:202:7*/			if MygoIN6ResultM5IsErr[bool, string](settled_1) {
+ /*line actor_handles.mygo:203:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](settled_1) {
 				return
 			} else {
- /*line zz_actor_handles.gen.go:194:1*/			}
- /*line actor_handles.mygo:205:7*/			if MygoIN6ResultM6Unwrap[bool, string](settled_1) {
+ /*line zz_actor_handles.gen.go:195:1*/			}
+ /*line actor_handles.mygo:206:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](settled_1) {
 				outcome.Retried = outcome.Retried + 1
 			} else {
 				outcome.Failed = outcome.Failed + 1
- /*line zz_actor_handles.gen.go:199:1*/			}
- /*line actor_handles.mygo:200:5*/			return
+ /*line zz_actor_handles.gen.go:200:1*/			}
+ /*line actor_handles.mygo:201:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:202:1*/		}
- /*line actor_handles.mygo:212:5*/		if MygoIN6ResultM6Unwrap[bool, string](blocked) {
+ /*line zz_actor_handles.gen.go:203:1*/		}
+ /*line actor_handles.mygo:213:5*/		if MygoIN6ResultM6Unwrap[bool, failure.Failure](blocked) {
 			suppressed_2 := storage.SuppressActorHandle(ctx, db, job.SiteID, job.ActorURI, "actor blocked")
- /*line actor_handles.mygo:214:7*/			if MygoIN6ResultM4IsOk[struct{}, string](suppressed_2) {
+ /*line actor_handles.mygo:215:7*/			if MygoIN6ResultM4IsOk[struct{}, failure.Failure](suppressed_2) {
 				outcome.Suppressed = outcome.Suppressed + 1
 			} else {
- /*line zz_actor_handles.gen.go:208:1*/			}
- /*line actor_handles.mygo:212:5*/			return
+ /*line zz_actor_handles.gen.go:209:1*/			}
+ /*line actor_handles.mygo:213:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:211:1*/		}
- /*line actor_handles.mygo:163:25*/		resolved := ResolveActorHandleWith(ctx, settings, job.ActorURI, fetcher)
- /*line actor_handles.mygo:220:5*/		if MygoIN6ResultM5IsErr[ResolvedActorHandle, string](resolved) {
-			settled_2 := SettleActorHandleFailure(ctx, db, settings, job, MygoIN6ResultM9UnwrapErr[ResolvedActorHandle, string](resolved))
- /*line actor_handles.mygo:222:7*/			if MygoIN6ResultM5IsErr[bool, string](settled_2) {
+ /*line zz_actor_handles.gen.go:212:1*/		}
+ /*line actor_handles.mygo:164:25*/		resolved := ResolveActorHandleWith(ctx, settings, job.ActorURI, fetcher)
+ /*line actor_handles.mygo:221:5*/		if MygoIN6ResultM5IsErr[ResolvedActorHandle, failure.Failure](resolved) {
+			settled_2 := SettleActorHandleFailure(ctx, db, settings, job, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[ResolvedActorHandle, failure.Failure](resolved)))
+ /*line actor_handles.mygo:223:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](settled_2) {
 				return
 			} else {
- /*line zz_actor_handles.gen.go:218:1*/			}
- /*line actor_handles.mygo:225:7*/			if MygoIN6ResultM6Unwrap[bool, string](settled_2) {
+ /*line zz_actor_handles.gen.go:219:1*/			}
+ /*line actor_handles.mygo:226:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](settled_2) {
 				outcome.Retried = outcome.Retried + 1
 			} else {
 				outcome.Failed = outcome.Failed + 1
- /*line zz_actor_handles.gen.go:223:1*/			}
- /*line actor_handles.mygo:220:5*/			return
+ /*line zz_actor_handles.gen.go:224:1*/			}
+ /*line actor_handles.mygo:221:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:226:1*/		}
- /*line actor_handles.mygo:163:25*/		handle := MygoIN6ResultM6Unwrap[ResolvedActorHandle, string](resolved)
+ /*line zz_actor_handles.gen.go:227:1*/		}
+ /*line actor_handles.mygo:164:25*/		handle := MygoIN6ResultM6Unwrap[ResolvedActorHandle, failure.Failure](resolved)
 		bootstrapped := storage.BootstrapRemoteDisplayName(ctx, db, job.ActorURI, handle.DisplayName)
- /*line actor_handles.mygo:234:5*/		if MygoIN6ResultM5IsErr[struct{}, string](bootstrapped) {
-			settled_3 := SettleActorHandleFailure(ctx, db, settings, job, MygoIN6ResultM9UnwrapErr[struct{}, string](bootstrapped))
- /*line actor_handles.mygo:236:7*/			if MygoIN6ResultM5IsErr[bool, string](settled_3) {
+ /*line actor_handles.mygo:235:5*/		if MygoIN6ResultM5IsErr[struct{}, failure.Failure](bootstrapped) {
+			settled_3 := SettleActorHandleFailure(ctx, db, settings, job, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](bootstrapped)))
+ /*line actor_handles.mygo:237:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](settled_3) {
 				return
 			} else {
- /*line zz_actor_handles.gen.go:234:1*/			}
- /*line actor_handles.mygo:239:7*/			if MygoIN6ResultM6Unwrap[bool, string](settled_3) {
+ /*line zz_actor_handles.gen.go:235:1*/			}
+ /*line actor_handles.mygo:240:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](settled_3) {
 				outcome.Retried = outcome.Retried + 1
 			} else {
 				outcome.Failed = outcome.Failed + 1
- /*line zz_actor_handles.gen.go:239:1*/			}
- /*line actor_handles.mygo:234:5*/			return
+ /*line zz_actor_handles.gen.go:240:1*/			}
+ /*line actor_handles.mygo:235:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:242:1*/		}
- /*line actor_handles.mygo:163:25*/		saved := storage.SaveVerifiedActorHandle(ctx, db, job.ActorURI, handle.Acct)
- /*line actor_handles.mygo:247:5*/		if MygoIN6ResultM5IsErr[bool, string](saved) {
-			settled_4 := SettleActorHandleFailure(ctx, db, settings, job, MygoIN6ResultM9UnwrapErr[bool, string](saved))
- /*line actor_handles.mygo:249:7*/			if MygoIN6ResultM5IsErr[bool, string](settled_4) {
+ /*line zz_actor_handles.gen.go:243:1*/		}
+ /*line actor_handles.mygo:164:25*/		saved := storage.SaveVerifiedActorHandle(ctx, db, job.ActorURI, handle.Acct)
+ /*line actor_handles.mygo:248:5*/		if MygoIN6ResultM5IsErr[bool, failure.Failure](saved) {
+			settled_4 := SettleActorHandleFailure(ctx, db, settings, job, failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[bool, failure.Failure](saved)))
+ /*line actor_handles.mygo:250:7*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](settled_4) {
 				return
 			} else {
- /*line zz_actor_handles.gen.go:249:1*/			}
- /*line actor_handles.mygo:252:7*/			if MygoIN6ResultM6Unwrap[bool, string](settled_4) {
+ /*line zz_actor_handles.gen.go:250:1*/			}
+ /*line actor_handles.mygo:253:7*/			if MygoIN6ResultM6Unwrap[bool, failure.Failure](settled_4) {
 				outcome.Retried = outcome.Retried + 1
 			} else {
 				outcome.Failed = outcome.Failed + 1
- /*line zz_actor_handles.gen.go:254:1*/			}
- /*line actor_handles.mygo:247:5*/			return
+ /*line zz_actor_handles.gen.go:255:1*/			}
+ /*line actor_handles.mygo:248:5*/			return
 		} else {
- /*line zz_actor_handles.gen.go:257:1*/		}
- /*line actor_handles.mygo:163:25*/		done_1 := storage.MarkActorHandleDone(ctx, db, job.SiteID, job.ActorURI)
- /*line actor_handles.mygo:260:5*/		if MygoIN6ResultM4IsOk[struct{}, string](done_1) {
+ /*line zz_actor_handles.gen.go:258:1*/		}
+ /*line actor_handles.mygo:164:25*/		done_1 := storage.MarkActorHandleDone(ctx, db, job.SiteID, job.ActorURI)
+ /*line actor_handles.mygo:261:5*/		if MygoIN6ResultM4IsOk[struct{}, failure.Failure](done_1) {
 			outcome.Resolved = outcome.Resolved + 1
 			return
 		} else {
 			return
- /*line zz_actor_handles.gen.go:264:1*/		}
+ /*line zz_actor_handles.gen.go:265:1*/		}
 	})
- /*line actor_handles.mygo:264:3*/	return Ok[ActorHandleOutcome, string](outcome)
- /*line zz_actor_handles.gen.go:267:1*/}
+ /*line actor_handles.mygo:265:3*/	return Ok[ActorHandleOutcome, failure.Failure](outcome)
+ /*line zz_actor_handles.gen.go:268:1*/}

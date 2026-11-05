@@ -4,43 +4,44 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line person_follows.mygo:6:1*/func AddPersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string, followURI string) Result[struct {
-}, string] {
- /*line person_follows.mygo:13:3*/	if localActorURI == "" || follower == "" || followURI == "" {
- /*line person_follows.mygo:14:12*/		return Err[struct{}, string]("invalid follow")
- /*line person_follows.mygo:13:3*/	} else {
- /*line zz_person_follows.gen.go:14:1*/	}
- /*line person_follows.mygo:16:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO person_follows(local_actor_uri,follower_actor_uri,follow_uri,state) VALUES (?,?,?,'accepted') ON CONFLICT (local_actor_uri,follower_actor_uri) DO UPDATE SET state='accepted', follow_uri=EXCLUDED.follow_uri, updated_at=now()", localActorURI, follower, followURI))
- /*line zz_person_follows.gen.go:16:1*/}
- /*line person_follows.mygo:24:1*/func RemovePersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string) Result[struct {
-}, string] {
- /*line person_follows.mygo:30:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE person_follows SET state='undone', updated_at=now() WHERE local_actor_uri=? AND follower_actor_uri=?", localActorURI, follower))
- /*line zz_person_follows.gen.go:20:1*/}
- /*line person_follows.mygo:37:1*/func IsPersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string) Result[bool, string] {
- /*line person_follows.mygo:43:3*/	return QueryExists(db.WithContext(ctx).Table("person_follows").Where("local_actor_uri=? AND follower_actor_uri=? AND state='accepted'", localActorURI, follower))
- /*line zz_person_follows.gen.go:23:1*/}
- /*line person_follows.mygo:50:1*/func CountPersonFollowers(ctx context.Context, db *gorm.DB, localActorURI string) Result[int64, string] {
+ /*line person_follows.mygo:7:1*/func AddPersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string, followURI string) Result[struct {
+}, failure.Failure] {
+ /*line person_follows.mygo:14:3*/	if localActorURI == "" || follower == "" || followURI == "" {
+ /*line person_follows.mygo:15:12*/		return Err[struct{}, failure.Failure](Of("invalid follow"))
+ /*line person_follows.mygo:14:3*/	} else {
+ /*line zz_person_follows.gen.go:15:1*/	}
+ /*line person_follows.mygo:17:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO person_follows(local_actor_uri,follower_actor_uri,follow_uri,state) VALUES (?,?,?,'accepted') ON CONFLICT (local_actor_uri,follower_actor_uri) DO UPDATE SET state='accepted', follow_uri=EXCLUDED.follow_uri, updated_at=now()", localActorURI, follower, followURI))
+ /*line zz_person_follows.gen.go:17:1*/}
+ /*line person_follows.mygo:25:1*/func RemovePersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string) Result[struct {
+}, failure.Failure] {
+ /*line person_follows.mygo:31:3*/	return MutationResult(db.WithContext(ctx).Exec("UPDATE person_follows SET state='undone', updated_at=now() WHERE local_actor_uri=? AND follower_actor_uri=?", localActorURI, follower))
+ /*line zz_person_follows.gen.go:21:1*/}
+ /*line person_follows.mygo:38:1*/func IsPersonFollower(ctx context.Context, db *gorm.DB, localActorURI string, follower string) Result[bool, failure.Failure] {
+ /*line person_follows.mygo:44:3*/	return QueryExists(db.WithContext(ctx).Table("person_follows").Where("local_actor_uri=? AND follower_actor_uri=? AND state='accepted'", localActorURI, follower))
+ /*line zz_person_follows.gen.go:24:1*/}
+ /*line person_follows.mygo:51:1*/func CountPersonFollowers(ctx context.Context, db *gorm.DB, localActorURI string) Result[int64, failure.Failure] {
 	var count int64 = int64(0)
 	query := db.WithContext(ctx).Table("person_follows").Where("local_actor_uri=? AND state='accepted'", localActorURI).Count(&count)
- /*line person_follows.mygo:60:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line person_follows.mygo:61:12*/		return Err[int64, string]("follower count unavailable")
- /*line person_follows.mygo:60:3*/	} else {
- /*line zz_person_follows.gen.go:30:1*/	}
- /*line person_follows.mygo:63:3*/	return Ok[int64, string](count)
- /*line zz_person_follows.gen.go:32:1*/}
- /*line person_follows.mygo:66:1*/func ListPersonFollowers(ctx context.Context, db *gorm.DB, localActorURI string, limit int, offset int) Result[[]string, string] {
+ /*line person_follows.mygo:61:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line person_follows.mygo:62:12*/		return Err[int64, failure.Failure](Of("follower count unavailable"))
+ /*line person_follows.mygo:61:3*/	} else {
+ /*line zz_person_follows.gen.go:31:1*/	}
+ /*line person_follows.mygo:64:3*/	return Ok[int64, failure.Failure](count)
+ /*line zz_person_follows.gen.go:33:1*/}
+ /*line person_follows.mygo:67:1*/func ListPersonFollowers(ctx context.Context, db *gorm.DB, localActorURI string, limit int, offset int) Result[[]string, failure.Failure] {
 	var records []string = []string{}
 	query := db.WithContext(ctx).Table("person_follows").Select("follower_actor_uri").Where("local_actor_uri=? AND state='accepted'", localActorURI).Order("follower_actor_uri").Limit(limit).Offset(offset).Find(&records)
- /*line person_follows.mygo:78:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(query)) {
- /*line person_follows.mygo:79:12*/		return Err[[]string, string]("follower list unavailable")
- /*line person_follows.mygo:78:3*/	} else {
- /*line zz_person_follows.gen.go:39:1*/	}
- /*line person_follows.mygo:81:3*/	return Ok[[]string, string](records)
- /*line zz_person_follows.gen.go:41:1*/}
- /*line person_follows.mygo:84:1*/func LoadActivityKind(ctx context.Context, db *gorm.DB, uri string) Result[string, string] {
+ /*line person_follows.mygo:79:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line person_follows.mygo:80:12*/		return Err[[]string, failure.Failure](Of("follower list unavailable"))
+ /*line person_follows.mygo:79:3*/	} else {
+ /*line zz_person_follows.gen.go:40:1*/	}
+ /*line person_follows.mygo:82:3*/	return Ok[[]string, failure.Failure](records)
+ /*line zz_person_follows.gen.go:42:1*/}
+ /*line person_follows.mygo:85:1*/func LoadActivityKind(ctx context.Context, db *gorm.DB, uri string) Result[string, failure.Failure] {
 	kind := ""
 	query := db.WithContext(ctx).Raw("SELECT kind FROM activities WHERE uri = ?", uri).Scan(&kind)
 	return Required(query, kind, "activity unavailable")
- /*line zz_person_follows.gen.go:46:1*/}
+ /*line zz_person_follows.gen.go:47:1*/}

@@ -5,6 +5,7 @@ import gorm "go:gorm.io/gorm"
 import sql "go:database/sql"
 import time "go:time"
 import rand "go:crypto/rand"
+import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct DeliveryJobRecord
   ID: Int64 `gorm:"column:id"`
@@ -28,9 +29,9 @@ func EnqueueDelivery(
   recipientActorURI: String,
   targetInbox: String,
   communityID: String
-) -> Result[Int64, String]
+) -> Result[Int64, failure.Failure]
   if activityURI == "" || signingActorURI == "" || recipientActorURI == "" || targetInbox == "" then
-    return Err("invalid delivery")
+    return Err(Of("invalid delivery"))
   end
   var community = sql.NullString{String: "", Valid: false}
   if communityID != "" then
@@ -45,7 +46,7 @@ func EnqueueDelivery(
     community
   )
   if MutationResult(inserted).IsErr() then
-    return Err("delivery enqueue failed")
+    return Err(Of("delivery enqueue failed"))
   end
   Ok(inserted.RowsAffected)
 end
@@ -56,7 +57,7 @@ func ClaimDeliveryJobs(
   db: Ref[gorm.DB],
   limit: Int,
   leaseSeconds: Int64
-) -> Result[Slice[DeliveryJobRecord], String]
+) -> Result[Slice[DeliveryJobRecord], failure.Failure]
   var claimed: Slice[DeliveryJobRecord] = []
   let token = rand.Text()
   let until = time.Now().UTC().Add(leaseSeconds as time.Duration * time.Second)
@@ -67,12 +68,12 @@ func ClaimDeliveryJobs(
     limit
   ).Scan(Ref.new(claimed))
   if MutationResult(query).IsErr() then
-    return Err("delivery claim failed")
+    return Err(Of("delivery claim failed"))
   end
   Ok(claimed)
 end
 
-func MarkDelivered(ctx: context.Context, db: Ref[gorm.DB], id: Int64) -> Result[(), String]
+func MarkDelivered(ctx: context.Context, db: Ref[gorm.DB], id: Int64) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE delivery_jobs SET state='delivered', lease_token=NULL, lease_until=NULL, error_code=NULL WHERE id=?",
     id
@@ -85,7 +86,7 @@ func MarkDeliveryRetry(
   id: Int64,
   errorCode: String,
   backoffSeconds: Int64
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE delivery_jobs SET state='pending', lease_token=NULL, lease_until=NULL, error_code=?, available_at=now() + (? * interval '1 second') WHERE id=?",
     errorCode,
@@ -99,7 +100,7 @@ func MarkDeliveryFailed(
   db: Ref[gorm.DB],
   id: Int64,
   errorCode: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE delivery_jobs SET state='failed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?",
     errorCode,
@@ -112,7 +113,7 @@ func SuppressDelivery(
   db: Ref[gorm.DB],
   id: Int64,
   reason: String
-) -> Result[(), String]
+) -> Result[(), failure.Failure]
   MutationResult(db.WithContext(ctx).Exec(
     "UPDATE delivery_jobs SET state='suppressed', lease_token=NULL, lease_until=NULL, error_code=? WHERE id=?",
     reason,
@@ -124,17 +125,17 @@ func LoadLocalPrivateKey(
   ctx: context.Context,
   db: Ref[gorm.DB],
   actorURI: String
-) -> Result[String, String]
+) -> Result[String, failure.Failure]
   let record = Zero[LocalKeyRecord]()
   let query = db.WithContext(ctx).Table("actors").Where(
     "uri = ? AND local_site_id IS NOT NULL",
     actorURI
   ).Limit(1).Find(Ref.new(record))
   if MutationResult(query).IsErr() || query.RowsAffected != 1i64 then
-    return Err("unknown signing actor")
+    return Err(Of("unknown signing actor"))
   end
   if !record.PrivateKeyPEM.Valid || record.PrivateKeyPEM.String == "" then
-    return Err("missing signing key")
+    return Err(Of("missing signing key"))
   end
   Ok(record.PrivateKeyPEM.String)
 end

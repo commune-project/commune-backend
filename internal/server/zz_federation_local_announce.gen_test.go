@@ -12,12 +12,13 @@ import "github.com/commune-project/commune-backend/internal/storage"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line federation_local_announce_test.mygo:13:1*/func privateFetchConfig(settings config.Config) config.Config {
  /*line federation_local_announce_test.mygo:14:3*/	return config.Config{Registration: settings.Registration, SMTP: settings.SMTP, Media: settings.Media, Rendering: settings.Rendering, ParticipationWorkers: settings.ParticipationWorkers, Sites: settings.Sites, DatabaseURL: settings.DatabaseURL, TrustedProxies: settings.TrustedProxies, Runtime: settings.Runtime, Federation: config.Federation{AllowPrivateNetwork: true, FetchTimeoutSeconds: settings.Federation.FetchTimeoutSeconds, MaxFetchBytes: settings.Federation.MaxFetchBytes, MaxRedirects: settings.Federation.MaxRedirects, ClockSkewSeconds: settings.Federation.ClockSkewSeconds}}
- /*line zz_federation_local_announce.gen_test.go:20:1*/}
+ /*line zz_federation_local_announce.gen_test.go:21:1*/}
  /*line federation_local_announce_test.mygo:34:1*/func TestPostgresRemoteContextAnnouncement(t *testing.T) {
  /*line federation_local_announce_test.mygo:35:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
 	__mygo_expr_2, __mygo_expr_0 := transport.ORM(testsupport.Postgres(t))
@@ -25,21 +26,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_federation_local_announce.gen_test.go:28:1*/	}
+ /*line zz_federation_local_announce.gen_test.go:29:1*/	}
  /*line federation_local_announce_test.mygo:34:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MigrateGORM(ctx, db))
 	settings := privateFetchConfig(MygoIN6ResultM6Unwrap[config.Config, string](config.Load("../../config/example.json")))
 	site := MygoIN6OptionM6Unwrap[config.Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.ProvisionSite(ctx, db, site))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProvisionSite(ctx, db, site))
 	accounts := storage.AccountRepository{DB: db}
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(accounts, ctx, site, "alice", "", "alice-account-password"))
 	communities := storage.CommunityRepository{DB: db, SiteID: site.ID}
 	posts := storage.PostRepository{DB: db, SiteID: site.ID}
-	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, string](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
-	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
-	home := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, string](storage.CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.AttachPostToContext(ctx, db, topic.ID, home.ID))
+	community := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(communities, ctx, site, alice, "news", "News", "federated", "eligible_users", "eligible_users"))
+	topic := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "Topic", Body: "Body", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	home := MygoIN6ResultM6Unwrap[storage.DiscussionContextRecord, failure.Failure](storage.CreateDiscussionContext(ctx, db, community, topic.ID, site.Origin))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.AttachPostToContext(ctx, db, topic.ID, home.ID))
 	authority := "https://peer.example/groups/discussion"
 	remoteHandler := func(w http.ResponseWriter, request *http.Request) {
  /*line federation_local_announce_test.mygo:74:23*/		uri := "http://" + request.Host + request.URL.Path
@@ -48,40 +49,40 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line federation_local_announce_test.mygo:82:5*/		w.WriteHeader(200)
  /*line federation_local_announce_test.mygo:74:23*/		w.Write([]byte(body))
 		return
- /*line zz_federation_local_announce.gen_test.go:51:1*/	}
+ /*line zz_federation_local_announce.gen_test.go:52:1*/	}
  /*line federation_local_announce_test.mygo:34:1*/	remote := httptest.NewServer(http.HandlerFunc(remoteHandler))
 	remoteContext := remote.URL + "/contexts/remote"
-	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, string](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: remoteContext, ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	reply := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(posts, ctx, site, community.ID, alice, false, storage.PublishInput{Title: "", Body: "Reply", ParentID: topic.ID, ContextURI: remoteContext, ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
  /*line federation_local_announce_test.mygo:103:3*/	if reply.ParentID.String != topic.ID || storage.PrimaryPostContextURI(ctx, db, reply.ID) != remoteContext {
  /*line federation_local_announce_test.mygo:105:5*/		t.Fatal("the reply's parent and declared context were not independent")
  /*line federation_local_announce_test.mygo:103:3*/	} else {
- /*line zz_federation_local_announce.gen_test.go:58:1*/	}
- /*line federation_local_announce_test.mygo:34:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox')", authority)))
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, authority, "https://peer.example/activities/context-follow")))
+ /*line zz_federation_local_announce.gen_test.go:59:1*/	}
+ /*line federation_local_announce_test.mygo:34:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri) VALUES (?, 'Person', 'https://peer.example/inbox')", authority)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("INSERT INTO follows(community_id,actor_uri,follow_uri,state) VALUES (?,?,?,'accepted')", community.ID, authority, "https://peer.example/activities/context-follow")))
 	announced := AnnounceLocalPost(ctx, settings, db, site, community, reply)
- /*line federation_local_announce_test.mygo:118:3*/	if MygoIN6ResultM5IsErr[struct{}, string](announced) {
- /*line federation_local_announce_test.mygo:119:5*/		t.Fatalf("announcing a reply in a remote context failed: %s", MygoIN6ResultM9UnwrapErr[struct{}, string](announced))
+ /*line federation_local_announce_test.mygo:118:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](announced) {
+ /*line federation_local_announce_test.mygo:119:5*/		t.Fatalf("announcing a reply in a remote context failed: %s", MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](announced))
  /*line federation_local_announce_test.mygo:118:3*/	} else {
- /*line zz_federation_local_announce.gen_test.go:65:1*/	}
+ /*line zz_federation_local_announce.gen_test.go:66:1*/	}
  /*line federation_local_announce_test.mygo:34:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Count(&count)))
  /*line federation_local_announce_test.mygo:126:3*/	if count != int64(1) {
  /*line federation_local_announce_test.mygo:127:5*/		t.Fatalf("expected one Group Announce, got %d", count)
  /*line federation_local_announce_test.mygo:126:3*/	} else {
- /*line zz_federation_local_announce.gen_test.go:71:1*/	}
+ /*line zz_federation_local_announce.gen_test.go:72:1*/	}
  /*line federation_local_announce_test.mygo:34:1*/	announceURI := ""
-	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("activities").Select("uri").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Limit(1).Scan(&announceURI)))
-	stored := MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], string](storage.LoadActivityPayload(ctx, db, announceURI))).Payload
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Select("uri").Where("actor_uri = ? AND kind = 'Announce'", community.ActorURI.String).Limit(1).Scan(&announceURI)))
+	stored := MygoIN6OptionM6Unwrap[storage.ActivityPayloadRecord](MygoIN6ResultM6Unwrap[Option[storage.ActivityPayloadRecord], failure.Failure](storage.LoadActivityPayload(ctx, db, announceURI))).Payload
 	text := string(stored)
  /*line federation_local_announce_test.mygo:136:3*/	if !strings.Contains(text, "\"context\":\""+remoteContext+"\"") {
  /*line federation_local_announce_test.mygo:137:5*/		t.Fatalf("the forwarded reply did not reference its declared context: %s", text)
  /*line federation_local_announce_test.mygo:136:3*/	} else {
- /*line zz_federation_local_announce.gen_test.go:79:1*/	}
- /*line federation_local_announce_test.mygo:34:1*/	MygoIN6ResultM6Unwrap[struct{}, string](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ? AND target_inbox = ?", authority, "https://peer.example/inbox").Count(&count)))
+ /*line zz_federation_local_announce.gen_test.go:80:1*/	}
+ /*line federation_local_announce_test.mygo:34:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("delivery_jobs").Where("recipient_actor_uri = ? AND target_inbox = ?", authority, "https://peer.example/inbox").Count(&count)))
  /*line federation_local_announce_test.mygo:144:3*/	if count != int64(1) {
  /*line federation_local_announce_test.mygo:145:5*/		t.Fatalf("the context authority received %d destinations instead of one", count)
  /*line federation_local_announce_test.mygo:144:3*/	} else {
- /*line zz_federation_local_announce.gen_test.go:84:1*/	}
+ /*line zz_federation_local_announce.gen_test.go:85:1*/	}
  /*line federation_local_announce_test.mygo:147:3*/	remote.Close()
 	return
- /*line zz_federation_local_announce.gen_test.go:87:1*/}
+ /*line zz_federation_local_announce.gen_test.go:88:1*/}

@@ -27,7 +27,7 @@ func AccountBlockRoute(
   end
   let session = Authenticated(db, site, request)
   if session.IsErr() then
-    Fail(w, session.UnwrapErr())
+    FailFailure(w, session.UnwrapErr())
     return true
   end
   let identity = session.Unwrap().Identity
@@ -35,7 +35,7 @@ func AccountBlockRoute(
   if request.Method == "GET" then
     let rows = repository.List(request.Context())
     if rows.IsErr() then
-      Fail(w, rows.UnwrapErr())
+      FailFailure(w, rows.UnwrapErr())
     else
       WriteJSON(w, 200, AccountBlockPage{Items: rows.Unwrap()})
     end

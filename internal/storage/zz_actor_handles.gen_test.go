@@ -9,6 +9,7 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
 import "time"
+import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
@@ -21,16 +22,16 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*sql.Tx, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*sql.Tx, error](__mygo_expr_2)
- /*line zz_actor_handles.gen_test.go:24:1*/	}
+ /*line zz_actor_handles.gen_test.go:25:1*/	}
  /*line actor_handles_test.mygo:10:1*/	first := MygoIN6ResultM6Unwrap[*sql.Tx, error](__mygo_expr_1)
-	MygoIN6ResultM6Unwrap[struct{}, string](ApplyTransaction(ctx, first, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MygoIN6ResultM6Unwrap[[]Migration, string](MigrationCatalog()), 13)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ApplyTransaction(ctx, first, MygoIT9ISequenceFN14SliceISequenceGN1TEGN5SliceGN1TEN1TEM4Take(MygoIN6ResultM6Unwrap[[]Migration, failure.Failure](MigrationCatalog()), 13)))
  /*line actor_handles_test.mygo:18:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := first.Commit()
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
 	} else {
 		__mygo_expr_4 = Ok[struct{}, error](struct {
- /*line zz_actor_handles.gen_test.go:33:1*/		}{})
+ /*line zz_actor_handles.gen_test.go:34:1*/		}{})
 	}
  /*line actor_handles_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
  /*line actor_handles_test.mygo:19:12*/	var __mygo_expr_6 Result[*gorm.DB, error]
@@ -39,42 +40,42 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_6 = Err[*gorm.DB, error](__mygo_expr_5)
 	} else {
 		__mygo_expr_6 = Ok[*gorm.DB, error](__mygo_expr_7)
- /*line zz_actor_handles.gen_test.go:42:1*/	}
+ /*line zz_actor_handles.gen_test.go:43:1*/	}
  /*line actor_handles_test.mygo:10:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_6)
 	legacy := "https://old.example/users/legacy"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", legacy)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person')", legacy)))
  /*line actor_handles_test.mygo:22:16*/	var __mygo_expr_9 Result[*sql.Tx, error]
 	__mygo_expr_10, __mygo_expr_8 := pool.BeginTx(ctx, &[]sql.TxOptions{sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false}}[0])
 	if __mygo_expr_8 != nil {
 		__mygo_expr_9 = Err[*sql.Tx, error](__mygo_expr_8)
 	} else {
 		__mygo_expr_9 = Ok[*sql.Tx, error](__mygo_expr_10)
- /*line zz_actor_handles.gen_test.go:52:1*/	}
+ /*line zz_actor_handles.gen_test.go:53:1*/	}
  /*line actor_handles_test.mygo:10:1*/	second := MygoIN6ResultM6Unwrap[*sql.Tx, error](__mygo_expr_9)
-	MygoIN6ResultM6Unwrap[struct{}, string](ApplyTransaction(ctx, second, MygoIN6ResultM6Unwrap[[]Migration, string](MigrationCatalog())))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ApplyTransaction(ctx, second, MygoIN6ResultM6Unwrap[[]Migration, failure.Failure](MigrationCatalog())))
  /*line actor_handles_test.mygo:27:11*/	var __mygo_expr_12 Result[struct{}, error]
 	__mygo_expr_11 := second.Commit()
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
 	} else {
 		__mygo_expr_12 = Ok[struct{}, error](struct {
- /*line zz_actor_handles.gen_test.go:61:1*/		}{})
+ /*line zz_actor_handles.gen_test.go:62:1*/		}{})
 	}
  /*line actor_handles_test.mygo:10:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_12)
 	acct := ""
 	loaded := db.Raw("SELECT acct FROM actors WHERE uri=?", legacy).Scan(&acct)
- /*line actor_handles_test.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, string](MutationResult(loaded)) || acct != "" {
+ /*line actor_handles_test.mygo:30:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(loaded)) || acct != "" {
  /*line actor_handles_test.mygo:31:5*/		t.Fatal("existing actor did not receive an empty handle")
  /*line actor_handles_test.mygo:30:3*/	} else {
- /*line zz_actor_handles.gen_test.go:69:1*/	}
+ /*line zz_actor_handles.gen_test.go:70:1*/	}
  /*line actor_handles_test.mygo:10:1*/	var count int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Count(&count)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Count(&count)))
  /*line actor_handles_test.mygo:35:3*/	if count != int64(0) {
  /*line actor_handles_test.mygo:36:5*/		t.Fatal("migration seeded unexpected resolution jobs")
 		return
  /*line actor_handles_test.mygo:35:3*/	} else {
 		return
- /*line zz_actor_handles.gen_test.go:77:1*/	}
+ /*line zz_actor_handles.gen_test.go:78:1*/	}
 }
  /*line actor_handles_test.mygo:40:1*/func TestPostgresActorHandleJobsAndProfileBootstrap(t *testing.T) {
  /*line actor_handles_test.mygo:41:12*/	var __mygo_expr_1 Result[*gorm.DB, error]
@@ -83,122 +84,122 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Err[*gorm.DB, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[*gorm.DB, error](__mygo_expr_2)
- /*line zz_actor_handles.gen_test.go:86:1*/	}
+ /*line zz_actor_handles.gen_test.go:87:1*/	}
  /*line actor_handles_test.mygo:40:1*/	db := MygoIN6ResultM6Unwrap[*gorm.DB, error](__mygo_expr_1)
 	ctx := context.Background()
-	MygoIN6ResultM6Unwrap[struct{}, string](MigrateGORM(ctx, db))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MigrateGORM(ctx, db))
 	a := testSite("a", "https://a.example")
 	b := testSite("b", "https://b.example")
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, a))
-	MygoIN6ResultM6Unwrap[struct{}, string](ProvisionSite(ctx, db, b))
-	alice := MygoIN6ResultM6Unwrap[auth.Identity, string](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "alice", "", "alice-password"))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, a))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](ProvisionSite(ctx, db, b))
+	alice := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](MygoIN17AccountRepositoryM6Create(AccountRepository{DB: db}, ctx, a, "alice", "", "alice-password"))
 	remote := "https://peer.example/users/bob"
 	group := "https://peer.example/groups/news"
 	handled := "https://peer.example/users/already"
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),(?,'Group')", remote, group)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')", handled)))
- /*line actor_handles_test.mygo:61:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, a.ID, remote)) != int64(1) {
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind) VALUES (?,'Person'),(?,'Group')", remote, group)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')", handled)))
+ /*line actor_handles_test.mygo:61:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, a.ID, remote)) != int64(1) {
  /*line actor_handles_test.mygo:62:5*/		t.Fatal("remote person did not enqueue")
  /*line actor_handles_test.mygo:61:3*/	} else {
- /*line zz_actor_handles.gen_test.go:103:1*/	}
- /*line actor_handles_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, a.ID, remote)) != int64(0) {
+ /*line zz_actor_handles.gen_test.go:104:1*/	}
+ /*line actor_handles_test.mygo:64:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, a.ID, remote)) != int64(0) {
  /*line actor_handles_test.mygo:65:5*/		t.Fatal("duplicate enqueue was not idempotent")
  /*line actor_handles_test.mygo:64:3*/	} else {
- /*line zz_actor_handles.gen_test.go:107:1*/	}
- /*line actor_handles_test.mygo:67:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, a.ID, alice.ActorURI)) != int64(0) {
+ /*line zz_actor_handles.gen_test.go:108:1*/	}
+ /*line actor_handles_test.mygo:67:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, a.ID, alice.ActorURI)) != int64(0) {
  /*line actor_handles_test.mygo:68:5*/		t.Fatal("local actor enqueued")
  /*line actor_handles_test.mygo:67:3*/	} else {
- /*line zz_actor_handles.gen_test.go:111:1*/	}
- /*line actor_handles_test.mygo:70:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, a.ID, group)) != int64(0) {
+ /*line zz_actor_handles.gen_test.go:112:1*/	}
+ /*line actor_handles_test.mygo:70:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, a.ID, group)) != int64(0) {
  /*line actor_handles_test.mygo:71:5*/		t.Fatal("group actor enqueued")
  /*line actor_handles_test.mygo:70:3*/	} else {
- /*line zz_actor_handles.gen_test.go:115:1*/	}
- /*line actor_handles_test.mygo:73:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, a.ID, handled)) != int64(0) {
+ /*line zz_actor_handles.gen_test.go:116:1*/	}
+ /*line actor_handles_test.mygo:73:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, a.ID, handled)) != int64(0) {
  /*line actor_handles_test.mygo:74:5*/		t.Fatal("already resolved actor enqueued")
  /*line actor_handles_test.mygo:73:3*/	} else {
- /*line zz_actor_handles.gen_test.go:119:1*/	}
- /*line actor_handles_test.mygo:76:3*/	if MygoIN6ResultM6Unwrap[int64, string](QueueActorHandleResolution(ctx, db, b.ID, remote)) != int64(1) {
+ /*line zz_actor_handles.gen_test.go:120:1*/	}
+ /*line actor_handles_test.mygo:76:3*/	if MygoIN6ResultM6Unwrap[int64, failure.Failure](QueueActorHandleResolution(ctx, db, b.ID, remote)) != int64(1) {
  /*line actor_handles_test.mygo:77:5*/		t.Fatal("second site did not receive its own job")
  /*line actor_handles_test.mygo:76:3*/	} else {
- /*line zz_actor_handles.gen_test.go:123:1*/	}
- /*line actor_handles_test.mygo:40:1*/	claimed := MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, string](ClaimActorHandleJobs(ctx, db, 10, int64(60)))
+ /*line zz_actor_handles.gen_test.go:124:1*/	}
+ /*line actor_handles_test.mygo:40:1*/	claimed := MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, failure.Failure](ClaimActorHandleJobs(ctx, db, 10, int64(60)))
  /*line actor_handles_test.mygo:80:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(claimed) != 2 {
  /*line actor_handles_test.mygo:81:5*/		t.Fatal("site-scoped jobs were not both claimed")
  /*line actor_handles_test.mygo:80:3*/	} else {
- /*line zz_actor_handles.gen_test.go:128:1*/	}
+ /*line zz_actor_handles.gen_test.go:129:1*/	}
  /*line actor_handles_test.mygo:83:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(claimed, func(job ActorHandleJobRecord) {
  /*line actor_handles_test.mygo:84:5*/		if job.State != "leased" || job.Attempts != int64(1) || !job.LeaseToken.Valid || !job.LeaseUntil.Valid {
  /*line actor_handles_test.mygo:88:7*/			t.Fatal("claimed job state or lease was incomplete")
 			return
  /*line actor_handles_test.mygo:84:5*/		} else {
 			return
- /*line zz_actor_handles.gen_test.go:135:1*/		}
+ /*line zz_actor_handles.gen_test.go:136:1*/		}
 	})
- /*line actor_handles_test.mygo:91:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, string](ClaimActorHandleJobs(ctx, db, 10, int64(60)))) != 0 {
+ /*line actor_handles_test.mygo:91:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, failure.Failure](ClaimActorHandleJobs(ctx, db, 10, int64(60)))) != 0 {
  /*line actor_handles_test.mygo:92:5*/		t.Fatal("active leases were claimed twice")
  /*line actor_handles_test.mygo:91:3*/	} else {
- /*line zz_actor_handles.gen_test.go:140:1*/	}
- /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE actor_handle_jobs SET lease_until=now() - interval '1 minute'")))
-	reclaimed := MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, string](ClaimActorHandleJobs(ctx, db, 10, int64(60)))
+ /*line zz_actor_handles.gen_test.go:141:1*/	}
+ /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE actor_handle_jobs SET lease_until=now() - interval '1 minute'")))
+	reclaimed := MygoIN6ResultM6Unwrap[[]ActorHandleJobRecord, failure.Failure](ClaimActorHandleJobs(ctx, db, 10, int64(60)))
  /*line actor_handles_test.mygo:96:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reclaimed) != 2 || MygoIN6OptionM6Unwrap[ActorHandleJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reclaimed, 0)).Attempts != int64(2) {
  /*line actor_handles_test.mygo:97:5*/		t.Fatal("expired leases were not reclaimed")
  /*line actor_handles_test.mygo:96:3*/	} else {
- /*line zz_actor_handles.gen_test.go:146:1*/	}
+ /*line zz_actor_handles.gen_test.go:147:1*/	}
  /*line actor_handles_test.mygo:40:1*/	retried := MygoIN6OptionM6Unwrap[ActorHandleJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(reclaimed, func(job_1 ActorHandleJobRecord) bool {
  /*line actor_handles_test.mygo:99:74*/		return job_1.SiteID == a.ID
  /*line actor_handles_test.mygo:99:102*/	}), 0))
  /*line actor_handles_test.mygo:40:1*/	failed := MygoIN6OptionM6Unwrap[ActorHandleJobRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(reclaimed, func(job_2 ActorHandleJobRecord) bool {
  /*line actor_handles_test.mygo:100:73*/		return job_2.SiteID == b.ID
  /*line actor_handles_test.mygo:100:101*/	}), 0))
- /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MarkActorHandleRetry(ctx, db, retried.SiteID, retried.ActorURI, "temporary", int64(60)))
-	MygoIN6ResultM6Unwrap[struct{}, string](MarkActorHandleFailed(ctx, db, failed.SiteID, failed.ActorURI, "permanent"))
+ /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MarkActorHandleRetry(ctx, db, retried.SiteID, retried.ActorURI, "temporary", int64(60)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MarkActorHandleFailed(ctx, db, failed.SiteID, failed.ActorURI, "permanent"))
 	retryState := ActorHandleJobRecord{ErrorCode: sql.NullString{String: "", Valid: false}, LeaseUntil: Zero[sql.NullTime](), LeaseToken: sql.NullString{String: "", Valid: false}, AvailableAt: Zero[time.Time](), Attempts: int64(0), State: "", ActorURI: "", SiteID: ""}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", a.ID, remote).Take(&retryState)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", a.ID, remote).Take(&retryState)))
 	failedState := ActorHandleJobRecord{ErrorCode: sql.NullString{String: "", Valid: false}, LeaseUntil: Zero[sql.NullTime](), LeaseToken: sql.NullString{String: "", Valid: false}, AvailableAt: Zero[time.Time](), Attempts: int64(0), State: "", ActorURI: "", SiteID: ""}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", b.ID, remote).Take(&failedState)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Where("site_id=? AND actor_uri=?", b.ID, remote).Take(&failedState)))
  /*line actor_handles_test.mygo:139:3*/	if retryState.State != "pending" || !retryState.ErrorCode.Valid || failedState.State != "failed" || !failedState.ErrorCode.Valid {
- /*line actor_handles_test.mygo:143:5*/		t.Fatal("retry or terminal failure state was not recorded")
+ /*line actor_handles_test.mygo:143:5*/		t.Fatal("retry or terminal failed state was not recorded")
  /*line actor_handles_test.mygo:139:3*/	} else {
- /*line zz_actor_handles.gen_test.go:162:1*/	}
- /*line actor_handles_test.mygo:145:3*/	if !MygoIN6ResultM6Unwrap[bool, string](SaveVerifiedActorHandle(ctx, db, remote, "bob@peer.example")) {
+ /*line zz_actor_handles.gen_test.go:163:1*/	}
+ /*line actor_handles_test.mygo:145:3*/	if !MygoIN6ResultM6Unwrap[bool, failure.Failure](SaveVerifiedActorHandle(ctx, db, remote, "bob@peer.example")) {
  /*line actor_handles_test.mygo:146:5*/		t.Fatal("verified handle was not stored")
  /*line actor_handles_test.mygo:145:3*/	} else {
- /*line zz_actor_handles.gen_test.go:166:1*/	}
- /*line actor_handles_test.mygo:148:3*/	if MygoIN6ResultM6Unwrap[bool, string](SaveVerifiedActorHandle(ctx, db, remote, "other@peer.example")) {
+ /*line zz_actor_handles.gen_test.go:167:1*/	}
+ /*line actor_handles_test.mygo:148:3*/	if MygoIN6ResultM6Unwrap[bool, failure.Failure](SaveVerifiedActorHandle(ctx, db, remote, "other@peer.example")) {
  /*line actor_handles_test.mygo:149:5*/		t.Fatal("stored handle was overwritten")
  /*line actor_handles_test.mygo:148:3*/	} else {
- /*line zz_actor_handles.gen_test.go:170:1*/	}
+ /*line zz_actor_handles.gen_test.go:171:1*/	}
  /*line actor_handles_test.mygo:40:1*/	stored := ActorRecord{Acct: "", PublicKeyPEM: sql.NullString{String: "", Valid: false}, InboxURI: sql.NullString{String: "", Valid: false}, Kind: "", LocalSiteID: sql.NullString{String: "", Valid: false}, URI: ""}
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actors").Where("uri=?", remote).Take(&stored)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actors").Where("uri=?", remote).Take(&stored)))
  /*line actor_handles_test.mygo:166:3*/	if stored.Acct != "bob@peer.example" {
  /*line actor_handles_test.mygo:167:5*/		t.Fatal("verified handle was lost or overwritten")
  /*line actor_handles_test.mygo:166:3*/	} else {
- /*line zz_actor_handles.gen_test.go:176:1*/	}
- /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, string](BootstrapRemoteDisplayName(ctx, db, remote, "Bob"))
-	bootstrapped := MygoIN6ResultM6Unwrap[ProfileRecord, string](LoadProfile(ctx, db, remote))
+ /*line zz_actor_handles.gen_test.go:177:1*/	}
+ /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](BootstrapRemoteDisplayName(ctx, db, remote, "Bob"))
+	bootstrapped := MygoIN6ResultM6Unwrap[ProfileRecord, failure.Failure](LoadProfile(ctx, db, remote))
  /*line actor_handles_test.mygo:171:3*/	if bootstrapped.DisplayName != "Bob" {
  /*line actor_handles_test.mygo:172:5*/		t.Fatal("blank remote display name was not bootstrapped")
  /*line actor_handles_test.mygo:171:3*/	} else {
- /*line zz_actor_handles.gen_test.go:182:1*/	}
- /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Exec("UPDATE profiles SET display_name='Authoritative', updated_at=now() WHERE actor_uri=?", remote)))
-	MygoIN6ResultM6Unwrap[struct{}, string](BootstrapRemoteDisplayName(ctx, db, remote, "Bootstrap"))
-	authoritative := MygoIN6ResultM6Unwrap[ProfileRecord, string](LoadProfile(ctx, db, remote))
+ /*line zz_actor_handles.gen_test.go:183:1*/	}
+ /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Exec("UPDATE profiles SET display_name='Authoritative', updated_at=now() WHERE actor_uri=?", remote)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](BootstrapRemoteDisplayName(ctx, db, remote, "Bootstrap"))
+	authoritative := MygoIN6ResultM6Unwrap[ProfileRecord, failure.Failure](LoadProfile(ctx, db, remote))
  /*line actor_handles_test.mygo:180:3*/	if authoritative.DisplayName != "Authoritative" {
  /*line actor_handles_test.mygo:181:5*/		t.Fatal("bootstrap overwrote a non-empty display name")
  /*line actor_handles_test.mygo:180:3*/	} else {
- /*line zz_actor_handles.gen_test.go:189:1*/	}
- /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, string](BootstrapRemoteDisplayName(ctx, db, alice.ActorURI, "Local Bootstrap"))
-	local := MygoIN6ResultM6Unwrap[ProfileRecord, string](LoadProfile(ctx, db, alice.ActorURI))
+ /*line zz_actor_handles.gen_test.go:190:1*/	}
+ /*line actor_handles_test.mygo:40:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](BootstrapRemoteDisplayName(ctx, db, alice.ActorURI, "Local Bootstrap"))
+	local := MygoIN6ResultM6Unwrap[ProfileRecord, failure.Failure](LoadProfile(ctx, db, alice.ActorURI))
  /*line actor_handles_test.mygo:185:3*/	if local.DisplayName == "Local Bootstrap" {
  /*line actor_handles_test.mygo:186:5*/		t.Fatal("bootstrap wrote a local profile")
  /*line actor_handles_test.mygo:185:3*/	} else {
- /*line zz_actor_handles.gen_test.go:195:1*/	}
+ /*line zz_actor_handles.gen_test.go:196:1*/	}
  /*line actor_handles_test.mygo:40:1*/	var remaining int64 = int64(0)
-	MygoIN6ResultM6Unwrap[struct{}, string](MutationResult(db.Table("actor_handle_jobs").Where("state='suppressed'").Count(&remaining)))
+	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MutationResult(db.Table("actor_handle_jobs").Where("state='suppressed'").Count(&remaining)))
  /*line actor_handles_test.mygo:190:3*/	if remaining != int64(0) {
  /*line actor_handles_test.mygo:191:5*/		t.Fatal("unexpected suppressed jobs")
 		return
  /*line actor_handles_test.mygo:190:3*/	} else {
 		return
- /*line zz_actor_handles.gen_test.go:203:1*/	}
+ /*line zz_actor_handles.gen_test.go:204:1*/	}
 }

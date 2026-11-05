@@ -140,7 +140,7 @@ func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
     !retryState.ErrorCode.Valid ||
     failedState.State != "failed" ||
     !failedState.ErrorCode.Valid then
-    t.Fatal("retry or terminal failure state was not recorded")
+    t.Fatal("retry or terminal failed state was not recorded")
   end
   if !SaveVerifiedActorHandle(ctx, db, remote, "bob@peer.example").Unwrap() then
     t.Fatal("verified handle was not stored")
