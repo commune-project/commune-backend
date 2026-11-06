@@ -12,13 +12,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mygo-lang/mygo
-          ref: e19e0a635bad0628a4c8ab239a1f317d22c3b27e
+          ref: 8f5f37cbf66286fc446af718f5ca96f3f91acc58
           path: mygo-checkout
       - name: Link the pinned compiler sibling
         run: ln -s "$GITHUB_WORKSPACE/mygo-checkout" "$GITHUB_WORKSPACE/../../mygo"
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.3"
           cache-dependency-path: go.sum
       - name: Verify generation, build, protocol snapshots and PostgreSQL tests
         run: make verify
