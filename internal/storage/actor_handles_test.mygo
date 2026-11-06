@@ -58,6 +58,10 @@ func TestPostgresActorHandleJobsAndProfileBootstrap(t: Ref[testing.T]) -> ()
     "INSERT INTO actors(uri,kind,acct) VALUES (?,'Person','already@peer.example')",
     handled
   )).Unwrap()
+  let _ = MutationResult(db.Exec(
+    "INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,'Already',to_timestamp(0))",
+    handled
+  )).Unwrap()
   if QueueActorHandleResolution(ctx, db, a.ID, remote).Unwrap() != 1i64 then
     t.Fatal("remote person did not enqueue")
   end

@@ -63,10 +63,11 @@ func TestPostgresProfileResolveStatuses(t: Ref[testing.T]) -> ()
   if stored.IsErr() || stored.Unwrap().DisplayName != "Remy" then
     t.Fatal("resolve did not persist the profile")
   end
+  let rateViewer = storage.AccountRepository{DB: db}.Create(ctx, site, "rate-viewer", "", "rate-password").Unwrap()
   var tight = settings
   tight.Federation.ProfileResolveLimit = 1
-  let first = ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
-  let second = ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+  let first = ResolveRemoteProfileWith(ctx, tight, db, site, rateViewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+  let second = ResolveRemoteProfileWith(ctx, tight, db, site, rateViewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
   if first.IsErr() || second.UnwrapErr().Render() != "profile resolve rate limited" then
     t.Fatal("resolve rate limit did not trigger")
   end

@@ -67,14 +67,15 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line profile_resolve_test.mygo:64:5*/		t.Fatal("resolve did not persist the profile")
  /*line profile_resolve_test.mygo:63:3*/	} else {
  /*line zz_profile_resolve.gen_test.go:69:1*/	}
- /*line profile_resolve_test.mygo:35:1*/	tight := settings
+ /*line profile_resolve_test.mygo:35:1*/	rateViewer := MygoIN6ResultM6Unwrap[auth.Identity, failure.Failure](storage.MygoIN17AccountRepositoryM6Create(storage.AccountRepository{DB: db}, ctx, site, "rate-viewer", "", "rate-password"))
+	tight := settings
 	tight.Federation.ProfileResolveLimit = 1
-	first := ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
-	second := ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
- /*line profile_resolve_test.mygo:70:3*/	if MygoIN6ResultM5IsErr[storage.ProfileRecord, failure.Failure](first) || failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, failure.Failure](second)) != "profile resolve rate limited" {
- /*line profile_resolve_test.mygo:71:5*/		t.Fatal("resolve rate limit did not trigger")
+	first := ResolveRemoteProfileWith(ctx, tight, db, site, rateViewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+	second := ResolveRemoteProfileWith(ctx, tight, db, site, rateViewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+ /*line profile_resolve_test.mygo:71:3*/	if MygoIN6ResultM5IsErr[storage.ProfileRecord, failure.Failure](first) || failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.ProfileRecord, failure.Failure](second)) != "profile resolve rate limited" {
+ /*line profile_resolve_test.mygo:72:5*/		t.Fatal("resolve rate limit did not trigger")
 		return
- /*line profile_resolve_test.mygo:70:3*/	} else {
+ /*line profile_resolve_test.mygo:71:3*/	} else {
 		return
- /*line zz_profile_resolve.gen_test.go:79:1*/	}
+ /*line zz_profile_resolve.gen_test.go:80:1*/	}
 }
