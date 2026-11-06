@@ -25,8 +25,9 @@ end
 # A lexical cursor avoids starvation when known authoritative files precede an
 # orphan. The caller bounds wall time through ctx; no directory-wide allocation.
 func MediaOrphanCandidates(ctx: context.Context, root: Ref[os.Root], after: String, max: Int) -> Result[Slice[MediaOrphanCandidate], failure.Failure]
-  go[Result[Slice[MediaOrphanCandidate], failure.Failure]] {
+  let scanned = go[Result[Slice[MediaOrphanCandidate], String]] {
     code: """
+      func() Result[[]MediaOrphanCandidate,string] {
       rows:=make([]MediaOrphanCandidate,0,{max})
       for _,namespace:=range []string{"temporary","local","previews","private-cache"} {
         directory,err:={root}.Open(namespace)
@@ -53,12 +54,16 @@ func MediaOrphanCandidates(ctx: context.Context, root: Ref[os.Root], after: Stri
         directory.Close()
       }
       return Ok[[]MediaOrphanCandidate,string](rows)
+      }()
     """
     in ctx = ctx
     in root = root
     in after = after
     in max = max
   }
+  scanned.MapErr(func(reason: String) -> failure.Failure
+    Of(reason)
+  end)
 end
 
 impl MediaRepository

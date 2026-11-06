@@ -24,67 +24,72 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_media_reconcile.gen.go:24:1*/}
 
  /*line media_reconcile.mygo:27:1*/func MediaOrphanCandidates(ctx context.Context, root *os.Root, after string, max int) Result[[]MediaOrphanCandidate, failure.Failure] {
- /*line media_reconcile.mygo:28:3*/	rows := make([]MediaOrphanCandidate, 0, max)
-	for _, namespace := range []string{"temporary", "local", "previews", "private-cache"} {
-		directory, err := root.Open(namespace)
-		if err != nil {
-			return Err[[]MediaOrphanCandidate, string]("media unavailable")
- /*line zz_media_reconcile.gen.go:32:1*/		}
- /*line media_reconcile.mygo:28:3*/		for {
-			if ctx.Err() != nil {
-				directory.Close()
-				return Err[[]MediaOrphanCandidate, string]("reconciliation canceled")
- /*line zz_media_reconcile.gen.go:37:1*/			}
- /*line media_reconcile.mygo:28:3*/			entries, readErr := directory.ReadDir(128)
-			for _, entry := range entries {
-				id := entry.Name()
-				key := namespace + "/" + id
-				if key <= after || !MediaFileID(id) {
-					continue
- /*line zz_media_reconcile.gen.go:44:1*/				}
- /*line media_reconcile.mygo:28:3*/				info, statErr := root.Lstat(key)
-				if statErr != nil {
-					continue
- /*line zz_media_reconcile.gen.go:48:1*/				}
- /*line media_reconcile.mygo:28:3*/				if !info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0 {
-					continue
- /*line zz_media_reconcile.gen.go:51:1*/				}
- /*line media_reconcile.mygo:28:3*/				index := sort.Search(len(rows), func(i int) bool {
-					return rows[i].Key >= key
- /*line zz_media_reconcile.gen.go:54:1*/				})
- /*line media_reconcile.mygo:28:3*/				if index >= max {
-					continue
- /*line zz_media_reconcile.gen.go:57:1*/				}
- /*line media_reconcile.mygo:28:3*/				rows = append(rows, MediaOrphanCandidate{})
-				copy(rows[index+1:], rows[index:])
-				rows[index] = MediaOrphanCandidate{Namespace: namespace, ID: id, Key: key, Modified: info.ModTime()}
-				if len(rows) > max {
-					rows = rows[:max]
- /*line zz_media_reconcile.gen.go:63:1*/				}
-			}
- /*line media_reconcile.mygo:28:3*/			if readErr == io.EOF {
-				break
- /*line zz_media_reconcile.gen.go:67:1*/			}
- /*line media_reconcile.mygo:28:3*/			if readErr != nil {
-				directory.Close()
+	scanned := func() Result[[]MediaOrphanCandidate, string] {
+ /*line media_reconcile.mygo:28:17*/		rows := make([]MediaOrphanCandidate, 0, max)
+		for _, namespace := range []string{"temporary", "local", "previews", "private-cache"} {
+			directory, err := root.Open(namespace)
+			if err != nil {
 				return Err[[]MediaOrphanCandidate, string]("media unavailable")
- /*line zz_media_reconcile.gen.go:71:1*/			}
-		}
- /*line media_reconcile.mygo:28:3*/		directory.Close()
- /*line zz_media_reconcile.gen.go:74:1*/	}
- /*line media_reconcile.mygo:28:3*/	return Ok[[]MediaOrphanCandidate, string](rows)
- /*line zz_media_reconcile.gen.go:76:1*/}
- /*line media_reconcile.mygo:64:1*/func MygoIN15MediaRepositoryM16ReconcileOrphans(self MediaRepository, ctx context.Context, cutoff time.Time, after string, max int) Result[MediaReconcilePage, failure.Failure] {
- /*line media_reconcile.mygo:69:5*/	if max < 1 || max > 1000 || cutoff.After(time.Now().Add(time.Duration(0)-time.Duration(10)*time.Minute)) {
- /*line media_reconcile.mygo:70:14*/		return Err[MediaReconcilePage, failure.Failure](Of("invalid reconciliation bounds"))
- /*line media_reconcile.mygo:69:5*/	} else {
- /*line zz_media_reconcile.gen.go:81:1*/	}
- /*line media_reconcile.mygo:64:1*/	candidates := MediaOrphanCandidates(ctx, self.Files.Root, after, max)
- /*line media_reconcile.mygo:73:5*/	if MygoIN6ResultM5IsErr[[]MediaOrphanCandidate, failure.Failure](candidates) {
- /*line media_reconcile.mygo:74:14*/		return Err[MediaReconcilePage, failure.Failure](MygoIN6ResultM9UnwrapErr[[]MediaOrphanCandidate, failure.Failure](candidates))
- /*line media_reconcile.mygo:73:5*/	} else {
+ /*line zz_media_reconcile.gen.go:33:1*/			}
+ /*line media_reconcile.mygo:28:17*/			for {
+				if ctx.Err() != nil {
+					directory.Close()
+					return Err[[]MediaOrphanCandidate, string]("reconciliation canceled")
+ /*line zz_media_reconcile.gen.go:38:1*/				}
+ /*line media_reconcile.mygo:28:17*/				entries, readErr := directory.ReadDir(128)
+				for _, entry := range entries {
+					id := entry.Name()
+					key := namespace + "/" + id
+					if key <= after || !MediaFileID(id) {
+						continue
+ /*line zz_media_reconcile.gen.go:45:1*/					}
+ /*line media_reconcile.mygo:28:17*/					info, statErr := root.Lstat(key)
+					if statErr != nil {
+						continue
+ /*line zz_media_reconcile.gen.go:49:1*/					}
+ /*line media_reconcile.mygo:28:17*/					if !info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0 {
+						continue
+ /*line zz_media_reconcile.gen.go:52:1*/					}
+ /*line media_reconcile.mygo:28:17*/					index := sort.Search(len(rows), func(i int) bool {
+						return rows[i].Key >= key
+ /*line zz_media_reconcile.gen.go:55:1*/					})
+ /*line media_reconcile.mygo:28:17*/					if index >= max {
+						continue
+ /*line zz_media_reconcile.gen.go:58:1*/					}
+ /*line media_reconcile.mygo:28:17*/					rows = append(rows, MediaOrphanCandidate{})
+					copy(rows[index+1:], rows[index:])
+					rows[index] = MediaOrphanCandidate{Namespace: namespace, ID: id, Key: key, Modified: info.ModTime()}
+					if len(rows) > max {
+						rows = rows[:max]
+ /*line zz_media_reconcile.gen.go:64:1*/					}
+				}
+ /*line media_reconcile.mygo:28:17*/				if readErr == io.EOF {
+					break
+ /*line zz_media_reconcile.gen.go:68:1*/				}
+ /*line media_reconcile.mygo:28:17*/				if readErr != nil {
+					directory.Close()
+					return Err[[]MediaOrphanCandidate, string]("media unavailable")
+ /*line zz_media_reconcile.gen.go:72:1*/				}
+			}
+ /*line media_reconcile.mygo:28:17*/			directory.Close()
+ /*line zz_media_reconcile.gen.go:75:1*/		}
+ /*line media_reconcile.mygo:28:17*/		return Ok[[]MediaOrphanCandidate, string](rows)
+ /*line zz_media_reconcile.gen.go:77:1*/	}()
+ /*line media_reconcile.mygo:64:3*/	return MygoIN6ResultM6MapErr[[]MediaOrphanCandidate](scanned, func(reason string) failure.Failure {
+ /*line media_reconcile.mygo:65:5*/		return Of(reason)
+ /*line zz_media_reconcile.gen.go:80:1*/	})
+}
+ /*line media_reconcile.mygo:69:1*/func MygoIN15MediaRepositoryM16ReconcileOrphans(self MediaRepository, ctx context.Context, cutoff time.Time, after string, max int) Result[MediaReconcilePage, failure.Failure] {
+ /*line media_reconcile.mygo:74:5*/	if max < 1 || max > 1000 || cutoff.After(time.Now().Add(time.Duration(0)-time.Duration(10)*time.Minute)) {
+ /*line media_reconcile.mygo:75:14*/		return Err[MediaReconcilePage, failure.Failure](Of("invalid reconciliation bounds"))
+ /*line media_reconcile.mygo:74:5*/	} else {
  /*line zz_media_reconcile.gen.go:86:1*/	}
- /*line media_reconcile.mygo:64:1*/	page := MediaReconcilePage{Examined: 0, Deleted: 0, Next: after, Done: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MediaOrphanCandidate, failure.Failure](candidates)) < max}
+ /*line media_reconcile.mygo:69:1*/	candidates := MediaOrphanCandidates(ctx, self.Files.Root, after, max)
+ /*line media_reconcile.mygo:78:5*/	if MygoIN6ResultM5IsErr[[]MediaOrphanCandidate, failure.Failure](candidates) {
+ /*line media_reconcile.mygo:79:14*/		return Err[MediaReconcilePage, failure.Failure](MygoIN6ResultM9UnwrapErr[[]MediaOrphanCandidate, failure.Failure](candidates))
+ /*line media_reconcile.mygo:78:5*/	} else {
+ /*line zz_media_reconcile.gen.go:91:1*/	}
+ /*line media_reconcile.mygo:69:1*/	page := MediaReconcilePage{Examined: 0, Deleted: 0, Next: after, Done: MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MediaOrphanCandidate, failure.Failure](candidates)) < max}
 	var index int = 0
 	for index < MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(MygoIN6ResultM6Unwrap[[]MediaOrphanCandidate, failure.Failure](candidates)) {
 		row := MygoIN6OptionM6Unwrap[MediaOrphanCandidate](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(MygoIN6ResultM6Unwrap[[]MediaOrphanCandidate, failure.Failure](candidates), index))
@@ -94,21 +99,21 @@ import . "github.com/mygo-lang/mygo/prelude"
 		if !row.Modified.After(cutoff) {
 			owned := QueryExists(self.DB.WithContext(ctx).Table("media_uploads").Where("id=?", row.ID))
 			cached := QueryExists(self.DB.WithContext(ctx).Table("media_private_cache").Where("generation=?", row.ID))
- /*line media_reconcile.mygo:86:9*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](owned) || MygoIN6ResultM5IsErr[bool, failure.Failure](cached) {
- /*line media_reconcile.mygo:87:18*/				return Err[MediaReconcilePage, failure.Failure](Of("media unavailable"))
- /*line media_reconcile.mygo:86:9*/			} else {
- /*line zz_media_reconcile.gen.go:100:1*/			}
- /*line media_reconcile.mygo:64:1*/			if !MygoIN6ResultM6Unwrap[bool, failure.Failure](owned) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](cached) {
+ /*line media_reconcile.mygo:91:9*/			if MygoIN6ResultM5IsErr[bool, failure.Failure](owned) || MygoIN6ResultM5IsErr[bool, failure.Failure](cached) {
+ /*line media_reconcile.mygo:92:18*/				return Err[MediaReconcilePage, failure.Failure](Of("media unavailable"))
+ /*line media_reconcile.mygo:91:9*/			} else {
+ /*line zz_media_reconcile.gen.go:105:1*/			}
+ /*line media_reconcile.mygo:69:1*/			if !MygoIN6ResultM6Unwrap[bool, failure.Failure](owned) && !MygoIN6ResultM6Unwrap[bool, failure.Failure](cached) {
 				removed := MygoIN10MediaFilesM6Remove(self.Files, row.Namespace, row.ID)
- /*line media_reconcile.mygo:91:11*/				if MygoIN6ResultM5IsErr[struct{}, failure.Failure](removed) {
- /*line media_reconcile.mygo:92:20*/					return Err[MediaReconcilePage, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](removed))
- /*line media_reconcile.mygo:91:11*/				} else {
- /*line zz_media_reconcile.gen.go:106:1*/				}
- /*line media_reconcile.mygo:64:1*/				page.Deleted = page.Deleted + 1
+ /*line media_reconcile.mygo:96:11*/				if MygoIN6ResultM5IsErr[struct{}, failure.Failure](removed) {
+ /*line media_reconcile.mygo:97:20*/					return Err[MediaReconcilePage, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](removed))
+ /*line media_reconcile.mygo:96:11*/				} else {
+ /*line zz_media_reconcile.gen.go:111:1*/				}
+ /*line media_reconcile.mygo:69:1*/				page.Deleted = page.Deleted + 1
 			} else {
- /*line zz_media_reconcile.gen.go:109:1*/			}
- /*line media_reconcile.mygo:64:1*/		} else {
- /*line zz_media_reconcile.gen.go:111:1*/		}
+ /*line zz_media_reconcile.gen.go:114:1*/			}
+ /*line media_reconcile.mygo:69:1*/		} else {
+ /*line zz_media_reconcile.gen.go:116:1*/		}
 	}
- /*line media_reconcile.mygo:98:5*/	return Ok[MediaReconcilePage, failure.Failure](page)
- /*line zz_media_reconcile.gen.go:114:1*/}
+ /*line media_reconcile.mygo:103:5*/	return Ok[MediaReconcilePage, failure.Failure](page)
+ /*line zz_media_reconcile.gen.go:119:1*/}
