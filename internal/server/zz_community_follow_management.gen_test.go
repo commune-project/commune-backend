@@ -47,7 +47,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	thirdCookies := login(handler, site.Origin, "third", "third-password")
 	thirdCSRF := csrfOf(thirdCookies)
 	follow := func(id string, cookies []*http.Cookie, token string) int {
- /*line community_follow_management_test.mygo:37:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
+ /*line community_follow_management_test.mygo:37:5*/		return doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + id + "/follow", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
  /*line zz_community_follow_management.gen_test.go:51:1*/	}
  /*line community_follow_management_test.mygo:39:3*/	if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 {
  /*line community_follow_management_test.mygo:40:5*/		t.Fatal("pending follows failed")

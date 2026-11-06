@@ -100,7 +100,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line password_reset_http_test.mygo:83:5*/		t.Fatal("consumed reset token was reused")
  /*line password_reset_http_test.mygo:82:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:102:1*/	}
- /*line password_reset_http_test.mygo:85:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 200 {
+ /*line password_reset_http_test.mygo:85:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"alice-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 401 || doForum(handler, forumCall{Method: "POST", Origin: site_1.Origin, Path: "/api/v1/auth/login", Payload: "{\"login\":\"alice\",\"password\":\"new-password\"}", Cookies: []*http.Cookie{}, CSRF: "", Source: site_1.Origin}).Code != 200 {
  /*line password_reset_http_test.mygo:87:5*/		t.Fatal("reset did not replace the login password")
  /*line password_reset_http_test.mygo:85:3*/	} else {
  /*line zz_password_reset_http.gen_test.go:106:1*/	}

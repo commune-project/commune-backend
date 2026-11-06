@@ -180,7 +180,7 @@ func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
     "eligible_users",
     "eligible_users"
   ).Unwrap()
-  let _ = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(
+  let localPost = storage.PostRepository{DB: db, SiteID: site.ID}.Publish(
     ctx,
     site,
     localCommunity.ID,
@@ -203,7 +203,7 @@ func TestPostgresLocalVoteOutbox(t: Ref[testing.T]) -> ()
     forumCall{
       Method: "POST",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + localPost.ID + "/vote",
       Payload: "{\"score\":1}",
       Cookies: cookies,
       CSRF: csrf,

@@ -15,8 +15,8 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()
   let site = settings.Sites.Get(0).Unwrap()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
-  let alice = storage.AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
-  let group = storage.CommunityRepository{DB: db, SiteID: site.ID}.Create(
+  let alice = storage.AccountRepository { DB: db }.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let group = storage.CommunityRepository { DB: db, SiteID: site.ID }.Create(
     ctx,
     site,
     alice,
@@ -53,7 +53,7 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
     forumCall {
       Method: "PATCH",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
       Cookies: cookies,
       CSRF: csrfOf(cookies),

@@ -35,7 +35,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	cookies := login(handler, site.Origin, "alice", "alice-password")
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("CREATE FUNCTION reject_outbox_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.kind='Update' THEN RAISE EXCEPTION 'test outbox failure'; END IF; RETURN NEW; END $$")))
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("CREATE TRIGGER reject_outbox_update BEFORE INSERT ON activities FOR EACH ROW EXECUTE FUNCTION reject_outbox_update()")))
-	rejected := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+	rejected := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
 	failedPost := MygoIN6OptionM6Unwrap[storage.PostRecord](MygoIN6ResultM6Unwrap[Option[storage.PostRecord], failure.Failure](storage.LoadObjectByID(ctx, db, post.ID)))
  /*line post_outbox_test.mygo:64:3*/	if rejected.Code != 503 || failedPost.Body != "**before**" || failedPost.Version != post.Version {
  /*line post_outbox_test.mygo:67:5*/		t.Fatal("outbox failure committed post mutation or revision")

@@ -17,12 +17,12 @@ func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
   let settings = config.Load("../../config/example.json").Unwrap()
   let site = settings.Sites.Get(0).Unwrap()
   let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
-  let accounts = storage.AccountRepository{DB: db}
+  let accounts = storage.AccountRepository { DB: db }
   let creator = accounts.Create(ctx, site, "creator", "", "creator-password").Unwrap()
   let first = accounts.Create(ctx, site, "first", "", "first-password").Unwrap()
   let second = accounts.Create(ctx, site, "second", "", "second-password").Unwrap()
   let third = accounts.Create(ctx, site, "third", "", "third-password").Unwrap()
-  let communities = storage.CommunityRepository{DB: db, SiteID: site.ID}
+  let communities = storage.CommunityRepository { DB: db, SiteID: site.ID }
   let approval = communities.CreateWithFollow(ctx, site, creator, "approval", "Approval", "federated", "eligible_users", "eligible_users", "approval").Unwrap()
   let handler = Handler(settings, db)
   let creatorCookies = login(handler, site.Origin, "creator", "creator-password")
@@ -34,7 +34,7 @@ func TestPostgresCommunityFollowManagement(t: Ref[testing.T]) -> ()
   let thirdCookies = login(handler, site.Origin, "third", "third-password")
   let thirdCSRF = csrfOf(thirdCookies)
   let follow = func(id: String, cookies: Slice[Ref[http.Cookie]], token: String) -> Int
-    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
+    doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/communities/" + id + "/follow", Payload: "", Cookies: cookies, CSRF: token, Source: site.Origin}).Code
   end
   if follow(approval.ID, firstCookies, firstCSRF) != 204 || follow(approval.ID, secondCookies, secondCSRF) != 204 then
     t.Fatal("pending follows failed")

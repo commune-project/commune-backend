@@ -91,10 +91,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line vote_outbox_test.mygo:170:3*/	} else {
  /*line zz_vote_outbox.gen_test.go:92:1*/	}
  /*line vote_outbox_test.mygo:14:1*/	localCommunity := MygoIN6ResultM6Unwrap[storage.CommunityRecord, failure.Failure](storage.MygoIN19CommunityRepositoryM6Create(storage.CommunityRepository{DB: db, SiteID: site.ID}, ctx, site, author, "local", "Local", "local_only", "eligible_users", "eligible_users"))
-	MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, localCommunity.ID, author, false, storage.PublishInput{Title: "Local", Body: "local", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
+	localPost := MygoIN6ResultM6Unwrap[storage.PostRecord, failure.Failure](storage.MygoIN14PostRepositoryM7Publish(storage.PostRepository{DB: db, SiteID: site.ID}, ctx, site, localCommunity.ID, author, false, storage.PublishInput{Title: "Local", Body: "local", ParentID: "", ContextURI: "", ContentFormat: "legacy", AttachmentIDs: []string{}, Mentions: []storage.ResolvedPostMention{}}))
 	beforeLocal := int64(0)
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Table("activities").Where("actor_uri=?", bob.ActorURI).Count(&beforeLocal)))
- /*line vote_outbox_test.mygo:201:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
+ /*line vote_outbox_test.mygo:201:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/posts/" + localPost.ID + "/vote", Payload: "{\"score\":1}", Cookies: cookies, CSRF: csrf, Source: site.Origin}).Code != 204 {
  /*line vote_outbox_test.mygo:214:5*/		t.Fatal("local-only vote failed")
  /*line vote_outbox_test.mygo:201:3*/	} else {
  /*line zz_vote_outbox.gen_test.go:100:1*/	}
