@@ -45,7 +45,7 @@
 - [x] 6.1 Convert `cmd/commune/main.mygo` to the same conventions, and verify `mygo build cmd/commune` succeeds with regenerated output.
 - [x] 6.2 Record the ADT boundary rules and the current compiler constraints in `docs/compiler-migration-issues.md`, and verify the notes match the shipped code.
 - [ ] 6.3 Run `make test` and verify all packages pass with regenerated `zz_*.gen.go` files.
-- [ ] 6.4 Run `make test-postgres` and verify the PostgreSQL-specific suites pass.
+- [x] 6.4 Run `make test-postgres` and verify the PostgreSQL-specific suites pass.
 - [ ] 6.5 Run `make verify-protocol` and `make verify` and verify wire snapshots and generated-file determinism hold.
 - [x] 6.6 Compare current and resulting metrics (lines containing `if` versus `switch`, `Unwrap()` count, `IsErr()` count, enum count, typeclass impl count) and verify the refactor produced the intended shift recorded in the change summary.
 
