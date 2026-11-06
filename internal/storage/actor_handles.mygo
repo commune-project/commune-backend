@@ -23,6 +23,7 @@ struct ActorHandleStateRecord
   LocalSiteID: sql.NullString `gorm:"column:local_site_id"`
   Kind: String `gorm:"column:kind"`
   Acct: String `gorm:"column:acct"`
+  HasProfile: Bool `gorm:"column:has_profile"`
 end
 
 # Called inside the receiving transaction after a remote post is accepted.
@@ -37,7 +38,7 @@ func QueueActorHandleResolution(
   end
   let actor = Zero[ActorHandleStateRecord]()
   let loaded = tx.WithContext(ctx).Raw(
-    "SELECT local_site_id,kind,acct FROM actors WHERE uri=?",
+    "SELECT a.local_site_id,a.kind,a.acct, EXISTS (SELECT 1 FROM profiles p WHERE p.actor_uri=a.uri AND (p.display_name <> '' OR p.biography <> '' OR p.avatar_url <> '')) AS has_profile FROM actors a WHERE a.uri=?",
     actorURI
   ).Scan(Ref.new(actor))
   if MutationResult(loaded).IsErr() then
@@ -46,7 +47,7 @@ func QueueActorHandleResolution(
   if loaded.RowsAffected != 1i64 ||
     actor.LocalSiteID.Valid ||
     actor.Kind != "Person" ||
-    actor.Acct != "" then
+    (actor.Acct != "" && actor.HasProfile) then
     return Ok(0i64)
   end
   let inserted = tx.WithContext(ctx).Exec(

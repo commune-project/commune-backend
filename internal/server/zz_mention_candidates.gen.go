@@ -74,9 +74,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_mention_candidates.gen.go:74:1*/	}
  /*line mention_candidates.mygo:21:1*/	var outputs []MentionCandidateOutput = []MentionCandidateOutput{}
  /*line mention_candidates.mygo:67:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.MentionCandidateRecord, failure.Failure](rows), func(row storage.MentionCandidateRecord) {
- /*line mention_candidates.mygo:67:22*/		outputs = MygoIN5SliceM6Append(outputs, MentionCandidateOutput{ActorURI: row.ActorURI, Acct: row.Acct, DisplayName: row.DisplayName, Avatar: row.Avatar})
+ /*line mention_candidates.mygo:67:22*/		storage.QueueActorHandleResolution(request.Context(), db, site.ID, row.ActorURI)
+		outputs = MygoIN5SliceM6Append(outputs, MentionCandidateOutput{ActorURI: row.ActorURI, Acct: row.Acct, DisplayName: row.DisplayName, Avatar: row.Avatar})
 		return
- /*line zz_mention_candidates.gen.go:79:1*/	})
- /*line mention_candidates.mygo:75:3*/	WriteJSON(w, 200, MentionCandidatePage{Items: outputs})
- /*line mention_candidates.mygo:76:3*/	return true
- /*line zz_mention_candidates.gen.go:82:1*/}
+ /*line zz_mention_candidates.gen.go:80:1*/	})
+ /*line mention_candidates.mygo:76:3*/	WriteJSON(w, 200, MentionCandidatePage{Items: outputs})
+ /*line mention_candidates.mygo:77:3*/	return true
+ /*line zz_mention_candidates.gen.go:83:1*/}

@@ -198,6 +198,41 @@ func DiscoverMentionActorWith(
   domain: String,
   fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, failure.Failure]
 ) -> Result[storage.ResolvedPostMention, failure.Failure]
+  switch DiscoverVerifiedHandleWith(ctx, settings, db, site, username, domain, fetcher)
+    case Err(reason) => Err(reason)
+    case Ok(handle) => Ok(storage.ResolvedPostMention{
+      ActorURI: handle.ActorURI,
+      InboxURI: handle.InboxURI,
+      Username: username,
+      Domain: domain,
+      Start: 0,
+      End: 0,
+    })
+  end
+end
+
+# Reusable verified-handle lookup: WebFinger subject match, one ActivityPub
+# self link, Person identity checks, canonical inbox, and no redirects.
+func DiscoverVerifiedHandle(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  username: String,
+  domain: String
+) -> Result[storage.VerifiedHandle, failure.Failure]
+  DiscoverVerifiedHandleWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
+end
+
+func DiscoverVerifiedHandleWith(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  username: String,
+  domain: String,
+  fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, failure.Failure]
+) -> Result[storage.VerifiedHandle, failure.Failure]
   let account = "acct:" + username + "@" + domain
   let finger = fetcher(
     ctx,
@@ -207,7 +242,7 @@ func DiscoverMentionActorWith(
     "https://" + domain + "/.well-known/webfinger?resource=" + url.QueryEscape(account)
   )
   if finger.IsErr() then
-    return Err(Of("unresolved mention"))
+    return Err(Of("peer unavailable"))
   end
   var document = Zero[federation.WebFingerDocument]()
   if json.Unmarshal(finger.Unwrap().Body, Ref.new(document)).IsErr() ||
@@ -229,7 +264,10 @@ func DiscoverMentionActorWith(
     return Err(Of("unresolved mention"))
   end
   let fetched = fetcher(ctx, settings, db, site, uri)
-  if fetched.IsErr() || !federation.WantsActivityJSON(fetched.Unwrap().ContentType) then
+  if fetched.IsErr() then
+    return Err(Of("peer unavailable"))
+  end
+  if !federation.WantsActivityJSON(fetched.Unwrap().ContentType) then
     return Err(Of("unresolved mention"))
   end
   var actor = Zero[federation.ActorRepresentation]()
@@ -240,12 +278,14 @@ func DiscoverMentionActorWith(
     !storage.CanonicalObjectURI(actor.Inbox) then
     return Err(Of("unresolved mention"))
   end
-  Ok(storage.ResolvedPostMention{
+  Ok(storage.VerifiedHandle{
     ActorURI: uri,
     InboxURI: actor.Inbox,
-    Username: username,
-    Domain: domain,
-    Start: 0,
-    End: 0,
+    Acct: username + "@" + domain,
+    DisplayName: actor.Name,
+    Biography: actor.Summary,
+    AvatarURL: actor.Icon.URL,
+    UpdatedAt: actor.Updated,
   })
 end
+

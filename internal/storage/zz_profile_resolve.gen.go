@@ -4,27 +4,88 @@ package storage
 
 import "context"
 import "database/sql"
+import "strings"
 import "time"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line profile_resolve.mygo:12:1*/var profileResolveLimitSQL string
- /*line zz_profile_resolve.gen.go:13:1*/
- /*line profile_resolve.mygo:12:1*/func init() {
+ /*line profile_resolve.mygo:11:1*/type VerifiedHandle struct {
+	ActorURI    string
+	InboxURI    string
+	Acct        string
+	DisplayName string
+	Biography   string
+	AvatarURL   string
+	UpdatedAt   time.Time
+ /*line zz_profile_resolve.gen.go:22:1*/}
+
+ /*line profile_resolve.mygo:21:1*/var verifiedActorSQL string
+ /*line zz_profile_resolve.gen.go:25:1*/
+ /*line profile_resolve.mygo:21:1*/func init() {
+	verifiedActorSQL = "\nINSERT INTO actors(uri,kind,inbox_uri,acct)\nVALUES (@uri,'Person',@inbox,@acct)\nON CONFLICT (uri) DO UPDATE SET\n  acct = CASE WHEN actors.acct = '' THEN EXCLUDED.acct ELSE actors.acct END\nWHERE actors.kind = 'Person' AND actors.local_site_id IS NULL\n"
+ /*line zz_profile_resolve.gen.go:28:1*/}
+
+ /*line profile_resolve.mygo:29:1*/var verifiedProfileSQL string
+ /*line zz_profile_resolve.gen.go:31:1*/
+ /*line profile_resolve.mygo:29:1*/func init() {
+	verifiedProfileSQL = "\nINSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at)\nVALUES (@uri,@name,@biography,@html,@avatar,@updated)\nON CONFLICT (actor_uri) DO UPDATE SET\n  display_name = CASE WHEN profiles.display_name = '' THEN EXCLUDED.display_name ELSE profiles.display_name END,\n  biography = CASE WHEN profiles.biography = '' THEN EXCLUDED.biography ELSE profiles.biography END,\n  biography_html = CASE WHEN profiles.biography_html = '' THEN EXCLUDED.biography_html ELSE profiles.biography_html END,\n  avatar_url = CASE WHEN profiles.avatar_url = '' THEN EXCLUDED.avatar_url ELSE profiles.avatar_url END\n"
+ /*line zz_profile_resolve.gen.go:34:1*/}
+ /*line profile_resolve.mygo:41:1*/func BootstrapVerifiedProfile(ctx context.Context, db *gorm.DB, handle VerifiedHandle, sanitizer content.Sanitizer) Result[struct {
+}, failure.Failure] {
+ /*line profile_resolve.mygo:47:3*/	if handle.ActorURI == "" || handle.Acct == "" || handle.InboxURI == "" {
+ /*line profile_resolve.mygo:48:12*/		return Err[struct{}, failure.Failure](Of("invalid verified handle"))
+ /*line profile_resolve.mygo:47:3*/	} else {
+ /*line zz_profile_resolve.gen.go:40:1*/	}
+ /*line profile_resolve.mygo:41:1*/	var __mygo_expr_0 string
+	if strings.HasPrefix(strings.ToLower(handle.AvatarURL), "https://") {
+		__mygo_expr_0 = handle.AvatarURL
+	} else {
+		__mygo_expr_0 = ""
+ /*line zz_profile_resolve.gen.go:46:1*/	}
+ /*line profile_resolve.mygo:41:1*/	avatar := __mygo_expr_0
+	html := MygoIN6ResultM8UnwrapOr[string, string](content.RenderRich(sanitizer, handle.Biography, "markdown"), "")
+	var __mygo_expr_1 time.Time
+	if handle.UpdatedAt.IsZero() {
+		__mygo_expr_1 = time.Unix(0, 0)
+	} else {
+		__mygo_expr_1 = handle.UpdatedAt
+ /*line zz_profile_resolve.gen.go:54:1*/	}
+ /*line profile_resolve.mygo:41:1*/	updated := __mygo_expr_1
+	actorQuery := db.WithContext(ctx).Exec(verifiedActorSQL, sql.Named("uri", handle.ActorURI), sql.Named("inbox", handle.InboxURI), sql.Named("acct", handle.Acct))
+ /*line profile_resolve.mygo:59:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(actorQuery)) {
+ /*line profile_resolve.mygo:60:12*/		return Err[struct{}, failure.Failure](Of("profile unavailable"))
+ /*line profile_resolve.mygo:59:3*/	} else {
+ /*line zz_profile_resolve.gen.go:60:1*/	}
+ /*line profile_resolve.mygo:41:1*/	profileQuery := db.WithContext(ctx).Exec(verifiedProfileSQL, sql.Named("uri", handle.ActorURI), sql.Named("name", handle.DisplayName), sql.Named("biography", handle.Biography), sql.Named("html", html), sql.Named("avatar", avatar), sql.Named("updated", updated))
+ /*line profile_resolve.mygo:71:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(profileQuery)) {
+ /*line profile_resolve.mygo:72:12*/		return Err[struct{}, failure.Failure](Of("profile unavailable"))
+ /*line profile_resolve.mygo:71:3*/	} else {
+ /*line zz_profile_resolve.gen.go:65:1*/	}
+ /*line profile_resolve.mygo:74:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_profile_resolve.gen.go:67:1*/	}{})
+}
+
+ /*line profile_resolve.mygo:80:1*/var profileResolveLimitSQL string
+ /*line zz_profile_resolve.gen.go:71:1*/
+ /*line profile_resolve.mygo:80:1*/func init() {
 	profileResolveLimitSQL = "\nINSERT INTO profile_resolve_limits(site_id, account_id, window_start, attempts)\nVALUES (@site, @account, @now, 1)\nON CONFLICT (site_id, account_id) DO UPDATE SET\n  window_start = CASE\n    WHEN profile_resolve_limits.window_start <= @cutoff THEN @now\n    ELSE profile_resolve_limits.window_start\n  END,\n  attempts = CASE\n    WHEN profile_resolve_limits.window_start <= @cutoff THEN 1\n    ELSE profile_resolve_limits.attempts + 1\n  END\nWHERE profile_resolve_limits.window_start <= @cutoff\n   OR profile_resolve_limits.attempts < @limit\nRETURNING attempts\n"
- /*line zz_profile_resolve.gen.go:16:1*/}
- /*line profile_resolve.mygo:29:1*/func ConsumeProfileResolveAttempt(ctx context.Context, db *gorm.DB, siteID string, accountID int64, limit int, windowSeconds int, now time.Time) Result[bool, failure.Failure] {
- /*line profile_resolve.mygo:38:3*/	if siteID == "" || accountID <= int64(0) || limit < 1 || windowSeconds < 1 {
- /*line profile_resolve.mygo:39:12*/		return Err[bool, failure.Failure](Of("invalid resolve limit"))
- /*line profile_resolve.mygo:38:3*/	} else {
- /*line zz_profile_resolve.gen.go:21:1*/	}
- /*line profile_resolve.mygo:29:1*/	cutoff := now.Add(time.Duration(0) - time.Duration(windowSeconds)*time.Second)
+ /*line zz_profile_resolve.gen.go:74:1*/}
+ /*line profile_resolve.mygo:97:1*/func ConsumeProfileResolveAttempt(ctx context.Context, db *gorm.DB, siteID string, accountID int64, limit int, windowSeconds int, now time.Time) Result[bool, failure.Failure] {
+ /*line profile_resolve.mygo:106:3*/	if siteID == "" || accountID <= int64(0) || limit < 1 || windowSeconds < 1 {
+ /*line profile_resolve.mygo:107:12*/		return Err[bool, failure.Failure](Of("invalid resolve limit"))
+ /*line profile_resolve.mygo:106:3*/	} else {
+ /*line zz_profile_resolve.gen.go:79:1*/	}
+ /*line profile_resolve.mygo:97:1*/	cutoff := now.Add(time.Duration(0) - time.Duration(windowSeconds)*time.Second)
 	var attempts int = 0
 	query := db.WithContext(ctx).Raw(profileResolveLimitSQL, sql.Named("site", siteID), sql.Named("account", accountID), sql.Named("now", now), sql.Named("cutoff", cutoff), sql.Named("limit", limit)).Scan(&attempts)
- /*line profile_resolve.mygo:51:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
- /*line profile_resolve.mygo:52:12*/		return Err[bool, failure.Failure](Of("resolve limit unavailable"))
- /*line profile_resolve.mygo:51:3*/	} else {
- /*line zz_profile_resolve.gen.go:28:1*/	}
- /*line profile_resolve.mygo:54:3*/	return Ok[bool, failure.Failure](query.RowsAffected == int64(1))
- /*line zz_profile_resolve.gen.go:30:1*/}
+ /*line profile_resolve.mygo:119:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line profile_resolve.mygo:120:12*/		return Err[bool, failure.Failure](Of("resolve limit unavailable"))
+ /*line profile_resolve.mygo:119:3*/	} else {
+ /*line zz_profile_resolve.gen.go:86:1*/	}
+ /*line profile_resolve.mygo:122:3*/	return Ok[bool, failure.Failure](query.RowsAffected == int64(1))
+ /*line zz_profile_resolve.gen.go:88:1*/}
+ /*line profile_resolve.mygo:125:1*/func ConfiguredAuthority(ctx context.Context, db *gorm.DB, authority string) Result[bool, failure.Failure] {
+ /*line profile_resolve.mygo:130:3*/	return QueryExists(db.WithContext(ctx).Table("site_authorities").Where("authority=?", strings.ToLower(authority)))
+ /*line zz_profile_resolve.gen.go:91:1*/}

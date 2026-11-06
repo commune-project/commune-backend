@@ -65,6 +65,7 @@ func MentionCandidatesRoute(
   end
   var outputs: Slice[MentionCandidateOutput] = []
   rows.Unwrap().Each(func(row: storage.MentionCandidateRecord) -> ()
+    let _ = storage.QueueActorHandleResolution(request.Context(), db, site.ID, row.ActorURI)
     outputs = outputs.Append(MentionCandidateOutput{
       ActorURI: row.ActorURI,
       Acct: row.Acct,

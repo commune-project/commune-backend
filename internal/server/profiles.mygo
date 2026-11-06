@@ -90,12 +90,20 @@ func ProfileRoute(
       FailFailure(w, viewer.UnwrapErr())
       return true
     end
+    let raw = parts.Get(3).Unwrap()
+    if request.URL.Query().Get("resolve") == "1" then
+      switch ResolveRemoteProfile(request.Context(), settings, db, site, viewer.Unwrap(), raw)
+        case Err(reason) => FailFailure(w, reason)
+        case Ok(profile) => WriteJSON(w, 200, profile)
+      end
+      return true
+    end
     let loaded = storage.LoadProfileByHandle(
       request.Context(),
       db,
       site.ID,
       viewer.Unwrap().AccountID,
-      parts.Get(3).Unwrap()
+      raw
     )
     switch loaded
       case Err(reason) => FailFailure(w, reason)
@@ -220,4 +228,75 @@ func ProfileRoute(
     end
   )
   true
+end
+
+func ResolveRemoteProfile(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  viewer: auth.Identity,
+  raw: String
+) -> Result[storage.ProfileRecord, failure.Failure]
+  ResolveRemoteProfileWith(ctx, settings, db, site, viewer, raw, FetchMentionDocument)
+end
+
+func ResolveRemoteProfileWith(
+  ctx: context.Context,
+  settings: config.Config,
+  db: Ref[gorm.DB],
+  site: config.Site,
+  viewer: auth.Identity,
+  raw: String,
+  fetcher: func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, failure.Failure]
+) -> Result[storage.ProfileRecord, failure.Failure]
+  if viewer.AccountID <= 0i64 then
+    return Err(Of("unauthenticated"))
+  end
+  let trimmed = strings.TrimSpace(raw)
+  let parts = trimmed.Split("@")
+  if parts.Len() != 2 then
+    return storage.LoadProfileByHandle(ctx, db, site.ID, viewer.AccountID, trimmed)
+  end
+  let local = parts.Get(0).UnwrapOr("")
+  let domain = strings.ToLower(parts.Get(1).UnwrapOr(""))
+  if local == "" || domain == "" then
+    return Err(Of("not found"))
+  end
+  let configured = storage.ConfiguredAuthority(ctx, db, domain)
+  if configured.IsErr() then
+    return Err(Of("profile unavailable"))
+  end
+  if configured.Unwrap() then
+    return storage.LoadProfileByHandle(ctx, db, site.ID, viewer.AccountID, trimmed)
+  end
+  let allowed = storage.ConsumeProfileResolveAttempt(
+    ctx,
+    db,
+    site.ID,
+    viewer.AccountID,
+    settings.Federation.ProfileResolveLimit,
+    settings.Federation.ProfileResolveWindowSeconds,
+    time.Now()
+  )
+  if allowed.IsErr() then
+    return Err(Of("profile unavailable"))
+  end
+  if !allowed.Unwrap() then
+    return Err(Of("profile resolve rate limited"))
+  end
+  let discovered = DiscoverVerifiedHandleWith(ctx, settings, db, site, local, domain, fetcher)
+  if discovered.IsErr() then
+    return Err(discovered.UnwrapErr())
+  end
+  let saved = storage.BootstrapVerifiedProfile(
+    ctx,
+    db,
+    discovered.Unwrap(),
+    settings.Rendering.Sanitizer
+  )
+  if saved.IsErr() then
+    return Err(saved.UnwrapErr())
+  end
+  storage.LoadProfileByHandle(ctx, db, site.ID, viewer.AccountID, discovered.Unwrap().Acct)
 end

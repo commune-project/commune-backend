@@ -128,56 +128,76 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_mentions.mygo:189:3*/	return DiscoverMentionActorWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
  /*line zz_post_mentions.gen.go:129:1*/}
  /*line post_mentions.mygo:192:1*/func DiscoverMentionActorWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string, fetcher func(context.Context, config.Config, *gorm.DB, config.Site, string) Result[federation.FetchResult, failure.Failure]) Result[storage.ResolvedPostMention, failure.Failure] {
+ /*line post_mentions.mygo:201:3*/	__mygo_expr_0 := DiscoverVerifiedHandleWith(ctx, settings, db, site, username, domain, fetcher)
+	var __mygo_expr_1 Result[storage.ResolvedPostMention, failure.Failure]
+	if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[storage.VerifiedHandle, failure.Failure]); ok {
+		__mygo_expr_1 = Err[storage.ResolvedPostMention, failure.Failure](__mygo_match___mygo_expr_3.F0)
+ /*line zz_post_mentions.gen.go:135:1*/	} else {
+ /*line post_mentions.mygo:201:3*/		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[storage.VerifiedHandle, failure.Failure]); ok {
+			__mygo_expr_1 = Ok[storage.ResolvedPostMention, failure.Failure](storage.ResolvedPostMention{ActorURI: __mygo_match___mygo_expr_2.F0.ActorURI, InboxURI: __mygo_match___mygo_expr_2.F0.InboxURI, Username: username, Domain: domain, Start: 0, End: 0})
+		} else {
+ /*line zz_post_mentions.gen.go:139:1*/		}
+	}
+ /*line post_mentions.mygo:201:3*/	return __mygo_expr_1
+ /*line zz_post_mentions.gen.go:142:1*/}
+ /*line post_mentions.mygo:216:1*/func DiscoverVerifiedHandle(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string) Result[storage.VerifiedHandle, failure.Failure] {
+ /*line post_mentions.mygo:224:3*/	return DiscoverVerifiedHandleWith(ctx, settings, db, site, username, domain, FetchMentionDocument)
+ /*line zz_post_mentions.gen.go:145:1*/}
+ /*line post_mentions.mygo:227:1*/func DiscoverVerifiedHandleWith(ctx context.Context, settings config.Config, db *gorm.DB, site config.Site, username string, domain string, fetcher func(context.Context, config.Config, *gorm.DB, config.Site, string) Result[federation.FetchResult, failure.Failure]) Result[storage.VerifiedHandle, failure.Failure] {
 	account := "acct:" + username + "@" + domain
 	finger := fetcher(ctx, settings, db, site, "https://"+domain+"/.well-known/webfinger?resource="+url.QueryEscape(account))
- /*line post_mentions.mygo:209:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](finger) {
- /*line post_mentions.mygo:210:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:209:3*/	} else {
- /*line zz_post_mentions.gen.go:136:1*/	}
- /*line post_mentions.mygo:192:1*/	document := Zero[federation.WebFingerDocument]()
- /*line post_mentions.mygo:213:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line post_mentions.mygo:244:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](finger) {
+ /*line post_mentions.mygo:245:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("peer unavailable"))
+ /*line post_mentions.mygo:244:3*/	} else {
+ /*line zz_post_mentions.gen.go:152:1*/	}
+ /*line post_mentions.mygo:227:1*/	document := Zero[federation.WebFingerDocument]()
+ /*line post_mentions.mygo:248:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](finger).Body, &document)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_post_mentions.gen.go:144:1*/		}{})
+ /*line zz_post_mentions.gen.go:160:1*/		}{})
 	}
- /*line post_mentions.mygo:213:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !strings.EqualFold(document.Subject, account) {
- /*line post_mentions.mygo:215:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:213:3*/	} else {
- /*line zz_post_mentions.gen.go:149:1*/	}
- /*line post_mentions.mygo:192:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
- /*line post_mentions.mygo:218:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && storage.CanonicalObjectURI(link.Href)
- /*line zz_post_mentions.gen.go:152:1*/	})
- /*line post_mentions.mygo:222:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
- /*line post_mentions.mygo:223:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:222:3*/	} else {
- /*line zz_post_mentions.gen.go:156:1*/	}
- /*line post_mentions.mygo:192:1*/	uri := MygoIN6OptionM6Unwrap[federation.WebFingerLink](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(links, 0)).Href
- /*line post_mentions.mygo:226:3*/	if MygoIN5SliceM3Any(settings.Sites, func(local config.Site) bool {
- /*line post_mentions.mygo:227:5*/		return strings.HasPrefix(uri, local.Origin+"/")
- /*line post_mentions.mygo:226:3*/	}) {
- /*line post_mentions.mygo:229:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:226:3*/	} else {
- /*line zz_post_mentions.gen.go:163:1*/	}
- /*line post_mentions.mygo:192:1*/	fetched := fetcher(ctx, settings, db, site, uri)
- /*line post_mentions.mygo:232:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](fetched) || !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](fetched).ContentType) {
- /*line post_mentions.mygo:233:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:232:3*/	} else {
- /*line zz_post_mentions.gen.go:168:1*/	}
- /*line post_mentions.mygo:192:1*/	actor := Zero[federation.ActorRepresentation]()
- /*line post_mentions.mygo:236:6*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line post_mentions.mygo:248:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) || !strings.EqualFold(document.Subject, account) {
+ /*line post_mentions.mygo:250:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("unresolved mention"))
+ /*line post_mentions.mygo:248:3*/	} else {
+ /*line zz_post_mentions.gen.go:165:1*/	}
+ /*line post_mentions.mygo:227:1*/	links := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM6Filter(document.Links, func(link federation.WebFingerLink) bool {
+ /*line post_mentions.mygo:253:5*/		return link.Rel == "self" && federation.WantsActivityJSON(link.Type) && storage.CanonicalObjectURI(link.Href)
+ /*line zz_post_mentions.gen.go:168:1*/	})
+ /*line post_mentions.mygo:257:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(links) != 1 {
+ /*line post_mentions.mygo:258:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("unresolved mention"))
+ /*line post_mentions.mygo:257:3*/	} else {
+ /*line zz_post_mentions.gen.go:172:1*/	}
+ /*line post_mentions.mygo:227:1*/	uri := MygoIN6OptionM6Unwrap[federation.WebFingerLink](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(links, 0)).Href
+ /*line post_mentions.mygo:261:3*/	if MygoIN5SliceM3Any(settings.Sites, func(local config.Site) bool {
+ /*line post_mentions.mygo:262:5*/		return strings.HasPrefix(uri, local.Origin+"/")
+ /*line post_mentions.mygo:261:3*/	}) {
+ /*line post_mentions.mygo:264:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("unresolved mention"))
+ /*line post_mentions.mygo:261:3*/	} else {
+ /*line zz_post_mentions.gen.go:179:1*/	}
+ /*line post_mentions.mygo:227:1*/	fetched := fetcher(ctx, settings, db, site, uri)
+ /*line post_mentions.mygo:267:3*/	if MygoIN6ResultM5IsErr[federation.FetchResult, failure.Failure](fetched) {
+ /*line post_mentions.mygo:268:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("peer unavailable"))
+ /*line post_mentions.mygo:267:3*/	} else {
+ /*line zz_post_mentions.gen.go:184:1*/	}
+ /*line post_mentions.mygo:270:3*/	if !federation.WantsActivityJSON(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](fetched).ContentType) {
+ /*line post_mentions.mygo:271:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("unresolved mention"))
+ /*line post_mentions.mygo:270:3*/	} else {
+ /*line zz_post_mentions.gen.go:188:1*/	}
+ /*line post_mentions.mygo:227:1*/	actor := Zero[federation.ActorRepresentation]()
+ /*line post_mentions.mygo:274:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal(MygoIN6ResultM6Unwrap[federation.FetchResult, failure.Failure](fetched).Body, &actor)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_post_mentions.gen.go:176:1*/		}{})
+ /*line zz_post_mentions.gen.go:196:1*/		}{})
 	}
- /*line post_mentions.mygo:236:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || actor.ID != uri || actor.Type != "Person" || !strings.EqualFold(actor.PreferredUsername, username) || !storage.CanonicalObjectURI(actor.Inbox) {
- /*line post_mentions.mygo:241:12*/		return Err[storage.ResolvedPostMention, failure.Failure](Of("unresolved mention"))
- /*line post_mentions.mygo:236:3*/	} else {
- /*line zz_post_mentions.gen.go:181:1*/	}
- /*line post_mentions.mygo:243:3*/	return Ok[storage.ResolvedPostMention, failure.Failure](storage.ResolvedPostMention{ActorURI: uri, InboxURI: actor.Inbox, Username: username, Domain: domain, Start: 0, End: 0})
- /*line zz_post_mentions.gen.go:183:1*/}
+ /*line post_mentions.mygo:274:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_3) || actor.ID != uri || actor.Type != "Person" || !strings.EqualFold(actor.PreferredUsername, username) || !storage.CanonicalObjectURI(actor.Inbox) {
+ /*line post_mentions.mygo:279:12*/		return Err[storage.VerifiedHandle, failure.Failure](Of("unresolved mention"))
+ /*line post_mentions.mygo:274:3*/	} else {
+ /*line zz_post_mentions.gen.go:201:1*/	}
+ /*line post_mentions.mygo:281:3*/	return Ok[storage.VerifiedHandle, failure.Failure](storage.VerifiedHandle{ActorURI: uri, InboxURI: actor.Inbox, Acct: username + "@" + domain, DisplayName: actor.Name, Biography: actor.Summary, AvatarURL: actor.Icon.URL, UpdatedAt: actor.Updated})
+ /*line zz_post_mentions.gen.go:203:1*/}

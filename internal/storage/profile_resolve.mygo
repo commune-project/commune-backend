@@ -2,9 +2,77 @@ package storage
 
 import context "go:context"
 import sql "go:database/sql"
+import strings "go:strings"
 import time "go:time"
 import gorm "go:gorm.io/gorm"
 import failure "github.com/commune-project/commune-backend/internal/failure"
+import content "github.com/commune-project/commune-backend/internal/content"
+
+struct VerifiedHandle
+  ActorURI: String
+  InboxURI: String
+  Acct: String
+  DisplayName: String
+  Biography: String
+  AvatarURL: String
+  UpdatedAt: time.Time
+end
+
+let verifiedActorSQL = """
+INSERT INTO actors(uri,kind,inbox_uri,acct)
+VALUES (@uri,'Person',@inbox,@acct)
+ON CONFLICT (uri) DO UPDATE SET
+  acct = CASE WHEN actors.acct = '' THEN EXCLUDED.acct ELSE actors.acct END
+WHERE actors.kind = 'Person' AND actors.local_site_id IS NULL
+"""
+
+let verifiedProfileSQL = """
+INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,updated_at)
+VALUES (@uri,@name,@biography,@html,@avatar,@updated)
+ON CONFLICT (actor_uri) DO UPDATE SET
+  display_name = CASE WHEN profiles.display_name = '' THEN EXCLUDED.display_name ELSE profiles.display_name END,
+  biography = CASE WHEN profiles.biography = '' THEN EXCLUDED.biography ELSE profiles.biography END,
+  biography_html = CASE WHEN profiles.biography_html = '' THEN EXCLUDED.biography_html ELSE profiles.biography_html END,
+  avatar_url = CASE WHEN profiles.avatar_url = '' THEN EXCLUDED.avatar_url ELSE profiles.avatar_url END
+"""
+
+# Fills only empty fields and never advances updated_at, so a later verified
+# Person Update still wins. Avatar URLs are metadata only; bytes are not fetched.
+func BootstrapVerifiedProfile(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  handle: VerifiedHandle,
+  sanitizer: content.Sanitizer
+) -> Result[(), failure.Failure]
+  if handle.ActorURI == "" || handle.Acct == "" || handle.InboxURI == "" then
+    return Err(Of("invalid verified handle"))
+  end
+  let avatar = if strings.HasPrefix(strings.ToLower(handle.AvatarURL), "https://") => handle.AvatarURL else ""
+  let html = content.RenderRich(sanitizer, handle.Biography, "markdown").UnwrapOr("")
+  let updated = if handle.UpdatedAt.IsZero() => time.Unix(0, 0) else handle.UpdatedAt
+  let actorQuery = db.WithContext(ctx).Exec(
+    verifiedActorSQL,
+    sql.Named("uri", handle.ActorURI),
+    sql.Named("inbox", handle.InboxURI),
+    sql.Named("acct", handle.Acct)
+  )
+  if MutationResult(actorQuery).IsErr() then
+    return Err(Of("profile unavailable"))
+  end
+  let profileQuery = db.WithContext(ctx).Exec(
+    verifiedProfileSQL,
+    sql.Named("uri", handle.ActorURI),
+    sql.Named("name", handle.DisplayName),
+    sql.Named("biography", handle.Biography),
+    sql.Named("html", html),
+    sql.Named("avatar", avatar),
+    sql.Named("updated", updated)
+  )
+  if MutationResult(profileQuery).IsErr() then
+    return Err(Of("profile unavailable"))
+  end
+  Ok(())
+end
 
 # One statement both resets an expired window and charges the attempt, so two
 # processes cannot both pass on the last slot. A rejected attempt leaves the row
@@ -52,5 +120,16 @@ func ConsumeProfileResolveAttempt(
     return Err(Of("resolve limit unavailable"))
   end
   Ok(query.RowsAffected == 1i64)
+end
+
+func ConfiguredAuthority(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  authority: String
+) -> Result[Bool, failure.Failure]
+  QueryExists(db.WithContext(ctx).Table("site_authorities").Where(
+    "authority=?",
+    strings.ToLower(authority)
+  ))
 end
 

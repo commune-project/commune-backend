@@ -144,6 +144,7 @@ end
 enum LimitKind
   Registration
   Reset
+  Profile
 end
 
 impl LimitKind
@@ -151,6 +152,7 @@ impl LimitKind
     switch self
       case Registration => "registration rate limited"
       case Reset => "reset rate limited"
+      case Profile => "profile resolve rate limited"
     end
   end
 end
@@ -252,6 +254,7 @@ func Parse(reason: String) -> Result[Failure, String]
     case "unavailable" => Ok(Failure.Unavailable)
     case "registration rate limited" => Ok(Failure.RateLimited(LimitKind.Registration))
     case "reset rate limited" => Ok(Failure.RateLimited(LimitKind.Reset))
+    case "profile resolve rate limited" => Ok(Failure.RateLimited(LimitKind.Profile))
     case "resource unavailable" => Ok(Failure.Upstream(UpstreamKind.Fetch))
     case "media unavailable" => Ok(Failure.Upstream(UpstreamKind.Media))
     case "profile unavailable" => Ok(Failure.Upstream(UpstreamKind.Profile))

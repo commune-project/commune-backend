@@ -19,6 +19,7 @@ func TestFailureStatusAndRender(t: Ref[testing.T]) -> ()
     (Failure.Conflict(ConflictKind.Report), 409, "report conflict"),
     (Failure.RateLimited(LimitKind.Registration), 429, "registration rate limited"),
     (Failure.RateLimited(LimitKind.Reset), 429, "reset rate limited"),
+    (Failure.RateLimited(LimitKind.Profile), 429, "profile resolve rate limited"),
     (Failure.NotReady, 503, "not ready"),
     (Failure.Unavailable, 503, "unavailable"),
     (Failure.Upstream(UpstreamKind.Fetch), 503, "resource unavailable"),

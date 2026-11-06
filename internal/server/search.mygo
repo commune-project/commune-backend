@@ -76,6 +76,9 @@ func SearchRoute(
     if rows.IsErr() then
       FailFailure(w, rows.UnwrapErr())
     else
+      rows.Unwrap().Each(func(record: storage.PostRecord) -> ()
+        let _ = storage.QueueActorHandleResolution(request.Context(), db, site.ID, record.AuthorActorURI)
+      end)
       let outputs = BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, viewer.Unwrap(), rows.Unwrap())
       if outputs.IsErr() then
         FailFailure(w, outputs.UnwrapErr())

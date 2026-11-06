@@ -42,8 +42,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line search.mygo:42:12*/		return true
  /*line search.mygo:40:3*/	} else {
  /*line zz_search.gen.go:44:1*/	}
- /*line search.mygo:44:3*/	if kind == "communities" {
-		rows := storage.MygoIN17BrowserRepositoryM17SearchCommunities(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line search.mygo:44:6*/	if kind == "communities" {
+ /*line search.mygo:44:3*/		rows := storage.MygoIN17BrowserRepositoryM17SearchCommunities(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
 		if MygoIN6ResultM5IsErr[[]storage.CommunityView, failure.Failure](rows) {
  /*line search.mygo:53:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.CommunityView, failure.Failure](rows))
  /*line search.mygo:44:3*/		} else {
@@ -52,18 +52,22 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_search.gen.go:52:1*/			})
  /*line search.mygo:44:3*/			WriteJSON(w, 200, CommunityPage{Items: outputs, Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
  /*line zz_search.gen.go:54:1*/		}
- /*line search.mygo:44:3*/	} else {
-		rows_1 := storage.MygoIN17BrowserRepositoryM11SearchPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
-		if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](rows_1) {
+	} else {
+ /*line search.mygo:44:3*/		rows_1 := storage.MygoIN17BrowserRepositoryM11SearchPosts(repository, request.Context(), MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), query, MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page), settings.Runtime.MaxPageSize)
+ /*line search.mygo:76:8*/		if MygoIN6ResultM5IsErr[[]storage.PostRecord, failure.Failure](rows_1) {
  /*line search.mygo:77:7*/			FailFailure(w, MygoIN6ResultM9UnwrapErr[[]storage.PostRecord, failure.Failure](rows_1))
- /*line search.mygo:44:3*/		} else {
-			outputs_1 := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](rows_1))
+ /*line zz_search.gen.go:59:1*/		} else {
+ /*line search.mygo:79:7*/			MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](rows_1), func(record storage.PostRecord) {
+ /*line search.mygo:79:26*/				storage.QueueActorHandleResolution(request.Context(), db, site.ID, record.AuthorActorURI)
+				return
+ /*line zz_search.gen.go:63:1*/			})
+ /*line search.mygo:44:3*/			outputs_1 := BrowserPosts(settings.Rendering.Sanitizer, request.Context(), repository, MygoIN6ResultM6Unwrap[storage.BrowserViewer, failure.Failure](viewer), MygoIN6ResultM6Unwrap[[]storage.PostRecord, failure.Failure](rows_1))
 			if MygoIN6ResultM5IsErr[[]PostOutput, failure.Failure](outputs_1) {
- /*line search.mygo:81:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs_1))
+ /*line search.mygo:84:9*/				FailFailure(w, MygoIN6ResultM9UnwrapErr[[]PostOutput, failure.Failure](outputs_1))
  /*line search.mygo:44:3*/			} else {
- /*line search.mygo:83:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs_1), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
- /*line zz_search.gen.go:65:1*/			}
+ /*line search.mygo:86:9*/				WriteJSON(w, 200, PostPage{Items: MygoIN6ResultM6Unwrap[[]PostOutput, failure.Failure](outputs_1), Limit: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Limit, Offset: MygoIN6ResultM6Unwrap[storage.Page, failure.Failure](page).Offset})
+ /*line zz_search.gen.go:69:1*/			}
 		}
 	}
- /*line search.mygo:95:3*/	return true
- /*line zz_search.gen.go:69:1*/}
+ /*line search.mygo:98:3*/	return true
+ /*line zz_search.gen.go:73:1*/}

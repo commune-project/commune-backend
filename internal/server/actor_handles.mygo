@@ -14,6 +14,10 @@ import failure "github.com/commune-project/commune-backend/internal/failure"
 struct ResolvedActorHandle
   Acct: String
   DisplayName: String
+  Biography: String
+  AvatarURL: String
+  UpdatedAt: time.Time
+  InboxURI: String
 end
 
 struct ActorHandleOutcome
@@ -107,6 +111,10 @@ func ResolveActorHandleWith(
   Ok(ResolvedActorHandle{
     Acct: strings.TrimPrefix(document.Subject, "acct:"),
     DisplayName: content.RenderText(actor.Name),
+    Biography: actor.Summary,
+    AvatarURL: actor.Icon.URL,
+    UpdatedAt: actor.Updated,
+    InboxURI: actor.Inbox,
   })
 end
 
@@ -231,7 +239,15 @@ func RunActorHandleBatchWith(
       return
     end
     let handle = resolved.Unwrap()
-    let bootstrapped = storage.BootstrapRemoteDisplayName(ctx, db, job.ActorURI, handle.DisplayName)
+    let bootstrapped = storage.BootstrapVerifiedProfile(ctx, db, storage.VerifiedHandle{
+      ActorURI: job.ActorURI,
+      InboxURI: handle.InboxURI,
+      Acct: handle.Acct,
+      DisplayName: handle.DisplayName,
+      Biography: handle.Biography,
+      AvatarURL: handle.AvatarURL,
+      UpdatedAt: handle.UpdatedAt,
+    }, settings.Rendering.Sanitizer)
     if bootstrapped.IsErr() then
       let settled = SettleActorHandleFailure(ctx, db, settings, job, bootstrapped.UnwrapErr().Render())
       if settled.IsErr() then
