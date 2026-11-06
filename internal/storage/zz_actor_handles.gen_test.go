@@ -9,8 +9,8 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
 import "time"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line actor_handles_test.mygo:10:1*/func TestPostgresActorHandleMigrationDefault(t *testing.T) {

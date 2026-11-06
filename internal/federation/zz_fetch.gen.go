@@ -83,8 +83,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line fetch.mygo:55:12*/		return Err[struct{}, failure.Failure](Of("unresolvable destination"))
  /*line fetch.mygo:54:3*/	} else {
  /*line zz_fetch.gen.go:85:1*/	}
- /*line fetch.mygo:38:1*/	blocked := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(addresses, false, func(found bool, address string) bool {
- /*line fetch.mygo:58:5*/		return found || BlockedIP(address)
+ /*line fetch.mygo:38:1*/	blocked := MygoIN5SliceM3Any(addresses, func(address string) bool {
+ /*line fetch.mygo:58:5*/		return BlockedIP(address)
  /*line zz_fetch.gen.go:88:1*/	})
  /*line fetch.mygo:60:3*/	if blocked {
  /*line fetch.mygo:61:12*/		return Err[struct{}, failure.Failure](Of("blocked destination"))

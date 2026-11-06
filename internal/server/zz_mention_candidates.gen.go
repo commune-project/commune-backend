@@ -8,8 +8,8 @@ import "strings"
 import "gorm.io/gorm"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
-import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "github.com/commune-project/commune-backend/internal/auth"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line mention_candidates.mygo:10:1*/type MentionCandidateOutput struct {

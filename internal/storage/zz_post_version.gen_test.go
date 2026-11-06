@@ -8,8 +8,8 @@ import "database/sql"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line post_version_test.mygo:10:1*/func TestPostgresPostVersionMigration(t *testing.T) {

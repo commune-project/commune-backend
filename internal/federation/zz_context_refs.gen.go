@@ -75,87 +75,92 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_3 = Ok[struct{}, error](struct {
  /*line zz_context_refs.gen.go:76:1*/		}{})
 	}
- /*line context_refs.mygo:54:6*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
- /*line context_refs.mygo:55:5*/		MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(elements, func(element json.RawMessage) {
- /*line context_refs.mygo:55:19*/			nested := DecodeContextValue([]byte(element))
-			references = MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Fold(nested, references, func(acc []ContextReference, item ContextReference) []ContextReference {
- /*line context_refs.mygo:58:9*/				return MygoIN5SliceM6Append(acc, item)
- /*line zz_context_refs.gen.go:83:1*/			})
- /*line context_refs.mygo:55:19*/			return
- /*line zz_context_refs.gen.go:85:1*/		})
- /*line context_refs.mygo:61:12*/		return references
+ /*line context_refs.mygo:54:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
+ /*line context_refs.mygo:55:12*/		return MygoIN5SliceM7Flatten(MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(elements, func(element json.RawMessage) []ContextReference {
+ /*line context_refs.mygo:56:7*/			return DecodeContextValue([]byte(element))
+ /*line zz_context_refs.gen.go:81:1*/		}))
  /*line context_refs.mygo:54:3*/	} else {
- /*line zz_context_refs.gen.go:88:1*/	}
+ /*line zz_context_refs.gen.go:83:1*/	}
  /*line context_refs.mygo:41:1*/	descriptor := Zero[ContextDescriptor]()
- /*line context_refs.mygo:64:6*/	var __mygo_expr_5 Result[struct{}, error]
+ /*line context_refs.mygo:60:6*/	var __mygo_expr_5 Result[struct{}, error]
 	__mygo_expr_4 := json.Unmarshal(raw, &descriptor)
 	if __mygo_expr_4 != nil {
 		__mygo_expr_5 = Err[struct{}, error](__mygo_expr_4)
 	} else {
 		__mygo_expr_5 = Ok[struct{}, error](struct {
- /*line zz_context_refs.gen.go:96:1*/		}{})
+ /*line zz_context_refs.gen.go:91:1*/		}{})
 	}
- /*line context_refs.mygo:64:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
- /*line context_refs.mygo:65:12*/		return references
- /*line context_refs.mygo:64:3*/	} else {
- /*line zz_context_refs.gen.go:101:1*/	}
+ /*line context_refs.mygo:60:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_5) {
+ /*line context_refs.mygo:61:12*/		return references
+ /*line context_refs.mygo:60:3*/	} else {
+ /*line zz_context_refs.gen.go:96:1*/	}
  /*line context_refs.mygo:41:1*/	var __mygo_expr_6 string
 	if descriptor.ID != "" {
 		__mygo_expr_6 = descriptor.ID
 	} else {
 		__mygo_expr_6 = descriptor.Href
- /*line zz_context_refs.gen.go:107:1*/	}
+ /*line zz_context_refs.gen.go:102:1*/	}
  /*line context_refs.mygo:41:1*/	uri := __mygo_expr_6
- /*line context_refs.mygo:68:3*/	if uri == "" {
- /*line context_refs.mygo:69:12*/		return references
- /*line context_refs.mygo:68:3*/	} else {
- /*line zz_context_refs.gen.go:112:1*/	}
- /*line context_refs.mygo:41:1*/	kind := "object"
- /*line context_refs.mygo:72:3*/	if descriptor.Type == "Collection" || descriptor.Type == "OrderedCollection" {
-		kind = "collection"
+ /*line context_refs.mygo:64:3*/	if uri == "" {
+ /*line context_refs.mygo:65:12*/		return references
+ /*line context_refs.mygo:64:3*/	} else {
+ /*line zz_context_refs.gen.go:107:1*/	}
+ /*line context_refs.mygo:67:14*/	__mygo_expr_7 := struct {
+ /*line context_refs.mygo:67:21*/		F0 string
+		F1 bool
+	}{F0: descriptor.Type, F1: descriptor.Href != ""}
+ /*line context_refs.mygo:67:14*/	var __mygo_expr_8 string
+	if __mygo_expr_7.F0 == "Collection" {
+		__mygo_expr_8 = "collection"
 	} else {
- /*line zz_context_refs.gen.go:117:1*/	}
- /*line context_refs.mygo:75:3*/	if descriptor.Href != "" && kind == "object" {
-		kind = "link"
-	} else {
- /*line zz_context_refs.gen.go:121:1*/	}
- /*line context_refs.mygo:78:3*/	return []ContextReference{ContextReference{URI: uri, Kind: kind, Verified: false}}
- /*line zz_context_refs.gen.go:123:1*/}
- /*line context_refs.mygo:81:1*/func DecodeAudience(raw []byte) []string {
+		if __mygo_expr_7.F0 == "OrderedCollection" {
+			__mygo_expr_8 = "collection"
+		} else {
+			if __mygo_expr_7.F1 == true {
+				__mygo_expr_8 = "link"
+			} else {
+				__mygo_expr_8 = "object"
+ /*line zz_context_refs.gen.go:123:1*/			}
+		}
+	}
+ /*line context_refs.mygo:41:1*/	kind := __mygo_expr_8
+ /*line context_refs.mygo:73:3*/	return []ContextReference{ContextReference{URI: uri, Kind: kind, Verified: false}}
+ /*line zz_context_refs.gen.go:128:1*/}
+ /*line context_refs.mygo:76:1*/func DecodeAudience(raw []byte) []string {
 	var audience []string = []string{}
- /*line context_refs.mygo:83:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(raw) == 0 {
- /*line context_refs.mygo:84:12*/		return audience
- /*line context_refs.mygo:83:3*/	} else {
- /*line zz_context_refs.gen.go:129:1*/	}
- /*line context_refs.mygo:81:1*/	asString := ""
- /*line context_refs.mygo:87:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line context_refs.mygo:78:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(raw) == 0 {
+ /*line context_refs.mygo:79:12*/		return audience
+ /*line context_refs.mygo:78:3*/	} else {
+ /*line zz_context_refs.gen.go:134:1*/	}
+ /*line context_refs.mygo:76:1*/	asString := ""
+ /*line context_refs.mygo:82:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := json.Unmarshal(raw, &asString)
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
 	} else {
 		__mygo_expr_1 = Ok[struct{}, error](struct {
- /*line zz_context_refs.gen.go:137:1*/		}{})
+ /*line zz_context_refs.gen.go:142:1*/		}{})
 	}
- /*line context_refs.mygo:87:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
- /*line context_refs.mygo:88:5*/		if asString != "" {
- /*line context_refs.mygo:89:14*/			return []string{asString}
- /*line context_refs.mygo:88:5*/		} else {
- /*line zz_context_refs.gen.go:143:1*/		}
- /*line context_refs.mygo:91:12*/		return audience
- /*line context_refs.mygo:87:3*/	} else {
- /*line zz_context_refs.gen.go:146:1*/	}
- /*line context_refs.mygo:81:1*/	var asArray []string = []string{}
- /*line context_refs.mygo:94:6*/	var __mygo_expr_3 Result[struct{}, error]
+ /*line context_refs.mygo:82:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_1) {
+ /*line context_refs.mygo:83:5*/		if asString != "" {
+ /*line context_refs.mygo:84:14*/			return []string{asString}
+ /*line context_refs.mygo:83:5*/		} else {
+ /*line zz_context_refs.gen.go:148:1*/		}
+ /*line context_refs.mygo:86:12*/		return audience
+ /*line context_refs.mygo:82:3*/	} else {
+ /*line zz_context_refs.gen.go:151:1*/	}
+ /*line context_refs.mygo:76:1*/	var asArray []string = []string{}
+ /*line context_refs.mygo:89:6*/	var __mygo_expr_3 Result[struct{}, error]
 	__mygo_expr_2 := json.Unmarshal(raw, &asArray)
 	if __mygo_expr_2 != nil {
 		__mygo_expr_3 = Err[struct{}, error](__mygo_expr_2)
 	} else {
 		__mygo_expr_3 = Ok[struct{}, error](struct {
- /*line zz_context_refs.gen.go:154:1*/		}{})
+ /*line zz_context_refs.gen.go:159:1*/		}{})
 	}
- /*line context_refs.mygo:94:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
- /*line context_refs.mygo:95:12*/		return asArray
- /*line context_refs.mygo:94:3*/	} else {
- /*line zz_context_refs.gen.go:159:1*/	}
- /*line context_refs.mygo:97:3*/	return audience
- /*line zz_context_refs.gen.go:161:1*/}
+ /*line context_refs.mygo:89:3*/	if MygoIN6ResultM4IsOk[struct{}, error](__mygo_expr_3) {
+ /*line context_refs.mygo:90:12*/		return asArray
+ /*line context_refs.mygo:89:3*/	} else {
+ /*line zz_context_refs.gen.go:164:1*/	}
+ /*line context_refs.mygo:92:3*/	return audience
+ /*line zz_context_refs.gen.go:166:1*/}

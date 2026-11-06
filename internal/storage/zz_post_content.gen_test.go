@@ -10,8 +10,8 @@ import "github.com/commune-project/commune-backend/internal/content"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line post_content_test.mygo:12:1*/func TestPostgresRichPostAtomicityAndMentions(t *testing.T) {

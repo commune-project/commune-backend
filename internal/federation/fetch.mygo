@@ -54,8 +54,8 @@ func CheckHost(host: String, allowPrivate: Bool) -> Result[(), failure.Failure]
   if addresses.Len() == 0 then
     return Err(Of("unresolvable destination"))
   end
-  let blocked = addresses.Fold(false, func(found: Bool, address: String) -> Bool
-    found || BlockedIP(address)
+  let blocked = addresses.Any(func(address: String) -> Bool
+    BlockedIP(address)
   end)
   if blocked then
     return Err(Of("blocked destination"))

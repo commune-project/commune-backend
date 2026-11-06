@@ -7,8 +7,8 @@ import "context"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line context_inclusion_test.mygo:9:1*/func TestPostgresDeclaredVersusVerifiedContext(t *testing.T) {

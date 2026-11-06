@@ -52,13 +52,9 @@ func DecodeContextValue(raw: Slice[Byte]) -> Slice[ContextReference]
   end
   var elements: Slice[json.RawMessage] = []
   if json.Unmarshal(raw, Ref.new(elements)).IsOk() then
-    elements.Each(func(element: json.RawMessage) -> ()
-      let nested = DecodeContextValue(element as Slice[Byte])
-      references = nested.Fold(references, func(acc: Slice[ContextReference], item: ContextReference) -> Slice[ContextReference]
-        acc.Append(item)
-      end)
-    end)
-    return references
+    return elements.Map(func(element: json.RawMessage) -> Slice[ContextReference]
+      DecodeContextValue(element as Slice[Byte])
+    end).Flatten()
   end
   let descriptor = Zero[ContextDescriptor]()
   if json.Unmarshal(raw, Ref.new(descriptor)).IsErr() then
@@ -68,12 +64,11 @@ func DecodeContextValue(raw: Slice[Byte]) -> Slice[ContextReference]
   if uri == "" then
     return references
   end
-  var kind = "object"
-  if descriptor.Type == "Collection" || descriptor.Type == "OrderedCollection" then
-    kind = "collection"
-  end
-  if descriptor.Href != "" && kind == "object" then
-    kind = "link"
+  let kind = switch (descriptor.Type, descriptor.Href != "")
+    case ("Collection", _) => "collection"
+    case ("OrderedCollection", _) => "collection"
+    case (_, true) => "link"
+    case _ => "object"
   end
   [ContextReference{URI: uri, Kind: kind, Verified: false}]
 end

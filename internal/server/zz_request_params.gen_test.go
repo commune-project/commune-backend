@@ -7,8 +7,8 @@ import "net/http/httptest"
 import "encoding/json"
 import "io"
 import "strings"
-import "database/sql"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line request_params_test.mygo:9:1*/func TestSharedRequestParsers(t *testing.T) {

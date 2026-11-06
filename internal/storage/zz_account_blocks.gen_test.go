@@ -11,8 +11,8 @@ import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "github.com/commune-project/commune-backend/internal/content"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line account_blocks_test.mygo:12:1*/func TestPostgresPersonalBlockPredicate(t *testing.T) {

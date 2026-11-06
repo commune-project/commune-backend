@@ -9,8 +9,8 @@ import "time"
 import "github.com/commune-project/commune-backend/internal/testsupport"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
-import "github.com/commune-project/commune-backend/internal/failure"
 import "github.com/commune-project/commune-backend/internal/auth"
+import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line moderation_notifications_test.mygo:11:1*/func TestPostgresModerationNotificationsAndTargetAccess(t *testing.T) {

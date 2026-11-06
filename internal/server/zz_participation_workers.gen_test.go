@@ -8,8 +8,8 @@ import "time"
 import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/storage"
 import "gorm.io/gorm"
-import "database/sql"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line participation_workers_test.mygo:9:1*/func ParticipationStopped(signal chan struct {

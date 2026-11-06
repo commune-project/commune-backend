@@ -10,8 +10,8 @@ import "github.com/commune-project/commune-backend/internal/config"
 import "github.com/commune-project/commune-backend/internal/content"
 import transport "github.com/commune-project/commune-backend/internal/testtransport"
 import "gorm.io/gorm"
-import "database/sql"
 import "github.com/commune-project/commune-backend/internal/failure"
+import "database/sql"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line authentication_test.mygo:11:1*/func TestPostgresAuthenticationAndSessions(t *testing.T) {
