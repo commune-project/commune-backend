@@ -72,7 +72,7 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
     forumCall {
       Method: "PATCH",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
       Cookies: cookies,
       CSRF: csrfOf(cookies),
@@ -88,7 +88,7 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
     forumCall {
       Method: "PATCH",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: `{"expected_version":1,"title":"Topic","body":"**after**"}`,
       Cookies: cookies,
       CSRF: csrfOf(cookies),
@@ -103,7 +103,7 @@ func TestPostgresRichMutationOutboxAtomicity(t: Ref[testing.T]) -> ()
     forumCall {
       Method: "DELETE",
       Origin: site.Origin,
-      Path: "/api/v1/posts/",
+      Path: "/api/v1/posts/" + post.ID,
       Payload: "",
       Cookies: cookies,
       CSRF: csrfOf(cookies),

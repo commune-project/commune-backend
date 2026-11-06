@@ -42,17 +42,17 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line post_outbox_test.mygo:64:3*/	} else {
  /*line zz_post_outbox.gen_test.go:43:1*/	}
  /*line post_outbox_test.mygo:11:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MutationResult(db.Exec("DROP TRIGGER reject_outbox_update ON activities")))
-	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+	updated := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
  /*line post_outbox_test.mygo:82:3*/	if updated.Code != 200 || !strings.Contains(browserPost(t, updated).BodyHTML, "<strong>after</strong>") {
  /*line post_outbox_test.mygo:84:5*/		t.Fatal("rich update failed after outbox recovery")
  /*line post_outbox_test.mygo:82:3*/	} else {
  /*line zz_post_outbox.gen_test.go:49:1*/	}
- /*line post_outbox_test.mygo:11:1*/	stale := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_outbox_test.mygo:11:1*/	stale := doForum(handler, forumCall{Method: "PATCH", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "{\"expected_version\":1,\"title\":\"Topic\",\"body\":\"**after**\"}", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
  /*line post_outbox_test.mygo:98:3*/	if stale.Code != 409 {
  /*line post_outbox_test.mygo:99:5*/		t.Fatal("stale federated edit did not conflict")
  /*line post_outbox_test.mygo:98:3*/	} else {
  /*line zz_post_outbox.gen_test.go:54:1*/	}
- /*line post_outbox_test.mygo:11:1*/	removed := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/", Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
+ /*line post_outbox_test.mygo:11:1*/	removed := doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: "/api/v1/posts/" + post.ID, Payload: "", Cookies: cookies, CSRF: csrfOf(cookies), Source: site.Origin})
  /*line post_outbox_test.mygo:113:3*/	if removed.Code != 204 {
  /*line post_outbox_test.mygo:114:5*/		t.Fatal("rich delete failed")
  /*line post_outbox_test.mygo:113:3*/	} else {

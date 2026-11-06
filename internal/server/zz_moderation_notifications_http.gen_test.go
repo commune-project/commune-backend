@@ -42,13 +42,13 @@ import . "github.com/mygo-lang/mygo/prelude"
 	targetCookies := login(handler, site.Origin, "target", "target-password")
 	adminCookies := login(handler, site.Origin, "admin", "administrator-password")
 	adminCSRF := csrfOf(adminCookies)
-	created := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin})
- /*line moderation_notifications_http_test.mygo:33:3*/	if created.Code != 201 {
- /*line moderation_notifications_http_test.mygo:33:31*/		t.Fatal("report creation failed")
- /*line moderation_notifications_http_test.mygo:33:3*/	} else {
+	created := doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports", Payload: "{\"target_kind\":\"post\",\"target_id\":\"" + post.ID + "\",\"reason\":\"spam\"}", Cookies: reporterCookies, CSRF: reporterCSRF, Source: site.Origin})
+ /*line moderation_notifications_http_test.mygo:68:3*/	if created.Code != 201 {
+ /*line moderation_notifications_http_test.mygo:69:5*/		t.Fatal("report creation failed")
+ /*line moderation_notifications_http_test.mygo:68:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:49:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	reports := Zero[ReportPage]()
- /*line moderation_notifications_http_test.mygo:35:11*/	var __mygo_expr_4 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:72:11*/	var __mygo_expr_4 Result[struct{}, error]
 	__mygo_expr_3 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/reports?state=open", adminCookies, 200).Body.Bytes(), &reports)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[struct{}, error](__mygo_expr_3)
@@ -58,20 +58,20 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_4)
 	reportID := MygoIN6OptionM6Unwrap[storage.ReportRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reports.Items, 0)).ID
- /*line moderation_notifications_http_test.mygo:37:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports/", Payload: "{\"state\":\"resolved\",\"note\":\"ok\"}", Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
- /*line moderation_notifications_http_test.mygo:38:5*/		t.Fatal("report resolution failed")
- /*line moderation_notifications_http_test.mygo:37:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:77:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: "/api/v1/reports/" + MygoIT8ToStringFN5Int64GN5Int64EM8ToString(reportID) + "/resolve", Payload: "{\"state\":\"resolved\",\"note\":\"ok\"}", Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_notifications_http_test.mygo:89:5*/		t.Fatal("report resolution failed")
+ /*line moderation_notifications_http_test.mygo:77:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:64:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	banPath := "/api/v1/communities/" + community.ID + "/bans"
 	banPayload := "{\"actor\":\"" + target.ActorURI + "\",\"reason\":\"ban\",\"expires_at\":\"" + time.Now().Add(time.Hour).UTC().Format(time.RFC3339) + "\"}"
- /*line moderation_notifications_http_test.mygo:42:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
- /*line moderation_notifications_http_test.mygo:43:5*/		t.Fatal("community ban failed")
- /*line moderation_notifications_http_test.mygo:42:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:97:3*/	if doForum(handler, forumCall{Method: "POST", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_notifications_http_test.mygo:109:5*/		t.Fatal("community ban failed")
+ /*line moderation_notifications_http_test.mygo:97:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:70:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProjectNotifications(ctx, db, 100))
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.ProjectNotifications(ctx, db, 100))
 	reporterPage := Zero[storage.NotificationPage]()
- /*line moderation_notifications_http_test.mygo:48:11*/	var __mygo_expr_6 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:114:11*/	var __mygo_expr_6 Result[struct{}, error]
 	__mygo_expr_5 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", reporterCookies, 200).Body.Bytes(), &reporterPage)
 	if __mygo_expr_5 != nil {
 		__mygo_expr_6 = Err[struct{}, error](__mygo_expr_5)
@@ -80,12 +80,12 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_moderation_notifications_http.gen_test.go:80:1*/		}{})
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_6)
- /*line moderation_notifications_http_test.mygo:49:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reporterPage.Items) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reporterPage.Items, 0)).TargetKind != "report" || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reporterPage.Items, 0)).TargetID != MygoIT8ToStringFN5Int64GN5Int64EM8ToString(reportID) {
- /*line moderation_notifications_http_test.mygo:51:5*/		t.Fatal("report notification target metadata was incorrect")
- /*line moderation_notifications_http_test.mygo:49:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:118:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(reporterPage.Items) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reporterPage.Items, 0)).TargetKind != "report" || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(reporterPage.Items, 0)).TargetID != MygoIT8ToStringFN5Int64GN5Int64EM8ToString(reportID) {
+ /*line moderation_notifications_http_test.mygo:121:5*/		t.Fatal("report notification target metadata was incorrect")
+ /*line moderation_notifications_http_test.mygo:118:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:86:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	targetPage := Zero[storage.NotificationPage]()
- /*line moderation_notifications_http_test.mygo:54:11*/	var __mygo_expr_8 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:124:11*/	var __mygo_expr_8 Result[struct{}, error]
 	__mygo_expr_7 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", targetCookies, 200).Body.Bytes(), &targetPage)
 	if __mygo_expr_7 != nil {
 		__mygo_expr_8 = Err[struct{}, error](__mygo_expr_7)
@@ -94,16 +94,16 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_moderation_notifications_http.gen_test.go:94:1*/		}{})
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_8)
- /*line moderation_notifications_http_test.mygo:55:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(targetPage.Items) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(targetPage.Items, 0)).TargetKind != "moderation" || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(targetPage.Items, 0)).TargetID != target.ActorURI {
- /*line moderation_notifications_http_test.mygo:57:5*/		t.Fatal("ban notification target metadata was incorrect")
- /*line moderation_notifications_http_test.mygo:55:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:128:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(targetPage.Items) != 1 || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(targetPage.Items, 0)).TargetKind != "moderation" || MygoIN6OptionM6Unwrap[storage.NotificationRecord](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(targetPage.Items, 0)).TargetID != target.ActorURI {
+ /*line moderation_notifications_http_test.mygo:131:5*/		t.Fatal("ban notification target metadata was incorrect")
+ /*line moderation_notifications_http_test.mygo:128:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:100:1*/	}
- /*line moderation_notifications_http_test.mygo:59:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
- /*line moderation_notifications_http_test.mygo:60:5*/		t.Fatal("community unban failed")
- /*line moderation_notifications_http_test.mygo:59:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:133:3*/	if doForum(handler, forumCall{Method: "DELETE", Origin: site.Origin, Path: banPath, Payload: banPayload, Cookies: adminCookies, CSRF: adminCSRF, Source: site.Origin}).Code != 204 {
+ /*line moderation_notifications_http_test.mygo:145:5*/		t.Fatal("community unban failed")
+ /*line moderation_notifications_http_test.mygo:133:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:104:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	unread := Zero[NotificationCountOutput]()
- /*line moderation_notifications_http_test.mygo:63:11*/	var __mygo_expr_10 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:148:11*/	var __mygo_expr_10 Result[struct{}, error]
 	__mygo_expr_9 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications/unread-count", targetCookies, 200).Body.Bytes(), &unread)
 	if __mygo_expr_9 != nil {
 		__mygo_expr_10 = Err[struct{}, error](__mygo_expr_9)
@@ -113,7 +113,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_10)
 	unbannedPage := Zero[storage.NotificationPage]()
- /*line moderation_notifications_http_test.mygo:65:11*/	var __mygo_expr_12 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:153:11*/	var __mygo_expr_12 Result[struct{}, error]
 	__mygo_expr_11 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", targetCookies, 200).Body.Bytes(), &unbannedPage)
 	if __mygo_expr_11 != nil {
 		__mygo_expr_12 = Err[struct{}, error](__mygo_expr_11)
@@ -122,13 +122,13 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_moderation_notifications_http.gen_test.go:122:1*/		}{})
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_12)
- /*line moderation_notifications_http_test.mygo:66:3*/	if unread.Count != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(unbannedPage.Items) != 0 {
- /*line moderation_notifications_http_test.mygo:67:5*/		t.Fatal("inactive ban notification count was not zero")
- /*line moderation_notifications_http_test.mygo:66:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:157:3*/	if unread.Count != int64(0) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(unbannedPage.Items) != 0 {
+ /*line moderation_notifications_http_test.mygo:158:5*/		t.Fatal("inactive ban notification count was not zero")
+ /*line moderation_notifications_http_test.mygo:157:3*/	} else {
  /*line zz_moderation_notifications_http.gen_test.go:128:1*/	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](storage.MygoIN14FeedRepositoryM9SetHidden(storage.FeedRepository{DB: db, SiteID: site.ID}, ctx, post.ID, true, storage.MygoIN13AccountRecordM8Identity(MygoIN6OptionM6Unwrap[storage.AccountRecord](MygoIN6ResultM6Unwrap[Option[storage.AccountRecord], failure.Failure](storage.FindAccount(ctx, db, site.ID, "admin"))))))
 	hiddenReport := Zero[storage.NotificationPage]()
- /*line moderation_notifications_http_test.mygo:71:11*/	var __mygo_expr_14 Result[struct{}, error]
+ /*line moderation_notifications_http_test.mygo:167:11*/	var __mygo_expr_14 Result[struct{}, error]
 	__mygo_expr_13 := json.Unmarshal(browserGet(t, handler, site.Origin, "/api/v1/notifications", reporterCookies, 200).Body.Bytes(), &hiddenReport)
 	if __mygo_expr_13 != nil {
 		__mygo_expr_14 = Err[struct{}, error](__mygo_expr_13)
@@ -137,10 +137,10 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_moderation_notifications_http.gen_test.go:137:1*/		}{})
 	}
  /*line moderation_notifications_http_test.mygo:12:1*/	MygoIN6ResultM6Unwrap[struct{}, error](__mygo_expr_14)
- /*line moderation_notifications_http_test.mygo:72:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hiddenReport.Items) != 0 {
- /*line moderation_notifications_http_test.mygo:73:5*/		t.Fatal("inaccessible report target notification remained visible")
+ /*line moderation_notifications_http_test.mygo:171:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(hiddenReport.Items) != 0 {
+ /*line moderation_notifications_http_test.mygo:172:5*/		t.Fatal("inaccessible report target notification remained visible")
 		return
- /*line moderation_notifications_http_test.mygo:72:3*/	} else {
+ /*line moderation_notifications_http_test.mygo:171:3*/	} else {
 		return
  /*line zz_moderation_notifications_http.gen_test.go:145:1*/	}
 }
