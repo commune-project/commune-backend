@@ -1,0 +1,74 @@
+package server
+
+import testing "go:testing"
+import context "go:context"
+import strings "go:strings"
+import gorm "go:gorm.io/gorm"
+import config "github.com/commune-project/commune-backend/internal/config"
+import auth "github.com/commune-project/commune-backend/internal/auth"
+import storage "github.com/commune-project/commune-backend/internal/storage"
+import failure "github.com/commune-project/commune-backend/internal/failure"
+import federation "github.com/commune-project/commune-backend/internal/federation"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func fakeRemoteFetcher(actorBody: String) -> func(context.Context, config.Config, Ref[gorm.DB], config.Site, String) -> Result[federation.FetchResult, failure.Failure]
+  func(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, uri: String) -> Result[federation.FetchResult, failure.Failure]
+    if strings.Contains(uri, "well-known/webfinger") then
+      Ok(federation.FetchResult{
+        Status: 200,
+        ContentType: "application/jrd+json",
+        Body: `{"subject":"acct:remy@remote.example","links":[{"rel":"self","type":"application/activity+json","href":"https://remote.example/users/remy"}]}` as Slice[Byte],
+        FinalURL: uri,
+      })
+    else
+      Ok(federation.FetchResult{
+        Status: 200,
+        ContentType: "application/activity+json",
+        Body: actorBody as Slice[Byte],
+        FinalURL: uri,
+      })
+    end
+  end
+end
+
+func TestPostgresProfileResolveStatuses(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = storage.MigrateGORM(ctx, db).Unwrap()
+  let settings = config.Load("../../config/example.json").Unwrap()
+  let site = settings.Sites.Get(0).Unwrap()
+  let _ = storage.ProvisionSite(ctx, db, site).Unwrap()
+  let viewer = storage.AccountRepository{DB: db}.Create(ctx, site, "viewer", "", "viewer-password").Unwrap()
+  let anonymous = auth.Identity{SiteID: "", AccountID: 0i64, ActorURI: "", Username: ""}
+  let anonymousResult = ResolveRemoteProfileWith(ctx, settings, db, site, anonymous, "remy@remote.example", fakeRemoteFetcher(""))
+  if anonymousResult.UnwrapErr().Render() != "unauthenticated" then
+    t.Fatal("anonymous resolve was not rejected")
+  end
+  let unreachable = ResolveRemoteProfileWith(ctx, settings, db, site, viewer, "remy@remote.example", func(ctx: context.Context, settings: config.Config, db: Ref[gorm.DB], site: config.Site, uri: String) -> Result[federation.FetchResult, failure.Failure]
+    Err(Of("unresolved mention"))
+  end)
+  if unreachable.UnwrapErr().Render() != "resource unavailable" then
+    t.Fatal("unreachable peer was not reported as unavailable")
+  end
+  let actorJSON = `{"id":"https://remote.example/users/remy","type":"Person","preferredUsername":"remy","name":"Remy","summary":"hello","icon":{"type":"Image","url":"https://remote.example/avatar.png"},"inbox":"https://remote.example/inbox"}`
+  let resolved = ResolveRemoteProfileWith(ctx, settings, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+  if resolved.IsErr() then
+    t.Fatalf("verified resolve failed: %s", resolved.UnwrapErr().Render())
+  end
+  if resolved.Unwrap().Acct != "remy@remote.example" || resolved.Unwrap().Username != "" then
+    t.Fatal("resolved profile projection was incorrect")
+  end
+  let stored = storage.LoadProfileByHandle(ctx, db, site.ID, 0i64, "remy@remote.example")
+  if stored.IsErr() || stored.Unwrap().DisplayName != "Remy" then
+    t.Fatal("resolve did not persist the profile")
+  end
+  var tight = settings
+  tight.Federation.ProfileResolveLimit = 1
+  let first = ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+  let second = ResolveRemoteProfileWith(ctx, tight, db, site, viewer, "remy@remote.example", fakeRemoteFetcher(actorJSON))
+  if first.IsErr() || second.UnwrapErr().Render() != "profile resolve rate limited" then
+    t.Fatal("resolve rate limit did not trigger")
+  end
+end
+

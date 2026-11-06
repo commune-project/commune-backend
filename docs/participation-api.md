@@ -103,7 +103,42 @@ account and `@username@domain` mentions a remote account.
 
 ## Profiles
 
-`GET /api/v1/profiles/alice` reads the selected site's public profile.
+`GET /api/v1/profiles/{acct}` accepts either a bare username or a
+`username@domain` handle. A bare username resolves only to an account of the
+requesting site. A handle resolves first to a non-disabled account whose site
+authority matches the domain — including other configured sites — and otherwise
+to a stored remote Person whose verified handle matches ignoring case. Local
+authority wins when both could match. The response adds `acct` (the full
+`username@domain` handle); `username` stays the local account name and is empty
+for remote Persons, while `actor_uri` remains the canonical identity.
+
+Site actor blocks, site domain blocks, and active site bans apply to every read,
+and a valid session additionally applies the viewer's personal person and
+instance blocks. Missing, malformed, disabled, and blocked profiles all return
+`404`. The endpoint performs no WebFinger, Actor, or media discovery unless
+`resolve=1` is present.
+
+`GET /api/v1/profiles/remy@remote.example?resolve=1` requires a valid
+current-site session (`401` otherwise) and looks up a missing remote handle.
+A handle whose domain is a configured site authority never triggers a network
+request. Other domains are rate limited per account under
+`federation.profile_resolve_limit` (default 20) and
+`federation.profile_resolve_window_seconds` (default 3600), and use the
+bounded federation fetch policy with redirects disabled. Success returns the
+same projection as a handle read; an unverifiable handle returns `404`, a
+rate-limited request returns `429`, and an unreachable peer returns `503`.
+A successful lookup stores the verified handle and profile fields
+idempotently and never overwrites fields whose stored `updated_at` is newer.
+
+Read paths that encounter a stored remote Person without a profile — post
+search results, mention candidates, and authors of received posts — enqueue the
+existing actor handle worker instead of fetching inline. The worker resolves
+the Actor and verified handle with the same bounded policy and fills only empty
+display name, biography, biography HTML, and avatar URL fields; it never
+advances `updated_at`, fetches avatar bytes, or changes the response shape.
+Duplicate lookups collapse to one pending job per site. If participation
+workers are disabled, jobs stay pending and `resolve=1` remains available.
+
 `GET /api/v1/profile` reads the authenticated user's profile.
 `PATCH /api/v1/profile` accepts any supplied editable fields:
 

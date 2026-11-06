@@ -22,7 +22,7 @@
 
 ## 4. Documentation and verification
 
-- [ ] 4.1 Document bare-username versus handle lookup, cross-site precedence, block visibility, `resolve=1` authentication and status codes, rate limiting, and background bootstrap in `docs/participation-api.md`.
-- [ ] 4.2 Bootstrap-sync packages in dependency order (`storage`, then `federation`, then `server`) and verify `go test -run '^$'` compiles every affected package.
+- [x] 4.1 Document bare-username versus handle lookup, cross-site precedence, block visibility, `resolve=1` authentication and status codes, rate limiting, and background bootstrap in `docs/participation-api.md`.
+- [x] 4.2 Bootstrap-sync packages in dependency order (`storage`, then `federation`, then `server`) and verify `go test -run '^$'` compiles every affected package.
 - [ ] 4.3 Run focused storage, server, and migration tests for handle lookup, resolution, rate limiting, and bootstrap and verify all pass against an isolated PostgreSQL instance.
-- [ ] 4.4 Run `openspec validate profile-acct-lookup --strict` and verify it passes.
+- [x] 4.4 Run `openspec validate profile-acct-lookup --strict` and verify it passes.

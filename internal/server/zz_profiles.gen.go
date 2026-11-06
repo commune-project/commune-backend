@@ -284,13 +284,18 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line zz_profiles.gen.go:284:1*/	}
  /*line profiles.mygo:244:1*/	discovered := DiscoverVerifiedHandleWith(ctx, settings, db, site, local, domain, fetcher)
  /*line profiles.mygo:289:3*/	if MygoIN6ResultM5IsErr[storage.VerifiedHandle, failure.Failure](discovered) {
- /*line profiles.mygo:290:12*/		return Err[storage.ProfileRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[storage.VerifiedHandle, failure.Failure](discovered))
+		reason := failure.MygoIN7FailureM6Render(MygoIN6ResultM9UnwrapErr[storage.VerifiedHandle, failure.Failure](discovered))
+ /*line profiles.mygo:291:5*/		if reason == "peer unavailable" {
+ /*line profiles.mygo:292:14*/			return Err[storage.ProfileRecord, failure.Failure](Of("resource unavailable"))
+ /*line profiles.mygo:291:5*/		} else {
+ /*line zz_profiles.gen.go:291:1*/		}
+ /*line profiles.mygo:294:12*/		return Err[storage.ProfileRecord, failure.Failure](Of("not found"))
  /*line profiles.mygo:289:3*/	} else {
- /*line zz_profiles.gen.go:289:1*/	}
- /*line profiles.mygo:244:1*/	saved := storage.BootstrapVerifiedProfile(ctx, db, MygoIN6ResultM6Unwrap[storage.VerifiedHandle, failure.Failure](discovered), settings.Rendering.Sanitizer)
- /*line profiles.mygo:298:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](saved) {
- /*line profiles.mygo:299:12*/		return Err[storage.ProfileRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](saved))
- /*line profiles.mygo:298:3*/	} else {
  /*line zz_profiles.gen.go:294:1*/	}
- /*line profiles.mygo:301:3*/	return storage.LoadProfileByHandle(ctx, db, site.ID, viewer.AccountID, MygoIN6ResultM6Unwrap[storage.VerifiedHandle, failure.Failure](discovered).Acct)
- /*line zz_profiles.gen.go:296:1*/}
+ /*line profiles.mygo:244:1*/	saved := storage.BootstrapVerifiedProfile(ctx, db, MygoIN6ResultM6Unwrap[storage.VerifiedHandle, failure.Failure](discovered), settings.Rendering.Sanitizer)
+ /*line profiles.mygo:302:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](saved) {
+ /*line profiles.mygo:303:12*/		return Err[storage.ProfileRecord, failure.Failure](MygoIN6ResultM9UnwrapErr[struct{}, failure.Failure](saved))
+ /*line profiles.mygo:302:3*/	} else {
+ /*line zz_profiles.gen.go:299:1*/	}
+ /*line profiles.mygo:305:3*/	return storage.LoadProfileByHandle(ctx, db, site.ID, viewer.AccountID, MygoIN6ResultM6Unwrap[storage.VerifiedHandle, failure.Failure](discovered).Acct)
+ /*line zz_profiles.gen.go:301:1*/}

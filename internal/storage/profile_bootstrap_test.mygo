@@ -1,0 +1,54 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import content "github.com/commune-project/commune-backend/internal/content"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresProfileBootstrapFreshness(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = testSite("boot", "https://boot.example")
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let uri = "https://remote.example/users/remy"
+  let updated = time.Now().Add(0 as time.Duration - time.Hour)
+  let handle = VerifiedHandle{
+    ActorURI: uri,
+    InboxURI: "https://remote.example/inbox",
+    Acct: "remy@remote.example",
+    DisplayName: "Remy",
+    Biography: "hello **world**",
+    AvatarURL: "https://remote.example/avatar.png",
+    UpdatedAt: updated,
+  }
+  let _ = BootstrapVerifiedProfile(ctx, db, handle, content.DefaultSanitizer).Unwrap()
+  let loaded = LoadProfileByHandle(ctx, db, site.ID, 0i64, "remy@remote.example").Unwrap()
+  if loaded.DisplayName != "Remy" || loaded.Biography != "hello **world**" ||
+    loaded.BiographyHTML == "" || loaded.AvatarURL != "https://remote.example/avatar.png" then
+    t.Fatal("bootstrap did not persist profile fields")
+  end
+  let older = VerifiedHandle{
+    ActorURI: uri,
+    InboxURI: "https://remote.example/inbox",
+    Acct: "remy@remote.example",
+    DisplayName: "Older",
+    Biography: "older",
+    AvatarURL: "",
+    UpdatedAt: updated.Add(0 as time.Duration - time.Hour),
+  }
+  let _ = BootstrapVerifiedProfile(ctx, db, older, content.DefaultSanitizer).Unwrap()
+  let kept = LoadProfileByHandle(ctx, db, site.ID, 0i64, "remy@remote.example").Unwrap()
+  if kept.DisplayName != "Remy" || kept.Biography != "hello **world**" then
+    t.Fatal("bootstrap overwrote existing profile fields")
+  end
+  let _ = MutationResult(db.Exec("UPDATE profiles SET display_name='Newer', updated_at=? WHERE actor_uri=?", time.Now().Add(time.Minute), uri)).Unwrap()
+  let _ = BootstrapVerifiedProfile(ctx, db, handle, content.DefaultSanitizer).Unwrap()
+  let authority = LoadProfileByHandle(ctx, db, site.ID, 0i64, "remy@remote.example").Unwrap()
+  if authority.DisplayName != "Newer" then
+    t.Fatal("bootstrap overwrote authoritative profile data")
+  end
+end
+

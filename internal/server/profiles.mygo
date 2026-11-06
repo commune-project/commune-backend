@@ -287,7 +287,11 @@ func ResolveRemoteProfileWith(
   end
   let discovered = DiscoverVerifiedHandleWith(ctx, settings, db, site, local, domain, fetcher)
   if discovered.IsErr() then
-    return Err(discovered.UnwrapErr())
+    let reason = discovered.UnwrapErr().Render()
+    if reason == "peer unavailable" then
+      return Err(Of("resource unavailable"))
+    end
+    return Err(Of("not found"))
   end
   let saved = storage.BootstrapVerifiedProfile(
     ctx,
