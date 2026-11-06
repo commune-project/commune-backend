@@ -27,9 +27,9 @@
 ## 4. Federation layer
 
 - [x] 4.1 Convert collection parsing and traversal to switches over a collection-kind ADT with guards, and verify traversal tests cover collection, ordered collection, page, and invalid documents.
-- [ ] 4.2 Rewrite context, representation, and profile parsing to `Result` pipelines and prelude combinators, and verify the federation unit suite passes.
+- [x] 4.2 Rewrite context, representation, and profile parsing to `Result` pipelines and prelude combinators, and verify the federation unit suite passes.
 - [x] 4.3 Reshape signature and key-assert code with exhaustive switches while keeping crypto and PEM handling in Go FFI, and verify signature and keyassert tests pass.
-- [ ] 4.4 Rewrite fetch and media-fetch result handling without nested early returns, and verify media fetch and fetch tests pass.
+- [x] 4.4 Rewrite fetch and media-fetch result handling without nested early returns, and verify media fetch and fetch tests pass.
 
 ## 5. Server layer
 

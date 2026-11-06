@@ -140,15 +140,10 @@ func BuildObjectRepresentationWithContext(
   community: storage.CommunityRecord,
   discussionContext: String
 ) -> ObjectRepresentation
-  var to: Slice[String] = []
-  var cc: Slice[String] = []
   let audience = community.ActorURI.String
-  if community.ReadPolicy == "eligible_users" then
-    to = [publicAudience]
-    cc = [audience]
-  else
-    to = [audience]
-  end
+  let public = community.ReadPolicy == "eligible_users"
+  let to = if public => [publicAudience] else [audience]
+  let cc = if public => [audience] else [] as Slice[String]
   let format = if record.ContentFormat == "" then
     "legacy"
   else
