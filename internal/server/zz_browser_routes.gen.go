@@ -28,7 +28,7 @@ import . "github.com/mygo-lang/mygo/prelude"
 	var __mygo_expr_2 Result[auth.Identity, failure.Failure]
 	if !__mygo_switch_matched___mygo_expr_1 {
 		if __mygo_match___mygo_expr_3, ok := __mygo_expr_0.(Result__Err[storage.AuthenticatedSession, failure.Failure]); ok {
- /*line browser_routes.mygo:29:22*/			if required && failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_3.F0) == "unauthenticated" {
+ /*line browser_routes.mygo:29:22*/			if !required && failure.MygoIN7FailureM6Render(__mygo_match___mygo_expr_3.F0) == "unauthenticated" {
  /*line browser_routes.mygo:28:3*/				__mygo_switch_matched___mygo_expr_1 = true
 				__mygo_expr_2 = Ok[auth.Identity, failure.Failure](Zero[auth.Identity]())
  /*line zz_browser_routes.gen.go:34:1*/			}
