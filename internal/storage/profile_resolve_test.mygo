@@ -1,0 +1,32 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresProfileResolveLimits(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let site = testSite("rates", "https://rates.example")
+  let _ = ProvisionSite(ctx, db, site).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, site, "alice", "", "alice-password").Unwrap()
+  let bob = AccountRepository{DB: db}.Create(ctx, site, "bob", "", "bob-password").Unwrap()
+  let now = time.Now()
+  let first = ConsumeProfileResolveAttempt(ctx, db, site.ID, alice.AccountID, 2, 60, now)
+  let second = ConsumeProfileResolveAttempt(ctx, db, site.ID, alice.AccountID, 2, 60, now)
+  let third = ConsumeProfileResolveAttempt(ctx, db, site.ID, alice.AccountID, 2, 60, now)
+  let fourth = ConsumeProfileResolveAttempt(ctx, db, site.ID, alice.AccountID, 2, 60, now)
+  if !first.Unwrap() || !second.Unwrap() || third.Unwrap() || fourth.Unwrap() then
+    t.Fatal("resolve limit did not charge exactly two attempts")
+  end
+  if !ConsumeProfileResolveAttempt(ctx, db, site.ID, bob.AccountID, 2, 60, now).Unwrap() then
+    t.Fatal("resolve limit leaked across accounts")
+  end
+  let later = now.Add(61 as time.Duration * time.Second)
+  if !ConsumeProfileResolveAttempt(ctx, db, site.ID, alice.AccountID, 2, 60, later).Unwrap() then
+    t.Fatal("expired resolve window did not reset")
+  end
+end

@@ -27,6 +27,8 @@ func privateFetchConfig(settings: config.Config) -> config.Config
       MaxFetchBytes: settings.Federation.MaxFetchBytes,
       MaxRedirects: settings.Federation.MaxRedirects,
       ClockSkewSeconds: settings.Federation.ClockSkewSeconds,
+      ProfileResolveLimit: settings.Federation.ProfileResolveLimit,
+      ProfileResolveWindowSeconds: settings.Federation.ProfileResolveWindowSeconds,
     },
   }
 end

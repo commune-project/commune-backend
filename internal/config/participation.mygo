@@ -334,7 +334,19 @@ func ParticipationDefaults(input: Input) -> Input
     DatabaseURL: input.DatabaseURL,
     TrustedProxies: input.TrustedProxies,
     Runtime: input.Runtime,
-    Federation: input.Federation,
+    Federation: FederationDefaults(input.Federation),
+  }
+end
+
+func FederationDefaults(value: Federation) -> Federation
+  Federation{
+    AllowPrivateNetwork: value.AllowPrivateNetwork,
+    FetchTimeoutSeconds: value.FetchTimeoutSeconds,
+    MaxFetchBytes: value.MaxFetchBytes,
+    MaxRedirects: value.MaxRedirects,
+    ClockSkewSeconds: value.ClockSkewSeconds,
+    ProfileResolveLimit: OrDefault(value.ProfileResolveLimit, 20),
+    ProfileResolveWindowSeconds: OrDefault(value.ProfileResolveWindowSeconds, 3600),
   }
 end
 

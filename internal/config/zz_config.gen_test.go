@@ -11,61 +11,61 @@ import "github.com/commune-project/commune-backend/internal/content"
 import . "github.com/mygo-lang/mygo/prelude"
 
  /*line config_test.mygo:10:1*/func validInput() Input {
- /*line config_test.mygo:11:3*/	return Input{Registration: Registration{OutboxSecret: "", OutboxSecretEnv: "", TokenTTLSeconds: 86400, RateWindowSeconds: 3600, IPLimit: 20, EmailLimit: 3}, SMTP: SMTP{Host: "", Username: "", Password: "", From: "", TLSMode: "starttls", Port: 587, TimeoutSeconds: 10}, Media: Media{Enabled: false, Root: "", MaxFileBytes: 26214400, MaxImageBytes: 10485760, MaxImagePixels: 20000000, MaxImageDimension: 16384, PreviewDimension: 1024, AccountQuotaBytes: 1073741824, SiteQuotaBytes: 10737418240, TemporaryRetentionSeconds: 86400, PrivateCacheRetentionSeconds: 604800, CleanupIntervalSeconds: 3600}, Rendering: Rendering{MaxSourceBytes: 1048576, MaxDisplayNameLength: 100, MaxBiographyLength: 5000, MaxMentions: 20, MaxRemoteDiscoveries: 10, MentionTimeoutSeconds: 10, Markdown: Markdown{HardWraps: Zero[json.RawMessage](), AllowRawHTML: Zero[json.RawMessage]()}, Sanitize: Sanitize{Elements: Zero[[]string](), Attributes: Zero[[]SanitizeAttribute](), URLSchemes: Zero[[]string](), AllowRelativeURLs: Zero[json.RawMessage]()}, Sanitizer: Zero[content.Sanitizer]()}, ParticipationWorkers: ParticipationWorkers{Enabled: false, MailWorkers: 1, NotificationWorkers: 1, MediaWorkers: 1, ActorWorkers: 1, BatchSize: 100, PollIntervalSeconds: 5, LeaseSeconds: 60, MaxAttempts: 8, RetryBaseSeconds: 30, RetryMaxSeconds: 3600}, Sites: []Site{Site{ID: "a", RegistrationEnabled: false, Origin: "https://A.EXAMPLE.:443/", Aliases: []string{"alias.example"}, Sanitizer: Zero[content.Sanitizer]()}, Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: Zero[content.Sanitizer]()}}, DatabaseURL: "postgres://app:secret@localhost/commune?sslmode=disable", TrustedProxies: []string{"192.0.2.0/24", "2001:db8::/32"}, Runtime: Runtime{Listen: "127.0.0.1:8080", ReadTimeoutSeconds: 15, WriteTimeoutSeconds: 30, IdleTimeoutSeconds: 60, ShutdownTimeoutSeconds: 10, MaxBodyBytes: 1048576, MaxPageSize: 100, Workers: 2}, Federation: Federation{AllowPrivateNetwork: false, FetchTimeoutSeconds: 10, MaxFetchBytes: 1048576, MaxRedirects: 5, ClockSkewSeconds: 300}}
+ /*line config_test.mygo:11:3*/	return Input{Registration: Registration{OutboxSecret: "", OutboxSecretEnv: "", TokenTTLSeconds: 86400, RateWindowSeconds: 3600, IPLimit: 20, EmailLimit: 3}, SMTP: SMTP{Host: "", Username: "", Password: "", From: "", TLSMode: "starttls", Port: 587, TimeoutSeconds: 10}, Media: Media{Enabled: false, Root: "", MaxFileBytes: 26214400, MaxImageBytes: 10485760, MaxImagePixels: 20000000, MaxImageDimension: 16384, PreviewDimension: 1024, AccountQuotaBytes: 1073741824, SiteQuotaBytes: 10737418240, TemporaryRetentionSeconds: 86400, PrivateCacheRetentionSeconds: 604800, CleanupIntervalSeconds: 3600}, Rendering: Rendering{MaxSourceBytes: 1048576, MaxDisplayNameLength: 100, MaxBiographyLength: 5000, MaxMentions: 20, MaxRemoteDiscoveries: 10, MentionTimeoutSeconds: 10, Markdown: Markdown{HardWraps: Zero[json.RawMessage](), AllowRawHTML: Zero[json.RawMessage]()}, Sanitize: Sanitize{Elements: Zero[[]string](), Attributes: Zero[[]SanitizeAttribute](), URLSchemes: Zero[[]string](), AllowRelativeURLs: Zero[json.RawMessage]()}, Sanitizer: Zero[content.Sanitizer]()}, ParticipationWorkers: ParticipationWorkers{Enabled: false, MailWorkers: 1, NotificationWorkers: 1, MediaWorkers: 1, ActorWorkers: 1, BatchSize: 100, PollIntervalSeconds: 5, LeaseSeconds: 60, MaxAttempts: 8, RetryBaseSeconds: 30, RetryMaxSeconds: 3600}, Sites: []Site{Site{ID: "a", RegistrationEnabled: false, Origin: "https://A.EXAMPLE.:443/", Aliases: []string{"alias.example"}, Sanitizer: Zero[content.Sanitizer]()}, Site{ID: "b", RegistrationEnabled: false, Origin: "https://b.example", Aliases: []string{}, Sanitizer: Zero[content.Sanitizer]()}}, DatabaseURL: "postgres://app:secret@localhost/commune?sslmode=disable", TrustedProxies: []string{"192.0.2.0/24", "2001:db8::/32"}, Runtime: Runtime{Listen: "127.0.0.1:8080", ReadTimeoutSeconds: 15, WriteTimeoutSeconds: 30, IdleTimeoutSeconds: 60, ShutdownTimeoutSeconds: 10, MaxBodyBytes: 1048576, MaxPageSize: 100, Workers: 2}, Federation: Federation{AllowPrivateNetwork: false, FetchTimeoutSeconds: 10, MaxFetchBytes: 1048576, MaxRedirects: 5, ClockSkewSeconds: 300, ProfileResolveLimit: 20, ProfileResolveWindowSeconds: 3600}}
  /*line zz_config.gen_test.go:15:1*/}
- /*line config_test.mygo:113:1*/func validated(t *testing.T) Config {
- /*line config_test.mygo:114:3*/	t.Helper()
- /*line config_test.mygo:115:3*/	return MygoIN6ResultM6Unwrap[Config, string](Validate(validInput()))
+ /*line config_test.mygo:115:1*/func validated(t *testing.T) Config {
+ /*line config_test.mygo:116:3*/	t.Helper()
+ /*line config_test.mygo:117:3*/	return MygoIN6ResultM6Unwrap[Config, string](Validate(validInput()))
  /*line zz_config.gen_test.go:19:1*/}
 
- /*line config_test.mygo:118:1*/type AuthorityCase struct {
+ /*line config_test.mygo:120:1*/type AuthorityCase struct {
 	Input string
 	Want  string
  /*line zz_config.gen_test.go:24:1*/}
 
- /*line config_test.mygo:123:1*/func TestOriginsAndAuthority(t *testing.T) {
+ /*line config_test.mygo:125:1*/func TestOriginsAndAuthority(t *testing.T) {
 	cases := []AuthorityCase{AuthorityCase{Input: "A.EXAMPLE.:443", Want: "a.example"}, AuthorityCase{Input: "a.example:8443", Want: "a.example:8443"}, AuthorityCase{Input: "[2001:0db8::1]:443", Want: "[2001:db8::1]"}}
- /*line config_test.mygo:129:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test AuthorityCase) {
- /*line config_test.mygo:130:5*/		__mygo_expr_0 := NormalizeAuthority(test.Input)
+ /*line config_test.mygo:131:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(cases, func(test AuthorityCase) {
+ /*line config_test.mygo:132:5*/		__mygo_expr_0 := NormalizeAuthority(test.Input)
 		if __mygo_match___mygo_expr_2, ok := __mygo_expr_0.(Result__Ok[string, string]); ok {
- /*line config_test.mygo:132:21*/			if __mygo_match___mygo_expr_2.F0 != test.Want {
- /*line config_test.mygo:133:11*/				t.Errorf("authority %s: %s", test.Input, __mygo_match___mygo_expr_2.F0)
- /*line config_test.mygo:130:5*/			} else {
+ /*line config_test.mygo:134:21*/			if __mygo_match___mygo_expr_2.F0 != test.Want {
+ /*line config_test.mygo:135:11*/				t.Errorf("authority %s: %s", test.Input, __mygo_match___mygo_expr_2.F0)
+ /*line config_test.mygo:132:5*/			} else {
  /*line zz_config.gen_test.go:34:1*/			}
 		} else {
- /*line config_test.mygo:130:5*/			if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
- /*line config_test.mygo:136:28*/				t.Errorf("authority %s: %s", test.Input, __mygo_match___mygo_expr_1.F0)
- /*line config_test.mygo:130:5*/			} else {
+ /*line config_test.mygo:132:5*/			if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[string, string]); ok {
+ /*line config_test.mygo:138:28*/				t.Errorf("authority %s: %s", test.Input, __mygo_match___mygo_expr_1.F0)
+ /*line config_test.mygo:132:5*/			} else {
  /*line zz_config.gen_test.go:39:1*/			}
 		}
- /*line config_test.mygo:130:5*/		return
+ /*line config_test.mygo:132:5*/		return
  /*line zz_config.gen_test.go:42:1*/	})
- /*line config_test.mygo:123:1*/	invalid := []string{"http://a.example", "https://a.example/path", "https://user:password@a.example", "https://a.example?", "https://a.example#", "https://a.example:0", "https://a.example:65536", "https://a.example:", "https://a..example", "https://-a.example", "https://a.example\\evil", "https://a.example\n"}
- /*line config_test.mygo:153:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(origin string) {
- /*line config_test.mygo:154:5*/		if MygoIN6ResultM4IsOk[string, string](NormalizeOrigin(origin)) {
- /*line config_test.mygo:155:7*/			t.Errorf("invalid origin accepted: %s", origin)
+ /*line config_test.mygo:125:1*/	invalid := []string{"http://a.example", "https://a.example/path", "https://user:password@a.example", "https://a.example?", "https://a.example#", "https://a.example:0", "https://a.example:65536", "https://a.example:", "https://a..example", "https://-a.example", "https://a.example\\evil", "https://a.example\n"}
+ /*line config_test.mygo:155:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(invalid, func(origin string) {
+ /*line config_test.mygo:156:5*/		if MygoIN6ResultM4IsOk[string, string](NormalizeOrigin(origin)) {
+ /*line config_test.mygo:157:7*/			t.Errorf("invalid origin accepted: %s", origin)
 			return
- /*line config_test.mygo:154:5*/		} else {
+ /*line config_test.mygo:156:5*/		} else {
 			return
  /*line zz_config.gen_test.go:50:1*/		}
 	})
- /*line config_test.mygo:158:3*/	if MygoIN6ResultM4IsOk[string, string](NormalizeAuthority("2001:db8::1:443")) {
- /*line config_test.mygo:159:5*/		t.Fatal("unbracketed IPv6 authority accepted")
- /*line config_test.mygo:158:3*/	} else {
+ /*line config_test.mygo:160:3*/	if MygoIN6ResultM4IsOk[string, string](NormalizeAuthority("2001:db8::1:443")) {
+ /*line config_test.mygo:161:5*/		t.Fatal("unbracketed IPv6 authority accepted")
+ /*line config_test.mygo:160:3*/	} else {
  /*line zz_config.gen_test.go:55:1*/	}
- /*line config_test.mygo:161:3*/	if MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(validated(t).Sites, 0)).Origin != "https://a.example" {
- /*line config_test.mygo:162:5*/		t.Fatal("origin normalization failed")
+ /*line config_test.mygo:163:3*/	if MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(validated(t).Sites, 0)).Origin != "https://a.example" {
+ /*line config_test.mygo:164:5*/		t.Fatal("origin normalization failed")
 		return
- /*line config_test.mygo:161:3*/	} else {
+ /*line config_test.mygo:163:3*/	} else {
 		return
  /*line zz_config.gen_test.go:61:1*/	}
 }
- /*line config_test.mygo:166:1*/func TestInvalidConfiguration(t *testing.T) {
+ /*line config_test.mygo:168:1*/func TestInvalidConfiguration(t *testing.T) {
 	names := []string{"no sites", "duplicate origin", "duplicate alias", "duplicate id", "empty id", "bad database", "malformed database", "missing database", "bad database port", "bad database query", "bad proxy", "zero timeout", "unbounded workers", "unbounded page", "unbounded body", "bad listen"}
- /*line config_test.mygo:186:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(names, func(name string) {
- /*line config_test.mygo:187:5*/		t.Run(name, func(t_1 *testing.T) {
- /*line config_test.mygo:189:7*/			input := validInput()
- /*line config_test.mygo:191:9*/			if name == "no sites" {
+ /*line config_test.mygo:188:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(names, func(name string) {
+ /*line config_test.mygo:189:5*/		t.Run(name, func(t_1 *testing.T) {
+ /*line config_test.mygo:191:7*/			input := validInput()
+ /*line config_test.mygo:193:9*/			if name == "no sites" {
 				input.Sites = []Site{}
 			} else {
 				if name == "duplicate origin" {
@@ -129,33 +129,33 @@ import . "github.com/mygo-lang/mygo/prelude"
 					}
 				}
 			}
- /*line config_test.mygo:251:9*/			__mygo_expr_0 := Validate(input)
+ /*line config_test.mygo:253:9*/			__mygo_expr_0 := Validate(input)
 			if _, ok := __mygo_expr_0.(Result__Ok[Config, string]); ok {
 				t_1.Fatal("invalid config accepted")
  /*line zz_config.gen_test.go:135:1*/			} else {
- /*line config_test.mygo:251:9*/				if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Config, string]); ok {
- /*line config_test.mygo:254:16*/					if strings.Contains(__mygo_match___mygo_expr_1.F0, "secret") || strings.Contains(__mygo_match___mygo_expr_1.F0, "postgres://") {
- /*line config_test.mygo:255:15*/						t_1.Fatal("configuration error leaked credentials")
- /*line config_test.mygo:251:9*/					} else {
+ /*line config_test.mygo:253:9*/				if __mygo_match___mygo_expr_1, ok := __mygo_expr_0.(Result__Err[Config, string]); ok {
+ /*line config_test.mygo:256:16*/					if strings.Contains(__mygo_match___mygo_expr_1.F0, "secret") || strings.Contains(__mygo_match___mygo_expr_1.F0, "postgres://") {
+ /*line config_test.mygo:257:15*/						t_1.Fatal("configuration error leaked credentials")
+ /*line config_test.mygo:253:9*/					} else {
  /*line zz_config.gen_test.go:140:1*/					}
- /*line config_test.mygo:251:9*/				} else {
+ /*line config_test.mygo:253:9*/				} else {
  /*line zz_config.gen_test.go:142:1*/				}
 			}
- /*line config_test.mygo:251:9*/			return
+ /*line config_test.mygo:253:9*/			return
  /*line zz_config.gen_test.go:145:1*/		})
- /*line config_test.mygo:261:5*/		return
+ /*line config_test.mygo:263:5*/		return
  /*line zz_config.gen_test.go:147:1*/	})
- /*line config_test.mygo:186:3*/	return
+ /*line config_test.mygo:188:3*/	return
  /*line zz_config.gen_test.go:149:1*/}
- /*line config_test.mygo:265:1*/func TestLoad(t *testing.T) {
- /*line config_test.mygo:266:3*/	if MygoIN6ResultM5IsErr[Config, string](Load("../../config/example.json")) {
- /*line config_test.mygo:267:5*/		t.Fatal("documented configuration rejected")
- /*line config_test.mygo:266:3*/	} else {
+ /*line config_test.mygo:267:1*/func TestLoad(t *testing.T) {
+ /*line config_test.mygo:268:3*/	if MygoIN6ResultM5IsErr[Config, string](Load("../../config/example.json")) {
+ /*line config_test.mygo:269:5*/		t.Fatal("documented configuration rejected")
+ /*line config_test.mygo:268:3*/	} else {
  /*line zz_config.gen_test.go:154:1*/	}
- /*line config_test.mygo:265:1*/	path := filepath.Join(t.TempDir(), "invalid.json")
+ /*line config_test.mygo:267:1*/	path := filepath.Join(t.TempDir(), "invalid.json")
 	content := "{\"database_url\":\"secret\", broken}"
 	bytes := []byte(content)
- /*line config_test.mygo:272:6*/	var __mygo_expr_1 Result[struct{}, error]
+ /*line config_test.mygo:274:6*/	var __mygo_expr_1 Result[struct{}, error]
 	__mygo_expr_0 := os.WriteFile(path, bytes, os.FileMode(0o600))
 	if __mygo_expr_0 != nil {
 		__mygo_expr_1 = Err[struct{}, error](__mygo_expr_0)
@@ -163,103 +163,127 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_1 = Ok[struct{}, error](struct {
  /*line zz_config.gen_test.go:164:1*/		}{})
 	}
- /*line config_test.mygo:272:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
- /*line config_test.mygo:273:5*/		t.Fatal("cannot write test fixture")
- /*line config_test.mygo:272:3*/	} else {
+ /*line config_test.mygo:274:3*/	if MygoIN6ResultM5IsErr[struct{}, error](__mygo_expr_1) {
+ /*line config_test.mygo:275:5*/		t.Fatal("cannot write test fixture")
+ /*line config_test.mygo:274:3*/	} else {
  /*line zz_config.gen_test.go:169:1*/	}
- /*line config_test.mygo:265:1*/	paths := []string{path, filepath.Join(t.TempDir(), "missing.json")}
- /*line config_test.mygo:276:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(paths, func(file string) {
- /*line config_test.mygo:277:5*/		__mygo_expr_2 := Load(file)
+ /*line config_test.mygo:267:1*/	paths := []string{path, filepath.Join(t.TempDir(), "missing.json")}
+ /*line config_test.mygo:278:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each(paths, func(file string) {
+ /*line config_test.mygo:279:5*/		__mygo_expr_2 := Load(file)
 		if _, ok := __mygo_expr_2.(Result__Ok[Config, string]); ok {
 			t.Fatal("invalid file accepted")
  /*line zz_config.gen_test.go:175:1*/		} else {
- /*line config_test.mygo:277:5*/			if __mygo_match___mygo_expr_3, ok := __mygo_expr_2.(Result__Err[Config, string]); ok {
- /*line config_test.mygo:280:12*/				if strings.Contains(__mygo_match___mygo_expr_3.F0, "secret") {
- /*line config_test.mygo:281:11*/					t.Fatal("file error exposes contents")
- /*line config_test.mygo:277:5*/				} else {
+ /*line config_test.mygo:279:5*/			if __mygo_match___mygo_expr_3, ok := __mygo_expr_2.(Result__Err[Config, string]); ok {
+ /*line config_test.mygo:282:12*/				if strings.Contains(__mygo_match___mygo_expr_3.F0, "secret") {
+ /*line config_test.mygo:283:11*/					t.Fatal("file error exposes contents")
+ /*line config_test.mygo:279:5*/				} else {
  /*line zz_config.gen_test.go:180:1*/				}
- /*line config_test.mygo:277:5*/			} else {
+ /*line config_test.mygo:279:5*/			} else {
  /*line zz_config.gen_test.go:182:1*/			}
 		}
- /*line config_test.mygo:277:5*/		return
+ /*line config_test.mygo:279:5*/		return
  /*line zz_config.gen_test.go:185:1*/	})
- /*line config_test.mygo:276:3*/	return
+ /*line config_test.mygo:278:3*/	return
  /*line zz_config.gen_test.go:187:1*/}
- /*line config_test.mygo:288:1*/func TestRenderingConfiguration(t *testing.T) {
+ /*line config_test.mygo:290:1*/func TestRenderingConfiguration(t *testing.T) {
 	defaults := content.DefaultSanitizerConfig
 	settings := MygoIN6ResultM6Unwrap[Config, string](Validate(validInput()))
- /*line config_test.mygo:291:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Elements) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Elements) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Attributes) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Attributes) {
- /*line config_test.mygo:293:5*/		t.Fatal("rendering defaults were not applied")
- /*line config_test.mygo:291:3*/	} else {
+ /*line config_test.mygo:293:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Elements) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Elements) || MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(settings.Rendering.Sanitize.Attributes) != MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(defaults.Attributes) {
+ /*line config_test.mygo:295:5*/		t.Fatal("rendering defaults were not applied")
+ /*line config_test.mygo:293:3*/	} else {
  /*line zz_config.gen_test.go:194:1*/	}
- /*line config_test.mygo:295:3*/	if !MygoIN6ResultM4IsOk[string, string](content.RenderRich(MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).Sanitizer, "**x**", "markdown")) {
- /*line config_test.mygo:296:5*/		t.Fatal("site sanitizer was not populated")
- /*line config_test.mygo:295:3*/	} else {
+ /*line config_test.mygo:297:3*/	if !MygoIN6ResultM4IsOk[string, string](content.RenderRich(MygoIN6OptionM6Unwrap[Site](MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(settings.Sites, 0)).Sanitizer, "**x**", "markdown")) {
+ /*line config_test.mygo:298:5*/		t.Fatal("site sanitizer was not populated")
+ /*line config_test.mygo:297:3*/	} else {
  /*line zz_config.gen_test.go:198:1*/	}
- /*line config_test.mygo:288:1*/	empty := validInput()
+ /*line config_test.mygo:290:1*/	empty := validInput()
 	empty.Rendering.Sanitize.Elements = []string{}
 	empty.Rendering.Sanitize.Attributes = []SanitizeAttribute{}
 	emptySettings := MygoIN6ResultM6Unwrap[Config, string](Validate(empty))
- /*line config_test.mygo:302:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(emptySettings.Rendering.Sanitize.Elements) != 0 {
- /*line config_test.mygo:303:5*/		t.Fatal("explicit empty elements were replaced by defaults")
- /*line config_test.mygo:302:3*/	} else {
+ /*line config_test.mygo:304:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(emptySettings.Rendering.Sanitize.Elements) != 0 {
+ /*line config_test.mygo:305:5*/		t.Fatal("explicit empty elements were replaced by defaults")
+ /*line config_test.mygo:304:3*/	} else {
  /*line zz_config.gen_test.go:206:1*/	}
- /*line config_test.mygo:288:1*/	restricted := validInput()
+ /*line config_test.mygo:290:1*/	restricted := validInput()
 	restricted.Rendering.Sanitize.Elements = []string{"p", "a", "img"}
 	restricted.Rendering.Sanitize.Attributes = []SanitizeAttribute{SanitizeAttribute{Element: "a", Names: []string{"href"}}, SanitizeAttribute{Element: "img", Names: []string{"src"}}}
 	restrictedSettings := MygoIN6ResultM6Unwrap[Config, string](Validate(restricted))
- /*line config_test.mygo:312:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(restrictedSettings.Rendering.Sanitize.Elements) != 3 {
- /*line config_test.mygo:313:5*/		t.Fatal("explicit element set was merged with defaults")
- /*line config_test.mygo:312:3*/	} else {
+ /*line config_test.mygo:314:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(restrictedSettings.Rendering.Sanitize.Elements) != 3 {
+ /*line config_test.mygo:315:5*/		t.Fatal("explicit element set was merged with defaults")
+ /*line config_test.mygo:314:3*/	} else {
  /*line zz_config.gen_test.go:214:1*/	}
- /*line config_test.mygo:315:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"script", "iframe", "input"}, func(name string) {
- /*line config_test.mygo:315:38*/		bad := validInput()
+ /*line config_test.mygo:317:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"script", "iframe", "input"}, func(name string) {
+ /*line config_test.mygo:317:38*/		bad := validInput()
 		bad.Rendering.Sanitize.Elements = []string{name}
 		bad.Rendering.Sanitize.Attributes = []SanitizeAttribute{}
- /*line config_test.mygo:319:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(bad)) {
- /*line config_test.mygo:320:7*/			t.Fatalf("dangerous element accepted: %s", name)
+ /*line config_test.mygo:321:5*/		if MygoIN6ResultM4IsOk[Config, string](Validate(bad)) {
+ /*line config_test.mygo:322:7*/			t.Fatalf("dangerous element accepted: %s", name)
 			return
- /*line config_test.mygo:319:5*/		} else {
+ /*line config_test.mygo:321:5*/		} else {
 			return
  /*line zz_config.gen_test.go:224:1*/		}
 	})
- /*line config_test.mygo:288:1*/	badAttribute := validInput()
+ /*line config_test.mygo:290:1*/	badAttribute := validInput()
 	badAttribute.Rendering.Sanitize.Attributes = []SanitizeAttribute{SanitizeAttribute{Element: "a", Names: []string{"style"}}}
- /*line config_test.mygo:327:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badAttribute)) {
- /*line config_test.mygo:328:5*/		t.Fatal("style attribute accepted")
- /*line config_test.mygo:327:3*/	} else {
+ /*line config_test.mygo:329:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badAttribute)) {
+ /*line config_test.mygo:330:5*/		t.Fatal("style attribute accepted")
+ /*line config_test.mygo:329:3*/	} else {
  /*line zz_config.gen_test.go:231:1*/	}
- /*line config_test.mygo:288:1*/	badEvent := validInput()
+ /*line config_test.mygo:290:1*/	badEvent := validInput()
 	badEvent.Rendering.Sanitize.Attributes = []SanitizeAttribute{SanitizeAttribute{Element: "a", Names: []string{"onclick"}}}
- /*line config_test.mygo:334:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badEvent)) {
- /*line config_test.mygo:335:5*/		t.Fatal("event attribute accepted")
- /*line config_test.mygo:334:3*/	} else {
+ /*line config_test.mygo:336:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badEvent)) {
+ /*line config_test.mygo:337:5*/		t.Fatal("event attribute accepted")
+ /*line config_test.mygo:336:3*/	} else {
  /*line zz_config.gen_test.go:237:1*/	}
- /*line config_test.mygo:288:1*/	badScheme := validInput()
+ /*line config_test.mygo:290:1*/	badScheme := validInput()
 	badScheme.Rendering.Sanitize.URLSchemes = []string{"javascript"}
- /*line config_test.mygo:339:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badScheme)) {
- /*line config_test.mygo:340:5*/		t.Fatal("javascript scheme accepted")
+ /*line config_test.mygo:341:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(badScheme)) {
+ /*line config_test.mygo:342:5*/		t.Fatal("javascript scheme accepted")
 		return
- /*line config_test.mygo:339:3*/	} else {
+ /*line config_test.mygo:341:3*/	} else {
 		return
  /*line zz_config.gen_test.go:245:1*/	}
 }
- /*line config_test.mygo:344:1*/func TestRenderingTemplateDefaults(t *testing.T) {
+ /*line config_test.mygo:346:1*/func TestRenderingTemplateDefaults(t *testing.T) {
 	defaults := content.DefaultSanitizerConfig
 	expectedAttributes := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(defaults.Attributes, func(item content.SanitizerAttribute) string {
- /*line config_test.mygo:347:5*/		return item.Element + ":" + strings.Join(item.Names, ",")
+ /*line config_test.mygo:349:5*/		return item.Element + ":" + strings.Join(item.Names, ",")
  /*line zz_config.gen_test.go:251:1*/	})
- /*line config_test.mygo:349:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"../../config/example.json", "../../deploy/commune.json"}, func(path string) {
- /*line config_test.mygo:349:67*/		settings := MygoIN6ResultM6Unwrap[Config, string](Load(path))
+ /*line config_test.mygo:351:3*/	MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM4Each([]string{"../../config/example.json", "../../deploy/commune.json"}, func(path string) {
+ /*line config_test.mygo:351:67*/		settings := MygoIN6ResultM6Unwrap[Config, string](Load(path))
 		actualAttributes := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Map(settings.Rendering.Sanitize.Attributes, func(item_1 SanitizeAttribute) string {
- /*line config_test.mygo:352:7*/			return item_1.Element + ":" + strings.Join(item_1.Names, ",")
+ /*line config_test.mygo:354:7*/			return item_1.Element + ":" + strings.Join(item_1.Names, ",")
  /*line zz_config.gen_test.go:256:1*/		})
- /*line config_test.mygo:354:5*/		if strings.Join(settings.Rendering.Sanitize.Elements, ",") != strings.Join(defaults.Elements, ",") || strings.Join(actualAttributes, ";") != strings.Join(expectedAttributes, ";") || strings.Join(settings.Rendering.Sanitize.URLSchemes, ",") != strings.Join(defaults.URLSchemes, ",") {
- /*line config_test.mygo:357:7*/			t.Fatalf("rendering template drifted: %s", path)
+ /*line config_test.mygo:356:5*/		if strings.Join(settings.Rendering.Sanitize.Elements, ",") != strings.Join(defaults.Elements, ",") || strings.Join(actualAttributes, ";") != strings.Join(expectedAttributes, ";") || strings.Join(settings.Rendering.Sanitize.URLSchemes, ",") != strings.Join(defaults.URLSchemes, ",") {
+ /*line config_test.mygo:359:7*/			t.Fatalf("rendering template drifted: %s", path)
 			return
- /*line config_test.mygo:354:5*/		} else {
+ /*line config_test.mygo:356:5*/		} else {
 			return
  /*line zz_config.gen_test.go:262:1*/		}
 	})
- /*line config_test.mygo:349:3*/	return
+ /*line config_test.mygo:351:3*/	return
  /*line zz_config.gen_test.go:265:1*/}
+ /*line config_test.mygo:364:1*/func TestFederationProfileResolveDefaults(t *testing.T) {
+	input := validInput()
+	input.Federation.ProfileResolveLimit = 0
+	input.Federation.ProfileResolveWindowSeconds = 0
+	settings := MygoIN6ResultM6Unwrap[Config, string](Validate(input))
+ /*line config_test.mygo:369:3*/	if settings.Federation.ProfileResolveLimit != 20 || settings.Federation.ProfileResolveWindowSeconds != 3600 {
+ /*line config_test.mygo:371:5*/		t.Fatal("federation profile resolve defaults changed")
+ /*line config_test.mygo:369:3*/	} else {
+ /*line zz_config.gen_test.go:274:1*/	}
+ /*line config_test.mygo:364:1*/	tooMany := validInput()
+	tooMany.Federation.ProfileResolveLimit = 1001
+ /*line config_test.mygo:375:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(tooMany)) {
+ /*line config_test.mygo:376:5*/		t.Fatal("out-of-range resolve limit was accepted")
+ /*line config_test.mygo:375:3*/	} else {
+ /*line zz_config.gen_test.go:280:1*/	}
+ /*line config_test.mygo:364:1*/	tooShort := validInput()
+	tooShort.Federation.ProfileResolveWindowSeconds = 59
+ /*line config_test.mygo:380:3*/	if MygoIN6ResultM4IsOk[Config, string](Validate(tooShort)) {
+ /*line config_test.mygo:381:5*/		t.Fatal("out-of-range resolve window was accepted")
+		return
+ /*line config_test.mygo:380:3*/	} else {
+		return
+ /*line zz_config.gen_test.go:288:1*/	}
+}

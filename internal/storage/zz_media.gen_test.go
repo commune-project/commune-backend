@@ -294,7 +294,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:130:1*/	var url string = ""
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](RunTransaction(ctx, db, func(tx_1 *gorm.DB) Result[struct{}, failure.Failure] {
  /*line media_test.mygo:149:35*/		url = MygoIN6ResultM6Unwrap[string, failure.Failure](MygoIN15MediaRepositoryM12BindAvatarTx(repo, ctx, tx_1, alice, upload.ID))
- /*line media_test.mygo:151:5*/		return SaveProfile(ctx, tx_1, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
+ /*line media_test.mygo:151:5*/		return SaveProfile(ctx, tx_1, alice, ProfileRecord{ActorURI: alice.ActorURI, Acct: "", Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
  /*line zz_media.gen_test.go:298:1*/	}))
  /*line media_test.mygo:130:1*/	noop := func(row MediaUpload, file *os.File) Result[struct{}, failure.Failure] {
  /*line media_test.mygo:153:88*/		return Ok[struct{}, failure.Failure](struct {
@@ -303,7 +303,7 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line media_test.mygo:130:1*/	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](MygoIN15MediaRepositoryM4Read(repo, ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop))
 	MygoIN6ResultM6Unwrap[struct{}, failure.Failure](RunTransaction(ctx, db, func(tx_2 *gorm.DB) Result[struct{}, failure.Failure] {
  /*line media_test.mygo:155:35*/		MygoIN6ResultM6Unwrap[string, failure.Failure](MygoIN15MediaRepositoryM12BindAvatarTx(repo, ctx, tx_2, alice, ""))
- /*line media_test.mygo:157:5*/		return SaveProfile(ctx, tx_2, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
+ /*line media_test.mygo:157:5*/		return SaveProfile(ctx, tx_2, alice, ProfileRecord{ActorURI: alice.ActorURI, Acct: "", Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
  /*line zz_media.gen_test.go:307:1*/	}))
  /*line media_test.mygo:159:3*/	if MygoIN6ResultM4IsOk[struct{}, failure.Failure](MygoIN15MediaRepositoryM4Read(repo, ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop)) {
  /*line media_test.mygo:159:111*/		t.Fatal("removed avatar public")

@@ -26,8 +26,8 @@ import . "github.com/mygo-lang/mygo/prelude"
  /*line profiles_test.mygo:35:5*/		t.Fatal("Person representation falsely attributes profile to a moderators collection")
  /*line profiles_test.mygo:34:3*/	} else {
  /*line zz_profiles.gen_test.go:28:1*/	}
- /*line profiles_test.mygo:11:1*/	actor := WithProfile(ActorRepresentation{Context: "", ID: "https://a.example/users/alice", Type: "Person", PreferredUsername: "", Name: "", Summary: "", Icon: Zero[ProfileIcon](), Updated: Zero[time.Time](), Inbox: "", Outbox: "", Followers: "", AttributedTo: "", FollowPolicy: "", PublicKey: Zero[PublicKeyRepresentation]()}, storage.ProfileRecord{ActorURI: "", Username: "", DisplayName: "Alice", Biography: "", BiographyHTML: "<p>hello</p>", AvatarURL: "https://a.example/api/v1/media/avatar", AvatarBindingID: "", UpdatedAt: time.Now()})
- /*line profiles_test.mygo:65:17*/	var __mygo_expr_4 Result[[]byte, error]
+ /*line profiles_test.mygo:11:1*/	actor := WithProfile(ActorRepresentation{Context: "", ID: "https://a.example/users/alice", Type: "Person", PreferredUsername: "", Name: "", Summary: "", Icon: Zero[ProfileIcon](), Updated: Zero[time.Time](), Inbox: "", Outbox: "", Followers: "", AttributedTo: "", FollowPolicy: "", PublicKey: Zero[PublicKeyRepresentation]()}, storage.ProfileRecord{ActorURI: "", Acct: "", Username: "", DisplayName: "Alice", Biography: "", BiographyHTML: "<p>hello</p>", AvatarURL: "https://a.example/api/v1/media/avatar", AvatarBindingID: "", UpdatedAt: time.Now()})
+ /*line profiles_test.mygo:66:17*/	var __mygo_expr_4 Result[[]byte, error]
 	__mygo_expr_5, __mygo_expr_3 := json.Marshal(actor)
 	if __mygo_expr_3 != nil {
 		__mygo_expr_4 = Err[[]byte, error](__mygo_expr_3)
@@ -35,11 +35,11 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_4 = Ok[[]byte, error](__mygo_expr_5)
  /*line zz_profiles.gen_test.go:36:1*/	}
  /*line profiles_test.mygo:11:1*/	encoded := string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_4))
- /*line profiles_test.mygo:66:3*/	if !strings.Contains(encoded, "\"icon\":{\"type\":\"Image\",\"url\":\"https://a.example/api/v1/media/avatar\"}") || !strings.Contains(encoded, "\"name\":\"Alice\"") {
- /*line profiles_test.mygo:71:5*/		t.Fatalf("profile metadata missing: %s", encoded)
- /*line profiles_test.mygo:66:3*/	} else {
+ /*line profiles_test.mygo:67:3*/	if !strings.Contains(encoded, "\"icon\":{\"type\":\"Image\",\"url\":\"https://a.example/api/v1/media/avatar\"}") || !strings.Contains(encoded, "\"name\":\"Alice\"") {
+ /*line profiles_test.mygo:72:5*/		t.Fatalf("profile metadata missing: %s", encoded)
+ /*line profiles_test.mygo:67:3*/	} else {
  /*line zz_profiles.gen_test.go:41:1*/	}
- /*line profiles_test.mygo:73:23*/	var __mygo_expr_7 Result[[]byte, error]
+ /*line profiles_test.mygo:74:23*/	var __mygo_expr_7 Result[[]byte, error]
 	__mygo_expr_8, __mygo_expr_6 := json.Marshal(ActorRepresentation{Context: "", ID: "", Type: "Person", PreferredUsername: "", Name: "", Summary: "", Icon: Zero[ProfileIcon](), Updated: Zero[time.Time](), Inbox: "", Outbox: "", Followers: "", AttributedTo: "", FollowPolicy: "", PublicKey: Zero[PublicKeyRepresentation]()})
 	if __mygo_expr_6 != nil {
 		__mygo_expr_7 = Err[[]byte, error](__mygo_expr_6)
@@ -47,34 +47,34 @@ import . "github.com/mygo-lang/mygo/prelude"
 		__mygo_expr_7 = Ok[[]byte, error](__mygo_expr_8)
  /*line zz_profiles.gen_test.go:48:1*/	}
  /*line profiles_test.mygo:11:1*/	withoutAvatar := string(MygoIN6ResultM6Unwrap[[]byte, error](__mygo_expr_7))
- /*line profiles_test.mygo:89:3*/	if strings.Contains(withoutAvatar, "\"icon\"") {
- /*line profiles_test.mygo:90:5*/		t.Fatalf("empty icon must be absent: %s", withoutAvatar)
+ /*line profiles_test.mygo:90:3*/	if strings.Contains(withoutAvatar, "\"icon\"") {
+ /*line profiles_test.mygo:91:5*/		t.Fatalf("empty icon must be absent: %s", withoutAvatar)
 		return
- /*line profiles_test.mygo:89:3*/	} else {
+ /*line profiles_test.mygo:90:3*/	} else {
 		return
  /*line zz_profiles.gen_test.go:55:1*/	}
 }
- /*line profiles_test.mygo:94:1*/func TestPersonUpdateAuthorityAndFreshness(t *testing.T) {
+ /*line profiles_test.mygo:95:1*/func TestPersonUpdateAuthorityAndFreshness(t *testing.T) {
 	valid := "{\"id\":\"https://remote.example/activities/1\",\"type\":\"Update\",\"actor\":\"https://remote.example/users/a\",\"object\":{\"id\":\"https://remote.example/users/a\",\"type\":\"Person\",\"updated\":\"2026-01-01T00:00:00Z\",\"icon\":{\"type\":\"Image\",\"url\":\"https://never-fetch.example/avatar.png\"}}}"
- /*line profiles_test.mygo:96:3*/	if MygoIN6ResultM5IsErr[ProfileObject, failure.Failure](PersonUpdateObject([]byte(valid))) {
- /*line profiles_test.mygo:97:5*/		t.Fatal("valid Person update rejected")
- /*line profiles_test.mygo:96:3*/	} else {
+ /*line profiles_test.mygo:97:3*/	if MygoIN6ResultM5IsErr[ProfileObject, failure.Failure](PersonUpdateObject([]byte(valid))) {
+ /*line profiles_test.mygo:98:5*/		t.Fatal("valid Person update rejected")
+ /*line profiles_test.mygo:97:3*/	} else {
  /*line zz_profiles.gen_test.go:62:1*/	}
- /*line profiles_test.mygo:94:1*/	forged := strings.Replace(valid, "\"id\":\"https://remote.example/users/a\"", "\"id\":\"https://other.example/users/b\"", 1)
- /*line profiles_test.mygo:105:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(forged))) {
- /*line profiles_test.mygo:106:5*/		t.Fatal("foreign Actor identity accepted")
- /*line profiles_test.mygo:105:3*/	} else {
+ /*line profiles_test.mygo:95:1*/	forged := strings.Replace(valid, "\"id\":\"https://remote.example/users/a\"", "\"id\":\"https://other.example/users/b\"", 1)
+ /*line profiles_test.mygo:106:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(forged))) {
+ /*line profiles_test.mygo:107:5*/		t.Fatal("foreign Actor identity accepted")
+ /*line profiles_test.mygo:106:3*/	} else {
  /*line zz_profiles.gen_test.go:67:1*/	}
- /*line profiles_test.mygo:94:1*/	missingFreshness := strings.Replace(valid, "\"updated\":\"2026-01-01T00:00:00Z\",", "", 1)
- /*line profiles_test.mygo:109:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(missingFreshness))) {
- /*line profiles_test.mygo:110:5*/		t.Fatal("missing update timestamp accepted")
- /*line profiles_test.mygo:109:3*/	} else {
+ /*line profiles_test.mygo:95:1*/	missingFreshness := strings.Replace(valid, "\"updated\":\"2026-01-01T00:00:00Z\",", "", 1)
+ /*line profiles_test.mygo:110:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(missingFreshness))) {
+ /*line profiles_test.mygo:111:5*/		t.Fatal("missing update timestamp accepted")
+ /*line profiles_test.mygo:110:3*/	} else {
  /*line zz_profiles.gen_test.go:72:1*/	}
- /*line profiles_test.mygo:94:1*/	future := strings.Replace(valid, "2026-01-01T00:00:00Z", "2999-01-01T00:00:00Z", 1)
- /*line profiles_test.mygo:113:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(future))) {
- /*line profiles_test.mygo:114:5*/		t.Fatal("future update can poison freshness")
+ /*line profiles_test.mygo:95:1*/	future := strings.Replace(valid, "2026-01-01T00:00:00Z", "2999-01-01T00:00:00Z", 1)
+ /*line profiles_test.mygo:114:3*/	if MygoIN6ResultM4IsOk[ProfileObject, failure.Failure](PersonUpdateObject([]byte(future))) {
+ /*line profiles_test.mygo:115:5*/		t.Fatal("future update can poison freshness")
 		return
- /*line profiles_test.mygo:113:3*/	} else {
+ /*line profiles_test.mygo:114:3*/	} else {
 		return
  /*line zz_profiles.gen_test.go:79:1*/	}
 }

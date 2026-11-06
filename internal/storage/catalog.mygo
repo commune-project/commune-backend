@@ -43,6 +43,7 @@ func MigrationCatalog() -> Result[Slice[Migration], failure.Failure]
     "020_saved_read_state.sql",
     "021_notification_targets.sql",
     "022_site_vote_settings.sql",
+    "023_profile_handle_lookup.sql",
   ]
   var migrations: Slice[Migration] = []
   var i = 0

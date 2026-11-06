@@ -4,13 +4,16 @@ package storage
 
 import "context"
 import "gorm.io/gorm"
+import "database/sql"
+import "strings"
 import "time"
 import "github.com/commune-project/commune-backend/internal/auth"
 import "github.com/commune-project/commune-backend/internal/failure"
 import . "github.com/mygo-lang/mygo/prelude"
 
- /*line profiles.mygo:9:1*/type ProfileRecord struct {
+ /*line profiles.mygo:11:1*/type ProfileRecord struct {
 	ActorURI        string    "gorm:\"column:actor_uri\" json:\"actor_uri\""
+	Acct            string    "gorm:\"column:acct\" json:\"acct\""
 	Username        string    "gorm:\"column:username\" json:\"username\""
 	DisplayName     string    "gorm:\"column:display_name\" json:\"display_name\""
 	Biography       string    "gorm:\"column:biography\" json:\"biography\""
@@ -18,57 +21,99 @@ import . "github.com/mygo-lang/mygo/prelude"
 	AvatarURL       string    "gorm:\"column:avatar_url\" json:\"avatar_url\""
 	AvatarBindingID string    "gorm:\"column:avatar_binding_id\" json:\"-\""
 	UpdatedAt       time.Time "gorm:\"column:updated_at\" json:\"updated_at\""
- /*line zz_profiles.gen.go:21:1*/}
+ /*line zz_profiles.gen.go:24:1*/}
 
- /*line profiles.mygo:20:1*/func LoadProfile(ctx context.Context, db *gorm.DB, actorURI string) Result[ProfileRecord, failure.Failure] {
-	var profile ProfileRecord = ProfileRecord{ActorURI: actorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: Zero[time.Time]()}
+ /*line profiles.mygo:23:1*/func LoadProfile(ctx context.Context, db *gorm.DB, actorURI string) Result[ProfileRecord, failure.Failure] {
+	var profile ProfileRecord = ProfileRecord{ActorURI: actorURI, Acct: "", Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: Zero[time.Time]()}
 	query := db.WithContext(ctx).Table("profiles").Where("actor_uri=?", actorURI).Limit(1).Find(&profile)
- /*line profiles.mygo:36:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
- /*line profiles.mygo:37:12*/		return Err[ProfileRecord, failure.Failure](Of("profile unavailable"))
- /*line profiles.mygo:36:3*/	} else {
- /*line zz_profiles.gen.go:29:1*/	}
- /*line profiles.mygo:39:3*/	return Ok[ProfileRecord, failure.Failure](profile)
- /*line zz_profiles.gen.go:31:1*/}
- /*line profiles.mygo:42:1*/func PublicProfile(ctx context.Context, db *gorm.DB, siteID string, username string) Result[ProfileRecord, failure.Failure] {
+ /*line profiles.mygo:40:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line profiles.mygo:41:12*/		return Err[ProfileRecord, failure.Failure](Of("profile unavailable"))
+ /*line profiles.mygo:40:3*/	} else {
+ /*line zz_profiles.gen.go:32:1*/	}
+ /*line profiles.mygo:43:3*/	return Ok[ProfileRecord, failure.Failure](profile)
+ /*line zz_profiles.gen.go:34:1*/}
+ /*line profiles.mygo:46:1*/func PublicProfile(ctx context.Context, db *gorm.DB, siteID string, username string) Result[ProfileRecord, failure.Failure] {
 	var account AccountRecord = Zero[AccountRecord]()
 	query := db.WithContext(ctx).Table("accounts").Where("site_id=? AND username=? AND NOT disabled", siteID, username).Limit(1).Find(&account)
- /*line profiles.mygo:54:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
- /*line profiles.mygo:55:12*/		return Err[ProfileRecord, failure.Failure](Of("profile unavailable"))
- /*line profiles.mygo:54:3*/	} else {
- /*line zz_profiles.gen.go:38:1*/	}
- /*line profiles.mygo:57:3*/	if query.RowsAffected != int64(1) {
- /*line profiles.mygo:58:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
- /*line profiles.mygo:57:3*/	} else {
- /*line zz_profiles.gen.go:42:1*/	}
- /*line profiles.mygo:42:1*/	loaded := LoadProfile(ctx, db, account.ActorURI)
- /*line profiles.mygo:61:3*/	if MygoIN6ResultM5IsErr[ProfileRecord, failure.Failure](loaded) {
- /*line profiles.mygo:62:12*/		return loaded
+ /*line profiles.mygo:58:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line profiles.mygo:59:12*/		return Err[ProfileRecord, failure.Failure](Of("profile unavailable"))
+ /*line profiles.mygo:58:3*/	} else {
+ /*line zz_profiles.gen.go:41:1*/	}
+ /*line profiles.mygo:61:3*/	if query.RowsAffected != int64(1) {
+ /*line profiles.mygo:62:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
  /*line profiles.mygo:61:3*/	} else {
- /*line zz_profiles.gen.go:47:1*/	}
- /*line profiles.mygo:42:1*/	profile := MygoIN6ResultM6Unwrap[ProfileRecord, failure.Failure](loaded)
+ /*line zz_profiles.gen.go:45:1*/	}
+ /*line profiles.mygo:46:1*/	loaded := LoadProfile(ctx, db, account.ActorURI)
+ /*line profiles.mygo:65:3*/	if MygoIN6ResultM5IsErr[ProfileRecord, failure.Failure](loaded) {
+ /*line profiles.mygo:66:12*/		return loaded
+ /*line profiles.mygo:65:3*/	} else {
+ /*line zz_profiles.gen.go:50:1*/	}
+ /*line profiles.mygo:46:1*/	profile := MygoIN6ResultM6Unwrap[ProfileRecord, failure.Failure](loaded)
 	profile.Username = account.Username
- /*line profiles.mygo:66:3*/	return Ok[ProfileRecord, failure.Failure](profile)
- /*line zz_profiles.gen.go:51:1*/}
- /*line profiles.mygo:70:1*/func SaveProfile(ctx context.Context, db *gorm.DB, identity auth.Identity, profile ProfileRecord) Result[struct {
+ /*line profiles.mygo:70:3*/	return Ok[ProfileRecord, failure.Failure](profile)
+ /*line zz_profiles.gen.go:54:1*/}
+ /*line profiles.mygo:74:1*/func SaveProfile(ctx context.Context, db *gorm.DB, identity auth.Identity, profile ProfileRecord) Result[struct {
 }, failure.Failure] {
- /*line profiles.mygo:76:3*/	if profile.ActorURI != identity.ActorURI {
- /*line profiles.mygo:77:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
- /*line profiles.mygo:76:3*/	} else {
- /*line zz_profiles.gen.go:57:1*/	}
- /*line profiles.mygo:79:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,avatar_binding_id,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,avatar_binding_id=EXCLUDED.avatar_binding_id,updated_at=EXCLUDED.updated_at", identity.ActorURI, profile.DisplayName, profile.Biography, profile.BiographyHTML, profile.AvatarURL, profile.AvatarBindingID, profile.UpdatedAt))
- /*line zz_profiles.gen.go:59:1*/}
- /*line profiles.mygo:91:1*/func LockProfileOwner(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity) Result[struct {
+ /*line profiles.mygo:80:3*/	if profile.ActorURI != identity.ActorURI {
+ /*line profiles.mygo:81:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line profiles.mygo:80:3*/	} else {
+ /*line zz_profiles.gen.go:60:1*/	}
+ /*line profiles.mygo:83:3*/	return MutationResult(db.WithContext(ctx).Exec("INSERT INTO profiles(actor_uri,display_name,biography,biography_html,avatar_url,avatar_binding_id,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(actor_uri) DO UPDATE SET display_name=EXCLUDED.display_name,biography=EXCLUDED.biography,biography_html=EXCLUDED.biography_html,avatar_url=EXCLUDED.avatar_url,avatar_binding_id=EXCLUDED.avatar_binding_id,updated_at=EXCLUDED.updated_at", identity.ActorURI, profile.DisplayName, profile.Biography, profile.BiographyHTML, profile.AvatarURL, profile.AvatarBindingID, profile.UpdatedAt))
+ /*line zz_profiles.gen.go:62:1*/}
+ /*line profiles.mygo:95:1*/func LockProfileOwner(ctx context.Context, db *gorm.DB, siteID string, identity auth.Identity) Result[struct {
 }, failure.Failure] {
 	var account AccountRecord = Zero[AccountRecord]()
 	query := db.WithContext(ctx).Raw("SELECT * FROM accounts WHERE id=? AND site_id=? AND actor_uri=? AND NOT disabled FOR UPDATE", identity.AccountID, siteID, identity.ActorURI).Scan(&account)
- /*line profiles.mygo:104:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
- /*line profiles.mygo:105:12*/		return Err[struct{}, failure.Failure](Of("profile unavailable"))
- /*line profiles.mygo:104:3*/	} else {
- /*line zz_profiles.gen.go:67:1*/	}
- /*line profiles.mygo:107:3*/	if query.RowsAffected != int64(1) {
- /*line profiles.mygo:108:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
- /*line profiles.mygo:107:3*/	} else {
- /*line zz_profiles.gen.go:71:1*/	}
- /*line profiles.mygo:110:3*/	return Ok[struct{}, failure.Failure](struct {
- /*line zz_profiles.gen.go:73:1*/	}{})
+ /*line profiles.mygo:108:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line profiles.mygo:109:12*/		return Err[struct{}, failure.Failure](Of("profile unavailable"))
+ /*line profiles.mygo:108:3*/	} else {
+ /*line zz_profiles.gen.go:70:1*/	}
+ /*line profiles.mygo:111:3*/	if query.RowsAffected != int64(1) {
+ /*line profiles.mygo:112:12*/		return Err[struct{}, failure.Failure](Of("forbidden"))
+ /*line profiles.mygo:111:3*/	} else {
+ /*line zz_profiles.gen.go:74:1*/	}
+ /*line profiles.mygo:114:3*/	return Ok[struct{}, failure.Failure](struct {
+ /*line zz_profiles.gen.go:76:1*/	}{})
 }
+
+ /*line profiles.mygo:119:1*/var profileHandleSQL string
+ /*line zz_profiles.gen.go:80:1*/
+ /*line profiles.mygo:119:1*/func init() {
+	profileHandleSQL = "\nWITH candidates AS (\n  SELECT a.actor_uri,\n         a.username || '@' || split_part(s.canonical_origin, '://', 2) AS acct,\n         a.username AS username,\n         COALESCE(p.display_name, '') AS display_name,\n         COALESCE(p.biography, '') AS biography,\n         COALESCE(p.biography_html, '') AS biography_html,\n         COALESCE(p.avatar_url, '') AS avatar_url,\n         COALESCE(p.updated_at, to_timestamp(0)) AS updated_at,\n         1 AS source_rank\n  FROM accounts a\n  JOIN actors ac ON ac.uri = a.actor_uri AND ac.kind = 'Person'\n  JOIN sites s ON s.id = a.site_id\n  LEFT JOIN profiles p ON p.actor_uri = a.actor_uri\n  WHERE a.site_id = @site\n    AND NOT a.disabled\n    AND lower(a.username) = lower(@local)\n    AND (NOT @has_domain OR EXISTS (\n      SELECT 1 FROM site_authorities sa\n      WHERE sa.site_id = a.site_id AND sa.authority = @domain\n    ))\n  UNION ALL\n  SELECT a.actor_uri,\n         a.username || '@' || split_part(s.canonical_origin, '://', 2),\n         a.username,\n         COALESCE(p.display_name, ''),\n         COALESCE(p.biography, ''),\n         COALESCE(p.biography_html, ''),\n         COALESCE(p.avatar_url, ''),\n         COALESCE(p.updated_at, to_timestamp(0)),\n         2\n  FROM accounts a\n  JOIN actors ac ON ac.uri = a.actor_uri AND ac.kind = 'Person'\n  JOIN sites s ON s.id = a.site_id\n  LEFT JOIN profiles p ON p.actor_uri = a.actor_uri\n  WHERE @has_domain\n    AND a.site_id <> @site\n    AND NOT a.disabled\n    AND lower(a.username) = lower(@local)\n    AND EXISTS (\n      SELECT 1 FROM site_authorities sa\n      WHERE sa.site_id = a.site_id AND sa.authority = @domain\n    )\n  UNION ALL\n  SELECT ac.uri,\n         ac.acct,\n         '',\n         COALESCE(p.display_name, ''),\n         COALESCE(p.biography, ''),\n         COALESCE(p.biography_html, ''),\n         COALESCE(p.avatar_url, ''),\n         COALESCE(p.updated_at, to_timestamp(0)),\n         3\n  FROM actors ac\n  LEFT JOIN profiles p ON p.actor_uri = ac.uri\n  WHERE @has_domain\n    AND ac.kind = 'Person'\n    AND ac.local_site_id IS NULL\n    AND ac.acct <> ''\n    AND lower(ac.acct) = lower(@handle)\n    AND NOT EXISTS (\n      SELECT 1 FROM accounts d WHERE d.actor_uri = ac.uri AND d.disabled\n    )\n), visible AS (\n  SELECT DISTINCT ON (actor_uri) *\n  FROM candidates\n  WHERE NOT EXISTS (\n      SELECT 1 FROM site_actor_blocks b\n      WHERE b.site_id = @site AND b.actor_uri = candidates.actor_uri\n    )\n    AND NOT EXISTS (\n      SELECT 1 FROM site_domain_blocks d\n      WHERE d.site_id = @site\n        AND d.domain = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1))\n    )\n    AND NOT EXISTS (\n      SELECT 1 FROM site_bans b\n      WHERE b.site_id = @site\n        AND b.actor_uri = candidates.actor_uri\n        AND b.revoked_at IS NULL\n        AND (b.expires_at IS NULL OR b.expires_at > now())\n    )\n    AND (@account = 0 OR NOT EXISTS (\n      SELECT 1 FROM account_blocks b\n      WHERE b.site_id = @site\n        AND b.account_id = @account\n        AND ((b.kind = 'person' AND b.target = candidates.actor_uri)\n          OR (b.kind = 'instance' AND b.target = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1))))\n    ))\n  ORDER BY actor_uri, source_rank\n)\nSELECT actor_uri, acct, username, display_name, biography, biography_html, avatar_url, updated_at\nFROM visible\nORDER BY source_rank, actor_uri\nLIMIT 1\n"
+ /*line zz_profiles.gen.go:83:1*/}
+ /*line profiles.mygo:218:1*/func LoadProfileByHandle(ctx context.Context, db *gorm.DB, siteID string, accountID int64, raw string) Result[ProfileRecord, failure.Failure] {
+	trimmed := strings.TrimSpace(raw)
+ /*line profiles.mygo:226:3*/	if trimmed == "" {
+ /*line profiles.mygo:227:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
+ /*line profiles.mygo:226:3*/	} else {
+ /*line zz_profiles.gen.go:89:1*/	}
+ /*line profiles.mygo:218:1*/	parts := MygoIN6StringM5Split(trimmed, "@")
+ /*line profiles.mygo:230:3*/	if MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) > 2 {
+ /*line profiles.mygo:231:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
+ /*line profiles.mygo:230:3*/	} else {
+ /*line zz_profiles.gen.go:94:1*/	}
+ /*line profiles.mygo:218:1*/	hasDomain := MygoIT11IEnumerableFN16SliceIEnumerableGN1TEGN5SliceGN1TEN1TEM3Len(parts) == 2
+	local := MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 0), "")
+	var __mygo_expr_0 string
+	if hasDomain {
+		__mygo_expr_0 = strings.ToLower(MygoIN6OptionM8UnwrapOr(MygoIT10IIndexableFN14SliceIndexableGN1TEGN5SliceGN1TEN3IntN1TEM3Get(parts, 1), ""))
+	} else {
+		__mygo_expr_0 = ""
+ /*line zz_profiles.gen.go:102:1*/	}
+ /*line profiles.mygo:218:1*/	domain := __mygo_expr_0
+ /*line profiles.mygo:236:3*/	if local == "" || hasDomain && domain == "" {
+ /*line profiles.mygo:237:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
+ /*line profiles.mygo:236:3*/	} else {
+ /*line zz_profiles.gen.go:107:1*/	}
+ /*line profiles.mygo:218:1*/	record := Zero[ProfileRecord]()
+	query := db.WithContext(ctx).Raw(profileHandleSQL, sql.Named("site", siteID), sql.Named("local", local), sql.Named("domain", domain), sql.Named("has_domain", hasDomain), sql.Named("handle", trimmed), sql.Named("account", accountID)).Scan(&record)
+ /*line profiles.mygo:249:3*/	if MygoIN6ResultM5IsErr[struct{}, failure.Failure](MutationResult(query)) {
+ /*line profiles.mygo:250:12*/		return Err[ProfileRecord, failure.Failure](Of("profile unavailable"))
+ /*line profiles.mygo:249:3*/	} else {
+ /*line zz_profiles.gen.go:113:1*/	}
+ /*line profiles.mygo:252:3*/	if query.RowsAffected != int64(1) {
+ /*line profiles.mygo:253:12*/		return Err[ProfileRecord, failure.Failure](Of("not found"))
+ /*line profiles.mygo:252:3*/	} else {
+ /*line zz_profiles.gen.go:117:1*/	}
+ /*line profiles.mygo:255:3*/	return Ok[ProfileRecord, failure.Failure](record)
+ /*line zz_profiles.gen.go:119:1*/}

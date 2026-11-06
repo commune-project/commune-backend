@@ -1,0 +1,56 @@
+package storage
+
+import context "go:context"
+import sql "go:database/sql"
+import time "go:time"
+import gorm "go:gorm.io/gorm"
+import failure "github.com/commune-project/commune-backend/internal/failure"
+
+# One statement both resets an expired window and charges the attempt, so two
+# processes cannot both pass on the last slot. A rejected attempt leaves the row
+# untouched (the WHERE clause matches no row).
+let profileResolveLimitSQL = """
+INSERT INTO profile_resolve_limits(site_id, account_id, window_start, attempts)
+VALUES (@site, @account, @now, 1)
+ON CONFLICT (site_id, account_id) DO UPDATE SET
+  window_start = CASE
+    WHEN profile_resolve_limits.window_start <= @cutoff THEN @now
+    ELSE profile_resolve_limits.window_start
+  END,
+  attempts = CASE
+    WHEN profile_resolve_limits.window_start <= @cutoff THEN 1
+    ELSE profile_resolve_limits.attempts + 1
+  END
+WHERE profile_resolve_limits.window_start <= @cutoff
+   OR profile_resolve_limits.attempts < @limit
+RETURNING attempts
+"""
+
+func ConsumeProfileResolveAttempt(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  accountID: Int64,
+  limit: Int,
+  windowSeconds: Int,
+  now: time.Time
+) -> Result[Bool, failure.Failure]
+  if siteID == "" || accountID <= 0i64 || limit < 1 || windowSeconds < 1 then
+    return Err(Of("invalid resolve limit"))
+  end
+  let cutoff = now.Add(0 as time.Duration - windowSeconds as time.Duration * time.Second)
+  var attempts: Int = 0
+  let query = db.WithContext(ctx).Raw(
+    profileResolveLimitSQL,
+    sql.Named("site", siteID),
+    sql.Named("account", accountID),
+    sql.Named("now", now),
+    sql.Named("cutoff", cutoff),
+    sql.Named("limit", limit)
+  ).Scan(Ref.new(attempts))
+  if MutationResult(query).IsErr() then
+    return Err(Of("resolve limit unavailable"))
+  end
+  Ok(query.RowsAffected == 1i64)
+end
+

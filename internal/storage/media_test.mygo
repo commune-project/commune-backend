@@ -148,13 +148,13 @@ func TestPostgresMediaAvatarReplacement(t: Ref[testing.T]) -> ()
   var url: String = ""
   let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     url = repo.BindAvatarTx(ctx, tx, alice, upload.ID).Unwrap()
-    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Acct: "", Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: site.Origin + url, AvatarBindingID: strings.TrimPrefix(url, "/api/v1/media/"), UpdatedAt: time.Now()})
   end).Unwrap()
   let noop = func(row: MediaUpload, file: Ref[os.File]) -> Result[(), failure.Failure] Ok(()) end
   let _ = repo.Read(ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop).Unwrap()
   let _ = RunTransaction(ctx, db, func(tx: Ref[gorm.DB]) -> Result[(), failure.Failure]
     let _ = repo.BindAvatarTx(ctx, tx, alice, "").Unwrap()
-    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
+    SaveProfile(ctx, tx, alice, ProfileRecord{ActorURI: alice.ActorURI, Acct: "", Username: "", DisplayName: "", Biography: "", BiographyHTML: "", AvatarURL: "", AvatarBindingID: "", UpdatedAt: time.Now()})
   end).Unwrap()
   if repo.Read(ctx, Zero[auth.Identity](), strings.TrimPrefix(url, "/api/v1/media/"), true, noop).IsOk() then t.Fatal("removed avatar public") end
 end

@@ -106,6 +106,8 @@ func validInput() -> Input
       MaxFetchBytes: 1048576,
       MaxRedirects: 5,
       ClockSkewSeconds: 300,
+      ProfileResolveLimit: 20,
+      ProfileResolveWindowSeconds: 3600,
     },
   }
 end
@@ -358,3 +360,25 @@ func TestRenderingTemplateDefaults(t: Ref[testing.T]) -> ()
     end
   end)
 end
+
+func TestFederationProfileResolveDefaults(t: Ref[testing.T]) -> ()
+  var input = validInput()
+  input.Federation.ProfileResolveLimit = 0
+  input.Federation.ProfileResolveWindowSeconds = 0
+  let settings = Validate(input).Unwrap()
+  if settings.Federation.ProfileResolveLimit != 20 ||
+    settings.Federation.ProfileResolveWindowSeconds != 3600 then
+    t.Fatal("federation profile resolve defaults changed")
+  end
+  var tooMany = validInput()
+  tooMany.Federation.ProfileResolveLimit = 1001
+  if Validate(tooMany).IsOk() then
+    t.Fatal("out-of-range resolve limit was accepted")
+  end
+  var tooShort = validInput()
+  tooShort.Federation.ProfileResolveWindowSeconds = 59
+  if Validate(tooShort).IsOk() then
+    t.Fatal("out-of-range resolve window was accepted")
+  end
+end
+

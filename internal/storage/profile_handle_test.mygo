@@ -1,0 +1,55 @@
+package storage
+
+import testing "go:testing"
+import context "go:context"
+import time "go:time"
+import testsupport "github.com/commune-project/commune-backend/internal/testsupport"
+import transport "go:github.com/commune-project/commune-backend/internal/testtransport"
+
+func TestPostgresProfileHandleLookup(t: Ref[testing.T]) -> ()
+  let db = transport.ORM(testsupport.Postgres(t)).Unwrap()
+  let ctx = context.Background()
+  let _ = MigrateGORM(ctx, db).Unwrap()
+  let a = testSite("a", "https://a.example")
+  let b = testSite("b", "https://b.example")
+  let _ = ProvisionSite(ctx, db, a).Unwrap()
+  let _ = ProvisionSite(ctx, db, b).Unwrap()
+  let alice = AccountRepository{DB: db}.Create(ctx, a, "alice", "", "alice-password").Unwrap()
+  let carol = AccountRepository{DB: db}.Create(ctx, b, "carol", "", "carol-password").Unwrap()
+  let now = time.Now()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,?)", alice.ActorURI, "Alice", now)).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,?)", carol.ActorURI, "Carol", now)).Unwrap()
+  let remy = "https://remote.example/users/remy"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", remy, "https://remote.example/inbox", "remy@remote.example")).Unwrap()
+  let _ = MutationResult(db.Exec("INSERT INTO profiles(actor_uri,display_name,updated_at) VALUES (?,?,?)", remy, "Remy", now)).Unwrap()
+  let local = LoadProfileByHandle(ctx, db, a.ID, 0i64, "alice").Unwrap()
+  if local.ActorURI != alice.ActorURI || local.Username != "alice" || local.Acct != "alice@a.example" then
+    t.Fatal("bare username did not resolve to the requesting site account")
+  end
+  let sameSite = LoadProfileByHandle(ctx, db, a.ID, 0i64, "alice@a.example").Unwrap()
+  if sameSite.ActorURI != alice.ActorURI || sameSite.Username != "alice" then
+    t.Fatal("current-site handle did not resolve locally")
+  end
+  let otherSite = LoadProfileByHandle(ctx, db, a.ID, 0i64, "carol@b.example").Unwrap()
+  if otherSite.ActorURI != carol.ActorURI || otherSite.Username != "carol" || otherSite.Acct != "carol@b.example" then
+    t.Fatal("other configured site handle did not resolve")
+  end
+  let remote = LoadProfileByHandle(ctx, db, a.ID, 0i64, "REMY@remote.example").Unwrap()
+  if remote.ActorURI != remy || remote.Username != "" || remote.Acct != "remy@remote.example" then
+    t.Fatal("stored remote handle did not resolve case-insensitively")
+  end
+  let collision = "https://remote.example/users/alice"
+  let _ = MutationResult(db.Exec("INSERT INTO actors(uri,kind,inbox_uri,acct) VALUES (?,'Person',?,?)", collision, "https://remote.example/inbox", "alice@a.example")).Unwrap()
+  let preferred = LoadProfileByHandle(ctx, db, a.ID, 0i64, "alice@a.example").Unwrap()
+  if preferred.ActorURI != alice.ActorURI then
+    t.Fatal("stored remote handle shadowed a configured-site account")
+  end
+  let _ = MutationResult(db.Exec("INSERT INTO site_actor_blocks(site_id,actor_uri) VALUES (?,?)", a.ID, remy)).Unwrap()
+  if LoadProfileByHandle(ctx, db, a.ID, 0i64, "remy@remote.example").IsOk() then
+    t.Fatal("site actor block did not hide the profile")
+  end
+  if LoadProfileByHandle(ctx, db, a.ID, 0i64, "missing@remote.example").IsOk() then
+    t.Fatal("unknown handle resolved")
+  end
+end
+

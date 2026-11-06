@@ -85,11 +85,21 @@ func ProfileRoute(
       MethodNotAllowed(w, "GET")
       return true
     end
-    let loaded = storage.PublicProfile(request.Context(), db, site.ID, parts.Get(3).Unwrap())
-    if loaded.IsErr() then
-      FailFailure(w, loaded.UnwrapErr())
-    else
-      WriteJSON(w, 200, loaded.Unwrap())
+    let viewer = BrowserIdentity(db, site, request, false)
+    if viewer.IsErr() then
+      FailFailure(w, viewer.UnwrapErr())
+      return true
+    end
+    let loaded = storage.LoadProfileByHandle(
+      request.Context(),
+      db,
+      site.ID,
+      viewer.Unwrap().AccountID,
+      parts.Get(3).Unwrap()
+    )
+    switch loaded
+      case Err(reason) => FailFailure(w, reason)
+      case Ok(profile) => WriteJSON(w, 200, profile)
     end
     return true
   end

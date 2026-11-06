@@ -32,6 +32,8 @@ struct Federation
   MaxFetchBytes: Int `json:"max_fetch_bytes"`
   MaxRedirects: Int `json:"max_redirects"`
   ClockSkewSeconds: Int `json:"clock_skew_seconds"`
+  ProfileResolveLimit: Int `json:"profile_resolve_limit"`
+  ProfileResolveWindowSeconds: Int `json:"profile_resolve_window_seconds"`
 end
 
 struct Input
@@ -115,7 +117,7 @@ func Validate(input: Input) -> Result[Config, String]
   if runtimeResult.IsErr() then
     return Err(runtimeResult.UnwrapErr())
   end
-  let federationResult = ValidateFederation(input.Federation)
+  let federationResult = ValidateFederation(settings.Federation)
   if federationResult.IsErr() then
     return Err(federationResult.UnwrapErr())
   end
@@ -209,7 +211,7 @@ func Validate(input: Input) -> Result[Config, String]
     DatabaseURL: input.DatabaseURL,
     TrustedProxies: proxies,
     Runtime: input.Runtime,
-    Federation: input.Federation,
+    Federation: settings.Federation,
     Registration: settings.Registration,
     SMTP: settings.SMTP,
     Media: settings.Media,
@@ -230,6 +232,12 @@ func ValidateFederation(federation: Federation) -> Result[(), String]
   end
   if federation.ClockSkewSeconds < 60 || federation.ClockSkewSeconds > 3600 then
     return Err("federation clock skew window is missing or out of range")
+  end
+  if federation.ProfileResolveLimit < 1 || federation.ProfileResolveLimit > 1000 then
+    return Err("federation profile resolve limit is out of range")
+  end
+  if federation.ProfileResolveWindowSeconds < 60 || federation.ProfileResolveWindowSeconds > 86400 then
+    return Err("federation profile resolve window is out of range")
   end
   Ok(())
 end

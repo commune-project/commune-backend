@@ -53,6 +53,7 @@ func TestPersonProfileSerialization(t: Ref[testing.T]) -> ()
     },
     storage.ProfileRecord{
       ActorURI: "",
+      Acct: "",
       Username: "",
       DisplayName: "Alice",
       Biography: "",

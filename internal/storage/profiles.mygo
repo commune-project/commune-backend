@@ -2,12 +2,15 @@ package storage
 
 import context "go:context"
 import gorm "go:gorm.io/gorm"
+import sql "go:database/sql"
+import strings "go:strings"
 import time "go:time"
 import auth "github.com/commune-project/commune-backend/internal/auth"
 import failure "github.com/commune-project/commune-backend/internal/failure"
 
 struct ProfileRecord
   ActorURI: String `gorm:"column:actor_uri" json:"actor_uri"`
+  Acct: String `gorm:"column:acct" json:"acct"`
   Username: String `gorm:"column:username" json:"username"`
   DisplayName: String `gorm:"column:display_name" json:"display_name"`
   Biography: String `gorm:"column:biography" json:"biography"`
@@ -24,6 +27,7 @@ func LoadProfile(
 ) -> Result[ProfileRecord, failure.Failure]
   let profile: ProfileRecord = ProfileRecord{
     ActorURI: actorURI,
+    Acct: "",
     Username: "",
     DisplayName: "",
     Biography: "",
@@ -109,3 +113,146 @@ func LockProfileOwner(
   end
   Ok(())
 end
+
+# Handle lookup: local accounts of any configured site win over stored remote
+# Persons, and every source applies the same site and personal block policy.
+let profileHandleSQL = """
+WITH candidates AS (
+  SELECT a.actor_uri,
+         a.username || '@' || split_part(s.canonical_origin, '://', 2) AS acct,
+         a.username AS username,
+         COALESCE(p.display_name, '') AS display_name,
+         COALESCE(p.biography, '') AS biography,
+         COALESCE(p.biography_html, '') AS biography_html,
+         COALESCE(p.avatar_url, '') AS avatar_url,
+         COALESCE(p.updated_at, to_timestamp(0)) AS updated_at,
+         1 AS source_rank
+  FROM accounts a
+  JOIN actors ac ON ac.uri = a.actor_uri AND ac.kind = 'Person'
+  JOIN sites s ON s.id = a.site_id
+  LEFT JOIN profiles p ON p.actor_uri = a.actor_uri
+  WHERE a.site_id = @site
+    AND NOT a.disabled
+    AND lower(a.username) = lower(@local)
+    AND (NOT @has_domain OR EXISTS (
+      SELECT 1 FROM site_authorities sa
+      WHERE sa.site_id = a.site_id AND sa.authority = @domain
+    ))
+  UNION ALL
+  SELECT a.actor_uri,
+         a.username || '@' || split_part(s.canonical_origin, '://', 2),
+         a.username,
+         COALESCE(p.display_name, ''),
+         COALESCE(p.biography, ''),
+         COALESCE(p.biography_html, ''),
+         COALESCE(p.avatar_url, ''),
+         COALESCE(p.updated_at, to_timestamp(0)),
+         2
+  FROM accounts a
+  JOIN actors ac ON ac.uri = a.actor_uri AND ac.kind = 'Person'
+  JOIN sites s ON s.id = a.site_id
+  LEFT JOIN profiles p ON p.actor_uri = a.actor_uri
+  WHERE @has_domain
+    AND a.site_id <> @site
+    AND NOT a.disabled
+    AND lower(a.username) = lower(@local)
+    AND EXISTS (
+      SELECT 1 FROM site_authorities sa
+      WHERE sa.site_id = a.site_id AND sa.authority = @domain
+    )
+  UNION ALL
+  SELECT ac.uri,
+         ac.acct,
+         '',
+         COALESCE(p.display_name, ''),
+         COALESCE(p.biography, ''),
+         COALESCE(p.biography_html, ''),
+         COALESCE(p.avatar_url, ''),
+         COALESCE(p.updated_at, to_timestamp(0)),
+         3
+  FROM actors ac
+  LEFT JOIN profiles p ON p.actor_uri = ac.uri
+  WHERE @has_domain
+    AND ac.kind = 'Person'
+    AND ac.local_site_id IS NULL
+    AND ac.acct <> ''
+    AND lower(ac.acct) = lower(@handle)
+    AND NOT EXISTS (
+      SELECT 1 FROM accounts d WHERE d.actor_uri = ac.uri AND d.disabled
+    )
+), visible AS (
+  SELECT DISTINCT ON (actor_uri) *
+  FROM candidates
+  WHERE NOT EXISTS (
+      SELECT 1 FROM site_actor_blocks b
+      WHERE b.site_id = @site AND b.actor_uri = candidates.actor_uri
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM site_domain_blocks d
+      WHERE d.site_id = @site
+        AND d.domain = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1))
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM site_bans b
+      WHERE b.site_id = @site
+        AND b.actor_uri = candidates.actor_uri
+        AND b.revoked_at IS NULL
+        AND (b.expires_at IS NULL OR b.expires_at > now())
+    )
+    AND (@account = 0 OR NOT EXISTS (
+      SELECT 1 FROM account_blocks b
+      WHERE b.site_id = @site
+        AND b.account_id = @account
+        AND ((b.kind = 'person' AND b.target = candidates.actor_uri)
+          OR (b.kind = 'instance' AND b.target = lower(split_part(split_part(split_part(candidates.actor_uri, '://', 2), '/', 1), ':', 1))))
+    ))
+  ORDER BY actor_uri, source_rank
+)
+SELECT actor_uri, acct, username, display_name, biography, biography_html, avatar_url, updated_at
+FROM visible
+ORDER BY source_rank, actor_uri
+LIMIT 1
+"""
+
+
+func LoadProfileByHandle(
+  ctx: context.Context,
+  db: Ref[gorm.DB],
+  siteID: String,
+  accountID: Int64,
+  raw: String
+) -> Result[ProfileRecord, failure.Failure]
+  let trimmed = strings.TrimSpace(raw)
+  if trimmed == "" then
+    return Err(Of("not found"))
+  end
+  let parts = trimmed.Split("@")
+  if parts.Len() > 2 then
+    return Err(Of("not found"))
+  end
+  let hasDomain = parts.Len() == 2
+  let local = parts.Get(0).UnwrapOr("")
+  let domain = if hasDomain => strings.ToLower(parts.Get(1).UnwrapOr("")) else ""
+  if local == "" || (hasDomain && domain == "") then
+    return Err(Of("not found"))
+  end
+  let record = Zero[ProfileRecord]()
+  let query = db.WithContext(ctx).Raw(
+    profileHandleSQL,
+    sql.Named("site", siteID),
+    sql.Named("local", local),
+    sql.Named("domain", domain),
+    sql.Named("has_domain", hasDomain),
+    sql.Named("handle", trimmed),
+    sql.Named("account", accountID)
+  ).Scan(Ref.new(record))
+  if MutationResult(query).IsErr() then
+    return Err(Of("profile unavailable"))
+  end
+  if query.RowsAffected != 1i64 then
+    return Err(Of("not found"))
+  end
+  Ok(record)
+end
+
+
